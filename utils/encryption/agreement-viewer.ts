@@ -186,7 +186,11 @@ export async function viewEncryptedAgreement(
     return decryptedBlob;
   } catch (error) {
     console.error("Error viewing encrypted agreement:", error);
-    throw new Error(`Failed to decrypt and view agreement: ${error.message}`);
+    throw new Error(
+      `Failed to decrypt and view agreement: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
