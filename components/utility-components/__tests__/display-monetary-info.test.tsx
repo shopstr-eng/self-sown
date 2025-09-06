@@ -55,6 +55,19 @@ describe("CompactPriceDisplay", () => {
     expect(screen.getByText(/450 SATS - Free \/ Pickup/)).toBeInTheDocument();
   });
 
+  it('displays "Added Cost / Pickup" correctly', () => {
+    const monetaryInfo = {
+      price: 1000,
+      currency: "SATS",
+      shippingType: "Added Cost/Pickup",
+      shippingCost: 50,
+    };
+    render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);
+    expect(
+      screen.getByText(/1k SATS \+ 50 SATS Shipping or Pickup/)
+    ).toBeInTheDocument();
+  });
+
   it("does not display a shipping label if no shipping type is provided", () => {
     const monetaryInfo = { price: 100, currency: "SATS" };
     render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);

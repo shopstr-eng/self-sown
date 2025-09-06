@@ -586,7 +586,8 @@ export default function ProductInvoiceCard({
         if (
           productData.shippingType === "Added Cost" ||
           productData.shippingType === "Free" ||
-          (productData.shippingType === "Free/Pickup" &&
+          ((productData.shippingType === "Free/Pickup" ||
+            productData.shippingType === "Added Cost/Pickup") &&
             formType === "shipping")
         ) {
           let productDetails = "";
@@ -681,7 +682,9 @@ export default function ProductInvoiceCard({
         } else if (
           productData.shippingType === "N/A" ||
           productData.shippingType === "Pickup" ||
-          (productData.shippingType === "Free/Pickup" && formType === "contact")
+          ((productData.shippingType === "Free/Pickup" ||
+            productData.shippingType === "Added Cost/Pickup") &&
+            formType === "contact")
         ) {
           let productDetails = "";
           if (selectedSize) {
@@ -1360,7 +1363,8 @@ export default function ProductInvoiceCard({
       if (
         productData.shippingType === "Added Cost" ||
         productData.shippingType === "Free" ||
-        productData.shippingType === "Free/Pickup"
+        productData.shippingType === "Free/Pickup" ||
+        productData.shippingType === "Added Cost/Pickup"
       ) {
         let productDetails = "";
         if (selectedSize) {
@@ -1461,7 +1465,8 @@ export default function ProductInvoiceCard({
       if (
         productData.shippingType === "N/A" ||
         productData.shippingType === "Pickup" ||
-        productData.shippingType === "Free/Pickup"
+        productData.shippingType === "Free/Pickup" ||
+        productData.shippingType === "Added Cost/Pickup"
       ) {
         let productDetails = "";
         if (selectedSize) {
@@ -1763,7 +1768,8 @@ export default function ProductInvoiceCard({
 
     return (
       <div className="space-y-4">
-        {productData.shippingType === "Free/Pickup" ||
+        {productData.shippingType === "Added Cost/Pickup" ||
+        productData.shippingType === "Free/Pickup" ||
         productData.shippingType === "Pickup" ? (
           <Controller
             name="pickupLocation"
@@ -2367,13 +2373,14 @@ export default function ProductInvoiceCard({
             <>
               <h2 className="mb-6 text-2xl font-bold">Select Order Type</h2>
               <div className="space-y-4">
-                {productData.shippingType === "Free/Pickup" ? (
+                {productData.shippingType === "Free/Pickup" ||
+                productData.shippingType === "Added Cost/Pickup" ? (
                   <>
                     <button
                       onClick={() => handleOrderTypeSelection("shipping")}
                       className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
                     >
-                      <div className="font-medium">Free shipping</div>
+                      <div className="font-medium">Free or added shipping</div>
                       <div className="text-sm text-gray-500">
                         Get it shipped to your address
                       </div>

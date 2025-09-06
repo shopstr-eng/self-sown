@@ -162,13 +162,16 @@ export default function CartInvoiceCard({
     return Array.from(new Set(Object.values(shippingTypes)));
   }, [shippingTypes]);
 
-  const hasFreePickupProducts = useMemo(() => {
-    return Object.values(shippingTypes).includes("Free/Pickup");
+  const hasShippingPickupProducts = useMemo(() => {
+    return (
+      Object.values(shippingTypes).includes("Free/Pickup") ||
+      Object.values(shippingTypes).includes("Added Cost/Pickup")
+    );
   }, [shippingTypes]);
 
-  const hasMixedShippingWithFreePickup = useMemo(() => {
-    return uniqueShippingTypes.length > 1 && hasFreePickupProducts;
-  }, [uniqueShippingTypes, hasFreePickupProducts]);
+  const hasMixedShippingWithPickup = useMemo(() => {
+    return uniqueShippingTypes.length > 1 && hasShippingPickupProducts;
+  }, [uniqueShippingTypes, hasShippingPickupProducts]);
 
   const [requiredInfo, setRequiredInfo] = useState("");
 
@@ -186,7 +189,8 @@ export default function CartInvoiceCard({
   const productsWithPickupLocations = useMemo(() => {
     return products.filter(
       (product) =>
-        (product.shippingType === "Free/Pickup" ||
+        (product.shippingType === "Added Cost/Pickup" ||
+          product.shippingType === "Free/Pickup" ||
           product.shippingType === "Pickup") &&
         product.pickupLocations &&
         product.pickupLocations.length > 0
@@ -661,8 +665,7 @@ export default function CartInvoiceCard({
       setFormType("contact");
     } else if (selectedOrderType === "combined") {
       setFormType("combined");
-      // Show Free/Pickup preference selection if we have mixed shipping with Free/Pickup
-      if (hasMixedShippingWithFreePickup) {
+      if (hasMixedShippingWithPickup) {
         setShowFreePickupSelection(true);
       }
     }
@@ -803,7 +806,9 @@ export default function CartInvoiceCard({
           if (
             productShippingType === "Added Cost" ||
             productShippingType === "Free" ||
-            (productShippingType === "Free/Pickup" && formType === "shipping")
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
+              formType === "shipping")
           ) {
             let contactMessage = "";
             if (!data.shippingUnitNo) {
@@ -887,7 +892,9 @@ export default function CartInvoiceCard({
           } else if (
             productShippingType === "N/A" ||
             productShippingType === "Pickup" ||
-            (productShippingType === "Free/Pickup" && formType === "contact")
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
+              formType === "contact")
           ) {
             let contactMessage;
             let receiptMessage;
@@ -1625,7 +1632,8 @@ export default function CartInvoiceCard({
         formType === "shipping" ||
         (formType === "combined" &&
           (productShippingType !== "Free/Pickup" ||
-            (productShippingType === "Free/Pickup" &&
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
               freePickupPreference === "shipping")));
 
       const shouldUseContact =
@@ -1633,7 +1641,8 @@ export default function CartInvoiceCard({
         (formType === "combined" &&
           (productShippingType === "N/A" ||
             productShippingType === "Pickup" ||
-            (productShippingType === "Free/Pickup" &&
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
               freePickupPreference === "contact")));
 
       if (
@@ -1649,7 +1658,8 @@ export default function CartInvoiceCard({
         if (
           productShippingType === "Added Cost" ||
           productShippingType === "Free" ||
-          productShippingType === "Free/Pickup"
+          productShippingType === "Free/Pickup" ||
+          productShippingType === "Added Cost/Pickup"
         ) {
           let productDetails = "";
           if (product.selectedSize) {
@@ -1772,7 +1782,8 @@ export default function CartInvoiceCard({
         if (
           productShippingType === "N/A" ||
           productShippingType === "Pickup" ||
-          productShippingType === "Free/Pickup"
+          productShippingType === "Free/Pickup" ||
+          productShippingType === "Added Cost/Pickup"
         ) {
           let productDetails = "";
           if (product.selectedSize) {
@@ -2727,21 +2738,22 @@ export default function CartInvoiceCard({
                     >
                       <div className="font-medium">Mixed delivery</div>
                       <div className="text-sm text-gray-500">
-                        {hasFreePickupProducts
+                        {hasShippingPickupProducts
                           ? "Products require different delivery methods (includes flexible shipping/pickup options)"
                           : "Products require different delivery methods"}
                       </div>
                     </button>
                   </>
                 ) : uniqueShippingTypes.length === 1 &&
-                  uniqueShippingTypes[0] === "Free/Pickup" ? (
+                  (uniqueShippingTypes[0] === "Free/Pickup" ||
+                    uniqueShippingTypes[0] === "Added Cost/Pickup") ? (
                   <>
                     {/* All products have Free/Pickup - show shipping and contact options */}
                     <button
                       onClick={() => handleOrderTypeSelection("shipping")}
                       className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
                     >
-                      <div className="font-medium">Free shipping</div>
+                      <div className="font-medium">Free or added shipping</div>
                       <div className="text-sm text-gray-500">
                         Get products shipped to your address
                       </div>
@@ -2788,11 +2800,11 @@ export default function CartInvoiceCard({
           {showFreePickupSelection && (
             <>
               <h2 className="mb-6 text-2xl font-bold">
-                Free/Pickup Products Preference
+                Shipping/Pickup Products Preference
               </h2>
               <p className="mb-4 text-gray-600">
-                Some products offer both free shipping and pickup options. How
-                would you like to handle these products?
+                Some products offer both shipping and pickup options. How would
+                you like to handle these products?
               </p>
               <div className="mb-6 space-y-4">
                 <button

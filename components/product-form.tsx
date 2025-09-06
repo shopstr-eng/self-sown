@@ -118,7 +118,7 @@ export default function ProductForm({
         }
       : {
           Currency: "USD",
-          "Shipping Option": "N/A",
+          "Shipping Option": "Pickup",
           Status: "active",
           "Pickup Locations": [""],
         },
@@ -254,7 +254,8 @@ export default function ProductForm({
       data["Pickup Locations"] &&
       Array.isArray(data["Pickup Locations"]) &&
       (data["Shipping Option"] === "Pickup" ||
-        data["Shipping Option"] === "Free/Pickup")
+        data["Shipping Option"] === "Free/Pickup" ||
+        data["Shipping Option"] === "Added Cost/Pickup")
     ) {
       (data["Pickup Locations"] as string[])
         .filter((location) => location.trim() !== "")
@@ -700,7 +701,8 @@ export default function ProductForm({
               }}
             />
 
-            {watchShippingOption === "Added Cost" && (
+            {(watchShippingOption === "Added Cost" ||
+              watchShippingOption === "Added Cost/Pickup") && (
               <Controller
                 name="Shipping Cost"
                 control={control}
@@ -759,7 +761,8 @@ export default function ProductForm({
             )}
 
             {(watchShippingOption === "Pickup" ||
-              watchShippingOption === "Free/Pickup") && (
+              watchShippingOption === "Free/Pickup" ||
+              watchShippingOption === "Added Cost/Pickup") && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-dark-text">
                   Pickup Locations
