@@ -191,6 +191,21 @@ export default function DisplayProductModal({
                 </div>
               </>
             ) : null}
+            {productData.weights && productData.weights.length > 0 ? (
+              <>
+                <span className="text-xl font-semibold">Weights: </span>
+                <div className="flex flex-wrap items-center">
+                  {productData.weights && productData.weights.length > 0
+                    ? productData.weights.map((weight: string) => (
+                        <span key={weight} className="mb-2 mr-4 text-dark-text">
+                          {weight}: {productData.weightPrices?.get(weight) || 0}{" "}
+                          {productData.currency}
+                        </span>
+                      ))
+                    : null}
+                </div>
+              </>
+            ) : null}
             {productData.condition && (
               <>
                 <div className="text-left text-xs text-dark-text">

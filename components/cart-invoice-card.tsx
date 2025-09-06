@@ -696,6 +696,13 @@ export default function CartInvoiceCard({
             productDetails += " in a " + product.selectedVolume;
           }
         }
+        if (product.selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + product.selectedWeight;
+          } else {
+            productDetails += " weighing " + product.selectedWeight;
+          }
+        }
 
         // Add pickup location if available for this specific product
         const pickupLocation =
@@ -965,6 +972,13 @@ export default function CartInvoiceCard({
               productDetails += " and a " + product.selectedVolume;
             } else {
               productDetails += " in a " + product.selectedVolume;
+            }
+          }
+          if (product.selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + product.selectedWeight;
+            } else {
+              productDetails += " weighing " + product.selectedWeight;
             }
           }
 
@@ -1311,6 +1325,13 @@ export default function CartInvoiceCard({
                 productDetails += " in a " + product.selectedVolume;
               }
             }
+            if (product.selectedWeight) {
+              if (productDetails) {
+                productDetails += " and weighing " + product.selectedWeight;
+              } else {
+                productDetails += " weighing " + product.selectedWeight;
+              }
+            }
 
             // Add pickup location if available for this specific product
             const pickupLocation =
@@ -1417,6 +1438,13 @@ export default function CartInvoiceCard({
                 productDetails += " in a " + product.selectedVolume;
               }
             }
+            if (product.selectedWeight) {
+              if (productDetails) {
+                productDetails += " and weighing " + product.selectedWeight;
+              } else {
+                productDetails += " weighing " + product.selectedWeight;
+              }
+            }
 
             // Add pickup location if available for this specific product
             const pickupLocation =
@@ -1485,6 +1513,13 @@ export default function CartInvoiceCard({
             productDetails += " and a " + product.selectedVolume;
           } else {
             productDetails += " in a " + product.selectedVolume;
+          }
+        }
+        if (product.selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + product.selectedWeight;
+          } else {
+            productDetails += " weighing " + product.selectedWeight;
           }
         }
 
@@ -1627,6 +1662,13 @@ export default function CartInvoiceCard({
               productDetails += " in a " + product.selectedVolume;
             }
           }
+          if (product.selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + product.selectedWeight;
+            } else {
+              productDetails += " weighing " + product.selectedWeight;
+            }
+          }
 
           // Add pickup location if available for this specific product
           const pickupLocation =
@@ -1743,6 +1785,13 @@ export default function CartInvoiceCard({
               productDetails += " in a " + product.selectedVolume;
             }
           }
+          if (product.selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + product.selectedWeight;
+            } else {
+              productDetails += " weighing " + product.selectedWeight;
+            }
+          }
 
           // Add pickup location if available for this specific product
           const pickupLocation =
@@ -1839,6 +1888,13 @@ export default function CartInvoiceCard({
             productDetails += " and a " + product.selectedVolume;
           } else {
             productDetails += " in a " + product.selectedVolume;
+          }
+        }
+        if (product.selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + product.selectedWeight;
+          } else {
+            productDetails += " weighing " + product.selectedWeight;
           }
         }
 
@@ -2407,6 +2463,11 @@ export default function CartInvoiceCard({
                           Volume: {product.selectedVolume}
                         </p>
                       )}
+                      {product.selectedWeight && (
+                        <p className="text-sm text-gray-600">
+                          Weight: {product.selectedWeight}
+                        </p>
+                      )}
                       <p className="text-sm text-gray-600">
                         Quantity: {quantities[product.id] || 1}
                       </p>
@@ -2436,9 +2497,11 @@ export default function CartInvoiceCard({
                           <span className="ml-2">Product cost:</span>
                           <span>
                             {formatWithCommas(
-                              (product.volumePrice !== undefined
-                                ? product.volumePrice
-                                : product.price) *
+                              (product.weightPrice !== undefined
+                                ? product.weightPrice
+                                : product.volumePrice !== undefined
+                                  ? product.volumePrice
+                                  : product.price) *
                                 (quantities[product.id] || 1),
                               "sats"
                             )}
@@ -2575,6 +2638,11 @@ export default function CartInvoiceCard({
                         Volume: {product.selectedVolume}
                       </p>
                     )}
+                    {product.selectedWeight && (
+                      <p className="text-sm text-gray-600">
+                        Weight: {product.selectedWeight}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600">
                       Quantity: {quantities[product.id] || 1}
                     </p>
@@ -2602,9 +2670,12 @@ export default function CartInvoiceCard({
                         <span className="ml-2">Product cost:</span>
                         <span>
                           {formatWithCommas(
-                            (product.volumePrice !== undefined
-                              ? product.volumePrice
-                              : product.price) * (quantities[product.id] || 1),
+                            (product.weightPrice !== undefined
+                              ? product.weightPrice
+                              : product.volumePrice !== undefined
+                                ? product.volumePrice
+                                : product.price) *
+                              (quantities[product.id] || 1),
                             "sats"
                           )}
                         </span>

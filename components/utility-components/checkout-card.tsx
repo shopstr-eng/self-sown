@@ -23,6 +23,7 @@ import SignInModal from "../sign-in/SignInModal";
 import currencySelection from "../../public/currencySelection.json";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import VolumeSelector from "./volume-selector";
+import WeightSelector from "./weight-selector";
 
 const SUMMARY_CHARACTER_LIMIT = 100;
 
@@ -72,11 +73,13 @@ export default function CheckoutCard({
 
   const [cart, setCart] = useState<ProductData[]>([]);
   const [selectedVolume, setSelectedVolume] = useState<string>("");
+  const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentPrice, setCurrentPrice] = useState(productData.price);
 
   const reviewsContext = useContext(ReviewsContext);
 
   const hasVolumes = productData.volumes && productData.volumes.length > 0;
+  const hasWeights = productData.weights && productData.weights.length > 0;
 
   useEffect(() => {
     if (selectedVolume && productData.volumePrices) {
@@ -84,10 +87,21 @@ export default function CheckoutCard({
       if (volumePrice !== undefined) {
         setCurrentPrice(volumePrice);
       }
+    } else if (selectedWeight && productData.weightPrices) {
+      const weightPrice = productData.weightPrices.get(selectedWeight);
+      if (weightPrice !== undefined) {
+        setCurrentPrice(weightPrice);
+      }
     } else {
       setCurrentPrice(productData.price);
     }
-  }, [selectedVolume, productData.price, productData.volumePrices]);
+  }, [
+    selectedVolume,
+    productData.price,
+    productData.volumePrices,
+    selectedWeight,
+    productData.weightPrices,
+  ]);
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -243,6 +257,16 @@ export default function CheckoutCard({
           }
         }
       }
+      if (selectedWeight) {
+        productToAdd.selectedWeight = selectedWeight;
+        // Set the weight price if one exists
+        if (productData.weightPrices) {
+          const weightPrice = productData.weightPrices.get(selectedWeight);
+          if (weightPrice !== undefined) {
+            productToAdd.weightPrice = weightPrice;
+          }
+        }
+      }
 
       updatedCart = [...cart, productToAdd];
       setCart(updatedCart);
@@ -309,7 +333,7 @@ export default function CheckoutCard({
     );
   };
 
-  // Create updated product data with selected volume price
+  // Create updated product data with selected volume or weight price
   const updatedProductData = {
     ...productData,
     price: currentPrice,
@@ -463,6 +487,16 @@ export default function CheckoutCard({
                       isRequired={true}
                     />
                   )}
+                  {hasWeights && (
+                    <WeightSelector
+                      weights={productData.weights!}
+                      weightPrices={productData.weightPrices!}
+                      currency={productData.currency}
+                      selectedWeight={selectedWeight}
+                      onWeightChange={setSelectedWeight}
+                      isRequired={true}
+                    />
+                  )}
                   <div className="mt-4">
                     <DisplayCheckoutCost monetaryInfo={updatedProductData} />
                   </div>
@@ -487,14 +521,16 @@ export default function CheckoutCard({
                           <Button
                             className={`mmin-w-fit bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg ${
                               (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume)
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
                             }`}
                             onClick={toggleBuyNow}
                             disabled={
                               (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume)
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight)
                             }
                           >
                             Buy Now
@@ -503,7 +539,8 @@ export default function CheckoutCard({
                             className={`${BLACKBUTTONCLASSNAMES} ${
                               isAdded ||
                               (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume)
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
                             }`}
@@ -511,7 +548,8 @@ export default function CheckoutCard({
                             disabled={
                               isAdded ||
                               (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume)
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight)
                             }
                           >
                             Add To Cart
@@ -679,6 +717,7 @@ export default function CheckoutCard({
               setCashuPaymentFailed={setCashuPaymentFailed}
               selectedSize={selectedSize}
               selectedVolume={selectedVolume}
+              selectedWeight={selectedWeight}
               setIsBeingPaid={setIsBeingPaid}
             />
           </div>

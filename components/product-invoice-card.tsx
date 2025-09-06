@@ -76,6 +76,7 @@ export default function ProductInvoiceCard({
   setCashuPaymentFailed,
   selectedSize,
   selectedVolume,
+  selectedWeight,
 }: {
   productData: ProductData;
   setIsBeingPaid: (isBeingPaid: boolean) => void;
@@ -87,6 +88,7 @@ export default function ProductInvoiceCard({
   setCashuPaymentFailed: (cashuPaymentFailed: boolean) => void;
   selectedSize?: string;
   selectedVolume?: string;
+  selectedWeight?: string;
 }) {
   const { mints, tokens, history } = getLocalStorageData();
   const {
@@ -234,6 +236,7 @@ export default function ProductInvoiceCard({
           ...productData,
           selectedSize,
           selectedVolume,
+          selectedWeight,
         },
         paymentType,
         paymentReference,
@@ -249,6 +252,7 @@ export default function ProductInvoiceCard({
           ...productData,
           selectedSize,
           selectedVolume,
+          selectedWeight,
         },
         status: "confirmed",
       };
@@ -265,6 +269,7 @@ export default function ProductInvoiceCard({
           ...productData,
           selectedSize,
           selectedVolume,
+          selectedWeight,
         },
         quantity: 1,
       };
@@ -500,13 +505,20 @@ export default function ProductInvoiceCard({
 
       let productDetails = "";
       if (selectedSize) {
-        productDetails += " in a size " + selectedSize;
+        productDetails += " in size " + selectedSize;
       }
       if (selectedVolume) {
         if (productDetails) {
           productDetails += " and a " + selectedVolume;
         } else {
           productDetails += " in a " + selectedVolume;
+        }
+      }
+      if (selectedWeight) {
+        if (productDetails) {
+          productDetails += " and weighing " + selectedWeight;
+        } else {
+          productDetails += " weighing " + selectedWeight;
         }
       }
       if (selectedPickupLocation) {
@@ -586,6 +598,13 @@ export default function ProductInvoiceCard({
               productDetails += " and a " + selectedVolume;
             } else {
               productDetails += " in a " + selectedVolume;
+            }
+          }
+          if (selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + selectedWeight;
+            } else {
+              productDetails += " weighing " + selectedWeight;
             }
           }
           if (selectedPickupLocation) {
@@ -675,6 +694,13 @@ export default function ProductInvoiceCard({
               productDetails += " in a " + selectedVolume;
             }
           }
+          if (selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + selectedWeight;
+            } else {
+              productDetails += " weighing " + selectedWeight;
+            }
+          }
           if (selectedPickupLocation) {
             if (productDetails) {
               productDetails += " (pickup at: " + selectedPickupLocation + ")";
@@ -750,6 +776,13 @@ export default function ProductInvoiceCard({
             productDetails += " and a " + selectedVolume;
           } else {
             productDetails += " in a " + selectedVolume;
+          }
+        }
+        if (selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + selectedWeight;
+          } else {
+            productDetails += " weighing " + selectedWeight;
           }
         }
         if (selectedPickupLocation) {
@@ -1103,6 +1136,13 @@ export default function ProductInvoiceCard({
               productDetails += " in a " + selectedVolume;
             }
           }
+          if (selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + selectedWeight;
+            } else {
+              productDetails += " weighing " + selectedWeight;
+            }
+          }
           if (selectedPickupLocation) {
             if (productDetails) {
               productDetails += " (pickup at: " + selectedPickupLocation + ")";
@@ -1182,6 +1222,13 @@ export default function ProductInvoiceCard({
               productDetails += " in a " + selectedVolume;
             }
           }
+          if (selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + selectedWeight;
+            } else {
+              productDetails += " weighing " + selectedWeight;
+            }
+          }
           if (selectedPickupLocation) {
             if (productDetails) {
               productDetails += " (pickup at: " + selectedPickupLocation + ")";
@@ -1226,6 +1273,13 @@ export default function ProductInvoiceCard({
           productDetails += " and a " + selectedVolume;
         } else {
           productDetails += " in a " + selectedVolume;
+        }
+      }
+      if (selectedWeight) {
+        if (productDetails) {
+          productDetails += " and weighing " + selectedWeight;
+        } else {
+          productDetails += " weighing " + selectedWeight;
         }
       }
       if (selectedPickupLocation) {
@@ -1317,6 +1371,13 @@ export default function ProductInvoiceCard({
             productDetails += " and a " + selectedVolume;
           } else {
             productDetails += " in a " + selectedVolume;
+          }
+        }
+        if (selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + selectedWeight;
+          } else {
+            productDetails += " weighing " + selectedWeight;
           }
         }
         if (selectedPickupLocation) {
@@ -1413,6 +1474,13 @@ export default function ProductInvoiceCard({
             productDetails += " in a " + selectedVolume;
           }
         }
+        if (selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + selectedWeight;
+          } else {
+            productDetails += " weighing " + selectedWeight;
+          }
+        }
         if (selectedPickupLocation) {
           if (productDetails) {
             productDetails += " (pickup at: " + selectedPickupLocation + ")";
@@ -1492,6 +1560,13 @@ export default function ProductInvoiceCard({
           productDetails += " and a " + selectedVolume;
         } else {
           productDetails += " in a " + selectedVolume;
+        }
+      }
+      if (selectedWeight) {
+        if (productDetails) {
+          productDetails += " and weighing " + selectedWeight;
+        } else {
+          productDetails += " weighing " + selectedWeight;
         }
       }
       if (selectedPickupLocation) {
@@ -2064,6 +2139,9 @@ export default function ProductInvoiceCard({
                 {selectedVolume && (
                   <p className="mb-1 text-gray-600">Volume: {selectedVolume}</p>
                 )}
+                {selectedWeight && (
+                  <p className="mb-1 text-gray-600">Weight: {selectedWeight}</p>
+                )}
 
                 <p className="mb-1 text-gray-600">Quantity: 1</p>
               </div>
@@ -2083,7 +2161,9 @@ export default function ProductInvoiceCard({
                         {formatWithCommas(
                           productData.volumePrice !== undefined
                             ? productData.volumePrice
-                            : productData.price,
+                            : productData.weightPrice !== undefined
+                              ? productData.weightPrice
+                              : productData.price,
                           productData.currency
                         )}
                       </span>
@@ -2221,7 +2301,10 @@ export default function ProductInvoiceCard({
               )}
 
               {selectedVolume && (
-                <p className="text-gray-6000 mb-1">Volume: {selectedVolume}</p>
+                <p className="mb-1 text-gray-600">Volume: {selectedVolume}</p>
+              )}
+              {selectedWeight && (
+                <p className="mb-1 text-gray-600">Weight: {selectedWeight}</p>
               )}
 
               <p className="mb-1 text-gray-600">Quantity: 1</p>

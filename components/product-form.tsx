@@ -107,6 +107,10 @@ export default function ProductForm({
           "Volume Prices": oldValues.volumePrices
             ? oldValues.volumePrices
             : new Map<string, number>(),
+          Weights: oldValues.weights ? oldValues.weights.join(",") : "",
+          "Weight Prices": oldValues.weightPrices
+            ? oldValues.weightPrices
+            : new Map<string, number>(),
           Condition: oldValues.condition ? oldValues.condition : "",
           Status: oldValues.status ? oldValues.status : "",
           Required: oldValues.required ? oldValues.required : "",
@@ -209,6 +213,17 @@ export default function ProductForm({
         const price =
           (data["Volume Prices"] as Map<string, number>).get(volume) || 0;
         tags.push(["volume", volume, price.toString()]);
+      });
+    }
+
+    if (data["Weights"]) {
+      const weightsArray = Array.isArray(data["Weights"])
+        ? data["Weights"]
+        : (data["Weights"] as string).split(",").filter(Boolean);
+      weightsArray.forEach((weight) => {
+        const price =
+          (data["Weight Prices"] as Map<string, number>).get(weight) || 0;
+        tags.push(["weight", weight, price.toString()]);
       });
     }
 
@@ -963,6 +978,168 @@ export default function ProductForm({
                     {volumeArray.length > 0 && (
                       <div className="w-full text-xs text-dark-text opacity-75">
                         Note: Volume prices will override the main product price
+                        when selected.
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
+            />
+
+            <Controller
+              name="Weights"
+              control={control}
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => {
+                const isErrored = error !== undefined;
+                const errorMessage = error?.message || "";
+
+                const selectedWeights = Array.isArray(value)
+                  ? value
+                  : typeof value === "string"
+                    ? value.split(",").filter(Boolean)
+                    : [];
+
+                const handleWeightChange = (newValue: string | string[]) => {
+                  const newWeights = Array.isArray(newValue)
+                    ? newValue
+                    : newValue.split(",").filter(Boolean);
+                  onChange(newWeights);
+                };
+
+                return (
+                  <Select
+                    variant="bordered"
+                    isMultiline={true}
+                    autoFocus
+                    aria-label="Weights"
+                    label="Weights (optional)"
+                    labelPlacement="inside"
+                    selectionMode="multiple"
+                    isInvalid={isErrored}
+                    errorMessage={errorMessage}
+                    onChange={(e) => handleWeightChange(e.target.value)}
+                    onBlur={onBlur}
+                    value={selectedWeights}
+                    defaultSelectedKeys={new Set(selectedWeights)}
+                    classNames={{
+                      base: "mt-4",
+                      trigger: "min-h-unit-12 py-2 !bg-dark-fg",
+                      popoverContent: "!bg-dark-fg",
+                    }}
+                  >
+                    <SelectSection className="text-dark-text">
+                      <SelectItem key="1oz" value="1oz">
+                        1oz
+                      </SelectItem>
+                      <SelectItem key="2oz" value="2oz">
+                        2oz
+                      </SelectItem>
+                      <SelectItem key="3oz" value="3oz">
+                        3oz
+                      </SelectItem>
+                      <SelectItem key="4oz" value="4oz">
+                        4oz
+                      </SelectItem>
+                      <SelectItem key="5oz" value="5oz">
+                        5oz
+                      </SelectItem>
+                      <SelectItem key="6oz" value="6oz">
+                        6oz
+                      </SelectItem>
+                      <SelectItem key="7oz" value="7oz">
+                        7oz
+                      </SelectItem>
+                      <SelectItem key="8oz" value="8oz">
+                        8oz
+                      </SelectItem>
+                      <SelectItem key="9oz" value="9oz">
+                        9oz
+                      </SelectItem>
+                      <SelectItem key="10oz" value="10oz">
+                        10oz
+                      </SelectItem>
+                      <SelectItem key="11oz" value="11oz">
+                        11oz
+                      </SelectItem>
+                      <SelectItem key="12oz" value="12oz">
+                        12oz
+                      </SelectItem>
+                      <SelectItem key="13oz" value="13oz">
+                        13oz
+                      </SelectItem>
+                      <SelectItem key="14oz" value="14oz">
+                        14oz
+                      </SelectItem>
+                      <SelectItem key="15oz" value="15oz">
+                        15oz
+                      </SelectItem>
+                      <SelectItem key="16oz" value="16oz">
+                        16oz
+                      </SelectItem>
+                      <SelectItem key="1lbs" value="1lbs">
+                        1lbs
+                      </SelectItem>
+                    </SelectSection>
+                  </Select>
+                );
+              }}
+            />
+
+            <Controller
+              name="Weight Prices"
+              control={control}
+              render={({
+                field: { onChange, value = new Map<string, number>() },
+              }) => {
+                const handlePriceChange = (weight: string, price: number) => {
+                  const newPrices = new Map(value);
+                  newPrices.set(weight, price);
+                  onChange(newPrices);
+                };
+
+                const weights = watch("Weights");
+                const weightArray = Array.isArray(weights)
+                  ? weights
+                  : typeof weights === "string"
+                    ? weights
+                        .split(",")
+                        .filter(Boolean)
+                        .map((w) => w.trim())
+                    : [];
+
+                return (
+                  <div className="mt-4 flex flex-wrap gap-4">
+                    {weightArray.map((weight: string) => (
+                      <div key={weight} className="flex items-center">
+                        <span className="mr-2 text-dark-text">{weight}:</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={(value.get(weight) || 0).toString()}
+                          onChange={(e) =>
+                            handlePriceChange(
+                              weight,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-32"
+                          endContent={
+                            <div className="flex items-center">
+                              <span className="text-small text-default-400">
+                                {watchCurrency}
+                              </span>
+                            </div>
+                          }
+                        />
+                      </div>
+                    ))}
+                    {weightArray.length > 0 && (
+                      <div className="w-full text-xs text-dark-text opacity-75">
+                        Note: Weight prices will override the main product price
                         when selected.
                       </div>
                     )}
