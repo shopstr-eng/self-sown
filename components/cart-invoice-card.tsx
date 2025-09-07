@@ -141,7 +141,7 @@ export default function CartInvoiceCard({
   const [failureText, setFailureText] = useState("");
 
   const [isFormValid, setIsFormValid] = useState(false);
-  const [freePickupPreference, setFreePickupPreference] = useState<
+  const [shippingPickupPreference, setShippingPickupPreference] = useState<
     "shipping" | "contact"
   >("shipping");
   const [showFreePickupSelection, setShowFreePickupSelection] = useState(false);
@@ -243,7 +243,7 @@ export default function CartInvoiceCard({
     const pickupLocationValid = productsWithPickupLocations.every((product) => {
       const shouldCheckPickup =
         formType === "contact" ||
-        (formType === "combined" && freePickupPreference === "contact");
+        (formType === "combined" && shippingPickupPreference === "contact");
 
       if (shouldCheckPickup) {
         return watchedValues[`pickupLocation_${product.id}`]?.trim();
@@ -292,7 +292,7 @@ export default function CartInvoiceCard({
     formType,
     requiredInfo,
     productsWithPickupLocations,
-    freePickupPreference,
+    shippingPickupPreference,
   ]);
 
   const generateNewKeys = async () => {
@@ -1031,7 +1031,7 @@ export default function CartInvoiceCard({
           await new Promise((resolve) => setTimeout(resolve, 500));
 
           const herdshareMessage =
-            "To finalize your purchase, sign and send the following herdshare agreement to the dairy: " +
+            "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
             product.herdshareAgreement;
           await sendPaymentAndContactMessageWithKeys(
             userPubkey!,
@@ -1626,6 +1626,32 @@ export default function CartInvoiceCard({
         );
       }
 
+      // Send herdshare agreement if product has one
+      if (product.herdshareAgreement) {
+        // Add delay before herdshare message
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const herdshareMessage =
+          "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+          product.herdshareAgreement;
+        await sendPaymentAndContactMessageWithKeys(
+          userPubkey!,
+          herdshareMessage,
+          product,
+          false,
+          false,
+          false,
+          orderId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          orderKeys,
+          true
+        );
+      }
+
       // Handle shipping and contact information based on what was provided
       const productShippingType = shippingTypes[product.id];
       const shouldUseShipping =
@@ -1634,7 +1660,7 @@ export default function CartInvoiceCard({
           (productShippingType !== "Free/Pickup" ||
             ((productShippingType === "Free/Pickup" ||
               productShippingType === "Added Cost/Pickup") &&
-              freePickupPreference === "shipping")));
+              shippingPickupPreference === "shipping")));
 
       const shouldUseContact =
         formType === "contact" ||
@@ -1643,7 +1669,7 @@ export default function CartInvoiceCard({
             productShippingType === "Pickup" ||
             ((productShippingType === "Free/Pickup" ||
               productShippingType === "Added Cost/Pickup") &&
-              freePickupPreference === "contact")));
+              shippingPickupPreference === "contact")));
 
       if (
         shouldUseShipping &&
@@ -1942,32 +1968,6 @@ export default function CartInvoiceCard({
           undefined,
           undefined,
           orderKeys
-        );
-      }
-
-      // Send herdshare agreement if product has one
-      if (product.herdshareAgreement) {
-        // Add delay before herdshare message
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        const herdshareMessage =
-          "To finalize your purchase, sign and send the following herdshare agreement to the dairy: " +
-          product.herdshareAgreement;
-        await sendPaymentAndContactMessageWithKeys(
-          userPubkey!,
-          herdshareMessage,
-          product,
-          false,
-          false,
-          false,
-          orderId,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          orderKeys,
-          true
         );
       }
     }
@@ -2367,7 +2367,7 @@ export default function CartInvoiceCard({
         {productsWithPickupLocations.length > 0 &&
           (formType === "contact" ||
             (formType === "combined" &&
-              freePickupPreference === "contact")) && (
+              shippingPickupPreference === "contact")) && (
             <div className="space-y-4">
               <h4 className="font-medium text-gray-700">
                 Select Pickup Locations
@@ -2809,11 +2809,11 @@ export default function CartInvoiceCard({
               <div className="mb-6 space-y-4">
                 <button
                   onClick={() => {
-                    setFreePickupPreference("shipping");
+                    setShippingPickupPreference("shipping");
                     setShowFreePickupSelection(false);
                   }}
                   className={`w-full rounded-lg border p-4 text-left hover:bg-gray-50 ${
-                    freePickupPreference === "shipping"
+                    shippingPickupPreference === "shipping"
                       ? "border-light-text bg-yellow-700"
                       : "border-gray-300 bg-white"
                   }`}
@@ -2825,11 +2825,11 @@ export default function CartInvoiceCard({
                 </button>
                 <button
                   onClick={() => {
-                    setFreePickupPreference("contact");
+                    setShippingPickupPreference("contact");
                     setShowFreePickupSelection(false);
                   }}
                   className={`w-full rounded-lg border p-4 text-left hover:bg-gray-50 ${
-                    freePickupPreference === "contact"
+                    shippingPickupPreference === "contact"
                       ? "border-light-text bg-yellow-700"
                       : "border-gray-300 bg-white"
                   }`}
@@ -2843,7 +2843,7 @@ export default function CartInvoiceCard({
 
               {/* Show pickup location selection for products with pickup locations */}
               {productsWithPickupLocations.length > 0 &&
-                freePickupPreference === "contact" && (
+                shippingPickupPreference === "contact" && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-semibold">
                       Select Pickup Locations

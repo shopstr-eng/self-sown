@@ -569,6 +569,22 @@ export default function ProductInvoiceCard({
         }
       }
 
+      // Send herdshare agreement if product has one
+      if (productData.herdshareAgreement) {
+        const herdshareMessage =
+          "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+          productData.herdshareAgreement;
+        await sendPaymentAndContactMessage(
+          userPubkey!,
+          herdshareMessage,
+          false,
+          false,
+          false,
+          true,
+          orderId
+        );
+      }
+
       if (
         !(
           data.shippingName === undefined &&
@@ -810,22 +826,6 @@ export default function ProductInvoiceCard({
           true,
           false,
           false,
-          orderId
-        );
-      }
-
-      // Send herdshare agreement if product has one
-      if (productData.herdshareAgreement) {
-        const herdshareMessage =
-          "To finalize your purchase, sign and send the following herdshare agreement to the dairy: " +
-          productData.herdshareAgreement;
-        await sendPaymentAndContactMessage(
-          userPubkey!,
-          herdshareMessage,
-          false,
-          false,
-          false,
-          true,
           orderId
         );
       }
@@ -1350,6 +1350,22 @@ export default function ProductInvoiceCard({
       );
     }
 
+    // Send herdshare agreement if product has one
+    if (productData.herdshareAgreement) {
+      const herdshareMessage =
+        "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+        productData.herdshareAgreement;
+      await sendPaymentAndContactMessage(
+        userPubkey!,
+        herdshareMessage,
+        false,
+        false,
+        false,
+        true,
+        orderId
+      );
+    }
+
     // Handle shipping and contact information based on what was provided
     if (
       shippingName &&
@@ -1596,22 +1612,6 @@ export default function ProductInvoiceCard({
         true,
         false,
         false,
-        orderId
-      );
-    }
-
-    // Send herdshare agreement if product has one
-    if (productData.herdshareAgreement) {
-      const herdshareMessage =
-        "To finalize your purchase, sign and send the following herdshare agreement to the dairy: " +
-        productData.herdshareAgreement;
-      await sendPaymentAndContactMessage(
-        userPubkey!,
-        herdshareMessage,
-        false,
-        false,
-        false,
-        true,
         orderId
       );
     }
