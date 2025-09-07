@@ -20,6 +20,7 @@ import { NostrMessageEvent } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
 import { getDecodedToken } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import { ChatsContext } from "@/utils/context/context";
 import {
   blossomUpload,
   constructGiftWrappedEvent,
@@ -29,6 +30,7 @@ import {
   generateKeys,
   getLocalStorageData,
 } from "../../utils/nostr/nostr-helper-functions";
+import { addChatMessagesToCache } from "@/utils/nostr/cache-service";
 import { viewEncryptedAgreement } from "@/utils/encryption/agreement-viewer";
 import { encryptFileWithNip44 } from "@/utils/encryption/file-encryption";
 import FailureModal from "../utility-components/failure-modal";
@@ -73,6 +75,8 @@ const ChatMessage = ({
     signer,
     isLoggedIn,
   } = useContext(SignerContext);
+
+  const chatsContext = useContext(ChatsContext);
 
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
@@ -316,6 +320,18 @@ const ChatMessage = ({
 
       await sendGiftWrappedMessageEvent(senderGiftWrappedEvent);
       await sendGiftWrappedMessageEvent(receiverGiftWrappedEvent);
+
+      chatsContext.addNewlyCreatedMessageEvent(
+        {
+          ...giftWrappedMessageEvent,
+          sig: "",
+          read: false,
+        },
+        true
+      );
+      addChatMessagesToCache([
+        { ...giftWrappedMessageEvent, sig: "", read: false },
+      ]);
 
       setShowPdfModal(false);
       setCurrentPdfUrl("");
