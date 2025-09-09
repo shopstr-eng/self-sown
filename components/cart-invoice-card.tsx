@@ -97,7 +97,12 @@ export default function CartInvoiceCard({
   setCashuPaymentFailed?: (cashuPaymentFailed: boolean) => void;
 }) {
   const { mints, tokens, history } = getLocalStorageData();
-  const { isLoggedIn, signer } = useContext(SignerContext);
+  const {
+    pubkey: userPubkey,
+    npub: userNPub,
+    isLoggedIn,
+    signer,
+  } = useContext(SignerContext);
 
   // Check if there are tokens available for Cashu payment
   const hasTokensAvailable = tokens && tokens.length > 0;
@@ -136,7 +141,7 @@ export default function CartInvoiceCard({
   const [failureText, setFailureText] = useState("");
 
   const [isFormValid, setIsFormValid] = useState(false);
-  const [freePickupPreference, setFreePickupPreference] = useState<
+  const [shippingPickupPreference, setShippingPickupPreference] = useState<
     "shipping" | "contact"
   >("shipping");
   const [showFreePickupSelection, setShowFreePickupSelection] = useState(false);
@@ -157,13 +162,16 @@ export default function CartInvoiceCard({
     return Array.from(new Set(Object.values(shippingTypes)));
   }, [shippingTypes]);
 
-  const hasFreePickupProducts = useMemo(() => {
-    return Object.values(shippingTypes).includes("Free/Pickup");
+  const hasShippingPickupProducts = useMemo(() => {
+    return (
+      Object.values(shippingTypes).includes("Free/Pickup") ||
+      Object.values(shippingTypes).includes("Added Cost/Pickup")
+    );
   }, [shippingTypes]);
 
-  const hasMixedShippingWithFreePickup = useMemo(() => {
-    return uniqueShippingTypes.length > 1 && hasFreePickupProducts;
-  }, [uniqueShippingTypes, hasFreePickupProducts]);
+  const hasMixedShippingWithPickup = useMemo(() => {
+    return uniqueShippingTypes.length > 1 && hasShippingPickupProducts;
+  }, [uniqueShippingTypes, hasShippingPickupProducts]);
 
   const [requiredInfo, setRequiredInfo] = useState("");
 
@@ -181,7 +189,8 @@ export default function CartInvoiceCard({
   const productsWithPickupLocations = useMemo(() => {
     return products.filter(
       (product) =>
-        (product.shippingType === "Free/Pickup" ||
+        (product.shippingType === "Added Cost/Pickup" ||
+          product.shippingType === "Free/Pickup" ||
           product.shippingType === "Pickup") &&
         product.pickupLocations &&
         product.pickupLocations.length > 0
@@ -234,7 +243,7 @@ export default function CartInvoiceCard({
     const pickupLocationValid = productsWithPickupLocations.every((product) => {
       const shouldCheckPickup =
         formType === "contact" ||
-        (formType === "combined" && freePickupPreference === "contact");
+        (formType === "combined" && shippingPickupPreference === "contact");
 
       if (shouldCheckPickup) {
         return watchedValues[`pickupLocation_${product.id}`]?.trim();
@@ -283,7 +292,7 @@ export default function CartInvoiceCard({
     formType,
     requiredInfo,
     productsWithPickupLocations,
-    freePickupPreference,
+    shippingPickupPreference,
   ]);
 
   const generateNewKeys = async () => {
@@ -310,12 +319,14 @@ export default function CartInvoiceCard({
     isPayment?: boolean,
     isReceipt?: boolean,
     isDonation?: boolean,
+    isHerdshare?: boolean,
     orderId?: string,
     paymentType?: string,
     paymentReference?: string,
     paymentProof?: string,
     messageAmount?: number,
-    productQuantity?: number
+    productQuantity?: number,
+    retryCount: number = 3
   ) => {
     const newKeys = await generateNewKeys();
     if (!newKeys) {
@@ -324,21 +335,44 @@ export default function CartInvoiceCard({
       return;
     }
 
-    await sendPaymentAndContactMessageWithKeys(
-      pubkeyToReceiveMessage,
-      message,
-      product,
-      isPayment,
-      isReceipt,
-      isDonation,
-      orderId,
-      paymentType,
-      paymentReference,
-      paymentProof,
-      messageAmount,
-      productQuantity,
-      newKeys
-    );
+    for (let attempt = 0; attempt < retryCount; attempt++) {
+      try {
+        await sendPaymentAndContactMessageWithKeys(
+          pubkeyToReceiveMessage,
+          message,
+          product,
+          isPayment,
+          isReceipt,
+          isDonation,
+          orderId,
+          paymentType,
+          paymentReference,
+          paymentProof,
+          messageAmount,
+          productQuantity,
+          newKeys,
+          isHerdshare
+        );
+        // If we get here, the message was sent successfully
+        return;
+      } catch (error) {
+        console.warn(
+          `Attempt ${attempt + 1} failed for message sending:`,
+          error
+        );
+
+        if (attempt === retryCount - 1) {
+          // This was the last attempt, log the error but don't throw
+          console.error("Failed to send message after all retries:", error);
+          return; // Continue with the flow instead of breaking it
+        }
+
+        // Wait before retrying (exponential backoff)
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, attempt) * 1000)
+        );
+      }
+    }
   };
 
   const sendPaymentAndContactMessageWithKeys = async (
@@ -359,7 +393,8 @@ export default function CartInvoiceCard({
       senderNsec: string;
       receiverNpub: string;
       receiverNsec: string;
-    }
+    },
+    isHerdshare?: boolean
   ) => {
     if (!keys) {
       setFailureText("Message keys are required!");
@@ -403,6 +438,16 @@ export default function CartInvoiceCard({
       };
     } else if (isDonation) {
       messageSubject = "donation";
+    } else if (isHerdshare) {
+      messageSubject = "order-info";
+      messageOptions = {
+        isOrder: true,
+        type: 1,
+        orderAmount: messageAmount ? messageAmount : undefined,
+        orderId,
+        productData: product,
+        quantity: productQuantity ? productQuantity : 1,
+      };
     } else if (orderId) {
       messageSubject = "order-info";
       messageOptions = {
@@ -437,7 +482,7 @@ export default function CartInvoiceCard({
     );
     await sendGiftWrappedMessageEvent(giftWrappedEvent);
 
-    if (isReceipt) {
+    if (isReceipt || isHerdshare) {
       chatsContext.addNewlyCreatedMessageEvent(
         {
           ...giftWrappedMessageEvent,
@@ -620,8 +665,7 @@ export default function CartInvoiceCard({
       setFormType("contact");
     } else if (selectedOrderType === "combined") {
       setFormType("combined");
-      // Show Free/Pickup preference selection if we have mixed shipping with Free/Pickup
-      if (hasMixedShippingWithFreePickup) {
+      if (hasMixedShippingWithPickup) {
         setShowFreePickupSelection(true);
       }
     }
@@ -630,9 +674,6 @@ export default function CartInvoiceCard({
   const handleFiatPayment = async (convertedPrice: number, data: any) => {
     try {
       validatePaymentData(convertedPrice, data);
-
-      const userPubkey = await signer?.getPubKey?.();
-      const userNPub = userPubkey ? nip19.npubEncode(userPubkey) : undefined;
       for (const product of products) {
         const title = product.title;
         const pubkey = product.pubkey;
@@ -656,6 +697,13 @@ export default function CartInvoiceCard({
             productDetails += " and a " + product.selectedVolume;
           } else {
             productDetails += " in a " + product.selectedVolume;
+          }
+        }
+        if (product.selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + product.selectedWeight;
+          } else {
+            productDetails += " weighing " + product.selectedWeight;
           }
         }
 
@@ -717,6 +765,9 @@ export default function CartInvoiceCard({
         );
 
         if (required && required !== "" && data.additionalInfo) {
+          // Add delay before additional info message
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
           const additionalMessage =
             "Additional customer information: " + data.additionalInfo;
           await sendPaymentAndContactMessageWithKeys(
@@ -755,7 +806,9 @@ export default function CartInvoiceCard({
           if (
             productShippingType === "Added Cost" ||
             productShippingType === "Free" ||
-            (productShippingType === "Free/Pickup" && formType === "shipping")
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
+              formType === "shipping")
           ) {
             let contactMessage = "";
             if (!data.shippingUnitNo) {
@@ -810,34 +863,38 @@ export default function CartInvoiceCard({
               undefined,
               orderKeys
             );
-            if (userPubkey) {
-              const receiptMessage =
-                "Your order for " +
-                title +
-                productDetails +
-                " was processed successfully! If applicable, you should be receiving delivery information from " +
-                nip19.npubEncode(product.pubkey) +
-                " as soon as they review your order.";
-              await sendPaymentAndContactMessageWithKeys(
-                userPubkey,
-                receiptMessage,
-                product,
-                false,
-                true,
-                false,
-                orderId,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                orderKeys
-              );
-            }
+
+            // Add delay between messages
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            const receiptMessage =
+              "Your order for " +
+              title +
+              productDetails +
+              " was processed successfully! If applicable, you should be receiving delivery information from " +
+              nip19.npubEncode(product.pubkey) +
+              " as soon as they review your order.";
+            await sendPaymentAndContactMessageWithKeys(
+              userPubkey!,
+              receiptMessage,
+              product,
+              false,
+              true,
+              false,
+              orderId,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              orderKeys
+            );
           } else if (
             productShippingType === "N/A" ||
             productShippingType === "Pickup" ||
-            (productShippingType === "Free/Pickup" && formType === "contact")
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
+              formType === "contact")
           ) {
             let contactMessage;
             let receiptMessage;
@@ -892,25 +949,27 @@ export default function CartInvoiceCard({
               undefined,
               orderKeys
             );
-            if (userPubkey) {
-              await sendPaymentAndContactMessageWithKeys(
-                userPubkey,
-                receiptMessage,
-                product,
-                false,
-                true,
-                false,
-                orderId,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                undefined,
-                orderKeys
-              );
-            }
+
+            // Add delay between messages
+            await new Promise((resolve) => setTimeout(resolve, 500));
+
+            await sendPaymentAndContactMessageWithKeys(
+              userPubkey!,
+              receiptMessage,
+              product,
+              false,
+              true,
+              false,
+              orderId,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              orderKeys
+            );
           }
-        } else if (userPubkey) {
+        } else {
           let productDetails = "";
           if (product.selectedSize) {
             productDetails += " in size " + product.selectedSize;
@@ -920,6 +979,13 @@ export default function CartInvoiceCard({
               productDetails += " and a " + product.selectedVolume;
             } else {
               productDetails += " in a " + product.selectedVolume;
+            }
+          }
+          if (product.selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + product.selectedWeight;
+            } else {
+              productDetails += " weighing " + product.selectedWeight;
             }
           }
 
@@ -943,7 +1009,7 @@ export default function CartInvoiceCard({
             nip19.npubEncode(product.pubkey) +
             ".";
           await sendPaymentAndContactMessageWithKeys(
-            userPubkey,
+            userPubkey!,
             receiptMessage,
             product,
             false,
@@ -956,6 +1022,32 @@ export default function CartInvoiceCard({
             undefined,
             undefined,
             orderKeys
+          );
+        }
+
+        // Send herdshare agreement if product has one
+        if (product.herdshareAgreement) {
+          // Add delay before herdshare message
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          const herdshareMessage =
+            "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+            product.herdshareAgreement;
+          await sendPaymentAndContactMessageWithKeys(
+            userPubkey!,
+            herdshareMessage,
+            product,
+            false,
+            false,
+            false,
+            orderId,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            orderKeys,
+            true
           );
         }
       }
@@ -1134,8 +1226,6 @@ export default function CartInvoiceCard({
     proofs: Proof[],
     data: any
   ) => {
-    const userPubkey = await signer?.getPubKey?.();
-    const userNPub = userPubkey ? nip19.npubEncode(userPubkey) : undefined;
     let remainingProofs = proofs;
     for (const product of products) {
       const title = product.title;
@@ -1242,6 +1332,13 @@ export default function CartInvoiceCard({
                 productDetails += " in a " + product.selectedVolume;
               }
             }
+            if (product.selectedWeight) {
+              if (productDetails) {
+                productDetails += " and weighing " + product.selectedWeight;
+              } else {
+                productDetails += " weighing " + product.selectedWeight;
+              }
+            }
 
             // Add pickup location if available for this specific product
             const pickupLocation =
@@ -1298,7 +1395,11 @@ export default function CartInvoiceCard({
                 : 1,
               orderKeys
             );
+
             if (changeAmount >= 1 && changeProofs && changeProofs.length > 0) {
+              // Add delay between messages to prevent browser throttling
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
               const encodedChange = getEncodedToken({
                 mint: mints[0]!,
                 proofs: changeProofs,
@@ -1342,6 +1443,13 @@ export default function CartInvoiceCard({
                 productDetails += " and a " + product.selectedVolume;
               } else {
                 productDetails += " in a " + product.selectedVolume;
+              }
+            }
+            if (product.selectedWeight) {
+              if (productDetails) {
+                productDetails += " and weighing " + product.selectedWeight;
+              } else {
+                productDetails += " weighing " + product.selectedWeight;
               }
             }
 
@@ -1414,6 +1522,13 @@ export default function CartInvoiceCard({
             productDetails += " in a " + product.selectedVolume;
           }
         }
+        if (product.selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + product.selectedWeight;
+          } else {
+            productDetails += " weighing " + product.selectedWeight;
+          }
+        }
 
         // Add pickup location if available for this specific product
         const pickupLocation =
@@ -1474,6 +1589,9 @@ export default function CartInvoiceCard({
 
       let donationMessage = "";
       if (donationToken) {
+        // Add delay before donation message
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         donationMessage = "Sale donation: " + donationToken;
         await sendPaymentAndContactMessage(
           "a37118a4888e02d28e8767c08caaf73b49abdac391ad7ff18a304891e416dc33",
@@ -1486,6 +1604,9 @@ export default function CartInvoiceCard({
       }
 
       if (required && required !== "" && data.additionalInfo) {
+        // Add delay before additional info message
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
         const additionalMessage =
           "Additional customer information: " + data.additionalInfo;
         await sendPaymentAndContactMessageWithKeys(
@@ -1505,22 +1626,50 @@ export default function CartInvoiceCard({
         );
       }
 
+      // Send herdshare agreement if product has one
+      if (product.herdshareAgreement) {
+        // Add delay before herdshare message
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const herdshareMessage =
+          "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+          product.herdshareAgreement;
+        await sendPaymentAndContactMessageWithKeys(
+          userPubkey!,
+          herdshareMessage,
+          product,
+          false,
+          false,
+          false,
+          orderId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          orderKeys,
+          true
+        );
+      }
+
       // Handle shipping and contact information based on what was provided
       const productShippingType = shippingTypes[product.id];
       const shouldUseShipping =
         formType === "shipping" ||
         (formType === "combined" &&
           (productShippingType !== "Free/Pickup" ||
-            (productShippingType === "Free/Pickup" &&
-              freePickupPreference === "shipping")));
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
+              shippingPickupPreference === "shipping")));
 
       const shouldUseContact =
         formType === "contact" ||
         (formType === "combined" &&
           (productShippingType === "N/A" ||
             productShippingType === "Pickup" ||
-            (productShippingType === "Free/Pickup" &&
-              freePickupPreference === "contact")));
+            ((productShippingType === "Free/Pickup" ||
+              productShippingType === "Added Cost/Pickup") &&
+              shippingPickupPreference === "contact")));
 
       if (
         shouldUseShipping &&
@@ -1535,7 +1684,8 @@ export default function CartInvoiceCard({
         if (
           productShippingType === "Added Cost" ||
           productShippingType === "Free" ||
-          productShippingType === "Free/Pickup"
+          productShippingType === "Free/Pickup" ||
+          productShippingType === "Added Cost/Pickup"
         ) {
           let productDetails = "";
           if (product.selectedSize) {
@@ -1546,6 +1696,13 @@ export default function CartInvoiceCard({
               productDetails += " and a " + product.selectedVolume;
             } else {
               productDetails += " in a " + product.selectedVolume;
+            }
+          }
+          if (product.selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + product.selectedWeight;
+            } else {
+              productDetails += " weighing " + product.selectedWeight;
             }
           }
 
@@ -1614,30 +1771,32 @@ export default function CartInvoiceCard({
             undefined,
             orderKeys
           );
-          if (userPubkey) {
-            const receiptMessage =
-              "Your order for " +
-              title +
-              productDetails +
-              " was processed successfully. If applicable, you should be receiving delivery information from " +
-              nip19.npubEncode(product.pubkey) +
-              " as soon as they review your order.";
-            await sendPaymentAndContactMessageWithKeys(
-              userPubkey,
-              receiptMessage,
-              product,
-              false,
-              true,
-              false,
-              orderId,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              orderKeys
-            );
-          }
+
+          // Add delay between messages
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          const receiptMessage =
+            "Your order for " +
+            title +
+            productDetails +
+            " was processed successfully. If applicable, you should be receiving delivery information from " +
+            nip19.npubEncode(product.pubkey) +
+            " as soon as they review your order.";
+          await sendPaymentAndContactMessageWithKeys(
+            userPubkey!,
+            receiptMessage,
+            product,
+            false,
+            true,
+            false,
+            orderId,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            orderKeys
+          );
         }
       } else if (
         shouldUseContact &&
@@ -1649,7 +1808,8 @@ export default function CartInvoiceCard({
         if (
           productShippingType === "N/A" ||
           productShippingType === "Pickup" ||
-          productShippingType === "Free/Pickup"
+          productShippingType === "Free/Pickup" ||
+          productShippingType === "Added Cost/Pickup"
         ) {
           let productDetails = "";
           if (product.selectedSize) {
@@ -1660,6 +1820,13 @@ export default function CartInvoiceCard({
               productDetails += " and a " + product.selectedVolume;
             } else {
               productDetails += " in a " + product.selectedVolume;
+            }
+          }
+          if (product.selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + product.selectedWeight;
+            } else {
+              productDetails += " weighing " + product.selectedWeight;
             }
           }
 
@@ -1728,28 +1895,27 @@ export default function CartInvoiceCard({
             undefined,
             orderKeys
           );
-          if (userPubkey) {
-            await sendPaymentAndContactMessageWithKeys(
-              userPubkey,
-              receiptMessage,
-              product,
-              false,
-              true,
-              false,
-              orderId,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              orderKeys
-            );
-          }
-        }
-      }
 
-      // Always send receipt message for successful payments
-      if (userPubkey) {
+          // Add delay between messages
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          await sendPaymentAndContactMessageWithKeys(
+            userPubkey!,
+            receiptMessage,
+            product,
+            false,
+            true,
+            false,
+            orderId,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            orderKeys
+          );
+        }
+      } else {
         let productDetails = "";
         if (product.selectedSize) {
           productDetails += " in size " + product.selectedSize;
@@ -1759,6 +1925,13 @@ export default function CartInvoiceCard({
             productDetails += " and a " + product.selectedVolume;
           } else {
             productDetails += " in a " + product.selectedVolume;
+          }
+        }
+        if (product.selectedWeight) {
+          if (productDetails) {
+            productDetails += " and weighing " + product.selectedWeight;
+          } else {
+            productDetails += " weighing " + product.selectedWeight;
           }
         }
 
@@ -1782,7 +1955,7 @@ export default function CartInvoiceCard({
           nip19.npubEncode(product.pubkey) +
           ".";
         await sendPaymentAndContactMessageWithKeys(
-          userPubkey,
+          userPubkey!,
           receiptMessage,
           product,
           false,
@@ -2194,7 +2367,7 @@ export default function CartInvoiceCard({
         {productsWithPickupLocations.length > 0 &&
           (formType === "contact" ||
             (formType === "combined" &&
-              freePickupPreference === "contact")) && (
+              shippingPickupPreference === "contact")) && (
             <div className="space-y-4">
               <h4 className="font-medium text-gray-700">
                 Select Pickup Locations
@@ -2301,6 +2474,11 @@ export default function CartInvoiceCard({
                           Volume: {product.selectedVolume}
                         </p>
                       )}
+                      {product.selectedWeight && (
+                        <p className="text-sm text-gray-600">
+                          Weight: {product.selectedWeight}
+                        </p>
+                      )}
                       <p className="text-sm text-gray-600">
                         Quantity: {quantities[product.id] || 1}
                       </p>
@@ -2330,9 +2508,11 @@ export default function CartInvoiceCard({
                           <span className="ml-2">Product cost:</span>
                           <span>
                             {formatWithCommas(
-                              (product.volumePrice !== undefined
-                                ? product.volumePrice
-                                : product.price) *
+                              (product.weightPrice !== undefined
+                                ? product.weightPrice
+                                : product.volumePrice !== undefined
+                                  ? product.volumePrice
+                                  : product.price) *
                                 (quantities[product.id] || 1),
                               "sats"
                             )}
@@ -2380,7 +2560,7 @@ export default function CartInvoiceCard({
                   <div className="flex flex-col items-center justify-center">
                     {qrCodeUrl ? (
                       <>
-                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text text-gray-900">
+                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -2422,7 +2602,7 @@ export default function CartInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="mt-3 text-center text-lg font-medium leading-6 text-gray-900">
+                    <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -2469,6 +2649,11 @@ export default function CartInvoiceCard({
                         Volume: {product.selectedVolume}
                       </p>
                     )}
+                    {product.selectedWeight && (
+                      <p className="text-sm text-gray-600">
+                        Weight: {product.selectedWeight}
+                      </p>
+                    )}
                     <p className="text-sm text-gray-600">
                       Quantity: {quantities[product.id] || 1}
                     </p>
@@ -2496,9 +2681,12 @@ export default function CartInvoiceCard({
                         <span className="ml-2">Product cost:</span>
                         <span>
                           {formatWithCommas(
-                            (product.volumePrice !== undefined
-                              ? product.volumePrice
-                              : product.price) * (quantities[product.id] || 1),
+                            (product.weightPrice !== undefined
+                              ? product.weightPrice
+                              : product.volumePrice !== undefined
+                                ? product.volumePrice
+                                : product.price) *
+                              (quantities[product.id] || 1),
                             "sats"
                           )}
                         </span>
@@ -2550,21 +2738,22 @@ export default function CartInvoiceCard({
                     >
                       <div className="font-medium">Mixed delivery</div>
                       <div className="text-sm text-gray-500">
-                        {hasFreePickupProducts
+                        {hasShippingPickupProducts
                           ? "Products require different delivery methods (includes flexible shipping/pickup options)"
                           : "Products require different delivery methods"}
                       </div>
                     </button>
                   </>
                 ) : uniqueShippingTypes.length === 1 &&
-                  uniqueShippingTypes[0] === "Free/Pickup" ? (
+                  (uniqueShippingTypes[0] === "Free/Pickup" ||
+                    uniqueShippingTypes[0] === "Added Cost/Pickup") ? (
                   <>
                     {/* All products have Free/Pickup - show shipping and contact options */}
                     <button
                       onClick={() => handleOrderTypeSelection("shipping")}
                       className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
                     >
-                      <div className="font-medium">Free shipping</div>
+                      <div className="font-medium">Free or added shipping</div>
                       <div className="text-sm text-gray-500">
                         Get products shipped to your address
                       </div>
@@ -2611,20 +2800,20 @@ export default function CartInvoiceCard({
           {showFreePickupSelection && (
             <>
               <h2 className="mb-6 text-2xl font-bold">
-                Free/Pickup Products Preference
+                Shipping/Pickup Products Preference
               </h2>
               <p className="mb-4 text-gray-600">
-                Some products offer both free shipping and pickup options. How
-                would you like to handle these products?
+                Some products offer both shipping and pickup options. How would
+                you like to handle these products?
               </p>
               <div className="mb-6 space-y-4">
                 <button
                   onClick={() => {
-                    setFreePickupPreference("shipping");
+                    setShippingPickupPreference("shipping");
                     setShowFreePickupSelection(false);
                   }}
                   className={`w-full rounded-lg border p-4 text-left hover:bg-gray-50 ${
-                    freePickupPreference === "shipping"
+                    shippingPickupPreference === "shipping"
                       ? "border-light-text bg-yellow-700"
                       : "border-gray-300 bg-white"
                   }`}
@@ -2636,11 +2825,11 @@ export default function CartInvoiceCard({
                 </button>
                 <button
                   onClick={() => {
-                    setFreePickupPreference("contact");
+                    setShippingPickupPreference("contact");
                     setShowFreePickupSelection(false);
                   }}
                   className={`w-full rounded-lg border p-4 text-left hover:bg-gray-50 ${
-                    freePickupPreference === "contact"
+                    shippingPickupPreference === "contact"
                       ? "border-light-text bg-yellow-700"
                       : "border-gray-300 bg-white"
                   }`}
@@ -2654,7 +2843,7 @@ export default function CartInvoiceCard({
 
               {/* Show pickup location selection for products with pickup locations */}
               {productsWithPickupLocations.length > 0 &&
-                freePickupPreference === "contact" && (
+                shippingPickupPreference === "contact" && (
                   <div className="space-y-6">
                     <h3 className="text-lg font-semibold">
                       Select Pickup Locations

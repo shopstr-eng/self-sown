@@ -236,9 +236,13 @@ export default function Component() {
   };
 
   const convertPriceToSats = async (product: ProductData): Promise<number> => {
-    // Use volumePrice if it exists, otherwise use default price
+    // Use weightPrice, volumePrice if they exist, otherwise use default price
     const basePrice =
-      product.volumePrice !== undefined ? product.volumePrice : product.price;
+      product.weightPrice !== undefined
+        ? product.weightPrice
+        : product.volumePrice !== undefined
+          ? product.volumePrice
+          : product.price;
 
     if (
       product.currency.toLowerCase() === "sats" ||
@@ -305,9 +309,13 @@ export default function Component() {
   };
 
   const convertTotalToSats = async (product: ProductData): Promise<number> => {
-    // Use volumePrice if it exists, otherwise use default price
+    // Use weightPrice, volumePrice if they exist, otherwise use default price
     const basePrice =
-      product.volumePrice !== undefined ? product.volumePrice : product.price;
+      product.weightPrice !== undefined
+        ? product.weightPrice
+        : product.volumePrice !== undefined
+          ? product.volumePrice
+          : product.price;
     const shippingCost = product.shippingCost || 0;
     const totalCost = basePrice + shippingCost;
 

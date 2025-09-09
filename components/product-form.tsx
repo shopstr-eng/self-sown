@@ -42,6 +42,7 @@ import { addProductToCache } from "@/utils/nostr/cache-service";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { buildSrcSet } from "@/utils/images";
 import { FileUploaderButton } from "./utility-components/file-uploader";
+import { EncryptedAgreementUploaderButton } from "./utility-components/encrypted-agreement-uploader";
 import currencySelection from "../public/currencySelection.json";
 import {
   NostrContext,
@@ -74,6 +75,8 @@ export default function ProductForm({
   const [isPostingOrUpdatingProduct, setIsPostingOrUpdatingProduct] =
     useState(false);
   const [showOptionalTags, setShowOptionalTags] = useState(false);
+  const [herdshareAgreementUrl, setHerdshareAgreementUrl] =
+    useState<string>("");
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
   const {
@@ -104,6 +107,10 @@ export default function ProductForm({
           "Volume Prices": oldValues.volumePrices
             ? oldValues.volumePrices
             : new Map<string, number>(),
+          Weights: oldValues.weights ? oldValues.weights.join(",") : "",
+          "Weight Prices": oldValues.weightPrices
+            ? oldValues.weightPrices
+            : new Map<string, number>(),
           Condition: oldValues.condition ? oldValues.condition : "",
           Status: oldValues.status ? oldValues.status : "",
           Required: oldValues.required ? oldValues.required : "",
@@ -111,7 +118,7 @@ export default function ProductForm({
         }
       : {
           Currency: "USD",
-          "Shipping Option": "N/A",
+          "Shipping Option": "Pickup",
           Status: "active",
           "Pickup Locations": [""],
         },
@@ -128,6 +135,12 @@ export default function ProductForm({
   useEffect(() => {
     setImages(oldValues?.images || []);
     setIsEdit(oldValues ? true : false);
+    // Initialize herdshare agreement URL if editing existing product
+    if (oldValues?.herdshareAgreement) {
+      setHerdshareAgreementUrl(oldValues.herdshareAgreement);
+    } else {
+      setHerdshareAgreementUrl("");
+    }
   }, [showModal]);
 
   const onSubmit = async (data: {
@@ -203,6 +216,17 @@ export default function ProductForm({
       });
     }
 
+    if (data["Weights"]) {
+      const weightsArray = Array.isArray(data["Weights"])
+        ? data["Weights"]
+        : (data["Weights"] as string).split(",").filter(Boolean);
+      weightsArray.forEach((weight) => {
+        const price =
+          (data["Weight Prices"] as Map<string, number>).get(weight) || 0;
+        tags.push(["weight", weight, price.toString()]);
+      });
+    }
+
     if (data["Condition"]) {
       tags.push(["condition", data["Condition"] as string]);
     }
@@ -219,12 +243,19 @@ export default function ProductForm({
       tags.push(["restrictions", data["Restrictions"] as string]);
     }
 
+    // Add herdshare agreement if URL exists and herdshare category is selected
+    const categories = (data["Category"] as string).toLowerCase();
+    if (herdshareAgreementUrl && categories.includes("herdshare")) {
+      tags.push(["herdshare_agreement", herdshareAgreementUrl]);
+    }
+
     // Add pickup locations if they exist and shipping involves pickup
     if (
       data["Pickup Locations"] &&
       Array.isArray(data["Pickup Locations"]) &&
       (data["Shipping Option"] === "Pickup" ||
-        data["Shipping Option"] === "Free/Pickup")
+        data["Shipping Option"] === "Free/Pickup" ||
+        data["Shipping Option"] === "Added Cost/Pickup")
     ) {
       (data["Pickup Locations"] as string[])
         .filter((location) => location.trim() !== "")
@@ -253,12 +284,14 @@ export default function ProductForm({
   const clear = () => {
     handleModalToggle();
     setImages([]);
+    setHerdshareAgreementUrl("");
     reset();
     setCurrentSlide(0);
   };
 
   const watchShippingOption = watch("Shipping Option");
   const watchCurrency = watch("Currency");
+  const watchCategory = watch("Category");
 
   const deleteImage = (index: number) => () => {
     setImages((prevValues) => {
@@ -668,7 +701,8 @@ export default function ProductForm({
               }}
             />
 
-            {watchShippingOption === "Added Cost" && (
+            {(watchShippingOption === "Added Cost" ||
+              watchShippingOption === "Added Cost/Pickup") && (
               <Controller
                 name="Shipping Cost"
                 control={control}
@@ -727,7 +761,8 @@ export default function ProductForm({
             )}
 
             {(watchShippingOption === "Pickup" ||
-              watchShippingOption === "Free/Pickup") && (
+              watchShippingOption === "Free/Pickup" ||
+              watchShippingOption === "Added Cost/Pickup") && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-dark-text">
                   Pickup Locations
@@ -955,6 +990,168 @@ export default function ProductForm({
             />
 
             <Controller
+              name="Weights"
+              control={control}
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => {
+                const isErrored = error !== undefined;
+                const errorMessage = error?.message || "";
+
+                const selectedWeights = Array.isArray(value)
+                  ? value
+                  : typeof value === "string"
+                    ? value.split(",").filter(Boolean)
+                    : [];
+
+                const handleWeightChange = (newValue: string | string[]) => {
+                  const newWeights = Array.isArray(newValue)
+                    ? newValue
+                    : newValue.split(",").filter(Boolean);
+                  onChange(newWeights);
+                };
+
+                return (
+                  <Select
+                    variant="bordered"
+                    isMultiline={true}
+                    autoFocus
+                    aria-label="Weights"
+                    label="Weights (optional)"
+                    labelPlacement="inside"
+                    selectionMode="multiple"
+                    isInvalid={isErrored}
+                    errorMessage={errorMessage}
+                    onChange={(e) => handleWeightChange(e.target.value)}
+                    onBlur={onBlur}
+                    value={selectedWeights}
+                    defaultSelectedKeys={new Set(selectedWeights)}
+                    classNames={{
+                      base: "mt-4",
+                      trigger: "min-h-unit-12 py-2 !bg-dark-fg",
+                      popoverContent: "!bg-dark-fg",
+                    }}
+                  >
+                    <SelectSection className="text-dark-text">
+                      <SelectItem key="1oz" value="1oz">
+                        1oz
+                      </SelectItem>
+                      <SelectItem key="2oz" value="2oz">
+                        2oz
+                      </SelectItem>
+                      <SelectItem key="3oz" value="3oz">
+                        3oz
+                      </SelectItem>
+                      <SelectItem key="4oz" value="4oz">
+                        4oz
+                      </SelectItem>
+                      <SelectItem key="5oz" value="5oz">
+                        5oz
+                      </SelectItem>
+                      <SelectItem key="6oz" value="6oz">
+                        6oz
+                      </SelectItem>
+                      <SelectItem key="7oz" value="7oz">
+                        7oz
+                      </SelectItem>
+                      <SelectItem key="8oz" value="8oz">
+                        8oz
+                      </SelectItem>
+                      <SelectItem key="9oz" value="9oz">
+                        9oz
+                      </SelectItem>
+                      <SelectItem key="10oz" value="10oz">
+                        10oz
+                      </SelectItem>
+                      <SelectItem key="11oz" value="11oz">
+                        11oz
+                      </SelectItem>
+                      <SelectItem key="12oz" value="12oz">
+                        12oz
+                      </SelectItem>
+                      <SelectItem key="13oz" value="13oz">
+                        13oz
+                      </SelectItem>
+                      <SelectItem key="14oz" value="14oz">
+                        14oz
+                      </SelectItem>
+                      <SelectItem key="15oz" value="15oz">
+                        15oz
+                      </SelectItem>
+                      <SelectItem key="16oz" value="16oz">
+                        16oz
+                      </SelectItem>
+                      <SelectItem key="1lbs" value="1lbs">
+                        1lbs
+                      </SelectItem>
+                    </SelectSection>
+                  </Select>
+                );
+              }}
+            />
+
+            <Controller
+              name="Weight Prices"
+              control={control}
+              render={({
+                field: { onChange, value = new Map<string, number>() },
+              }) => {
+                const handlePriceChange = (weight: string, price: number) => {
+                  const newPrices = new Map(value);
+                  newPrices.set(weight, price);
+                  onChange(newPrices);
+                };
+
+                const weights = watch("Weights");
+                const weightArray = Array.isArray(weights)
+                  ? weights
+                  : typeof weights === "string"
+                    ? weights
+                        .split(",")
+                        .filter(Boolean)
+                        .map((w) => w.trim())
+                    : [];
+
+                return (
+                  <div className="mt-4 flex flex-wrap gap-4">
+                    {weightArray.map((weight: string) => (
+                      <div key={weight} className="flex items-center">
+                        <span className="mr-2 text-dark-text">{weight}:</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={(value.get(weight) || 0).toString()}
+                          onChange={(e) =>
+                            handlePriceChange(
+                              weight,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-32"
+                          endContent={
+                            <div className="flex items-center">
+                              <span className="text-small text-default-400">
+                                {watchCurrency}
+                              </span>
+                            </div>
+                          }
+                        />
+                      </div>
+                    ))}
+                    {weightArray.length > 0 && (
+                      <div className="w-full text-xs text-dark-text opacity-75">
+                        Note: Weight prices will override the main product price
+                        when selected.
+                      </div>
+                    )}
+                  </div>
+                );
+              }}
+            />
+
+            <Controller
               name="Category"
               control={control}
               rules={{
@@ -1014,6 +1211,32 @@ export default function ProductForm({
                 );
               }}
             />
+
+            {/* Herdshare Agreement Upload - Show only when herdshare category is selected */}
+            {watchCategory &&
+              watchCategory.toLowerCase().includes("herdshare") && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-dark-text">
+                    Herdshare Agreement
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Upload the herdshare agreement PDF that customers must
+                    review before purchase. The agreement will be encrypted
+                    using your seller key for security.
+                  </p>
+
+                  <EncryptedAgreementUploaderButton
+                    sellerNpub={signerPubKey || ""}
+                    fileCallbackOnUpload={(fileUrl) => {
+                      setHerdshareAgreementUrl(fileUrl);
+                    }}
+                  >
+                    {herdshareAgreementUrl
+                      ? "Update Encrypted Agreement"
+                      : "Upload Encrypted Agreement"}
+                  </EncryptedAgreementUploaderButton>
+                </div>
+              )}
 
             <Controller
               name="Restrictions"

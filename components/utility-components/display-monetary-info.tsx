@@ -21,6 +21,10 @@ export default function CompactPriceDisplay({
     else if (shippingType === "Free") return "- Free Shipping";
     else if (shippingType === "Pickup") return "- Pickup Only";
     else if (shippingType == "Free/Pickup") return "- Free / Pickup";
+    else if (shippingType == "Added Cost/Pickup")
+      return `+ ${formatter.format(
+        Number(shippingCost)
+      )} ${currency} Shipping or Pickup`;
     else return "";
   };
 

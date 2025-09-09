@@ -24,15 +24,20 @@ export type ProductData = {
   sizeQuantities?: Map<string, number>;
   volumes?: string[];
   volumePrices?: Map<string, number>;
+  weights?: string[];
+  weightPrices?: Map<string, number>;
   condition?: string;
   status?: string;
   selectedSize?: string;
   selectedQuantity?: number;
   selectedVolume?: string;
   volumePrice?: number;
+  selectedWeight?: string;
+  weightPrice?: number;
   required?: string;
   restrictions?: string;
   pickupLocations?: string[];
+  herdshareAgreement?: string;
 };
 
 export const parseTags = (productEvent: NostrEvent) => {
@@ -146,6 +151,18 @@ export const parseTags = (productEvent: NostrEvent) => {
           }
         }
         break;
+      case "weight":
+        if (!parsedData.weights) {
+          parsedData.weights = [];
+          parsedData.weightPrices = new Map<string, number>();
+        }
+        if (values[0]) {
+          parsedData.weights.push(values[0]);
+          if (values[1]) {
+            parsedData.weightPrices!.set(values[0], parseFloat(values[1]));
+          }
+        }
+        break;
       case "condition":
         parsedData.condition = values[0];
         break;
@@ -162,6 +179,9 @@ export const parseTags = (productEvent: NostrEvent) => {
         if (parsedData.pickupLocations === undefined)
           parsedData.pickupLocations = [];
         parsedData.pickupLocations.push(values[0]!);
+        break;
+      case "herdshare_agreement":
+        parsedData.herdshareAgreement = values[0];
         break;
       default:
         return;

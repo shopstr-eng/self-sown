@@ -440,9 +440,6 @@ export const fetchGiftWrappedChatsAndMessages = async (
                 ${tagsMap},
                 ${event}`
             );
-            alert(
-              `fetchAllOutgoingChats: Failed to get recipientPubkey from tagsMap`
-            );
             return;
           }
           let chatMessage = chatMessagesFromCache.get(messageEvent.id);

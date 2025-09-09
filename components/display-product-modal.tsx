@@ -18,7 +18,7 @@ import ProductForm from "./product-form";
 import ImageCarousel from "./utility-components/image-carousel";
 import CompactCategories from "./utility-components/compact-categories";
 import { locationAvatar } from "./utility-components/dropdowns/location-dropdown";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import SuccessModal from "./utility-components/success-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
@@ -191,6 +191,21 @@ export default function DisplayProductModal({
                 </div>
               </>
             ) : null}
+            {productData.weights && productData.weights.length > 0 ? (
+              <>
+                <span className="text-xl font-semibold">Weights: </span>
+                <div className="flex flex-wrap items-center">
+                  {productData.weights && productData.weights.length > 0
+                    ? productData.weights.map((weight: string) => (
+                        <span key={weight} className="mb-2 mr-4 text-dark-text">
+                          {weight}: {productData.weightPrices?.get(weight) || 0}{" "}
+                          {productData.currency}
+                        </span>
+                      ))
+                    : null}
+                </div>
+              </>
+            ) : null}
             {productData.condition && (
               <>
                 <div className="text-left text-xs text-dark-text">
@@ -233,7 +248,7 @@ export default function DisplayProductModal({
             <div className="flex w-full flex-wrap justify-evenly gap-2">
               <Button
                 type="submit"
-                className={BLACKBUTTONCLASSNAMES}
+                className={WHITEBUTTONCLASSNAMES}
                 startContent={
                   <ShareIcon className="h-6 w-6 hover:text-yellow-600" />
                 }
@@ -247,7 +262,7 @@ export default function DisplayProductModal({
                 <>
                   <Button
                     type="submit"
-                    className={BLACKBUTTONCLASSNAMES}
+                    className={WHITEBUTTONCLASSNAMES}
                     startContent={
                       <PencilSquareIcon className="h-6 w-6 hover:text-yellow-600" />
                     }

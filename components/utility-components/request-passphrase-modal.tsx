@@ -8,7 +8,7 @@ import {
   Input,
   Button,
 } from "@nextui-org/react";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { useRouter } from "next/router";
 
 export default function PassphraseChallengeModal({
@@ -33,12 +33,6 @@ export default function PassphraseChallengeModal({
   }, [passphraseInput]);
   const router = useRouter();
   const passphraseInputRef = useRef<HTMLInputElement>(null);
-
-  const buttonClassName = useMemo(() => {
-    const enabledStyle = BLACKBUTTONCLASSNAMES;
-    const className = "text-white shadow-lg bg-gradient-to-tr" + enabledStyle;
-    return className;
-  }, []);
 
   const onSubmit = () => {
     if (isButtonDisabled && passphraseInputRef.current) {
@@ -114,7 +108,11 @@ export default function PassphraseChallengeModal({
             Cancel
           </Button>
 
-          <Button className={buttonClassName} type="submit" onClick={onSubmit}>
+          <Button
+            className={WHITEBUTTONCLASSNAMES}
+            type="submit"
+            onClick={onSubmit}
+          >
             Submit
           </Button>
         </ModalFooter>
