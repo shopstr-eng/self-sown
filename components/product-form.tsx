@@ -54,7 +54,7 @@ interface ProductFormProps {
   handleModalToggle: () => void;
   showModal: boolean;
   oldValues?: ProductData;
-  handleDelete?: (productId: string) => void;
+  handleDelete?: (productId: string) => Promise<void>;
   onSubmitCallback?: () => void;
 }
 
@@ -268,7 +268,11 @@ export default function ProductForm({
 
     if (isEdit) {
       if (handleDelete && oldValues?.id) {
-        handleDelete(oldValues.id);
+        try {
+          await handleDelete(oldValues.id);
+        } catch (error) {
+          console.error("Failed to delete old product:", error);
+        }
       }
     }
 

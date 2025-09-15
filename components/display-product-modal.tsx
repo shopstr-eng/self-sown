@@ -29,7 +29,7 @@ interface ProductModalProps {
   productData: ProductData;
   handleModalToggle: () => void;
   showModal: boolean;
-  handleDelete: (productId: string) => void;
+  handleDelete: (productId: string) => Promise<void>;
 }
 
 export default function DisplayProductModal({
@@ -84,11 +84,11 @@ export default function DisplayProductModal({
     if (!isLoggedIn) return;
     finalizeDeleteListingProcess();
   };
-  const finalizeDeleteListingProcess = () => {
+  const finalizeDeleteListingProcess = async () => {
     // only used for when signInMethod === "nsec"
     setDeleteLoading(true);
     handleModalToggle(); // closes product detail modal
-    handleDelete(productData.id); // delete listing
+    await handleDelete(productData.id); // delete listing
     setDeleteLoading(false);
   };
 
