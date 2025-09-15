@@ -87,9 +87,9 @@ export default function DisplayProductModal({
   const finalizeDeleteListingProcess = async () => {
     // only used for when signInMethod === "nsec"
     setDeleteLoading(true);
-    handleModalToggle(); // closes product detail modal
     await handleDelete(productData.id); // delete listing
     setDeleteLoading(false);
+    handleModalToggle(); // closes product detail modal
   };
 
   if (!showModal) return null; // needed to prevent TreeWalker error upon redirect while modal open
