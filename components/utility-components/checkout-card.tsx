@@ -471,7 +471,7 @@ export default function CheckoutCard({
                     {productData.summary.length > SUMMARY_CHARACTER_LIMIT && (
                       <button
                         onClick={toggleExpand}
-                        className="hover:text-black-500 mt-2 text-sm text-black"
+                        className="mt-2 text-sm text-yellow-500 hover:text-yellow-700"
                       >
                         {isExpanded ? "Show less" : "Show more"}
                       </button>

@@ -2518,14 +2518,20 @@ export default function CartInvoiceCard({
                             )}
                           </span>
                         </div>
-                        {product.shippingCost! > 0 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="ml-2">Shipping cost:</span>
-                            <span>
-                              {formatWithCommas(product.shippingCost!, "sats")}
-                            </span>
-                          </div>
-                        )}
+                        {product.shippingCost! > 0 &&
+                          ((formType === "combined" &&
+                            shippingPickupPreference === "shipping") ||
+                            formType === "shipping") && (
+                            <div className="flex justify-between text-sm">
+                              <span className="ml-2">Shipping cost:</span>
+                              <span>
+                                {formatWithCommas(
+                                  product.shippingCost!,
+                                  "sats"
+                                )}
+                              </span>
+                            </div>
+                          )}
                       </div>
                     ))}
                   </div>
@@ -2691,14 +2697,17 @@ export default function CartInvoiceCard({
                           )}
                         </span>
                       </div>
-                      {product.shippingCost! > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="ml-2">Shipping cost:</span>
-                          <span>
-                            {formatWithCommas(product.shippingCost!, "sats")}
-                          </span>
-                        </div>
-                      )}
+                      {product.shippingCost! > 0 &&
+                        ((formType === "combined" &&
+                          shippingPickupPreference === "shipping") ||
+                          formType === "shipping") && (
+                          <div className="flex justify-between text-sm">
+                            <span className="ml-2">Shipping cost:</span>
+                            <span>
+                              {formatWithCommas(product.shippingCost!, "sats")}
+                            </span>
+                          </div>
+                        )}
                     </div>
                   ))}
                 </div>
@@ -2818,9 +2827,9 @@ export default function CartInvoiceCard({
                       : "border-gray-300 bg-white"
                   }`}
                 >
-                  <div className="font-medium">Free shipping</div>
+                  <div className="font-medium">Free or added shipping</div>
                   <div className="text-sm text-gray-500">
-                    Use free shipping for products that offer it
+                    Arrange shipping for products that offer it
                   </div>
                 </button>
                 <button

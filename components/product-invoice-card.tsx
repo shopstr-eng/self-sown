@@ -230,7 +230,11 @@ export default function ProductInvoiceCard({
       messageOptions = {
         isOrder: true,
         type: 3,
-        orderAmount: messageAmount ? messageAmount : productData.totalCost,
+        orderAmount: messageAmount
+          ? messageAmount
+          : formType === "shipping"
+            ? productData.totalCost
+            : productData.price,
         orderId,
         productData: {
           ...productData,
@@ -381,7 +385,8 @@ export default function ProductInvoiceCard({
     paymentType?: "fiat" | "lightning" | "cashu"
   ) => {
     try {
-      let price = productData.totalCost;
+      let price =
+        formType === "shipping" ? productData.totalCost : productData.price;
       if (
         !currencySelection.hasOwnProperty(productData.currency.toUpperCase())
       ) {
@@ -1626,7 +1631,7 @@ export default function ProductInvoiceCard({
   };
 
   const formattedTotalCost = formatWithCommas(
-    productData.totalCost,
+    formType === "shipping" ? productData.totalCost : productData.price,
     productData.currency
   );
 
@@ -1768,51 +1773,49 @@ export default function ProductInvoiceCard({
 
     return (
       <div className="space-y-4">
-        {productData.shippingType === "Added Cost/Pickup" ||
-        productData.shippingType === "Free/Pickup" ||
-        productData.shippingType === "Pickup" ? (
-          <Controller
-            name="pickupLocation"
-            control={formControl}
-            rules={{ required: "A pickup location is required." }}
-            render={({
-              field: { onChange, onBlur, value },
-              fieldState: { error },
-            }) => (
-              <Select
-                variant="bordered"
-                fullWidth={true}
-                label={<span className="text-light-text">Pickup location</span>}
-                labelPlacement="inside"
-                placeholder="Select a pickup location"
-                isInvalid={!!error}
-                errorMessage={error?.message}
-                onChange={(e) => {
-                  onChange(e);
-                  setSelectedPickupLocation(e.target.value);
-                }}
-                isRequired={true}
-                onBlur={onBlur}
-                value={value || ""}
-              >
-                {productData.pickupLocations
-                  ? productData.pickupLocations.map((location) => (
-                      <SelectItem
-                        key={location}
-                        value={location}
-                        className="text-dark-text"
-                      >
-                        {location}
-                      </SelectItem>
-                    ))
-                  : []}
-              </Select>
-            )}
-          />
-        ) : null}
-
         {formType === "contact" && (
           <>
+            <Controller
+              name="pickupLocation"
+              control={formControl}
+              rules={{ required: "A pickup location is required." }}
+              render={({
+                field: { onChange, onBlur, value },
+                fieldState: { error },
+              }) => (
+                <Select
+                  variant="bordered"
+                  fullWidth={true}
+                  label={
+                    <span className="text-light-text">Pickup location</span>
+                  }
+                  labelPlacement="inside"
+                  placeholder="Select a pickup location"
+                  isInvalid={!!error}
+                  errorMessage={error?.message}
+                  onChange={(e) => {
+                    onChange(e);
+                    setSelectedPickupLocation(e.target.value);
+                  }}
+                  isRequired={true}
+                  onBlur={onBlur}
+                  value={value || ""}
+                >
+                  {productData.pickupLocations
+                    ? productData.pickupLocations.map((location) => (
+                        <SelectItem
+                          key={location}
+                          value={location}
+                          className="text-dark-text"
+                        >
+                          {location}
+                        </SelectItem>
+                      ))
+                    : []}
+                </Select>
+              )}
+            />
+
             <Controller
               name="Contact"
               control={formControl}
@@ -2174,23 +2177,26 @@ export default function ProductInvoiceCard({
                         )}
                       </span>
                     </div>
-                    {productData.shippingCost! > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="ml-2">Shipping cost:</span>
-                        <span>
-                          {formatWithCommas(
-                            productData.shippingCost!,
-                            productData.currency
-                          )}
-                        </span>
-                      </div>
-                    )}
+                    {productData.shippingCost! > 0 &&
+                      formType === "shipping" && (
+                        <div className="flex justify-between text-sm">
+                          <span className="ml-2">Shipping cost:</span>
+                          <span>
+                            {formatWithCommas(
+                              productData.shippingCost!,
+                              productData.currency
+                            )}
+                          </span>
+                        </div>
+                      )}
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Total:</span>
                     <span>
                       {formatWithCommas(
-                        productData.totalCost,
+                        formType === "shipping"
+                          ? productData.totalCost
+                          : productData.price,
                         productData.currency
                       )}
                     </span>
@@ -2330,7 +2336,7 @@ export default function ProductInvoiceCard({
                       )}
                     </span>
                   </div>
-                  {productData.shippingCost! > 0 && (
+                  {productData.shippingCost! > 0 && formType === "shipping" && (
                     <div className="flex justify-between text-sm">
                       <span className="ml-2">Shipping cost:</span>
                       <span>
@@ -2346,7 +2352,9 @@ export default function ProductInvoiceCard({
                   <span>Total:</span>
                   <span>
                     {formatWithCommas(
-                      productData.totalCost,
+                      formType === "shipping"
+                        ? productData.totalCost
+                        : productData.price,
                       productData.currency
                     )}
                   </span>
@@ -2534,7 +2542,9 @@ export default function ProductInvoiceCard({
                 <p className="mb-6 text-gray-400">
                   You will need{" "}
                   {formatWithCommas(
-                    productData.totalCost,
+                    formType === "shipping"
+                      ? productData.totalCost
+                      : productData.price,
                     productData.currency
                   )}{" "}
                   in cash for this order.
@@ -2564,7 +2574,9 @@ export default function ProductInvoiceCard({
                 <p className="mb-4 text-gray-400">
                   Please send{" "}
                   {formatWithCommas(
-                    productData.totalCost,
+                    formType === "shipping"
+                      ? productData.totalCost
+                      : productData.price,
                     productData.currency
                   )}{" "}
                   to:
@@ -2596,7 +2608,9 @@ export default function ProductInvoiceCard({
                   if (fiatPaymentConfirmed) {
                     setShowFiatPaymentInstructions(false);
                     await handleFiatPayment(
-                      productData.totalCost,
+                      formType === "shipping"
+                        ? productData.totalCost
+                        : productData.price,
                       pendingPaymentData || {}
                     );
                     setPendingPaymentData(null); // Clear stored data
