@@ -87,7 +87,6 @@ const Tabs = ({
           className={
             "absolute bottom-0 left-0.5 z-10 h-[5px] rounded-full bg-dark-bg"
           }
-          initial={false}
           animate={{
             width: selectedRect.width * 0.2,
             x: `calc(${selectedRect.left - navRect.left}px + 195%)`,
