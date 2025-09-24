@@ -20,8 +20,8 @@ const getMetaTags = (
   shopEvents: Map<string, ShopProfile>
 ): MetaTagsType => {
   const defaultTags = {
-    title: "Milk Market",
-    description: "FREE MILK",
+    title: "Milk Market - Freeing the Online Dairy Market for Local Farmers",
+    description: "Discover fresh, raw milk and dairy products directly from local farmers. Milk Market is a decentralized marketplace built built with sovereignty and community in mind, connecting consumers with trusted dairy producers for sustainable, farm-to-table nutrition. Shop securely with Bitcoin or P2P cash payments and support your local farming community.",
     image: "/milk-market.png",
     url: `${windowOrigin}`,
   };
@@ -116,6 +116,9 @@ const DynamicHead = ({
       />
       <title>{metaTags.title}</title>
       <meta name="description" content={metaTags.description} />
+      <link rel="canonical" href={metaTags.url} />
+      <link rel="apple-touch-icon" href="/milk-market.png" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
       <meta property="og:url" content={metaTags.url} />
       <meta property="og:type" content="website" />
       <meta property="og:title" content={metaTags.title} />

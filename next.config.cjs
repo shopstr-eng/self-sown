@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 
 const withPWA = require("next-pwa")({
@@ -13,6 +14,22 @@ const withPWA = require("next-pwa")({
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  poweredByHeader: false,
+  async redirects() {
+    return [
+      {
+        source: '/(.*)',
+        has: [
+          {
+            type: 'host',
+            value: 'www.milk.market',
+          },
+        ],
+        destination: 'https://milk.market/$1',
+        permanent: true,
+      },
+    ];
+  },
   pwa: {
     dest: "public",
     disable: process.env.NODE_ENV === "development",
