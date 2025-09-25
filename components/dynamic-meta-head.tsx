@@ -22,7 +22,7 @@ const getMetaTags = (
   const defaultTags = {
     title: "Milk Market - Freeing the Online Dairy Market for Local Farmers",
     description:
-      "Discover fresh, raw milk and dairy products directly from local farmers. Milk Market is a decentralized marketplace built built with sovereignty and community in mind, connecting consumers with trusted dairy producers for sustainable, farm-to-table nutrition. Shop securely with Bitcoin or P2P cash payments and support your local farming community.",
+      "Discover fresh, raw milk and dairy products directly from local farmers. Milk Market is a permissionless marketplace built with sovereignty and community in mind, connecting consumers with trusted dairy producers for sustainable, farm-to-table nutrition. Shop securely with Bitcoin, cash, or other digital cash payments and support your local farming community.",
     image: "/milk-market.png",
     url: `${windowOrigin}`,
   };
