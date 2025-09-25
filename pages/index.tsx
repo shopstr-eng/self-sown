@@ -317,7 +317,7 @@ export default function StandaloneLanding() {
             </div>
 
             <h1 className="mb-8 text-5xl font-black leading-tight md:text-7xl">
-              Fresh Dairy Direct from <br />
+              Raw Dairy Direct from <br />
               <span className="inline-block -rotate-1 transform bg-dark-bg px-4 py-2 text-dark-text">
                 Local Farmers
               </span>
@@ -382,7 +382,7 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-bold md:text-5xl">
-              Why Choose Milk Market for Fresh Dairy?
+              Why Choose Milk Market for Raw Dairy?
             </h2>
             <p className="text-xl text-gray-600">
               Connecting consumers with trusted dairy producers
@@ -397,9 +397,9 @@ export default function StandaloneLanding() {
                   Direct from Farm
                 </h3>
                 <p className="text-gray-600">
-                  Skip the grocery store and get fresh milk, cheese, and dairy
-                  products directly from local farmers. Support farmers while
-                  enjoying the freshest dairy available in your area.
+                  Skip the grocery store and get fresh raw milk, cheese, and
+                  dairy products directly from local farmers. Support farmers
+                  while enjoying the freshest dairy available in your area.
                 </p>
               </CardBody>
             </Card>
@@ -559,10 +559,10 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-bold md:text-5xl">
-              Benefits of Fresh Local Dairy
+              Benefits of Local Raw Dairy
             </h2>
             <p className="text-xl text-gray-600">
-              Superior nutrition and environmental impact
+              Superior nutrition and community impact
             </p>
           </div>
 
@@ -606,7 +606,7 @@ export default function StandaloneLanding() {
                 <Card className="h-full border-gray-100 bg-light-bg">
                   <CardBody className="p-8">
                     <h3 className="mb-4 text-2xl font-semibold text-light-text">
-                      Sustainable Impact
+                      Community Impact
                     </h3>
                     <p className="mb-6 text-gray-600">
                       Supporting local dairy farmers promotes sustainable
@@ -649,9 +649,9 @@ export default function StandaloneLanding() {
           <p className="mx-auto mb-8 max-w-2xl text-xl text-gray-300">
             Join the Milk Market community, be a part of the &ldquo;FREE
             MILK&rdquo; movement, and connect with local farmers for fresh,
-            sustainable dairy products. Your support helps maintain ancestral
-            traditions while providing your family with the highest quality
-            nutrition.
+            sustainable raw dairy products. Your support helps maintain
+            ancestral traditions while providing your family with the highest
+            quality nutrition.
           </p>
           <Button
             onClick={() => router.push("/marketplace")}
