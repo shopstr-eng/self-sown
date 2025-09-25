@@ -1212,9 +1212,16 @@ export async function verifyNip05Identifier(
     try {
       // Use a timeout to prevent hanging requests
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Reduced to 5 second timeout
 
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, {
+        signal: controller.signal,
+        mode: "cors",
+        cache: "no-cache",
+        headers: {
+          Accept: "application/json",
+        },
+      });
       clearTimeout(timeoutId);
 
       if (!response.ok) return false;
@@ -1232,12 +1239,17 @@ export async function verifyNip05Identifier(
       return (
         names[username] === pubkey || names[username.toLowerCase()] === pubkey
       );
-    } catch {
-      // This will catch fetch errors, timeout errors, etc.
+    } catch (error) {
+      // Log the error for debugging but don't throw
+      console.warn(`Failed to verify NIP-05 identifier ${nip05}:`, error);
       return false;
     }
-  } catch {
+  } catch (error) {
     // Catch any unexpected errors
+    console.warn(
+      `Unexpected error verifying NIP-05 identifier ${nip05}:`,
+      error
+    );
     return false;
   }
 }

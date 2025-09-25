@@ -203,8 +203,17 @@ export default function StandaloneLanding() {
       {/* Navigation */}
       <nav className="relative z-20 flex items-center justify-between p-4 md:p-6 md:px-12">
         <div className="flex items-center space-x-2">
-          <Image src="/milk-market.png" alt="Milk Market" className="h-8 w-8" />
-          <span className="text-xl font-bold">Milk Market</span>
+          <Image
+            src="/milk-market.png"
+            alt="Milk Market"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+          />
+          <div className="flex flex-col md:flex-row md:space-x-1">
+            <span className="text-xl font-bold">Milk</span>
+            <span className="text-xl font-bold">Market</span>
+          </div>
         </div>
 
         {/* Desktop Navigation */}
@@ -215,7 +224,7 @@ export default function StandaloneLanding() {
             variant="ghost"
             className="w-auto text-light-text hover:text-gray-600"
           >
-            Producer Guide 🚜
+            Start Selling 🚜
           </Button>
           <Button
             onClick={() => {
@@ -236,7 +245,7 @@ export default function StandaloneLanding() {
             variant="solid"
             className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
           >
-            FREE MILK 🥛
+            Browse Milk Market 🥛
           </Button>
         </div>
 
@@ -258,7 +267,7 @@ export default function StandaloneLanding() {
                     setIsMobileMenuOpen(false);
                   }}
                 >
-                  Producer Guide 🚜
+                  Start Selling 🚜
                 </Button>
                 <Button
                   className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-light-text hover:bg-gray-50"
@@ -279,7 +288,7 @@ export default function StandaloneLanding() {
                     setIsMobileMenuOpen(false);
                   }}
                 >
-                  FREE MILK 🥛
+                  Browse Milk Market 🥛
                 </Button>
               </div>
             </div>
@@ -292,7 +301,7 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-6xl text-center">
           <div className="animate-fadeInUp">
             <div className="mb-8 flex justify-center space-x-4">
-              <span className="animate-float text-4xl">🐄</span>
+              <span className="animate-float text-4xl">🐄🐐</span>
               <span
                 className="animate-float text-4xl"
                 style={{ animationDelay: "0.5s" }}
@@ -308,33 +317,18 @@ export default function StandaloneLanding() {
             </div>
 
             <h1 className="mb-8 text-5xl font-black leading-tight md:text-7xl">
-              Reclaim Your Right to <br />
+              Fresh Dairy Direct from <br />
               <span className="inline-block -rotate-1 transform bg-dark-bg px-4 py-2 text-dark-text">
-                Real Milk
+                Local Farmers
               </span>
             </h1>
 
             <p className="mx-auto mb-6 max-w-3xl text-xl text-gray-600 md:text-2xl">
-              No Gatekeepers, No Compromises
+              Connect with trusted local dairy farmers and access fresh, raw
+              milk and dairy products. Our marketplace, built with sovereignty
+              and community in mind, ensures secure transactions while
+              supporting farmers in your area directly.
             </p>
-
-            <div className="mx-auto mb-12 grid max-w-4xl gap-6 text-left md:grid-cols-2">
-              <div className="rounded-2xl bg-gray-50 p-6">
-                <span className="mb-3 block text-2xl">🚜</span>
-                <h3 className="mb-2 text-lg font-semibold">For Producers</h3>
-                <p className="text-gray-600">
-                  Sell Directly to Your Community — No Payment Bans or Middlemen
-                </p>
-              </div>
-              <div className="rounded-2xl bg-gray-50 p-6">
-                <span className="mb-3 block text-2xl">🥛</span>
-                <h3 className="mb-2 text-lg font-semibold">For Drinkers</h3>
-                <p className="text-gray-600">
-                  Find Fresh, Local Raw Milk Sources — Support Farms and Your
-                  Health
-                </p>
-              </div>
-            </div>
 
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <Button
@@ -344,7 +338,16 @@ export default function StandaloneLanding() {
                 size="lg"
                 className="transform rounded-xl bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
               >
-                FREE MILK 🥛
+                Browse Milk Market 🥛
+              </Button>
+              <Button
+                onClick={() => router.push("/producers")}
+                color="default"
+                variant="solid"
+                size="lg"
+                className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
+              >
+                Start Selling 🚜
               </Button>
               <Button
                 onClick={() => {
@@ -361,152 +364,74 @@ export default function StandaloneLanding() {
                 Stay Milky 📨
               </Button>
               <Button
-                onClick={() => router.push("/producers")}
+                onClick={() => router.push("/faq")}
                 color="default"
                 variant="solid"
                 size="lg"
                 className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
               >
-                Producer Guide 🚜
+                Learn More 🙋
               </Button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Value Proposition */}
-      <section id="producers" className="relative z-10 bg-gray-50 py-20">
+      {/* Features Section */}
+      <section className="relative z-10 bg-light-bg py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-bold md:text-5xl">
-              Why Choose Milk Market?
+              Why Choose Milk Market for Fresh Dairy?
             </h2>
             <p className="text-xl text-gray-600">
-              Empowering both sides of the marketplace
+              Connecting consumers with trusted dairy producers
             </p>
           </div>
 
-          <div className="grid gap-16 lg:grid-cols-2">
-            {/* For Producers */}
-            <div>
-              <div className="mb-8 flex items-center">
-                <span className="mr-4 text-3xl">🚜</span>
-                <h3 className="text-3xl font-bold">For Producers</h3>
-              </div>
+          <div className="grid gap-8 md:grid-cols-3">
+            <Card className="hover-lift border-gray-100 bg-light-bg">
+              <CardBody className="p-8 text-center">
+                <span className="mb-4 block text-4xl">🚜</span>
+                <h3 className="mb-4 text-xl font-semibold text-light-text">
+                  Direct from Farm
+                </h3>
+                <p className="text-gray-600">
+                  Skip the grocery store and get fresh milk, cheese, and dairy
+                  products directly from local farmers. Support farmers while
+                  enjoying the freshest dairy available in your area.
+                </p>
+              </CardBody>
+            </Card>
 
-              <div className="space-y-6">
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">📈</span>
-                      Expanded Reach
-                    </h4>
-                    <p className="text-gray-600">
-                      Cultivate your customer base through our growing
-                      community.
-                    </p>
-                  </CardBody>
-                </Card>
+            <Card className="hover-lift border-gray-100 bg-light-bg">
+              <CardBody className="p-8 text-center">
+                <span className="mb-4 block text-4xl">🤝</span>
+                <h3 className="mb-4 text-xl font-semibold text-light-text">
+                  Peer-to-Peer Payments
+                </h3>
+                <p className="text-gray-600">
+                  Pay your farmer directly and securely with Bitcoin, cash, or
+                  other digital cash methods. Our permissionless platform
+                  ensures your transactions are private and secure without
+                  intermediaries, with fees at your control.
+                </p>
+              </CardBody>
+            </Card>
 
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">💰</span>
-                      Peer-to-Peer Payments
-                    </h4>
-                    <p className="text-gray-600">
-                      Accept Bitcoin, cash, or additional online payment options
-                      natively.
-                    </p>
-                  </CardBody>
-                </Card>
-
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">🗣️</span>
-                      Choose Your Own Fees
-                    </h4>
-                    <p className="text-gray-600">
-                      Set the site fees on your own terms.
-                    </p>
-                  </CardBody>
-                </Card>
-
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">🚫</span>
-                      Avoid Restrictions
-                    </h4>
-                    <p className="text-gray-600">
-                      List products without account freezes or product
-                      takedowns.
-                    </p>
-                  </CardBody>
-                </Card>
-              </div>
-            </div>
-
-            {/* For Drinkers */}
-            <div id="drinkers">
-              <div className="mb-8 flex items-center">
-                <span className="mr-4 text-3xl">🥛</span>
-                <h3 className="text-3xl font-bold">For Drinkers</h3>
-              </div>
-
-              <div className="space-y-6">
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">🔍</span>
-                      Direct Sourcing
-                    </h4>
-                    <p className="text-gray-600">
-                      Find local dairy farmers through our permissionless
-                      system.
-                    </p>
-                  </CardBody>
-                </Card>
-
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">💬</span>
-                      Reliable Communication
-                    </h4>
-                    <p className="text-gray-600">
-                      Stay in contact with producers through our encrypted chat
-                      system.
-                    </p>
-                  </CardBody>
-                </Card>
-
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">🕶️</span>
-                      Seamless Purchases
-                    </h4>
-                    <p className="text-gray-600">
-                      Transact freely online without friction.
-                    </p>
-                  </CardBody>
-                </Card>
-
-                <Card className="hover-lift border-gray-100 bg-light-bg">
-                  <CardBody className="p-6">
-                    <h4 className="mb-3 flex items-center text-xl font-semibold text-light-text">
-                      <span className="mr-2">🤝</span>
-                      Community Support
-                    </h4>
-                    <p className="text-gray-600">
-                      Join raw milk enjoyers in your area and worldwide.
-                    </p>
-                  </CardBody>
-                </Card>
-              </div>
-            </div>
+            <Card className="hover-lift border-gray-100 bg-light-bg">
+              <CardBody className="p-8 text-center">
+                <span className="mb-4 block text-4xl">🫂</span>
+                <h3 className="mb-4 text-xl font-semibold text-light-text">
+                  Community Focused
+                </h3>
+                <p className="text-gray-600">
+                  Build relationships with local dairy farmers and support your
+                  community's agricultural economy. Access farm-fresh products
+                  while contributing to sustainable local food systems.
+                </p>
+              </CardBody>
+            </Card>
           </div>
         </div>
       </section>
@@ -516,9 +441,11 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-bold md:text-5xl">
-              How It Works
+              How Milk Market Works
             </h2>
-            <p className="text-xl text-gray-600">Simple steps to join</p>
+            <p className="text-xl text-gray-600">
+              Simple steps to get fresh dairy
+            </p>
           </div>
 
           <div className="grid gap-16 lg:grid-cols-2">
@@ -588,7 +515,7 @@ export default function StandaloneLanding() {
                   </div>
                   <div>
                     <h4 className="mb-2 text-xl font-semibold">
-                      Local-first Connecions
+                      Local-first Connections
                     </h4>
                     <p className="text-gray-600">
                       Find and support farmers in your city, state, and country.
@@ -605,7 +532,7 @@ export default function StandaloneLanding() {
                       Secure Checkout
                     </h4>
                     <p className="text-gray-600">
-                      Choose Bitcoin, cash, or other online payment options.
+                      Choose Bitcoin, cash, or other digital cash options.
                     </p>
                   </div>
                 </div>
@@ -629,37 +556,113 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Benefits Section */}
       <section className="relative z-10 bg-light-bg py-20">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="mb-8 text-4xl font-bold md:text-5xl">
-            Why We Built This
-          </h2>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-4xl font-bold md:text-5xl">
+              Benefits of Fresh Local Dairy
+            </h2>
+            <p className="text-xl text-gray-600">
+              Superior nutrition and environmental impact
+            </p>
+          </div>
 
-          <Card className="border-0 bg-gray-900 text-dark-text">
-            <CardBody className="p-8 md:p-12">
-              <span className="mb-6 block text-6xl">🐄</span>
-              <blockquote className="mb-6 text-xl font-medium leading-relaxed md:text-2xl">
-                &ldquo;Seeing how ever-growing regulations limit our freedom to
-                transact, especially when it comes to something as simple as
-                milk, the need for change is apparent. This was why I started{" "}
-                <a
-                  href="https://shopstrmarkets.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline transition-colors hover:text-gray-300"
-                >
-                  Shopstr
-                </a>
-                , and why I now see Milk Market as the first stage in making a
-                real stand. No censorship or gatekeepers, just direct
-                farmer-to-consumer freedom.&rdquo;
-              </blockquote>
-              <cite className="text-lg text-gray-300">
-                — Calvadev, Head Milkman @ Milk.Market
-              </cite>
-            </CardBody>
-          </Card>
+          <div className="mx-auto max-w-6xl">
+            <div className="grid gap-16 lg:grid-cols-2">
+              <div>
+                <Card className="h-full border-gray-100 bg-light-bg">
+                  <CardBody className="p-8">
+                    <h3 className="mb-4 text-2xl font-semibold text-light-text">
+                      Nutritional Excellence
+                    </h3>
+                    <p className="mb-6 text-gray-600">
+                      Fresh, minimally processed dairy from grass-fed animals
+                      provides superior nutrition. Raw milk contains beneficial
+                      enzymes, probiotics, and vitamins that are often lost in
+                      commercial processing.
+                    </p>
+                    <ul className="space-y-3 text-gray-600">
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Higher vitamin and mineral content
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Natural probiotics for gut health
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        No artificial additives or preservatives
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Better digestibility for many people
+                      </li>
+                    </ul>
+                  </CardBody>
+                </Card>
+              </div>
+
+              <div>
+                <Card className="h-full border-gray-100 bg-light-bg">
+                  <CardBody className="p-8">
+                    <h3 className="mb-4 text-2xl font-semibold text-light-text">
+                      Sustainable Impact
+                    </h3>
+                    <p className="mb-6 text-gray-600">
+                      Supporting local dairy farmers promotes sustainable
+                      farming practices and strengthens our food systems.
+                      Small-scale farms often use regenerative agriculture
+                      methods that benefit soil health and biodiversity.
+                    </p>
+                    <ul className="space-y-3 text-gray-600">
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Resilient and direct supply chains
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Support for sustainable farming practices
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Preservation of agricultural land
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 text-green-500">✓</span>
+                        Strengthening local food security
+                      </li>
+                    </ul>
+                  </CardBody>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 bg-dark-bg py-20 text-dark-text">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+          <h2 className="mb-6 text-4xl font-bold md:text-5xl">
+            Start Supporting Local Dairy Farmers Today
+          </h2>
+          <p className="mx-auto mb-8 max-w-2xl text-xl text-gray-300">
+            Join the Milk Market community, be a part of the `FREE MILK`
+            movement, and connect with local farmers for fresh, sustainable
+            dairy products. Your support helps maintain ancestral traditions
+            while providing your family with the highest quality nutrition.
+          </p>
+          <Button
+            onClick={() => router.push("/marketplace")}
+            color="default"
+            variant="solid"
+            size="lg"
+            className="bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-8 py-3 text-xl text-light-text shadow-xl"
+          >
+            FREE MILK NOW 🥛
+          </Button>
         </div>
       </section>
 
@@ -699,7 +702,7 @@ export default function StandaloneLanding() {
                         label: "text-light-text",
                       }}
                     >
-                      📧 Email
+                      📧 Email adress
                     </Radio>
                     <Radio
                       value="nostr"
@@ -833,10 +836,11 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-bold md:text-5xl">
-              Ready to get started?
+              Ready to Support Local Farmers?
             </h2>
             <p className="mb-6 text-xl text-gray-300">
-              Click below to join the Milk Market community!
+              Join those connecting with local dairy producers for fresh,
+              sustainable nutrition!
             </p>
             <Button
               onClick={() => router.push("/marketplace")}
@@ -844,7 +848,7 @@ export default function StandaloneLanding() {
               variant="solid"
               className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
             >
-              FREE MILK 🥛
+              Browse Milk Market 🥛
             </Button>
           </div>
         </div>

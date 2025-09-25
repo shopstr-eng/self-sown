@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 
 const withPWA = require("next-pwa")({
@@ -18,14 +17,14 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         has: [
           {
-            type: 'host',
-            value: 'www.milk.market',
+            type: "host",
+            value: "www.milk.market",
           },
         ],
-        destination: 'https://milk.market/$1',
+        destination: "https://milk.market/$1",
         permanent: true,
       },
     ];
