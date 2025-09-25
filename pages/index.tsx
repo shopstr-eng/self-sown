@@ -427,8 +427,8 @@ export default function StandaloneLanding() {
                 </h3>
                 <p className="text-gray-600">
                   Build relationships with local dairy farmers and support your
-                  community's agricultural economy. Access farm-fresh products
-                  while contributing to sustainable local food systems.
+                  community&apos;s agricultural economy. Access farm-fresh
+                  products while contributing to sustainable local food systems.
                 </p>
               </CardBody>
             </Card>
@@ -466,7 +466,7 @@ export default function StandaloneLanding() {
                       List Your Milk
                     </h4>
                     <p className="text-gray-600">
-                      Add products to the marketplace with a few clicks.
+                      Add products to the marketplace with a few clicks
                     </p>
                   </div>
                 </div>
@@ -478,8 +478,7 @@ export default function StandaloneLanding() {
                   <div>
                     <h4 className="mb-2 text-xl font-semibold">Set Terms</h4>
                     <p className="text-gray-600">
-                      Define price, delivery type, and preferred payment
-                      methods.
+                      Define price, delivery type, and preferred payment methods
                     </p>
                   </div>
                 </div>
@@ -493,8 +492,7 @@ export default function StandaloneLanding() {
                       Grow Your Business
                     </h4>
                     <p className="text-gray-600">
-                      Leverage our online community to expand your customer
-                      base.
+                      Leverage our online community to expand your customer base
                     </p>
                   </div>
                 </div>
@@ -518,7 +516,7 @@ export default function StandaloneLanding() {
                       Local-first Connections
                     </h4>
                     <p className="text-gray-600">
-                      Find and support farmers in your city, state, and country.
+                      Find and support farmers in your city, state, and country
                     </p>
                   </div>
                 </div>
@@ -532,7 +530,7 @@ export default function StandaloneLanding() {
                       Secure Checkout
                     </h4>
                     <p className="text-gray-600">
-                      Choose Bitcoin, cash, or other digital cash options.
+                      Choose Bitcoin, cash, or other digital cash options
                     </p>
                   </div>
                 </div>
@@ -546,7 +544,7 @@ export default function StandaloneLanding() {
                       From Farm to Table
                     </h4>
                     <p className="text-gray-600">
-                      Schedule pickups and deliveries directly with producers.
+                      Schedule pickups and deliveries directly with producers
                     </p>
                   </div>
                 </div>
@@ -649,10 +647,11 @@ export default function StandaloneLanding() {
             Start Supporting Local Dairy Farmers Today
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-xl text-gray-300">
-            Join the Milk Market community, be a part of the `FREE MILK`
-            movement, and connect with local farmers for fresh, sustainable
-            dairy products. Your support helps maintain ancestral traditions
-            while providing your family with the highest quality nutrition.
+            Join the Milk Market community, be a part of the &ldquo;FREE
+            MILK&rdquo; movement, and connect with local farmers for fresh,
+            sustainable dairy products. Your support helps maintain ancestral
+            traditions while providing your family with the highest quality
+            nutrition.
           </p>
           <Button
             onClick={() => router.push("/marketplace")}
