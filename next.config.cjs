@@ -55,45 +55,6 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
-  async redirects() {
-    return [
-      {
-        source: "/(.*)",
-        has: [
-          {
-            type: "host",
-            value: "www.milk.market",
-          },
-        ],
-        destination: "https://milk.market/$1",
-        permanent: true,
-      },
-      {
-        source: "/(.*)",
-        has: [
-          {
-            type: "host",
-            value: "(?<subdomain>.*)\\.milk\\.market",
-          },
-        ],
-        destination: "https://milk.market/$1",
-        permanent: true,
-      },
-    ];
-  },
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "X-Powered-By",
-            value: "",
-          },
-        ],
-      },
-    ];
-  },
   images: {
     domains: [
       "www.google.com",
