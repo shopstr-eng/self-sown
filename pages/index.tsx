@@ -701,7 +701,7 @@ export default function StandaloneLanding() {
                         label: "text-light-text",
                       }}
                     >
-                      📧 Email adress
+                      📧 Email address
                     </Radio>
                     <Radio
                       value="nostr"
