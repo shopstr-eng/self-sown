@@ -225,7 +225,7 @@ export default function StandaloneLanding() {
               variant="ghost"
               className="w-auto text-light-text hover:text-gray-600"
             >
-              Start Selling 🚜
+              Sell Your Dairy 🚜
             </Button>
           </Link>
           <Button
@@ -239,7 +239,7 @@ export default function StandaloneLanding() {
             variant="solid"
             className={`w-auto ${BLACKBUTTONCLASSNAMES}`}
           >
-            Stay Milky 📨
+            Get Updates 📨
           </Button>
           <Link href="/marketplace" className="w-auto">
             <Button
@@ -268,7 +268,7 @@ export default function StandaloneLanding() {
                     className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-light-text hover:bg-gray-50"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    Start Selling 🚜
+                    Sell Your Dairy 🚜
                   </Button>
                 </Link>
                 <Button
@@ -281,7 +281,7 @@ export default function StandaloneLanding() {
                     setIsMobileMenuOpen(false);
                   }}
                 >
-                  Stay Milky 📨
+                  Get Updates 📨
                 </Button>
                 <Link href="/marketplace" className="block">
                   <Button
@@ -325,10 +325,10 @@ export default function StandaloneLanding() {
             </h1>
 
             <p className="mx-auto mb-6 max-w-3xl text-xl text-gray-600 md:text-2xl">
-              Connect with trusted local dairy farmers and access fresh, raw
-              milk and dairy products. Our marketplace, built with sovereignty
-              and community in mind, ensures secure transactions while directly
-              supporting farmers in your area.
+              Connect with trusted local dairy farmers and access farm-fresh,
+              raw milk and dairy products. Our marketplace, built with
+              sovereignty and community in mind, ensures secure transactions
+              while directly supporting farmers in your area.
             </p>
 
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
@@ -339,7 +339,7 @@ export default function StandaloneLanding() {
                   size="lg"
                   className="transform rounded-xl bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
                 >
-                  Browse Milk Market 🥛
+                  Discover Local Dairy 🥛
                 </Button>
               </Link>
               <Link href="/producers">
@@ -349,7 +349,7 @@ export default function StandaloneLanding() {
                   size="lg"
                   className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
                 >
-                  Start Selling 🚜
+                  Start Selling Today 🚜
                 </Button>
               </Link>
               <Button
@@ -401,9 +401,10 @@ export default function StandaloneLanding() {
                   Direct from Farm
                 </h3>
                 <p className="text-gray-600">
-                  Skip the grocery store and get fresh raw milk, cheese, and
-                  dairy products directly from local farmers. Support farmers
-                  while enjoying the freshest dairy available in your area.
+                  Skip the grocery store and get farm-fresh raw milk, cheese,
+                  and dairy products directly from local farmers. Support
+                  farmers while enjoying the freshest dairy available in your
+                  area.
                 </p>
               </CardBody>
             </Card>
@@ -448,7 +449,7 @@ export default function StandaloneLanding() {
               How Milk Market Works
             </h2>
             <p className="text-xl text-gray-600">
-              Simple steps to get fresh dairy
+              Simple steps to get farm-fresh raw dairy
             </p>
           </div>
 
@@ -607,10 +608,10 @@ export default function StandaloneLanding() {
                       Nutritional Excellence
                     </h3>
                     <p className="mb-6 text-gray-600">
-                      Fresh, minimally processed dairy from grass-fed animals
-                      provides superior nutrition. Raw milk contains beneficial
-                      enzymes, probiotics, and vitamins that are often lost in
-                      commercial processing.
+                      Farm-fresh, minimally processed dairy from grass-fed
+                      animals provides superior nutrition. Raw milk contains
+                      beneficial enzymes, probiotics, and vitamins that are
+                      often lost in commercial processing.
                     </p>
                     <ul className="space-y-3 text-gray-600">
                       <li className="flex items-start">
@@ -680,7 +681,7 @@ export default function StandaloneLanding() {
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-xl text-gray-300">
             Join the Milk Market community, be a part of the &ldquo;FREE
-            MILK&rdquo; movement, and connect with local farmers for fresh,
+            MILK&rdquo; movement, and connect with local farmers for farm-fresh,
             sustainable raw dairy products. Your support helps maintain
             ancestral traditions while providing your family with the highest
             quality nutrition.
@@ -871,7 +872,7 @@ export default function StandaloneLanding() {
               Ready to Support Local Farmers?
             </h2>
             <p className="mb-6 text-xl text-gray-300">
-              Join those connecting with local dairy producers for fresh,
+              Join those connecting with local dairy producers for farm-fresh,
               sustainable nutrition!
             </p>
             <Link href="/marketplace">
@@ -880,7 +881,7 @@ export default function StandaloneLanding() {
                 variant="solid"
                 className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
               >
-                Browse Milk Market 🥛
+                Find Local Dairies 🥛
               </Button>
             </Link>
           </div>

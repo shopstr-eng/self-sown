@@ -1,6 +1,7 @@
 import React from "react";
 import { useRouter } from "next/router";
-import { Accordion, AccordionItem, Button } from "@nextui-org/react";
+import Head from "next/head";
+import { Button } from "@nextui-org/react";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
@@ -65,57 +66,88 @@ export default function Tos() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg py-8 md:pb-20">
-      <div className="container mx-auto max-w-6xl px-4">
-        <div className="mb-8">
-          <Button
-            className={`mb-4 ${BLACKBUTTONCLASSNAMES}`}
-            onClick={() => router.back()}
-            startContent={<ArrowLeftIcon className="h-4 w-4" />}
-          >
-            Back
-          </Button>
-          <h1 className="text-center text-3xl font-bold text-light-text">
-            Terms of Service
-          </h1>
-        </div>
-
-        <p className="mx-auto mb-10 max-w-3xl text-center text-light-text/80">
-          User agreement and usage guidelines for Milk Market
-        </p>
-
-        <div className="mb-4 text-right text-sm text-light-text/70">
-          Last updated: 2025-04-25
-        </div>
-
-        <Accordion
-          selectionMode="multiple"
-          className="mb-6 px-0"
-          variant="bordered"
-        >
-          {tosContent.map((section, sectionIndex) => (
-            <AccordionItem
-              key={sectionIndex}
-              title={
-                <span className="font-medium text-light-text">
-                  {section.title}
-                </span>
-              }
-              classNames={{
-                base: "group",
-                title: "text-md",
-                trigger:
-                  "py-5 px-3 data-[hover=true]:bg-gray-50 transition-all rounded-lg",
-                content: "py-2 px-3 text-light-text/90",
-              }}
+    <>
+      <Head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1"
+        />
+        <title>Terms of Service - Milk Market | User Agreement</title>
+        <meta
+          name="description"
+          content="Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace."
+        />
+        <link rel="canonical" href="https://milk.market/terms" />
+        <link rel="apple-touch-icon" href="/milk-market.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
+        <meta property="og:url" content="https://milk.market/terms" />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:title"
+          content="Terms of Service - Milk Market | User Agreement"
+        />
+        <meta
+          property="og:description"
+          content="Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace."
+        />
+        <meta property="og:image" content="/milk-market.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta property="twitter:domain" content="https://milk.market" />
+        <meta property="twitter:url" content="https://milk.market/terms" />
+        <meta
+          name="twitter:title"
+          content="Terms of Service - Milk Market | User Agreement"
+        />
+        <meta
+          name="twitter:description"
+          content="Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace."
+        />
+        <meta name="twitter:image" content="/milk-market.png" />
+        <meta
+          name="keywords"
+          content="terms of service, milk market, user agreement, nostr marketplace, permissionless platform, bitcoin commerce, decentralized marketplace"
+        />
+      </Head>
+      <div className="flex min-h-screen flex-col bg-light-bg py-8 md:pb-20">
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="mb-8">
+            <Button
+              className={`mb-4 ${BLACKBUTTONCLASSNAMES}`}
+              onClick={() => router.back()}
+              startContent={<ArrowLeftIcon className="h-4 w-4" />}
             >
-              <p className="leading-relaxed text-light-text">
-                {section.content}
-              </p>
-            </AccordionItem>
-          ))}
-        </Accordion>
+              Back
+            </Button>
+            <h1 className="text-center text-3xl font-bold text-light-text">
+              Terms of Service
+            </h1>
+          </div>
+
+          <p className="mx-auto mb-10 max-w-3xl text-center text-light-text/80">
+            User agreement and usage guidelines for Milk Market
+          </p>
+
+          <div className="mb-4 text-right text-sm text-light-text/70">
+            Last updated: 2025-04-25
+          </div>
+
+          <div className="space-y-6">
+            {tosContent.map((section, sectionIndex) => (
+              <div
+                key={sectionIndex}
+                className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
+              >
+                <h3 className="mb-3 text-lg font-semibold text-light-text">
+                  {section.title}
+                </h3>
+                <p className="leading-relaxed text-light-text/90">
+                  {section.content}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

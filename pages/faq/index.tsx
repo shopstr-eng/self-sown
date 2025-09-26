@@ -1,5 +1,6 @@
 import React from "react";
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { Accordion, AccordionItem, Button } from "@nextui-org/react";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
@@ -100,61 +101,92 @@ export default function Faq() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg py-8 md:pb-20">
-      <div className="container mx-auto max-w-6xl px-4">
-        <div className="mb-8">
-          <Button
-            className={`mb-4 ${BLACKBUTTONCLASSNAMES}`}
-            onClick={() => router.back()}
-            startContent={<ArrowLeftIcon className="h-4 w-4" />}
-          >
-            Back
-          </Button>
-          <h1 className="text-center text-3xl font-bold text-light-text">
-            Frequently Asked Questions
-          </h1>
-        </div>
-
-        <p className="mx-auto mb-10 max-w-3xl text-center text-light-text/80">
-          Answers to common questions about using Milk Market
-        </p>
-
-        {faqSections.map((section, sectionIndex) => (
-          <div key={sectionIndex} className="mb-8">
-            <h2 className="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold text-light-text">
-              {section.title}
-            </h2>
-
-            <Accordion
-              selectionMode="multiple"
-              className="mb-6 px-0"
-              variant="bordered"
+    <>
+      <Head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1"
+        />
+        <title>FAQ - Milk Market | Frequently Asked Questions</title>
+        <meta
+          name="description"
+          content="Get answers to common questions about Milk Market, the permissionless marketplace for raw dairy products. Learn about payments, selling, account setup, and privacy features."
+        />
+        <link rel="canonical" href="https://milk.market/faq" />
+        <link rel="apple-touch-icon" href="/milk-market.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
+        <meta property="og:url" content="https://milk.market/faq" />
+        <meta property="og:type" content="website" />
+        <meta
+          property="og:title"
+          content="FAQ - Milk Market | Frequently Asked Questions"
+        />
+        <meta
+          property="og:description"
+          content="Get answers to common questions about Milk Market, the permissionless marketplace for raw dairy products. Learn about payments, selling, account setup, and privacy features."
+        />
+        <meta property="og:image" content="/milk-market.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta property="twitter:domain" content="https://milk.market" />
+        <meta property="twitter:url" content="https://milk.market/faq" />
+        <meta
+          name="twitter:title"
+          content="FAQ - Milk Market | Frequently Asked Questions"
+        />
+        <meta
+          name="twitter:description"
+          content="Get answers to common questions about Milk Market, the permissionless marketplace for raw dairy products. Learn about payments, selling, account setup, and privacy features."
+        />
+        <meta name="twitter:image" content="/milk-market.png" />
+        <meta
+          name="keywords"
+          content="milk market, FAQ, raw dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce"
+        />
+      </Head>
+      <div className="flex min-h-screen flex-col bg-light-bg py-8 md:pb-20">
+        <div className="container mx-auto max-w-6xl px-4">
+          <div className="mb-8">
+            <Button
+              className={`mb-4 ${BLACKBUTTONCLASSNAMES}`}
+              onClick={() => router.back()}
+              startContent={<ArrowLeftIcon className="h-4 w-4" />}
             >
-              {section.items.map((item, itemIndex) => (
-                <AccordionItem
-                  key={itemIndex}
-                  title={
-                    <span className="font-medium text-light-text">
-                      {item.title}
-                    </span>
-                  }
-                  classNames={{
-                    base: "group",
-                    title: "text-md",
-                    trigger:
-                      "py-5 px-3 data-[hover=true]:bg-gray-50 transition-all rounded-lg",
-                    content: "py-2 px-3 text-light-text/90",
-                  }}
-                >
-                  <p className="leading-relaxed text-light-text">
-                    {item.content}
-                  </p>
-                </AccordionItem>
-              ))}
-            </Accordion>
+              Back
+            </Button>
+            <h1 className="text-center text-3xl font-bold text-light-text">
+              Frequently Asked Questions
+            </h1>
           </div>
-        ))}
+
+          <p className="mx-auto mb-10 max-w-3xl text-center text-light-text/80">
+            Answers to common questions about using Milk Market
+          </p>
+
+          {faqSections.map((section, sectionIndex) => (
+            <div key={sectionIndex} className="mb-8">
+              <h2 className="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold text-light-text">
+                {section.title}
+              </h2>
+
+              <div className="space-y-6">
+                {section.items.map((item, itemIndex) => (
+                  <div
+                    key={itemIndex}
+                    className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
+                  >
+                    <h3 className="mb-3 text-lg font-semibold text-light-text">
+                      {item.title}
+                    </h3>
+                    <p className="leading-relaxed text-light-text/90">
+                      {item.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

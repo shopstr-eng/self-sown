@@ -22,7 +22,7 @@ const getMetaTags = (
   const defaultTags = {
     title: "Milk Market - Raw Dairy Direct from Local Farmers",
     description:
-      "Discover fresh, raw milk and dairy products direct from local farmers. Milk Market is a marketplace built with sovereignty and community in mind, connecting consumers with trusted dairy producers to support local-first commerce.",
+      "Buy farm-fresh, raw milk and dairy products direct from local farmers. Connecting consumers to trusted dairy producers with sovereignty and community in mind.",
     image: "/milk-market.png",
     url: `${windowOrigin}`,
   };
@@ -131,6 +131,10 @@ const DynamicHead = ({
       <meta name="twitter:title" content={metaTags.title} />
       <meta name="twitter:description" content={metaTags.description} />
       <meta name="twitter:image" content={metaTags.image} />
+      <meta
+        name="keywords"
+        content="milk market, raw dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, local farmers, raw milk"
+      />
     </Head>
   );
 };
