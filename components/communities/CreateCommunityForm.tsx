@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Button, Input, Textarea, Image } from "@nextui-org/react";
 import { Community } from "@/utils/types/types";
-import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { v4 as uuidv4 } from "uuid";
 import { useForm, Controller } from "react-hook-form";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
@@ -88,7 +88,7 @@ const CreateCommunityForm: React.FC<CreateCommunityFormProps> = ({
           />
         )}
         <FileUploaderButton
-          className={`${SHOPSTRBUTTONCLASSNAMES} w-fit`}
+          className={`${BLACKBUTTONCLASSNAMES} w-fit`}
           imgCallbackOnUpload={(imgUrl) => setValue("image", imgUrl)}
         >
           Upload Image
@@ -96,7 +96,7 @@ const CreateCommunityForm: React.FC<CreateCommunityFormProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        <Button type="submit" className={SHOPSTRBUTTONCLASSNAMES}>
+        <Button type="submit" className={BLACKBUTTONCLASSNAMES}>
           {existingCommunity ? "Save Changes" : "Create Community"}
         </Button>
         {onCancel && (

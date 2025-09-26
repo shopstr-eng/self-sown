@@ -36,7 +36,7 @@ jest.mock("@/utils/parsers/product-parser-functions", () => ({
 const mockParseTags = parseTags as jest.Mock;
 
 describe("DynamicHead", () => {
-  const mockOrigin = "https://test.shopstr.store";
+  const mockOrigin = "https://test.milk.market";
 
   const getMetaContent = (name: string) => {
     const element = document.querySelector(
@@ -62,7 +62,7 @@ describe("DynamicHead", () => {
     mockUseRouter.mockReturnValue({ pathname: "/", query: {} });
     render(<DynamicHead productEvents={[]} shopEvents={new Map()} />);
     await waitFor(() => {
-      expect(document.title).toBe("Shopstr");
+      expect(document.title).toBe("Milk Market");
     });
   });
 
@@ -99,7 +99,7 @@ describe("DynamicHead", () => {
         query: { npub: [shopNpub] },
       });
       render(<DynamicHead productEvents={[]} shopEvents={new Map()} />);
-      await waitFor(() => expect(document.title).toBe("Shopstr Shop"));
+      await waitFor(() => expect(document.title).toBe("Milk Market Shop"));
     });
 
     test("should render fallback tags if npub is missing from query", async () => {
@@ -108,7 +108,7 @@ describe("DynamicHead", () => {
         query: {},
       }); // No npub in query
       render(<DynamicHead productEvents={[]} shopEvents={new Map()} />);
-      await waitFor(() => expect(document.title).toBe("Shopstr Shop"));
+      await waitFor(() => expect(document.title).toBe("Milk Market Shop"));
       expect(getMetaContent("og:url")).toBe(
         `${mockOrigin}/marketplace/undefined`
       );
@@ -133,7 +133,7 @@ describe("DynamicHead", () => {
       mockNip19.npubEncode.mockReturnValue(shopNpub);
       render(<DynamicHead productEvents={[]} shopEvents={shopEvents} />);
       await waitFor(() =>
-        expect(getMetaContent("og:image")).toBe("/shopstr-2000x2000.png")
+        expect(getMetaContent("og:image")).toBe("/milk-market.png")
       );
     });
   });
@@ -173,8 +173,8 @@ describe("DynamicHead", () => {
       render(
         <DynamicHead productEvents={[productEvent]} shopEvents={new Map()} />
       );
-      await waitFor(() => expect(document.title).toBe("Shopstr Listing"));
-      expect(getMetaContent("og:image")).toBe("/shopstr-2000x2000.png");
+      await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
+      expect(getMetaContent("og:image")).toBe("/milk-market.png");
     });
 
     test("should render fallback tags for a listing when parsing fails", async () => {
@@ -188,7 +188,7 @@ describe("DynamicHead", () => {
       render(
         <DynamicHead productEvents={[productEvent]} shopEvents={new Map()} />
       );
-      await waitFor(() => expect(document.title).toBe("Shopstr Listing"));
+      await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
     });
   });
 });

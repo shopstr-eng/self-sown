@@ -1,6 +1,6 @@
-# Contributing to Shopstr
+# Contributing to Milk Market
 
-Welcome to Shopstr! 🛒⚡ We're excited to have you contribute to our global, permissionless Nostr marketplace for Bitcoin commerce.
+Welcome to Milk Market! 🛒⚡ We're excited to have you contribute to our global, permissionless marketplace for milk-first commerce.
 
 ## Table of Contents
 
@@ -34,7 +34,7 @@ git --version
 
 ### 1. Fork the Repository
 
-1. Visit [https://github.com/shopstr-eng/shopstr](https://github.com/shopstr-eng/shopstr)
+1. Visit [https://github.com/shopstr-eng/milk-market](https://github.com/shopstr-eng/milk-market)
 2. Click the "Fork" button in the top-right corner
 3. Select your GitHub account to create the fork
 
@@ -42,13 +42,13 @@ git --version
 
 ```bash
 # Clone your forked repository
-git clone https://github.com/YOUR-USERNAME/shopstr.git
+git clone https://github.com/YOUR-USERNAME/milk-market.git
 
 # Navigate to the project directory
-cd shopstr
+cd milk-market
 
 # Add the original repository as upstream
-git remote add upstream https://github.com/shopstr-eng/shopstr.git
+git remote add upstream https://github.com/shopstr-eng/milk-market.git
 
 # Verify remotes
 git remote -v
@@ -57,10 +57,10 @@ git remote -v
 You should see:
 
 ```
-origin    https://github.com/YOUR-USERNAME/shopstr.git (fetch)
-origin    https://github.com/YOUR-USERNAME/shopstr.git (push)
-upstream  https://github.com/shopstr-eng/shopstr.git (fetch)
-upstream  https://github.com/shopstr-eng/shopstr.git (push)
+origin    https://github.com/YOUR-USERNAME/milk-market.git (fetch)
+origin    https://github.com/YOUR-USERNAME/milk-market.git (push)
+upstream  https://github.com/shopstr-eng/milk-market.git (fetch)
+upstream  https://github.com/shopstr-eng/milk-market.git (push)
 ```
 
 ## Local Development Setup
@@ -212,14 +212,14 @@ Once all checks pass, push your changes and create a pull request.
 
 ```bash
 # Build the Docker image
-docker build -t shopstr .
+docker build -t milk-market .
 ```
 
 ### 2. Run with Docker
 
 ```bash
 # Run the container
-docker run -p 3000:3000 shopstr
+docker run -p 3000:3000 milk-market
 ```
 
 ### 3. Docker Compose (Optional)
@@ -228,7 +228,7 @@ If you need to set up additional services, you can create a `docker-compose.yml`
 
 ---
 
-Thank you for contributing to Shopstr! 🚀 Your contributions help build the future of decentralized Bitcoin commerce.
+Thank you for contributing to Milk Market! 🚀 Your contributions help build the future of permissionless commerce.
 
 ## Questions?
 

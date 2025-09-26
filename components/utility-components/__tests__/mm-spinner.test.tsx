@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ShopstrSpinner from "../shopstr-spinner";
+import MilkMarketSpinner from "../mm-spinner";
 import { useTheme } from "next-themes";
 
 jest.mock("next-themes", () => ({
@@ -16,11 +16,11 @@ jest.mock("@nextui-org/react", () => ({
 
 const mockedUseTheme = useTheme as jest.Mock;
 
-describe("ShopstrSpinner", () => {
+describe("MilkMarketSpinner", () => {
   it('should render with the "warning" color in dark mode', () => {
     mockedUseTheme.mockReturnValue({ theme: "dark" });
 
-    render(<ShopstrSpinner />);
+    render(<MilkMarketSpinner />);
 
     const spinner = screen.getByTestId("spinner");
     expect(spinner).toHaveAttribute("data-color", "warning");
@@ -29,7 +29,7 @@ describe("ShopstrSpinner", () => {
   it('should render with the "secondary" color in light mode', () => {
     mockedUseTheme.mockReturnValue({ theme: "light" });
 
-    render(<ShopstrSpinner />);
+    render(<MilkMarketSpinner />);
 
     const spinner = screen.getByTestId("spinner");
     expect(spinner).toHaveAttribute("data-color", "secondary");

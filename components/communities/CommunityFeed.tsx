@@ -23,7 +23,7 @@ import {
   Divider,
   Chip,
 } from "@nextui-org/react";
-import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
   createCommunityPost,
   approveCommunityPost,
@@ -57,7 +57,7 @@ const RenderContent = ({
 
   return (
     <div className="space-y-2">
-      <p className="whitespace-pre-wrap text-light-text dark:text-dark-text">
+      <p className="whitespace-pre-wrap text-light-text">
         {parts.map((part, index) => {
           if (isImage(part)) {
             return (
@@ -291,7 +291,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
             />
             <Button
               onClick={handlePost}
-              className={`${SHOPSTRBUTTONCLASSNAMES} mt-2 self-end`}
+              className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
               disabled={!newPostContent.trim()}
             >
               Post
@@ -358,7 +358,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                       )}
                   </div>
                   {replyingTo === post.id && (
-                    <div className="mt-4 border-t-2 pt-4 dark:border-zinc-800">
+                    <div className="mt-4 border-t-2 pt-4">
                       <Textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
@@ -370,7 +370,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                       />
                       <Button
                         onClick={() => handleReply(post)}
-                        className={`${SHOPSTRBUTTONCLASSNAMES} mt-2 self-end`}
+                        className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
                         disabled={!replyContent.trim()}
                         size="sm"
                       >
@@ -383,7 +383,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
 
               {/* Render Replies */}
               {repliesByParentId.has(post.id) && (
-                <div className="ml-8 space-y-4 border-l-2 border-zinc-200 pl-4 dark:border-zinc-800">
+                <div className="ml-8 space-y-4 border-l-2 border-zinc-200 pl-4">
                   {repliesByParentId
                     .get(post.id)!
                     .map((reply: CommunityPost) => (
@@ -428,7 +428,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                             )}
                           </div>
                           {replyingTo === reply.id && (
-                            <div className="mt-4 border-t-2 pt-4 dark:border-zinc-800">
+                            <div className="mt-4 border-t-2 pt-4">
                               <Textarea
                                 value={replyContent}
                                 onChange={(e) =>
@@ -442,7 +442,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                               />
                               <Button
                                 onClick={() => handleReply(reply)}
-                                className={`${SHOPSTRBUTTONCLASSNAMES} mt-2 self-end`}
+                                className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
                                 disabled={!replyContent.trim()}
                                 size="sm"
                               >
@@ -460,7 +460,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
         </div>
       )}
       {!isLoading && topLevelPosts.length === 0 && (
-        <div className="mt-10 text-center text-light-text/80 dark:text-dark-text/80">
+        <div className="mt-10 text-center text-light-text/80">
           <p>No announcements yet. Check back soon!</p>
         </div>
       )}

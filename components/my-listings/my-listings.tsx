@@ -127,7 +127,7 @@ const MyListingsPage = () => {
           Orders
         </Button>
         <Button
-          className="w-full bg-transparent px-4 py-2 text-left text-sm text-light-text hover:text-purple-700 dark:text-dark-text dark:hover:text-accent-dark-text"
+          className="w-full bg-transparent px-4 py-2 text-left text-sm text-dark-text hover:text-accent-dark-text"
           onClick={() => {
             handleManageCommunity();
             setIsMobileMenuOpen(false);
@@ -182,7 +182,7 @@ const MyListingsPage = () => {
                     Orders
                   </Button>
                   <Button
-                    className="bg-transparent text-xl text-light-text hover:text-purple-700 dark:text-dark-text dark:hover:text-accent-dark-text"
+                    className="bg-transparent text-xl text-light-text hover:text-accent-dark-text"
                     onClick={() => handleManageCommunity()}
                   >
                     Community
@@ -238,7 +238,7 @@ const MyListingsPage = () => {
                     Orders
                   </Button>
                   <Button
-                    className="bg-transparent text-xl text-light-text hover:text-purple-700 dark:text-dark-text dark:hover:text-accent-dark-text"
+                    className="bg-transparent text-xl text-light-text hover:text-accent-dark-text"
                     onClick={() => handleManageCommunity()}
                   >
                     Community

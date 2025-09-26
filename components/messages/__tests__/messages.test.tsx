@@ -15,8 +15,8 @@ import * as cacheService from "@/utils/nostr/cache-service";
 import * as keypressHandler from "@/utils/keypress-handler";
 import { useRouter } from "next/router";
 
-jest.mock("../../utility-components/shopstr-spinner", () => {
-  return function MockShopstrSpinner() {
+jest.mock("../../utility-components/mm-spinner", () => {
+  return function MockMilkMarketSpinner() {
     return <div data-testid="spinner"></div>;
   };
 });

@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ShopstrSlider from "../shopstr-slider";
+import MilkMarketSlider from "../mm-slider";
 import { FollowsContext } from "@/utils/context/context";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 
@@ -15,7 +15,7 @@ jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
 }));
 
 jest.mock("@/utils/STATIC-VARIABLES", () => ({
-  SHOPSTRBUTTONCLASSNAMES: "mock-button-class",
+  BLACKBUTTONCLASSNAMES: "mock-button-class",
 }));
 
 const mockOnChangeEnd = jest.fn();
@@ -51,12 +51,12 @@ Object.defineProperty(window, "localStorage", {
 const renderWithContext = (contextValue: any) => {
   return render(
     <FollowsContext.Provider value={contextValue}>
-      <ShopstrSlider />
+      <MilkMarketSlider />
     </FollowsContext.Provider>
   );
 };
 
-describe("ShopstrSlider", () => {
+describe("MilkMarketSlider", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseTheme.theme = "light";
@@ -81,7 +81,7 @@ describe("ShopstrSlider", () => {
     mockUseTheme.theme = "dark";
     rerender(
       <FollowsContext.Provider value={{}}>
-        <ShopstrSlider />
+        <MilkMarketSlider />
       </FollowsContext.Provider>
     );
     expect(screen.getByTestId("slider")).toHaveAttribute(

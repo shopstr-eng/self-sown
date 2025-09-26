@@ -63,7 +63,7 @@ describe("SignInModal", () => {
 
   it("doesn't render when closed", () => {
     renderModal(false);
-    expect(screen.queryByText("Shopstr")).toBeNull();
+    expect(screen.queryByText("Milk Market")).toBeNull();
   });
 
   it("redirects to keys on Sign Up", async () => {

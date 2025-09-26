@@ -40,7 +40,7 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
   ),
 }));
 
-jest.mock("@/components/utility-components/shopstr-spinner", () => () => null);
+jest.mock("@/components/utility-components/mm-spinner", () => () => null);
 
 const mockUserPubkey = "test_pubkey";
 const mockShopData = new Map([

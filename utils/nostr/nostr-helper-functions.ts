@@ -658,7 +658,7 @@ export async function createOrUpdateCommunity(
     ["name", details.name],
     ["description", details.description],
     ["image", details.image],
-    ["t", "shopstr"],
+    ["t", "milkmarket"],
   ];
 
   // moderators as p tags with role marker

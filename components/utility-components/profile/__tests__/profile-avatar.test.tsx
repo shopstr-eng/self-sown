@@ -122,9 +122,7 @@ describe("ProfileAvatar", () => {
       profile.content.nip05
     );
 
-    expect(screen.getByTestId("mock-name").className).toContain(
-      "text-shopstr-purple"
-    );
+    expect(screen.getByTestId("mock-name").className).toContain("text-dark-bg");
   });
 
   it("should truncate long display names", () => {

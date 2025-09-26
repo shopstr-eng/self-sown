@@ -1,9 +1,9 @@
 import { Spinner } from "@nextui-org/react";
 
-export default function MilkMarketSpinner() {
+export default function MilkMarketSpinner({ label }: { label?: string }) {
   return (
     <>
-      <Spinner size={"lg"} color="warning" />
+      <Spinner size={"lg"} color="warning" label={label} />
     </>
   );
 }

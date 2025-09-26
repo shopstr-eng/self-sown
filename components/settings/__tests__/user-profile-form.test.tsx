@@ -34,7 +34,7 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
   ),
 }));
 
-jest.mock("@/components/utility-components/shopstr-spinner", () => () => null);
+jest.mock("@/components/utility-components/mm-spinner", () => () => null);
 
 const mockUserPubkey = "test_pubkey_123";
 const mockProfileData = new Map([
@@ -196,7 +196,7 @@ describe("UserProfileForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("updates payment preference and shopstr donation", async () => {
+  test("updates payment preference and milk market donation", async () => {
     mockCreateNostrProfileEvent.mockResolvedValue({});
     const user = userEvent.setup();
     renderWithProviders(<UserProfileForm />);
@@ -215,7 +215,7 @@ describe("UserProfileForm", () => {
       expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     });
 
-    const donationInput = screen.getByLabelText(/Shopstr donation %/);
+    const donationInput = screen.getByLabelText(/Milk Market donation %/);
     await user.clear(donationInput);
     await user.type(donationInput, "5.5");
 

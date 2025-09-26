@@ -11,7 +11,7 @@ jest.mock("next/router", () => ({
 }));
 
 jest.mock("@/utils/STATIC-VARIABLES", () => ({
-  SHOPSTRBUTTONCLASSNAMES: "mock-button-class",
+  WHITEBUTTONCLASSNAMES: "mock-button-class",
 }));
 
 jest.mock("@nextui-org/react", () => {

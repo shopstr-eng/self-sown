@@ -102,7 +102,7 @@ describe("ChatButton Component", () => {
 
     const unreadBadge = screen.getByText("3");
     expect(unreadBadge).toBeInTheDocument();
-    expect(unreadBadge).toHaveClass("rounded-full bg-shopstr-purple-light");
+    expect(unreadBadge).toHaveClass("rounded-full bg-dark-fg");
   });
 
   test("applies active styles when it is the opened chat", () => {

@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import ShopstrSwitch from "../shopstr-switch";
+import MilkMarketSwitch from "../mm-switch";
 
 const mockUseTheme = { theme: "light" };
 jest.mock("next-themes", () => ({
@@ -21,7 +21,7 @@ jest.mock("@nextui-org/react", () => ({
   ),
 }));
 
-describe("ShopstrSwitch", () => {
+describe("MilkMarketSwitch", () => {
   const mockSetWotFilter = jest.fn();
 
   beforeEach(() => {
@@ -30,7 +30,9 @@ describe("ShopstrSwitch", () => {
   });
 
   it("should call setWotFilter with the inverted value when clicked", () => {
-    render(<ShopstrSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />);
+    render(
+      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+    );
     const switchControl = screen.getByRole("switch");
 
     fireEvent.click(switchControl);
@@ -39,7 +41,9 @@ describe("ShopstrSwitch", () => {
   });
 
   it("should call router.push when the 'Trust' label is clicked", () => {
-    render(<ShopstrSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />);
+    render(
+      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+    );
     const trustLabel = screen.getByText("Trust");
 
     fireEvent.click(trustLabel);
@@ -48,7 +52,9 @@ describe("ShopstrSwitch", () => {
   });
 
   it('should have the "secondary" color in light mode', () => {
-    render(<ShopstrSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />);
+    render(
+      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+    );
 
     const switchControl = screen.getByRole("switch");
 
@@ -57,7 +63,9 @@ describe("ShopstrSwitch", () => {
 
   it('should have the "warning" color in dark mode', () => {
     mockUseTheme.theme = "dark";
-    render(<ShopstrSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />);
+    render(
+      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+    );
 
     const switchControl = screen.getByRole("switch");
 

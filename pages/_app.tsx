@@ -590,27 +590,27 @@ function MilkMarket({ props }: { props: AppProps }) {
                                 setSelectedSection={setSelectedSection}
                               />
                             )}
-                            <div className="flex">
-                              <main className="flex-1">
-                                <Component
-                                  {...pageProps}
-                                  focusedPubkey={focusedPubkey}
-                                  setFocusedPubkey={setFocusedPubkey}
-                                  selectedSection={selectedSection}
-                                  setSelectedSection={setSelectedSection}
-                                />
-                              </main>
-                            </div>
-                          </ChatsContext.Provider>
-                        </ShopMapContext.Provider>
-                      </ProfileMapContext.Provider>
-                    </ReviewsContext.Provider>
-                  </ProductContext.Provider>
-                </FollowsContext.Provider>
-              </CommunityContext.Provider>
-            </CashuWalletContext.Provider>
-          </BlossomContext.Provider>
-        </RelaysContext.Provider>
+                          <div className="flex">
+                            <main className="flex-1">
+                              <Component
+                                {...pageProps}
+                                focusedPubkey={focusedPubkey}
+                                setFocusedPubkey={setFocusedPubkey}
+                                selectedSection={selectedSection}
+                                setSelectedSection={setSelectedSection}
+                              />
+                            </main>
+                          </div>
+                        </ChatsContext.Provider>
+                      </ShopMapContext.Provider>
+                    </ProfileMapContext.Provider>
+                  </ReviewsContext.Provider>
+                </ProductContext.Provider>
+              </FollowsContext.Provider>
+            </CommunityContext.Provider>
+          </CashuWalletContext.Provider>
+        </BlossomContext.Provider>
+      </RelaysContext.Provider>
     </>
   );
 }
