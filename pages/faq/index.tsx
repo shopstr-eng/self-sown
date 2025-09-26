@@ -1,7 +1,7 @@
 import React from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { Accordion, AccordionItem, Button } from "@nextui-org/react";
+import { Button } from "@nextui-org/react";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
