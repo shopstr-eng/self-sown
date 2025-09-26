@@ -20,9 +20,9 @@ const getMetaTags = (
   shopEvents: Map<string, ShopProfile>
 ): MetaTagsType => {
   const defaultTags = {
-    title: "Milk Market - Raw Diary Direct from Local Farmers",
+    title: "Milk Market - Raw Dairy Direct from Local Farmers",
     description:
-      "Discover fresh, raw milk and dairy products directly from local farmers. Milk Market is a permissionless marketplace built with sovereignty and community in mind, connecting consumers with trusted dairy producers for sustainable, farm-to-table nutrition.",
+      "Discover fresh, raw milk and dairy products direct from local farmers. Milk Market is a marketplace built with sovereignty and community in mind, connecting consumers with trusted dairy producers to support local-first commerce.",
     image: "/milk-market.png",
     url: `${windowOrigin}`,
   };

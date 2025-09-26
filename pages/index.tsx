@@ -1,5 +1,6 @@
 import { useState, useContext, useEffect } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import {
   Button,
   Image,
@@ -218,14 +219,15 @@ export default function StandaloneLanding() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center md:space-x-4">
-          <Button
-            onClick={() => router.push("/producers")}
-            color="default"
-            variant="ghost"
-            className="w-auto text-light-text hover:text-gray-600"
-          >
-            Start Selling 🚜
-          </Button>
+          <Link href="/producers" className="w-auto">
+            <Button
+              color="default"
+              variant="ghost"
+              className="w-auto text-light-text hover:text-gray-600"
+            >
+              Start Selling 🚜
+            </Button>
+          </Link>
           <Button
             onClick={() => {
               const signupSection = document.getElementById("signup");
@@ -239,14 +241,15 @@ export default function StandaloneLanding() {
           >
             Stay Milky 📨
           </Button>
-          <Button
-            onClick={() => router.push("/marketplace")}
-            color="default"
-            variant="solid"
-            className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
-          >
-            Browse Milk Market 🥛
-          </Button>
+          <Link href="/marketplace" className="w-auto">
+            <Button
+              color="default"
+              variant="solid"
+              className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
+            >
+              Browse Milk Market 🥛
+            </Button>
+          </Link>
         </div>
 
         {/* Mobile Navigation */}
@@ -260,15 +263,14 @@ export default function StandaloneLanding() {
           {isMobileMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-48 rounded-md border border-gray-200 bg-white shadow-lg">
               <div className="py-1">
-                <Button
-                  className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-light-text hover:bg-gray-50"
-                  onClick={() => {
-                    router.push("/producers");
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  Start Selling 🚜
-                </Button>
+                <Link href="/producers" className="block">
+                  <Button
+                    className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-light-text hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Start Selling 🚜
+                  </Button>
+                </Link>
                 <Button
                   className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-light-text hover:bg-gray-50"
                   onClick={() => {
@@ -281,15 +283,14 @@ export default function StandaloneLanding() {
                 >
                   Stay Milky 📨
                 </Button>
-                <Button
-                  className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-yellow-600 hover:bg-gray-50"
-                  onClick={() => {
-                    router.push("/marketplace");
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
-                  Browse Milk Market 🥛
-                </Button>
+                <Link href="/marketplace" className="block">
+                  <Button
+                    className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-yellow-600 hover:bg-gray-50"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Browse Milk Market 🥛
+                  </Button>
+                </Link>
               </div>
             </div>
           )}
@@ -326,29 +327,31 @@ export default function StandaloneLanding() {
             <p className="mx-auto mb-6 max-w-3xl text-xl text-gray-600 md:text-2xl">
               Connect with trusted local dairy farmers and access fresh, raw
               milk and dairy products. Our marketplace, built with sovereignty
-              and community in mind, ensures secure transactions while
-              supporting farmers in your area directly.
+              and community in mind, ensures secure transactions while directly
+              supporting farmers in your area.
             </p>
 
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button
-                onClick={() => router.push("/marketplace")}
-                color="default"
-                variant="solid"
-                size="lg"
-                className="transform rounded-xl bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
-              >
-                Browse Milk Market 🥛
-              </Button>
-              <Button
-                onClick={() => router.push("/producers")}
-                color="default"
-                variant="solid"
-                size="lg"
-                className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
-              >
-                Start Selling 🚜
-              </Button>
+              <Link href="/marketplace">
+                <Button
+                  color="default"
+                  variant="solid"
+                  size="lg"
+                  className="transform rounded-xl bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
+                >
+                  Browse Milk Market 🥛
+                </Button>
+              </Link>
+              <Link href="/producers">
+                <Button
+                  color="default"
+                  variant="solid"
+                  size="lg"
+                  className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
+                >
+                  Start Selling 🚜
+                </Button>
+              </Link>
               <Button
                 onClick={() => {
                   const signupSection = document.getElementById("signup");
@@ -363,15 +366,16 @@ export default function StandaloneLanding() {
               >
                 Stay Milky 📨
               </Button>
-              <Button
-                onClick={() => router.push("/faq")}
-                color="default"
-                variant="solid"
-                size="lg"
-                className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
-              >
-                Learn More 🙋
-              </Button>
+              <Link href="/faq">
+                <Button
+                  color="default"
+                  variant="solid"
+                  size="lg"
+                  className="hover:bg-white-800 transform rounded-xl border-2 border-light-text bg-light-bg px-6 py-3 text-xl text-light-text shadow-xl transition-all hover:scale-105"
+                >
+                  Learn More 🙋
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -554,6 +558,34 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
+      {/*  <section className="relative z-10 bg-gray-50 py-12">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h2 className="mb-8 text-3xl font-bold text-light-text">
+              Explore Milk Market
+            </h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <Link href="/marketplace" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
+                <span className="block text-2xl group-hover:scale-110 transition-transform">🥛</span>
+                <span className="block text-sm font-medium text-light-text">Browse Products</span>
+              </Link>
+              <Link href="/producers" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
+                <span className="block text-2xl group-hover:scale-110 transition-transform">🚜</span>
+                <span className="block text-sm font-medium text-light-text">Start Selling</span>
+              </Link>
+              <Link href="/communities" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
+                <span className="block text-2xl group-hover:scale-110 transition-transform">🫂</span>
+                <span className="block text-sm font-medium text-light-text">View Community Boards</span>
+              </Link>
+              <Link href="/faq" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
+                <span className="block text-2xl group-hover:scale-110 transition-transform">❓</span>
+                <span className="block text-sm font-medium text-light-text">FAQ</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section> */}
+
       {/* Benefits Section */}
       <section className="relative z-10 bg-light-bg py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -653,15 +685,16 @@ export default function StandaloneLanding() {
             ancestral traditions while providing your family with the highest
             quality nutrition.
           </p>
-          <Button
-            onClick={() => router.push("/marketplace")}
-            color="default"
-            variant="solid"
-            size="lg"
-            className="bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-8 py-3 text-xl text-light-text shadow-xl"
-          >
-            FREE MILK NOW 🥛
-          </Button>
+          <Link href="/marketplace">
+            <Button
+              color="default"
+              variant="solid"
+              size="lg"
+              className="bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 px-8 py-3 text-xl text-light-text shadow-xl"
+            >
+              FREE MILK NOW 🥛
+            </Button>
+          </Link>
         </div>
       </section>
 
@@ -841,14 +874,15 @@ export default function StandaloneLanding() {
               Join those connecting with local dairy producers for fresh,
               sustainable nutrition!
             </p>
-            <Button
-              onClick={() => router.push("/marketplace")}
-              color="default"
-              variant="solid"
-              className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
-            >
-              Browse Milk Market 🥛
-            </Button>
+            <Link href="/marketplace">
+              <Button
+                color="default"
+                variant="solid"
+                className="w-auto bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
+              >
+                Browse Milk Market 🥛
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -914,27 +948,27 @@ export default function StandaloneLanding() {
             <div className="mb-6 flex flex-col items-center justify-between md:flex-row">
               <div className="mb-4 flex flex-col items-center gap-4 md:mb-0">
                 <div className="flex items-center gap-8">
-                  <button
-                    onClick={() => router.push("/faq")}
+                  <Link
+                    href="/faq"
                     className="flex items-center gap-1 text-dark-text transition-colors hover:text-gray-300"
                   >
                     FAQ
                     <ArrowUpRightIcon className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => router.push("/terms")}
+                  </Link>
+                  <Link
+                    href="/terms"
                     className="flex items-center gap-1 text-dark-text transition-colors hover:text-gray-300"
                   >
                     Terms
                     <ArrowUpRightIcon className="h-3 w-3" />
-                  </button>
-                  <button
-                    onClick={() => router.push("/privacy")}
+                  </Link>
+                  <Link
+                    href="/privacy"
                     className="flex items-center gap-1 text-dark-text transition-colors hover:text-gray-300"
                   >
                     Privacy
                     <ArrowUpRightIcon className="h-3 w-3" />
-                  </button>
+                  </Link>
                 </div>
                 <p className="text-dark-text">© 2025 Shopstr Markets Inc.</p>
               </div>
