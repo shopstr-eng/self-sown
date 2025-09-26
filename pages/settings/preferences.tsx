@@ -53,7 +53,7 @@ const PreferencesPage = () => {
   const [showMintModal, setShowMintModal] = useState(false);
 
   const [isLoaded, setIsLoaded] = useState(false);
-  const { signer, pubkey } = useContext(SignerContext);
+  const { signer } = useContext(SignerContext);
 
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
@@ -202,7 +202,7 @@ const PreferencesPage = () => {
   };
 
   const publishRelays = () => {
-    createNostrRelayEvent(nostr!, signer!, pubkey!);
+    createNostrRelayEvent(nostr!, signer!);
     setRelaysAreChanged(false);
   };
 
@@ -252,7 +252,7 @@ const PreferencesPage = () => {
   };
 
   const publishBlossomServers = () => {
-    createBlossomServerEvent(nostr!, signer!, pubkey!);
+    createBlossomServerEvent(nostr!, signer!);
     setBlossomServersAreChanged(false);
   };
 
