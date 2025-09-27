@@ -559,33 +559,61 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
-      {/*  <section className="relative z-10 bg-gray-50 py-12">
+      <section className="relative z-10 bg-gray-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="mb-8 text-3xl font-bold text-light-text">
               Explore Milk Market
             </h2>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <Link href="/marketplace" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
-                <span className="block text-2xl group-hover:scale-110 transition-transform">🥛</span>
-                <span className="block text-sm font-medium text-light-text">Browse Products</span>
+              <Link
+                href="/marketplace"
+                className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
+              >
+                <span className="block text-2xl transition-transform group-hover:scale-110">
+                  🥛
+                </span>
+                <span className="block text-sm font-medium text-light-text">
+                  Browse Products
+                </span>
               </Link>
-              <Link href="/producers" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
-                <span className="block text-2xl group-hover:scale-110 transition-transform">🚜</span>
-                <span className="block text-sm font-medium text-light-text">Start Selling</span>
+              <Link
+                href="/producers"
+                className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
+              >
+                <span className="block text-2xl transition-transform group-hover:scale-110">
+                  🚜
+                </span>
+                <span className="block text-sm font-medium text-light-text">
+                  Start Selling
+                </span>
               </Link>
-              <Link href="/communities" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
-                <span className="block text-2xl group-hover:scale-110 transition-transform">🫂</span>
-                <span className="block text-sm font-medium text-light-text">View Community Boards</span>
+              <Link
+                href="/communities"
+                className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
+              >
+                <span className="block text-2xl transition-transform group-hover:scale-110">
+                  🫂
+                </span>
+                <span className="block text-sm font-medium text-light-text">
+                  View Communities
+                </span>
               </Link>
-              <Link href="/faq" className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md">
-                <span className="block text-2xl group-hover:scale-110 transition-transform">❓</span>
-                <span className="block text-sm font-medium text-light-text">FAQ</span>
+              <Link
+                href="/faq"
+                className="group rounded-lg border border-gray-200 bg-white p-4 transition-all hover:shadow-md"
+              >
+                <span className="block text-2xl transition-transform group-hover:scale-110">
+                  ❓
+                </span>
+                <span className="block text-sm font-medium text-light-text">
+                  FAQ
+                </span>
               </Link>
             </div>
           </div>
         </div>
-      </section> */}
+      </section>
 
       {/* Benefits Section */}
       <section className="relative z-10 bg-light-bg py-20">
