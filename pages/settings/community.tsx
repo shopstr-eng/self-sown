@@ -28,6 +28,8 @@ import {
   BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import FailureModal from "@/components/utility-components/failure-modal";
+import SuccessModal from "@/components/utility-components/success-modal";
 
 const CommunityManagementPage = () => {
   const { signer, pubkey } = useContext(SignerContext);
@@ -42,6 +44,10 @@ const CommunityManagementPage = () => {
   const [passwordError, setPasswordError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordStorageKey, setPasswordStorageKey] = useState<string>("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [failureMessage, setFailureMessage] = useState("");
 
   useEffect(() => {
     const fetchPasswordStorageKey = async () => {
@@ -84,7 +90,10 @@ const CommunityManagementPage = () => {
     d: string;
   }) => {
     if (!signer || !nostr || !pubkey) {
-      alert("You must be logged in to create or update a community.");
+      setFailureMessage(
+        "You must be logged in to create or update a community."
+      );
+      setShowFailureModal(true);
       return;
     }
     try {
@@ -92,11 +101,15 @@ const CommunityManagementPage = () => {
         ...data,
         moderators: [pubkey], // Add creator as a moderator
       });
-      alert("Community saved! It may take a few moments to appear.");
+      setSuccessMessage(
+        "Community saved! It may take a few moments to appear."
+      );
+      setShowSuccessModal(true);
       setCommunityToEdit(null);
     } catch (error) {
       console.error("Failed to save community", error);
-      alert("Failed to save community.");
+      setFailureMessage("Failed to save community.");
+      setShowFailureModal(true);
     }
   };
 
@@ -110,14 +123,16 @@ const CommunityManagementPage = () => {
     if (isConfirmed) {
       try {
         await deleteEvent(nostr, signer, [communityId]);
-        alert(
+        setSuccessMessage(
           "Community deletion request sent. It may take a few moments to disappear from relays."
         );
+        setShowSuccessModal(true);
         // Optimistically remove from the local list
         setMyCommunities((prev) => prev.filter((c) => c.id !== communityId));
       } catch (error) {
         console.error("Failed to delete community", error);
-        alert("Failed to delete community.");
+        setFailureMessage("Failed to delete community.");
+        setShowFailureModal(true);
       }
     }
   };
@@ -305,6 +320,24 @@ const CommunityManagementPage = () => {
             </ModalFooter>
           </ModalContent>
         </Modal>
+
+        <SuccessModal
+          bodyText={successMessage}
+          isOpen={showSuccessModal}
+          onClose={() => {
+            setShowSuccessModal(false);
+            setSuccessMessage("");
+          }}
+        />
+
+        <FailureModal
+          bodyText={failureMessage}
+          isOpen={showFailureModal}
+          onClose={() => {
+            setShowFailureModal(false);
+            setFailureMessage("");
+          }}
+        />
       </div>
     </div>
   );

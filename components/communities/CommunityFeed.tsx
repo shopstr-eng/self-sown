@@ -19,11 +19,11 @@ import {
   Textarea,
   Card,
   CardBody,
-  Spinner,
   Divider,
   Chip,
 } from "@nextui-org/react";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import MilkMarketSpinner from "../utility-components/mm-spinner";
+import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
   createCommunityPost,
   approveCommunityPost,
@@ -31,6 +31,8 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import { ProfileWithDropdown } from "../utility-components/profile/profile-dropdown";
 import { sanitizeUrl } from "@braintree/sanitize-url";
+import FailureModal from "../utility-components/failure-modal";
+import SuccessModal from "../utility-components/success-modal";
 
 interface CommunityFeedProps {
   community: Community;
@@ -57,7 +59,7 @@ const RenderContent = ({
 
   return (
     <div className="space-y-2">
-      <p className="whitespace-pre-wrap text-light-text">
+      <p className="whitespace-pre-wrap text-dark-text">
         {parts.map((part, index) => {
           if (isImage(part)) {
             return (
@@ -124,6 +126,11 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
 
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [failureMessage, setFailureMessage] = useState("");
+
   const isModerator = pubkey ? community.moderators.includes(pubkey) : false;
 
   const loadPosts = useCallback(async () => {
@@ -163,12 +170,14 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
       if (newPost) {
         setPendingPosts((prevPending) => [newPost, ...prevPending]);
       }
-      alert(
+      setSuccessMessage(
         "Your post has been submitted for approval. It will appear once a moderator approves it."
       );
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Failed to create post", error);
-      alert("Failed to create post.");
+      setFailureMessage("Failed to create post.");
+      setShowFailureModal(true);
     }
   };
 
@@ -188,12 +197,14 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
       if (newReply) {
         setPendingPosts((prevPending) => [newReply, ...prevPending]);
       }
-      alert(
+      setSuccessMessage(
         "Your reply has been submitted for approval. It will appear once a moderator approves it."
       );
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Failed to submit reply", error);
-      alert("Failed to submit reply.");
+      setFailureMessage("Failed to submit reply.");
+      setShowFailureModal(true);
     }
   };
 
@@ -219,7 +230,8 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
       );
     } catch (error) {
       console.error("Failed to approve post", error);
-      alert("Failed to approve post.");
+      setFailureMessage("Failed to approve post.");
+      setShowFailureModal(true);
     }
   };
 
@@ -241,7 +253,8 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
       setPendingPosts(pending);
     } catch (error) {
       console.error("Failed to retract approval", error);
-      alert("Failed to retract approval.");
+      setFailureMessage("Failed to retract approval.");
+      setShowFailureModal(true);
     }
   };
 
@@ -280,18 +293,21 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
   return (
     <div className="space-y-6">
       {isModerator && (
-        <Card>
+        <Card className="bg-dark-fg">
           <CardBody>
-            <h3 className="mb-2 text-lg font-bold">Create an Announcement</h3>
+            <h3 className="mb-2 text-lg font-bold text-dark-text">
+              Create an Announcement
+            </h3>
             <Textarea
               value={newPostContent}
               onChange={(e) => setNewPostContent(e.target.value)}
               placeholder="What's on your mind?"
               minRows={3}
+              className="text-dark-text"
             />
             <Button
               onClick={handlePost}
-              className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
+              className={`${WHITEBUTTONCLASSNAMES} mt-2 self-end`}
               disabled={!newPostContent.trim()}
             >
               Post
@@ -302,18 +318,21 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <Spinner label="Loading posts..." />
+          <MilkMarketSpinner label="Loading posts..." />
         </div>
       ) : (
         <div className="space-y-4">
           {topLevelPosts.map((post: CommunityPost) => (
             <React.Fragment key={post.id}>
-              <Card>
+              <Card className="bg-dark-fg">
                 <CardBody>
                   <div className="mb-4 flex items-center justify-between">
                     <ProfileWithDropdown
                       pubkey={post.pubkey}
-                      dropDownKeys={["shop", "copy_npub"]}
+                      baseClassname="justify-start hover:bg-dark-bg pl-4 rounded-3xl py-2 hover:scale-105 hover:shadow-lg"
+                      dropDownKeys={["shop_profile", "copy_npub"]}
+                      nameClassname="md:block"
+                      bg="dark"
                     />
                     {isModerator && !post.approved && (
                       <Chip color="warning" variant="flat">
@@ -322,7 +341,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                     )}
                   </div>
                   <RenderContent content={post.content} tags={post.tags} />
-                  <Divider className="my-4" />
+                  <Divider className="my-4 bg-dark-text" />
                   <div className="flex items-center justify-between">
                     <Button
                       size="sm"
@@ -330,14 +349,19 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                       onClick={() =>
                         setReplyingTo(replyingTo === post.id ? null : post.id)
                       }
+                      className={
+                        replyingTo === post.id
+                          ? "text-red-500"
+                          : "text-yellow-600"
+                      }
                     >
                       {replyingTo === post.id ? "Cancel" : "Reply"}
                     </Button>
                     {isModerator && !post.approved && (
                       <Button
                         size="sm"
-                        color="success"
                         onClick={() => handleApprove(post)}
+                        className="min-w-fit bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
                       >
                         Approve
                       </Button>
@@ -348,10 +372,10 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                       post.approvedBy === pubkey && (
                         <Button
                           size="sm"
-                          color="warning"
                           onClick={() =>
                             handleRetractApproval(post.approvalEventId)
                           }
+                          className="min-w-fit bg-gradient-to-tr from-red-600 via-red-500 to-red-600 text-white shadow-lg"
                         >
                           Retract Approval
                         </Button>
@@ -367,10 +391,11 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                           8
                         )}...`}
                         minRows={2}
+                        className="text-dark-text"
                       />
                       <Button
                         onClick={() => handleReply(post)}
-                        className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
+                        className={`${WHITEBUTTONCLASSNAMES} mt-2 self-end`}
                         disabled={!replyContent.trim()}
                         size="sm"
                       >
@@ -383,16 +408,19 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
 
               {/* Render Replies */}
               {repliesByParentId.has(post.id) && (
-                <div className="ml-8 space-y-4 border-l-2 border-zinc-200 pl-4">
+                <div className="ml-8 space-y-4 border-l-2 border-zinc-200 bg-dark-fg pl-4">
                   {repliesByParentId
                     .get(post.id)!
                     .map((reply: CommunityPost) => (
-                      <Card key={reply.id}>
+                      <Card key={reply.id} className="bg-dark-fg">
                         <CardBody>
                           <div className="mb-4 flex items-center justify-between">
                             <ProfileWithDropdown
                               pubkey={reply.pubkey}
-                              dropDownKeys={["shop", "copy_npub"]}
+                              baseClassname="justify-start hover:bg-dark-bg pl-4 rounded-3xl py-2 hover:scale-105 hover:shadow-lg"
+                              dropDownKeys={["shop_profile", "copy_npub"]}
+                              nameClassname="md:block"
+                              bg="dark"
                             />
                             {isModerator && !reply.approved && (
                               <Chip color="warning" variant="flat">
@@ -404,7 +432,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                             content={reply.content}
                             tags={reply.tags}
                           />
-                          <Divider className="my-4" />
+                          <Divider className="my-4 bg-dark-text" />
                           <div className="flex items-center justify-between">
                             <Button
                               size="sm"
@@ -414,14 +442,19 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                                   replyingTo === reply.id ? null : reply.id
                                 )
                               }
+                              className={
+                                replyingTo === reply.id
+                                  ? "text-red-500"
+                                  : "text-yellow-600"
+                              }
                             >
                               {replyingTo === reply.id ? "Cancel" : "Reply"}
                             </Button>
                             {isModerator && !reply.approved && (
                               <Button
                                 size="sm"
-                                color="success"
                                 onClick={() => handleApprove(reply)}
+                                className="min-w-fit bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
                               >
                                 Approve
                               </Button>
@@ -439,10 +472,11 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                                   8
                                 )}...`}
                                 minRows={2}
+                                className="text-dark-text"
                               />
                               <Button
                                 onClick={() => handleReply(reply)}
-                                className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
+                                className={`${WHITEBUTTONCLASSNAMES} mt-2 self-end`}
                                 disabled={!replyContent.trim()}
                                 size="sm"
                               >
@@ -464,6 +498,24 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
           <p>No announcements yet. Check back soon!</p>
         </div>
       )}
+
+      <SuccessModal
+        bodyText={successMessage}
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          setSuccessMessage("");
+        }}
+      />
+
+      <FailureModal
+        bodyText={failureMessage}
+        isOpen={showFailureModal}
+        onClose={() => {
+          setShowFailureModal(false);
+          setFailureMessage("");
+        }}
+      />
     </div>
   );
 };
