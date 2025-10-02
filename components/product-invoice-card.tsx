@@ -1775,46 +1775,49 @@ export default function ProductInvoiceCard({
       <div className="space-y-4">
         {formType === "contact" && (
           <>
-            <Controller
-              name="pickupLocation"
-              control={formControl}
-              rules={{ required: "A pickup location is required." }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Select
-                  variant="bordered"
-                  fullWidth={true}
-                  label={
-                    <span className="text-light-text">Pickup location</span>
-                  }
-                  labelPlacement="inside"
-                  placeholder="Select a pickup location"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={(e) => {
-                    onChange(e);
-                    setSelectedPickupLocation(e.target.value);
-                  }}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                >
-                  {productData.pickupLocations
-                    ? productData.pickupLocations.map((location) => (
-                        <SelectItem
-                          key={location}
-                          value={location}
-                          className="text-dark-text"
-                        >
-                          {location}
-                        </SelectItem>
-                      ))
-                    : []}
-                </Select>
+            {productData.pickupLocations &&
+              productData.pickupLocations.length > 0 && (
+                <Controller
+                  name="pickupLocation"
+                  control={formControl}
+                  rules={{ required: "A pickup location is required." }}
+                  render={({
+                    field: { onChange, onBlur, value },
+                    fieldState: { error },
+                  }) => (
+                    <Select
+                      variant="bordered"
+                      fullWidth={true}
+                      label={
+                        <span className="text-light-text">Pickup location</span>
+                      }
+                      labelPlacement="inside"
+                      placeholder="Select a pickup location"
+                      isInvalid={!!error}
+                      errorMessage={error?.message}
+                      onChange={(e) => {
+                        onChange(e);
+                        setSelectedPickupLocation(e.target.value);
+                      }}
+                      isRequired={true}
+                      onBlur={onBlur}
+                      value={value || ""}
+                    >
+                      {productData.pickupLocations
+                        ? productData.pickupLocations.map((location) => (
+                            <SelectItem
+                              key={location}
+                              value={location}
+                              className="text-dark-text"
+                            >
+                              {location}
+                            </SelectItem>
+                          ))
+                        : []}
+                    </Select>
+                  )}
+                />
               )}
-            />
 
             <Controller
               name="Contact"
