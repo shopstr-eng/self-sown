@@ -138,6 +138,17 @@ export default function ProductInvoiceCard({
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
+  // Stripe payment states
+  const [stripeInvoiceUrl, setStripeInvoiceUrl] = useState<string | null>(null);
+  const [stripeInvoiceId, setStripeInvoiceId] = useState<string | null>(null);
+  const [isCheckingStripePayment, setIsCheckingStripePayment] = useState(false);
+  const [stripePaymentConfirmed, setStripePaymentConfirmed] = useState(false);
+  const [stripeTimeoutSeconds, setStripeTimeoutSeconds] = useState<number>(600); // 10 minutes
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+
+  // Timeout constants
+  const STRIPE_TIMEOUT_SECONDS = 600; // 10 minutes total timeout
+
   const [isFormValid, setIsFormValid] = useState(false);
   const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
 
@@ -172,6 +183,30 @@ export default function ProductInvoiceCard({
     const fiatOptions = sellerProfile?.content?.fiat_options || {};
     setFiatPaymentOptions(fiatOptions);
   }, [productData.pubkey, profileContext.profileData]);
+
+  // Stripe payment timeout countdown
+  useEffect(() => {
+    if (!stripeInvoiceUrl || stripePaymentConfirmed || hasTimedOut) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setStripeTimeoutSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setHasTimedOut(true);
+          setIsCheckingStripePayment(false);
+          setShowInvoiceCard(false);
+          setStripeInvoiceUrl(null);
+          setStripeInvoiceId(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [stripeInvoiceUrl, stripePaymentConfirmed, hasTimedOut]);
 
   // Validate form completion
   useEffect(() => {
@@ -382,7 +417,7 @@ export default function ProductInvoiceCard({
 
   const onFormSubmit = async (
     data: { [x: string]: string },
-    paymentType?: "fiat" | "lightning" | "cashu"
+    paymentType?: "fiat" | "lightning" | "cashu" | "stripe"
   ) => {
     try {
       let price =
@@ -455,6 +490,8 @@ export default function ProductInvoiceCard({
         return; // Important: exit early for fiat payments
       } else if (paymentType === "cashu") {
         await handleCashuPayment(price, paymentData);
+      } else if (paymentType === "stripe") {
+        await handleStripePayment(price, paymentData);
       } else {
         await handleLightningPayment(price, paymentData);
       }
@@ -1325,7 +1362,7 @@ export default function ProductInvoiceCard({
     }
     let donationMessage = "";
     if (donationToken) {
-      // Add delay before donation message
+      // Add delay between messages
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       donationMessage = "Sale donation: " + donationToken;
@@ -1339,7 +1376,7 @@ export default function ProductInvoiceCard({
     }
 
     if (additionalInfo) {
-      // Add delay before additional info message
+      // Add delay between messages
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const additionalMessage =
@@ -1766,6 +1803,403 @@ export default function ProductInvoiceCard({
     } catch (error) {
       setCashuPaymentFailed(true);
     }
+  };
+
+  const handleStripePayment = async (convertedPrice: number, data: any) => {
+    try {
+      // Validate payment data using converted price for validation
+      if (
+        data.shippingName ||
+        data.shippingAddress ||
+        data.shippingCity ||
+        data.shippingPostalCode ||
+        data.shippingState ||
+        data.shippingCountry
+      ) {
+        validatePaymentData(convertedPrice, {
+          Name: data.shippingName || "",
+          Address: data.shippingAddress || "",
+          Unit: data.shippingUnitNo || "",
+          City: data.shippingCity || "",
+          "Postal Code": data.shippingPostalCode || "",
+          "State/Province": data.shippingState || "",
+          Country: data.shippingCountry || "",
+          Required: data.additionalInfo || "",
+        });
+      } else if (data.contact || data.contactType || data.contactInstructions) {
+        validatePaymentData(convertedPrice, {
+          Contact: data.contact || "",
+          "Contact Type": data.contactType || "",
+          Instructions: data.contactInstructions || "",
+          Required: data.additionalInfo || "",
+        });
+      } else {
+        validatePaymentData(convertedPrice);
+      }
+
+      const orderId = uuidv4();
+
+      // Build shipping info if available
+      let shippingInfo = undefined;
+      if (data.shippingName && data.shippingAddress && data.shippingCity) {
+        shippingInfo = {
+          name: data.shippingName,
+          address: data.shippingAddress,
+          unit: data.shippingUnitNo || "",
+          city: data.shippingCity,
+          state: data.shippingState,
+          postalCode: data.shippingPostalCode,
+          country: data.shippingCountry,
+        };
+      }
+
+      // Determine the amount and currency to send to Stripe
+      // If currency is SAT, SATS, or BTC, we need to convert to USD
+      // Otherwise, use the original price in the product's currency
+      let stripeAmount: number;
+      let stripeCurrency: string;
+
+      const currencyLower = productData.currency.toLowerCase();
+      const isCrypto =
+        currencyLower === "sat" ||
+        currencyLower === "sats" ||
+        currencyLower === "btc";
+
+      if (isCrypto) {
+        // For crypto currencies, send the amount in sats to be converted by the API
+        stripeAmount =
+          formType === "shipping" ? productData.totalCost : productData.price;
+        stripeCurrency = productData.currency;
+      } else {
+        // For fiat currencies, use the original price
+        const basePrice =
+          productData.volumePrice !== undefined
+            ? productData.volumePrice
+            : productData.weightPrice !== undefined
+              ? productData.weightPrice
+              : productData.price;
+
+        stripeAmount =
+          formType === "shipping"
+            ? basePrice + (productData.shippingCost || 0)
+            : basePrice;
+        stripeCurrency = productData.currency;
+      }
+
+      // Create Stripe invoice
+      const response = await fetch("/api/stripe/create-invoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: stripeAmount,
+          currency: stripeCurrency,
+          customerEmail: userPubkey
+            ? `${userPubkey.substring(0, 8)}@nostr.com`
+            : undefined,
+          productTitle: productData.title,
+          productDescription:
+            selectedSize || selectedVolume || selectedWeight
+              ? `${selectedSize ? `Size: ${selectedSize}` : ""}${
+                  selectedVolume ? ` Volume: ${selectedVolume}` : ""
+                }${selectedWeight ? ` Weight: ${selectedWeight}` : ""}`
+              : undefined,
+          shippingInfo,
+          metadata: {
+            orderId,
+            productId: productData.id,
+            sellerPubkey: productData.pubkey,
+            buyerPubkey: userPubkey || "",
+            productTitle: productData.title,
+            selectedSize: selectedSize || "",
+            selectedVolume: selectedVolume || "",
+            selectedWeight: selectedWeight || "",
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to create Stripe invoice");
+      }
+
+      const { invoiceUrl, invoiceId } = await response.json();
+
+      setStripeInvoiceUrl(invoiceUrl);
+      setStripeInvoiceId(invoiceId);
+      setShowInvoiceCard(true);
+      setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
+      setHasTimedOut(false);
+
+      // Start polling for payment status
+      setIsCheckingStripePayment(true);
+      checkStripePaymentStatus(invoiceId, data);
+    } catch (error) {
+      console.error("Stripe payment error:", error);
+      setInvoiceGenerationFailed(true);
+      setShowInvoiceCard(false);
+    }
+  };
+
+  const checkStripePaymentStatus = async (invoiceId: string, data: any) => {
+    let pollCount = 0;
+    const maxPolls = 120; // Poll for up to 10 minutes (5 seconds * 120)
+
+    const checkStatus = async () => {
+      try {
+        const response = await fetch("/api/stripe/check-payment", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ invoiceId }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to check Stripe payment status");
+        }
+
+        const { paid, status } = await response.json();
+
+        if (paid) {
+          setStripePaymentConfirmed(true);
+          setInvoiceIsPaid(true);
+          setIsCheckingStripePayment(false);
+
+          // Send payment confirmation messages
+          const orderId = uuidv4();
+          let productDetails = "";
+          if (selectedSize) {
+            productDetails += " in size " + selectedSize;
+          }
+          if (selectedVolume) {
+            if (productDetails) {
+              productDetails += " and a " + selectedVolume;
+            } else {
+              productDetails += " in a " + selectedVolume;
+            }
+          }
+          if (selectedWeight) {
+            if (productDetails) {
+              productDetails += " and weighing " + selectedWeight;
+            } else {
+              productDetails += " weighing " + selectedWeight;
+            }
+          }
+          if (selectedPickupLocation) {
+            if (productDetails) {
+              productDetails += " (pickup at: " + selectedPickupLocation + ")";
+            } else {
+              productDetails += " (pickup at: " + selectedPickupLocation + ")";
+            }
+          }
+
+          const paymentMessage =
+            "You have received a credit card payment from " +
+            userNPub +
+            " for your " +
+            productData.title +
+            " listing" +
+            productDetails +
+            " on milk.market! Check your Stripe account for the payment.";
+
+          await sendPaymentAndContactMessage(
+            productData.pubkey,
+            paymentMessage,
+            true,
+            false,
+            false,
+            false,
+            orderId,
+            "stripe",
+            invoiceId,
+            "",
+            formType === "shipping" ? productData.totalCost : productData.price
+          );
+
+          // Send additional info and delivery messages similar to other payment methods
+          if (data.additionalInfo) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const additionalMessage =
+              "Additional customer information: " + data.additionalInfo;
+            await sendPaymentAndContactMessage(
+              productData.pubkey,
+              additionalMessage,
+              false,
+              false,
+              false,
+              false,
+              orderId
+            );
+          }
+
+          if (productData.herdshareAgreement) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const herdshareMessage =
+              "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+              productData.herdshareAgreement;
+            await sendPaymentAndContactMessage(
+              userPubkey!,
+              herdshareMessage,
+              false,
+              false,
+              false,
+              true,
+              orderId
+            );
+          }
+
+          // Handle shipping/contact information
+          if (data.shippingName && data.shippingAddress) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            let contactMessage = "";
+            if (!data.shippingUnitNo) {
+              contactMessage =
+                "Please ship the product" +
+                productDetails +
+                " to " +
+                data.shippingName +
+                " at " +
+                data.shippingAddress +
+                ", " +
+                data.shippingCity +
+                ", " +
+                data.shippingPostalCode +
+                ", " +
+                data.shippingState +
+                ", " +
+                data.shippingCountry +
+                ".";
+            } else {
+              contactMessage =
+                "Please ship the product" +
+                productDetails +
+                " to " +
+                data.shippingName +
+                " at " +
+                data.shippingAddress +
+                " " +
+                data.shippingUnitNo +
+                ", " +
+                data.shippingCity +
+                ", " +
+                data.shippingPostalCode +
+                ", " +
+                data.shippingState +
+                ", " +
+                data.shippingCountry +
+                ".";
+            }
+            await sendPaymentAndContactMessage(
+              productData.pubkey,
+              contactMessage,
+              false,
+              false,
+              false,
+              false,
+              orderId
+            );
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const receiptMessage =
+              "Your order for " +
+              productData.title +
+              productDetails +
+              " was processed successfully. You should be receiving delivery information from " +
+              nip19.npubEncode(productData.pubkey) +
+              " as soon as they review your order.";
+            await sendPaymentAndContactMessage(
+              userPubkey!,
+              receiptMessage,
+              false,
+              true,
+              false,
+              false,
+              orderId
+            );
+          } else if (data.contact && data.contactType) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const contactMessage =
+              "To finalize the sale of your " +
+              productData.title +
+              " listing" +
+              productDetails +
+              " on milk.market, please contact " +
+              data.contact +
+              " over " +
+              data.contactType +
+              " using the following instructions: " +
+              data.contactInstructions;
+            await sendPaymentAndContactMessage(
+              productData.pubkey,
+              contactMessage,
+              false,
+              false,
+              false,
+              false,
+              orderId
+            );
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const receiptMessage =
+              "Your order for " +
+              productData.title +
+              productDetails +
+              " was processed successfully! You should be receiving delivery information from " +
+              nip19.npubEncode(productData.pubkey) +
+              " as soon as they review your order.";
+            await sendPaymentAndContactMessage(
+              userPubkey!,
+              receiptMessage,
+              false,
+              true,
+              false,
+              false,
+              orderId
+            );
+          } else {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const receiptMessage =
+              "Thank you for your purchase of " +
+              productData.title +
+              productDetails +
+              " from " +
+              nip19.npubEncode(productData.pubkey) +
+              ".";
+            await sendPaymentAndContactMessage(
+              userPubkey!,
+              receiptMessage,
+              false,
+              true,
+              false,
+              false,
+              orderId
+            );
+          }
+        } else {
+          pollCount++;
+          if (pollCount < maxPolls) {
+            setTimeout(checkStatus, 5000); // Poll every 5 seconds
+          } else {
+            setIsCheckingStripePayment(false);
+            setFailureText(
+              "Payment check timed out. Please verify your Stripe invoice."
+            );
+            setShowFailureModal(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking Stripe payment status:", error);
+        setIsCheckingStripePayment(false);
+        setFailureText(
+          "Failed to check payment status. Please check your Stripe invoice."
+        );
+        setShowFailureModal(true);
+      }
+    };
+
+    checkStatus();
   };
 
   const renderContactForm = () => {
@@ -2223,13 +2657,15 @@ export default function ProductInvoiceCard({
           <div className="w-full p-6 lg:w-1/2">
             <Card className="w-full">
               <CardHeader className="flex justify-center gap-3">
-                <span className="text-xl font-bold">Lightning Invoice</span>
+                <span className="text-xl font-bold">
+                  {stripeInvoiceUrl ? "Stripe Payment" : "Lightning Invoice"}
+                </span>
               </CardHeader>
               <Divider />
               <CardBody className="flex flex-col items-center">
-                {!paymentConfirmed ? (
+                {!paymentConfirmed && !stripePaymentConfirmed ? (
                   <div className="flex flex-col items-center justify-center">
-                    {qrCodeUrl ? (
+                    {qrCodeUrl && (
                       <>
                         <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
                           Don&apos;t refresh or close the page until the payment
@@ -2265,9 +2701,49 @@ export default function ProductInvoiceCard({
                           />
                         </div>
                       </>
-                    ) : (
+                    )}
+                    {stripeInvoiceUrl && (
+                      <>
+                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                          Please complete your payment via Stripe.
+                        </h3>
+                        <a
+                          href={stripeInvoiceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-4 rounded-md bg-blue-500 px-6 py-3 text-white no-underline hover:bg-blue-600"
+                        >
+                          Proceed to Stripe
+                        </a>
+                        {isCheckingStripePayment && (
+                          <div className="mt-4 text-center">
+                            <p>Checking payment status...</p>
+                            <p className="mt-2 text-sm text-gray-600">
+                              Time remaining:{" "}
+                              {Math.floor(stripeTimeoutSeconds / 60)}:
+                              {(stripeTimeoutSeconds % 60)
+                                .toString()
+                                .padStart(2, "0")}
+                            </p>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowInvoiceCard(false);
+                            setStripeInvoiceUrl(null);
+                            setStripeInvoiceId(null);
+                            setIsCheckingStripePayment(false);
+                            setHasTimedOut(false);
+                          }}
+                          className="mt-4 text-sm text-gray-600 underline hover:text-gray-800"
+                        >
+                          Cancel and return to checkout
+                        </button>
+                      </>
+                    )}
+                    {!qrCodeUrl && !stripeInvoiceUrl && (
                       <div>
-                        <p>Waiting for lightning invoice...</p>
+                        <p>Waiting for payment invoice...</p>
                       </div>
                     )}
                   </div>
@@ -2511,6 +2987,26 @@ export default function ProductInvoiceCard({
                       Pay with Cashu: {formattedTotalCost}
                     </Button>
                   )}
+
+                  {/* Stripe Payment Button */}
+                  <Button
+                    className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                      !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                    }`}
+                    disabled={!isFormValid}
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        onOpen();
+                        return;
+                      }
+                      handleFormSubmit((data) =>
+                        onFormSubmit(data, "stripe")
+                      )();
+                    }}
+                    startContent={<CurrencyDollarIcon className="h-6 w-6" />}
+                  >
+                    Pay with Credit Card (Stripe): {formattedTotalCost}
+                  </Button>
                 </div>
               </form>
             </>
@@ -2702,6 +3198,16 @@ export default function ProductInvoiceCard({
         onClose={() => {
           setShowFailureModal(false);
           setFailureText("");
+        }}
+      />
+
+      {/* Stripe Timeout Modal */}
+      <FailureModal
+        bodyText="The payment window has timed out. Please try again if you'd like to complete your purchase."
+        isOpen={hasTimedOut}
+        onClose={() => {
+          setHasTimedOut(false);
+          setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
         }}
       />
     </div>
