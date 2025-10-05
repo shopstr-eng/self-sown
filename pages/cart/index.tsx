@@ -15,6 +15,7 @@ import {
   ShoppingBagIcon,
   CheckCircleIcon,
   XCircleIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   BLACKBUTTONCLASSNAMES,
@@ -434,18 +435,29 @@ export default function Component() {
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 flex flex-col items-end border-t border-gray-300 pt-4">
-                  <p className="mb-4 text-xl font-bold">
-                    Subtotal ({products.length}{" "}
-                    {products.length === 1 ? "item" : "items"}): {subtotal} sats
-                  </p>
-                  <Button
-                    className={BLACKBUTTONCLASSNAMES}
-                    onClick={toggleCheckout}
-                    size="lg"
-                  >
-                    Proceed To Checkout
-                  </Button>
+                <div className="mt-6 border-t border-gray-300 pt-4">
+                  <div className="mb-4 flex items-start rounded-lg bg-blue-50 p-4">
+                    <InformationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0 text-blue-600" />
+                    <p className="text-sm text-gray-700">
+                      The cart currently only supports payments with Bitcoin and
+                      digital cash options. If you want to pay with credit or
+                      debit, you must purchase products individually.
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="mb-4 text-xl font-bold">
+                      Subtotal ({products.length}{" "}
+                      {products.length === 1 ? "item" : "items"}): {subtotal}{" "}
+                      sats
+                    </p>
+                    <Button
+                      className={BLACKBUTTONCLASSNAMES}
+                      onClick={toggleCheckout}
+                      size="lg"
+                    >
+                      Proceed To Checkout
+                    </Button>
+                  </div>
                 </div>
               </>
             ) : (

@@ -1,15 +1,26 @@
 import React from "react";
 import { useRouter } from "next/router";
 import { Card, CardBody, Button, Image } from "@nextui-org/react";
-import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowLongRightIcon,
+  ArrowLeftEndOnRectangleIcon,
+} from "@heroicons/react/24/outline";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import UserProfileForm from "@/components/settings/user-profile-form";
+import BuyerProfileForm from "@/components/settings/buyer-profile-form";
 
 const OnboardingUserProfile = () => {
   const router = useRouter();
+  const { type } = router.query;
+  const isBuyer = type === "buyer";
+  const isSeller = type === "seller";
 
   const handleNext = () => {
-    router.push("/onboarding/shop-profile");
+    if (isSeller) {
+      router.push("/onboarding/shop-profile");
+    } else {
+      router.push("/marketplace");
+    }
   };
 
   return (
@@ -31,18 +42,32 @@ const OnboardingUserProfile = () => {
             </div>
             <div className="mb-4 text-center">
               <h2 className="text-2xl font-bold text-dark-text">
-                Step 2: Set Up Your Profile
+                Step 3: Set Up Your Profile
               </h2>
               <p className="text-dark-text">
-                Set up your user profile or skip this step to continue.
+                {isBuyer
+                  ? "Set up your buyer profile or skip this step to finish onboarding."
+                  : "Set up your user profile or skip this step to continue."}
               </p>
             </div>
 
-            <UserProfileForm isOnboarding={true} />
+            {isBuyer ? (
+              <BuyerProfileForm isOnboarding={true} />
+            ) : (
+              <UserProfileForm isOnboarding={true} />
+            )}
 
             <div className="flex justify-center">
               <Button className={WHITEBUTTONCLASSNAMES} onClick={handleNext}>
-                Next <ArrowLongRightIcon className="h-5 w-5" />
+                {isBuyer ? (
+                  <>
+                    Finish <ArrowLeftEndOnRectangleIcon className="h-5 w-5" />
+                  </>
+                ) : (
+                  <>
+                    Next <ArrowLongRightIcon className="h-5 w-5" />
+                  </>
+                )}
               </Button>
             </div>
           </CardBody>

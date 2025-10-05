@@ -140,7 +140,7 @@ export default function ProductInvoiceCard({
 
   // Stripe payment states
   const [stripeInvoiceUrl, setStripeInvoiceUrl] = useState<string | null>(null);
-  const [stripeInvoiceId, setStripeInvoiceId] = useState<string | null>(null);
+  const [_stripeInvoiceId, setStripeInvoiceId] = useState<string | null>(null);
   const [isCheckingStripePayment, setIsCheckingStripePayment] = useState(false);
   const [stripePaymentConfirmed, setStripePaymentConfirmed] = useState(false);
   const [stripeTimeoutSeconds, setStripeTimeoutSeconds] = useState<number>(600); // 10 minutes
@@ -1960,7 +1960,7 @@ export default function ProductInvoiceCard({
           throw new Error("Failed to check Stripe payment status");
         }
 
-        const { paid, status } = await response.json();
+        const { paid } = await response.json();
 
         if (paid) {
           setStripePaymentConfirmed(true);

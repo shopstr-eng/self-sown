@@ -84,7 +84,7 @@ const Keys = () => {
       });
       await signer.getPubKey();
       saveSigner(signer);
-      router.push("/onboarding/user-profile");
+      router.push("/onboarding/user-type");
     }
   };
 
