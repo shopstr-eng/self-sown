@@ -1,7 +1,18 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/router";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
-import { Card, CardBody, Button, Input, Image } from "@nextui-org/react";
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  InformationCircleIcon,
+} from "@heroicons/react/24/outline";
+import {
+  Card,
+  CardBody,
+  Button,
+  Input,
+  Image,
+  Tooltip,
+} from "@nextui-org/react";
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
@@ -84,7 +95,7 @@ const Keys = () => {
       });
       await signer.getPubKey();
       saveSigner(signer);
-      router.push("/onboarding/user-profile");
+      router.push("/onboarding/user-type");
     }
   };
 
@@ -111,9 +122,18 @@ const Keys = () => {
                   Step 1: Secure Your Keys
                 </h2>
                 <p className="text-dark-text">
-                  Make sure to save your public and private keys in a secure
-                  format! You can always view them again under your profile
-                  settings.
+                  New accounts are created using{" "}
+                  <a
+                    href="https://nostr.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-yellow-500 hover:text-yellow-400"
+                  >
+                    Nostr keys
+                  </a>{" "}
+                  in order to keep your data entirely in your control. Make sure
+                  to save your keys in a secure format! You can always view them
+                  again under your profile settings.
                 </p>
               </div>
 
@@ -160,9 +180,20 @@ const Keys = () => {
               </div>
 
               <div className="mb-4 flex flex-col space-y-2 text-dark-text">
-                <label className="text-xl">
-                  Encryption Passphrase:<span className="text-red-500">*</span>
-                </label>
+                <div className="flex items-center gap-2">
+                  <label className="text-xl">
+                    Passphrase:<span className="text-red-500">*</span>
+                  </label>
+                  <Tooltip
+                    content="This passphrase is up to you to choose and is used to encrypt and keep your data secure."
+                    placement="right"
+                    classNames={{
+                      content: "bg-dark-bg text-dark-text p-2 max-w-xs",
+                    }}
+                  >
+                    <InformationCircleIcon className="h-5 w-5 cursor-help text-dark-text" />
+                  </Tooltip>
+                </div>
                 <Input
                   type="password"
                   fullWidth
