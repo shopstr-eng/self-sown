@@ -135,6 +135,7 @@ export default function ProductInvoiceCard({
     useState(false);
   const [fiatPaymentConfirmed, setFiatPaymentConfirmed] = useState(false);
 
+  // State for failure modal
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
@@ -163,6 +164,10 @@ export default function ProductInvoiceCard({
   const [selectedPickupLocation, setSelectedPickupLocation] = useState<
     string | null
   >(null);
+
+  // Check if Stripe should be available for this product
+  const isStripeMerchant =
+    productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
 
   useEffect(() => {
     const fetchKeys = async () => {
@@ -2927,27 +2932,6 @@ export default function ProductInvoiceCard({
                 <div className="space-y-4 border-t pt-6">
                   <h3 className="mb-4 text-lg font-semibold">Payment Method</h3>
 
-                  {Object.keys(fiatPaymentOptions).length > 0 && (
-                    <Button
-                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
-                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
-                      }`}
-                      disabled={!isFormValid}
-                      onClick={() => {
-                        if (!isLoggedIn) {
-                          onOpen();
-                          return;
-                        }
-                        handleFormSubmit((data) =>
-                          onFormSubmit(data, "fiat")
-                        )();
-                      }}
-                      startContent={<CurrencyDollarIcon className="h-6 w-6" />}
-                    >
-                      Pay with Fiat
-                    </Button>
-                  )}
-
                   <Button
                     className={`${BLACKBUTTONCLASSNAMES} w-full ${
                       !isFormValid ? "cursor-not-allowed opacity-50" : ""
@@ -2989,24 +2973,47 @@ export default function ProductInvoiceCard({
                   )}
 
                   {/* Stripe Payment Button */}
-                  <Button
-                    className={`${BLACKBUTTONCLASSNAMES} w-full ${
-                      !isFormValid ? "cursor-not-allowed opacity-50" : ""
-                    }`}
-                    disabled={!isFormValid}
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        onOpen();
-                        return;
-                      }
-                      handleFormSubmit((data) =>
-                        onFormSubmit(data, "stripe")
-                      )();
-                    }}
-                    startContent={<CurrencyDollarIcon className="h-6 w-6" />}
-                  >
-                    Pay with Credit Card (Stripe): {formattedTotalCost}
-                  </Button>
+                  {isStripeMerchant && (
+                    <Button
+                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                      }`}
+                      disabled={!isFormValid}
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          onOpen();
+                          return;
+                        }
+                        handleFormSubmit((data) =>
+                          onFormSubmit(data, "stripe")
+                        )();
+                      }}
+                      startContent={<CurrencyDollarIcon className="h-6 w-6" />}
+                    >
+                      Pay with Card: {formattedTotalCost}
+                    </Button>
+                  )}
+
+                  {Object.keys(fiatPaymentOptions).length > 0 && (
+                    <Button
+                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                      }`}
+                      disabled={!isFormValid}
+                      onClick={() => {
+                        if (!isLoggedIn) {
+                          onOpen();
+                          return;
+                        }
+                        handleFormSubmit((data) =>
+                          onFormSubmit(data, "fiat")
+                        )();
+                      }}
+                      startContent={<CurrencyDollarIcon className="h-6 w-6" />}
+                    >
+                      Pay with Cash or Payment App: {formattedTotalCost}
+                    </Button>
+                  )}
                 </div>
               </form>
             </>

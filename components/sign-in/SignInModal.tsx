@@ -196,7 +196,7 @@ export default function SignInModal({
                 </div>
                 <div className="mt-10 flex">
                   <div>
-                    <p>New to Nostr?</p>
+                    <p>New to Milk Market?</p>
                     <p> Sign up to get started!</p>
                   </div>
                   <Button
@@ -346,7 +346,7 @@ export default function SignInModal({
                   </div>
                   <div className="ml-5 mt-2 flex">
                     <div>
-                      <p>New to Nostr?</p>
+                      <p>New to Milk Market?</p>
                       <p> Sign up to get started!</p>
                     </div>
                     <Button
