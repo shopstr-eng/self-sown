@@ -9,7 +9,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 // Convert satoshis to USD using Getalby Lightning Tools
 const satsToUSD = async (sats: number): Promise<number> => {
   try {
-    const usdAmount = await fiat.convertSatsToFiat(sats, "USD");
+    const usdAmount = await fiat.getFiatValue({satoshi: sats, currency: "usd"});
     return usdAmount;
   } catch (error) {
     console.error("Error converting sats to USD:", error);
@@ -104,15 +104,20 @@ export default async function handler(
 
     // Add invoice item
     // Always use USD for Stripe invoices since we convert everything to USD
-    await stripe.invoiceItems.create({
-      customer: customer?.id,
+    const invoiceItemParams: any = {
       invoice: invoice.id,
       amount: amountInCents,
       currency: "usd",
       description: `${productTitle}${
         productDescription ? ` - ${productDescription}` : ""
       }`,
-    });
+    };
+    
+    if (customer?.id) {
+      invoiceItemParams.customer = customer.id;
+    }
+    
+    await stripe.invoiceItems.create(invoiceItemParams);
 
     // Finalize and send invoice
     const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id);
@@ -122,7 +127,6 @@ export default async function handler(
       success: true,
       invoiceId: finalizedInvoice.id,
       invoiceUrl: finalizedInvoice.hosted_invoice_url,
-      paymentIntentId: finalizedInvoice.payment_intent,
     });
   } catch (error) {
     console.error("Stripe invoice creation error:", error);
