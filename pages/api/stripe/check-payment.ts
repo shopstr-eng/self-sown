@@ -25,7 +25,7 @@ export default async function handler(
     return res.status(200).json({
       paid: invoice.status === "paid",
       status: invoice.status,
-      paymentIntent: invoice.payment_intent,
+      paymentIntent: invoice.payment_intent as string | null,
       amountPaid: invoice.amount_paid,
     });
   } catch (error) {
