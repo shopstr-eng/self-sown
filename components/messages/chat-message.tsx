@@ -632,7 +632,7 @@ const ChatMessage = ({
               : "rounded-br-lg bg-gray-600 text-dark-text"
           }`}
         >
-          <div className="inline-block flex-wrap overflow-x-hidden break-all">
+          <div className="inline-block flex-wrap overflow-x-hidden break-normal">
             {cashuPrefix && canDecodeToken && tokenAfterCashuVersion ? (
               <>
                 {renderMessageContent(contentBeforeCashu!)}

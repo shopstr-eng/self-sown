@@ -122,12 +122,19 @@ const Keys = () => {
                   </label>
                   <Tooltip
                     content="This passphrase acts as a password and is used to keep your account secure. Remember it and keep it safe as it can't be recovered!"
-                    placement="right"
+                    placement="bottom"
+                    trigger="click"
                     classNames={{
                       content: "bg-dark-bg text-dark-text p-2 max-w-xs",
                     }}
                   >
-                    <InformationCircleIcon className="h-5 w-5 cursor-help text-dark-text" />
+                    <button
+                      type="button"
+                      className="flex items-center justify-center"
+                      aria-label="Passphrase information"
+                    >
+                      <InformationCircleIcon className="h-5 w-5 cursor-pointer text-dark-text" />
+                    </button>
                   </Tooltip>
                 </div>
                 <Input

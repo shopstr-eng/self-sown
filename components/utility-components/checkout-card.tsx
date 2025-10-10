@@ -465,7 +465,7 @@ export default function CheckoutCard({
                     </div>
                   )}
                   <div className="hidden sm:block">
-                    <p className="mt-4 w-full text-left text-lg text-light-text">
+                    <p className="mt-4 w-full break-normal text-left text-lg text-light-text">
                       {renderSummary()}
                     </p>
                     {productData.summary.length > SUMMARY_CHARACTER_LIMIT && (
@@ -590,8 +590,8 @@ export default function CheckoutCard({
                   )}
                 </div>
               </div>
-              <div className="max-w-screen mx-3 my-3 max-w-full overflow-hidden whitespace-normal break-words sm:hidden">
-                <p className="break-words-all w-full text-left text-lg text-light-text">
+              <div className="max-w-screen mx-3 my-3 max-w-full overflow-hidden whitespace-normal break-normal sm:hidden">
+                <p className="w-full break-normal text-left text-lg text-light-text">
                   {renderSummary()}
                 </p>
                 {productData.summary.length > SUMMARY_CHARACTER_LIMIT && (
