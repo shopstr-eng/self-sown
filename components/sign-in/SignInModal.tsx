@@ -45,6 +45,8 @@ export default function SignInModal({
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
+  const [showNostrOptions, setShowNostrOptions] = useState(false);
+
   const relaysContext = useContext(RelaysContext);
 
   const router = useRouter();
@@ -114,7 +116,7 @@ export default function SignInModal({
   }, [bunkerToken]);
 
   const handleGenerateKeys = () => {
-    router.push("/onboarding/keys");
+    router.push("/onboarding/new-account");
     onClose();
   };
 
@@ -173,6 +175,7 @@ export default function SignInModal({
           setShowNsecSignIn(false);
           setPrivateKey("");
           setPassphrase("");
+          setShowNostrOptions(false);
           onClose();
         }}
         classNames={{
@@ -189,26 +192,41 @@ export default function SignInModal({
       >
         <ModalContent>
           <ModalBody className="flex flex-col overflow-hidden text-dark-text">
-            <div className="flex flex-row">
-              <div className="hidden basis-1/2 flex-col md:flex">
-                <div className="mr-3">
-                  <Image src="signup.png" alt="sign up"></Image>
+            {!showNostrOptions ? (
+              // Initial landing view
+              <div className="flex flex-col items-center justify-center space-y-6 py-8">
+                <div className="flex items-center justify-center">
+                  <Image
+                    alt="Milk Market logo"
+                    height={80}
+                    radius="sm"
+                    src="/milk-market.png"
+                    width={80}
+                  />
+                  <h1 className="ml-3 text-4xl font-bold text-dark-text">
+                    Milk Market
+                  </h1>
                 </div>
-                <div className="mt-10 flex">
-                  <div>
-                    <p>New to Milk Market?</p>
-                    <p> Sign up to get started!</p>
-                  </div>
+                <div className="flex w-full max-w-md flex-col space-y-4">
                   <Button
-                    className={"ml-10 self-center"}
+                    className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
                     onClick={handleGenerateKeys}
+                    size="lg"
                   >
                     Sign Up
                   </Button>
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
+                    onClick={() => setShowNostrOptions(true)}
+                    size="lg"
+                  >
+                    Sign In with Nostr
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex w-full grow basis-1/2 flex-col">
+            ) : (
+              // Nostr sign-in options view
+              <div className="flex w-full flex-col">
                 <div className="space-y-2">
                   <div className="flex items-center justify-center">
                     <Image
@@ -263,7 +281,7 @@ export default function SignInModal({
                           data-testid="bunker-submit-btn"
                           className={`${WHITEBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerLogin}
-                          isDisabled={validBunkerToken != "success"} // Disable the button only if both key strings are invalid or the button has already been clicked
+                          isDisabled={validBunkerToken != "success"}
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
@@ -333,32 +351,15 @@ export default function SignInModal({
                         data-testid="nsec-submit-btn"
                         className={`${WHITEBUTTONCLASSNAMES} w-full`}
                         onClick={handleSignIn}
-                        isDisabled={validPrivateKey != "success"} // Disable the button only if both key strings are invalid or the button has already been clicked
+                        isDisabled={validPrivateKey != "success"}
                       >
                         nsec Sign-in
                       </Button>
                     </div>
                   </div>
                 </div>
-                <div className="sd:flex flex-col md:hidden">
-                  <div className="mt-2">
-                    <Image src="signup.png" alt="sign up"></Image>
-                  </div>
-                  <div className="ml-5 mt-2 flex">
-                    <div>
-                      <p>New to Milk Market?</p>
-                      <p> Sign up to get started!</p>
-                    </div>
-                    <Button
-                      className={"ml-10 self-center"}
-                      onClick={handleGenerateKeys}
-                    >
-                      Sign Up
-                    </Button>
-                  </div>
-                </div>
               </div>
-            </div>
+            )}
           </ModalBody>
         </ModalContent>
       </Modal>

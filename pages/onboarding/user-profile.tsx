@@ -61,11 +61,12 @@ const OnboardingUserProfile = () => {
               <Button className={WHITEBUTTONCLASSNAMES} onClick={handleNext}>
                 {isBuyer ? (
                   <>
-                    Finish <ArrowLeftEndOnRectangleIcon className="h-5 w-5" />
+                    Finish (or skip){" "}
+                    <ArrowLeftEndOnRectangleIcon className="h-5 w-5" />
                   </>
                 ) : (
                   <>
-                    Next <ArrowLongRightIcon className="h-5 w-5" />
+                    Next (or skip) <ArrowLongRightIcon className="h-5 w-5" />
                   </>
                 )}
               </Button>

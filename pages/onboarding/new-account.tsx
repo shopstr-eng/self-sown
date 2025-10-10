@@ -1,10 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/router";
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  InformationCircleIcon,
-} from "@heroicons/react/24/outline";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import {
   Card,
   CardBody,
@@ -24,19 +20,14 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import FailureModal from "../../components/utility-components/failure-modal";
-import SuccessModal from "../../components/utility-components/success-modal";
 
 const Keys = () => {
   const router = useRouter();
 
-  const [npub, setNPub] = useState<string>("");
   const [privateKey, setPrivateKey] = useState<string>("");
   const [passphrase, setPassphrase] = useState<string>("");
-  const [viewState, setViewState] = useState<"shown" | "hidden">("hidden");
 
   const [showFailureModal, setShowFailureModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successText, setSuccessText] = useState("");
 
   const { newSigner } = useContext(SignerContext);
   const relaysContext = useContext(RelaysContext);
@@ -61,25 +52,12 @@ const Keys = () => {
 
   useEffect(() => {
     const fetchKeys = async () => {
-      const { nsec, npub } = await generateKeys();
-      setNPub(npub);
+      const { nsec } = await generateKeys();
       setPrivateKey(nsec);
     };
 
     fetchKeys();
   }, []);
-
-  const handleCopyPubkey = () => {
-    navigator.clipboard.writeText(npub);
-    setSuccessText("Public key was copied to clipboard!");
-    setShowSuccessModal(true);
-  };
-
-  const handleCopyPrivkey = () => {
-    navigator.clipboard.writeText(privateKey);
-    setSuccessText("Private key was copied to clipboard!");
-    setShowSuccessModal(true);
-  };
 
   const handleNext = async () => {
     if (passphrase === "" || passphrase === null) {
@@ -119,7 +97,7 @@ const Keys = () => {
               </div>
               <div className="mb-4 text-center">
                 <h2 className="text-2xl font-bold text-dark-text">
-                  Step 1: Secure Your Keys
+                  Step 1: Account Creation
                 </h2>
                 <p className="text-dark-text">
                   New accounts are created using{" "}
@@ -131,52 +109,10 @@ const Keys = () => {
                   >
                     Nostr keys
                   </a>{" "}
-                  in order to keep your data entirely in your control. Make sure
-                  to save your keys in a secure format! You can always view them
-                  again under your profile settings.
+                  in order to keep your data entirely in your control. You can
+                  view your account keys under your profile settings to back
+                  them up at any time.
                 </p>
-              </div>
-
-              {/* Public Key Section */}
-              <div className="mb-4 flex flex-col space-y-2 text-dark-text">
-                <label className="text-xl">Public Key:</label>
-                {npub && (
-                  <div
-                    className="cursor-pointer break-all rounded-md border border-dark-bg bg-light-bg p-2 text-lg text-light-text"
-                    onClick={handleCopyPubkey}
-                  >
-                    {npub}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-4 flex flex-col space-y-2 text-dark-text">
-                <label className="text-xl">Private Key:</label>
-                {privateKey && (
-                  <div className="relative flex items-center rounded-md border border-dark-bg bg-light-bg text-light-text">
-                    <div
-                      className="w-full cursor-pointer break-all px-2 py-1"
-                      onClick={handleCopyPrivkey}
-                    >
-                      {viewState === "shown" ? privateKey : "* * * * *"}
-                    </div>
-                    {viewState === "shown" ? (
-                      <EyeSlashIcon
-                        className="absolute right-2 h-5 w-5 cursor-pointer"
-                        onClick={() => {
-                          setViewState("hidden");
-                        }}
-                      />
-                    ) : (
-                      <EyeIcon
-                        className="absolute right-2 h-5 w-5 cursor-pointer"
-                        onClick={() => {
-                          setViewState("shown");
-                        }}
-                      />
-                    )}
-                  </div>
-                )}
               </div>
 
               <div className="mb-4 flex flex-col space-y-2 text-dark-text">
@@ -185,7 +121,7 @@ const Keys = () => {
                     Passphrase:<span className="text-red-500">*</span>
                   </label>
                   <Tooltip
-                    content="This passphrase is up to you to choose and is used to encrypt and keep your data secure."
+                    content="This passphrase acts as a password and is used to keep your account secure. Remember it and keep it safe as it can't be recovered!"
                     placement="right"
                     classNames={{
                       content: "bg-dark-bg text-dark-text p-2 max-w-xs",
@@ -224,11 +160,6 @@ const Keys = () => {
         bodyText="No passphrase provided!"
         isOpen={showFailureModal}
         onClose={() => setShowFailureModal(false)}
-      />
-      <SuccessModal
-        bodyText={successText}
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
       />
     </>
   );
