@@ -249,7 +249,7 @@ const UserProfilePage = () => {
                     Nostr keys
                   </a>
                   . Please back up your keys in a secure location to ensure you
-                  don't lose access to your account.
+                  don&apos;t lose access to your account.
                 </p>
               </div>
 
