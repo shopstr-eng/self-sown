@@ -15,6 +15,7 @@ import {
   ClipboardIcon,
   EyeSlashIcon,
   EyeIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { FiatOptionsType } from "@/utils/types/types";
 import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
@@ -234,6 +235,23 @@ const UserProfilePage = () => {
               ) : (
                 <div className="mb-12" />
               )}
+
+              <div className="mx-auto mb-8 flex w-full max-w-2xl items-start gap-2 rounded-lg border-2 border-dark-fg bg-dark-fg/30 p-4">
+                <InformationCircleIcon className="h-5 w-5 flex-shrink-0 text-light-text" />
+                <p className="text-sm text-light-text">
+                  Accounts are created using{" "}
+                  <a
+                    href="https://nostr.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-yellow-600"
+                  >
+                    Nostr keys
+                  </a>
+                  . Please back up your keys in a secure location to ensure you
+                  don't lose access to your account.
+                </p>
+              </div>
 
               <form onSubmit={handleSubmit(onSubmit as any)}>
                 <Controller

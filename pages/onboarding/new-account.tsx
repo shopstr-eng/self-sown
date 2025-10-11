@@ -100,18 +100,8 @@ const Keys = () => {
                   Step 1: Account Creation
                 </h2>
                 <p className="text-dark-text">
-                  New accounts are created using{" "}
-                  <a
-                    href="https://nostr.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-semibold text-yellow-500 hover:text-yellow-400"
-                  >
-                    Nostr keys
-                  </a>{" "}
-                  in order to keep your data entirely in your control. You can
-                  view your account keys under your profile settings to back
-                  them up at any time.
+                  Enter a passphrase to make sure your data is secured. You can
+                  view your account information under your profile settings.
                 </p>
               </div>
 
