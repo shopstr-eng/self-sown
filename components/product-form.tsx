@@ -249,6 +249,10 @@ export default function ProductForm({
       tags.push(["herdshare_agreement", herdshareAgreementUrl]);
     }
 
+    if (categories.includes("beef")) {
+      tags.push(["t", "SAVEBEEF"]);
+    }
+
     // Add pickup locations if they exist and shipping involves pickup
     if (
       data["Pickup Locations"] &&
