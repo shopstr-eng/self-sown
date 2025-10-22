@@ -47,10 +47,11 @@ export default async function handler(
       req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
 
     // Insert tracking data
-    await client.query(
+    const result = await client.query(
       `INSERT INTO utm_tracking 
        (utm_source, utm_medium, utm_campaign, utm_term, utm_content, referrer, user_agent, ip_address) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
       [
         utm_source,
         utm_medium,
@@ -63,10 +64,15 @@ export default async function handler(
       ]
     );
 
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, id: result.rows[0].id });
   } catch (error) {
-    console.error("Database error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Database error in UTM tracking:", error);
+    res
+      .status(500)
+      .json({
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      });
   } finally {
     await client.end();
   }

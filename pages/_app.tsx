@@ -630,7 +630,7 @@ function MilkMarket({ props }: { props: AppProps }) {
       // Only track if at least one UTM parameter is present
       if (utm_source || utm_medium || utm_campaign || utm_term || utm_content) {
         try {
-          await fetch("/api/utm-tracking", {
+          const response = await fetch("/api/utm-tracking", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -646,19 +646,26 @@ function MilkMarket({ props }: { props: AppProps }) {
             }),
           });
 
-          // Store in sessionStorage to avoid duplicate tracking
-          sessionStorage.setItem("utm_tracked", "true");
+          if (response.ok) {
+            // Only mark as tracked if the API call succeeded
+            sessionStorage.setItem("utm_tracked", "true");
 
-          // Clean up URL by removing UTM parameters
-          const cleanUrl = new URL(window.location.href);
-          cleanUrl.searchParams.delete("utm_source");
-          cleanUrl.searchParams.delete("utm_medium");
-          cleanUrl.searchParams.delete("utm_campaign");
-          cleanUrl.searchParams.delete("utm_term");
-          cleanUrl.searchParams.delete("utm_content");
+            // Clean up URL by removing UTM parameters
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete("utm_source");
+            cleanUrl.searchParams.delete("utm_medium");
+            cleanUrl.searchParams.delete("utm_campaign");
+            cleanUrl.searchParams.delete("utm_term");
+            cleanUrl.searchParams.delete("utm_content");
 
-          // Update the URL without reloading the page
-          window.history.replaceState({}, "", cleanUrl.toString());
+            // Update the URL without reloading the page
+            window.history.replaceState({}, "", cleanUrl.toString());
+          } else {
+            console.error(
+              "Failed to track UTM parameters: API returned",
+              response.status
+            );
+          }
         } catch (error) {
           console.error("Failed to track UTM parameters:", error);
         }
