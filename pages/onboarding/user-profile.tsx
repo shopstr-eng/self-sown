@@ -5,7 +5,7 @@ import {
   ArrowLongRightIcon,
   ArrowLeftEndOnRectangleIcon,
 } from "@heroicons/react/24/outline";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import UserProfileForm from "@/components/settings/user-profile-form";
 import BuyerProfileForm from "@/components/settings/buyer-profile-form";
 
@@ -24,11 +24,11 @@ const OnboardingUserProfile = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg pt-24">
+    <div className="flex min-h-screen flex-col bg-white pt-24">
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
-        <Card className="bg-dark-fg">
-          <CardBody>
-            <div className="mb-4 flex flex-row items-center justify-center">
+        <Card className="rounded-md border-4 border-black bg-white shadow-neo">
+          <CardBody className="p-8">
+            <div className="mb-6 flex flex-row items-center justify-center gap-3">
               <Image
                 alt="Milk Market logo"
                 height={50}
@@ -36,15 +36,15 @@ const OnboardingUserProfile = () => {
                 src="/milk-market.png"
                 width={50}
               />
-              <h1 className="cursor-pointer text-center text-3xl font-bold text-dark-text">
+              <h1 className="text-center text-3xl font-bold text-black">
                 Milk Market
               </h1>
             </div>
-            <div className="mb-4 text-center">
-              <h2 className="text-2xl font-bold text-dark-text">
+            <div className="mb-6 text-center">
+              <h2 className="mb-3 text-2xl font-bold text-black">
                 Step 3: Set Up Your Profile
               </h2>
-              <p className="text-dark-text">
+              <p className="font-medium text-black">
                 {isBuyer
                   ? "Set up your buyer profile or skip this step to finish onboarding."
                   : "Set up your user profile or skip this step to continue."}
@@ -57,15 +57,16 @@ const OnboardingUserProfile = () => {
               <UserProfileForm isOnboarding={true} />
             )}
 
-            <div className="flex justify-center">
-              <Button className={WHITEBUTTONCLASSNAMES} onClick={handleNext}>
+            <div className="mt-6 flex justify-center">
+              <Button className={BLUEBUTTONCLASSNAMES} onClick={handleNext}>
                 {isBuyer ? (
                   <>
-                    Finish <ArrowLeftEndOnRectangleIcon className="h-5 w-5" />
+                    Finish{" "}
+                    <ArrowLeftEndOnRectangleIcon className="ml-1 h-5 w-5" />
                   </>
                 ) : (
                   <>
-                    Next <ArrowLongRightIcon className="h-5 w-5" />
+                    Next <ArrowLongRightIcon className="ml-1 h-5 w-5" />
                   </>
                 )}
               </Button>

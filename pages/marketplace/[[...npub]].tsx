@@ -17,16 +17,16 @@ export default function SellerView({
   return (
     <>
       {!focusedPubkey && (
-        <div className="flex h-auto w-full items-center justify-center  bg-black bg-cover bg-center pt-20">
+        <div className="flex h-auto w-full items-center justify-center bg-black bg-cover bg-center pt-20">
           <img
             src="/free-milk.png"
             alt="Milk Market Banner"
-            className="max-h-[210px] w-full items-center justify-center object-cover pb-4"
+            className="max-h-[300px] w-full items-center justify-center object-contain py-8"
           />
         </div>
       )}
       <div
-        className={`flex h-full min-h-screen flex-col bg-light-bg ${
+        className={`flex h-full min-h-screen flex-col bg-white ${
           focusedPubkey ? "pt-20" : ""
         }`}
       >

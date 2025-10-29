@@ -8,17 +8,18 @@ import {
   Image,
   Select,
   SelectItem,
+  Checkbox,
+  Tooltip,
 } from "@nextui-org/react";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import { ProfileMapContext } from "@/utils/context/context";
 import { FiatOptionsType } from "@/utils/types/types";
-import {
-  BLACKBUTTONCLASSNAMES,
-  WHITEBUTTONCLASSNAMES,
-} from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
   SignerContext,
   NostrContext,
 } from "@/components/utility-components/nostr-context-provider";
+import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import { createNostrProfileEvent } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
@@ -32,8 +33,15 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
   const { nostr } = useContext(NostrContext);
   const [isUploadingProfile, setIsUploadingProfile] = useState(false);
   const [isFetchingProfile, setIsFetchingProfile] = useState(false);
+  const [isNPubCopied, setIsNPubCopied] = useState(false);
+  const [isNSecCopied, setIsNSecCopied] = useState(false);
+  const [isNSecVisible, setIsNSecVisible] = useState(false);
 
-  const { signer, pubkey: userPubkey } = useContext(SignerContext);
+  const {
+    signer,
+    pubkey: userPubkey,
+    npub: userNPub,
+  } = useContext(SignerContext);
 
   const profileContext = useContext(ProfileMapContext);
   const { handleSubmit, control, reset, watch, setValue } = useForm({
@@ -42,10 +50,10 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
       picture: "",
       display_name: "",
       name: "",
-      nip05: "", // Nostr address
+      nip05: "",
       about: "",
       website: "",
-      lud16: "", // Lightning address
+      lud16: "",
       payment_preference: "ecash",
       fiat_options: {} as FiatOptionsType,
       shopstr_donation: 2.1,
@@ -54,6 +62,7 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
 
   const watchBanner = watch("banner");
   const watchPicture = watch("picture");
+  const [userNSec, setUserNSec] = useState("");
   const defaultImage = useMemo(() => {
     return "https://robohash.org/" + userPubkey;
   }, [userPubkey]);
@@ -69,7 +78,19 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
       reset(profile.content);
     }
     setIsFetchingProfile(false);
-  }, [profileContext, userPubkey, reset]);
+
+    if (signer instanceof NostrNSecSigner) {
+      const nsecSigner = signer as NostrNSecSigner;
+      nsecSigner._getNSec().then(
+        (nsec) => {
+          setUserNSec(nsec);
+        },
+        (err: unknown) => {
+          console.error(err);
+        }
+      );
+    }
+  }, [profileContext, userPubkey, signer, reset]);
 
   const onSubmit = async (data: { [x: string]: string }) => {
     if (!userPubkey) throw new Error("pubkey is undefined");
@@ -93,269 +114,415 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
 
   return (
     <>
-      <div className="mb-20 h-40 rounded-lg bg-dark-fg">
-        <div className="relative flex h-40 items-center justify-center rounded-lg bg-light-bg">
+      {/* Banner and Profile Picture Section */}
+      <div className="mb-12">
+        <div className="relative h-40 w-full overflow-hidden rounded-md border-4 border-black bg-gray-100">
           {watchBanner && (
             <Image
-              alt={"User banner image"}
+              alt="User banner image"
               src={watchBanner}
-              className="h-40 w-full rounded-lg object-cover object-fill"
+              className="h-full w-full rounded-md object-cover"
+              classNames={{
+                wrapper: "w-full h-full",
+              }}
             />
           )}
           <FileUploaderButton
-            className={`absolute bottom-5 right-5 z-20 border-2 border-white shadow-md ${BLACKBUTTONCLASSNAMES}`}
+            className={`absolute bottom-4 right-4 ${BLUEBUTTONCLASSNAMES}`}
             imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
           >
             Upload Banner
           </FileUploaderButton>
         </div>
-        <div className="flex items-center justify-center">
-          <div className="relative z-20 mt-[-3rem] h-24 w-24">
-            <div className="">
-              <FileUploaderButton
-                isIconOnly
-                className={`absolute bottom-[-0.5rem] right-[-0.5rem] z-20 ${BLACKBUTTONCLASSNAMES}`}
-                imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
-              />
+
+        <div className="flex justify-center">
+          <div className="relative -mt-12">
+            <div className="relative h-24 w-24">
               {watchPicture ? (
                 <Image
                   src={watchPicture}
                   alt="user profile picture"
-                  className="rounded-full"
+                  className="h-24 w-24 rounded-full border-4 border-black object-cover"
                 />
               ) : (
                 <Image
                   src={defaultImage}
                   alt="user profile picture"
-                  className="rounded-full"
+                  className="h-24 w-24 rounded-full border-4 border-black object-cover"
                 />
               )}
+              <FileUploaderButton
+                isIconOnly
+                className="absolute -bottom-1 -right-1 h-8 w-8 min-w-0 rounded-full border-2 border-black bg-white p-0 text-black hover:bg-gray-100"
+                imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)}>
-        <Controller
-          name="display_name"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Display name"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your display name . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
+      {/* NPub Display */}
+      <div className="mb-4 flex items-center justify-between gap-2 overflow-hidden rounded-md border-3 border-black bg-white p-3">
+        <p className="break-all font-mono text-sm font-medium text-black">
+          {userNPub!}
+        </p>
+        <Tooltip
+          content={isNPubCopied ? "Copied!" : "Copy npub"}
+          classNames={{
+            content: "text-black bg-white border border-black rounded-md",
           }}
-        />
+          closeDelay={100}
+        >
+          <Button
+            isIconOnly
+            variant="light"
+            className="h-6 w-6 min-w-0 flex-shrink-0 p-0 text-black"
+            onClick={() => {
+              navigator.clipboard.writeText(userNPub!);
+              setIsNPubCopied(true);
+              setTimeout(() => setIsNPubCopied(false), 2000);
+            }}
+          >
+            {isNPubCopied ? "✅" : "📋"}
+          </Button>
+        </Tooltip>
+      </div>
 
-        <Controller
-          name="name"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Username"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your username . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
-
-        <Controller
-          name="about"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Textarea
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                placeholder="Add something about yourself . . ."
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                label="About"
-                labelPlacement="outside"
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
-
-        <Controller
-          name="website"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Website"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your website URL . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
-
-        <Controller
-          name="nip05"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Nostr address"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your NIP-05 address . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
-
-        <Controller
-          name="lud16"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Lightning address"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your Lightning address . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
-
-        <Controller
-          name="payment_preference"
-          control={control}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Select
-              className="pb-4 text-dark-text"
+      {/* NSec Display */}
+      {userNSec ? (
+        <div className="mb-12 flex items-center justify-between gap-2 overflow-hidden rounded-md border-3 border-black bg-white p-3">
+          <p className="break-all font-mono text-sm font-medium text-black">
+            {isNSecVisible
+              ? userNSec
+              : "•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
+          </p>
+          <div className="flex flex-shrink-0 gap-2">
+            <Tooltip
+              content={isNSecVisible ? "Hide nsec" : "Show nsec"}
               classNames={{
-                label: "!text-dark-text text-lg",
-                popoverContent: "bg-dark-fg",
+                content: "text-black bg-white border border-black rounded-md",
               }}
-              variant="bordered"
-              fullWidth={true}
-              label="Payment preference (for sellers)"
-              labelPlacement="outside"
-              selectedKeys={value ? [value] : []}
-              onChange={(e) => onChange(e.target.value)}
-              onBlur={onBlur}
+              closeDelay={100}
             >
-              <SelectItem key="ecash" value="ecash" className="text-dark-text">
-                Cashu (Bitcoin)
-              </SelectItem>
-              <SelectItem
-                key="lightning"
-                value="lightning"
-                className="text-dark-text"
+              <Button
+                isIconOnly
+                variant="light"
+                className="h-6 w-6 min-w-0 p-0 text-black"
+                onClick={() => setIsNSecVisible(!isNSecVisible)}
               >
-                Lightning (Bitcoin)
-              </SelectItem>
-              <SelectItem key="fiat" value="fiat" className="text-dark-text">
-                Local Currency (Fiat)
-              </SelectItem>
-            </Select>
-          )}
-        />
+                {isNSecVisible ? "👁️⃠" : "👁️"}
+              </Button>
+            </Tooltip>
+            <Tooltip
+              content={isNSecCopied ? "Copied!" : "Copy nsec"}
+              classNames={{
+                content: "text-black bg-white border border-black rounded-md",
+              }}
+              closeDelay={100}
+            >
+              <Button
+                isIconOnly
+                variant="light"
+                className="h-6 w-6 min-w-0 p-0 text-black"
+                onClick={() => {
+                  navigator.clipboard.writeText(userNSec);
+                  setIsNSecCopied(true);
+                  setTimeout(() => setIsNSecCopied(false), 2000);
+                }}
+              >
+                {isNSecCopied ? "✅" : "📋"}
+              </Button>
+            </Tooltip>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-12" />
+      )}
 
-        <div className="pb-4">
-          <label className="mb-2 block text-lg text-dark-text">
-            Fiat payment options (for sellers)
+      {/* Nostr Info Box */}
+      <div className="mb-8 flex w-full items-start gap-3 rounded-md border-3 border-black bg-white p-4">
+        <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+        <p className="text-sm text-black">
+          Accounts are created using{" "}
+          <a
+            href="https://nostr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-primary-yellow hover:underline"
+          >
+            Nostr keys
+          </a>
+          . Please back up your keys in a secure location to ensure you
+          don&apos;t lose access to your account.
+        </p>
+      </div>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
+        {/* Display Name */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Display name
           </label>
-          <div className="space-y-4">
+          <Controller
+            name="display_name"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your display name..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
+
+        {/* Username */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Username
+          </label>
+          <Controller
+            name="name"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your username..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
+
+        {/* About */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">About</label>
+          <Controller
+            name="about"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Textarea
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  placeholder="Add something about yourself..."
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                  minRows={3}
+                />
+              );
+            }}
+          />
+        </div>
+
+        {/* Website */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Website
+          </label>
+          <Controller
+            name="website"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your website URL..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
+
+        {/* Nostr Address */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Nostr address
+          </label>
+          <Controller
+            name="nip05"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your NIP-05 address..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
+
+        {/* Lightning Address */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Lightning address
+          </label>
+          <Controller
+            name="lud16"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your Lightning address..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
+
+        {/* Payment Preference */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Payment preference
+          </label>
+          <Controller
+            name="payment_preference"
+            control={control}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Select
+                classNames={{
+                  trigger:
+                    "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white data-[hover=true]:!bg-white data-[hover=true]:border-black data-[focus=true]:border-3 data-[focus=true]:border-black data-[focus=true]:!bg-white h-12 transition-none",
+                  popoverContent: "bg-white border-3 border-black rounded-md",
+                  value: "text-base !text-black font-medium",
+                  listboxWrapper: "text-black",
+                  listbox: "text-black",
+                }}
+                fullWidth={true}
+                selectedKeys={value ? [value] : []}
+                onChange={(e) => onChange(e.target.value)}
+                onBlur={onBlur}
+              >
+                <SelectItem
+                  key="ecash"
+                  value="ecash"
+                  className="font-medium text-black"
+                >
+                  Cashu (Bitcoin)
+                </SelectItem>
+                <SelectItem
+                  key="lightning"
+                  value="lightning"
+                  className="font-medium text-black"
+                >
+                  Lightning (Bitcoin)
+                </SelectItem>
+                <SelectItem
+                  key="fiat"
+                  value="fiat"
+                  className="font-medium text-black"
+                >
+                  Local Currency (Fiat)
+                </SelectItem>
+              </Select>
+            )}
+          />
+        </div>
+
+        {/* Fiat Payment Options */}
+        <div className="space-y-3">
+          <label className="block text-base font-bold text-black">
+            Fiat payment options
+          </label>
+          <div className="grid grid-cols-1 gap-y-4 sm:grid-cols-2 sm:gap-x-8">
             {[
               { key: "cash", label: "Cash", requiresUsername: false },
               { key: "venmo", label: "Venmo", requiresUsername: true },
@@ -365,25 +532,29 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
               { key: "googlepay", label: "Google Pay", requiresUsername: true },
               { key: "paypal", label: "PayPal", requiresUsername: true },
             ].map((option) => (
-              <div key={option.key} className="flex items-center space-x-4">
-                <input
-                  type="checkbox"
-                  id={option.key}
-                  checked={Object.keys(watch("fiat_options") || {}).includes(
+              <div key={option.key} className="flex flex-col gap-2">
+                <Checkbox
+                  classNames={{
+                    wrapper:
+                      "border-2 border-black rounded-[4px] before:rounded-[2px] after:bg-black after:text-white",
+                    icon: "text-white",
+                    label: "text-black text-base font-medium",
+                  }}
+                  isSelected={Object.keys(watch("fiat_options") || {}).includes(
                     option.key
                   )}
-                  onChange={(e) => {
+                  onValueChange={(isSelected) => {
                     const currentOptions = watch("fiat_options") || {};
-                    if (e.target.checked) {
+                    if (isSelected) {
                       if (option.requiresUsername) {
                         setValue("fiat_options", {
                           ...currentOptions,
-                          [option.key]: "",
+                          [option.key]: "", // Set to empty string to show input
                         });
                       } else {
                         setValue("fiat_options", {
                           ...currentOptions,
-                          [option.key]: "available",
+                          [option.key]: "available", // "available" for no-username options
                         });
                       }
                     } else {
@@ -392,11 +563,9 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
                       setValue("fiat_options", rest);
                     }
                   }}
-                  className="h-4 w-4 rounded border-gray-300 text-dark-text focus:ring-accent-dark-text"
-                />
-                <label htmlFor={option.key} className="text-dark-text">
+                >
                   {option.label}
-                </label>
+                </Checkbox>
                 {option.requiresUsername &&
                   Object.keys(watch("fiat_options") || {}).includes(
                     option.key
@@ -412,8 +581,12 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
                           [option.key]: e.target.value,
                         });
                       }}
-                      className="flex-1 text-dark-text"
-                      variant="bordered"
+                      classNames={{
+                        inputWrapper:
+                          "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-10 transition-none",
+                        input:
+                          "text-sm !text-black font-medium placeholder:text-gray-400",
+                      }}
                     />
                   )}
               </div>
@@ -421,32 +594,38 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
           </div>
         </div>
 
-        <Controller
-          name="shopstr_donation"
-          control={control}
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              className="pb-4 text-dark-text"
-              classNames={{
-                label: "!text-dark-text text-lg",
-              }}
-              variant="bordered"
-              fullWidth
-              label="Milk Market donation % (for sellers)"
-              labelPlacement="outside"
-              onChange={onChange}
-              onBlur={onBlur}
-              value={value.toString()}
-            />
-          )}
-        />
+        {/* Milk Market Donation */}
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Milk Market donation (%)
+          </label>
+          <Controller
+            name="shopstr_donation"
+            control={control}
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                classNames={{
+                  inputWrapper:
+                    "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                  input:
+                    "text-base !text-black font-medium placeholder:text-gray-400",
+                }}
+                fullWidth
+                onChange={onChange}
+                onBlur={onBlur}
+                value={value.toString()}
+              />
+            )}
+          />
+        </div>
 
+        {/* Submit Button */}
         <Button
-          className={`mb-10 w-full ${WHITEBUTTONCLASSNAMES}`}
+          className={`w-full ${BLUEBUTTONCLASSNAMES}`}
           type="submit"
           onKeyDown={(e) => {
             if (e.key === "Enter") {

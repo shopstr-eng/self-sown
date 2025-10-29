@@ -13,7 +13,7 @@ const OnboardingShopProfile = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg pt-24">
+    <div className="bg-light-bg flex min-h-screen flex-col pt-24">
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
         <Card className="bg-dark-fg">
           <CardBody>
@@ -25,12 +25,12 @@ const OnboardingShopProfile = () => {
                 src="/milk-market.png"
                 width={50}
               />
-              <h1 className="cursor-pointer text-center text-3xl font-bold text-dark-text">
+              <h1 className="text-dark-text cursor-pointer text-center text-3xl font-bold">
                 Milk Market
               </h1>
             </div>
             <div className="mb-4 text-center">
-              <h2 className="text-2xl font-bold text-dark-text">
+              <h2 className="text-dark-text text-2xl font-bold">
                 Step 4: Set Up Your Shop
               </h2>
               <p className="text-dark-text">

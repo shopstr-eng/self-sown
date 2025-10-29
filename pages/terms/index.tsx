@@ -1,9 +1,8 @@
 import React from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { Button } from "@nextui-org/react";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 export default function Tos() {
   const router = useRouter();
@@ -108,39 +107,42 @@ export default function Tos() {
           content="terms of service, milk market, user agreement, nostr marketplace, permissionless platform, bitcoin commerce, decentralized marketplace"
         />
       </Head>
-      <div className="flex min-h-screen flex-col bg-light-bg py-8 md:pb-20">
-        <div className="container mx-auto max-w-6xl px-4">
-          <div className="mb-8">
-            <Button
-              className={`mb-4 ${BLACKBUTTONCLASSNAMES}`}
+      {/* Main container with new background pattern */}
+      <div className="flex min-h-screen flex-col bg-white bg-grid-pattern py-8 md:pb-20">
+        {/* Centered content with a max-width for readability */}
+        <div className="container mx-auto max-w-4xl px-4">
+          <div className="mb-12">
+            {/* Back button with new neo-brutalist style */}
+            <button
               onClick={() => router.back()}
-              startContent={<ArrowLeftIcon className="h-4 w-4" />}
+              className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
+              <ArrowLeftIcon className="h-4 w-4" />
               Back
-            </Button>
-            <h1 className="text-center text-3xl font-bold text-light-text">
+            </button>
+            <h1 className="text-center text-5xl font-bold text-black">
               Terms of Service
             </h1>
+            <p className="mt-4 text-center text-lg text-zinc-600">
+              User agreement and usage guidelines for Milk Market
+            </p>
+            <p className="mt-2 text-center text-sm text-zinc-500">
+              Last updated: 2025-04-25
+            </p>
           </div>
 
-          <p className="mx-auto mb-10 max-w-3xl text-center text-light-text/80">
-            User agreement and usage guidelines for Milk Market
-          </p>
-
-          <div className="mb-4 text-right text-sm text-light-text/70">
-            Last updated: 2025-04-25
-          </div>
-
+          {/* Map through content and create styled cards */}
           <div className="space-y-6">
-            {tosContent.map((section, sectionIndex) => (
+            {tosContent.map((section) => (
               <div
-                key={sectionIndex}
-                className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
+                key={section.title}
+                // Applying the new neo-brutalist card style
+                className="rounded-lg border-2 border-black bg-white p-6 shadow-neo"
               >
-                <h3 className="mb-3 text-lg font-semibold text-light-text">
+                <h3 className="mb-2 text-lg font-bold text-black">
                   {section.title}
                 </h3>
-                <p className="leading-relaxed text-light-text/90">
+                <p className="leading-relaxed text-zinc-700">
                   {section.content}
                 </p>
               </div>

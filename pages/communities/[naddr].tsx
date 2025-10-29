@@ -40,7 +40,7 @@ const SingleCommunityPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-white">
         <MilkMarketSpinner label="Loading Community..." />
       </div>
     );
@@ -48,26 +48,37 @@ const SingleCommunityPage = () => {
 
   if (!community) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Community not found.</p>
+      <div className="flex h-screen items-center justify-center bg-white">
+        <p className="text-xl font-bold text-black">Community not found.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg pt-20">
-      <div className="container mx-auto max-w-3xl px-4">
-        {/* Community Header */}
-        <div
-          className="relative mb-8 h-48 w-full rounded-lg bg-cover bg-center"
-          style={{ backgroundImage: `url(${sanitizeUrl(community.image)})` }}
-        >
-          <div className="absolute inset-0 rounded-lg bg-black/30"></div>
+    <div className="flex min-h-screen flex-col bg-white pt-20">
+      <div className="container mx-auto max-w-3xl px-4 py-8">
+        {/* Community Header - Neo-brutalist Banner */}
+        <div className="mb-8 overflow-hidden rounded-lg border-4 border-black shadow-neo">
+          {community.image ? (
+            <div
+              className="relative h-48 w-full bg-cover bg-center"
+              style={{
+                backgroundImage: `url(${sanitizeUrl(community.image)})`,
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50"></div>
+            </div>
+          ) : (
+            <div className="flex h-48 w-full items-center justify-center bg-gray-200">
+              <p className="text-2xl font-bold uppercase tracking-wide text-gray-600">
+                Community Banner
+              </p>
+            </div>
+          )}
         </div>
-        <h1 className="text-4xl font-bold text-light-text">{community.name}</h1>
-        <p className="mt-2 text-lg text-light-text/80">
-          {community.description}
-        </p>
+
+        <h1 className="mb-2 text-4xl font-bold text-black">{community.name}</h1>
+        <p className="mb-8 text-lg text-gray-700">{community.description}</p>
 
         {/* Community Feed */}
         <div className="mt-8">

@@ -8,7 +8,10 @@ import {
   Input,
   InputProps,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   setLocalStorageDataOnSignIn,
   validateNSecKey,
@@ -21,6 +24,7 @@ import FailureModal from "../../components/utility-components/failure-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
+
 export default function SignInModal({
   isOpen,
   onClose,
@@ -114,7 +118,7 @@ export default function SignInModal({
   }, [bunkerToken]);
 
   const handleGenerateKeys = () => {
-    router.push("/onboarding/keys");
+    router.push("/onboarding/new-account");
     onClose();
   };
 
@@ -176,11 +180,13 @@ export default function SignInModal({
           onClose();
         }}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          body: "py-6 bg-white",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          base: "border-4 border-black rounded-md shadow-neo",
+          header: "border-b-4 border-black bg-white rounded-t-md",
+          footer: "border-t-4 border-black bg-white rounded-b-md",
+          closeButton:
+            "hover:bg-gray-100 active:bg-gray-200 text-black font-bold",
         }}
         isDismissable={true}
         scrollBehavior={"normal"}
@@ -188,19 +194,25 @@ export default function SignInModal({
         size="2xl"
       >
         <ModalContent>
-          <ModalBody className="flex flex-col overflow-hidden text-dark-text">
-            <div className="flex flex-row">
-              <div className="hidden basis-1/2 flex-col md:flex">
-                <div className="mr-3">
-                  <Image src="signup.png" alt="sign up"></Image>
+          <ModalBody className="flex flex-col overflow-hidden text-black">
+            <div className="flex flex-col gap-6 md:flex-row">
+              <div className="hidden basis-1/2 flex-col justify-between md:flex">
+                <div className="flex-shrink-0">
+                  <Image
+                    src="signup.png"
+                    alt="sign up"
+                    className="w-full"
+                  ></Image>
                 </div>
-                <div className="mt-10 flex">
-                  <div>
-                    <p>New to Milk Market?</p>
-                    <p> Sign up to get started!</p>
+                <div className="mt-4 flex items-center gap-4">
+                  <div className="flex-1">
+                    <p className="font-bold text-black">New to Milk Market?</p>
+                    <p className="text-sm text-black">
+                      Sign up to get started!
+                    </p>
                   </div>
                   <Button
-                    className={"ml-10 self-center"}
+                    className={`${WHITEBUTTONCLASSNAMES} flex-shrink-0`}
                     onClick={handleGenerateKeys}
                   >
                     Sign Up
@@ -208,9 +220,9 @@ export default function SignInModal({
                 </div>
               </div>
 
-              <div className="flex w-full grow basis-1/2 flex-col">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center">
+              <div className="flex w-full flex-col md:basis-1/2 md:border-l-2 md:border-black md:pl-6">
+                <div className="space-y-3">
+                  <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
                       alt="Milk Market logo"
                       height={50}
@@ -218,7 +230,9 @@ export default function SignInModal({
                       src="/milk-market.png"
                       width={50}
                     />
-                    <div>Milk Market</div>
+                    <div className="text-2xl font-bold text-black">
+                      Milk Market
+                    </div>
                   </div>
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
@@ -226,8 +240,10 @@ export default function SignInModal({
                   >
                     Extension Sign-in
                   </Button>
-                  <div className="text-center">------ or ------</div>
-                  <div className="flex flex-col	">
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+                  <div className="flex flex-col">
                     <div className="">
                       <Button
                         data-testid="bunker-open-btn"
@@ -243,12 +259,14 @@ export default function SignInModal({
                       </Button>
                     </div>
                     <div
-                      className={`mb-4 flex flex-col justify-between space-y-4 ${
+                      className={`flex flex-col justify-between space-y-3 ${
                         showBunkerSignIn ? "" : "hidden"
                       }`}
                     >
                       <div>
-                        <label>Bunker Token:</label>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Bunker Token:
+                        </label>
                         <Input
                           color={validBunkerToken}
                           width="100%"
@@ -256,14 +274,19 @@ export default function SignInModal({
                           value={bunkerToken}
                           placeholder="Paste your bunker token (bunker://)..."
                           onChange={(e) => setBunkerToken(e.target.value)}
+                          classNames={{
+                            input: "text-black font-medium",
+                            inputWrapper:
+                              "border-3 border-black rounded-md bg-white shadow-none",
+                          }}
                         />
                       </div>
                       <div>
                         <Button
                           data-testid="bunker-submit-btn"
-                          className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                          className={`${BLUEBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerLogin}
-                          isDisabled={validBunkerToken != "success"} // Disable the button only if both key strings are invalid or the button has already been clicked
+                          isDisabled={validBunkerToken != "success"}
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
@@ -276,9 +299,11 @@ export default function SignInModal({
                       </div>
                     </div>
                   </div>
-                  <div className="text-center">------ or ------</div>
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
                 </div>
-                <div className="flex flex-col	">
+                <div className="flex flex-col">
                   <div className="">
                     <Button
                       data-testid="nsec-open-btn"
@@ -286,7 +311,7 @@ export default function SignInModal({
                         setShowBunkerSignIn(false);
                         setShowNsecSignIn(true);
                       }}
-                      className={`mt-2 w-full ${
+                      className={`${WHITEBUTTONCLASSNAMES} w-full ${
                         showNsecSignIn ? "hidden" : ""
                       }`}
                     >
@@ -294,12 +319,14 @@ export default function SignInModal({
                     </Button>
                   </div>
                   <div
-                    className={`mb-4 flex flex-col justify-between space-y-4 ${
+                    className={`flex flex-col justify-between space-y-3 ${
                       showNsecSignIn ? "" : "hidden"
                     }`}
                   >
                     <div>
-                      <label>Private Key:</label>
+                      <label className="mb-2 block text-sm font-bold text-black">
+                        Private Key:
+                      </label>
                       <Input
                         color={validPrivateKey}
                         type="password"
@@ -308,10 +335,15 @@ export default function SignInModal({
                         value={privateKey}
                         placeholder="Paste your Nostr private key..."
                         onChange={(e) => setPrivateKey(e.target.value)}
+                        classNames={{
+                          input: "text-black font-medium",
+                          inputWrapper:
+                            "border-3 border-black rounded-md bg-white shadow-none",
+                        }}
                       />
                     </div>
                     <div>
-                      <label>
+                      <label className="mb-2 block text-sm font-bold text-black">
                         Encryption Passphrase:
                         <span className="text-red-500">*</span>
                       </label>
@@ -326,31 +358,42 @@ export default function SignInModal({
                           if (e.key === "Enter" && validPrivateKey)
                             handleSignIn();
                         }}
+                        classNames={{
+                          input: "text-black font-medium",
+                          inputWrapper:
+                            "border-3 border-black rounded-md bg-white shadow-none",
+                        }}
                       />
                     </div>
                     <div>
                       <Button
                         data-testid="nsec-submit-btn"
-                        className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                        className={`${BLUEBUTTONCLASSNAMES} w-full`}
                         onClick={handleSignIn}
-                        isDisabled={validPrivateKey != "success"} // Disable the button only if both key strings are invalid or the button has already been clicked
+                        isDisabled={validPrivateKey != "success"}
                       >
                         nsec Sign-in
                       </Button>
                     </div>
                   </div>
                 </div>
-                <div className="sd:flex flex-col md:hidden">
-                  <div className="mt-2">
-                    <Image src="signup.png" alt="sign up"></Image>
+                <div className="mt-6 flex flex-col border-t-2 border-black pt-6 md:hidden">
+                  <div className="mb-3">
+                    <Image
+                      src="signup.png"
+                      alt="sign up"
+                      className="mx-auto w-full max-w-xs"
+                    ></Image>
                   </div>
-                  <div className="ml-5 mt-2 flex">
-                    <div>
-                      <p>New to Milk Market?</p>
-                      <p> Sign up to get started!</p>
-                    </div>
+                  <div className="text-center">
+                    <p className="mb-1 font-bold text-black">
+                      New to Milk Market?
+                    </p>
+                    <p className="mb-3 text-sm text-black">
+                      Sign up to get started!
+                    </p>
                     <Button
-                      className={"ml-10 self-center"}
+                      className={`${WHITEBUTTONCLASSNAMES} w-full`}
                       onClick={handleGenerateKeys}
                     >
                       Sign Up

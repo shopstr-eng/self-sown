@@ -17,11 +17,14 @@ export default function FailureModal({
         isOpen={isOpen}
         onClose={onClose}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          // Updated modal styles
+          wrapper: "shadow-neo",
+          base: "border-2 border-black rounded-md",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          header: "border-b-2 border-black bg-white rounded-t-md text-black",
+          body: "py-6 bg-white rounded-b-md",
+          closeButton:
+            "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
         }}
         isDismissable={true}
         scrollBehavior={"normal"}
@@ -29,11 +32,13 @@ export default function FailureModal({
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="flex items-center justify-center text-dark-text">
+          {/* Updated text color */}
+          <ModalHeader className="flex items-center justify-center text-black">
             <XCircleIcon className="h-6 w-6 text-red-500" />
             <div className="ml-2">Error</div>
           </ModalHeader>
-          <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+          {/* Updated text color */}
+          <ModalBody className="flex flex-col overflow-hidden text-black">
             <div className="flex items-center justify-center">{bodyText}</div>
           </ModalBody>
         </ModalContent>

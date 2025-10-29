@@ -99,12 +99,12 @@ const SideShopNav = ({
 
   return (
     <>
-      <div className="hidden w-[120px] flex-col items-center bg-light-bg px-6 py-8 sm:flex md:w-[250px] md:items-start">
+      <div className="hidden w-[120px] flex-col items-center border-r-4 border-black bg-white px-6 py-8 sm:flex md:w-[250px] md:items-start">
         {!isEditingShop ? (
           <>
             <Button
               onClick={() => setSelectedCategories(new Set<string>([]))}
-              className="flex w-full flex-row justify-start bg-transparent py-8 text-light-text duration-200 hover:text-yellow-600"
+              className="flex w-full flex-row justify-start bg-transparent py-8 font-bold text-black duration-200 hover:text-primary-yellow"
             >
               <span className="hidden pt-2 text-2xl md:flex">All listings</span>
             </Button>
@@ -116,7 +116,7 @@ const SideShopNav = ({
                     onClick={() =>
                       setSelectedCategories(new Set<string>([category]))
                     }
-                    className="flex w-full flex-row justify-start bg-transparent py-2 text-light-text duration-200 hover:text-yellow-600"
+                    className="flex w-full flex-row justify-start bg-transparent py-2 text-black duration-200 hover:text-primary-yellow"
                   >
                     <span className="text-xl">{`- ${category} (${count})`}</span>
                   </Button>
@@ -125,12 +125,12 @@ const SideShopNav = ({
             )}
             <Button
               onClick={() => handleSendMessage(focusedPubkey)}
-              className={`${BLACKBUTTONCLASSNAMES} flex flex-row items-center py-7 ${
-                isMessagesActive ? "text-yellow-600" : ""
+              className={`${BLACKBUTTONCLASSNAMES} mt-4 flex flex-row items-center py-7 ${
+                isMessagesActive ? "text-primary-yellow" : ""
               }`}
             >
               <span
-                className={`hidden text-2xl md:flex ${
+                className={`hidden text-lg md:flex ${
                   isMessagesActive ? "font-bold" : ""
                 }`}
               >
@@ -138,7 +138,7 @@ const SideShopNav = ({
               </span>
             </Button>
             {shopAbout && (
-              <div className="flex w-full flex-col justify-start bg-transparent py-8 text-light-text">
+              <div className="flex w-full flex-col justify-start bg-transparent py-8 text-black">
                 <h2 className="pb-2 text-2xl font-bold">About</h2>
                 <p className="text-base">{shopAbout}</p>
               </div>
@@ -150,7 +150,7 @@ const SideShopNav = ({
               <>
                 <Button
                   onClick={() => setSelectedCategories(new Set<string>([]))}
-                  className="flex w-full flex-row justify-start bg-transparent py-8 text-light-text duration-200 hover:text-yellow-600"
+                  className="flex w-full flex-row justify-start bg-transparent py-8 font-bold text-black duration-200 hover:text-primary-yellow"
                 >
                   <span className="hidden pt-2 text-2xl md:flex">
                     All listings
@@ -165,7 +165,7 @@ const SideShopNav = ({
                           onClick={() =>
                             setSelectedCategories(new Set<string>([category]))
                           }
-                          className="flex w-full flex-row justify-start bg-transparent py-2 text-light-text duration-200 hover:text-yellow-600"
+                          className="flex w-full flex-row justify-start bg-transparent py-2 text-black duration-200 hover:text-primary-yellow"
                         >
                           <span className="text-xl">{`- ${category} (${count})`}</span>
                         </Button>
@@ -188,7 +188,7 @@ const SideShopNav = ({
               Edit Shop
             </Button>
             {shopAbout && (
-              <div className="flex w-full flex-col justify-start bg-transparent py-8 text-light-text">
+              <div className="flex w-full flex-col justify-start bg-transparent py-8 text-black">
                 <h2 className="pb-2 text-2xl font-bold">About</h2>
                 <p className="text-base">{shopAbout}</p>
               </div>

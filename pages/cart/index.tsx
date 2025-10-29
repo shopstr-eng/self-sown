@@ -18,7 +18,7 @@ import {
   InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
-  BLACKBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
   ShippingOptionsType,
 } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
@@ -44,11 +44,11 @@ function QuantitySelector({
   max,
 }: QuantitySelectorProps) {
   return (
-    <div className="mt-2 flex items-center space-x-2 rounded-full px-2 py-1">
+    <div className="mt-2 flex items-center space-x-2">
       <button
         onClick={onDecrease}
         disabled={value <= min}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-black disabled:opacity-50"
+        className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-black bg-white text-black transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <MinusIcon className="h-4 w-4" />
       </button>
@@ -61,13 +61,13 @@ function QuantitySelector({
         }}
         min={min}
         max={max}
-        className="w-12 rounded-md bg-white text-center text-gray-900 outline-none
+        className="w-16 rounded-md border-2 border-black bg-white px-2 py-1 text-center font-semibold text-black outline-none
           [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <button
         onClick={onIncrease}
         disabled={value >= max}
-        className="flex h-8 w-8 items-center justify-center rounded-full text-black disabled:opacity-50"
+        className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-black bg-white text-black transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <PlusIcon className="h-4 w-4" />
       </button>
@@ -353,12 +353,10 @@ export default function Component() {
   return (
     <>
       {!isBeingPaid ? (
-        <div className="flex min-h-screen flex-col bg-light-bg p-4 text-light-text">
+        <div className="flex min-h-screen flex-col bg-white p-4 text-black">
           <div className="mx-auto w-full max-w-4xl pt-20">
-            <div className="mb-6 flex items-center">
-              <h1 className="w-full text-left text-2xl font-bold">
-                Shopping Cart
-              </h1>
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold">Shopping Cart</h1>
             </div>
             {products.length > 0 ? (
               <>
@@ -366,20 +364,20 @@ export default function Component() {
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      className="flex flex-col rounded-lg border border-gray-300 p-4 shadow-sm md:flex-row md:items-start md:justify-between"
+                      className="rounded-md border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
                     >
-                      <div className="flex w-full md:w-auto">
+                      <div className="flex gap-4">
                         <img
                           src={product.images[0]}
                           alt={product.title}
-                          className="mr-4 h-24 w-24 rounded-md object-cover"
+                          className="h-24 w-24 flex-shrink-0 rounded-md border-2 border-black object-cover"
                         />
-                        <div className="flex-1">
-                          <div className="flex flex-col md:flex-row md:items-start md:justify-between md:gap-5">
-                            <h2 className="mb-2 text-lg md:mb-0">
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <div className="flex items-start justify-between gap-4">
+                            <h2 className="flex-1 text-lg font-bold">
                               {product.title}
                             </h2>
-                            <p className="text-lg font-bold">
+                            <p className="flex-shrink-0 whitespace-nowrap text-xl font-bold">
                               {satPrices[product.id] !== undefined
                                 ? satPrices[product.id] !== null
                                   ? `${satPrices[product.id]} sats`
@@ -389,7 +387,7 @@ export default function Component() {
                           </div>
                           {product.quantity && (
                             <div className="mt-2">
-                              <p className="mb-2 text-sm text-green-600">
+                              <p className="mb-2 text-sm font-semibold text-green-600">
                                 {product.quantity} in stock
                               </p>
                               <QuantitySelector
@@ -413,45 +411,42 @@ export default function Component() {
                                 max={parseInt(String(product.quantity))}
                               />
                               {hasReachedMax[product.id] && (
-                                <p className="mt-1 text-xs text-red-500">
+                                <p className="mt-2 text-xs font-semibold text-red-500">
                                   Maximum quantity reached
                                 </p>
                               )}
                             </div>
                           )}
+                          <div className="mt-auto flex justify-end pt-2">
+                            <button
+                              onClick={() => handleRemoveFromCart(product.id)}
+                              className="cursor-pointer text-sm font-bold text-red-500"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="mt-4 flex md:mt-0 md:items-center">
-                        <Button
-                          size="sm"
-                          color="danger"
-                          variant="light"
-                          className="ml-auto"
-                          onClick={() => handleRemoveFromCart(product.id)}
-                        >
-                          Remove
-                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div className="mt-6 border-t border-gray-300 pt-4">
-                  <div className="mb-4 flex items-start rounded-lg bg-blue-50 p-4">
-                    <InformationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0 text-blue-600" />
-                    <p className="text-sm text-gray-700">
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-start rounded-md border-2 border-black bg-blue-50 p-4">
+                    <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
+                    <p className="text-sm text-black">
                       The cart currently only supports payments with Bitcoin and
                       digital cash options. If you want to pay with credit or
                       debit, you must purchase products individually.
                     </p>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <p className="mb-4 text-xl font-bold">
+                  <div className="flex flex-col items-end gap-4">
+                    <p className="text-2xl font-bold">
                       Subtotal ({products.length}{" "}
                       {products.length === 1 ? "item" : "items"}): {subtotal}{" "}
                       sats
                     </p>
                     <Button
-                      className={BLACKBUTTONCLASSNAMES}
+                      className={BLUEBUTTONCLASSNAMES}
                       onClick={toggleCheckout}
                       size="lg"
                     >
@@ -461,18 +456,18 @@ export default function Component() {
                 </div>
               </>
             ) : (
-              <div className="flex min-h-[60vh] flex-col items-center justify-center rounded-lg border border-gray-300 py-16 shadow-sm">
-                <div className="mb-8 flex items-center justify-center rounded-full border border-gray-300 bg-gray-100 p-6">
-                  <ShoppingBagIcon className="h-16 w-16 text-gray-800" />
+              <div className="flex min-h-[60vh] flex-col items-center justify-center rounded-md border-4 border-black bg-white py-16 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <div className="mb-8 flex items-center justify-center rounded-full border-4 border-black bg-gray-100 p-8">
+                  <ShoppingBagIcon className="h-16 w-16 text-black" />
                 </div>
-                <h2 className="mb-2 text-center text-3xl font-bold text-light-text">
+                <h2 className="mb-4 text-center text-3xl font-bold text-black">
                   Your cart is empty . . .
                 </h2>
-                <p className="mb-6 max-w-md text-center text-gray-500">
+                <p className="mb-6 max-w-md text-center text-black/70">
                   Go add some items to your cart!
                 </p>
                 <Button
-                  className={BLACKBUTTONCLASSNAMES}
+                  className={BLUEBUTTONCLASSNAMES}
                   size="lg"
                   onClick={() => router.push("/marketplace")}
                 >
@@ -483,7 +478,7 @@ export default function Component() {
           </div>
         </div>
       ) : (
-        <div className="flex min-h-screen w-full bg-light-bg text-light-text sm:items-center sm:justify-center">
+        <div className="flex min-h-screen w-full bg-white text-black sm:items-center sm:justify-center">
           <div className="mx-auto flex w-full flex-col pt-20">
             <div className="flex flex-col items-center">
               <CartInvoiceCard
@@ -518,11 +513,13 @@ export default function Component() {
               router.push("/orders");
             }}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -530,11 +527,11 @@ export default function Component() {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <CheckCircleIcon className="h-6 w-6 text-green-500" />
                 <div className="ml-2">Order successful!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The seller will receive a message with your order details.
                 </div>
@@ -552,11 +549,13 @@ export default function Component() {
             isOpen={invoiceGenerationFailed}
             onClose={() => setInvoiceGenerationFailed(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -564,11 +563,11 @@ export default function Component() {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Invoice generation failed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The price and/or currency set for this listing was invalid.
                 </div>
@@ -586,11 +585,13 @@ export default function Component() {
             isOpen={cashuPaymentFailed}
             onClose={() => setCashuPaymentFailed(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -598,11 +599,11 @@ export default function Component() {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Purchase failed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   You didn&apos;t have enough balance in your wallet to pay.
                 </div>
@@ -620,11 +621,13 @@ export default function Component() {
             isOpen={fiatOrderFailed}
             onClose={() => setFiatOrderFailed(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -632,11 +635,11 @@ export default function Component() {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Order failed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   Your order information was not delivered to the seller. Please
                   try again.

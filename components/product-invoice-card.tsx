@@ -7,10 +7,6 @@ import {
 import { useForm } from "react-hook-form";
 import {
   Button,
-  Card,
-  CardHeader,
-  CardBody,
-  Divider,
   Image,
   useDisclosure,
   Modal,
@@ -53,7 +49,6 @@ import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import SignInModal from "./sign-in/SignInModal";
 import currencySelection from "../public/currencySelection.json";
 import FailureModal from "@/components/utility-components/failure-modal";
@@ -2234,6 +2229,10 @@ export default function ProductInvoiceCard({
                       placeholder="Select a pickup location"
                       isInvalid={!!error}
                       errorMessage={error?.message}
+                      classNames={{
+                        trigger:
+                          "border-2 border-black rounded-md shadow-neo !bg-white",
+                      }}
                       onChange={(e) => {
                         onChange(e);
                         setSelectedPickupLocation(e.target.value);
@@ -2274,6 +2273,9 @@ export default function ProductInvoiceCard({
                   placeholder="@milkmarket"
                   isInvalid={!!error}
                   errorMessage={error?.message}
+                  classNames={{
+                    inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                  }}
                   onChange={onChange}
                   isRequired={true}
                   onBlur={onBlur}
@@ -2298,6 +2300,9 @@ export default function ProductInvoiceCard({
                   placeholder="Nostr, Signal, Telegram, email, phone, etc."
                   isInvalid={!!error}
                   errorMessage={error?.message}
+                  classNames={{
+                    inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                  }}
                   onChange={onChange}
                   isRequired={true}
                   onBlur={onBlur}
@@ -2326,6 +2331,9 @@ export default function ProductInvoiceCard({
                   placeholder="Meet me by . . .; Send file to . . ."
                   isInvalid={!!error}
                   errorMessage={error?.message}
+                  classNames={{
+                    inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                  }}
                   onChange={onChange}
                   isRequired={true}
                   onBlur={onBlur}
@@ -2359,6 +2367,9 @@ export default function ProductInvoiceCard({
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
+                  classNames={{
+                    inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                  }}
                   onChange={onChange}
                   isRequired={true}
                   onBlur={onBlur}
@@ -2388,6 +2399,9 @@ export default function ProductInvoiceCard({
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
+                  classNames={{
+                    inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                  }}
                   onChange={onChange}
                   isRequired={true}
                   onBlur={onBlur}
@@ -2416,6 +2430,9 @@ export default function ProductInvoiceCard({
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
+                  classNames={{
+                    inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                  }}
                   onChange={onChange}
                   onBlur={onBlur}
                   value={value || ""}
@@ -2423,111 +2440,131 @@ export default function ProductInvoiceCard({
               )}
             />
 
-            <Controller
-              name="City"
-              control={formControl}
-              rules={{
-                required: "A city is required.",
-                maxLength: {
-                  value: 50,
-                  message: "This input exceed maxLength of 50.",
-                },
-              }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Input
-                  variant="bordered"
-                  fullWidth={true}
-                  label={<span className="text-light-text">City</span>}
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Controller
+                name="City"
+                control={formControl}
+                rules={{
+                  required: "A city is required.",
+                  maxLength: {
+                    value: 50,
+                    message: "This input exceed maxLength of 50.",
+                  },
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <Input
+                    variant="bordered"
+                    fullWidth={true}
+                    label={<span className="text-light-text">City</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    classNames={{
+                      inputWrapper:
+                        "border-2 border-black rounded-md shadow-neo",
+                    }}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
 
-            <Controller
-              name="State/Province"
-              control={formControl}
-              rules={{ required: "A state/province is required." }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Input
-                  variant="bordered"
-                  fullWidth={true}
-                  label={
-                    <span className="text-light-text">State/Province</span>
-                  }
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+              <Controller
+                name="State/Province"
+                control={formControl}
+                rules={{ required: "A state/province is required." }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <Input
+                    variant="bordered"
+                    fullWidth={true}
+                    label={
+                      <span className="text-light-text">State/Province</span>
+                    }
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    classNames={{
+                      inputWrapper:
+                        "border-2 border-black rounded-md shadow-neo",
+                    }}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
+            </div>
 
-            <Controller
-              name="Postal Code"
-              control={formControl}
-              rules={{
-                required: "A postal code is required.",
-                maxLength: {
-                  value: 50,
-                  message: "This input exceed maxLength of 50.",
-                },
-              }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Input
-                  variant="bordered"
-                  fullWidth={true}
-                  label={<span className="text-light-text">Postal code</span>}
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Controller
+                name="Postal Code"
+                control={formControl}
+                rules={{
+                  required: "A postal code is required.",
+                  maxLength: {
+                    value: 50,
+                    message: "This input exceed maxLength of 50.",
+                  },
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <Input
+                    variant="bordered"
+                    fullWidth={true}
+                    label={<span className="text-light-text">Postal code</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    classNames={{
+                      inputWrapper:
+                        "border-2 border-black rounded-md shadow-neo",
+                    }}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
 
-            <Controller
-              name="Country"
-              control={formControl}
-              rules={{ required: "A country is required." }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <CountryDropdown
-                  variant="bordered"
-                  aria-label="Select Country"
-                  label={<span className="text-light-text">Country</span>}
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+              <Controller
+                name="Country"
+                control={formControl}
+                rules={{ required: "A country is required." }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <CountryDropdown
+                    variant="bordered"
+                    aria-label="Select Country"
+                    label={<span className="text-light-text">Country</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    classNames={{
+                      trigger:
+                        "border-2 border-black rounded-md shadow-neo !bg-white",
+                    }}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
+            </div>
           </>
         )}
 
@@ -2551,6 +2588,9 @@ export default function ProductInvoiceCard({
                 labelPlacement="inside"
                 isInvalid={!!error}
                 errorMessage={error?.message}
+                classNames={{
+                  inputWrapper: "border-2 border-black rounded-md shadow-neo",
+                }}
                 onChange={onChange}
                 isRequired={true}
                 onBlur={onBlur}
@@ -2565,7 +2605,7 @@ export default function ProductInvoiceCard({
 
   if (showInvoiceCard) {
     return (
-      <div className="flex min-h-screen w-full bg-light-bg text-light-text">
+      <div className="flex min-h-screen w-full bg-white text-black">
         <div className="mx-auto flex w-full max-w-7xl flex-col lg:flex-row">
           {/* Left Side - Product Summary - maintain same width */}
           <div className="w-full bg-gray-50 p-6 lg:w-1/2">
@@ -2648,7 +2688,7 @@ export default function ProductInvoiceCard({
 
               <button
                 onClick={() => setIsBeingPaid(false)}
-                className="mt-4 text-light-text underline hover:text-accent-light-text"
+                className="mt-4 text-black underline hover:text-gray-600"
               >
                 ← Back to product
               </button>
@@ -2660,19 +2700,18 @@ export default function ProductInvoiceCard({
 
           {/* Right Side - Lightning Invoice - maintain consistent width */}
           <div className="w-full p-6 lg:w-1/2">
-            <Card className="w-full">
-              <CardHeader className="flex justify-center gap-3">
-                <span className="text-xl font-bold">
+            <div className="w-full">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold">
                   {stripeInvoiceUrl ? "Stripe Payment" : "Lightning Invoice"}
-                </span>
-              </CardHeader>
-              <Divider />
-              <CardBody className="flex flex-col items-center">
+                </h2>
+              </div>
+              <div className="flex flex-col items-center">
                 {!paymentConfirmed && !stripePaymentConfirmed ? (
                   <div className="flex flex-col items-center justify-center">
                     {qrCodeUrl && (
                       <>
-                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                        <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -2695,12 +2734,12 @@ export default function ProductInvoiceCard({
                           </p>
                           <ClipboardIcon
                             onClick={handleCopyInvoice}
-                            className={`ml-2 h-4 w-4 cursor-pointer text-dark-text ${
+                            className={`text-dark-text ml-2 h-4 w-4 cursor-pointer ${
                               copiedToClipboard ? "hidden" : ""
                             }`}
                           />
                           <CheckIcon
-                            className={`ml-2 h-4 w-4 cursor-pointer text-dark-text ${
+                            className={`text-dark-text ml-2 h-4 w-4 cursor-pointer ${
                               copiedToClipboard ? "" : "hidden"
                             }`}
                           />
@@ -2709,7 +2748,7 @@ export default function ProductInvoiceCard({
                     )}
                     {stripeInvoiceUrl && (
                       <>
-                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                        <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
                           Please complete your payment via Stripe.
                         </h3>
                         <a
@@ -2754,7 +2793,7 @@ export default function ProductInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                    <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -2765,8 +2804,8 @@ export default function ProductInvoiceCard({
                     />
                   </div>
                 )}
-              </CardBody>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2774,7 +2813,7 @@ export default function ProductInvoiceCard({
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-light-bg text-light-text">
+    <div className="flex min-h-screen w-full bg-white text-black">
       <div className="mx-auto flex w-full max-w-7xl flex-col lg:flex-row">
         {/* Left Side - Product Summary */}
         <div className="w-full bg-gray-50 p-6 lg:w-1/2">
@@ -2848,7 +2887,7 @@ export default function ProductInvoiceCard({
 
             <button
               onClick={() => setIsBeingPaid(false)}
-              className="mt-4 text-light-text underline hover:text-accent-light-text"
+              className="mt-4 text-black underline hover:text-gray-600"
             >
               ← Back to product
             </button>
@@ -2864,13 +2903,13 @@ export default function ProductInvoiceCard({
           {showOrderTypeSelection && (
             <>
               <h2 className="mb-6 text-2xl font-bold">Select Order Type</h2>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {productData.shippingType === "Free/Pickup" ||
                 productData.shippingType === "Added Cost/Pickup" ? (
                   <>
                     <button
                       onClick={() => handleOrderTypeSelection("shipping")}
-                      className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                      className="w-full rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Free or added shipping</div>
                       <div className="text-sm text-gray-500">
@@ -2879,7 +2918,7 @@ export default function ProductInvoiceCard({
                     </button>
                     <button
                       onClick={() => handleOrderTypeSelection("contact")}
-                      className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                      className="w-full rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Pickup</div>
                       <div className="text-sm text-gray-500">
@@ -2891,7 +2930,7 @@ export default function ProductInvoiceCard({
                   productData.shippingType === "Added Cost" ? (
                   <button
                     onClick={() => handleOrderTypeSelection("shipping")}
-                    className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                    className="w-full rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="font-medium">
                       Online order with shipping
@@ -2903,7 +2942,7 @@ export default function ProductInvoiceCard({
                 ) : (
                   <button
                     onClick={() => handleOrderTypeSelection("contact")}
-                    className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                    className="w-full rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="font-medium">Online order</div>
                     <div className="text-sm text-gray-500">
@@ -2929,11 +2968,11 @@ export default function ProductInvoiceCard({
               >
                 {renderContactForm()}
 
-                <div className="space-y-4 border-t pt-6">
-                  <h3 className="mb-4 text-lg font-semibold">Payment Method</h3>
+                <div className="mt-6 space-y-3 border-t pt-6">
+                  <h3 className="mb-4 text-xl font-bold">Payment Method</h3>
 
                   <Button
-                    className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                    className={`w-full rounded-md border-2 border-black bg-primary-blue px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                       !isFormValid ? "cursor-not-allowed opacity-50" : ""
                     }`}
                     disabled={!isFormValid}
@@ -2953,7 +2992,7 @@ export default function ProductInvoiceCard({
 
                   {hasTokensAvailable && (
                     <Button
-                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                      className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                         !isFormValid ? "cursor-not-allowed opacity-50" : ""
                       }`}
                       disabled={!isFormValid}
@@ -2975,7 +3014,7 @@ export default function ProductInvoiceCard({
                   {/* Stripe Payment Button */}
                   {isStripeMerchant && (
                     <Button
-                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                      className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                         !isFormValid ? "cursor-not-allowed opacity-50" : ""
                       }`}
                       disabled={!isFormValid}
@@ -2996,7 +3035,7 @@ export default function ProductInvoiceCard({
 
                   {Object.keys(fiatPaymentOptions).length > 0 && (
                     <Button
-                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                      className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                         !isFormValid ? "cursor-not-allowed opacity-50" : ""
                       }`}
                       disabled={!isFormValid}
@@ -3061,7 +3100,7 @@ export default function ProductInvoiceCard({
                     id="paymentConfirmed"
                     checked={fiatPaymentConfirmed}
                     onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-light-text focus:ring-accent-light-text"
+                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
                   />
                   <label
                     htmlFor="paymentConfirmed"
@@ -3100,7 +3139,7 @@ export default function ProductInvoiceCard({
                     id="paymentConfirmed"
                     checked={fiatPaymentConfirmed}
                     onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-light-text focus:ring-accent-light-text"
+                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
                   />
                   <label htmlFor="paymentConfirmed" className="text-gray-300">
                     I have sent the payment
@@ -3123,7 +3162,7 @@ export default function ProductInvoiceCard({
                   }
                 }}
                 disabled={!fiatPaymentConfirmed}
-                className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                   !fiatPaymentConfirmed ? "cursor-not-allowed opacity-50" : ""
                 }`}
               >
@@ -3138,8 +3177,7 @@ export default function ProductInvoiceCard({
                   setSelectedFiatOption("");
                   setPendingPaymentData(null); // Clear stored data
                 }}
-                variant="bordered"
-                className="w-full"
+                className="w-full rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
               >
                 Cancel
               </Button>
@@ -3166,7 +3204,7 @@ export default function ProductInvoiceCard({
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="flex items-center justify-center text-dark-text">
+          <ModalHeader className="text-dark-text flex items-center justify-center">
             Select your fiat payment preference:
           </ModalHeader>
           <ModalBody className="flex flex-col overflow-hidden">

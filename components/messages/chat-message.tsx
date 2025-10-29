@@ -626,10 +626,10 @@ const ChatMessage = ({
         }`}
       >
         <div
-          className={`flex max-w-[90%] flex-col rounded-t-large p-3 ${
+          className={`flex max-w-[90%] flex-col rounded-lg px-4 py-3 ${
             isUserMessage
-              ? "rounded-bl-lg bg-gray-300 text-light-text"
-              : "rounded-br-lg bg-gray-600 text-dark-text"
+              ? "bg-[#E6C84F] text-black"
+              : "bg-[#2C3E50] text-white"
           }`}
         >
           <div className="inline-block flex-wrap overflow-x-hidden break-all">
@@ -656,7 +656,7 @@ const ChatMessage = ({
           </div>
           <div className="m-1"></div>
           <span
-            className={`text-xs opacity-50 ${
+            className={`text-xs opacity-60 ${
               isUserMessage ? "text-right" : "text-left"
             }`}
           >

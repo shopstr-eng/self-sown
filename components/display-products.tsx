@@ -339,7 +339,7 @@ const DisplayProducts = ({
 
   return (
     <>
-      <div className="w-full md:pl-4">
+      <div className="w-full bg-white px-4 md:pl-4">
         {!isMyListings &&
         (profileMapContext.isLoading ||
           productEventContext.isLoading ||
@@ -350,7 +350,7 @@ const DisplayProducts = ({
         ) : null}
         {filteredProducts.length > 0 ? (
           <>
-            <div className="grid max-w-full grid-cols-[repeat(auto-fill,minmax(300px,1fr))] justify-items-center gap-4 overflow-x-hidden">
+            <div className="grid max-w-full grid-cols-[repeat(auto-fill,minmax(280px,1fr))] justify-items-center gap-6 overflow-x-hidden pb-6">
               {getCurrentPageProducts().map(
                 (productData: ProductData, index) => (
                   <ProductCard
@@ -364,20 +364,24 @@ const DisplayProducts = ({
             </div>
 
             {totalPages > 1 && (
-              <div className="mt-4 flex justify-center">
+              <div className="mt-6 flex justify-center pb-4">
                 <Pagination
                   total={totalPages}
                   page={currentPage}
                   onChange={handlePageChange}
                   showControls
                   classNames={{
-                    cursor: "bg-yellow-700",
+                    cursor:
+                      "bg-primary-yellow text-black font-bold border-2 border-black shadow-neo",
+                    item: "bg-white text-black font-semibold border-2 border-black",
+                    prev: "bg-white text-black border-2 border-black",
+                    next: "bg-white text-black border-2 border-black",
                   }}
                 />
               </div>
             )}
 
-            <div className="mb-6 mt-2 text-center text-xs text-light-text">
+            <div className="mb-6 mt-2 text-center text-sm font-semibold text-black">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
               {Math.min(filteredProducts.length, currentPage * itemsPerPage)} of{" "}
               {filteredProducts.length} products
@@ -387,11 +391,11 @@ const DisplayProducts = ({
           wotFilter &&
           !isProductsLoading && (
             <div className="mt-20 flex flex-grow items-center justify-center py-10">
-              <div className="w-full max-w-lg rounded-lg bg-dark-fg p-8 text-center shadow-lg">
-                <p className="text-3xl font-semibold text-dark-text">
+              <div className="w-full max-w-lg rounded-lg border-4 border-black bg-primary-blue p-8 text-center shadow-neo">
+                <p className="text-3xl font-bold text-white">
                   No products found...
                 </p>
-                <p className="mt-4 text-lg text-dark-text">
+                <p className="mt-4 text-lg text-white">
                   Try turning off the trust filter!
                 </p>
               </div>
@@ -402,11 +406,11 @@ const DisplayProducts = ({
           !isProductsLoading &&
           !productEvents.some((product) => product.pubkey === userPubkey) && (
             <div className="mt-20 flex flex-grow items-center justify-center py-10">
-              <div className="w-full max-w-lg rounded-lg bg-dark-fg p-8 text-center shadow-lg">
-                <p className="text-3xl font-semibold text-dark-text">
+              <div className="w-full max-w-lg rounded-lg border-4 border-black bg-primary-blue p-8 text-center shadow-neo">
+                <p className="text-3xl font-bold text-white">
                   No products found...
                 </p>
-                <p className="mt-4 text-lg text-dark-text">
+                <p className="mt-4 text-lg text-white">
                   Try adding a new listing!
                 </p>
                 <Button

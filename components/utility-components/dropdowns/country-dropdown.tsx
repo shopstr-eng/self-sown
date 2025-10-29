@@ -2,10 +2,16 @@ import React, { useMemo } from "react";
 import { Select, SelectItem, SelectSection } from "@nextui-org/react";
 import locations from "../../../public/locationSelection.json";
 
-const CountryDropdown = ({ _value, ...props }: { [x: string]: any }) => {
+const CountryDropdown = ({
+  _value,
+  classNames,
+  ...props
+}: {
+  [x: string]: any;
+}) => {
   const countryOptions = useMemo(() => {
     const headingClasses =
-      "flex w-full sticky top-1 z-20 py-1.5 px-2 bg-light-bg shadow-small rounded-small";
+      "flex w-full sticky top-1 z-20 py-1.5 px-2 bg-white text-black font-semibold shadow-small rounded-small";
 
     const countryOptions = (
       <SelectSection
@@ -13,14 +19,13 @@ const CountryDropdown = ({ _value, ...props }: { [x: string]: any }) => {
         classNames={{
           heading: headingClasses,
         }}
-        className="text-dark-text"
       >
         {locations.countries.map((country) => {
           return (
             <SelectItem
               key={country.country}
               classNames={{
-                wrapper: "bg-light-bg",
+                base: "text-black data-[hover=true]:bg-gray-100",
               }}
               value={country.country}
             >
@@ -34,7 +39,19 @@ const CountryDropdown = ({ _value, ...props }: { [x: string]: any }) => {
   }, []);
 
   return (
-    <Select {...props} className="mt-2 text-dark-text">
+    <Select
+      {...props}
+      classNames={{
+        trigger:
+          classNames?.trigger ||
+          "bg-white text-black border-2 border-black rounded-md shadow-neo",
+        popoverContent: "bg-white border-2 border-black rounded-md",
+        value: classNames?.value || "!text-black font-normal",
+        label: classNames?.label || "text-gray-600 font-normal",
+        innerWrapper: classNames?.innerWrapper || "!bg-white",
+        ...(classNames || {}),
+      }}
+    >
       {countryOptions}
     </Select>
   );

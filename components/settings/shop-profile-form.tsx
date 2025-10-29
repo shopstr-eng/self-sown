@@ -5,8 +5,8 @@ import { Button, Textarea, Input, Image } from "@nextui-org/react";
 
 import { ShopMapContext } from "@/utils/context/context";
 import {
-  BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import {
   SignerContext,
@@ -97,49 +97,59 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
   return (
     <>
-      <div className="mb-20 h-40 rounded-lg bg-dark-fg">
-        <div className="relative flex h-40 items-center justify-center rounded-lg bg-light-bg">
+      <div className="mb-8">
+        <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-xl border-3 border-black bg-primary-blue">
           {watchBanner && (
             <Image
               alt={"Shop banner image"}
               src={watchBanner}
-              className="h-40 w-full rounded-lg object-cover object-fill"
+              className="h-full w-full object-cover"
+              classNames={{
+                wrapper: "!max-w-full w-full h-full",
+              }}
             />
           )}
           <FileUploaderButton
-            className={`absolute bottom-5 right-5 z-20 border-2 border-white shadow-md ${BLACKBUTTONCLASSNAMES}`}
+            className={`absolute right-4 top-4 z-20 ${WHITEBUTTONCLASSNAMES}`}
             imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
           >
-            Upload Banner
+            ↑ Upload Banner
           </FileUploaderButton>
         </div>
+
         <div className="flex items-center justify-center">
-          <div className="relative z-50 mt-[-3rem] h-24 w-24">
-            <div className="">
-              <FileUploaderButton
-                isIconOnly={true}
-                className={`absolute bottom-[-0.5rem] right-[-0.5rem] z-20 ${BLACKBUTTONCLASSNAMES}`}
-                imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
-              />
+          <div className="relative mt-[-4rem] h-32 w-32">
+            <div className="relative h-full w-full overflow-hidden rounded-full border-4 border-black bg-white">
               {watchPicture ? (
                 <Image
                   src={watchPicture}
                   alt="shop logo"
-                  className="rounded-full"
+                  className="h-full w-full rounded-full object-cover"
+                  classNames={{
+                    wrapper: "!max-w-full w-full h-full",
+                  }}
                 />
               ) : (
                 <Image
                   src={defaultImage}
                   alt="shop logo"
-                  className="rounded-full"
+                  className="h-full w-full rounded-full object-cover"
+                  classNames={{
+                    wrapper: "!max-w-full w-full h-full",
+                  }}
                 />
               )}
             </div>
+            <FileUploaderButton
+              isIconOnly={true}
+              className={`!min-w-10 absolute bottom-0 right-0 z-20 !h-10 !w-10 ${WHITEBUTTONCLASSNAMES}`}
+              imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
+            />
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)}>
+      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
         <Controller
           name="name"
           control={control}
@@ -156,22 +166,26 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             const isErrored = error !== undefined;
             const errorMessage: string = error?.message ? error.message : "";
             return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Shop Name"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your shop's name . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
+              <div>
+                <label className="mb-2 block text-lg font-bold">
+                  Shop Name
+                </label>
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                    input: "text-base",
+                  }}
+                  variant="bordered"
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your shop's name..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              </div>
             );
           }}
         />
@@ -192,29 +206,33 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             const isErrored = error !== undefined;
             const errorMessage: string = error?.message ? error.message : "";
             return (
-              <Textarea
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                placeholder="Add something about your shop . . ."
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                label="About"
-                labelPlacement="outside"
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
+              <div>
+                <label className="mb-2 block text-lg font-bold">About</label>
+                <Textarea
+                  classNames={{
+                    inputWrapper:
+                      "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                    input: "text-base",
+                  }}
+                  variant="bordered"
+                  fullWidth={true}
+                  minRows={4}
+                  placeholder="Add something about your shop..."
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              </div>
             );
           }}
         />
 
         <Button
-          className={`mb-10 w-full ${WHITEBUTTONCLASSNAMES}`}
+          className={`w-full text-lg ${BLUEBUTTONCLASSNAMES}`}
           type="submit"
+          size="lg"
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();

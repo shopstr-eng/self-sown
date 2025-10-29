@@ -312,8 +312,9 @@ export default function ClaimButton({ token }: { token: string }) {
   };
 
   const buttonClassName = useMemo(() => {
+    // Updated disabled style to use gray with neo-brutalist structure
     const disabledStyle =
-      "min-w-fit from-gray-300 to-gray-400 cursor-not-allowed";
+      "min-w-fit bg-gray-300 text-gray-500 border-2 border-black rounded-md shadow-neo cursor-not-allowed";
     const enabledStyle = BLACKBUTTONCLASSNAMES;
     const className = isRedeemed ? disabledStyle : enabledStyle;
     return className;
@@ -328,7 +329,14 @@ export default function ClaimButton({ token }: { token: string }) {
       >
         {isRedeeming ? (
           <>
-            <Spinner size={"sm"} color="warning" />
+            {/* Updated spinner color */}
+            <Spinner
+              size={"sm"}
+              classNames={{
+                circle1: "border-b-primary-yellow",
+                circle2: "border-b-primary-yellow",
+              }}
+            />
           </>
         ) : isRedeemed ? (
           <>Claimed: {formattedTokenAmount}</>
@@ -339,13 +347,16 @@ export default function ClaimButton({ token }: { token: string }) {
       <Modal
         backdrop="blur"
         isOpen={openClaimTypeModal}
+        // Updated modal styles
         onClose={() => setOpenClaimTypeModal(false)}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          wrapper: "shadow-neo",
+          base: "border-2 border-black rounded-md",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          // Only body, apply full radius
+          body: "py-6 bg-white rounded-md",
+          closeButton:
+            "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
         }}
         isDismissable={true}
         scrollBehavior={"normal"}
@@ -353,7 +364,8 @@ export default function ClaimButton({ token }: { token: string }) {
         size="2xl"
       >
         <ModalContent>
-          <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+          {/* Updated text color */}
+          <ModalBody className="flex flex-col overflow-hidden text-black">
             <div className="flex items-center justify-center">
               Would you like to receive the token directly to your Milk Market
               wallet, or redeem it to your Lightning address?
@@ -386,13 +398,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={isInvalidSuccess}
+            // Updated modal styles
             onClose={() => setIsInvalidSuccess(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -400,11 +416,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">No valid Lightning address found!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   Check your Milk Market wallet for your sats.
                 </div>
@@ -418,13 +436,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={isReceived}
+            // Updated modal styles
             onClose={() => setIsReceived(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -432,11 +454,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <CheckCircleIcon className="h-6 w-6 text-green-500" />
                 <div className="ml-2">Token successfully claimed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   Check your Milk Market wallet for your sats.
                 </div>
@@ -450,13 +474,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={isDuplicateToken}
+            // Updated modal styles
             onClose={() => setIsDuplicateToken(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -464,11 +492,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Duplicate token!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The token you are trying to claim is already in your Milk
                   Market wallet.
@@ -483,13 +513,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={isInvalidToken}
+            // Updated modal styles
             onClose={() => setIsInvalidToken(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -497,11 +531,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Invalid token!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The token you are trying to claim is not a valid Cashu string.
                 </div>
@@ -515,13 +551,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={isSpent}
+            // Updated modal styles
             onClose={() => setIsSpent(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -529,11 +569,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Spent token!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The token you are trying to claim has already been redeemed.
                 </div>
@@ -547,13 +589,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={openRedemptionModal}
+            // Updated modal styles
             onClose={() => setOpenRedemptionModal(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -561,11 +607,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <CheckCircleIcon className="h-6 w-6 text-green-500" />
                 <div className="ml-2">Token successfully redeemed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   Check your Lightning address ({lnurl}) for your sats.
                 </div>
@@ -578,13 +626,17 @@ export default function ClaimButton({ token }: { token: string }) {
           <Modal
             backdrop="blur"
             isOpen={openRedemptionModal}
+            // Updated modal styles
             onClose={() => setOpenRedemptionModal(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -592,11 +644,13 @@ export default function ClaimButton({ token }: { token: string }) {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              {/* Updated text color */}
+              <ModalHeader className="flex items-center justify-center text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Token redemption failed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              {/* Updated text color */}
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   You are attempting to redeem a token that has already been
                   redeemed, is too small/large, or for which there were no

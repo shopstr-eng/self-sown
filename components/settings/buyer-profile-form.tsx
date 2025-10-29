@@ -3,10 +3,7 @@ import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
 import { Button, Textarea, Input, Image } from "@nextui-org/react";
 import { ProfileMapContext } from "@/utils/context/context";
-import {
-  BLACKBUTTONCLASSNAMES,
-  WHITEBUTTONCLASSNAMES,
-} from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
   SignerContext,
   NostrContext,
@@ -101,17 +98,17 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
 
   return (
     <>
-      <div className="mb-20 h-40 rounded-lg bg-dark-fg">
-        <div className="relative flex h-40 items-center justify-center rounded-lg bg-light-bg">
+      <div className="mb-20 h-40 rounded-md">
+        <div className="relative flex h-40 items-center justify-center rounded-md border-4 border-black bg-gray-100">
           {watchBanner && (
             <Image
               alt={"User banner image"}
               src={watchBanner}
-              className="h-40 w-full rounded-lg object-cover object-fill"
+              className="h-40 w-full rounded-md object-cover object-fill"
             />
           )}
           <FileUploaderButton
-            className={`absolute bottom-5 right-5 z-20 border-2 border-white shadow-md ${BLACKBUTTONCLASSNAMES}`}
+            className={`absolute bottom-5 right-5 z-20 ${BLUEBUTTONCLASSNAMES}`}
             imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
           >
             Upload Banner
@@ -122,20 +119,20 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
             <div className="">
               <FileUploaderButton
                 isIconOnly
-                className={`absolute bottom-[-0.5rem] right-[-0.5rem] z-20 ${BLACKBUTTONCLASSNAMES}`}
+                className={`absolute bottom-[-0.5rem] right-[-0.5rem] z-20 h-8 w-8 min-w-0 rounded-full border-2 border-black bg-white p-0 text-black hover:bg-gray-100`}
                 imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
               />
               {watchPicture ? (
                 <Image
                   src={watchPicture}
                   alt="user profile picture"
-                  className="rounded-full"
+                  className="h-24 w-24 rounded-full border-4 border-black object-cover"
                 />
               ) : (
                 <Image
                   src={defaultImage}
                   alt="user profile picture"
-                  className="rounded-full"
+                  className="h-24 w-24 rounded-full border-4 border-black object-cover"
                 />
               )}
             </div>
@@ -143,99 +140,110 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)}>
-        <Controller
-          name="display_name"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Display name"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your display name . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
+      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Display name
+          </label>
+          <Controller
+            name="display_name"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your display name..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
 
-        <Controller
-          name="name"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Input
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                label="Username"
-                labelPlacement="outside"
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                placeholder="Add your username . . ."
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">
+            Username
+          </label>
+          <Controller
+            name="name"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Input
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  placeholder="Add your username..."
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                />
+              );
+            }}
+          />
+        </div>
 
-        <Controller
-          name="about"
-          control={control}
-          render={({
-            field: { onChange, onBlur, value },
-            fieldState: { error },
-          }) => {
-            const isErrored = error !== undefined;
-            const errorMessage: string = error?.message ? error.message : "";
-            return (
-              <Textarea
-                className="pb-4 text-dark-text"
-                classNames={{
-                  label: "!text-dark-text text-lg",
-                }}
-                variant="bordered"
-                fullWidth={true}
-                placeholder="Add something about yourself . . ."
-                isInvalid={isErrored}
-                errorMessage={errorMessage}
-                label="About"
-                labelPlacement="outside"
-                onChange={onChange}
-                onBlur={onBlur}
-                value={value}
-              />
-            );
-          }}
-        />
+        <div className="space-y-2">
+          <label className="block text-base font-bold text-black">About</label>
+          <Controller
+            name="about"
+            control={control}
+            render={({
+              field: { onChange, onBlur, value },
+              fieldState: { error },
+            }) => {
+              const isErrored = error !== undefined;
+              const errorMessage: string = error?.message ? error.message : "";
+              return (
+                <Textarea
+                  classNames={{
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                  }}
+                  fullWidth={true}
+                  placeholder="Add something about yourself..."
+                  isInvalid={isErrored}
+                  errorMessage={errorMessage}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  value={value}
+                  minRows={3}
+                />
+              );
+            }}
+          />
+        </div>
 
         <Button
-          className={`mb-10 w-full ${WHITEBUTTONCLASSNAMES}`}
+          className={`mb-10 w-full ${BLUEBUTTONCLASSNAMES}`}
           type="submit"
           onKeyDown={(e) => {
             if (e.key === "Enter") {

@@ -22,60 +22,75 @@ export default function ProductCard({
   const { pubkey: userPubkey } = useContext(SignerContext);
   if (!productData) return null;
 
-  const cardHoverStyle = "hover:shadow-yellow-700/30 hover:scale-[1.01]";
-
   const content = (
     <div
-      className="cursor-pointer"
       onClick={() => {
         onProductClick && onProductClick(productData);
       }}
+      className="flex h-full flex-col"
     >
-      <div>
+      {/* Image Section with Title Overlay */}
+      <div className="relative h-64 w-full overflow-hidden border-b-4 border-black bg-gray-200">
         <ImageCarousel
           images={productData.images}
-          classname="w-full h-[300px] rounded-t-2xl"
+          classname="w-full h-full object-cover"
           showThumbs={false}
         />
-      </div>
-      <div className="flex flex-col p-4">
-        {router.pathname !== "/" && (
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="max-w-[70%] truncate text-xl font-semibold text-light-text">
-              {productData.title}
-            </h2>
-            {productData.status === "active" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-900 px-2 py-0.5 text-xs font-medium text-green-300">
-                Active
-              </span>
-            )}
-            {productData.status === "sold" && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-900 px-2 py-0.5 text-xs font-medium text-red-300">
-                Sold
-              </span>
-            )}
-          </div>
-        )}
-        <div className="mb-3">
-          <ProfileWithDropdown
-            pubkey={productData.pubkey}
-            dropDownKeys={
-              productData.pubkey === userPubkey
-                ? ["shop_profile"]
-                : ["shop", "inquiry", "copy_npub"]
-            }
-          />
+        {/* Title Overlay at Bottom of Image */}
+        <div className="absolute bottom-0 left-0 right-0 border-t-2 border-black bg-white/95 p-3 backdrop-blur-sm">
+          <h2 className="truncate text-2xl font-bold text-black">
+            {productData.title}
+          </h2>
         </div>
-        {router.pathname !== "/" && (
-          <div className="mt-1 flex items-center justify-between">
-            <Chip
-              key={productData.location}
-              startContent={locationAvatar(productData.location)}
-              className="text-xs"
-            >
-              {productData.location}
+      </div>
+
+      {/* Card Content */}
+      <div className="flex min-h-0 flex-1 flex-col space-y-3 bg-white p-4">
+        {/* Profile Section */}
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <ProfileWithDropdown
+              pubkey={productData.pubkey}
+              dropDownKeys={
+                productData.pubkey === userPubkey
+                  ? ["shop_profile"]
+                  : ["shop", "inquiry", "copy_npub"]
+              }
+              bg="light"
+            />
+          </div>
+          {/* Status Badge */}
+          {productData.status === "active" && (
+            <Chip className="flex-shrink-0 border-2 border-black bg-green-500 text-xs font-bold text-white">
+              Active
             </Chip>
-            <CompactPriceDisplay monetaryInfo={productData} />
+          )}
+          {productData.status === "sold" && (
+            <Chip className="flex-shrink-0 border-2 border-black bg-red-500 text-xs font-bold text-white">
+              Sold
+            </Chip>
+          )}
+          {productData.status === "soon" && (
+            <Chip className="flex-shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
+              Soon
+            </Chip>
+          )}
+        </div>
+
+        {/* Location and Price - with proper spacing */}
+        {router.pathname !== "/" && (
+          <div className="mt-auto flex min-w-0 items-center justify-between gap-3 pt-2">
+            <div className="min-w-0 max-w-[60%] flex-shrink-0">
+              <Chip
+                startContent={locationAvatar(productData.location)}
+                className="max-w-full truncate border-2 border-black bg-primary-blue text-xs font-semibold text-white"
+              >
+                <span className="truncate">{productData.location}</span>
+              </Chip>
+            </div>
+            <div className="min-w-0 flex-shrink-0">
+              <CompactPriceDisplay monetaryInfo={productData} />
+            </div>
           </div>
         )}
       </div>
@@ -84,17 +99,17 @@ export default function ProductCard({
 
   return (
     <div
-      className={`${cardHoverStyle} mx-2 my-4 rounded-2xl border-2 border-black bg-white shadow-md duration-300 transition-all`}
+      // Updated shadow to use shadow-neo and a larger hover shadow.
+      // Note: Your original shadow was 8px. shadow-neo is 4px. I've kept the 8px for hover.
+      className="flex w-full max-w-sm cursor-pointer flex-col overflow-hidden rounded-md border-4 border-black bg-white shadow-neo duration-200 transition-transform hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-neo"
     >
-      <div className="w-80 overflow-hidden rounded-2xl">
-        {href ? (
-          <Link href={href} className="block">
-            {content}
-          </Link>
-        ) : (
-          content
-        )}
-      </div>
+      {href ? (
+        <Link href={href} className="block flex h-full flex-col">
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
     </div>
   );
 }

@@ -7,7 +7,11 @@ import {
   ModalFooter,
   Button,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+// Import your primary button style
+import {
+  WHITEBUTTONCLASSNAMES,
+  PRIMARYBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import { useRouter } from "next/router";
 
 function sanitizeURL(s: string) {
@@ -54,22 +58,28 @@ export default function AuthChallengeModal({
       isOpen={isOpen}
       onClose={onCancel}
       classNames={{
-        body: "py-6 bg-dark-fg",
-        backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-        header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-        footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-        closeButton: "hover:bg-black/5 active:bg-white/10",
+        // Updated modal styles
+        wrapper: "shadow-neo",
+        base: "border-2 border-black rounded-md",
+        backdrop: "bg-black/20 backdrop-blur-sm",
+        header: "border-b-2 border-black bg-white rounded-t-md text-black",
+        body: "py-6 bg-white",
+        footer: "border-t-2 border-black bg-white rounded-b-md",
+        closeButton:
+          "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
       }}
       scrollBehavior={"outside"}
       size="2xl"
       isDismissable={false}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 text-dark-text">
+        {/* Updated text color */}
+        <ModalHeader className="flex flex-col gap-1 text-black">
           Waiting for confirmation
         </ModalHeader>
         <ModalBody>
-          <div className="text-dark-text">
+          {/* Updated text color */}
+          <div className="text-black">
             {challengeUrl
               ? "Please confirm this action on your remote signer"
               : challenge}
@@ -81,14 +91,14 @@ export default function AuthChallengeModal({
         </ModalBody>
 
         <ModalFooter>
-          <Button color="danger" variant="light" onClick={onCancel}>
+          {/* Updated "Cancel" button style */}
+          <Button className={WHITEBUTTONCLASSNAMES} onClick={onCancel}>
             Cancel
           </Button>
           {challengeUrl && (
             <Button
-              className={
-                "bg-gradient-to-tr text-white shadow-lg" + WHITEBUTTONCLASSNAMES
-              }
+              // Updated "Open Signer" button style
+              className={PRIMARYBUTTONCLASSNAMES}
               type="submit"
               onClick={() => {
                 window.open(challengeUrl, "_blank");

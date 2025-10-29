@@ -4,7 +4,6 @@ import "react-responsive-carousel/lib/styles/carousel.min.css";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { Image } from "@nextui-org/react";
 import { buildSrcSet } from "@/utils/images";
-import { useRouter } from "next/router";
 import { PREVNEXTBUTTONSTYLES } from "@/utils/STATIC-VARIABLES";
 
 interface ImageCarouselProps {
@@ -20,13 +19,12 @@ export default function ImageCarousel({
   showThumbs = false,
   fixedHeight = true,
 }: ImageCarouselProps) {
-  const router = useRouter();
-
   const containerClass = `flex items-center justify-center ${classname}`;
 
+  // Updated image class to use rounded-md for consistency
   const imageClass = fixedHeight
-    ? "h-full w-full object-cover rounded-xl transition-transform duration-300 ease-in-out hover:scale-105"
-    : "w-full object-cover rounded-xl";
+    ? "h-full w-full object-cover rounded-md transition-transform duration-300 ease-in-out hover:scale-105"
+    : "w-full object-cover rounded-md";
 
   const displayImages = () => {
     if (!images || images.length === 0) {
@@ -48,7 +46,7 @@ export default function ImageCarousel({
           srcSet={buildSrcSet(image)}
           className={imageClass}
           alt={image || `Product image ${index + 1}`}
-          radius="none"
+          radius="none" // radius="none" is fine, imageClass controls it
           style={{
             width: "100%",
             height: "100%",
@@ -63,7 +61,7 @@ export default function ImageCarousel({
     <Carousel
       showArrows={images && images.length > 1}
       showStatus={false}
-      showIndicators={router.pathname !== "/" && images.length > 1}
+      showIndicators={false}
       showThumbs={showThumbs}
       infiniteLoop
       preventMovementUntilSwipeScrollTolerance
@@ -78,7 +76,8 @@ export default function ImageCarousel({
             }}
             title={label}
           >
-            <ChevronLeftIcon className="h-6 w-6 text-dark-text" />
+            {/* Updated icon color */}
+            <ChevronLeftIcon className="h-6 w-6 text-black" />
           </button>
         )
       }
@@ -92,19 +91,22 @@ export default function ImageCarousel({
             }}
             title={label}
           >
-            <ChevronRightIcon className="h-6 w-6 text-dark-text" />
+            {/* Updated icon color */}
+            <ChevronRightIcon className="h-6 w-6 text-black" />
           </button>
         )
       }
       renderIndicator={(onClickHandler, isSelected, index, label) => {
-        const base = "inline-block w-3 h-3 rounded-full mx-1 cursor-pointer";
+        // Updated indicator dot styles
+        const base =
+          "inline-block w-3 h-3 rounded-full mx-1 cursor-pointer border-2 border-black";
         return (
           <li
             key={index}
             className={
               isSelected
-                ? `${base} bg-pink-500`
-                : `${base} bg-gray-300 hover:bg-gray-500`
+                ? `${base} bg-primary-yellow`
+                : `${base} bg-gray-300 hover:bg-gray-400`
             }
             onClick={(e) => {
               onClickHandler(e);

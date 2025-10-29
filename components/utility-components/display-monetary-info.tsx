@@ -15,29 +15,34 @@ export default function CompactPriceDisplay({
 }) {
   const { shippingType, shippingCost, price, currency } = monetaryInfo;
 
-  const getShippingLabel = () => {
-    if (shippingType === "Added Cost")
-      return `+ ${formatter.format(Number(shippingCost))} ${currency} Shipping`;
-    else if (shippingType === "Free") return "- Free Shipping";
-    else if (shippingType === "Pickup") return "- Pickup Only";
-    else if (shippingType == "Free/Pickup") return "- Free / Pickup";
-    else if (shippingType == "Added Cost/Pickup")
-      return `+ ${formatter.format(
-        Number(shippingCost)
-      )} ${currency} Shipping or Pickup`;
-    else return "";
-  };
-
   const formatter = new Intl.NumberFormat("en-GB", {
     notation: "compact",
     compactDisplay: "short",
   });
+
+  const getShippingLabel = () => {
+    if (shippingType === "Added Cost")
+      return `+ ${formatter.format(Number(shippingCost))} ${currency}`;
+    else if (shippingType === "Free") return "Free Ship";
+    else if (shippingType === "Pickup") return "Pickup Only";
+    else if (shippingType == "Free/Pickup") return "Free/Pickup";
+    else if (shippingType == "Added Cost/Pickup")
+      return `+ ${formatter.format(Number(shippingCost))} ${currency}`;
+    else return "";
+  };
+
   return (
-    <div className=" inline-block h-[30px] max-w-[70%] overflow-hidden text-ellipsis whitespace-nowrap rounded-md bg-black px-3 text-cyan-50 opacity-50">
-      <span className="font-semibold ">
-        {formatter.format(Number(price))} {currency}{" "}
-        {monetaryInfo.shippingType ? getShippingLabel() : ""}{" "}
-      </span>
+    <div className="flex min-w-0 flex-col items-end gap-1">
+      <div className="inline-flex items-center rounded-md border-2 border-black bg-black px-2 py-1 shadow-neo">
+        <span className="whitespace-nowrap text-xs font-bold text-white">
+          {formatter.format(Number(price))} {currency}
+        </span>
+      </div>
+      {monetaryInfo.shippingType && (
+        <div className="w-full max-w-[120px] text-right text-[10px] font-semibold text-black">
+          <span className="block truncate px-1">{getShippingLabel()}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -52,10 +57,12 @@ export function DisplayCheckoutCost({
   const formattedPrice = formatWithCommas(price, currency);
 
   return (
-    <div>
-      <p className="text-lg font-semibold text-light-text">{formattedPrice}</p>
+    <div className="rounded-md border-2 border-black bg-white p-4 shadow-neo">
+      <p className="text-2xl font-bold text-black">{formattedPrice}</p>
       {shippingType && (
-        <p className="mb-4 text-sm text-light-text">Shipping: {shippingType}</p>
+        <p className="mt-1 text-sm font-semibold text-blue-600">
+          Shipping: {shippingType}
+        </p>
       )}
     </div>
   );
@@ -72,13 +79,10 @@ export const calculateTotalCost = (
 
 export function formatWithCommas(amount: number, currency: string) {
   if (!amount || amount === 0) {
-    // If the amount is 0, directly return "0" followed by the currency
     return `0 ${currency}`;
   }
   const [integerPart, fractionalPart] = amount.toString().split(".");
-  // Add commas to the integer part
   const integerWithCommas = integerPart!.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  // Concatenate the fractional part if it exists
   const formattedAmount = fractionalPart
     ? `${integerWithCommas}.${fractionalPart}`
     : integerWithCommas;

@@ -1,5 +1,10 @@
 import React, { useRef, useEffect, useState } from "react";
 import { Button } from "@nextui-org/react";
+import {
+  WHITEBUTTONCLASSNAMES,
+  PRIMARYBUTTONCLASSNAMES,
+  DANGERBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 
 interface Annotation {
   id: string;
@@ -444,21 +449,27 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
 
   return (
     <div className="flex h-full w-full flex-col">
-      <div className="z-10 mb-4 flex flex-wrap items-center gap-2 border-b bg-white py-2">
+      <div className="z-10 mb-4 flex flex-wrap items-center gap-2 border-b-2 border-black bg-white py-2">
         <Button
           size="sm"
-          variant={currentTool === "text" ? "solid" : "bordered"}
           onClick={() => setCurrentTool("text")}
-          className="text-light-text"
+          className={
+            currentTool === "text"
+              ? PRIMARYBUTTONCLASSNAMES
+              : WHITEBUTTONCLASSNAMES
+          }
         >
           Add Text
         </Button>
 
         <Button
           size="sm"
-          variant={currentTool === "signature" ? "solid" : "bordered"}
           onClick={() => setCurrentTool("signature")}
-          color="warning"
+          className={
+            currentTool === "signature"
+              ? PRIMARYBUTTONCLASSNAMES
+              : WHITEBUTTONCLASSNAMES
+          }
         >
           Signature
         </Button>
@@ -466,24 +477,22 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
         <div className="mx-4 flex items-center gap-2">
           <Button
             size="sm"
-            variant="bordered"
             onClick={prevPage}
             disabled={currentPage <= 1}
-            className="text-light-text"
+            className={WHITEBUTTONCLASSNAMES}
           >
             Previous
           </Button>
 
-          <span className="text-sm">
+          <span className="text-sm text-black">
             Page {currentPage} of {totalPages}
           </span>
 
           <Button
             size="sm"
-            variant="bordered"
             onClick={nextPage}
             disabled={currentPage >= totalPages}
-            className="text-light-text"
+            className={WHITEBUTTONCLASSNAMES}
           >
             Next
           </Button>
@@ -491,29 +500,27 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
 
         <Button
           size="sm"
-          variant="bordered"
           onClick={clearCurrentPageAnnotations}
-          color="warning"
+          className={WHITEBUTTONCLASSNAMES}
         >
           Clear Page
         </Button>
 
         <Button
           size="sm"
-          variant="bordered"
           onClick={clearAnnotations}
-          color="danger"
+          className={DANGERBUTTONCLASSNAMES}
         >
           Clear All
         </Button>
       </div>
 
       <div className="relative flex flex-grow justify-center">
-        <div className="relative rounded border bg-gray-100 p-4">
+        <div className="relative rounded-md border-2 border-black bg-gray-100 p-4">
           {/* PDF Canvas */}
           <canvas
             ref={canvasRef}
-            className={`block bg-white shadow-lg ${
+            className={`block bg-white shadow-neo ${
               currentTool === "signature" ? "cursor-crosshair" : ""
             }`}
             onMouseDown={handleMouseDown}
@@ -543,7 +550,7 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
 
         {showTextInput && (
           <div
-            className="absolute z-30 rounded border bg-white p-3 shadow-lg"
+            className="absolute z-30 rounded-md border-2 border-black bg-white p-3 shadow-neo"
             style={{
               left: Math.min(inputPosition.x, window.innerWidth - 300),
               top: Math.min(inputPosition.y, window.innerHeight - 200),
@@ -551,14 +558,14 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
             }}
           >
             <div className="mb-2">
-              <label className="mb-1 block text-xs font-medium text-gray-700">
+              <label className="mb-1 block text-xs font-medium text-black">
                 Text Content:
               </label>
               <textarea
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder="Enter text"
-                className="w-full resize-none rounded border px-2 py-1 text-sm"
+                className="w-full resize-none rounded-md border-2 border-black px-2 py-1 text-sm"
                 rows={2}
                 autoFocus
               />
@@ -566,7 +573,7 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
 
             <div className="mb-2 grid grid-cols-2 gap-2">
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">
+                <label className="mb-1 block text-xs font-medium text-black">
                   Width:
                 </label>
                 <input
@@ -578,13 +585,13 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
                       width: parseInt(e.target.value) || 200,
                     }))
                   }
-                  className="w-full rounded border px-2 py-1 text-sm"
+                  className="w-full rounded-md border-2 border-black px-2 py-1 text-sm"
                   min="50"
                   max="500"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">
+                <label className="mb-1 block text-xs font-medium text-black">
                   Height:
                 </label>
                 <input
@@ -596,7 +603,7 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
                       height: parseInt(e.target.value) || 30,
                     }))
                   }
-                  className="w-full rounded border px-2 py-1 text-sm"
+                  className="w-full rounded-md border-2 border-black px-2 py-1 text-sm"
                   min="20"
                   max="100"
                 />
@@ -608,19 +615,18 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
                 size="sm"
                 onClick={addTextAnnotation}
                 disabled={!textInput.trim()}
-                className="flex-1"
+                className={`${PRIMARYBUTTONCLASSNAMES} flex-1`}
               >
                 Add Text
               </Button>
               <Button
                 size="sm"
-                variant="light"
+                className={`${WHITEBUTTONCLASSNAMES} flex-1`}
                 onClick={() => {
                   setShowTextInput(false);
                   setTextInput("");
                   setTextBoxSize({ width: 200, height: 30 });
                 }}
-                className="flex-1"
               >
                 Cancel
               </Button>

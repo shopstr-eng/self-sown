@@ -69,7 +69,7 @@ const Tabs = ({
               "relative z-20 flex h-10 w-full cursor-pointer select-none items-center  justify-center bg-transparent px-4 py-8 text-lg duration-200 transition-colors hover:bg-white/10",
               {
                 "text-light-text": !isActive, // Default color for non-active tabs
-                "font-bold text-light-text": isActive, // Color for active tabs
+                "text-light-text font-bold": isActive, // Color for active tabs
               }
             )}
             ref={(el) => (buttonRefs[i] = el)}
@@ -85,7 +85,7 @@ const Tabs = ({
       {selectedRect && navRect && (
         <motion.div
           className={
-            "absolute bottom-0 left-0.5 z-10 h-[5px] rounded-full bg-dark-bg"
+            "bg-dark-bg absolute bottom-0 left-0.5 z-10 h-[5px] rounded-full"
           }
           animate={{
             width: selectedRect.width * 0.2,

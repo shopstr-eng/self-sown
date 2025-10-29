@@ -15,7 +15,7 @@ import {
   Input,
   Button,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 const MyListingsFeed = () => {
   const router = useRouter();
@@ -139,25 +139,31 @@ const MyListingsFeed = () => {
         isOpen={showPasswordModal}
         onClose={handlePasswordModalClose}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          body: "py-6 bg-white",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          header: "border-b-4 border-black bg-white rounded-t-lg",
+          footer: "border-t-4 border-black bg-white rounded-b-lg",
+          closeButton: "hover:bg-gray-100 active:bg-gray-200",
+          base: "light border-4 border-black shadow-neo rounded-lg",
         }}
         scrollBehavior={"outside"}
         size="md"
         isDismissable={true}
       >
         <ModalContent>
-          <ModalHeader className="flex flex-col gap-1 text-dark-text">
-            Enter Listing Password
+          <ModalHeader className="flex flex-col gap-1 text-black">
+            <h3 className="text-xl font-bold">Enter Listing Password</h3>
           </ModalHeader>
           <ModalBody>
             <Input
-              className="text-dark-text"
+              classNames={{
+                input: "text-black font-medium",
+                inputWrapper:
+                  "border-2 border-black shadow-none bg-white rounded-md",
+                label: "text-black",
+              }}
               autoFocus
-              variant="flat"
+              variant="bordered"
               label="Password"
               labelPlacement="inside"
               type="password"
@@ -168,19 +174,21 @@ const MyListingsFeed = () => {
               errorMessage={passwordError}
             />
             {passwordError && (
-              <div className="mt-2 text-sm text-red-500">{passwordError}</div>
+              <div className="mt-2 text-sm font-bold text-red-500">
+                {passwordError}
+              </div>
             )}
           </ModalBody>
           <ModalFooter>
             <Button
-              color="danger"
+              className="font-bold text-black hover:underline"
               variant="light"
               onClick={handlePasswordModalClose}
             >
               Cancel
             </Button>
             <Button
-              className={`bg-gradient-to-tr text-white shadow-lg ${WHITEBUTTONCLASSNAMES}`}
+              className={`${BLUEBUTTONCLASSNAMES}`}
               onClick={handlePasswordSubmit}
               isDisabled={!passwordInput.trim()}
             >

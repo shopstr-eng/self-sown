@@ -8,6 +8,8 @@ import FailureModal from "./failure-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { AnimatePresence, motion } from "framer-motion";
 import { PhotoIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
+// Import your primary button style
+import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 // Maximum file size in bytes (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -261,7 +263,8 @@ export const FileUploaderButton = ({
         onDrop={handleDrop}
         className={`relative w-full duration-300 transition-all ${
           isPlaceholder
-            ? "flex h-full min-h-[250px] items-center justify-center rounded-xl border-2 border-dashed border-dark-text p-6"
+            ? // Updated placeholder styles
+              "flex h-full min-h-[250px] items-center justify-center rounded-md border-2 border-dashed border-black p-6"
             : !isDragging && "border-2 border-dashed border-transparent"
         }`}
       >
@@ -279,12 +282,15 @@ export const FileUploaderButton = ({
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.8, repeat: Infinity }}
             >
-              <PhotoIcon className="mb-4 h-16 w-16 text-dark-text" />
+              {/* Updated icon color */}
+              <PhotoIcon className="mb-4 h-16 w-16 text-black" />
             </motion.div>
-            <p className="text-xl font-semibold text-dark-text">
+            {/* Updated text color */}
+            <p className="text-xl font-semibold text-black">
               {isDragging ? "Drop to upload" : "Drag & Drop Images Here"}
             </p>
-            <p className="mt-1 text-center text-sm text-dark-text">
+            {/* Updated text color */}
+            <p className="mt-1 text-center text-sm text-black">
               {isPlaceholder && !isDragging
                 ? "Or click below to select files"
                 : "Supports JPEG, PNG, WebP"}
@@ -299,8 +305,9 @@ export const FileUploaderButton = ({
             onClick={handleClick}
             isIconOnly={isIconOnly}
             disabled={disabled || loading}
-            className={`${
-              isProductUpload && "w-full"
+            // Updated button styles
+            className={`${PRIMARYBUTTONCLASSNAMES} ${
+              isProductUpload ? "w-full" : ""
             } ${className} transition-all`}
             startContent={
               <motion.div
@@ -348,11 +355,13 @@ export const FileUploaderButton = ({
             className="w-full space-y-4"
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-default-700">
+              {/* Updated text color */}
+              <span className="text-sm font-medium text-black">
                 Uploading {previews.length} image
                 {previews.length > 1 ? "s" : ""}
               </span>
-              <span className="text-sm font-medium text-yellow-600">
+              {/* Updated text color */}
+              <span className="text-sm font-medium text-black">
                 {progress}%
               </span>
             </div>
@@ -360,13 +369,14 @@ export const FileUploaderButton = ({
               aria-label="Upload progress"
               size="md"
               value={progress}
-              color="warning"
               classNames={{
-                track: "h-3",
-                indicator: "bg-gradient-to-r from-pink-400 to-pink-600",
+                track: "h-3 rounded-md border-2 border-black bg-white",
+                // Updated progress bar color
+                indicator: "bg-primary-yellow",
               }}
             />
-            <div className="flex justify-between text-xs text-default-500">
+            {/* Updated text color */}
+            <div className="flex justify-between text-xs text-black">
               <span>Preprocessing{progress >= 30 ? " ✓" : ""}</span>
               <span>Uploading{progress >= 100 ? " ✓" : ""}</span>
               <span>Processing</span>

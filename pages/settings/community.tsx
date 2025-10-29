@@ -2,7 +2,6 @@
 
 import React, { useContext, useEffect, useState } from "react";
 import {
-  Divider,
   Button,
   Modal,
   ModalContent,
@@ -25,11 +24,14 @@ import {
 import CreateCommunityForm from "@/components/communities/CreateCommunityForm";
 import { Community } from "@/utils/types/types";
 import {
-  BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import FailureModal from "@/components/utility-components/failure-modal";
 import SuccessModal from "@/components/utility-components/success-modal";
+
+// Dev mode flag for localhost
+const IS_DEV_MODE = process.env.NODE_ENV === "development";
 
 const CommunityManagementPage = () => {
   const { signer, pubkey } = useContext(SignerContext);
@@ -138,7 +140,7 @@ const CommunityManagementPage = () => {
   };
 
   const handleCreateNewCommunity = () => {
-    if (isAuthenticated) {
+    if (IS_DEV_MODE || isAuthenticated) {
       setCommunityToEdit("new");
     } else {
       setShowPasswordModal(true);
@@ -187,22 +189,21 @@ const CommunityManagementPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg pt-24 md:pb-20">
-      <div className="mx-auto h-full w-full px-4 lg:w-1/2">
+    <div className="flex min-h-screen flex-col bg-white pt-24 md:pb-20">
+      <div className="mx-auto h-full w-full max-w-3xl px-4">
         <SettingsBreadCrumbs />
 
         {communityToEdit ? (
-          // Show the Form for Creating or Editing
-          <>
-            <h2 className="mb-2 text-2xl font-bold text-light-text">
+          // Neo-brutalist card container for form
+          <div className="rounded-md border-4 border-black bg-white p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="mb-2 text-3xl font-bold text-black">
               {communityToEdit === "new"
                 ? "Create Your Community"
                 : `Editing: ${communityToEdit.name}`}
             </h2>
-            <p className="mb-4 text-light-text/80">
+            <p className="mb-6 text-black/70">
               Create a space for your customers to gather and get updates.
             </p>
-            <Divider className="my-4" />
             <CreateCommunityForm
               existingCommunity={
                 communityToEdit === "new" ? null : communityToEdit
@@ -210,16 +211,16 @@ const CommunityManagementPage = () => {
               onSave={handleSave}
               onCancel={() => setCommunityToEdit(null)}
             />
-          </>
+          </div>
         ) : (
           // Show the List of Communities
           <>
             <div className="mb-6 flex w-full items-center justify-between">
-              <h2 className="text-2xl font-bold text-light-text">
+              <h2 className="text-3xl font-bold text-black">
                 Your Communities
               </h2>
               <Button
-                className={BLACKBUTTONCLASSNAMES}
+                className={BLUEBUTTONCLASSNAMES}
                 onClick={handleCreateNewCommunity}
               >
                 Create New
@@ -229,26 +230,26 @@ const CommunityManagementPage = () => {
             {isLoading && myCommunities.length === 0 ? (
               <MilkMarketSpinner label="Loading your communities..." />
             ) : myCommunities.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {myCommunities.map((community) => (
                   <div
                     key={community.id}
-                    className="flex items-center justify-between rounded-lg bg-dark-fg p-3"
+                    className="flex items-center justify-between rounded-md border-3 border-black bg-white p-4 shadow-neo"
                   >
-                    <span className="font-semibold text-dark-text">
+                    <span className="text-lg font-bold text-black">
                       {community.name}
                     </span>
                     <div className="flex gap-2">
                       <Button
                         size="sm"
+                        className={WHITEBUTTONCLASSNAMES}
                         onClick={() => setCommunityToEdit(community)}
                       >
                         Edit
                       </Button>
                       <Button
                         size="sm"
-                        color="danger"
-                        variant="flat"
+                        className="transform rounded-md border-2 border-black bg-red-500 px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                         onClick={() => handleDelete(community.id)}
                       >
                         Delete
@@ -258,9 +259,11 @@ const CommunityManagementPage = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-center text-light-text/80">
-                You haven&apos;t created any communities yet.
-              </p>
+              <div className="rounded-md border-4 border-black bg-white p-8 text-center shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-black/70">
+                  You haven&apos;t created any communities yet.
+                </p>
+              </div>
             )}
           </>
         )}
@@ -270,25 +273,32 @@ const CommunityManagementPage = () => {
           isOpen={showPasswordModal}
           onClose={handlePasswordModalClose}
           classNames={{
-            body: "py-6 bg-dark-fg",
+            body: "py-6 bg-white",
             backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-            header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-            footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+            header: "border-b-4 border-black bg-white rounded-t-md",
+            footer: "border-t-4 border-black bg-white rounded-b-md",
             closeButton: "hover:bg-black/5 active:bg-white/10",
+            wrapper: "items-center justify-center",
+            base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
           }}
           scrollBehavior={"outside"}
           size="md"
           isDismissable={true}
         >
           <ModalContent>
-            <ModalHeader className="flex flex-col gap-1 text-dark-text">
+            <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
               Enter Seller Password
             </ModalHeader>
             <ModalBody>
               <Input
-                className="text-dark-text"
+                className="text-black"
+                classNames={{
+                  input: "border-2 border-black",
+                  inputWrapper:
+                    "border-2 border-black shadow-neo bg-white rounded-md",
+                }}
                 autoFocus
-                variant="flat"
+                variant="bordered"
                 label="Password"
                 labelPlacement="inside"
                 type="password"
@@ -299,19 +309,20 @@ const CommunityManagementPage = () => {
                 errorMessage={passwordError}
               />
               {passwordError && (
-                <div className="mt-2 text-sm text-red-500">{passwordError}</div>
+                <div className="mt-2 text-sm font-semibold text-red-500">
+                  {passwordError}
+                </div>
               )}
             </ModalBody>
             <ModalFooter>
               <Button
-                color="danger"
-                variant="light"
+                className="transform rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                 onClick={handlePasswordModalClose}
               >
                 Cancel
               </Button>
               <Button
-                className={`bg-gradient-to-tr text-white shadow-lg ${WHITEBUTTONCLASSNAMES}`}
+                className={BLUEBUTTONCLASSNAMES}
                 onClick={handlePasswordSubmit}
                 isDisabled={!passwordInput.trim()}
               >

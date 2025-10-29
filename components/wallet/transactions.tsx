@@ -9,8 +9,6 @@ import {
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 import { Transaction } from "@/utils/types/types";
 
-// add found proofs as nutsack deposit with different icon
-
 const Transactions = () => {
   const [history, setHistory] = useState([]);
 
@@ -47,42 +45,55 @@ const Transactions = () => {
   };
 
   return (
-    <div className="relative mt-4 overflow-x-auto rounded-lg shadow-md">
-      <div className="max-h-[50vh]">
-        <table className="w-full min-w-[50vw] text-left text-sm text-gray-400">
-          <thead className="bg-dark-fg text-xs uppercase text-gray-400">
+    <div className="w-full">
+      <div className="max-h-[50vh] overflow-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="sticky top-0 border-b-2 border-white/20 bg-primary-blue text-xs uppercase text-white">
             <tr>
-              <th scope="col" className="px-6 py-3">
-                Type
+              <th scope="col" className="px-6 py-4 font-bold">
+                TYPE
               </th>
-              <th scope="col" className="px-6 py-3">
-                Amount
+              <th scope="col" className="px-6 py-4 font-bold">
+                AMOUNT
               </th>
-              <th scope="col" className="px-6 py-3">
-                Date
+              <th scope="col" className="px-6 py-4 font-bold">
+                DATE
               </th>
             </tr>
           </thead>
           <tbody>
-            {history.map((transaction: Transaction, index) => (
-              <tr key={index} className="border-gray-700 bg-gray-800">
-                <td className="flex items-center px-6 py-4">
-                  {transaction.type === 1 ? (
-                    <ArrowDownTrayIcon className="mr-2 h-5 w-5 text-green-500" />
-                  ) : transaction.type === 2 ? (
-                    <ArrowUpTrayIcon className="mr-2 h-5 w-5 text-red-500" />
-                  ) : transaction.type === 3 ? (
-                    <BanknotesIcon className="mr-2 h-5 w-5 text-green-500" />
-                  ) : transaction.type === 4 ? (
-                    <BoltIcon className="mr-2 h-5 w-5 text-red-500" />
-                  ) : transaction.type === 5 ? (
-                    <ShoppingBagIcon className="mr-2 h-5 w-5 text-dark-text" />
-                  ) : null}
+            {history.length > 0 ? (
+              history.map((transaction: Transaction, index) => (
+                <tr
+                  key={index}
+                  className="border-b border-white/10 bg-primary-blue text-white transition-colors hover:bg-primary-blue/90"
+                >
+                  <td className="flex items-center px-6 py-4">
+                    {transaction.type === 1 ? (
+                      <ArrowDownTrayIcon className="mr-2 h-5 w-5 text-green-400" />
+                    ) : transaction.type === 2 ? (
+                      <ArrowUpTrayIcon className="mr-2 h-5 w-5 text-red-400" />
+                    ) : transaction.type === 3 ? (
+                      <BanknotesIcon className="mr-2 h-5 w-5 text-green-400" />
+                    ) : transaction.type === 4 ? (
+                      <BoltIcon className="mr-2 h-5 w-5 text-red-400" />
+                    ) : transaction.type === 5 ? (
+                      <ShoppingBagIcon className="mr-2 h-5 w-5 text-white" />
+                    ) : null}
+                  </td>
+                  <td className="px-6 py-4">{transaction.amount} sats</td>
+                  <td className="px-6 py-4 text-sm">
+                    {formatDate(transaction.date)}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={3} className="px-6 py-8 text-center text-white/70">
+                  No transactions yet.
                 </td>
-                <td className="px-6 py-4">{transaction.amount} sats</td>
-                <td className="px-6 py-4">{formatDate(transaction.date)}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

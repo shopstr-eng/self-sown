@@ -15,20 +15,20 @@ const MilkMarketSwitch = ({
   };
 
   return (
-    <div className="flex items-center p-2">
+    <div className="flex items-center gap-2 p-2">
       <Switch
-        size={"lg"}
-        color={"warning"}
+        size="lg"
+        isSelected={wotFilter}
+        onValueChange={setWotFilter}
         classNames={{
-          wrapper: "bg-dark-fg",
-        }}
-        onClick={() => {
-          setWotFilter(!wotFilter);
+          wrapper: "bg-gray-300 group-data-[selected=true]:bg-primary-yellow",
+          thumb:
+            "bg-white border-2 border-black group-data-[selected=true]:border-black shadow-neo",
         }}
       />
       <span>
         <p
-          className="text-light-text hover:underline"
+          className="cursor-pointer whitespace-nowrap font-bold text-black hover:underline"
           onClick={handleTrustClick}
         >
           Trust

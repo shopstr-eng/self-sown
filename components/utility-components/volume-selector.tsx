@@ -21,36 +21,50 @@ export default function VolumeSelector({
   if (!volumes || volumes.length === 0) return null;
 
   return (
-    <Select
-      variant="bordered"
-      aria-label="Volume"
-      label={<span className="text-light-text">Select Volume</span>}
-      labelPlacement="inside"
-      selectedKeys={selectedVolume ? new Set([selectedVolume]) : new Set()}
-      onSelectionChange={(keys) => {
-        const selectedKey = Array.from(keys)[0] as string;
-        if (selectedKey) {
-          onVolumeChange(selectedKey);
+    <div className="w-full">
+      <Select
+        variant="bordered"
+        aria-label="Volume"
+        label={
+          <span className="font-semibold text-black">Select Volume *</span>
         }
-      }}
-      isRequired={isRequired}
-      className="mb-4 w-full text-dark-text md:w-1/2"
-    >
-      <SelectSection className=":text-dark-text">
-        {volumes.map((volume) => {
-          const price = volumePrices.get(volume) || 0;
-          return (
-            <SelectItem
-              key={volume}
-              value={volume}
-              textValue={`${volume} - ${price} ${currency}`}
-              className="text-dark-text"
-            >
-              {volume} - {price} {currency}
-            </SelectItem>
-          );
-        })}
-      </SelectSection>
-    </Select>
+        labelPlacement="outside"
+        placeholder="Choose a volume"
+        selectedKeys={selectedVolume ? new Set([selectedVolume]) : new Set()}
+        onSelectionChange={(keys) => {
+          const selectedKey = Array.from(keys)[0] as string;
+          if (selectedKey) {
+            onVolumeChange(selectedKey);
+          }
+        }}
+        isRequired={isRequired}
+        className="w-full"
+        classNames={{
+          trigger:
+            "border-2 border-black rounded-md shadow-neo bg-white hover:bg-gray-50 data-[hover=true]:bg-gray-50",
+          value: "text-black font-semibold",
+          label: "text-black font-semibold",
+          listboxWrapper: "border-2 border-black rounded-md",
+          popoverContent:
+            "border-2 border-black rounded-md shadow-neo bg-white",
+        }}
+      >
+        <SelectSection>
+          {volumes.map((volume) => {
+            const price = volumePrices.get(volume) || 0;
+            return (
+              <SelectItem
+                key={volume}
+                value={volume}
+                textValue={`${volume} - ${price} ${currency}`}
+                className="font-semibold text-black hover:bg-primary-yellow data-[hover=true]:bg-primary-yellow data-[selected=true]:bg-primary-yellow"
+              >
+                {volume} - {price} {currency}
+              </SelectItem>
+            );
+          })}
+        </SelectSection>
+      </Select>
+    </div>
   );
 }

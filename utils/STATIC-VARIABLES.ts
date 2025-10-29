@@ -30,11 +30,19 @@ export const SHIPPING_OPTIONS = [
   "N/A",
 ];
 
-export const BLACKBUTTONCLASSNAMES =
-  "text-dark-text shadow-lg bg-gradient-to-tr min-w-fit from-dark-bg via-dark-fg to-dark-bg";
+// Base styles for all neo-brutalist buttons with slight rounded corners
+const NEO_BUTTON_BASE =
+  "px-4 py-2 border-2 border-black font-bold shadow-neo hover:-translate-y-0.5 active:translate-y-0.5 transform transition-transform rounded-md";
 
-export const WHITEBUTTONCLASSNAMES =
-  "text-light-text shadow-lg bg-light-bg min-w-fit";
+export const BLACKBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-black text-white`;
+
+export const WHITEBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-white text-black`;
+
+export const PRIMARYBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-yellow text-black`;
+
+export const BLUEBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-blue text-white`;
+
+export const DANGERBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-red-500 text-white`;
 
 export const PREVNEXTBUTTONSTYLES =
-  "absolute z-10 top-1/2 transform -translate-y-1/2 p-2 bg-neutral-800 bg-opacity-60 rounded-full shadow-md hover:bg-opacity-90 transition duration-200";
+  "absolute top-1/2 -translate-y-1/2 z-10 p-2 bg-white border-2 border-black rounded-md shadow-neo hover:-translate-y-1/2 hover:scale-105 active:scale-100 transform transition-transform";

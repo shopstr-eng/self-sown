@@ -47,7 +47,7 @@ const HomeFeed = ({
   return (
     <>
       {focusedPubkey && shopBannerURL && !isFetchingShop && (
-        <div className="flex h-auto w-full items-center justify-center bg-light-bg bg-cover bg-center">
+        <div className="flex h-auto w-full items-center justify-center bg-white bg-cover bg-center">
           <img
             src={sanitizeUrl(shopBannerURL)}
             alt="Shop Banner"
@@ -55,7 +55,7 @@ const HomeFeed = ({
           />
         </div>
       )}
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col bg-white">
         <div className="flex min-h-screen flex-1">
           <MarketplacePage
             focusedPubkey={focusedPubkey}

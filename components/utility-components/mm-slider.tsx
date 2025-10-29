@@ -3,7 +3,7 @@ import { Button } from "@nextui-org/react";
 import { Slider } from "@nextui-org/react";
 import { FollowsContext } from "../../utils/context/context";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 const MilkMarketSlider = () => {
   const followsContext = useContext(FollowsContext);
@@ -26,17 +26,22 @@ const MilkMarketSlider = () => {
         <Slider
           size="sm"
           step={1}
-          color={"warning"}
           label="Minimum Follower Count:"
           showSteps={true}
           maxValue={
             !followsContext.isLoading && followsContext.firstDegreeFollowsLength
               ? followsContext.firstDegreeFollowsLength
-              : wot
+              : wot > 1
+                ? wot
+                : 2
           }
           minValue={1}
           defaultValue={wot}
-          className="max-w-md text-light-text"
+          className="max-w-md"
+          classNames={{
+            thumb: "bg-primary-blue",
+            filler: "bg-primary-blue",
+          }}
           onChangeEnd={(value) => {
             if (Array.isArray(value)) {
               setWot(value[0]!);
@@ -48,8 +53,8 @@ const MilkMarketSlider = () => {
         />
       </div>
       {wotIsChanged && (
-        <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
-          <Button className={BLACKBUTTONCLASSNAMES} onClick={refreshPage}>
+        <div className="bg-light-bg flex h-fit flex-row justify-between px-3 py-[15px]">
+          <Button className={BLUEBUTTONCLASSNAMES} onClick={refreshPage}>
             Refresh to Apply
           </Button>
         </div>
