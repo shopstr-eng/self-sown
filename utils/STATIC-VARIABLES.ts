@@ -1,7 +1,8 @@
 export const CATEGORIES = [
   "Milk",
   "Cheese",
-  "Herdshare",
+  "Beef",
+  "Eggs",
   "Yogurt",
   "Butter",
   "Ghee",
@@ -11,6 +12,8 @@ export const CATEGORIES = [
   "Food",
   "Cow",
   "Goat",
+  "Herdshare",
+  "Bundle",
 ];
 
 export type ShippingOptionsType =

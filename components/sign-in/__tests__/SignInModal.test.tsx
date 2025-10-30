@@ -70,7 +70,9 @@ describe("SignInModal", () => {
     const { user, push } = renderModal();
     const btn = screen.getAllByRole("button", { name: /sign up/i })[0];
     await user.click(btn);
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/onboarding/keys"));
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith("/onboarding/new-account")
+    );
   });
 
   describe("Extension Sign-in", () => {

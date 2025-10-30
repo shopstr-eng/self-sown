@@ -42,7 +42,8 @@ const OnboardingShopProfile = () => {
 
             <div className="flex justify-center">
               <Button className={WHITEBUTTONCLASSNAMES} onClick={handleFinish}>
-                Finish <ArrowLeftEndOnRectangleIcon className="h-5 w-5" />
+                Finish (or skip){" "}
+                <ArrowLeftEndOnRectangleIcon className="h-5 w-5" />
               </Button>
             </div>
           </CardBody>

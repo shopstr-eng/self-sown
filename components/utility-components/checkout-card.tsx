@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useRef } from "react";
 import { nip19 } from "nostr-tools";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { ProfileWithDropdown } from "./profile/profile-dropdown";
@@ -9,7 +9,12 @@ import ProductInvoiceCard from "../product-invoice-card";
 import { useRouter } from "next/router";
 import { Button, Chip, useDisclosure } from "@nextui-org/react";
 import { locationAvatar } from "./dropdowns/location-dropdown";
-import { FaceFrownIcon, FaceSmileIcon } from "@heroicons/react/24/outline";
+import {
+  FaceFrownIcon,
+  FaceSmileIcon,
+  ArrowLongDownIcon,
+  ArrowLongUpIcon,
+} from "@heroicons/react/24/outline";
 import { ReviewsContext } from "@/utils/context/context";
 import FailureModal from "../utility-components/failure-modal";
 import SuccessModal from "../utility-components/success-modal";
@@ -45,8 +50,9 @@ export default function CheckoutCard({
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBeingPaid, setIsBeingPaid] = useState(false);
+  const [visibleImages, setVisibleImages] = useState<string[]>([]);
+  const [showAllImages, setShowAllImages] = useState(false);
   const [selectedImage, setSelectedImage] = useState(productData.images[0]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     undefined
   );
@@ -70,6 +76,8 @@ export default function CheckoutCard({
   const [currentPrice, setCurrentPrice] = useState(productData.price);
 
   const reviewsContext = useContext(ReviewsContext);
+
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const hasVolumes = productData.volumes && productData.volumes.length > 0;
   const hasWeights = productData.weights && productData.weights.length > 0;
@@ -106,6 +114,29 @@ export default function CheckoutCard({
     }
     return `${productData.summary.slice(0, SUMMARY_CHARACTER_LIMIT)}...`;
   };
+
+  const calculateVisibleImages = (containerHeight: number) => {
+    const imageHeight = containerHeight / 3; // You can adjust this '3' if needed
+    const visibleCount = Math.max(3, Math.floor(containerHeight / imageHeight));
+    setVisibleImages(productData.images.slice(0, visibleCount));
+  };
+
+  useEffect(() => {
+    if (containerRef.current) {
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          calculateVisibleImages(entry.contentRect.height);
+        }
+      });
+
+      resizeObserver.observe(containerRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+    return;
+  }, [selectedImage, isBeingPaid]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -298,11 +329,6 @@ export default function CheckoutCard({
     );
   };
 
-  const handleImageSelect = (image: string, index: number) => {
-    setSelectedImage(image);
-    setSelectedImageIndex(index);
-  };
-
   // Create updated product data with selected volume or weight price
   const updatedProductData = {
     ...productData,
@@ -317,35 +343,59 @@ export default function CheckoutCard({
           <>
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               {/* LEFT COLUMN - Image Gallery */}
-              <div className="flex flex-col gap-4">
-                {/* Main Image */}
-                <div className="rounded-md border-2 border-black bg-white p-4 shadow-neo">
-                  <img
-                    src={selectedImage}
-                    alt="Selected product image"
-                    className="w-full rounded-md object-cover"
-                    style={{ aspectRatio: "1 / 1" }}
-                  />
+              <div className="flex w-full flex-row gap-4">
+                {/* Vertical Thumbnails */}
+                <div className="flex w-1/4 flex-col gap-2">
+                  <div ref={containerRef} className="flex-1 overflow-hidden">
+                    <div
+                      className={`flex flex-col space-y-2 ${
+                        showAllImages ? "overflow-y-auto" : ""
+                      }`}
+                    >
+                      {(showAllImages
+                        ? productData.images
+                        : visibleImages
+                      ).map((image, index) => (
+                        <img
+                          key={index}
+                          src={image}
+                          alt={`Product image ${index + 1}`}
+                          className={`w-full cursor-pointer rounded-md object-cover ${
+                            image === selectedImage
+                              ? "border-2 border-primary-yellow"
+                              : "border-2 border-transparent"
+                          }`}
+                          style={{ aspectRatio: "1 / 1" }}
+                          onClick={() => setSelectedImage(image)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  {productData.images.length > 3 && (
+                    <button
+                      onClick={() => setShowAllImages(!showAllImages)}
+                      className="flex flex-col items-center rounded-md border-2 border-black bg-white py-1 shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+                    >
+                      {showAllImages ? (
+                        <ArrowLongUpIcon className="h-5 w-5" />
+                      ) : (
+                        <ArrowLongDownIcon className="h-5 w-5" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
-                {/* Thumbnail Tabs */}
-                {productData.images.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {productData.images.map((image, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleImageSelect(image, index)}
-                        className={`flex-shrink-0 rounded-md border-2 border-black bg-white px-4 py-2 font-bold shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                          selectedImageIndex === index
-                            ? "bg-primary-yellow"
-                            : "bg-white"
-                        }`}
-                      >
-                        View {index + 1}
-                      </button>
-                    ))}
+                {/* Main Image */}
+                <div className="w-3/4">
+                  <div className="rounded-md border-2 border-black bg-white p-4 shadow-neo">
+                    <img
+                      src={selectedImage}
+                      alt="Selected product image"
+                      className="w-full rounded-md object-cover"
+                      style={{ aspectRatio: "1 / 1" }}
+                    />
                   </div>
-                )}
+                </div>
               </div>
 
               {/* RIGHT COLUMN - Product Details */}

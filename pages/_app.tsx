@@ -617,6 +617,65 @@ function MilkMarket({ props }: { props: AppProps }) {
           });
       });
     }
+
+    // Track UTM parameters on initial load
+    const trackUTMParameters = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const utm_source = urlParams.get("utm_source");
+      const utm_medium = urlParams.get("utm_medium");
+      const utm_campaign = urlParams.get("utm_campaign");
+      const utm_term = urlParams.get("utm_term");
+      const utm_content = urlParams.get("utm_content");
+
+      // Only track if at least one UTM parameter is present
+      if (utm_source || utm_medium || utm_campaign || utm_term || utm_content) {
+        try {
+          const response = await fetch("/api/utm-tracking", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              utm_source,
+              utm_medium,
+              utm_campaign,
+              utm_term,
+              utm_content,
+              referrer: document.referrer,
+              user_agent: navigator.userAgent,
+            }),
+          });
+
+          if (response.ok) {
+            // Only mark as tracked if the API call succeeded
+            sessionStorage.setItem("utm_tracked", "true");
+
+            // Clean up URL by removing UTM parameters
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete("utm_source");
+            cleanUrl.searchParams.delete("utm_medium");
+            cleanUrl.searchParams.delete("utm_campaign");
+            cleanUrl.searchParams.delete("utm_term");
+            cleanUrl.searchParams.delete("utm_content");
+
+            // Update the URL without reloading the page
+            window.history.replaceState({}, "", cleanUrl.toString());
+          } else {
+            console.error(
+              "Failed to track UTM parameters: API returned",
+              response.status
+            );
+          }
+        } catch (error) {
+          console.error("Failed to track UTM parameters:", error);
+        }
+      }
+    };
+
+    // Only track once per session
+    if (!sessionStorage.getItem("utm_tracked")) {
+      trackUTMParameters();
+    }
   }, []);
 
   return (

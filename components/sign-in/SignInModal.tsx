@@ -49,6 +49,8 @@ export default function SignInModal({
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
+  const [showNostrOptions, setShowNostrOptions] = useState(false);
+
   const relaysContext = useContext(RelaysContext);
 
   const router = useRouter();
@@ -177,6 +179,7 @@ export default function SignInModal({
           setShowNsecSignIn(false);
           setPrivateKey("");
           setPassphrase("");
+          setShowNostrOptions(false);
           onClose();
         }}
         classNames={{
@@ -195,32 +198,66 @@ export default function SignInModal({
       >
         <ModalContent>
           <ModalBody className="flex flex-col overflow-hidden text-black">
-            <div className="flex flex-col gap-6 md:flex-row">
-              <div className="hidden basis-1/2 flex-col justify-between md:flex">
-                <div className="flex-shrink-0">
+            {!showNostrOptions ? (
+              // Initial landing view - Your neobrutalist styled version
+              <div className="flex flex-col items-center justify-center space-y-6 py-8">
+                <div className="flex items-center justify-center">
+                  <Image
+                    alt="Milk Market logo"
+                    height={80}
+                    radius="sm"
+                    src="/milk-market.png"
+                    width={80}
+                  />
+                  <h1 className="ml-3 text-4xl font-bold text-black">
+                    Milk Market
+                  </h1>
+                </div>
+                
+                {/* Signup image */}
+                <div className="w-full max-w-md">
                   <Image
                     src="signup.png"
                     alt="sign up"
                     className="w-full"
-                  ></Image>
+                  />
                 </div>
-                <div className="mt-4 flex items-center gap-4">
-                  <div className="flex-1">
-                    <p className="font-bold text-black">New to Milk Market?</p>
-                    <p className="text-sm text-black">
+
+                {/* Action buttons */}
+                <div className="flex w-full max-w-md flex-col space-y-4">
+                  <div className="text-center">
+                    <p className="mb-2 text-lg font-bold text-black">
+                      New to Milk Market?
+                    </p>
+                    <p className="mb-4 text-sm text-black">
                       Sign up to get started!
                     </p>
                   </div>
+                  
                   <Button
-                    className={`${WHITEBUTTONCLASSNAMES} flex-shrink-0`}
+                    className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
                     onClick={handleGenerateKeys}
+                    size="lg"
                   >
                     Sign Up
                   </Button>
+                  
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+                  
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
+                    onClick={() => setShowNostrOptions(true)}
+                    size="lg"
+                  >
+                    Sign In with Nostr
+                  </Button>
                 </div>
               </div>
-
-              <div className="flex w-full flex-col md:basis-1/2 md:border-l-2 md:border-black md:pl-6">
+            ) : (
+              // Nostr sign-in options view
+              <div className="flex w-full flex-col">
                 <div className="space-y-3">
                   <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
@@ -234,15 +271,19 @@ export default function SignInModal({
                       Milk Market
                     </div>
                   </div>
+                  
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
                     onClick={startExtensionLogin}
                   >
                     Extension Sign-in
                   </Button>
+                  
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------
                   </div>
+                  
+                  {/* Bunker Sign-in */}
                   <div className="flex flex-col">
                     <div className="">
                       <Button
@@ -299,10 +340,13 @@ export default function SignInModal({
                       </div>
                     </div>
                   </div>
+                  
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------
                   </div>
                 </div>
+                
+                {/* nsec Sign-in */}
                 <div className="flex flex-col">
                   <div className="">
                     <Button
@@ -377,31 +421,8 @@ export default function SignInModal({
                     </div>
                   </div>
                 </div>
-                <div className="mt-6 flex flex-col border-t-2 border-black pt-6 md:hidden">
-                  <div className="mb-3">
-                    <Image
-                      src="signup.png"
-                      alt="sign up"
-                      className="mx-auto w-full max-w-xs"
-                    ></Image>
-                  </div>
-                  <div className="text-center">
-                    <p className="mb-1 font-bold text-black">
-                      New to Milk Market?
-                    </p>
-                    <p className="mb-3 text-sm text-black">
-                      Sign up to get started!
-                    </p>
-                    <Button
-                      className={`${WHITEBUTTONCLASSNAMES} w-full`}
-                      onClick={handleGenerateKeys}
-                    >
-                      Sign Up
-                    </Button>
-                  </div>
-                </div>
               </div>
-            </div>
+            )}
           </ModalBody>
         </ModalContent>
       </Modal>
