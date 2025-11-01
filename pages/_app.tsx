@@ -620,6 +620,11 @@ function MilkMarket({ props }: { props: AppProps }) {
 
     // Track UTM parameters on initial load
     const trackUTMParameters = async () => {
+      // Check session storage first
+      if (sessionStorage.getItem("utm_tracked")) {
+        return;
+      }
+
       const urlParams = new URLSearchParams(window.location.search);
       const utm_source = urlParams.get("utm_source");
       const utm_medium = urlParams.get("utm_medium");
@@ -661,9 +666,11 @@ function MilkMarket({ props }: { props: AppProps }) {
             // Update the URL without reloading the page
             window.history.replaceState({}, "", cleanUrl.toString());
           } else {
+            const errorData = await response.json();
             console.error(
               "Failed to track UTM parameters: API returned",
-              response.status
+              response.status,
+              errorData
             );
           }
         } catch (error) {
@@ -672,10 +679,12 @@ function MilkMarket({ props }: { props: AppProps }) {
       }
     };
 
-    // Only track once per session
-    if (!sessionStorage.getItem("utm_tracked")) {
+    // Run tracking after a short delay to ensure page is fully loaded
+    const timeoutId = setTimeout(() => {
       trackUTMParameters();
-    }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (
