@@ -202,25 +202,6 @@ export default function StandaloneLanding() {
         {/* Plus Pattern Background */}
         <PlusPattern />
 
-        {/* Floating Decorative elements - Top Left */}
-        <div className="animate-float-slow pointer-events-none absolute left-8 top-16 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute left-8 top-0 h-4 w-4 rounded-full bg-gray-400"></div>
-            <div className="absolute left-12 top-2 h-3 w-3 rounded-full bg-gray-400"></div>
-            <div className="absolute left-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute left-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-          </div>
-        </div>
-
-        {/* Floating Decorative elements - Bottom Right */}
-        <div className="animate-float-medium pointer-events-none absolute bottom-16 right-8 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute right-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute right-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute bottom-0 right-12 h-3 w-3 rounded-full bg-gray-400"></div>
-          </div>
-        </div>
-
         <div className="relative z-10 mx-auto max-w-5xl text-center">
           <div className="mb-6 flex justify-center space-x-4">
             <span className="text-4xl">🐄</span>
@@ -340,25 +321,6 @@ export default function StandaloneLanding() {
       >
         {/* Plus Pattern Background */}
         <PlusPattern />
-
-        {/* Floating Decorative elements - Top Left */}
-        <div className="animate-float-fast pointer-events-none absolute left-8 top-16 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute left-8 top-0 h-4 w-4 rounded-full bg-gray-400"></div>
-            <div className="absolute left-12 top-2 h-3 w-3 rounded-full bg-gray-400"></div>
-            <div className="absolute left-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute left-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-          </div>
-        </div>
-
-        {/* Floating Decorative elements - Bottom Right */}
-        <div className="animate-float-slow pointer-events-none absolute bottom-16 right-8 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute right-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute right-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute bottom-0 right-12 h-3 w-3 rounded-full bg-gray-400"></div>
-          </div>
-        </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
@@ -520,25 +482,6 @@ export default function StandaloneLanding() {
         {/* Plus Pattern Background */}
         <PlusPattern />
 
-        {/* Floating Decorative elements - Top Left */}
-        <div className="animate-float-medium pointer-events-none absolute left-8 top-16 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute left-8 top-0 h-4 w-4 rounded-full bg-gray-400"></div>
-            <div className="absolute left-12 top-2 h-3 w-3 rounded-full bg-gray-400"></div>
-            <div className="absolute left-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute left-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-          </div>
-        </div>
-
-        {/* Floating Decorative elements - Bottom Right */}
-        <div className="animate-float-fast pointer-events-none absolute bottom-16 right-8 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute right-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute right-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute bottom-0 right-12 h-3 w-3 rounded-full bg-gray-400"></div>
-          </div>
-        </div>
-
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-black md:text-5xl">
@@ -641,25 +584,6 @@ export default function StandaloneLanding() {
       >
         {/* Plus Pattern Background */}
         <PlusPattern />
-
-        {/* Floating Decorative elements - Top Left */}
-        <div className="animate-float-slow pointer-events-none absolute left-8 top-16 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute left-8 top-0 h-4 w-4 rounded-full bg-gray-400"></div>
-            <div className="absolute left-12 top-2 h-3 w-3 rounded-full bg-gray-400"></div>
-            <div className="absolute left-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute left-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-          </div>
-        </div>
-
-        {/* Floating Decorative elements - Bottom Right */}
-        <div className="animate-float-medium pointer-events-none absolute bottom-16 right-8 opacity-20">
-          <div className="relative h-32 w-32">
-            <div className="absolute right-4 top-12 h-20 w-20 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute right-0 top-8 h-24 w-24 rounded-full border-8 border-gray-400"></div>
-            <div className="absolute bottom-0 right-12 h-3 w-3 rounded-full bg-gray-400"></div>
-          </div>
-        </div>
 
         <div className="relative z-10 mx-auto max-w-2xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="mb-6 text-4xl font-black md:text-5xl">Stay Milky</h2>
@@ -964,7 +888,7 @@ export default function StandaloneLanding() {
                 />
               </a>
             </div>
-            <p className="text-zinc-500">© 2025 Shopstr Markets Inc.</p>
+            <p className="text-zinc-500">© 2025 Milk Market LLC</p>
           </div>
         </div>
       </footer>
