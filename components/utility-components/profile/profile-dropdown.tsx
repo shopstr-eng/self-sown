@@ -57,7 +57,6 @@ export const ProfileWithDropdown = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const {
     isOpen: isDropdownOpen,
-    onOpen: onDropdownOpen,
     onClose: onDropdownClose,
     onOpenChange: onDropdownOpenChange,
   } = useDisclosure();
