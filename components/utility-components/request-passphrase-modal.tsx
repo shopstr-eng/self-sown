@@ -8,7 +8,7 @@ import {
   Input,
   Button,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { useRouter } from "next/router";
 
 export default function PassphraseChallengeModal({
@@ -23,7 +23,7 @@ export default function PassphraseChallengeModal({
   actionOnCancel?: () => void;
   isOpen: boolean;
   setIsOpen: (value: boolean) => void;
-  onCancelRouteTo?: string; // route to go to on cancel
+  onCancelRouteTo?: string;
   error?: Error;
 }) {
   const [remindToggled, setRemindToggled] = useState(false);
@@ -59,59 +59,76 @@ export default function PassphraseChallengeModal({
       isOpen={isOpen}
       onClose={onCancel}
       classNames={{
-        body: "py-6 bg-dark-fg",
-        backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-        header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-        footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-        closeButton: "hover:bg-black/5 active:bg-white/10",
+        body: "py-6 bg-white",
+        backdrop: "bg-black/50 backdrop-opacity-60",
+        header: "border-b-2 border-black bg-white rounded-t-md",
+        footer: "border-t-2 border-black bg-white rounded-b-md",
+        closeButton: "hover:bg-gray-100 active:bg-gray-200 text-black",
+        wrapper: "items-center justify-center",
+        base: "border-2 border-black shadow-neo rounded-md",
       }}
       scrollBehavior={"outside"}
       size="2xl"
       isDismissable={false}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 text-dark-text">
-          Enter Passphrase
+        <ModalHeader className="flex flex-col gap-1">
+          <h2 className="text-2xl font-bold text-black">Enter Passphrase</h2>
         </ModalHeader>
         <ModalBody>
           <Input
-            className="text-dark-text"
             autoFocus
             ref={passphraseInputRef}
-            variant="flat"
-            label="Passphrase"
-            labelPlacement="inside"
+            variant="bordered"
+            label={<span className="font-semibold text-black">Passphrase</span>}
+            labelPlacement="outside"
+            placeholder="Enter your passphrase"
             type="password"
             onChange={(e) => setPassphraseInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") onSubmit();
             }}
             value={passphraseInput}
+            classNames={{
+              input: "text-black font-semibold placeholder:text-gray-400",
+              label: "text-black font-semibold",
+              inputWrapper:
+                "border-2 border-black rounded-md shadow-neo bg-white hover:bg-gray-50 data-[hover=true]:bg-gray-50",
+            }}
           />
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-4 flex items-center gap-3">
             <input
               type="checkbox"
               checked={remindToggled}
               onChange={() => setRemindToggled(!remindToggled)}
+              className="h-5 w-5 cursor-pointer rounded border-2 border-black accent-primary-yellow"
             />
-            <label className="text-dark-text">
+            <label className="cursor-pointer text-sm font-semibold text-black">
               Remember passphrase for this session
             </label>
           </div>
           {error && (
-            <div className="mt-2 text-sm text-red-500">{error.message}</div>
+            <div className="mt-3 rounded-md border-2 border-red-500 bg-red-50 p-3">
+              <p className="text-sm font-semibold text-red-600">
+                {error.message}
+              </p>
+            </div>
           )}
         </ModalBody>
 
-        <ModalFooter>
-          <Button color="danger" variant="light" onClick={onCancel}>
+        <ModalFooter className="gap-3">
+          <Button
+            className="rounded-md border-2 border-black bg-red-500 px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+            onClick={onCancel}
+          >
             Cancel
           </Button>
 
           <Button
-            className={WHITEBUTTONCLASSNAMES}
+            className={PRIMARYBUTTONCLASSNAMES}
             type="submit"
             onClick={onSubmit}
+            isDisabled={isButtonDisabled}
           >
             Submit
           </Button>

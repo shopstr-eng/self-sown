@@ -13,18 +13,23 @@ const config: Config = {
   theme: {
     extend: {
       backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        // Add a background grid pattern for the hero section
+        "grid-pattern": "url('/grid.svg')",
       },
+      // Define the new neo-brutalist color palette
       colors: {
-        "dark-bg": "#000000",
-        "dark-fg": "#1f1f1f",
-        "light-bg": "#ffffff",
-        "dark-text": "#ffffff",
-        "accent-dark-text": "#80807d",
-        "light-text": "#000000",
-        "accent-light-text": "#e1e1e0",
+        "primary-yellow": "#FFD23F",
+        "primary-blue": "#1E293B",
+        black: "#000000",
+        white: "#FFFFFF",
+      },
+      // Define the hard-edged shadow for buttons and cards
+      boxShadow: {
+        neo: "4px 4px 0px #000000",
+      },
+      // Add a modern, bold font suitable for the design
+      fontFamily: {
+        sans: ["Poppins", "sans-serif"],
       },
     },
   },

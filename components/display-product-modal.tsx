@@ -18,7 +18,11 @@ import ProductForm from "./product-form";
 import ImageCarousel from "./utility-components/image-carousel";
 import CompactCategories from "./utility-components/compact-categories";
 import { locationAvatar } from "./utility-components/dropdowns/location-dropdown";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+// Import the new DANGERBUTTONCLASSNAMES
+import {
+  WHITEBUTTONCLASSNAMES,
+  DANGERBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import SuccessModal from "./utility-components/success-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
@@ -101,37 +105,46 @@ export default function DisplayProductModal({
         isOpen={showModal}
         onClose={handleModalToggle}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          // Updated modal styles
+          wrapper: "shadow-neo", // Apply shadow to the modal wrapper
+          base: "border-2 border-black rounded-md",
+          body: "py-6 bg-white",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          header: "border-b-2 border-black bg-white rounded-t-md text-black",
+          footer: "border-t-2 border-black bg-white rounded-b-md",
+          closeButton:
+            "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
         }}
         isDismissable={false}
         scrollBehavior={"outside"}
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="flex flex-col text-dark-text">
+          {/* Updated text color */}
+          <ModalHeader className="flex flex-col text-black">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-dark-text">
+              {/* Updated text color */}
+              <h2 className="text-2xl font-bold text-black">
                 {productData.title}
               </h2>
               <div>
+                {/* Updated "Active" chip styles */}
                 {productData.status === "active" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-green-900 px-2 py-0.5 text-xs font-medium text-green-300">
+                  <span className="inline-flex items-center gap-1 rounded-md border-2 border-black bg-green-400 px-2 py-0.5 text-xs font-bold text-black">
                     Active
                   </span>
                 )}
+                {/* Updated "Sold" chip styles */}
                 {productData.status === "sold" && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-red-900 px-2 py-0.5 text-xs font-medium text-red-300">
+                  <span className="inline-flex items-center gap-1 rounded-md border-2 border-black bg-red-400 px-2 py-0.5 text-xs font-bold text-black">
                     Sold
                   </span>
                 )}
               </div>
             </div>
           </ModalHeader>
-          <ModalBody className="text-dark-text">
+          {/* Updated text color */}
+          <ModalBody className="text-black">
             {productData.images ? (
               <ImageCarousel
                 images={productData.images}
@@ -139,11 +152,16 @@ export default function DisplayProductModal({
                 classname="max-h-[80vh]"
               />
             ) : null}
-            <Divider />
+            {/* Updated Divider style */}
+            <Divider className="h-0.5 bg-black" />
             <div className="flex h-fit w-full flex-row flex-wrap items-center justify-between gap-2">
+              {/* Updated Chip style */}
               <Chip
                 key={productData.location}
                 startContent={locationAvatar(productData.location)}
+                classNames={{
+                  base: "bg-white border-2 border-black text-black rounded-md",
+                }}
               >
                 {productData.location}
               </Chip>
@@ -157,7 +175,8 @@ export default function DisplayProductModal({
                 </p>
               </div>
             </div>
-            <Divider />
+            {/* Updated Divider style */}
+            <Divider className="h-0.5 bg-black" />
             <span className="text-xl font-semibold">Summary: </span>
             <span className="whitespace-break-spaces break-all">
               {productData.summary}
@@ -168,7 +187,8 @@ export default function DisplayProductModal({
                 <div className="flex flex-wrap items-center">
                   {productData.sizes && productData.sizes.length > 0
                     ? productData.sizes.map((size: string) => (
-                        <span key={size} className="mb-2 mr-4 text-dark-text">
+                        // Updated text color
+                        <span key={size} className="mb-2 mr-4 text-black">
                           {size}: {productData.sizeQuantities?.get(size) || 0}
                         </span>
                       ))
@@ -182,7 +202,8 @@ export default function DisplayProductModal({
                 <div className="flex flex-wrap items-center">
                   {productData.volumes && productData.volumes.length > 0
                     ? productData.volumes.map((volume: string) => (
-                        <span key={volume} className="mb-2 mr-4 text-dark-text">
+                        // Updated text color
+                        <span key={volume} className="mb-2 mr-4 text-black">
                           {volume}: {productData.volumePrices?.get(volume) || 0}{" "}
                           {productData.currency}
                         </span>
@@ -197,7 +218,8 @@ export default function DisplayProductModal({
                 <div className="flex flex-wrap items-center">
                   {productData.weights && productData.weights.length > 0
                     ? productData.weights.map((weight: string) => (
-                        <span key={weight} className="mb-2 mr-4 text-dark-text">
+                        // Updated text color
+                        <span key={weight} className="mb-2 mr-4 text-black">
                           {weight}: {productData.weightPrices?.get(weight) || 0}{" "}
                           {productData.currency}
                         </span>
@@ -208,7 +230,8 @@ export default function DisplayProductModal({
             ) : null}
             {productData.condition && (
               <>
-                <div className="text-left text-xs text-dark-text">
+                {/* Updated text color */}
+                <div className="text-left text-xs text-black">
                   <span className="text-xl font-semibold">Condition: </span>
                   <span className="text-xl">{productData.condition}</span>
                 </div>
@@ -216,7 +239,8 @@ export default function DisplayProductModal({
             )}
             {productData.quantity && (
               <>
-                <div className="text-left text-xs text-dark-text">
+                {/* Updated text color */}
+                <div className="text-left text-xs text-black">
                   <span className="text-xl font-semibold">Quantity: </span>
                   <span className="text-xl">{productData.quantity}</span>
                 </div>
@@ -224,7 +248,8 @@ export default function DisplayProductModal({
             )}
             {productData.restrictions && (
               <>
-                <div className="text-left text-xs text-dark-text">
+                {/* Updated text color */}
+                <div className="text-left text-xs text-black">
                   <span className="text-xl font-semibold">Restrictions: </span>
                   <span className="text-xl text-red-500">
                     {productData.restrictions}
@@ -234,7 +259,8 @@ export default function DisplayProductModal({
             )}
             {productData.required && (
               <>
-                <div className="text-left text-xs text-dark-text">
+                {/* Updated text color */}
+                <div className="text-left text-xs text-black">
                   <span className="text-xl font-semibold">
                     Required Customer Information:{" "}
                   </span>
@@ -250,7 +276,8 @@ export default function DisplayProductModal({
                 type="submit"
                 className={WHITEBUTTONCLASSNAMES}
                 startContent={
-                  <ShareIcon className="h-6 w-6 hover:text-yellow-600" />
+                  // Updated icon hover color
+                  <ShareIcon className="h-6 w-6 hover:text-primary-yellow" />
                 }
                 onClick={() => {
                   handleShare().catch((e) => console.error(e));
@@ -264,7 +291,8 @@ export default function DisplayProductModal({
                     type="submit"
                     className={WHITEBUTTONCLASSNAMES}
                     startContent={
-                      <PencilSquareIcon className="h-6 w-6 hover:text-yellow-600" />
+                      // Updated icon hover color
+                      <PencilSquareIcon className="h-6 w-6 hover:text-primary-yellow" />
                     }
                     onClick={handleEditToggle}
                     isDisabled={deleteLoading}
@@ -277,9 +305,11 @@ export default function DisplayProductModal({
                     onConfirm={beginDeleteListingProcess}
                   >
                     <Button
-                      className="min-w-fit bg-gradient-to-tr from-red-600 via-red-500 to-red-600 text-white shadow-lg"
+                      // Updated "Delete" button class
+                      className={DANGERBUTTONCLASSNAMES}
                       startContent={
-                        <TrashIcon className="h-6 w-6 hover:text-yellow-600" />
+                        // Updated icon hover color
+                        <TrashIcon className="h-6 w-6 hover:text-primary-yellow" />
                       }
                       isDisabled={deleteLoading}
                       isLoading={deleteLoading}

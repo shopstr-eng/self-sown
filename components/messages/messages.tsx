@@ -300,8 +300,8 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
   };
 
   return (
-    <div className="min-h-screen bg-light-bg text-gray-800">
-      <div className="container mx-auto px-4 py-10">
+    <div className="bg-light-bg h-full text-gray-800">
+      <div className="container mx-auto h-full px-4">
         {chatsMap.size === 0 ? (
           <div className="flex h-[66vh] items-center justify-center">
             {isChatsLoading ? (
@@ -309,14 +309,14 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
                 <MilkMarketSpinner />
               </div>
             ) : (
-              <div className="mx-auto w-full max-w-lg rounded-xl bg-dark-fg p-10 shadow-xl transition-all">
+              <div className="bg-dark-fg mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 shadow-neo transition-all">
                 <div className="text-center">
                   {isClient && userPubkey ? (
                     <div className="space-y-6">
-                      <h2 className="text-3xl font-semibold text-dark-text">
+                      <h2 className="text-dark-text text-3xl font-semibold">
                         No messages... yet!
                       </h2>
-                      <div className="mt-2 text-base text-dark-text">
+                      <div className="text-dark-text mt-2 text-base">
                         <p>Just logged in?</p>
                         <p className="mt-1 font-medium">
                           Try reloading the page.
@@ -333,7 +333,7 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <h2 className="text-2xl font-bold text-dark-text">
+                      <h2 className="text-dark-text text-2xl font-bold">
                         You must be signed in to see your chats!
                       </h2>
                       <div className="pt-4">
@@ -351,8 +351,14 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
             )}
           </div>
         ) : (
-          <div className="flex flex-row">
-            <div className="h-[85vh] w-full overflow-y-auto rounded-md bg-light-bg pb-12 md:w-[450px] md:max-w-[33%] md:flex-shrink-0 md:pb-0 lg:pb-0">
+          <div className="flex h-full flex-row">
+            <div
+              className={`
+                ${currentChatPubkey ? "hidden" : "block"}
+                bg-light-bg h-[85vh] w-full overflow-y-auto rounded-md pb-12 md:block
+                md:w-[450px] md:max-w-[33%] md:flex-shrink-0 md:pb-0 lg:pb-0
+              `}
+            >
               {sortedChatsByLastMessage.map(
                 ([pubkeyOfChat, chatObject]: [string, ChatObject]) => {
                   return (

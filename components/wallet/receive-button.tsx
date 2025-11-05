@@ -15,7 +15,10 @@ import {
   Button,
   Textarea,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   getLocalStorageData,
   publishProofEvent,
@@ -132,9 +135,7 @@ const ReceiveButton = () => {
         <Button
           className={WHITEBUTTONCLASSNAMES + " m-2"}
           onClick={() => setShowReceiveModal(!showReceiveModal)}
-          startContent={
-            <ArrowDownTrayIcon className="h-6 w-6 hover:text-gray-300" />
-          }
+          startContent={<ArrowDownTrayIcon className="h-6 w-6" />}
         >
           Receive
         </Button>
@@ -143,17 +144,19 @@ const ReceiveButton = () => {
           isOpen={showReceiveModal}
           onClose={handleToggleReceiveModal}
           classNames={{
-            body: "py-6 bg-dark-fg",
+            body: "py-6 bg-white",
             backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-            header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-            footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+            header: "border-b-4 border-black bg-white rounded-t-md",
+            footer: "border-t-4 border-black bg-white rounded-b-md",
             closeButton: "hover:bg-black/5 active:bg-white/10",
+            wrapper: "items-center justify-center",
+            base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
           }}
           scrollBehavior={"outside"}
           size="2xl"
         >
           <ModalContent>
-            <ModalHeader className="flex flex-col gap-1 text-dark-text">
+            <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
               Receive Token
             </ModalHeader>
             <form onSubmit={handleReceiveSubmit(onReceiveSubmit)}>
@@ -179,7 +182,12 @@ const ReceiveButton = () => {
                       : "";
                     return (
                       <Textarea
-                        className="text-dark-text"
+                        className="text-black"
+                        classNames={{
+                          input: "text-black font-medium",
+                          inputWrapper:
+                            "border-2 border-black shadow-none bg-white rounded-md",
+                        }}
                         autoFocus
                         variant="bordered"
                         fullWidth={true}
@@ -196,9 +204,9 @@ const ReceiveButton = () => {
                   }}
                 />
                 {signer instanceof NostrNIP46Signer && (
-                  <div className="mx-4 my-2 flex items-center justify-center text-center">
-                    <InformationCircleIcon className="h-6 w-6 text-dark-text" />
-                    <p className="ml-2 text-xs text-dark-text">
+                  <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
+                    <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                    <p className="ml-2 text-xs text-black">
                       If the token is taking a while to be received, make sure
                       to check your bunker application to approve the
                       transaction events.
@@ -209,14 +217,14 @@ const ReceiveButton = () => {
 
               <ModalFooter>
                 <Button
-                  color="danger"
+                  className="px-4 py-2 font-bold hover:underline"
                   variant="light"
                   onClick={handleToggleReceiveModal}
                 >
                   Cancel
                 </Button>
 
-                <Button className={WHITEBUTTONCLASSNAMES} type="submit">
+                <Button className={BLUEBUTTONCLASSNAMES} type="submit">
                   Receive
                 </Button>
               </ModalFooter>
@@ -231,11 +239,13 @@ const ReceiveButton = () => {
             isOpen={isClaimed}
             onClose={() => setIsClaimed(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -243,11 +253,11 @@ const ReceiveButton = () => {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <CheckCircleIcon className="h-6 w-6 text-green-500" />
                 <div className="ml-2">Token successfully claimed!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   Your Milk Market wallet balance should now be updated.
                 </div>
@@ -263,11 +273,13 @@ const ReceiveButton = () => {
             isOpen={isDuplicateToken}
             onClose={() => setIsDuplicateToken(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -275,11 +287,11 @@ const ReceiveButton = () => {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Duplicate token!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The token you are trying to claim is already in your Milk
                   Market wallet.
@@ -296,11 +308,13 @@ const ReceiveButton = () => {
             isOpen={isInvalidToken}
             onClose={() => setIsInvalidToken(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -308,11 +322,11 @@ const ReceiveButton = () => {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Invalid token!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The token you are trying to claim is not a valid Cashu string.
                 </div>
@@ -328,11 +342,13 @@ const ReceiveButton = () => {
             isOpen={isSpent}
             onClose={() => setIsSpent(false)}
             classNames={{
-              body: "py-6 bg-dark-fg",
+              body: "py-6 bg-white",
               backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              header: "border-b-4 border-black bg-white rounded-t-md",
+              footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
+              wrapper: "items-center justify-center",
+              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
             }}
             isDismissable={true}
             scrollBehavior={"normal"}
@@ -340,11 +356,11 @@ const ReceiveButton = () => {
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex items-center justify-center text-dark-text">
+              <ModalHeader className="flex items-center justify-center font-bold text-black">
                 <XCircleIcon className="h-6 w-6 text-red-500" />
                 <div className="ml-2">Spent token!</div>
               </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+              <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   The token you are trying to claim has already been redeemed.
                 </div>

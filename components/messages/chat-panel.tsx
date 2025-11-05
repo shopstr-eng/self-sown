@@ -13,6 +13,7 @@ import {
 import {
   BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import {
   ArrowUturnLeftIcon,
@@ -261,18 +262,18 @@ const ChatPanel = ({
 
   if (!currentChatPubkey)
     return (
-      <div className="absolute z-20 hidden h-[85vh] w-full flex-col overflow-clip bg-light-bg px-2 md:relative md:flex">
+      <div className="bg-light-bg absolute z-20 hidden h-[85vh] w-full flex-col overflow-clip px-2 md:relative md:flex">
         <div className="mt-10 flex flex-grow items-center justify-center py-10">
-          <div className="w-full max-w-xl rounded-lg bg-dark-fg p-10 text-center shadow-lg">
-            <ChatBubbleLeftIcon className="mx-auto mb-5 h-20 w-20 text-dark-text" />
-            <span className="block text-5xl text-dark-text">
-              No chat selected . . .
+          <div className="w-full max-w-xl rounded-lg border-2 border-black bg-[#2C3E50] p-10 text-center shadow-neo">
+            <ChatBubbleLeftIcon className="mx-auto mb-5 h-20 w-20 text-white" />
+            <span className="block text-5xl font-bold text-white">
+              No chat selected...
             </span>
-            <div className="opacity-4 flex flex-col items-center justify-center gap-3 pt-5">
-              <span className="text-2xl text-dark-text">
+            <div className="flex flex-col items-center justify-center gap-3 pt-5 opacity-80">
+              <span className="text-2xl text-white">
                 Use your up and down arrow keys to select chats!
               </span>
-              <ArrowsUpDownIcon className="h-10 w-10 text-dark-text" />
+              <ArrowsUpDownIcon className="h-10 w-10 text-white" />
             </div>
           </div>
         </div>
@@ -285,20 +286,29 @@ const ChatPanel = ({
   };
 
   return (
-    <div className="absolute flex h-full w-full flex-col overflow-clip bg-light-bg px-2 pb-20 md:relative md:h-[85vh] md:pb-0 lg:pb-0">
-      <h2 className="text-ligh-text flex h-[60px] w-full flex-row items-center overflow-clip align-middle">
+    <div className="bg-light-bg absolute flex h-full w-full flex-col overflow-clip px-2 pb-20 md:relative md:h-[85vh] md:pb-0 lg:pb-0">
+      <h2 className="flex h-[60px] w-full flex-row items-center overflow-clip border-b-2 border-black bg-white align-middle">
         <ArrowUturnLeftIcon
           onClick={handleGoBack}
-          className="mx-3 h-9 w-9 cursor-pointer rounded-md p-1 text-light-text hover:bg-dark-bg hover:text-yellow-600"
+          className="mx-3 h-9 w-9 cursor-pointer rounded-md p-1 text-black transition-all hover:bg-gray-100"
         />
         <ProfileWithDropdown
           pubkey={currentChatPubkey}
           dropDownKeys={["shop"]}
-          nameClassname="block"
+          nameClassname="block text-black font-bold"
           bg="light"
         />
       </h2>
-      <div className="my-2 h-full overflow-y-scroll rounded-md border-2 border-dark-fg bg-dark-fg p-3">
+      <div
+        className="my-2 h-full overflow-y-scroll rounded-md border-2 border-black bg-[#2C3E50] p-4"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: "20px 20px",
+        }}
+      >
         {messages
           .filter(
             (message, index, self) =>
@@ -321,11 +331,10 @@ const ChatPanel = ({
         <div ref={bottomDivRef} />
       </div>
       {!isPayment ? (
-        <div className="space-x flex items-center p-2">
+        <div className="flex items-center gap-2 p-2">
           <Input
-            className="pr-3 text-light-text"
+            className="flex-1"
             type="text"
-            width="100%"
             size="md"
             value={messageInput}
             placeholder="Type your message..."
@@ -339,9 +348,16 @@ const ChatPanel = ({
               )
                 await sendMessage();
             }}
+            classNames={{
+              input: "bg-white !text-black placeholder:text-gray-400",
+              inputWrapper:
+                "bg-white border-2 border-black rounded-md shadow-neo hover:shadow-none data-[hover=true]:bg-white group-data-[focus=true]:bg-white",
+              base: "text-black",
+            }}
+            style={{ color: "#000000" }}
           />
           <Button
-            className={BLACKBUTTONCLASSNAMES}
+            className={BLUEBUTTONCLASSNAMES}
             isDisabled={messageInput === "" || isSendingDMLoading}
             isLoading={isSendingDMLoading}
             onClick={async () => await sendMessage()}
@@ -374,7 +390,7 @@ const ChatPanel = ({
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="flex flex-col gap-1 text-dark-text">
+              <ModalHeader className="text-dark-text flex flex-col gap-1">
                 Enter Shipping Details
               </ModalHeader>
               <form onSubmit={handleShippingSubmit(onShippingSubmit)}>
@@ -518,7 +534,7 @@ const ChatPanel = ({
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="flex flex-col gap-1 text-dark-text">
+                <ModalHeader className="text-dark-text flex flex-col gap-1">
                   Leave a Review
                 </ModalHeader>
                 <form onSubmit={handleReviewSubmit(onReviewSubmit)}>
@@ -620,7 +636,7 @@ const ChatPanel = ({
                         <div>
                           <textarea
                             {...field}
-                            className="w-full rounded-md border-2 border-dark-fg bg-dark-bg p-2 text-dark-text"
+                            className="border-dark-fg bg-dark-bg text-dark-text w-full rounded-md border-2 p-2"
                             rows={4}
                             placeholder="Write your review comment here..."
                           />

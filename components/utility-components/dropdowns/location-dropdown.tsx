@@ -22,10 +22,16 @@ export const locationAvatar = (location: string) => {
   ) : null;
 };
 
-const LocationDropdown = ({ value, ...props }: { [x: string]: any }) => {
+const LocationDropdown = ({
+  value,
+  classNames,
+  ...props
+}: {
+  [x: string]: any;
+}) => {
   const locationOptions = useMemo(() => {
     const headingClasses =
-      "flex w-full sticky top-1 z-20 py-1.5 px-2 bg-light-bg shadow-small rounded-small";
+      "flex w-full sticky top-1 z-20 py-1.5 px-2 bg-white text-black font-semibold shadow-small rounded-small";
 
     const countryOptions = (
       <SelectSection
@@ -34,14 +40,13 @@ const LocationDropdown = ({ value, ...props }: { [x: string]: any }) => {
         classNames={{
           heading: headingClasses,
         }}
-        className="text-dark-text"
       >
         {locations.countries.map((country) => {
           return (
             <SelectItem
               key={country.country}
               classNames={{
-                wrapper: "bg-light-bg",
+                base: "text-black data-[hover=true]:!bg-primary-yellow",
               }}
             >
               {country.country}
@@ -58,10 +63,18 @@ const LocationDropdown = ({ value, ...props }: { [x: string]: any }) => {
         classNames={{
           heading: headingClasses,
         }}
-        className="text-dark-text"
       >
         {locations.states.map((state) => {
-          return <SelectItem key={state.state}>{state.state}</SelectItem>;
+          return (
+            <SelectItem
+              key={state.state}
+              classNames={{
+                base: "text-black data-[hover=true]:!bg-primary-yellow",
+              }}
+            >
+              {state.state}
+            </SelectItem>
+          );
         })}
       </SelectSection>
     );
@@ -73,12 +86,39 @@ const LocationDropdown = ({ value, ...props }: { [x: string]: any }) => {
         classNames={{
           heading: headingClasses,
         }}
-        className="text-dark-text"
       >
-        <SelectItem key={"Worldwide"}>Worldwide</SelectItem>
-        <SelectItem key={"US & Canada"}>US &amp; Canada</SelectItem>
-        <SelectItem key={"Europe"}>Europe</SelectItem>
-        <SelectItem key={"Online"}>Online</SelectItem>
+        <SelectItem
+          key={"Worldwide"}
+          classNames={{
+            base: "text-black data-[hover=true]:!bg-primary-yellow",
+          }}
+        >
+          Worldwide
+        </SelectItem>
+        <SelectItem
+          key={"US & Canada"}
+          classNames={{
+            base: "text-black data-[hover=true]:!bg-primary-yellow",
+          }}
+        >
+          US &amp; Canada
+        </SelectItem>
+        <SelectItem
+          key={"Europe"}
+          classNames={{
+            base: "text-black data-[hover=true]:!bg-primary-yellow",
+          }}
+        >
+          Europe
+        </SelectItem>
+        <SelectItem
+          key={"Online"}
+          classNames={{
+            base: "text-black data-[hover=true]:!bg-primary-yellow",
+          }}
+        >
+          Online
+        </SelectItem>
       </SelectSection>
     );
     return [stateOptions, countryOptions, regionalOptions];
@@ -88,10 +128,16 @@ const LocationDropdown = ({ value, ...props }: { [x: string]: any }) => {
     <Select
       startContent={locationAvatar(value)}
       {...props}
-      className="mt-2 text-dark-text"
       classNames={{
-        trigger: "bg-dark-fg",
-        popoverContent: "bg-dark-fg",
+        ...classNames,
+        trigger:
+          "bg-white text-black border-4 border-black rounded-md shadow-neo h-12 data-[hover=true]:bg-white data-[open=true]:bg-white data-[focus=true]:bg-white data-[focus-visible=true]:bg-white",
+        popoverContent: "bg-white border-4 border-black rounded-md",
+        value: "text-black font-semibold",
+        label: "text-black font-semibold",
+        innerWrapper: "bg-white",
+        mainWrapper: "bg-white",
+        listbox: "bg-white",
       }}
     >
       {locationOptions}

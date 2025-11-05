@@ -67,12 +67,10 @@ export default async function handler(
     res.status(200).json({ success: true, id: result.rows[0].id });
   } catch (error) {
     console.error("Database error in UTM tracking:", error);
-    res
-      .status(500)
-      .json({
-        error: "Internal server error",
-        details: error instanceof Error ? error.message : String(error),
-      });
+    res.status(500).json({
+      error: "Internal server error",
+      details: error instanceof Error ? error.message : String(error),
+    });
   } finally {
     await client.end();
   }

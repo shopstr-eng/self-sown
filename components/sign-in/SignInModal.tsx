@@ -8,7 +8,10 @@ import {
   Input,
   InputProps,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   setLocalStorageDataOnSignIn,
   validateNSecKey,
@@ -21,6 +24,7 @@ import FailureModal from "../../components/utility-components/failure-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
+
 export default function SignInModal({
   isOpen,
   onClose,
@@ -179,11 +183,13 @@ export default function SignInModal({
           onClose();
         }}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          body: "py-6 bg-white",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          base: "border-4 border-black rounded-md shadow-neo",
+          header: "border-b-4 border-black bg-white rounded-t-md",
+          footer: "border-t-4 border-black bg-white rounded-b-md",
+          closeButton:
+            "hover:bg-gray-100 active:bg-gray-200 text-black font-bold",
         }}
         isDismissable={true}
         scrollBehavior={"normal"}
@@ -191,9 +197,9 @@ export default function SignInModal({
         size="2xl"
       >
         <ModalContent>
-          <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+          <ModalBody className="flex flex-col overflow-hidden text-black">
             {!showNostrOptions ? (
-              // Initial landing view
+              // Initial landing view - Your neobrutalist styled version
               <div className="flex flex-col items-center justify-center space-y-6 py-8">
                 <div className="flex items-center justify-center">
                   <Image
@@ -203,11 +209,27 @@ export default function SignInModal({
                     src="/milk-market.png"
                     width={80}
                   />
-                  <h1 className="ml-3 text-4xl font-bold text-dark-text">
+                  <h1 className="ml-3 text-4xl font-bold text-black">
                     Milk Market
                   </h1>
                 </div>
+
+                {/* Signup image */}
+                <div className="w-full max-w-md">
+                  <Image src="signup.png" alt="sign up" className="w-full" />
+                </div>
+
+                {/* Action buttons */}
                 <div className="flex w-full max-w-md flex-col space-y-4">
+                  <div className="text-center">
+                    <p className="mb-2 text-lg font-bold text-black">
+                      New to Milk Market?
+                    </p>
+                    <p className="mb-4 text-sm text-black">
+                      Sign up to get started!
+                    </p>
+                  </div>
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
                     onClick={handleGenerateKeys}
@@ -215,6 +237,11 @@ export default function SignInModal({
                   >
                     Sign Up
                   </Button>
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
                     onClick={() => setShowNostrOptions(true)}
@@ -227,8 +254,8 @@ export default function SignInModal({
             ) : (
               // Nostr sign-in options view
               <div className="flex w-full flex-col">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-center">
+                <div className="space-y-3">
+                  <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
                       alt="Milk Market logo"
                       height={50}
@@ -236,16 +263,24 @@ export default function SignInModal({
                       src="/milk-market.png"
                       width={50}
                     />
-                    <div>Milk Market</div>
+                    <div className="text-2xl font-bold text-black">
+                      Milk Market
+                    </div>
                   </div>
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
                     onClick={startExtensionLogin}
                   >
                     Extension Sign-in
                   </Button>
-                  <div className="text-center">------ or ------</div>
-                  <div className="flex flex-col	">
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
+                  {/* Bunker Sign-in */}
+                  <div className="flex flex-col">
                     <div className="">
                       <Button
                         data-testid="bunker-open-btn"
@@ -261,12 +296,14 @@ export default function SignInModal({
                       </Button>
                     </div>
                     <div
-                      className={`mb-4 flex flex-col justify-between space-y-4 ${
+                      className={`flex flex-col justify-between space-y-3 ${
                         showBunkerSignIn ? "" : "hidden"
                       }`}
                     >
                       <div>
-                        <label>Bunker Token:</label>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Bunker Token:
+                        </label>
                         <Input
                           color={validBunkerToken}
                           width="100%"
@@ -274,12 +311,17 @@ export default function SignInModal({
                           value={bunkerToken}
                           placeholder="Paste your bunker token (bunker://)..."
                           onChange={(e) => setBunkerToken(e.target.value)}
+                          classNames={{
+                            input: "text-black font-medium",
+                            inputWrapper:
+                              "border-3 border-black rounded-md bg-white shadow-none",
+                          }}
                         />
                       </div>
                       <div>
                         <Button
                           data-testid="bunker-submit-btn"
-                          className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                          className={`${BLUEBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerLogin}
                           isDisabled={validBunkerToken != "success"}
                         >
@@ -294,9 +336,14 @@ export default function SignInModal({
                       </div>
                     </div>
                   </div>
-                  <div className="text-center">------ or ------</div>
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
                 </div>
-                <div className="flex flex-col	">
+
+                {/* nsec Sign-in */}
+                <div className="flex flex-col">
                   <div className="">
                     <Button
                       data-testid="nsec-open-btn"
@@ -304,7 +351,7 @@ export default function SignInModal({
                         setShowBunkerSignIn(false);
                         setShowNsecSignIn(true);
                       }}
-                      className={`mt-2 w-full ${
+                      className={`${WHITEBUTTONCLASSNAMES} w-full ${
                         showNsecSignIn ? "hidden" : ""
                       }`}
                     >
@@ -312,12 +359,14 @@ export default function SignInModal({
                     </Button>
                   </div>
                   <div
-                    className={`mb-4 flex flex-col justify-between space-y-4 ${
+                    className={`flex flex-col justify-between space-y-3 ${
                       showNsecSignIn ? "" : "hidden"
                     }`}
                   >
                     <div>
-                      <label>Private Key:</label>
+                      <label className="mb-2 block text-sm font-bold text-black">
+                        Private Key:
+                      </label>
                       <Input
                         color={validPrivateKey}
                         type="password"
@@ -326,10 +375,15 @@ export default function SignInModal({
                         value={privateKey}
                         placeholder="Paste your Nostr private key..."
                         onChange={(e) => setPrivateKey(e.target.value)}
+                        classNames={{
+                          input: "text-black font-medium",
+                          inputWrapper:
+                            "border-3 border-black rounded-md bg-white shadow-none",
+                        }}
                       />
                     </div>
                     <div>
-                      <label>
+                      <label className="mb-2 block text-sm font-bold text-black">
                         Encryption Passphrase:
                         <span className="text-red-500">*</span>
                       </label>
@@ -344,12 +398,17 @@ export default function SignInModal({
                           if (e.key === "Enter" && validPrivateKey)
                             handleSignIn();
                         }}
+                        classNames={{
+                          input: "text-black font-medium",
+                          inputWrapper:
+                            "border-3 border-black rounded-md bg-white shadow-none",
+                        }}
                       />
                     </div>
                     <div>
                       <Button
                         data-testid="nsec-submit-btn"
-                        className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                        className={`${BLUEBUTTONCLASSNAMES} w-full`}
                         onClick={handleSignIn}
                         isDisabled={validPrivateKey != "success"}
                       >

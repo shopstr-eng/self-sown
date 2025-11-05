@@ -68,7 +68,7 @@ const Listing = () => {
 
   return (
     <>
-      <div className="flex h-full min-h-screen flex-col bg-light-bg pt-20">
+      <div className="flex h-full min-h-screen flex-col bg-white pt-20">
         {productData && (
           <CheckoutCard
             productData={productData}
@@ -92,13 +92,12 @@ const Listing = () => {
                 router.push("/orders");
               }}
               classNames={{
-                body: "py-6 bg-dark-fg",
-                backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-                header:
-                  "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-                footer:
-                  "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-                closeButton: "hover:bg-black/5 active:bg-white/10",
+                body: "py-6 bg-white",
+                backdrop: "bg-black/50 backdrop-opacity-60",
+                header: "border-b-4 border-black bg-white rounded-t-lg",
+                footer: "border-t-4 border-black bg-white rounded-b-lg",
+                closeButton: "hover:bg-gray-100 active:bg-gray-200",
+                base: "border-4 border-black shadow-neo rounded-lg",
               }}
               isDismissable={true}
               scrollBehavior={"normal"}
@@ -106,12 +105,12 @@ const Listing = () => {
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="flex items-center justify-center text-dark-text">
-                  <CheckCircleIcon className="h-6 w-6 text-green-500" />
-                  <div className="ml-2">Order successful!</div>
+                <ModalHeader className="flex items-center justify-center text-black">
+                  <CheckCircleIcon className="h-6 w-6 text-green-600" />
+                  <div className="ml-2 font-bold">Order successful!</div>
                 </ModalHeader>
-                <ModalBody className="flex flex-col overflow-hidden text-dark-text">
-                  <div className="flex items-center justify-center">
+                <ModalBody className="flex flex-col overflow-hidden text-black">
+                  <div className="flex items-center justify-center font-medium">
                     The seller will receive a message with your order details.
                   </div>
                 </ModalBody>
@@ -126,13 +125,12 @@ const Listing = () => {
               isOpen={invoiceGenerationFailed}
               onClose={() => setInvoiceGenerationFailed(false)}
               classNames={{
-                body: "py-6 bg-dark-fg",
-                backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-                header:
-                  "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-                footer:
-                  "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-                closeButton: "hover:bg-black/5 active:bg-white/10",
+                body: "py-6 bg-white",
+                backdrop: "bg-black/50 backdrop-opacity-60",
+                header: "border-b-4 border-black bg-white rounded-t-lg",
+                footer: "border-t-4 border-black bg-white rounded-b-lg",
+                closeButton: "hover:bg-gray-100 active:bg-gray-200",
+                base: "border-4 border-black shadow-neo rounded-lg",
               }}
               isDismissable={true}
               scrollBehavior={"normal"}
@@ -140,12 +138,14 @@ const Listing = () => {
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="flex items-center justify-center text-dark-text">
-                  <XCircleIcon className="h-6 w-6 text-red-500" />
-                  <div className="ml-2">Invoice generation failed!</div>
+                <ModalHeader className="flex items-center justify-center text-black">
+                  <XCircleIcon className="h-6 w-6 text-red-600" />
+                  <div className="ml-2 font-bold">
+                    Invoice generation failed!
+                  </div>
                 </ModalHeader>
-                <ModalBody className="flex flex-col overflow-hidden text-dark-text">
-                  <div className="flex items-center justify-center">
+                <ModalBody className="flex flex-col overflow-hidden text-black">
+                  <div className="flex items-center justify-center font-medium">
                     The price and/or currency set for this listing was invalid.
                   </div>
                 </ModalBody>
@@ -160,13 +160,12 @@ const Listing = () => {
               isOpen={cashuPaymentFailed}
               onClose={() => setCashuPaymentFailed(false)}
               classNames={{
-                body: "py-6 bg-dark-fg",
-                backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-                header:
-                  "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-                footer:
-                  "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-                closeButton: "hover:bg-black/5 active:bg-white/10",
+                body: "py-6 bg-white",
+                backdrop: "bg-black/50 backdrop-opacity-60",
+                header: "border-b-4 border-black bg-white rounded-t-lg",
+                footer: "border-t-4 border-black bg-white rounded-b-lg",
+                closeButton: "hover:bg-gray-100 active:bg-gray-200",
+                base: "border-4 border-black shadow-neo rounded-lg",
               }}
               isDismissable={true}
               scrollBehavior={"normal"}
@@ -174,12 +173,12 @@ const Listing = () => {
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="flex items-center justify-center text-dark-text">
-                  <XCircleIcon className="h-6 w-6 text-red-500" />
-                  <div className="ml-2">Purchase failed!</div>
+                <ModalHeader className="flex items-center justify-center text-black">
+                  <XCircleIcon className="h-6 w-6 text-red-600" />
+                  <div className="ml-2 font-bold">Purchase failed!</div>
                 </ModalHeader>
-                <ModalBody className="flex flex-col overflow-hidden text-dark-text">
-                  <div className="flex items-center justify-center">
+                <ModalBody className="flex flex-col overflow-hidden text-black">
+                  <div className="flex items-center justify-center font-medium">
                     You didn&apos;t have enough balance in your wallet to pay.
                   </div>
                 </ModalBody>
@@ -194,13 +193,12 @@ const Listing = () => {
               isOpen={fiatOrderFailed}
               onClose={() => setFiatOrderFailed(false)}
               classNames={{
-                body: "py-6 bg-dark-fg",
-                backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-                header:
-                  "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-                footer:
-                  "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-                closeButton: "hover:bg-black/5 active:bg-white/10",
+                body: "py-6 bg-white",
+                backdrop: "bg-black/50 backdrop-opacity-60",
+                header: "border-b-4 border-black bg-white rounded-t-lg",
+                footer: "border-t-4 border-black bg-white rounded-b-lg",
+                closeButton: "hover:bg-gray-100 active:bg-gray-200",
+                base: "border-4 border-black shadow-neo rounded-lg",
               }}
               isDismissable={true}
               scrollBehavior={"normal"}
@@ -208,12 +206,12 @@ const Listing = () => {
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="flex items-center justify-center text-dark-text">
-                  <XCircleIcon className="h-6 w-6 text-red-500" />
-                  <div className="ml-2">Order failed!</div>
+                <ModalHeader className="flex items-center justify-center text-black">
+                  <XCircleIcon className="h-6 w-6 text-red-600" />
+                  <div className="ml-2 font-bold">Order failed!</div>
                 </ModalHeader>
-                <ModalBody className="flex flex-col overflow-hidden text-dark-text">
-                  <div className="flex items-center justify-center">
+                <ModalBody className="flex flex-col overflow-hidden text-black">
+                  <div className="flex items-center justify-center font-medium">
                     Your order information was not delivered to the seller.
                     Please try again.
                   </div>

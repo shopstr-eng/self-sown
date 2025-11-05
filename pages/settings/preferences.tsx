@@ -18,6 +18,7 @@ import { Relay } from "nostr-tools";
 import {
   BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import {
   createBlossomServerEvent,
@@ -99,7 +100,6 @@ const PreferencesPage = () => {
 
   const replaceMint = async (newMint: string) => {
     try {
-      // Perform a fetch request to the specified mint URL
       const response = await fetch(newMint + "/keys");
       if (response.ok) {
         if (!mints.includes(newMint)) {
@@ -258,50 +258,48 @@ const PreferencesPage = () => {
 
   return (
     <>
-      <div className="flex min-h-screen flex-col bg-light-bg pb-6 pt-24">
-        <div className="mx-auto px-4">
+      <div className="flex min-h-screen flex-col bg-white pb-20 pt-24">
+        <div className="mx-auto w-full px-4 lg:w-1/2 xl:w-2/5">
           <SettingsBreadCrumbs />
-          <span className="my-4 flex  text-2xl font-bold text-light-text">
-            Mint
-          </span>
 
-          <div>
-            {mints.length === 0 && (
-              <div className="mt-8 flex items-center justify-center">
-                <p className="text-liht-text break-words text-center text-xl">
-                  No mint added . . .
-                </p>
-              </div>
-            )}
-            <div className="mt-4 max-h-96 overflow-y-scroll rounded-md bg-light-bg">
-              {mints.map((mint, index) => (
-                <div
-                  key={mint}
-                  className={`mb-2 flex items-center justify-between rounded-md border-2 ${
-                    index === 0 ? "border-yellow-700" : "border-dark-fg"
-                  } px-3 py-2`}
-                >
-                  <div className="max-w-xsm break-all text-light-text">
-                    {mint}
-                    {index === 0 && (
-                      <span className="bg-light-bg px-3 text-xs text-gray-500">
-                        Active Mint
-                      </span>
+          {/* Mint Section */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Mint</h2>
+
+            {mints.length === 0 ? (
+              <p className="mb-4 text-gray-500">No mint added...</p>
+            ) : (
+              <div className="mb-4 space-y-2">
+                {mints.map((mint, index) => (
+                  <div
+                    key={mint}
+                    className="flex items-center justify-between rounded-lg border-3 border-black bg-white px-4 py-3"
+                  >
+                    <div className="flex-1 break-all text-sm">
+                      {mint}
+                      {index === 0 && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          Active Mint
+                        </span>
+                      )}
+                    </div>
+                    {mints.length > 1 && (
+                      <button
+                        onClick={() => deleteMint(mint)}
+                        className="ml-2 rounded p-1 hover:bg-gray-100"
+                      >
+                        <MinusCircleIcon className="h-5 w-5 text-black" />
+                      </button>
                     )}
                   </div>
-                  {mints.length > 1 && (
-                    <MinusCircleIcon
-                      onClick={() => deleteMint(mint)}
-                      className="h-5 w-5 cursor-pointer text-red-500 hover:text-yellow-700"
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
+
             {mints.length > 0 && (
-              <div className="mx-4 my-4 flex items-center justify-center text-center">
-                <InformationCircleIcon className="h-6 w-6 text-light-text" />
-                <p className="ml-2 text-sm text-light-text">
+              <div className="mb-4 flex items-start gap-2 text-sm text-gray-600">
+                <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <p>
                   This mint is used to handle{" "}
                   <Link href="https://cashu.space" passHref legacyBehavior>
                     <a
@@ -318,638 +316,479 @@ const PreferencesPage = () => {
               </div>
             )}
 
-            <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
-              <Button
-                className={BLACKBUTTONCLASSNAMES}
-                onClick={handleToggleMintModal}
-              >
-                Change Active Mint
-              </Button>
-            </div>
-            <Modal
-              backdrop="blur"
-              isOpen={showMintModal}
-              onClose={handleToggleMintModal}
-              classNames={{
-                body: "py-6 bg-dark-fg",
-                backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-                header:
-                  "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-                footer:
-                  "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-                closeButton: "hover:bg-black/5 active:bg-white/10",
-              }}
-              scrollBehavior={"outside"}
-              size="2xl"
-            >
-              <ModalContent>
-                <ModalHeader className="flex flex-col gap-1 text-dark-text">
-                  Change Active Mint
-                </ModalHeader>
-                <form onSubmit={handleMintSubmit(onMintSubmit)}>
-                  <ModalBody>
-                    <Controller
-                      name="mint"
-                      control={mintControl}
-                      rules={{
-                        required: "A mint URL is required.",
-                        maxLength: {
-                          value: 500,
-                          message: "This input exceed maxLength of 500.",
-                        },
-                        validate: (value) =>
-                          /^(https:\/\/|http:\/\/)/.test(value) ||
-                          "Invalid mint URL, must start with https:// or http://.",
-                      }}
-                      render={({
-                        field: { onChange, onBlur, value },
-                        fieldState: { error },
-                      }) => {
-                        const isErrored = error !== undefined;
-                        const errorMessage: string = error?.message
-                          ? error.message
-                          : "";
-                        return (
-                          <Textarea
-                            className="text-dark-text"
-                            variant="bordered"
-                            fullWidth={true}
-                            placeholder="https://..."
-                            isInvalid={isErrored}
-                            errorMessage={errorMessage}
-                            // controller props
-                            onChange={onChange} // send value to hook form
-                            onBlur={onBlur} // notify when input is touched/blur
-                            value={value}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                handleMintSubmit(onMintSubmit)();
-                              }
-                            }}
-                          />
-                        );
-                      }}
-                    />
-                  </ModalBody>
-
-                  <ModalFooter>
-                    <Button
-                      color="danger"
-                      variant="light"
-                      onClick={handleToggleMintModal}
-                    >
-                      Cancel
-                    </Button>
-
-                    <Button className={WHITEBUTTONCLASSNAMES} type="submit">
-                      Change Mint
-                    </Button>
-                  </ModalFooter>
-                </form>
-              </ModalContent>
-            </Modal>
-          </div>
-
-          <span className="mt-4 flex text-2xl font-bold text-light-text">
-            Read/Write Relays
-          </span>
-
-          {relays.length === 0 && (
-            <div className="mt-4 flex items-center justify-center">
-              <p className="break-words text-center text-xl text-light-text">
-                No relays added . . .
-              </p>
-            </div>
-          )}
-          <div className="mt-4 max-h-96 overflow-y-scroll rounded-md bg-light-bg">
-            {relays.map((relay) => (
-              <div
-                key={relay}
-                className="mb-2 flex items-center justify-between rounded-md border-2 border-dark-fg px-3 py-2"
-              >
-                <div className="max-w-xsm break-all text-light-text">
-                  {relay}
-                </div>
-                {relays.length > 1 && (
-                  <MinusCircleIcon
-                    onClick={() => deleteRelay(relay, "all")}
-                    className="h-5 w-5 cursor-pointer text-red-500 hover:text-yellow-700"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
             <Button
-              className={BLACKBUTTONCLASSNAMES}
-              onClick={() => handleToggleRelayModal("all")}
+              className={BLUEBUTTONCLASSNAMES}
+              onClick={handleToggleMintModal}
             >
-              Add Relay
+              Change Active Mint
             </Button>
-            {relaysAreChanged && (
-              <Button
-                className={BLACKBUTTONCLASSNAMES}
-                onClick={() => publishRelays()}
-              >
-                Save
-              </Button>
-            )}
           </div>
-          <Modal
-            backdrop="blur"
-            isOpen={showRelayModal}
-            onClose={() => handleToggleRelayModal("all")}
-            classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
-            }}
-            scrollBehavior={"outside"}
-            size="2xl"
-          >
-            <ModalContent>
-              <ModalHeader className="flex flex-col gap-1 text-dark-text">
-                Add Relay
-              </ModalHeader>
-              <form onSubmit={handleRelaySubmit(onRelaySubmit)}>
-                <ModalBody>
-                  <Controller
-                    name="relay"
-                    control={relayControl}
-                    rules={{
-                      required: "A relay URL is required.",
-                      maxLength: {
-                        value: 500,
-                        message: "This input exceed maxLength of 500.",
-                      },
-                      validate: (value) =>
-                        /^(wss:\/\/|ws:\/\/)/.test(value) ||
-                        "Invalid relay URL, must start with wss:// or ws://.",
-                    }}
-                    render={({
-                      field: { onChange, onBlur, value },
-                      fieldState: { error },
-                    }) => {
-                      const isErrored = error !== undefined;
-                      const errorMessage: string = error?.message
-                        ? error.message
-                        : "";
-                      return (
-                        <Textarea
-                          className="text-dark-text"
-                          variant="bordered"
-                          fullWidth={true}
-                          placeholder="wss://..."
-                          isInvalid={isErrored}
-                          errorMessage={errorMessage}
-                          // controller props
-                          onChange={onChange} // send value to hook form
-                          onBlur={onBlur} // notify when input is touched/blur
-                          value={value}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleRelaySubmit(onRelaySubmit)();
-                            }
-                          }}
-                        />
-                      );
-                    }}
-                  />
-                </ModalBody>
 
-                <ModalFooter>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    onClick={() => handleToggleRelayModal("")}
+          {/* Read/Write Relays Section */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Read/Write Relays</h2>
+
+            {relays.length === 0 ? (
+              <p className="mb-4 text-gray-500">No relays added...</p>
+            ) : (
+              <div className="mb-4 space-y-2">
+                {relays.map((relay) => (
+                  <div
+                    key={relay}
+                    className="flex items-center justify-between rounded-lg border-3 border-black bg-white px-4 py-3"
                   >
-                    Cancel
-                  </Button>
-
-                  <Button className={WHITEBUTTONCLASSNAMES} type="submit">
-                    Add Relay
-                  </Button>
-                </ModalFooter>
-              </form>
-            </ModalContent>
-          </Modal>
-
-          <span className="mt-4 flex text-2xl font-bold text-light-text">
-            Read Only Relays
-          </span>
-
-          {readRelays.length === 0 && (
-            <div className="mt-4 flex items-center justify-center">
-              <p className="break-words text-center text-xl">
-                No relays added . . .
-              </p>
-            </div>
-          )}
-          <div className="mt-4 max-h-96 overflow-y-scroll rounded-md bg-light-bg">
-            {readRelays.map((relay) => (
-              <div
-                key={relay}
-                className="mb-2 flex items-center justify-between rounded-md border-2 border-dark-fg px-3 py-2"
-              >
-                <div className="max-w-xsm break-all text-light-text">
-                  {relay}
-                </div>
-                {readRelays.length > 1 && (
-                  <MinusCircleIcon
-                    onClick={() => deleteRelay(relay, "read")}
-                    className="h-5 w-5 cursor-pointer text-red-500 hover:text-yellow-700"
-                  />
-                )}
+                    <div className="flex-1 break-all text-sm">{relay}</div>
+                    {relays.length > 1 && (
+                      <button
+                        onClick={() => deleteRelay(relay, "all")}
+                        className="ml-2 rounded p-1 hover:bg-gray-100"
+                      >
+                        <MinusCircleIcon className="h-5 w-5 text-black" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
-            <Button
-              className={BLACKBUTTONCLASSNAMES}
-              onClick={() => handleToggleRelayModal("read")}
-            >
-              Add Relay
-            </Button>
-            {relaysAreChanged && (
-              <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                className={BLUEBUTTONCLASSNAMES}
+                onClick={() => handleToggleRelayModal("all")}
+              >
+                Add Relay
+              </Button>
+              {relaysAreChanged && (
                 <Button
                   className={BLACKBUTTONCLASSNAMES}
                   onClick={() => publishRelays()}
                 >
                   Save
                 </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Read Only Relays Section */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Read Only Relays</h2>
+
+            {readRelays.length === 0 ? (
+              <p className="mb-4 text-gray-500">No relays added...</p>
+            ) : (
+              <div className="mb-4 space-y-2">
+                {readRelays.map((relay) => (
+                  <div
+                    key={relay}
+                    className="flex items-center justify-between rounded-lg border-3 border-black bg-white px-4 py-3"
+                  >
+                    <div className="flex-1 break-all text-sm">{relay}</div>
+                    {readRelays.length > 1 && (
+                      <button
+                        onClick={() => deleteRelay(relay, "read")}
+                        className="ml-2 rounded p-1 hover:bg-gray-100"
+                      >
+                        <MinusCircleIcon className="h-5 w-5 text-black" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-          <Modal
-            backdrop="blur"
-            isOpen={showRelayModal}
-            onClose={() => handleToggleRelayModal("read")}
-            classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
-            }}
-            scrollBehavior={"outside"}
-            size="2xl"
-          >
-            <ModalContent>
-              <ModalHeader className="flex flex-col gap-1 text-dark-text">
-                Add Relay
-              </ModalHeader>
-              <form onSubmit={handleRelaySubmit(onRelaySubmit)}>
-                <ModalBody>
-                  <Controller
-                    name="relay"
-                    control={relayControl}
-                    rules={{
-                      required: "A relay URL is required.",
-                      maxLength: {
-                        value: 500,
-                        message: "This input exceed maxLength of 500.",
-                      },
-                      validate: (value) =>
-                        /^(wss:\/\/|ws:\/\/)/.test(value) ||
-                        "Invalid relay URL, must start with wss:// or ws://.",
-                    }}
-                    render={({
-                      field: { onChange, onBlur, value },
-                      fieldState: { error },
-                    }) => {
-                      const isErrored = error !== undefined;
-                      const errorMessage: string = error?.message
-                        ? error.message
-                        : "";
-                      return (
-                        <Textarea
-                          className="text-dark-text"
-                          variant="bordered"
-                          fullWidth={true}
-                          placeholder="wss://..."
-                          isInvalid={isErrored}
-                          errorMessage={errorMessage}
-                          // controller props
-                          onChange={onChange} // send value to hook form
-                          onBlur={onBlur} // notify when input is touched/blur
-                          value={value}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleRelaySubmit(onRelaySubmit)();
-                            }
-                          }}
-                        />
-                      );
-                    }}
-                  />
-                </ModalBody>
 
-                <ModalFooter>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    onClick={() => handleToggleRelayModal("")}
-                  >
-                    Cancel
-                  </Button>
-
-                  <Button className={WHITEBUTTONCLASSNAMES} type="submit">
-                    Add Relay
-                  </Button>
-                </ModalFooter>
-              </form>
-            </ModalContent>
-          </Modal>
-
-          <span className="mt-4 flex text-2xl font-bold text-light-text">
-            Write Only Relays
-          </span>
-
-          {writeRelays.length === 0 && (
-            <div className="mt-4 flex items-center justify-center">
-              <p className="break-words text-center text-xl text-light-text">
-                No relays added . . .
-              </p>
-            </div>
-          )}
-          <div className="mt-4 max-h-96 overflow-y-scroll rounded-md bg-light-bg">
-            {writeRelays.map((relay) => (
-              <div
-                key={relay}
-                className="mb-2 flex items-center justify-between rounded-md border-2 border-dark-fg px-3 py-2"
+            <div className="flex gap-2">
+              <Button
+                className={BLUEBUTTONCLASSNAMES}
+                onClick={() => handleToggleRelayModal("read")}
               >
-                <div className="max-w-xsm break-all text-light-text">
-                  {relay}
-                </div>
-                {writeRelays.length > 1 && (
-                  <MinusCircleIcon
-                    onClick={() => deleteRelay(relay, "write")}
-                    className="h-5 w-5 cursor-pointer text-red-500 hover:text-yellow-700"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
-            <Button
-              className={BLACKBUTTONCLASSNAMES}
-              onClick={() => handleToggleRelayModal("write")}
-            >
-              Add Relay
-            </Button>
-            {relaysAreChanged && (
-              <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
+                Add Relay
+              </Button>
+              {relaysAreChanged && (
                 <Button
                   className={BLACKBUTTONCLASSNAMES}
                   onClick={() => publishRelays()}
                 >
                   Save
                 </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Write Only Relays Section */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Write Only Relays</h2>
+
+            {writeRelays.length === 0 ? (
+              <p className="mb-4 text-gray-500">No relays added...</p>
+            ) : (
+              <div className="mb-4 space-y-2">
+                {writeRelays.map((relay) => (
+                  <div
+                    key={relay}
+                    className="flex items-center justify-between rounded-lg border-3 border-black bg-white px-4 py-3"
+                  >
+                    <div className="flex-1 break-all text-sm">{relay}</div>
+                    {writeRelays.length > 1 && (
+                      <button
+                        onClick={() => deleteRelay(relay, "write")}
+                        className="ml-2 rounded p-1 hover:bg-gray-100"
+                      >
+                        <MinusCircleIcon className="h-5 w-5 text-black" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-          <Modal
-            backdrop="blur"
-            isOpen={showRelayModal}
-            onClose={() => handleToggleRelayModal("write")}
-            classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
-            }}
-            scrollBehavior={"outside"}
-            size="2xl"
-          >
-            <ModalContent>
-              <ModalHeader className="flex flex-col gap-1 text-dark-text">
-                Add Relay
-              </ModalHeader>
-              <form onSubmit={handleRelaySubmit(onRelaySubmit)}>
-                <ModalBody>
-                  <Controller
-                    name="relay"
-                    control={relayControl}
-                    rules={{
-                      required: "A relay URL is required.",
-                      maxLength: {
-                        value: 500,
-                        message: "This input exceed maxLength of 500.",
-                      },
-                      validate: (value) =>
-                        /^(wss:\/\/|ws:\/\/)/.test(value) ||
-                        "Invalid relay URL, must start with wss:// or ws://.",
-                    }}
-                    render={({
-                      field: { onChange, onBlur, value },
-                      fieldState: { error },
-                    }) => {
-                      const isErrored = error !== undefined;
-                      const errorMessage: string = error?.message
-                        ? error.message
-                        : "";
-                      return (
-                        <Textarea
-                          className="text-dark-text"
-                          variant="bordered"
-                          fullWidth={true}
-                          placeholder="wss://..."
-                          isInvalid={isErrored}
-                          errorMessage={errorMessage}
-                          // controller props
-                          onChange={onChange} // send value to hook form
-                          onBlur={onBlur} // notify when input is touched/blur
-                          value={value}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleRelaySubmit(onRelaySubmit)();
-                            }
-                          }}
-                        />
-                      );
-                    }}
-                  />
-                </ModalBody>
 
-                <ModalFooter>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    onClick={() => handleToggleRelayModal("")}
-                  >
-                    Cancel
-                  </Button>
-
-                  <Button className={WHITEBUTTONCLASSNAMES} type="submit">
-                    Add Relay
-                  </Button>
-                </ModalFooter>
-              </form>
-            </ModalContent>
-          </Modal>
-
-          <span className="mt-4 flex text-2xl font-bold text-light-text">
-            Blossom Media Servers
-          </span>
-
-          {blossomServers.length === 0 && (
-            <div className="mt-4 flex items-center justify-center">
-              <p className="break-words text-center text-xl text-light-text">
-                No servers added . . .
-              </p>
-            </div>
-          )}
-          <div className="mt-4 max-h-96 overflow-y-scroll rounded-md bg-light-bg">
-            {blossomServers.map((server, index) => (
-              <div
-                key={server}
-                className={`mb-2 flex items-center justify-between rounded-md border-2 ${
-                  index === 0 ? "border-yellow-700" : "border-dark-fg"
-                } px-3 py-2`}
+            <div className="flex gap-2">
+              <Button
+                className={BLUEBUTTONCLASSNAMES}
+                onClick={() => handleToggleRelayModal("write")}
               >
-                <div className="max-w-xsm break-all text-light-text">
-                  {server}
-                  {index === 0 && (
-                    <span className="bg-light-bg px-3 text-xs text-gray-500">
-                      Primary Server
-                    </span>
-                  )}
-                </div>
-                {blossomServers.length > 1 && (
-                  <MinusCircleIcon
-                    onClick={() => deleteBlossomServer(server)}
-                    className="h-5 w-5 cursor-pointer text-red-500 hover:text-yellow-700"
-                  />
-                )}
-              </div>
-            ))}
+                Add Relay
+              </Button>
+              {relaysAreChanged && (
+                <Button
+                  className={BLACKBUTTONCLASSNAMES}
+                  onClick={() => publishRelays()}
+                >
+                  Save
+                </Button>
+              )}
+            </div>
           </div>
-          <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
-            <Button
-              className={BLACKBUTTONCLASSNAMES}
-              onClick={() => handleToggleBlossomServerModal()}
-            >
-              Add Server
-            </Button>
-            {blossomServersAreChanged && (
-              <div className="flex h-fit flex-row justify-between bg-light-bg px-3 py-[15px]">
+
+          {/* Blossom Media Servers Section */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Blossom Media Servers</h2>
+
+            {blossomServers.length === 0 ? (
+              <p className="mb-4 text-gray-500">No servers added...</p>
+            ) : (
+              <div className="mb-4 space-y-2">
+                {blossomServers.map((server, index) => (
+                  <div
+                    key={server}
+                    className="flex items-center justify-between rounded-lg border-3 border-black bg-white px-4 py-3"
+                  >
+                    <div className="flex-1 break-all text-sm">
+                      {server}
+                      {index === 0 && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          Primary Server
+                        </span>
+                      )}
+                    </div>
+                    {blossomServers.length > 1 && (
+                      <button
+                        onClick={() => deleteBlossomServer(server)}
+                        className="ml-2 rounded p-1 hover:bg-gray-100"
+                      >
+                        <MinusCircleIcon className="h-5 w-5 text-black" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                className={BLUEBUTTONCLASSNAMES}
+                onClick={() => handleToggleBlossomServerModal()}
+              >
+                Add Server
+              </Button>
+              {blossomServersAreChanged && (
                 <Button
                   className={BLACKBUTTONCLASSNAMES}
                   onClick={() => publishBlossomServers()}
                 >
                   Save
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-          <Modal
-            backdrop="blur"
-            isOpen={showBlossomServerModal}
-            onClose={() => handleToggleBlossomServerModal()}
-            classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
-            }}
-            scrollBehavior={"outside"}
-            size="2xl"
-          >
-            <ModalContent>
-              <ModalHeader className="flex flex-col gap-1 text-dark-text">
-                Add Server
-              </ModalHeader>
-              <form onSubmit={handleBlossomSubmit(onBlossomSubmit)}>
-                <ModalBody>
-                  <Controller
-                    name="server"
-                    control={blossomControl}
-                    rules={{
-                      required: "A Blossom server URL is required.",
-                      maxLength: {
-                        value: 500,
-                        message: "This input exceed maxLength of 500.",
-                      },
-                      validate: (value) =>
-                        /^(https:\/\/|http:\/\/)/.test(value) ||
-                        "Invalid Blossom server URL, must start with https:// or http://.",
-                    }}
-                    render={({
-                      field: { onChange, onBlur, value },
-                      fieldState: { error },
-                    }) => {
-                      const isErrored = error !== undefined;
-                      const errorMessage: string = error?.message
-                        ? error.message
-                        : "";
-                      return (
-                        <Textarea
-                          className="text-dark-text"
-                          variant="bordered"
-                          fullWidth={true}
-                          placeholder="https://..."
-                          isInvalid={isErrored}
-                          errorMessage={errorMessage}
-                          // controller props
-                          onChange={onChange} // send value to hook form
-                          onBlur={onBlur} // notify when input is touched/blur
-                          value={value}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleBlossomSubmit(onBlossomSubmit)();
-                            }
-                          }}
-                        />
-                      );
-                    }}
-                  />
-                </ModalBody>
 
-                <ModalFooter>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    onClick={() => handleToggleBlossomServerModal()}
-                  >
-                    Cancel
-                  </Button>
+          {/* Web of Trust Section */}
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold">Web of Trust</h2>
 
-                  <Button className={WHITEBUTTONCLASSNAMES} type="submit">
-                    Add Server
-                  </Button>
-                </ModalFooter>
-              </form>
-            </ModalContent>
-          </Modal>
+            {isLoaded && (
+              <>
+                <MilkMarketSlider />
+              </>
+            )}
 
-          <span className="my-4 flex  text-2xl font-bold text-light-text">
-            Web of Trust
-          </span>
-
-          {isLoaded && (
-            <>
-              <MilkMarketSlider />
-            </>
-          )}
-
-          <div className="mx-4 my-4 flex items-center justify-center text-center">
-            <InformationCircleIcon className="h-6 w-6 text-light-text" />
-            <p className="ml-2 text-sm text-light-text">
-              This filters for listings from friends and friends of friends.
-            </p>
+            <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+              <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
+              <p>
+                This filters for listings from friends and friends of friends.
+              </p>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Mint Modal */}
+      <Modal
+        backdrop="blur"
+        isOpen={showMintModal}
+        onClose={handleToggleMintModal}
+        classNames={{
+          body: "py-6 bg-white",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          header: "border-b-3 border-black bg-white rounded-t-xl",
+          footer: "border-t-3 border-black bg-white rounded-b-xl",
+          base: "border-3 border-black rounded-xl",
+          closeButton: "hover:bg-gray-100 active:bg-gray-200",
+        }}
+        scrollBehavior={"outside"}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1 font-bold text-black">
+            Change Active Mint
+          </ModalHeader>
+          <form onSubmit={handleMintSubmit(onMintSubmit)}>
+            <ModalBody>
+              <Controller
+                name="mint"
+                control={mintControl}
+                rules={{
+                  required: "A mint URL is required.",
+                  maxLength: {
+                    value: 500,
+                    message: "This input exceed maxLength of 500.",
+                  },
+                  validate: (value) =>
+                    /^(https:\/\/|http:\/\/)/.test(value) ||
+                    "Invalid mint URL, must start with https:// or http://.",
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => {
+                  const isErrored = error !== undefined;
+                  const errorMessage: string = error?.message
+                    ? error.message
+                    : "";
+                  return (
+                    <Textarea
+                      classNames={{
+                        inputWrapper:
+                          "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                        input: "text-base",
+                      }}
+                      variant="bordered"
+                      fullWidth={true}
+                      placeholder="https://..."
+                      isInvalid={isErrored}
+                      errorMessage={errorMessage}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      value={value}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleMintSubmit(onMintSubmit)();
+                        }
+                      }}
+                    />
+                  );
+                }}
+              />
+            </ModalBody>
+
+            <ModalFooter>
+              <Button
+                className={WHITEBUTTONCLASSNAMES}
+                onClick={handleToggleMintModal}
+              >
+                Cancel
+              </Button>
+
+              <Button className={BLUEBUTTONCLASSNAMES} type="submit">
+                Change Mint
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      {/* Relay Modal */}
+      <Modal
+        backdrop="blur"
+        isOpen={showRelayModal}
+        onClose={() => handleToggleRelayModal("")}
+        classNames={{
+          body: "py-6 bg-white",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          header: "border-b-3 border-black bg-white rounded-t-xl",
+          footer: "border-t-3 border-black bg-white rounded-b-xl",
+          base: "border-3 border-black rounded-xl",
+          closeButton: "hover:bg-gray-100 active:bg-gray-200",
+        }}
+        scrollBehavior={"outside"}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1 font-bold text-black">
+            Add Relay
+          </ModalHeader>
+          <form onSubmit={handleRelaySubmit(onRelaySubmit)}>
+            <ModalBody>
+              <Controller
+                name="relay"
+                control={relayControl}
+                rules={{
+                  required: "A relay URL is required.",
+                  maxLength: {
+                    value: 500,
+                    message: "This input exceed maxLength of 500.",
+                  },
+                  validate: (value) =>
+                    /^(wss:\/\/|ws:\/\/)/.test(value) ||
+                    "Invalid relay URL, must start with wss:// or ws://.",
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => {
+                  const isErrored = error !== undefined;
+                  const errorMessage: string = error?.message
+                    ? error.message
+                    : "";
+                  return (
+                    <Textarea
+                      classNames={{
+                        inputWrapper:
+                          "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                        input: "text-base",
+                      }}
+                      variant="bordered"
+                      fullWidth={true}
+                      placeholder="wss://..."
+                      isInvalid={isErrored}
+                      errorMessage={errorMessage}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      value={value}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleRelaySubmit(onRelaySubmit)();
+                        }
+                      }}
+                    />
+                  );
+                }}
+              />
+            </ModalBody>
+
+            <ModalFooter>
+              <Button
+                className={WHITEBUTTONCLASSNAMES}
+                onClick={() => handleToggleRelayModal("")}
+              >
+                Cancel
+              </Button>
+
+              <Button className={BLUEBUTTONCLASSNAMES} type="submit">
+                Add Relay
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
+      {/* Blossom Server Modal */}
+      <Modal
+        backdrop="blur"
+        isOpen={showBlossomServerModal}
+        onClose={() => handleToggleBlossomServerModal()}
+        classNames={{
+          body: "py-6 bg-white",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          header: "border-b-3 border-black bg-white rounded-t-xl",
+          footer: "border-t-3 border-black bg-white rounded-b-xl",
+          base: "border-3 border-black rounded-xl",
+          closeButton: "hover:bg-gray-100 active:bg-gray-200",
+        }}
+        scrollBehavior={"outside"}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1 font-bold text-black">
+            Add Server
+          </ModalHeader>
+          <form onSubmit={handleBlossomSubmit(onBlossomSubmit)}>
+            <ModalBody>
+              <Controller
+                name="server"
+                control={blossomControl}
+                rules={{
+                  required: "A Blossom server URL is required.",
+                  maxLength: {
+                    value: 500,
+                    message: "This input exceed maxLength of 500.",
+                  },
+                  validate: (value) =>
+                    /^(https:\/\/|http:\/\/)/.test(value) ||
+                    "Invalid Blossom server URL, must start with https:// or http://.",
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => {
+                  const isErrored = error !== undefined;
+                  const errorMessage: string = error?.message
+                    ? error.message
+                    : "";
+                  return (
+                    <Textarea
+                      classNames={{
+                        inputWrapper:
+                          "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                        input: "text-base",
+                      }}
+                      variant="bordered"
+                      fullWidth={true}
+                      placeholder="https://..."
+                      isInvalid={isErrored}
+                      errorMessage={errorMessage}
+                      onChange={onChange}
+                      onBlur={onBlur}
+                      value={value}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleBlossomSubmit(onBlossomSubmit)();
+                        }
+                      }}
+                    />
+                  );
+                }}
+              />
+            </ModalBody>
+
+            <ModalFooter>
+              <Button
+                className={WHITEBUTTONCLASSNAMES}
+                onClick={() => handleToggleBlossomServerModal()}
+              >
+                Cancel
+              </Button>
+
+              <Button className={BLUEBUTTONCLASSNAMES} type="submit">
+                Add Server
+              </Button>
+            </ModalFooter>
+          </form>
+        </ModalContent>
+      </Modal>
+
       <FailureModal
         bodyText={failureText}
         isOpen={showFailureModal}

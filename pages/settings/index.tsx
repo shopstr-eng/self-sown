@@ -1,105 +1,114 @@
-import { Listbox, ListboxItem, ListboxSection } from "@nextui-org/react";
+import { useRouter } from "next/router";
 import {
-  ArrowRightStartOnRectangleIcon,
   BuildingStorefrontIcon,
   Cog6ToothIcon,
   UserIcon,
   UserGroupIcon,
+  ArrowRightStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
-import { useRouter } from "next/router";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
-import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 
 const SettingsPage = () => {
   const router = useRouter();
-  const listBoxSectionClassnames = {
-    heading: "text-light-text text-lg font-bold",
-  };
-  const listBoxClassnames = {
-    title: "text-dark-text hover:text-light-text",
-    base: "hover:bg-light-bg hover:opacity-50 bg-dark-fg my-2",
-  };
-  const startIconClassnames = "h-6 w-6 text-dark-text hover:text-light-text";
-  return (
-    <div className="flex h-full flex-col bg-light-bg pt-24">
-      <div className="bg mx-auto h-screen w-full lg:w-1/2 lg:pl-4">
-        <SettingsBreadCrumbs />
-        <Listbox variant="flat" aria-label="Listbox menu with sections">
-          <ListboxSection
-            title="Account"
-            showDivider
-            classNames={listBoxSectionClassnames}
-          >
-            <ListboxItem
-              key="shop-profile"
-              description="Edit your shop profile"
-              classNames={listBoxClassnames}
-              startContent={
-                <BuildingStorefrontIcon className={startIconClassnames} />
-              }
-              onClick={() => {
-                router.push("/settings/shop-profile");
-              }}
-            >
-              Shop Profile
-            </ListboxItem>
-            <ListboxItem
-              key="user-profile"
-              description="Edit your user profile"
-              classNames={listBoxClassnames}
-              startContent={<UserIcon className={startIconClassnames} />}
-              onClick={() => {
-                router.push("/settings/user-profile");
-              }}
-            >
-              User Profile
-            </ListboxItem>
-            <ListboxItem
-              key="community"
-              description="Create and manage your seller community"
-              classNames={listBoxClassnames}
-              startContent={<UserGroupIcon className={startIconClassnames} />}
-              onClick={() => {
-                router.push("/settings/community");
-              }}
-            >
-              Community Management
-            </ListboxItem>
-            <ListboxItem
-              key="preferences"
-              description="Change your mints, relays, media servers, and more"
-              classNames={listBoxClassnames}
-              startContent={<Cog6ToothIcon className={startIconClassnames} />}
-              onClick={() => {
-                router.push("/settings/preferences");
-              }}
-            >
-              Preferences
-            </ListboxItem>
-          </ListboxSection>
-          <ListboxSection title="Log out" classNames={listBoxSectionClassnames}>
-            <ListboxItem
-              key="delete"
-              className="text-danger"
-              color="danger"
-              description="Log out of Milk Market"
-              classNames={listBoxClassnames}
-              startContent={
-                <ArrowRightStartOnRectangleIcon
-                  className={"text-color-red-900 " + "h-5 w-5"}
-                  color="red"
-                />
-              }
-              onClick={() => {
-                LogOut();
 
-                router.push("/marketplace");
-              }}
-            >
-              Log out
-            </ListboxItem>
-          </ListboxSection>
-        </Listbox>
+  const settingsItems = [
+    {
+      id: "shop-profile",
+      title: "Shop Profile",
+      description: "Edit your shop profile",
+      icon: BuildingStorefrontIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/shop-profile",
+    },
+    {
+      id: "user-profile",
+      title: "User Profile",
+      description: "Edit your user profile",
+      icon: UserIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/user-profile",
+    },
+    {
+      id: "community",
+      title: "Community Management",
+      description: "Create and manage your seller community",
+      icon: UserGroupIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/community",
+    },
+    {
+      id: "preferences",
+      title: "Preferences",
+      description: "Change your mints, relays, media servers, and more",
+      icon: Cog6ToothIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/preferences",
+    },
+  ];
+
+  return (
+    <div className="flex min-h-screen flex-col bg-white pb-20 pt-24">
+      <div className="mx-auto w-full px-4 lg:w-1/2 xl:w-2/5">
+        <h1 className="mb-6 text-4xl font-bold">Settings</h1>
+
+        {/* Account Section */}
+        <div className="mb-10">
+          <h2 className="mb-3 text-xl font-bold">Account</h2>
+          <div className="space-y-3">
+            {settingsItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => router.push(item.route)}
+                  className="group w-full transform cursor-pointer rounded-xl border-3 border-black bg-primary-blue p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`${item.iconBg} rounded-lg border-2 border-black/20 p-2.5`}
+                    >
+                      <IconComponent className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="text-base font-bold text-white group-hover:text-gray-100">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-gray-300 group-hover:text-gray-200">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Log out Section */}
+        <div>
+          <h2 className="mb-3 text-xl font-bold">Log out</h2>
+          <button
+            onClick={() => {
+              LogOut();
+              router.push("/marketplace");
+            }}
+            className="group w-full transform cursor-pointer rounded-xl border-3 border-black bg-primary-blue p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+          >
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg border-2 border-black/20 bg-red-400 p-2.5">
+                <ArrowRightStartOnRectangleIcon className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="text-base font-bold text-white group-hover:text-gray-100">
+                  Log out
+                </h3>
+                <p className="text-sm text-gray-300 group-hover:text-gray-200">
+                  Log out of Milk Market
+                </p>
+              </div>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );

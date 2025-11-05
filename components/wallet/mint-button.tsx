@@ -20,7 +20,10 @@ import {
   Image,
   Input,
 } from "@nextui-org/react";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  WHITEBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   getLocalStorageData,
   publishProofEvent,
@@ -238,7 +241,7 @@ const MintButton = () => {
       <Button
         className={WHITEBUTTONCLASSNAMES + " m-2"}
         onClick={() => setShowMintModal(!showMintModal)}
-        startContent={<BanknotesIcon className="h-6 w-6 hover:text-gray-300" />}
+        startContent={<BanknotesIcon className="h-6 w-6" />}
       >
         Mint
       </Button>
@@ -247,17 +250,19 @@ const MintButton = () => {
         isOpen={showMintModal}
         onClose={handleToggleMintModal}
         classNames={{
-          body: "py-6 bg-dark-fg",
+          body: "py-6 bg-white",
           backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+          header: "border-b-4 border-black bg-white rounded-t-md",
+          footer: "border-t-4 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",
+          wrapper: "items-center justify-center",
+          base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
         }}
         scrollBehavior={"outside"}
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="flex flex-col gap-1 text-dark-text">
+          <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
             Mint Tokens
           </ModalHeader>
           <form onSubmit={handleMintSubmit(onMintSubmit)}>
@@ -284,7 +289,12 @@ const MintButton = () => {
                     : "";
                   return (
                     <Input
-                      className="text-dark-text"
+                      className="text-black"
+                      classNames={{
+                        input: "text-black font-medium",
+                        inputWrapper:
+                          "border-2 border-black shadow-none bg-white rounded-md",
+                      }}
                       autoFocus
                       variant="bordered"
                       fullWidth={true}
@@ -301,9 +311,9 @@ const MintButton = () => {
                 }}
               />
               {signer instanceof NostrNIP46Signer && (
-                <div className="mx-4 my-2 flex items-center justify-center text-center">
-                  <InformationCircleIcon className="h-6 w-6 text-dark-text" />
-                  <p className="ml-2 text-xs text-dark-text">
+                <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
+                  <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                  <p className="ml-2 text-xs text-black">
                     If the token is taking a while to be minted, make sure to
                     check your bunker application to approve the transaction
                     events.
@@ -311,23 +321,25 @@ const MintButton = () => {
                 </div>
               )}
               {showInvoiceCard && (
-                <Card className="mt-3 max-w-[700px]">
-                  <CardHeader className="flex justify-center gap-3">
-                    <span className="text-xl font-bold">Lightning Invoice</span>
+                <Card className="mt-3 rounded-md border-3 border-black shadow-neo">
+                  <CardHeader className="flex justify-center gap-3 border-b-2 border-black bg-white">
+                    <span className="text-xl font-bold text-black">
+                      Lightning Invoice
+                    </span>
                   </CardHeader>
-                  <Divider />
-                  <CardBody className="flex flex-col items-center">
+                  <Divider className="bg-black" />
+                  <CardBody className="flex flex-col items-center bg-white">
                     {!paymentConfirmed ? (
                       <div className="flex flex-col items-center justify-center">
                         {qrCodeUrl ? (
                           <>
                             <Image
                               alt="Lightning invoice"
-                              className="object-cover"
+                              className="rounded-md border-2 border-black object-cover"
                               src={qrCodeUrl}
                             />
-                            <div className="flex items-center justify-center">
-                              <p className="text-center">
+                            <div className="mt-4 flex items-center justify-center">
+                              <p className="break-all text-center font-mono text-sm text-black">
                                 {invoice.length > 30
                                   ? `${invoice.substring(
                                       0,
@@ -340,12 +352,12 @@ const MintButton = () => {
                               </p>
                               <ClipboardIcon
                                 onClick={handleCopyInvoice}
-                                className={`ml-2 h-4 w-4 cursor-pointer text-dark-text ${
+                                className={`ml-2 h-5 w-5 cursor-pointer text-black hover:text-gray-600 ${
                                   copiedToClipboard ? "hidden" : ""
                                 }`}
                               />
                               <CheckIcon
-                                className={`ml-2 h-4 w-4 cursor-pointer text-dark-text ${
+                                className={`ml-2 h-5 w-5 cursor-pointer text-green-600 ${
                                   copiedToClipboard ? "" : "hidden"
                                 }`}
                               />
@@ -353,13 +365,15 @@ const MintButton = () => {
                           </>
                         ) : (
                           <div>
-                            <p>Waiting for lightning invoice...</p>
+                            <p className="text-black">
+                              Waiting for lightning invoice...
+                            </p>
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center">
-                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                        <h3 className="mt-3 text-center text-lg font-bold text-black">
                           Payment confirmed!
                         </h3>
                         <Image
@@ -377,14 +391,14 @@ const MintButton = () => {
 
             <ModalFooter>
               <Button
-                color="danger"
+                className="px-4 py-2 font-bold hover:underline"
                 variant="light"
                 onClick={handleToggleMintModal}
               >
                 Cancel
               </Button>
 
-              <Button className={WHITEBUTTONCLASSNAMES} type="submit">
+              <Button className={BLUEBUTTONCLASSNAMES} type="submit">
                 Mint
               </Button>
             </ModalFooter>

@@ -10,7 +10,7 @@ import {
   Tooltip,
 } from "@nextui-org/react";
 import { ArrowLongRightIcon } from "@heroicons/react/24/outline";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES"; // Changed to BLUE for neo-brutalist theme
 import {
   generateKeys,
   setLocalStorageDataOnSignIn,
@@ -24,9 +24,9 @@ import FailureModal from "../../components/utility-components/failure-modal";
 const Keys = () => {
   const router = useRouter();
 
+  // Logic from new-account.tsx (no npub, no viewState)
   const [privateKey, setPrivateKey] = useState<string>("");
   const [passphrase, setPassphrase] = useState<string>("");
-
   const [showFailureModal, setShowFailureModal] = useState(false);
 
   const { newSigner } = useContext(SignerContext);
@@ -50,6 +50,7 @@ const Keys = () => {
     }
   };
 
+  // Logic from new-account.tsx (only generates nsec)
   useEffect(() => {
     const fetchKeys = async () => {
       const { nsec } = await generateKeys();
@@ -59,6 +60,7 @@ const Keys = () => {
     fetchKeys();
   }, []);
 
+  // Logic from new-account.tsx (no copy handlers)
   const handleNext = async () => {
     if (passphrase === "" || passphrase === null) {
       setShowFailureModal(true);
@@ -79,11 +81,14 @@ const Keys = () => {
 
   return (
     <>
-      <div className="flex h-[100vh] flex-col bg-light-bg pt-24">
+      {/* Styling from keys.tsx (bg-white) */}
+      <div className="flex h-[100vh] flex-col bg-white pt-24">
         <div className="mx-auto w-full max-w-2xl px-4 py-6">
-          <Card className="bg-dark-fg">
-            <CardBody>
-              <div className="mb-4 flex flex-row items-center justify-center">
+          {/* Styling from keys.tsx (neo-brutalist card) */}
+          <Card className="rounded-md border-4 border-black bg-white shadow-neo">
+            <CardBody className="p-8">
+              {/* Styling from keys.tsx (mb-6, gap-3, text-black) */}
+              <div className="mb-6 flex flex-row items-center justify-center gap-3">
                 <Image
                   alt="Milk Market logo"
                   height={50}
@@ -91,39 +96,49 @@ const Keys = () => {
                   src="/milk-market.png"
                   width={50}
                 />
-                <h1 className="cursor-pointer text-center text-3xl font-bold text-dark-text">
+                <h1 className="text-center text-3xl font-bold text-black">
                   Milk Market
                 </h1>
               </div>
-              <div className="mb-4 text-center">
-                <h2 className="text-2xl font-bold text-dark-text">
+
+              {/* Text from new-account.tsx, Styling from keys.tsx */}
+              <div className="mb-6 text-center">
+                <h2 className="mb-3 text-2xl font-bold text-black">
                   Step 1: Account Creation
                 </h2>
-                <p className="text-dark-text">
+                <p className="text-black">
                   Enter a passphrase to make sure your data is secured. You can
                   view your account information under your profile settings.
                 </p>
               </div>
 
-              <div className="mb-4 flex flex-col space-y-2 text-dark-text">
+              {/* Public and Private key sections from keys.tsx are intentionally removed to match new-account.tsx logic */}
+
+              {/* Passphrase section with styling from keys.tsx */}
+              <div className="mb-6 flex flex-col space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-xl">
+                  <label className="text-xl font-bold text-black">
                     Passphrase:<span className="text-red-500">*</span>
                   </label>
                   <Tooltip
+                    // Content from new-account.tsx
                     content="This passphrase acts as a password and is used to keep your account secure. Remember it and keep it safe as it can't be recovered!"
-                    placement="bottom"
-                    trigger="focus"
+                    placement="right"
+                    trigger="focus" // Accessibility from new-account.tsx
+                    // Styling from keys.tsx
                     classNames={{
-                      content: "bg-dark-bg text-dark-text p-2 max-w-xs",
+                      content:
+                        "bg-black text-white p-3 max-w-xs border-2 border-black",
                     }}
                   >
+                    {/* Button wrapper for focus trigger from new-account.tsx */}
                     <button
                       type="button"
                       className="flex items-center justify-center"
                       aria-label="Passphrase information"
                     >
-                      <InformationCircleIcon className="h-5 w-5 cursor-pointer text-dark-text" />
+                      {/* Icon styling from keys.tsx */}
+                      <InformationCircleIcon className="h-6 w-6 cursor-help text-black" />
                     </button>
                   </Tooltip>
                 </div>
@@ -141,18 +156,26 @@ const Keys = () => {
                     )
                       handleNext();
                   }}
+                  classNames={{
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
+                    inputWrapper:
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
+                  }}
                 />
               </div>
 
-              <div className="flex justify-center">
-                <Button className={WHITEBUTTONCLASSNAMES} onClick={handleNext}>
-                  Next <ArrowLongRightIcon className="h-5 w-5" />
+              {/* Button styling from keys.tsx (mt-4, BLUEBUTTON, ml-1 icon) */}
+              <div className="mt-4 flex justify-center">
+                <Button className={BLUEBUTTONCLASSNAMES} onClick={handleNext}>
+                  Next <ArrowLongRightIcon className="ml-1 h-5 w-5" />
                 </Button>
               </div>
             </CardBody>
           </Card>
         </div>
       </div>
+      {/* FailureModal from new-account.tsx (SuccessModal is removed) */}
       <FailureModal
         bodyText="No passphrase provided!"
         isOpen={showFailureModal}

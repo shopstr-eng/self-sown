@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { Button } from "@nextui-org/react";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 export default function Faq() {
   const router = useRouter();
@@ -135,6 +134,16 @@ export default function Faq() {
     },
   ];
 
+  // State to manage which accordion item is open
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const handleToggle = (index: number) => {
+    setOpenIndex(openIndex === index ? null : index);
+  };
+
+  // A counter to give each FAQ item a unique index across all sections
+  let globalItemIndex = 0;
+
   return (
     <>
       <Head>
@@ -178,45 +187,62 @@ export default function Faq() {
           content="milk market, FAQ, raw dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce"
         />
       </Head>
-      <div className="flex min-h-screen flex-col bg-light-bg py-8 md:pb-20">
-        <div className="container mx-auto max-w-6xl px-4">
-          <div className="mb-8">
-            <Button
-              className={`mb-4 ${BLACKBUTTONCLASSNAMES}`}
+      {/* Main container with new background pattern */}
+      <div className="flex min-h-screen flex-col bg-white bg-grid-pattern py-8 md:pb-20">
+        {/* Centered content with a smaller max-width for the FAQ layout */}
+        <div className="container mx-auto max-w-4xl px-4">
+          <div className="mb-12">
+            {/* Back button with new neo-brutalist style */}
+            <button
               onClick={() => router.back()}
-              startContent={<ArrowLeftIcon className="h-4 w-4" />}
+              className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
+              <ArrowLeftIcon className="h-4 w-4" />
               Back
-            </Button>
-            <h1 className="text-center text-3xl font-bold text-light-text">
+            </button>
+            <h1 className="text-center text-5xl font-bold text-black">
               Frequently Asked Questions
             </h1>
+            <p className="mt-4 text-center text-lg text-zinc-600">
+              Answers to common questions about using Milk Market
+            </p>
           </div>
 
-          <p className="mx-auto mb-10 max-w-3xl text-center text-light-text/80">
-            Answers to common questions about using Milk Market
-          </p>
-
-          {faqSections.map((section, sectionIndex) => (
-            <div key={sectionIndex} className="mb-8">
-              <h2 className="mb-4 border-b border-gray-200 pb-2 text-xl font-semibold text-light-text">
+          {faqSections.map((section) => (
+            <div key={section.title} className="mb-12">
+              <h2 className="mb-6 text-2xl font-bold text-black">
                 {section.title}
               </h2>
-
-              <div className="space-y-6">
-                {section.items.map((item, itemIndex) => (
-                  <div
-                    key={itemIndex}
-                    className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
-                  >
-                    <h3 className="mb-3 text-lg font-semibold text-light-text">
-                      {item.title}
-                    </h3>
-                    <p className="leading-relaxed text-light-text/90">
-                      {item.content}
-                    </p>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                {/* Map through items and create accordion */}
+                {section.items.map((item) => {
+                  const currentIndex = globalItemIndex++;
+                  const isOpen = openIndex === currentIndex;
+                  return (
+                    <div
+                      key={item.title}
+                      className="rounded-lg border-2 border-black bg-white shadow-neo"
+                    >
+                      <button
+                        onClick={() => handleToggle(currentIndex)}
+                        className="flex w-full items-center justify-between p-4 font-bold text-black"
+                      >
+                        <span>{item.title}</span>
+                        <span className="text-2xl">{isOpen ? "-" : "+"}</span>
+                      </button>
+                      {/* Content area that slides open/closed */}
+                      <div
+                        className={`overflow-hidden duration-300 ease-in-out transition-all ${
+                          isOpen ? "max-h-screen" : "max-h-0"
+                        }`}
+                      >
+                        <div className="border-t-2 border-black p-4 text-zinc-700">
+                          {item.content}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

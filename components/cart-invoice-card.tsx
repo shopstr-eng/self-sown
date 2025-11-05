@@ -53,7 +53,7 @@ import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import SignInModal from "./sign-in/SignInModal";
 import currencySelection from "../public/currencySelection.json";
 import FailureModal from "@/components/utility-components/failure-modal";
@@ -2099,9 +2099,15 @@ export default function CartInvoiceCard({
                 fieldState: { error },
               }) => (
                 <Input
-                  variant="bordered"
+                  classNames={{
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                    input: "!text-black placeholder:text-gray-400",
+                    label: "text-gray-600",
+                    innerWrapper: "!bg-white",
+                  }}
                   fullWidth={true}
-                  label={<span className="text-light-text">Contact</span>}
+                  label={<span>Contact</span>}
                   labelPlacement="inside"
                   placeholder="@milkmarket"
                   isInvalid={!!error}
@@ -2123,9 +2129,15 @@ export default function CartInvoiceCard({
                 fieldState: { error },
               }) => (
                 <Input
-                  variant="bordered"
+                  classNames={{
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                    input: "!text-black placeholder:text-gray-400",
+                    label: "text-gray-600",
+                    innerWrapper: "!bg-white",
+                  }}
                   fullWidth={true}
-                  label={<span className="text-light-text">Contact type</span>}
+                  label={<span>Contact type</span>}
                   labelPlacement="inside"
                   placeholder="Nostr, Signal, Telegram, email, phone, etc."
                   isInvalid={!!error}
@@ -2147,13 +2159,15 @@ export default function CartInvoiceCard({
                 fieldState: { error },
               }) => (
                 <Textarea
-                  variant="bordered"
+                  classNames={{
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                    input: "!text-black placeholder:text-gray-400",
+                    label: "text-gray-600",
+                    innerWrapper: "!bg-white",
+                  }}
                   fullWidth={true}
-                  label={
-                    <span className="text-light-text">
-                      Delivery instructions
-                    </span>
-                  }
+                  label={<span>Delivery instructions</span>}
                   labelPlacement="inside"
                   placeholder="Meet me by . . .; Send file to . . ."
                   isInvalid={!!error}
@@ -2185,9 +2199,15 @@ export default function CartInvoiceCard({
                 fieldState: { error },
               }) => (
                 <Input
-                  variant="bordered"
+                  classNames={{
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                    input: "!text-black placeholder:text-gray-400",
+                    label: "text-gray-600",
+                    innerWrapper: "!bg-white",
+                  }}
                   fullWidth={true}
-                  label={<span className="text-light-text">Name</span>}
+                  label={<span>Name</span>}
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
@@ -2214,9 +2234,15 @@ export default function CartInvoiceCard({
                 fieldState: { error },
               }) => (
                 <Input
-                  variant="bordered"
+                  classNames={{
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                    input: "!text-black placeholder:text-gray-400",
+                    label: "text-gray-600",
+                    innerWrapper: "!bg-white",
+                  }}
                   fullWidth={true}
-                  label={<span className="text-light-text">Address</span>}
+                  label={<span>Address</span>}
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
@@ -2242,7 +2268,13 @@ export default function CartInvoiceCard({
                 fieldState: { error },
               }) => (
                 <Input
-                  variant="bordered"
+                  classNames={{
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                    input: "!text-black placeholder:text-gray-400",
+                    label: "text-gray-600",
+                    innerWrapper: "!bg-white",
+                  }}
                   fullWidth={true}
                   label="Apt, suite, unit, etc."
                   labelPlacement="inside"
@@ -2255,111 +2287,139 @@ export default function CartInvoiceCard({
               )}
             />
 
-            <Controller
-              name="City"
-              control={formControl}
-              rules={{
-                required: "A city is required.",
-                maxLength: {
-                  value: 50,
-                  message: "This input exceed maxLength of 50.",
-                },
-              }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Input
-                  variant="bordered"
-                  fullWidth={true}
-                  label={<span className="text-light-text">City</span>}
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+            {/* Two-column layout for City and State/Province */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Controller
+                name="City"
+                control={formControl}
+                rules={{
+                  required: "A city is required.",
+                  maxLength: {
+                    value: 50,
+                    message: "This input exceed maxLength of 50.",
+                  },
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <Input
+                    classNames={{
+                      inputWrapper:
+                        "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                      input: "!text-black placeholder:text-gray-400",
+                      label: "text-gray-600",
+                      innerWrapper: "!bg-white",
+                    }}
+                    fullWidth={true}
+                    label={<span>City</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
 
-            <Controller
-              name="State/Province"
-              control={formControl}
-              rules={{ required: "A state/province is required." }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Input
-                  variant="bordered"
-                  fullWidth={true}
-                  label={
-                    <span className="text-light-text">State/Province</span>
-                  }
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+              <Controller
+                name="State/Province"
+                control={formControl}
+                rules={{ required: "A state/province is required." }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <Input
+                    classNames={{
+                      inputWrapper:
+                        "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                      input: "!text-black placeholder:text-gray-400",
+                      label: "text-gray-600",
+                      innerWrapper: "!bg-white",
+                    }}
+                    fullWidth={true}
+                    label={<span>State/Province</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
+            </div>
 
-            <Controller
-              name="Postal Code"
-              control={formControl}
-              rules={{
-                required: "A postal code is required.",
-                maxLength: {
-                  value: 50,
-                  message: "This input exceed maxLength of 50.",
-                },
-              }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <Input
-                  variant="bordered"
-                  fullWidth={true}
-                  label={<span className="text-light-text">Postal code</span>}
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+            {/* Two-column layout for Postal Code and Country */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Controller
+                name="Postal Code"
+                control={formControl}
+                rules={{
+                  required: "A postal code is required.",
+                  maxLength: {
+                    value: 50,
+                    message: "This input exceed maxLength of 50.",
+                  },
+                }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <Input
+                    classNames={{
+                      inputWrapper:
+                        "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                      input: "!text-black placeholder:text-gray-400",
+                      label: "text-gray-600",
+                      innerWrapper: "!bg-white",
+                    }}
+                    fullWidth={true}
+                    label={<span>Postal code</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
 
-            <Controller
-              name="Country"
-              control={formControl}
-              rules={{ required: "A country is required." }}
-              render={({
-                field: { onChange, onBlur, value },
-                fieldState: { error },
-              }) => (
-                <CountryDropdown
-                  variant="bordered"
-                  aria-label="Select Country"
-                  label={<span className="text-light-text">Country</span>}
-                  labelPlacement="inside"
-                  isInvalid={!!error}
-                  errorMessage={error?.message}
-                  onChange={onChange}
-                  isRequired={true}
-                  onBlur={onBlur}
-                  value={value || ""}
-                />
-              )}
-            />
+              <Controller
+                name="Country"
+                control={formControl}
+                rules={{ required: "A country is required." }}
+                render={({
+                  field: { onChange, onBlur, value },
+                  fieldState: { error },
+                }) => (
+                  <CountryDropdown
+                    classNames={{
+                      trigger:
+                        "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                      value: "!text-black",
+                      label: "text-gray-600 font-normal",
+                      innerWrapper: "!bg-white",
+                    }}
+                    aria-label="Select Country"
+                    label={<span>Country</span>}
+                    labelPlacement="inside"
+                    isInvalid={!!error}
+                    errorMessage={error?.message}
+                    onChange={onChange}
+                    isRequired={true}
+                    onBlur={onBlur}
+                    value={value || ""}
+                  />
+                )}
+              />
+            </div>
           </>
         )}
 
@@ -2383,12 +2443,8 @@ export default function CartInvoiceCard({
                     fieldState: { error },
                   }) => (
                     <Select
-                      variant="bordered"
-                      label={
-                        <span className="text-light-text">
-                          {product.title} - Pickup Location
-                        </span>
-                      }
+                      className="rounded-md border-2 border-black bg-white shadow-neo"
+                      label={<span>{product.title} - Pickup Location</span>}
                       placeholder="Select pickup location"
                       isInvalid={!!error}
                       errorMessage={error?.message}
@@ -2425,11 +2481,15 @@ export default function CartInvoiceCard({
               fieldState: { error },
             }) => (
               <Input
-                variant="bordered"
+                classNames={{
+                  inputWrapper:
+                    "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white focus-within:!bg-white data-[hover=true]:!bg-white group-data-[focus=true]:!bg-white",
+                  input: "!text-black placeholder:text-gray-400",
+                  label: "text-gray-600",
+                  innerWrapper: "!bg-white",
+                }}
                 fullWidth={true}
-                label={
-                  <span className="text-light-text">Enter {requiredInfo}</span>
-                }
+                label={<span>Enter {requiredInfo}</span>}
                 labelPlacement="inside"
                 isInvalid={!!error}
                 errorMessage={error?.message}
@@ -2447,10 +2507,10 @@ export default function CartInvoiceCard({
 
   if (showInvoiceCard) {
     return (
-      <div className="flex min-h-screen w-full bg-light-bg text-light-text">
+      <div className="flex min-h-screen w-full bg-white text-black">
         <div className="mx-auto flex w-full flex-col lg:flex-row">
           {/* Order Summary - Full width on mobile, half on desktop */}
-          <div className="w-full bg-gray-50 p-6 lg:w-1/2">
+          <div className="w-full bg-white p-6 lg:w-1/2">
             <div className="sticky top-6">
               <h2 className="mb-6 text-2xl font-bold">Order Summary</h2>
 
@@ -2544,7 +2604,7 @@ export default function CartInvoiceCard({
 
               <button
                 onClick={() => onBackToCart?.()}
-                className="mt-4 text-light-text underline hover:text-accent-light-text"
+                className="mt-4 text-black underline hover:text-gray-700"
               >
                 ← Back to cart
               </button>
@@ -2566,7 +2626,7 @@ export default function CartInvoiceCard({
                   <div className="flex flex-col items-center justify-center">
                     {qrCodeUrl ? (
                       <>
-                        <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                        <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -2589,12 +2649,12 @@ export default function CartInvoiceCard({
                           </p>
                           <ClipboardIcon
                             onClick={handleCopyInvoice}
-                            className={`ml-2 h-4 w-4 cursor-pointer text-dark-text ${
+                            className={`text-dark-text ml-2 h-4 w-4 cursor-pointer ${
                               copiedToClipboard ? "hidden" : ""
                             }`}
                           />
                           <CheckIcon
-                            className={`ml-2 h-4 w-4 cursor-pointer text-dark-text ${
+                            className={`text-dark-text ml-2 h-4 w-4 cursor-pointer ${
                               copiedToClipboard ? "" : "hidden"
                             }`}
                           />
@@ -2608,7 +2668,7 @@ export default function CartInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="mt-3 text-center text-lg font-medium leading-6 text-dark-text">
+                    <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -2628,10 +2688,10 @@ export default function CartInvoiceCard({
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-light-bg text-light-text">
+    <div className="flex min-h-screen w-full bg-white text-black">
       <div className="mx-auto flex w-full flex-col lg:flex-row">
         {/* Order Summary - Full width on mobile, half on desktop */}
-        <div className="w-full bg-gray-50 p-6 lg:w-1/2">
+        <div className="w-full bg-white p-6 lg:w-1/2">
           <div className="sticky top-6">
             <h2 className="mb-6 text-2xl font-bold">Order Summary</h2>
 
@@ -2720,7 +2780,7 @@ export default function CartInvoiceCard({
 
             <button
               onClick={() => onBackToCart?.()}
-              className="mt-4 text-light-text underline hover:text-accent-light-text"
+              className="mt-4 text-black underline hover:text-gray-700"
             >
               ← Back to cart
             </button>
@@ -2743,7 +2803,7 @@ export default function CartInvoiceCard({
                     {/* Mixed shipping types - only show combined */}
                     <button
                       onClick={() => handleOrderTypeSelection("combined")}
-                      className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                      className="w-full transform rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Mixed delivery</div>
                       <div className="text-sm text-gray-500">
@@ -2760,7 +2820,7 @@ export default function CartInvoiceCard({
                     {/* All products have Free/Pickup - show shipping and contact options */}
                     <button
                       onClick={() => handleOrderTypeSelection("shipping")}
-                      className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                      className="w-full transform rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Free or added shipping</div>
                       <div className="text-sm text-gray-500">
@@ -2769,7 +2829,7 @@ export default function CartInvoiceCard({
                     </button>
                     <button
                       onClick={() => handleOrderTypeSelection("contact")}
-                      className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                      className="w-full transform rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Pickup</div>
                       <div className="text-sm text-gray-500">
@@ -2781,7 +2841,7 @@ export default function CartInvoiceCard({
                   uniqueShippingTypes.includes("Added Cost") ? (
                   <button
                     onClick={() => handleOrderTypeSelection("shipping")}
-                    className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                    className="w-full transform rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="font-medium">
                       Online order with shipping
@@ -2793,7 +2853,7 @@ export default function CartInvoiceCard({
                 ) : (
                   <button
                     onClick={() => handleOrderTypeSelection("contact")}
-                    className="w-full rounded-lg border border-gray-300 bg-white p-4 text-left hover:bg-gray-50"
+                    className="w-full transform rounded-md border-2 border-black bg-white p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="font-medium">Online order</div>
                     <div className="text-sm text-gray-500">
@@ -2821,10 +2881,10 @@ export default function CartInvoiceCard({
                     setShippingPickupPreference("shipping");
                     setShowFreePickupSelection(false);
                   }}
-                  className={`w-full rounded-lg border p-4 text-left hover:bg-gray-50 ${
+                  className={`w-full transform rounded-md border-2 border-black p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                     shippingPickupPreference === "shipping"
-                      ? "border-light-text bg-yellow-700"
-                      : "border-gray-300 bg-white"
+                      ? "bg-primary-yellow"
+                      : "bg-white"
                   }`}
                 >
                   <div className="font-medium">Free or added shipping</div>
@@ -2837,10 +2897,10 @@ export default function CartInvoiceCard({
                     setShippingPickupPreference("contact");
                     setShowFreePickupSelection(false);
                   }}
-                  className={`w-full rounded-lg border p-4 text-left hover:bg-gray-50 ${
+                  className={`w-full transform rounded-md border-2 border-black p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                     shippingPickupPreference === "contact"
-                      ? "border-light-text bg-yellow-700"
-                      : "border-gray-300 bg-white"
+                      ? "bg-primary-yellow"
+                      : "bg-white"
                   }`}
                 >
                   <div className="font-medium">Pickup</div>
@@ -2861,7 +2921,12 @@ export default function CartInvoiceCard({
                       <div key={product.id} className="space-y-2">
                         <h4 className="font-medium">{product.title}</h4>
                         <Select
-                          variant="bordered"
+                          classNames={{
+                            trigger:
+                              "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                            value: "!text-black",
+                            label: "text-gray-600",
+                          }}
                           label="Select pickup location"
                           placeholder="Choose a pickup location"
                           value={selectedPickupLocations[product.id] || ""}
@@ -2905,7 +2970,7 @@ export default function CartInvoiceCard({
 
                   {fiatPaymentOptions.length > 0 && (
                     <Button
-                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                      className={`${BLUEBUTTONCLASSNAMES} w-full ${
                         !isFormValid ? "cursor-not-allowed opacity-50" : ""
                       }`}
                       disabled={!isFormValid}
@@ -2925,7 +2990,7 @@ export default function CartInvoiceCard({
                   )}
 
                   <Button
-                    className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                    className={`${BLUEBUTTONCLASSNAMES} w-full ${
                       !isFormValid ? "cursor-not-allowed opacity-50" : ""
                     }`}
                     disabled={!isFormValid}
@@ -2945,7 +3010,7 @@ export default function CartInvoiceCard({
 
                   {hasTokensAvailable && (
                     <Button
-                      className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                      className={`${BLUEBUTTONCLASSNAMES} w-full ${
                         !isFormValid ? "cursor-not-allowed opacity-50" : ""
                       }`}
                       disabled={!isFormValid}
@@ -3001,7 +3066,7 @@ export default function CartInvoiceCard({
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="flex items-center justify-center text-dark-text">
+          <ModalHeader className="text-dark-text flex items-center justify-center">
             Select your fiat payment preference:
           </ModalHeader>
           <ModalBody className="flex flex-col overflow-hidden">
@@ -3051,7 +3116,7 @@ export default function CartInvoiceCard({
                     id="paymentConfirmed"
                     checked={fiatPaymentConfirmed}
                     onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-light-text focus:ring-accent-light-text"
+                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
                   />
                   <label
                     htmlFor="paymentConfirmed"
@@ -3085,7 +3150,7 @@ export default function CartInvoiceCard({
                     id="paymentConfirmed"
                     checked={fiatPaymentConfirmed}
                     onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-light-text focus:ring-accent-light-text"
+                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
                   />
                   <label htmlFor="paymentConfirmed" className="text-gray-300">
                     I have sent the payment
@@ -3106,7 +3171,7 @@ export default function CartInvoiceCard({
                   }
                 }}
                 disabled={!fiatPaymentConfirmed}
-                className={`${BLACKBUTTONCLASSNAMES} w-full ${
+                className={`${BLUEBUTTONCLASSNAMES} w-full ${
                   !fiatPaymentConfirmed ? "cursor-not-allowed opacity-50" : ""
                 }`}
               >

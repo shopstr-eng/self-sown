@@ -21,13 +21,29 @@ export default function ConfirmActionDropdown({
   children,
 }: ConfirmActionDropdownProps) {
   return (
-    <Dropdown>
+    <Dropdown
+      classNames={{
+        content: "bg-white border-4 border-black rounded-md shadow-neo",
+      }}
+    >
       <DropdownTrigger>{children}</DropdownTrigger>
-      <DropdownMenu variant="faded" aria-label="Static Actions">
-        <DropdownSection title={helpText} showDivider={true}>
+      <DropdownMenu
+        variant="flat"
+        aria-label="Confirm Action"
+        classNames={{
+          base: "text-black",
+        }}
+      >
+        <DropdownSection
+          title={helpText}
+          showDivider={true}
+          classNames={{
+            heading: "text-black font-semibold",
+          }}
+        >
           <DropdownItem
             key="delete"
-            className="text-danger"
+            className="font-bold text-red-500 data-[hover=true]:bg-red-50"
             color="danger"
             onClick={onConfirm}
           >

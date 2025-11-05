@@ -4,7 +4,7 @@ import { Community } from "@/utils/types/types";
 import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import { sanitizeUrl } from "@braintree/sanitize-url";
-import { BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 interface CommunityCardProps {
   community: Community;
@@ -23,28 +23,29 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community }) => {
   };
 
   return (
-    <Card className="w-64 rounded-2xl border-2 border-black bg-white py-4 shadow-md">
-      <CardHeader className="flex-col items-start px-4 pb-0 pt-2">
-        <p className="text-tiny font-bold uppercase text-light-text">
-          Community
+    <Card className="w-full max-w-sm rounded-lg border-4 border-black bg-white shadow-neo transition-transform hover:-translate-y-1">
+      <CardHeader className="flex-col items-start px-6 pb-0 pt-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-gray-600">
+          COMMUNITY
         </p>
-        <h4 className="text-large font-bold text-light-text">
-          {community.name}
-        </h4>
+        <h4 className="mt-1 text-xl font-bold text-black">{community.name}</h4>
       </CardHeader>
-      <CardBody className="overflow-visible py-2">
-        <Image
-          alt={community.name}
-          className="h-[140px] w-full rounded-xl object-cover"
-          src={sanitizeUrl(community.image)}
-          width={270}
-        />
-        <p className="mt-2 line-clamp-2 text-sm text-default-500 text-light-text">
+      <CardBody className="px-6 py-4">
+        <div className="mb-4 overflow-hidden rounded-md border-2 border-black">
+          <Image
+            alt={community.name}
+            className="h-[180px] w-full object-cover"
+            src={sanitizeUrl(community.image)}
+            width="100%"
+            radius="none"
+          />
+        </div>
+        <p className="mb-4 line-clamp-2 text-sm text-gray-700">
           {community.description}
         </p>
         <Button
           onClick={handleVisit}
-          className={`${BLACKBUTTONCLASSNAMES} mt-4 w-full`}
+          className={`${BLUEBUTTONCLASSNAMES} w-full`}
         >
           Visit
         </Button>

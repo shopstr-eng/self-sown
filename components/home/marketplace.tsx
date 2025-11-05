@@ -24,7 +24,7 @@ import {
 import DisplayProducts from "../display-products";
 import LocationDropdown from "../utility-components/dropdowns/location-dropdown";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
-import { CATEGORIES, BLACKBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { CATEGORIES, BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import SignInModal from "../sign-in/SignInModal";
@@ -196,7 +196,7 @@ function MarketplacePage({
 
           return (
             <div key={product.id} className="mt-4 p-4 pt-4">
-              <h3 className="mb-3 text-lg font-semibold text-light-text">
+              <h3 className="mb-3 text-lg font-semibold text-black">
                 <div
                   onClick={() =>
                     handleTitleClick(product.d as string, product.pubkey)
@@ -211,7 +211,7 @@ function MarketplacePage({
                   ([reviewerPubkey, reviewData]) => (
                     <div
                       key={reviewerPubkey}
-                      className="rounded-lg border-2 border-black p-3"
+                      className="rounded-lg border-2 border-black bg-white p-3 shadow-neo"
                     >
                       <div className="mb-2 flex items-center gap-2">
                         <ProfileWithDropdown
@@ -233,7 +233,7 @@ function MarketplacePage({
                               return (
                                 <Chip
                                   key={index}
-                                  className={`text-light-text ${
+                                  className={`text-white ${
                                     value === "1"
                                       ? "bg-green-500"
                                       : "bg-red-500"
@@ -246,7 +246,7 @@ function MarketplacePage({
                               return (
                                 <Chip
                                   key={index}
-                                  className={`text-light-text ${
+                                  className={`text-white ${
                                     value === "1"
                                       ? "bg-green-500"
                                       : "bg-red-500"
@@ -263,7 +263,7 @@ function MarketplacePage({
                         {reviewData.map(([category, value], index) => {
                           if (category === "comment" && value !== "") {
                             return (
-                              <p key={index} className="italic text-light-text">
+                              <p key={index} className="italic text-black">
                                 &ldquo;{value}&rdquo;
                               </p>
                             );
@@ -283,20 +283,28 @@ function MarketplacePage({
   };
 
   return (
-    <div className="mx-auto w-full">
-      <div className="flex max-w-[100%] flex-col bg-light-bg px-3 pb-2">
+    <div className="mx-auto w-full bg-white">
+      {/* Filter Bar Section */}
+      <div className="flex max-w-[100%] flex-col bg-white px-6 py-6">
         {shopBannerURL != "" && focusedPubkey != "" && !isFetchingShop ? (
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div ref={searchBarRef} className="w-full sm:order-2 sm:w-auto">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              ref={searchBarRef}
+              className="w-full sm:order-2 sm:w-auto sm:flex-1"
+            >
               <Input
-                className="text-dark-text"
                 classNames={{
-                  input: "bg-dark-fg text-dark-text",
-                  inputWrapper: "bg-dark-fg",
+                  input: "bg-white !text-black placeholder:!text-gray-500",
+                  inputWrapper:
+                    "bg-white border-4 border-black rounded-md shadow-neo h-12 data-[hover=true]:bg-white data-[focus=true]:bg-white data-[focus-visible=true]:bg-white group-data-[focus=true]:bg-white",
+                  innerWrapper: "bg-white",
+                  mainWrapper: "bg-white",
                 }}
-                placeholder="Listing title, naddr1..., npub..."
+                placeholder="Listing title, naddr, npub..."
                 value={selectedSearch}
-                startContent={<MagnifyingGlassIcon height={"1em"} />}
+                startContent={
+                  <MagnifyingGlassIcon className="h-5 w-5 text-black" />
+                }
                 onChange={(event) => {
                   const value = event.target.value;
                   setSelectedSearch(value);
@@ -305,9 +313,9 @@ function MarketplacePage({
               />
             </div>
 
-            <div className="flex gap-1 sm:order-1">
+            <div className="flex flex-wrap gap-2 sm:order-1">
               <Button
-                className="bg-transparent text-lg text-light-text hover:text-yellow-600 sm:text-xl"
+                className="bg-transparent text-lg font-bold text-black hover:text-primary-yellow sm:text-xl"
                 onClick={() => {
                   setSelectedCategories(new Set<string>([]));
                   setSelectedLocation("");
@@ -318,7 +326,7 @@ function MarketplacePage({
                 Shop
               </Button>
               <Button
-                className="bg-transparent text-lg text-light-text hover:text-yellow-600 sm:text-xl"
+                className="bg-transparent text-lg font-bold text-black hover:text-primary-yellow sm:text-xl"
                 onClick={() => {
                   setSelectedSection("reviews");
                 }}
@@ -326,7 +334,7 @@ function MarketplacePage({
                 Reviews
               </Button>
               <Button
-                className="bg-transparent text-lg text-light-text hover:text-yellow-600 sm:text-xl"
+                className="bg-transparent text-lg font-bold text-black hover:text-primary-yellow sm:text-xl"
                 onClick={() => {
                   setSelectedSection("about");
                 }}
@@ -334,7 +342,7 @@ function MarketplacePage({
                 About
               </Button>
               <Button
-                className="bg-transparent text-lg text-light-text hover:text-yellow-600 sm:text-xl"
+                className="bg-transparent text-lg font-bold text-black hover:text-primary-yellow sm:text-xl"
                 onClick={() => handleSendMessage(focusedPubkey)}
               >
                 Message
@@ -342,75 +350,92 @@ function MarketplacePage({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col gap-2 pb-3 sm:flex-row">
-            <div ref={searchBarRef} className="w-full">
-              <Input
-                className="mt-2 text-dark-text"
-                classNames={{
-                  input: "bg-dark-fg text-dark-text",
-                  inputWrapper: "bg-dark-fg",
-                }}
-                isClearable
-                placeholder="Listing title, naddr1..., npub..."
-                value={selectedSearch}
-                startContent={<MagnifyingGlassIcon height={"1em"} />}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setSelectedSearch(value);
-                }}
-                onClear={() => setSelectedSearch("")}
-              ></Input>
-            </div>
-            <div className="flex w-full flex-row gap-2 pb-3">
-              <Select
-                className="mt-2 text-dark-text"
-                label="Categories"
-                placeholder="All"
-                selectedKeys={selectedCategories}
-                onChange={(event) => {
-                  if (event.target.value === "") {
-                    setSelectedCategories(new Set([]));
-                  } else {
-                    setSelectedCategories(
-                      new Set(event.target.value.split(","))
-                    );
+          <div className="mx-auto w-full max-w-7xl">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div ref={searchBarRef} className="w-full sm:flex-1">
+                <Input
+                  classNames={{
+                    input: "bg-white !text-black placeholder:!text-gray-500",
+                    inputWrapper:
+                      "bg-white border-4 border-black rounded-md shadow-neo h-12 data-[hover=true]:bg-white data-[focus=true]:bg-white data-[focus-visible=true]:bg-white group-data-[focus=true]:bg-white",
+                    innerWrapper: "bg-white",
+                    mainWrapper: "bg-white",
+                  }}
+                  isClearable
+                  placeholder="Listing title, naddr, npub..."
+                  value={selectedSearch}
+                  startContent={
+                    <MagnifyingGlassIcon className="h-5 w-5 text-black" />
                   }
-                }}
-                selectionMode="multiple"
-                classNames={{
-                  trigger: "bg-dark-fg text-dark-text",
-                  popoverContent: "bg-dark-fg",
-                  value: "text-dark-text",
-                }}
-              >
-                <SelectSection className="text-dark-text">
-                  {CATEGORIES.map((category) => (
-                    <SelectItem value={category} key={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectSection>
-              </Select>
-              <LocationDropdown
-                className="mt-2"
-                placeholder="All"
-                label="Location"
-                value={selectedLocation}
-                onChange={(event: any) => {
-                  setSelectedLocation(event.target.value);
-                }}
-              />
-              {!isFetchingFollows ? (
-                <MilkMarketSwitch
-                  wotFilter={wotFilter}
-                  setWotFilter={setWotFilter}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSelectedSearch(value);
+                  }}
+                  onClear={() => setSelectedSearch("")}
                 />
-              ) : null}
+              </div>
+              <div className="flex w-full flex-col gap-4 sm:w-auto sm:flex-row">
+                <Select
+                  className="text-black sm:w-56"
+                  placeholder="All Categories"
+                  selectedKeys={selectedCategories}
+                  onChange={(event) => {
+                    if (event.target.value === "") {
+                      setSelectedCategories(new Set([]));
+                    } else {
+                      setSelectedCategories(
+                        new Set(event.target.value.split(","))
+                      );
+                    }
+                  }}
+                  selectionMode="multiple"
+                  classNames={{
+                    trigger:
+                      "bg-white text-black border-4 border-black rounded-md shadow-neo h-12 data-[hover=true]:bg-white data-[open=true]:bg-white data-[focus=true]:bg-white data-[focus-visible=true]:bg-white",
+                    popoverContent: "bg-white border-4 border-black rounded-md",
+                    value: "text-black font-semibold",
+                    label: "text-black font-semibold",
+                    innerWrapper: "bg-white",
+                    mainWrapper: "bg-white",
+                  }}
+                >
+                  <SelectSection>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem
+                        key={category}
+                        value={category}
+                        classNames={{
+                          base: "text-black data-[hover=true]:!bg-primary-yellow data-[focus=true]:!bg-primary-yellow",
+                        }}
+                      >
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectSection>
+                </Select>
+                <LocationDropdown
+                  className="sm:w-56"
+                  placeholder="All Locations"
+                  label=""
+                  value={selectedLocation}
+                  onChange={(event: any) => {
+                    setSelectedLocation(event.target.value);
+                  }}
+                />
+                {!isFetchingFollows ? (
+                  <MilkMarketSwitch
+                    wotFilter={wotFilter}
+                    setWotFilter={setWotFilter}
+                  />
+                ) : null}
+              </div>
             </div>
           </div>
         )}
       </div>
-      <div className="flex">
+
+      {/* Main Content Area */}
+      <div className="flex bg-white">
         {focusedPubkey && shopBannerURL && (
           <SideShopNav
             focusedPubkey={focusedPubkey}
@@ -432,20 +457,20 @@ function MarketplacePage({
           />
         )}
         {selectedSection === "about" && shopAbout && (
-          <div className="flex w-full flex-col justify-start bg-transparent px-4 py-8 text-light-text">
+          <div className="flex w-full flex-col justify-start bg-white px-4 py-8 text-black">
             <h2 className="pb-2 text-2xl font-bold">About</h2>
             <p className="text-base">{shopAbout}</p>
           </div>
         )}
         {selectedSection === "reviews" && !isFetchingReviews && (
-          <div className="flex w-full flex-col justify-start bg-transparent px-4 py-8 text-light-text">
+          <div className="flex w-full flex-col justify-start bg-white px-4 py-8 text-black">
             <h2 className="pb-2 text-2xl font-bold">Reviews</h2>
             {merchantQuality !== "" ? (
               <div className="mt-4 p-4 pt-4">
-                <h3 className="mb-3 text-lg font-semibold text-light-text">
+                <h3 className="mb-3 text-lg font-semibold text-black">
                   Merchant Quality
                 </h3>
-                <div className="inline-flex items-center gap-1 rounded-lg border-2 border-black px-2">
+                <div className="inline-flex items-center gap-1 rounded-lg border-2 border-black bg-white px-2 shadow-neo">
                   {merchantReview && merchantReview >= 0.5 ? (
                     <>
                       <FaceSmileIcon
@@ -455,7 +480,7 @@ function MarketplacePage({
                             : "text-green-300"
                         }`}
                       />
-                      <span className="mr-2 whitespace-nowrap text-sm text-light-text">
+                      <span className="mr-2 whitespace-nowrap text-sm text-black">
                         {merchantQuality}
                       </span>
                     </>
@@ -468,7 +493,7 @@ function MarketplacePage({
                             : "text-red-500"
                         }`}
                       />
-                      <span className="mr-2 whitespace-nowrap text-sm text-light-text">
+                      <span className="mr-2 whitespace-nowrap text-sm text-black">
                         {merchantQuality}
                       </span>
                     </>
@@ -477,11 +502,11 @@ function MarketplacePage({
               </div>
             ) : (
               <div className="mt-10 flex flex-grow items-center justify-center py-10">
-                <div className="w-full max-w-xl rounded-lg bg-dark-fg p-10 text-center shadow-lg">
-                  <p className="text-3xl font-semibold text-dark-text">
+                <div className="w-full max-w-xl rounded-lg border-4 border-black bg-white p-10 text-center shadow-neo">
+                  <p className="text-3xl font-semibold text-black">
                     No reviews . . . yet!
                   </p>
-                  <p className="mt-4 text-lg text-dark-text">
+                  <p className="mt-4 text-lg text-black">
                     Seems there aren&apos;t any reviews for this shop yet.
                   </p>
                 </div>
@@ -491,14 +516,16 @@ function MarketplacePage({
           </div>
         )}
       </div>
+
+      {/* Floating Add Button */}
       {router.pathname.includes("marketplace") &&
         !router.asPath.includes("npub") && (
           <Button
             radius="full"
-            className={`${BLACKBUTTONCLASSNAMES} fixed bottom-24 right-8 z-50 h-16 w-16`}
+            className={`${BLUEBUTTONCLASSNAMES} fixed bottom-8 right-8 z-50 h-16 w-16`}
             onClick={() => handleAddNewListing()}
           >
-            <PlusIcon className="!text-white" />
+            <PlusIcon className="h-8 w-8 !text-white" />
           </Button>
         )}
       <SignInModal isOpen={isOpen} onClose={onClose} />

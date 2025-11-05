@@ -7,6 +7,11 @@ import {
   Input,
 } from "@nextui-org/react";
 import { migrateToNip49 } from "@/utils/nostr/encryption-migration";
+// Import your new button styles
+import {
+  WHITEBUTTONCLASSNAMES,
+  PRIMARYBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 
 interface MigrationPromptModalProps {
   isOpen: boolean;
@@ -68,11 +73,14 @@ export default function MigrationPromptModal({
         onClose();
       }}
       classNames={{
-        body: "py-6 bg-dark-fg",
-        backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-        header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-        footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-        closeButton: "hover:bg-black/5 active:bg-white/10",
+        // Updated modal styles
+        wrapper: "shadow-neo",
+        base: "border-2 border-black rounded-md",
+        backdrop: "bg-black/20 backdrop-blur-sm",
+        // This modal only has a body, so add all border radius here
+        body: "py-6 bg-white rounded-md",
+        closeButton:
+          "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
       }}
       isDismissable={true}
       scrollBehavior={"normal"}
@@ -80,7 +88,8 @@ export default function MigrationPromptModal({
       size="md"
     >
       <ModalContent>
-        <ModalBody className="flex flex-col overflow-hidden text-dark-text">
+        {/* Updated text color */}
+        <ModalBody className="flex flex-col overflow-hidden text-black">
           <div className="mb-4 text-center">
             <h3 className="text-lg font-semibold">Encryption Upgrade</h3>
             <p className="mt-2 text-sm">
@@ -92,6 +101,7 @@ export default function MigrationPromptModal({
           </div>
 
           <div className="mb-4">
+            {/* Updated Input styles */}
             <Input
               type="password"
               label="Your Passphrase"
@@ -104,22 +114,30 @@ export default function MigrationPromptModal({
               }}
               isInvalid={!!error}
               errorMessage={error}
+              classNames={{
+                input: "bg-white !text-black placeholder:!text-gray-500",
+                inputWrapper:
+                  "bg-white border-2 border-black rounded-md data-[hover=true]:bg-white group-data-[focus=true]:border-primary-yellow",
+                label: "text-black",
+              }}
             />
           </div>
 
           <div className="flex justify-end space-x-2">
+            {/* Updated "Later" button */}
             <Button
-              color="default"
-              variant="light"
+              className={WHITEBUTTONCLASSNAMES}
               onClick={() => {
                 resetModal();
                 onClose();
               }}
+              A-
             >
               Later
             </Button>
+            {/* Updated "Upgrade" button */}
             <Button
-              color="warning"
+              className={PRIMARYBUTTONCLASSNAMES}
               onClick={handleMigration}
               isLoading={isLoading}
               isDisabled={!passphrase || isLoading}

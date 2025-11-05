@@ -6,7 +6,7 @@ import {
   ShoppingBagIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 const UserTypeSelection = () => {
   const router = useRouter();
@@ -23,11 +23,11 @@ const UserTypeSelection = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-light-bg pt-24">
+    <div className="flex min-h-screen flex-col bg-white pt-24">
       <div className="mx-auto w-full max-w-2xl px-4 py-6">
-        <Card className="bg-dark-fg">
-          <CardBody>
-            <div className="mb-4 flex flex-row items-center justify-center">
+        <Card className="rounded-md border-4 border-black bg-white shadow-neo">
+          <CardBody className="p-8">
+            <div className="mb-6 flex flex-row items-center justify-center gap-3">
               <Image
                 alt="Milk Market logo"
                 height={50}
@@ -35,48 +35,46 @@ const UserTypeSelection = () => {
                 src="/milk-market.png"
                 width={50}
               />
-              <h1 className="cursor-pointer text-center text-3xl font-bold text-dark-text">
+              <h1 className="text-center text-3xl font-bold text-black">
                 Milk Market
               </h1>
             </div>
-            <div className="mb-6 text-center">
-              <h2 className="text-2xl font-bold text-dark-text">
+            <div className="mb-8 text-center">
+              <h2 className="mb-3 text-2xl font-bold text-black">
                 Step 2: Choose Your Role
               </h2>
-              <p className="text-dark-text">
+              <p className="font-medium text-black">
                 Are you here to buy or sell products?
               </p>
             </div>
 
-            <div className="mb-6 flex flex-col gap-4 md:flex-row">
+            <div className="mb-8 flex flex-col gap-4 md:flex-row">
               <button
                 onClick={() => setSelectedType("buyer")}
-                className={`flex flex-1 flex-col items-center justify-center rounded-lg border-2 p-6 transition-all ${
+                className={`flex flex-1 flex-col items-center justify-center rounded-md border-4 border-black p-8 transition-all ${
                   selectedType === "buyer"
-                    ? "border-accent-dark-text bg-accent-dark-text/10"
-                    : "border-gray-600 hover:border-gray-400"
+                    ? "-translate-y-1 transform bg-primary-yellow shadow-neo"
+                    : "bg-white hover:bg-gray-50"
                 }`}
               >
-                <UserIcon className="mb-3 h-16 w-16 text-dark-text" />
-                <h3 className="mb-2 text-xl font-bold text-dark-text">Buyer</h3>
-                <p className="text-center text-sm text-dark-text">
+                <UserIcon className="mb-4 h-16 w-16 stroke-[2.5] text-black" />
+                <h3 className="mb-3 text-xl font-bold text-black">Buyer</h3>
+                <p className="text-center text-sm font-medium text-black">
                   Browse and purchase products from local sellers
                 </p>
               </button>
 
               <button
                 onClick={() => setSelectedType("seller")}
-                className={`flex flex-1 flex-col items-center justify-center rounded-lg border-2 p-6 transition-all ${
+                className={`flex flex-1 flex-col items-center justify-center rounded-md border-4 border-black p-8 transition-all ${
                   selectedType === "seller"
-                    ? "border-accent-dark-text bg-accent-dark-text/10"
-                    : "border-gray-600 hover:border-gray-400"
+                    ? "-translate-y-1 transform bg-primary-yellow shadow-neo"
+                    : "bg-white hover:bg-gray-50"
                 }`}
               >
-                <ShoppingBagIcon className="mb-3 h-16 w-16 text-dark-text" />
-                <h3 className="mb-2 text-xl font-bold text-dark-text">
-                  Seller
-                </h3>
-                <p className="text-center text-sm text-dark-text">
+                <ShoppingBagIcon className="mb-4 h-16 w-16 stroke-[2.5] text-black" />
+                <h3 className="mb-3 text-xl font-bold text-black">Seller</h3>
+                <p className="text-center text-sm font-medium text-black">
                   List and sell your products to buyers
                 </p>
               </button>
@@ -84,11 +82,11 @@ const UserTypeSelection = () => {
 
             <div className="flex justify-center">
               <Button
-                className={WHITEBUTTONCLASSNAMES}
+                className={BLUEBUTTONCLASSNAMES}
                 onClick={handleNext}
                 isDisabled={!selectedType}
               >
-                Next <ArrowLongRightIcon className="h-5 w-5" />
+                Next <ArrowLongRightIcon className="ml-1 h-5 w-5" />
               </Button>
             </div>
           </CardBody>

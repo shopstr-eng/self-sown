@@ -23,7 +23,10 @@ import {
   Chip,
 } from "@nextui-org/react";
 import MilkMarketSpinner from "../utility-components/mm-spinner";
-import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  WHITEBUTTONCLASSNAMES,
+  BLACKBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   createCommunityPost,
   approveCommunityPost,
@@ -59,7 +62,7 @@ const RenderContent = ({
 
   return (
     <div className="space-y-2">
-      <p className="whitespace-pre-wrap text-dark-text">
+      <p className="whitespace-pre-wrap text-white">
         {parts.map((part, index) => {
           if (isImage(part)) {
             return (
@@ -67,7 +70,7 @@ const RenderContent = ({
                 key={index}
                 src={sanitizeUrl(part)}
                 alt="User content"
-                className="mt-2 max-h-96 rounded-lg"
+                className="mt-2 max-h-96 rounded-md border-2 border-black"
               />
             );
           }
@@ -77,7 +80,7 @@ const RenderContent = ({
                 key={index}
                 src={sanitizeUrl(part)}
                 controls
-                className="mt-2 max-h-96 rounded-lg"
+                className="mt-2 max-h-96 rounded-md border-2 border-black"
               />
             );
           }
@@ -88,7 +91,7 @@ const RenderContent = ({
             return (
               <iframe
                 key={index}
-                className="mt-2 aspect-video w-full rounded-lg"
+                className="mt-2 aspect-video w-full rounded-md border-2 border-black"
                 src={sanitizeUrl(`https://www.youtube.com/embed/${videoId}`)}
                 title="YouTube video player"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -106,7 +109,7 @@ const RenderContent = ({
               key={index}
               src={sanitizeUrl(url)}
               alt="Tagged media"
-              className="mt-2 max-h-96 rounded-lg"
+              className="mt-2 max-h-96 rounded-md border-2 border-black"
             />
           ))}
         </div>
@@ -293,9 +296,9 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
   return (
     <div className="space-y-6">
       {isModerator && (
-        <Card className="bg-dark-fg">
-          <CardBody>
-            <h3 className="mb-2 text-lg font-bold text-dark-text">
+        <Card className="rounded-lg border-4 border-black bg-white shadow-neo">
+          <CardBody className="p-6">
+            <h3 className="mb-4 text-lg font-bold text-black">
               Create an Announcement
             </h3>
             <Textarea
@@ -303,11 +306,15 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
               onChange={(e) => setNewPostContent(e.target.value)}
               placeholder="What's on your mind?"
               minRows={3}
-              className="text-dark-text"
+              classNames={{
+                input: "text-black",
+                inputWrapper:
+                  "border-2 border-black shadow-none bg-white rounded-md",
+              }}
             />
             <Button
               onClick={handlePost}
-              className={`${WHITEBUTTONCLASSNAMES} mt-2 self-end`}
+              className={`${BLACKBUTTONCLASSNAMES} mt-4 self-end`}
               disabled={!newPostContent.trim()}
             >
               Post
@@ -321,47 +328,38 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
           <MilkMarketSpinner label="Loading posts..." />
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {topLevelPosts.map((post: CommunityPost) => (
             <React.Fragment key={post.id}>
-              <Card className="bg-dark-fg">
-                <CardBody>
+              <Card className="rounded-lg border-4 border-black bg-primary-blue shadow-neo">
+                <CardBody className="p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <ProfileWithDropdown
                       pubkey={post.pubkey}
-                      baseClassname="justify-start hover:bg-dark-bg pl-4 rounded-3xl py-2 hover:scale-105 hover:shadow-lg"
+                      baseClassname="justify-start hover:bg-black/10 pl-4 rounded-lg py-2 hover:scale-105 transition-transform"
                       dropDownKeys={["shop_profile", "copy_npub"]}
-                      nameClassname="md:block"
+                      nameClassname="md:block text-white"
                       bg="dark"
                     />
                     {isModerator && !post.approved && (
-                      <Chip color="warning" variant="flat">
+                      <Chip
+                        className="border-2 border-black bg-primary-yellow font-bold text-black"
+                        variant="flat"
+                      >
                         Pending Approval
                       </Chip>
                     )}
                   </div>
-                  <RenderContent content={post.content} tags={post.tags} />
-                  <Divider className="my-4 bg-dark-text" />
-                  <div className="flex items-center justify-between">
-                    <Button
-                      size="sm"
-                      variant="light"
-                      onClick={() =>
-                        setReplyingTo(replyingTo === post.id ? null : post.id)
-                      }
-                      className={
-                        replyingTo === post.id
-                          ? "text-red-500"
-                          : "text-yellow-600"
-                      }
-                    >
-                      {replyingTo === post.id ? "Cancel" : "Reply"}
-                    </Button>
+                  <div className="mb-4">
+                    <RenderContent content={post.content} tags={post.tags} />
+                  </div>
+                  <Divider className="my-4 bg-white/30" />
+                  <div className="flex items-center justify-end gap-3">
                     {isModerator && !post.approved && (
                       <Button
                         size="sm"
                         onClick={() => handleApprove(post)}
-                        className="min-w-fit bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
+                        className="border-2 border-black bg-primary-yellow font-bold text-black shadow-neo hover:-translate-y-0.5"
                       >
                         Approve
                       </Button>
@@ -375,14 +373,23 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                           onClick={() =>
                             handleRetractApproval(post.approvalEventId)
                           }
-                          className="min-w-fit bg-gradient-to-tr from-red-600 via-red-500 to-red-600 text-white shadow-lg"
+                          className="border-2 border-black bg-red-500 font-bold text-white shadow-neo hover:-translate-y-0.5"
                         >
                           Retract Approval
                         </Button>
                       )}
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        setReplyingTo(replyingTo === post.id ? null : post.id)
+                      }
+                      className={`${WHITEBUTTONCLASSNAMES}`}
+                    >
+                      {replyingTo === post.id ? "Cancel" : "Reply"}
+                    </Button>
                   </div>
                   {replyingTo === post.id && (
-                    <div className="mt-4 border-t-2 pt-4">
+                    <div className="mt-4 rounded-md border-2 border-white bg-white p-4">
                       <Textarea
                         value={replyContent}
                         onChange={(e) => setReplyContent(e.target.value)}
@@ -391,11 +398,15 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                           8
                         )}...`}
                         minRows={2}
-                        className="text-dark-text"
+                        classNames={{
+                          input: "text-black",
+                          inputWrapper:
+                            "border-2 border-black shadow-none bg-white rounded-md",
+                        }}
                       />
                       <Button
                         onClick={() => handleReply(post)}
-                        className={`${WHITEBUTTONCLASSNAMES} mt-2 self-end`}
+                        className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
                         disabled={!replyContent.trim()}
                         size="sm"
                       >
@@ -408,60 +419,63 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
 
               {/* Render Replies */}
               {repliesByParentId.has(post.id) && (
-                <div className="ml-8 space-y-4 border-l-2 border-zinc-200 bg-dark-fg pl-4">
+                <div className="ml-8 space-y-4 border-l-4 border-black pl-6">
                   {repliesByParentId
                     .get(post.id)!
                     .map((reply: CommunityPost) => (
-                      <Card key={reply.id} className="bg-dark-fg">
-                        <CardBody>
+                      <Card
+                        key={reply.id}
+                        className="rounded-lg border-4 border-black bg-primary-blue shadow-neo"
+                      >
+                        <CardBody className="p-6">
                           <div className="mb-4 flex items-center justify-between">
                             <ProfileWithDropdown
                               pubkey={reply.pubkey}
-                              baseClassname="justify-start hover:bg-dark-bg pl-4 rounded-3xl py-2 hover:scale-105 hover:shadow-lg"
+                              baseClassname="justify-start hover:bg-black/10 pl-4 rounded-lg py-2 hover:scale-105 transition-transform"
                               dropDownKeys={["shop_profile", "copy_npub"]}
-                              nameClassname="md:block"
+                              nameClassname="md:block text-white"
                               bg="dark"
                             />
                             {isModerator && !reply.approved && (
-                              <Chip color="warning" variant="flat">
+                              <Chip
+                                className="border-2 border-black bg-primary-yellow font-bold text-black"
+                                variant="flat"
+                              >
                                 Pending Approval
                               </Chip>
                             )}
                           </div>
-                          <RenderContent
-                            content={reply.content}
-                            tags={reply.tags}
-                          />
-                          <Divider className="my-4 bg-dark-text" />
-                          <div className="flex items-center justify-between">
+                          <div className="mb-4">
+                            <RenderContent
+                              content={reply.content}
+                              tags={reply.tags}
+                            />
+                          </div>
+                          <Divider className="my-4 bg-white/30" />
+                          <div className="flex items-center justify-end gap-3">
+                            {isModerator && !reply.approved && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleApprove(reply)}
+                                className="border-2 border-black bg-primary-yellow font-bold text-black shadow-neo hover:-translate-y-0.5"
+                              >
+                                Approve
+                              </Button>
+                            )}
                             <Button
                               size="sm"
-                              variant="light"
                               onClick={() =>
                                 setReplyingTo(
                                   replyingTo === reply.id ? null : reply.id
                                 )
                               }
-                              className={
-                                replyingTo === reply.id
-                                  ? "text-red-500"
-                                  : "text-yellow-600"
-                              }
+                              className={`${WHITEBUTTONCLASSNAMES}`}
                             >
                               {replyingTo === reply.id ? "Cancel" : "Reply"}
                             </Button>
-                            {isModerator && !reply.approved && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleApprove(reply)}
-                                className="min-w-fit bg-gradient-to-tr from-yellow-700 via-yellow-500 to-yellow-700 text-light-text shadow-lg"
-                              >
-                                Approve
-                              </Button>
-                            )}
                           </div>
                           {replyingTo === reply.id && (
-                            <div className="mt-4 border-t-2 pt-4">
+                            <div className="mt-4 rounded-md border-2 border-white bg-white p-4">
                               <Textarea
                                 value={replyContent}
                                 onChange={(e) =>
@@ -472,11 +486,15 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
                                   8
                                 )}...`}
                                 minRows={2}
-                                className="text-dark-text"
+                                classNames={{
+                                  input: "text-black",
+                                  inputWrapper:
+                                    "border-2 border-black shadow-none bg-white rounded-md",
+                                }}
                               />
                               <Button
                                 onClick={() => handleReply(reply)}
-                                className={`${WHITEBUTTONCLASSNAMES} mt-2 self-end`}
+                                className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
                                 disabled={!replyContent.trim()}
                                 size="sm"
                               >
@@ -494,7 +512,7 @@ const CommunityFeed: React.FC<CommunityFeedProps> = ({ community }) => {
         </div>
       )}
       {!isLoading && topLevelPosts.length === 0 && (
-        <div className="mt-10 text-center text-light-text/80">
+        <div className="mt-10 text-center text-black">
           <p>No announcements yet. Check back soon!</p>
         </div>
       )}
