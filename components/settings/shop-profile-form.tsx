@@ -101,7 +101,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-xl border-3 border-black bg-primary-blue">
           {watchBanner && (
             <Image
-              alt={"Shop banner image"}
+              alt={"Shop Banner Image"}
               src={watchBanner}
               className="h-full w-full object-cover"
               classNames={{
@@ -113,7 +113,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             className={`absolute right-4 top-4 z-20 ${WHITEBUTTONCLASSNAMES}`}
             imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
           >
-            ↑ Upload Banner
+            Upload Banner
           </FileUploaderButton>
         </div>
 
@@ -123,7 +123,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
               {watchPicture ? (
                 <Image
                   src={watchPicture}
-                  alt="shop logo"
+                  alt="Shop Logo"
                   className="h-full w-full rounded-full object-cover"
                   classNames={{
                     wrapper: "!max-w-full w-full h-full",
@@ -132,7 +132,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
               ) : (
                 <Image
                   src={defaultImage}
-                  alt="shop logo"
+                  alt="Shop Logo"
                   className="h-full w-full rounded-full object-cover"
                   classNames={{
                     wrapper: "!max-w-full w-full h-full",
@@ -167,7 +167,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             const errorMessage: string = error?.message ? error.message : "";
             return (
               <div>
-                <label className="mb-2 block text-lg font-bold">
+                <label className="mb-2 block text-base font-bold text-black">
                   Shop Name
                 </label>
                 <Input
@@ -207,7 +207,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             const errorMessage: string = error?.message ? error.message : "";
             return (
               <div>
-                <label className="mb-2 block text-lg font-bold">About</label>
+                <label className="mb-2 block text-base font-bold text-black">
+                  About
+                </label>
                 <Textarea
                   classNames={{
                     inputWrapper:

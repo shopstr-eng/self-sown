@@ -213,14 +213,10 @@ export default function SignInModal({
                     Milk Market
                   </h1>
                 </div>
-                
+
                 {/* Signup image */}
                 <div className="w-full max-w-md">
-                  <Image
-                    src="signup.png"
-                    alt="sign up"
-                    className="w-full"
-                  />
+                  <Image src="signup.png" alt="sign up" className="w-full" />
                 </div>
 
                 {/* Action buttons */}
@@ -233,7 +229,7 @@ export default function SignInModal({
                       Sign up to get started!
                     </p>
                   </div>
-                  
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
                     onClick={handleGenerateKeys}
@@ -241,11 +237,11 @@ export default function SignInModal({
                   >
                     Sign Up
                   </Button>
-                  
+
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------
                   </div>
-                  
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
                     onClick={() => setShowNostrOptions(true)}
@@ -271,18 +267,18 @@ export default function SignInModal({
                       Milk Market
                     </div>
                   </div>
-                  
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
                     onClick={startExtensionLogin}
                   >
                     Extension Sign-in
                   </Button>
-                  
+
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------
                   </div>
-                  
+
                   {/* Bunker Sign-in */}
                   <div className="flex flex-col">
                     <div className="">
@@ -340,12 +336,12 @@ export default function SignInModal({
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------
                   </div>
                 </div>
-                
+
                 {/* nsec Sign-in */}
                 <div className="flex flex-col">
                   <div className="">

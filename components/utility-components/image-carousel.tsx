@@ -69,10 +69,11 @@ export default function ImageCarousel({
       renderArrowPrev={(onClickHandler, hasPrev, label) =>
         hasPrev && (
           <button
-            className={`left-4 ${PREVNEXTBUTTONSTYLES}`}
+            className={`carousel-control left-4 ${PREVNEXTBUTTONSTYLES}`}
             onClick={(e) => {
-              onClickHandler();
+              e.preventDefault();
               e.stopPropagation();
+              onClickHandler();
             }}
             title={label}
           >
@@ -84,10 +85,11 @@ export default function ImageCarousel({
       renderArrowNext={(onClickHandler, hasNext, label) =>
         hasNext && (
           <button
-            className={`right-4 ${PREVNEXTBUTTONSTYLES}`}
+            className={`carousel-control right-4 ${PREVNEXTBUTTONSTYLES}`}
             onClick={(e) => {
-              onClickHandler();
+              e.preventDefault();
               e.stopPropagation();
+              onClickHandler();
             }}
             title={label}
           >
@@ -109,8 +111,9 @@ export default function ImageCarousel({
                 : `${base} bg-gray-300 hover:bg-gray-400`
             }
             onClick={(e) => {
-              onClickHandler(e);
+              e.preventDefault();
               e.stopPropagation();
+              onClickHandler(e);
             }}
             title={`${label} ${index + 1}`}
             role="button"

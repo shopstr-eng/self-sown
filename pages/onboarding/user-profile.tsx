@@ -66,7 +66,8 @@ const OnboardingUserProfile = () => {
                   </>
                 ) : (
                   <>
-                    Next (or skip) <ArrowLongRightIcon className="ml-1 h-5 w-5" />
+                    Next (or skip){" "}
+                    <ArrowLongRightIcon className="ml-1 h-5 w-5" />
                   </>
                 )}
               </Button>

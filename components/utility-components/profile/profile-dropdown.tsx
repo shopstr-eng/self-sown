@@ -55,6 +55,12 @@ export const ProfileWithDropdown = ({
   const router = useRouter();
   const { isLoggedIn } = useContext(SignerContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isDropdownOpen,
+    onOpen: onDropdownOpen,
+    onClose: onDropdownClose,
+    onOpenChange: onDropdownOpenChange,
+  } = useDisclosure();
   useEffect(() => {
     const profileMap = profileContext.profileData;
     const profile = profileMap.has(pubkey) ? profileMap.get(pubkey) : undefined;
@@ -63,7 +69,7 @@ export const ProfileWithDropdown = ({
       if (profile?.content?.nip05 && profile.nip05Verified) {
         name = profile.content.nip05;
       }
-      name = name.length > 15 ? name.slice(0, 15) + "..." : name;
+      name = name.length > 10 ? name.slice(0, 10) + "..." : name;
       return name;
     });
     setPfp(
@@ -86,6 +92,7 @@ export const ProfileWithDropdown = ({
         <BuildingStorefrontIcon className={"h-5 w-5 !text-black"} />
       ),
       onClick: () => {
+        onDropdownClose();
         const npub = nip19.npubEncode(pubkey);
         router.push(`/marketplace/${npub}`);
       },
@@ -100,6 +107,7 @@ export const ProfileWithDropdown = ({
         <BuildingStorefrontIcon className={"h-5 w-5 !text-black"} />
       ),
       onClick: () => {
+        onDropdownClose();
         router.push("/settings/shop-profile");
       },
       label: "Shop Profile",
@@ -113,6 +121,7 @@ export const ProfileWithDropdown = ({
         <ChatBubbleBottomCenterIcon className={"h-5 w-5 !text-black"} />
       ),
       onClick: () => {
+        onDropdownClose();
         if (isLoggedIn) {
           router.push({
             pathname: "/orders",
@@ -131,6 +140,7 @@ export const ProfileWithDropdown = ({
         "!text-black hover:!bg-blue-400 hover:!text-white font-bold data-[hover=true]:!bg-blue-400 data-[hover=true]:!text-white",
       startContent: <UserIcon className={"h-5 w-5 !text-black"} />,
       onClick: () => {
+        onDropdownClose();
         router.push("/settings/user-profile");
       },
       label: "Profile",
@@ -142,6 +152,7 @@ export const ProfileWithDropdown = ({
         "!text-black hover:!bg-blue-400 hover:!text-white font-bold data-[hover=true]:!bg-blue-400 data-[hover=true]:!text-white",
       startContent: <Cog6ToothIcon className={"h-5 w-5 !text-black"} />,
       onClick: () => {
+        onDropdownClose();
         router.push("/settings");
       },
       label: "Settings",
@@ -157,6 +168,7 @@ export const ProfileWithDropdown = ({
         />
       ),
       onClick: () => {
+        onDropdownClose();
         LogOut();
         router.push("/marketplace");
       },
@@ -187,6 +199,8 @@ export const ProfileWithDropdown = ({
   return (
     <>
       <Dropdown
+        isOpen={isDropdownOpen}
+        onOpenChange={onDropdownOpenChange}
         className="rounded-md border-4 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
         placement="bottom-start"
         classNames={{
@@ -197,11 +211,16 @@ export const ProfileWithDropdown = ({
         <DropdownTrigger>
           <User
             as="button"
+            data-slot="trigger"
             avatarProps={{
               src: pfp,
               className: "border-2 border-black",
             }}
             className={"transition-transform"}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
             classNames={{
               name: `overflow-hidden text-ellipsis whitespace-nowrap ${
                 bg && bg === "dark" ? "text-white" : "text-black"

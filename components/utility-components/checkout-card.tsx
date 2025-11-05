@@ -352,23 +352,22 @@ export default function CheckoutCard({
                         showAllImages ? "overflow-y-auto" : ""
                       }`}
                     >
-                      {(showAllImages
-                        ? productData.images
-                        : visibleImages
-                      ).map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Product image ${index + 1}`}
-                          className={`w-full cursor-pointer rounded-md object-cover ${
-                            image === selectedImage
-                              ? "border-2 border-primary-yellow"
-                              : "border-2 border-transparent"
-                          }`}
-                          style={{ aspectRatio: "1 / 1" }}
-                          onClick={() => setSelectedImage(image)}
-                        />
-                      ))}
+                      {(showAllImages ? productData.images : visibleImages).map(
+                        (image, index) => (
+                          <img
+                            key={index}
+                            src={image}
+                            alt={`Product image ${index + 1}`}
+                            className={`w-full cursor-pointer rounded-md object-cover ${
+                              image === selectedImage
+                                ? "border-2 border-primary-yellow"
+                                : "border-2 border-transparent"
+                            }`}
+                            style={{ aspectRatio: "1 / 1" }}
+                            onClick={() => setSelectedImage(image)}
+                          />
+                        )
+                      )}
                     </div>
                   </div>
                   {productData.images.length > 3 && (

@@ -156,11 +156,11 @@ const Keys = () => {
                     )
                       handleNext();
                   }}
-                  // Input styling from keys.tsx
                   classNames={{
-                    input: "text-black font-medium",
+                    input:
+                      "text-base !text-black font-medium placeholder:text-gray-400",
                     inputWrapper:
-                      "border-3 border-black rounded-md bg-white shadow-none hover:bg-gray-50 data-[hover=true]:bg-gray-50",
+                      "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white h-12 transition-none",
                   }}
                 />
               </div>

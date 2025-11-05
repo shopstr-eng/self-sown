@@ -23,12 +23,7 @@ export default function ProductCard({
   if (!productData) return null;
 
   const content = (
-    <div
-      onClick={() => {
-        onProductClick && onProductClick(productData);
-      }}
-      className="flex h-full flex-col"
-    >
+    <div className="flex h-full flex-col">
       {/* Image Section with Title Overlay */}
       <div className="relative h-64 w-full overflow-hidden border-b-4 border-black bg-gray-200">
         <ImageCarousel
@@ -97,6 +92,29 @@ export default function ProductCard({
     </div>
   );
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Check if the click target is within elements we want to ignore
+    const target = e.target as HTMLElement;
+    const isCarouselControl =
+      target.closest('button[title*="slide"]') ||
+      target.closest('li[role="button"]') ||
+      target.closest(".carousel-control");
+    const isDropdown =
+      target.closest('[role="menu"]') ||
+      target.closest('[data-slot="trigger"]') ||
+      target.closest('button[data-slot="trigger"]');
+
+    if (isCarouselControl || isDropdown) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    if (onProductClick) {
+      onProductClick(productData, e);
+    }
+  };
+
   return (
     <div
       // Updated shadow to use shadow-neo and a larger hover shadow.
@@ -104,11 +122,15 @@ export default function ProductCard({
       className="flex w-full max-w-sm cursor-pointer flex-col overflow-hidden rounded-md border-4 border-black bg-white shadow-neo duration-200 transition-transform hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-neo"
     >
       {href ? (
-        <Link href={href} className="block flex h-full flex-col">
+        <Link
+          href={href}
+          className="block flex h-full flex-col"
+          onClick={handleCardClick}
+        >
           {content}
         </Link>
       ) : (
-        content
+        <div onClick={handleCardClick}>{content}</div>
       )}
     </div>
   );

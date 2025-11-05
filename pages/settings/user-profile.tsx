@@ -4,8 +4,8 @@ import UserProfileForm from "@/components/settings/user-profile-form";
 
 const UserProfilePage = () => {
   return (
-    <div className="min-h-screen bg-white pt-8 md:pb-20 md:pt-12">
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 md:px-8">
+    <div className="flex min-h-screen flex-col bg-white pt-24 md:pb-20">
+      <div className="mx-auto h-full w-full px-4 lg:w-1/2 xl:w-2/5">
         <SettingsBreadCrumbs />
         <UserProfileForm />
       </div>

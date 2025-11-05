@@ -276,7 +276,7 @@ const ProducerGuidePage = () => {
       <div className="min-h-screen bg-white">
         {/* Mobile Sidebar Toggle */}
         <button
-          className="fixed left-4 top-4 z-50 rounded border-2 border-black bg-white p-2 shadow-neo lg:hidden"
+          className="fixed right-4 top-4 z-50 rounded border-2 border-black bg-white p-2 shadow-neo lg:hidden"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <Bars3Icon className="h-6 w-6 text-black" />
@@ -728,7 +728,9 @@ const ProducerGuidePage = () => {
                     </button>
                     {openFaqIndex === index && (
                       <div className="bg-white/10 px-4 pb-4 pt-2">
-                        <p className="text-sm leading-relaxed text-white/90">{item.answer}</p>
+                        <p className="text-sm leading-relaxed text-white/90">
+                          {item.answer}
+                        </p>
                       </div>
                     )}
                   </div>

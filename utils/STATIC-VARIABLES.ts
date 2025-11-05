@@ -48,4 +48,4 @@ export const BLUEBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-primary-blue text-whi
 export const DANGERBUTTONCLASSNAMES = `${NEO_BUTTON_BASE} bg-red-500 text-white`;
 
 export const PREVNEXTBUTTONSTYLES =
-  "absolute top-1/2 -translate-y-1/2 z-10 p-2 bg-white border-2 border-black rounded-md shadow-neo hover:-translate-y-1/2 hover:scale-105 active:scale-100 transform transition-transform";
+  "absolute top-28 z-10 p-2 bg-white border-2 border-black rounded-md shadow-neo hover:scale-105 active:scale-100 transform transition-transform";

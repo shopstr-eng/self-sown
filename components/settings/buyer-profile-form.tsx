@@ -3,7 +3,10 @@ import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
 import { Button, Textarea, Input, Image } from "@nextui-org/react";
 import { ProfileMapContext } from "@/utils/context/context";
-import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  BLUEBUTTONCLASSNAMES,
+  WHITEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   SignerContext,
   NostrContext,
@@ -99,43 +102,52 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
   return (
     <>
       <div className="mb-20 h-40 rounded-md">
-        <div className="relative flex h-40 items-center justify-center rounded-md border-4 border-black bg-gray-100">
+        <div className="relative flex h-48 items-center justify-center overflow-hidden rounded-xl border-3 border-black bg-primary-blue">
           {watchBanner && (
             <Image
-              alt={"User banner image"}
+              alt={"User Banner Image"}
               src={watchBanner}
-              className="h-40 w-full rounded-md object-cover object-fill"
+              className="h-full w-full object-cover"
+              classNames={{
+                wrapper: "!max-w-full w-full h-full",
+              }}
             />
           )}
           <FileUploaderButton
-            className={`absolute bottom-5 right-5 z-20 ${BLUEBUTTONCLASSNAMES}`}
+            className={`absolute right-4 top-4 z-20 ${WHITEBUTTONCLASSNAMES}`}
             imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
           >
             Upload Banner
           </FileUploaderButton>
         </div>
         <div className="flex items-center justify-center">
-          <div className="relative z-20 mt-[-3rem] h-24 w-24">
-            <div className="">
-              <FileUploaderButton
-                isIconOnly
-                className={`absolute bottom-[-0.5rem] right-[-0.5rem] z-20 h-8 w-8 min-w-0 rounded-full border-2 border-black bg-white p-0 text-black hover:bg-gray-100`}
-                imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
-              />
+          <div className="relative mt-[-4rem] h-32 w-32">
+            <div className="relative h-full w-full overflow-hidden rounded-full border-4 border-black bg-white">
               {watchPicture ? (
                 <Image
                   src={watchPicture}
-                  alt="user profile picture"
-                  className="h-24 w-24 rounded-full border-4 border-black object-cover"
+                  alt="User Profile Picture"
+                  className="h-full w-full rounded-full object-cover"
+                  classNames={{
+                    wrapper: "!max-w-full w-full h-full",
+                  }}
                 />
               ) : (
                 <Image
                   src={defaultImage}
-                  alt="user profile picture"
-                  className="h-24 w-24 rounded-full border-4 border-black object-cover"
+                  alt="User Profile Picture"
+                  className="h-full w-full rounded-full object-cover"
+                  classNames={{
+                    wrapper: "!max-w-full w-full h-full",
+                  }}
                 />
               )}
             </div>
+            <FileUploaderButton
+              isIconOnly={true}
+              className={`!min-w-10 absolute bottom-0 right-0 z-20 !h-10 !w-10 ${WHITEBUTTONCLASSNAMES}`}
+              imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
+            />
           </div>
         </div>
       </div>
