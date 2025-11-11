@@ -202,6 +202,44 @@ export default function StandaloneLanding() {
         {/* Plus Pattern Background */}
         <PlusPattern />
 
+        {/* Floating Milk Cartons */}
+        <div className="animate-float-slow pointer-events-none absolute left-[15%] top-[10%] opacity-[0.06]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={80}
+            height={80}
+            className="h-20 w-20"
+          />
+        </div>
+        <div className="animate-float-medium pointer-events-none absolute right-[20%] top-[25%] opacity-[0.04]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={120}
+            height={120}
+            className="h-30 w-30"
+          />
+        </div>
+        <div className="animate-float-fast pointer-events-none absolute bottom-[15%] left-[10%] opacity-[0.08]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={100}
+            height={100}
+            className="h-25 w-25"
+          />
+        </div>
+        <div className="animate-float-slow pointer-events-none absolute bottom-[20%] right-[12%] opacity-[0.05]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={90}
+            height={90}
+            className="h-22 w-22"
+          />
+        </div>
+
         <div className="relative z-10 mx-auto max-w-5xl text-center">
           <div className="mb-6 flex justify-center space-x-4">
             <span className="text-4xl">🐄</span>
@@ -321,6 +359,44 @@ export default function StandaloneLanding() {
       >
         {/* Plus Pattern Background */}
         <PlusPattern />
+
+        {/* Floating Milk Cartons */}
+        <div className="animate-float-fast pointer-events-none absolute left-[8%] top-[12%] opacity-[0.07]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={110}
+            height={110}
+            className="h-28 w-28"
+          />
+        </div>
+        <div className="animate-float-medium pointer-events-none absolute right-[15%] top-[35%] opacity-[0.05]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={95}
+            height={95}
+            className="h-24 w-24"
+          />
+        </div>
+        <div className="animate-float-slow pointer-events-none absolute bottom-[10%] left-[18%] opacity-[0.06]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={105}
+            height={105}
+            className="h-26 w-26"
+          />
+        </div>
+        <div className="animate-float-fast pointer-events-none absolute bottom-[25%] right-[8%] opacity-[0.08]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={85}
+            height={85}
+            className="h-21 w-21"
+          />
+        </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
@@ -482,6 +558,44 @@ export default function StandaloneLanding() {
         {/* Plus Pattern Background */}
         <PlusPattern />
 
+        {/* Floating Milk Cartons */}
+        <div className="animate-float-medium pointer-events-none absolute left-[12%] top-[18%] opacity-[0.06]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={90}
+            height={90}
+            className="h-22 w-22"
+          />
+        </div>
+        <div className="animate-float-slow pointer-events-none absolute right-[10%] top-[8%] opacity-[0.05]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={115}
+            height={115}
+            className="h-29 w-29"
+          />
+        </div>
+        <div className="animate-float-fast pointer-events-none absolute bottom-[12%] left-[22%] opacity-[0.07]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={100}
+            height={100}
+            className="h-25 w-25"
+          />
+        </div>
+        <div className="animate-float-medium pointer-events-none absolute bottom-[30%] right-[18%] opacity-[0.04]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={95}
+            height={95}
+            className="h-24 w-24"
+          />
+        </div>
+
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-black md:text-5xl">
@@ -584,6 +698,44 @@ export default function StandaloneLanding() {
       >
         {/* Plus Pattern Background */}
         <PlusPattern />
+
+        {/* Floating Milk Cartons */}
+        <div className="animate-float-slow pointer-events-none absolute left-[10%] top-[15%] opacity-[0.08]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={105}
+            height={105}
+            className="h-26 w-26"
+          />
+        </div>
+        <div className="animate-float-fast pointer-events-none absolute right-[12%] top-[20%] opacity-[0.05]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={85}
+            height={85}
+            className="h-21 w-21"
+          />
+        </div>
+        <div className="animate-float-medium pointer-events-none absolute bottom-[18%] left-[15%] opacity-[0.06]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={110}
+            height={110}
+            className="h-28 w-28"
+          />
+        </div>
+        <div className="animate-float-slow pointer-events-none absolute bottom-[10%] right-[20%] opacity-[0.07]">
+          <Image
+            src="/milk-carton.png"
+            alt="Milk Carton"
+            width={95}
+            height={95}
+            className="h-24 w-24"
+          />
+        </div>
 
         <div className="relative z-10 mx-auto max-w-2xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="mb-6 text-4xl font-black md:text-5xl">Stay Milky</h2>
