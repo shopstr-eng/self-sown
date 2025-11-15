@@ -10,6 +10,93 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 
+// YouTube Carousel Component
+function YouTubeCarousel() {
+  const [videos, setVideos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/youtube-videos")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.videos) {
+          setVideos(data.videos);
+        } else {
+          setError(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="h-12 w-12 animate-spin rounded-full border-4 border-black border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (error || videos.length === 0) {
+    return (
+      <div className="rounded-lg border-2 border-black bg-white p-8 text-center">
+        <p className="text-zinc-600">
+          Unable to load videos at this time. Please check our YouTube channel
+          directly.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative max-w-[84vw] overflow-hidden">
+      <div className="animate-scroll flex gap-6 will-change-transform">
+        {/* Duplicate videos for seamless loop */}
+        {[...videos, ...videos].map((video, index) => (
+          <a
+            key={`${video.id}-${index}`}
+            href={`https://www.youtube.com/watch?v=${video.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block w-80 flex-shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white shadow-neo transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none"
+          >
+            <div className="relative aspect-video overflow-hidden">
+              <Image
+                src={video.thumbnail}
+                alt={video.title}
+                className="h-full w-full object-cover duration-300 transition-transform group-hover:scale-105"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 transition-all group-hover:bg-opacity-20">
+                <div className="rounded-full bg-red-600 p-3 opacity-0 transition-opacity group-hover:opacity-100">
+                  <svg
+                    className="h-6 w-6 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div className="p-4">
+              <h3 className="mb-2 line-clamp-2 font-bold text-black">
+                {video.title}
+              </h3>
+              <p className="line-clamp-2 text-sm text-zinc-600">
+                {video.description}
+              </p>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function StandaloneLanding() {
   const router = useRouter();
   const [contactType, setContactType] = useState<"email" | "nostr">("email");
@@ -552,7 +639,7 @@ export default function StandaloneLanding() {
       </section>
 
       {/* ================================================================================= */}
-      {/* Benefits Section */}
+      {/* YouTube Videos Section */}
       {/* ================================================================================= */}
       <section className="relative z-10 overflow-hidden border-b-2 border-black bg-grid-pattern py-20">
         {/* Plus Pattern Background */}
@@ -597,6 +684,38 @@ export default function StandaloneLanding() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-4xl font-black md:text-5xl">
+              Latest from Our Channel
+            </h2>
+            <p className="text-lg text-zinc-600">
+              Stay updated with our latest videos and content
+            </p>
+          </div>
+
+          <div className="flex items-center justify-center">
+            <YouTubeCarousel />
+          </div>
+
+          <div className="mt-8 text-center">
+            <a
+              href="https://www.youtube.com/@milk.market"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${PRIMARYBUTTONCLASSNAMES} inline-flex items-center gap-2`}
+            >
+              Visit Our Channel
+              <span className="text-xl">📺</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ================================================================================= */}
+      {/* Benefits Section */}
+      {/* ================================================================================= */}
+      <section className="relative z-10 border-b-2 border-black bg-zinc-50 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-16 text-center">
             <h2 className="mb-4 text-4xl font-black md:text-5xl">
               Benefits of Local Raw Dairy

@@ -89,3 +89,20 @@ body {
 .animate-float-fast {
   animation: float-fast 10s ease-in-out infinite;
 }
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-420%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 42s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
