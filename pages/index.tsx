@@ -699,7 +699,7 @@ export default function StandaloneLanding() {
 
           <div className="mt-8 text-center">
             <a
-              href="https://www.youtube.com/@milk.market"
+              href="https://www.youtube.com/@milkmarketmedia"
               target="_blank"
               rel="noopener noreferrer"
               className={`${PRIMARYBUTTONCLASSNAMES} inline-flex items-center gap-2`}
@@ -970,7 +970,7 @@ export default function StandaloneLanding() {
                   href="mailto:freemilk@milk.market"
                   className="break-all font-medium text-black underline"
                 >
-                  freemilk@milk.market
+                  Email: freemilk@milk.market
                 </a>
               </div>
               <div className="flex items-center space-x-3">
@@ -981,7 +981,7 @@ export default function StandaloneLanding() {
                   rel="noopener noreferrer"
                   className="break-all font-medium text-black underline"
                 >
-                  nostr: milkmarket@milk.market
+                  Nostr: milkmarket@milk.market
                 </a>
               </div>
             </div>
@@ -1120,7 +1120,7 @@ export default function StandaloneLanding() {
                 />
               </a>
               <a
-                href="https://www.youtube.com/@milk.market"
+                href="https://www.youtube.com/@milkmarketmedia"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
@@ -1133,7 +1133,7 @@ export default function StandaloneLanding() {
                 />
               </a>
               <a
-                href="https://www.instagram.com/milkmarket.media/"
+                href="https://www.instagram.com/milkmarketmedia/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
