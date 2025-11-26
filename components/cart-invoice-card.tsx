@@ -480,7 +480,7 @@ export default function CartInvoiceCard({
       decodedRandomPrivkeyForReceiver.data as Uint8Array,
       pubkeyToReceiveMessage
     );
-    await sendGiftWrappedMessageEvent(giftWrappedEvent);
+    await sendGiftWrappedMessageEvent(nostr!, giftWrappedEvent);
 
     if (isReceipt || isHerdshare) {
       chatsContext.addNewlyCreatedMessageEvent(
@@ -745,7 +745,6 @@ export default function CartInvoiceCard({
             selectedFiatOption +
             " account for the payment.";
         }
-
         await sendPaymentAndContactMessageWithKeys(
           pubkey,
           paymentMessage,
@@ -1287,6 +1286,7 @@ export default function CartInvoiceCard({
         sellerProfile?.content?.payment_preference || "ecash";
       const lnurl = sellerProfile?.content?.lud16 || "";
 
+      // Step 1: Send payment message
       if (
         paymentPreference === "lightning" &&
         lnurl &&
@@ -1405,21 +1405,26 @@ export default function CartInvoiceCard({
                 proofs: changeProofs,
               });
               const changeMessage = "Overpaid fee change: " + encodedChange;
-              await sendPaymentAndContactMessageWithKeys(
-                pubkey,
-                changeMessage,
-                product,
-                true,
-                false,
-                false,
-                orderId,
-                "ecash",
-                mints[0],
-                JSON.stringify(changeProofs),
-                changeAmount,
-                undefined,
-                orderKeys
-              );
+              try {
+                await sendPaymentAndContactMessageWithKeys(
+                  pubkey,
+                  changeMessage,
+                  product,
+                  true,
+                  false,
+                  false,
+                  orderId,
+                  "ecash",
+                  mints[0],
+                  JSON.stringify(changeProofs),
+                  changeAmount,
+                  undefined,
+                  orderKeys
+                );
+                await new Promise((resolve) => setTimeout(resolve, 500));
+              } catch (error) {
+                console.error("Failed to send change message:", error);
+              }
             }
           } else {
             const unusedProofs = [...keep, ...send, ...meltResponse.change];
@@ -1587,43 +1592,51 @@ export default function CartInvoiceCard({
         }
       }
 
-      let donationMessage = "";
+      // Step 2: Send donation message
       if (donationToken) {
-        // Add delay before donation message
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        donationMessage = "Sale donation: " + donationToken;
-        await sendPaymentAndContactMessage(
-          "a37118a4888e02d28e8767c08caaf73b49abdac391ad7ff18a304891e416dc33",
-          donationMessage,
-          product,
-          false,
-          false,
-          true
-        );
+        const donationMessage = "Sale donation: " + donationToken;
+        try {
+          await sendPaymentAndContactMessage(
+            "a37118a4888e02d28e8767c08caaf73b49abdac391ad7ff18a304891e416dc33",
+            donationMessage,
+            product,
+            false,
+            false,
+            true
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error("Failed to send donation message:", error);
+        }
       }
 
+      // Step 3: Send additional info message
       if (required && required !== "" && data.additionalInfo) {
         // Add delay before additional info message
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         const additionalMessage =
           "Additional customer information: " + data.additionalInfo;
-        await sendPaymentAndContactMessageWithKeys(
-          pubkey,
-          additionalMessage,
-          product,
-          false,
-          false,
-          false,
-          orderId,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          orderKeys
-        );
+        try {
+          await sendPaymentAndContactMessageWithKeys(
+            pubkey,
+            additionalMessage,
+            product,
+            false,
+            false,
+            false,
+            orderId,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            orderKeys
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error("Failed to send additional info message:", error);
+        }
       }
 
       // Send herdshare agreement if product has one
@@ -1652,7 +1665,7 @@ export default function CartInvoiceCard({
         );
       }
 
-      // Handle shipping and contact information based on what was provided
+      // Step 4: Handle shipping and contact information
       const productShippingType = shippingTypes[product.id];
       const shouldUseShipping =
         formType === "shipping" ||
@@ -1860,7 +1873,7 @@ export default function CartInvoiceCard({
               "Your order for " +
               title +
               productDetails +
-              " was processed successfully. If applicable, you should be receiving delivery information from " +
+              " was processed successfully! If applicable, you should be receiving delivery information from " +
               nip19.npubEncode(product.pubkey) +
               " as soon as they review your order.";
           } else {
@@ -1876,7 +1889,7 @@ export default function CartInvoiceCard({
             receiptMessage =
               "Your order for " +
               title +
-              " was processed successfully. If applicable, you should be receiving delivery information from " +
+              " was processed successfully! If applicable, you should be receiving delivery information from " +
               nip19.npubEncode(product.pubkey) +
               " as soon as they review your order.";
           }
@@ -1916,6 +1929,7 @@ export default function CartInvoiceCard({
           );
         }
       } else {
+        // Step 5: Always send final receipt message
         let productDetails = "";
         if (product.selectedSize) {
           productDetails += " in size " + product.selectedSize;

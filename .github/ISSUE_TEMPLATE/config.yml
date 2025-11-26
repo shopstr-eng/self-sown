@@ -6,16 +6,3 @@ contact_links:
   - name: 💬 Chat & Discussion
     url: https://github.com/shopstr-eng/milk-market/discussions
     about: Join the conversation
-issue_templates:
-  - name: Bug Report
-    about: Create a report to help us improve Milk Market
-    template: bug_report.md
-  - name: Feature Request
-    about: Suggest a new feature for Milk Market
-    template: feature_request.md
-  - name: Documentation Improvement
-    about: Help us improve our documentation
-    template: documentation_improvement.md
-  - name: Security Vulnerability
-    about: Report a security vulnerability
-    template: security_vulnerability.md

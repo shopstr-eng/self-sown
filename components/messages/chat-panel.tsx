@@ -216,7 +216,7 @@ const ChatPanel = ({
         decodedRandomPrivkeyForReceiver.data as Uint8Array,
         buyerPubkey
       );
-      await sendGiftWrappedMessageEvent(giftWrappedEvent);
+      await sendGiftWrappedMessageEvent(nostr!, giftWrappedEvent);
       handleToggleShippingModal();
     } catch (error) {
       console.error(error);

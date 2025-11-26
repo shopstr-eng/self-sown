@@ -337,7 +337,7 @@ export default function ProductInvoiceCard({
           pubkeyToReceiveMessage
         );
 
-        await sendGiftWrappedMessageEvent(giftWrappedEvent);
+        await sendGiftWrappedMessageEvent(nostr!, giftWrappedEvent);
 
         if (isReceipt || isHerdshare) {
           chatsContext.addNewlyCreatedMessageEvent(
@@ -865,7 +865,7 @@ export default function ProductInvoiceCard({
           userPubkey!,
           receiptMessage,
           false,
-          true,
+          true, // isReceipt is true
           false,
           false,
           orderId
@@ -1140,6 +1140,7 @@ export default function ProductInvoiceCard({
       sellerProfile?.content?.payment_preference || "ecash";
     const lnurl = sellerProfile?.content?.lud16 || "";
 
+    // Step 1: Send payment message
     if (
       paymentPreference === "lightning" &&
       lnurl &&
@@ -1229,19 +1230,24 @@ export default function ProductInvoiceCard({
               proofs: changeProofs,
             });
             const changeMessage = "Overpaid fee change: " + encodedChange;
-            await sendPaymentAndContactMessage(
-              productData.pubkey,
-              changeMessage,
-              true,
-              false,
-              false,
-              false,
-              orderId,
-              "ecash",
-              mints[0],
-              JSON.stringify(changeProofs),
-              changeAmount
-            );
+            try {
+              await sendPaymentAndContactMessage(
+                productData.pubkey,
+                changeMessage,
+                true,
+                false,
+                false,
+                false,
+                orderId,
+                "ecash",
+                mints[0],
+                JSON.stringify(changeProofs),
+                changeAmount
+              );
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            } catch (error) {
+              console.error("Failed to send change message:", error);
+            }
           }
         } else {
           const unusedProofs = [...keep, ...send, ...meltResponse.change];
@@ -1360,36 +1366,45 @@ export default function ProductInvoiceCard({
         );
       }
     }
-    let donationMessage = "";
-    if (donationToken) {
-      // Add delay between messages
-      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      donationMessage = "Sale donation: " + donationToken;
-      await sendPaymentAndContactMessage(
-        "a37118a4888e02d28e8767c08caaf73b49abdac391ad7ff18a304891e416dc33",
-        donationMessage,
-        false,
-        false,
-        true
-      );
+    // Step 2: Send donation message
+    if (donationToken) {
+      const donationMessage = "Sale donation: " + donationToken;
+      try {
+        await sendPaymentAndContactMessage(
+          "a37118a4888e02d28e8767c08caaf73b49abdac391ad7ff18a304891e416dc33",
+          donationMessage,
+          false,
+          false,
+          true
+        );
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error("Failed to send donation message:", error);
+      }
     }
 
+    // Step 3: Send additional info message
     if (additionalInfo) {
       // Add delay between messages
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const additionalMessage =
         "Additional customer information: " + additionalInfo;
-      await sendPaymentAndContactMessage(
-        productData.pubkey,
-        additionalMessage,
-        false,
-        false,
-        false,
-        false,
-        orderId
-      );
+      try {
+        await sendPaymentAndContactMessage(
+          productData.pubkey,
+          additionalMessage,
+          false,
+          false,
+          false,
+          false,
+          orderId
+        );
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error("Failed to send additional info message:", error);
+      }
     }
 
     // Send herdshare agreement if product has one
@@ -1408,7 +1423,7 @@ export default function ProductInvoiceCard({
       );
     }
 
-    // Handle shipping and contact information based on what was provided
+    // Step 4: Handle shipping and contact information
     if (
       shippingName &&
       shippingAddress &&
@@ -1417,7 +1432,6 @@ export default function ProductInvoiceCard({
       shippingState &&
       shippingCountry
     ) {
-      // Shipping information provided
       if (
         productData.shippingType === "Added Cost" ||
         productData.shippingType === "Free" ||
@@ -1519,7 +1533,6 @@ export default function ProductInvoiceCard({
         );
       }
     } else if (contact && contactType && contactInstructions) {
-      // Contact information provided
       if (
         productData.shippingType === "N/A" ||
         productData.shippingType === "Pickup" ||
@@ -1651,7 +1664,7 @@ export default function ProductInvoiceCard({
         userPubkey!,
         receiptMessage,
         false,
-        true,
+        true, // isReceipt is true
         false,
         false,
         orderId
@@ -2223,7 +2236,10 @@ export default function ProductInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">Pickup location</span>
+                        <span className="text-light-text">
+                          Pickup Location{" "}
+                          <span className="text-red-500">*</span>
+                        </span>
                       }
                       labelPlacement="inside"
                       placeholder="Select a pickup location"

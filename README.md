@@ -1,6 +1,6 @@
 # Milk Market
 
-A global, permissionless marketplace for milk-first commerce.
+A global, permissionless marketplace for food freedom.
 
 # Supported NIPs
 
