@@ -449,6 +449,11 @@ export default function CheckoutCard({
                 {/* Product Title */}
                 <h1 className="text-3xl font-bold text-black">
                   {productData.title}
+                  {isExpired && (
+                    <Chip color="warning" variant="flat" className="ml-2">
+                      Outdated
+                    </Chip>
+                  )}
                 </h1>
 
                 {/* Availability Info */}
@@ -471,6 +476,20 @@ export default function CheckoutCard({
                     </button>
                   )}
                 </div>
+
+                {/* Expiration */}
+                {productData.expiration && (
+                  <p
+                    className={`mt-1 text-left text-sm ${
+                      isExpired ? "font-medium text-red-500" : "text-gray-500"
+                    }`}
+                  >
+                    {isExpired ? "Expired on: " : "Valid until: "}{" "}
+                    {new Date(
+                      productData.expiration * 1000
+                    ).toLocaleDateString()}
+                  </p>
+                )}
 
                 {/* Condition */}
                 {productData.condition && (
@@ -551,7 +570,8 @@ export default function CheckoutCard({
                         disabled={
                           (hasSizes && !selectedSize) ||
                           (hasVolumes && !selectedVolume) ||
-                          (hasWeights && !selectedWeight)
+                          (hasWeights && !selectedWeight) ||
+                          isExpired
                         }
                         size="lg"
                       >
@@ -573,7 +593,8 @@ export default function CheckoutCard({
                           isAdded ||
                           (hasSizes && !selectedSize) ||
                           (hasVolumes && !selectedVolume) ||
-                          (hasWeights && !selectedWeight)
+                          (hasWeights && !selectedWeight) ||
+                          isExpired
                         }
                         size="lg"
                       >
