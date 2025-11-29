@@ -19,7 +19,7 @@ import PDFAnnotator from "../utility-components/pdf-annotator";
 import { NostrMessageEvent } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
 import { getDecodedToken } from "@cashu/cashu-ts";
-import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import { NostrContext, SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ChatsContext } from "@/utils/context/context";
 import {
   blossomUpload,
@@ -75,6 +75,7 @@ const ChatMessage = ({
     signer,
     isLoggedIn,
   } = useContext(SignerContext);
+  const { nostr } = useContext(NostrContext);
 
   const chatsContext = useContext(ChatsContext);
 
@@ -318,8 +319,8 @@ const ChatMessage = ({
         productPubkey
       );
 
-      await sendGiftWrappedMessageEvent(senderGiftWrappedEvent);
-      await sendGiftWrappedMessageEvent(receiverGiftWrappedEvent);
+      await sendGiftWrappedMessageEvent(nostr!, senderGiftWrappedEvent);
+      await sendGiftWrappedMessageEvent(nostr!, receiverGiftWrappedEvent);
 
       chatsContext.addNewlyCreatedMessageEvent(
         {
