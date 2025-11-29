@@ -38,6 +38,7 @@ export type ProductData = {
   restrictions?: string;
   pickupLocations?: string[];
   herdshareAgreement?: string;
+  expiration?: number;
 };
 
 export const parseTags = (productEvent: NostrEvent) => {
@@ -182,6 +183,9 @@ export const parseTags = (productEvent: NostrEvent) => {
         break;
       case "herdshare_agreement":
         parsedData.herdshareAgreement = values[0];
+        break;
+      case "valid_until":
+        parsedData.expiration = Number(values[0]);
         break;
       default:
         return;

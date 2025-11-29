@@ -5,6 +5,7 @@ import {
   UserIcon,
   UserGroupIcon,
   ArrowRightStartOnRectangleIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
 
@@ -43,6 +44,14 @@ const SettingsPage = () => {
       icon: Cog6ToothIcon,
       iconBg: "bg-slate-600",
       route: "/settings/preferences",
+    },
+    {
+      id: "nwc",
+      title: "Nostr Wallet Connect",
+      description: "Connect your NIP-47 Nostr Wallet",
+      icon: BanknotesIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/nwc",
     },
   ];
 

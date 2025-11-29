@@ -82,6 +82,10 @@ export default function CheckoutCard({
   const hasVolumes = productData.volumes && productData.volumes.length > 0;
   const hasWeights = productData.weights && productData.weights.length > 0;
 
+  const isExpired = productData.expiration
+    ? Date.now() / 1000 > productData.expiration
+    : false;
+
   useEffect(() => {
     if (selectedVolume && productData.volumePrices) {
       const volumePrice = productData.volumePrices.get(selectedVolume);

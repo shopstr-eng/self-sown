@@ -22,6 +22,10 @@ export default function ProductCard({
   const { pubkey: userPubkey } = useContext(SignerContext);
   if (!productData) return null;
 
+  const isExpired = productData.expiration
+    ? Date.now() / 1000 > productData.expiration
+    : false;
+
   const content = (
     <div className="flex h-full flex-col">
       {/* Image Section with Title Overlay */}
@@ -31,6 +35,7 @@ export default function ProductCard({
           classname="w-full h-full object-cover"
           showThumbs={false}
         />
+
         {/* Title Overlay at Bottom of Image */}
         <div className="absolute bottom-0 left-0 right-0 border-t-2 border-black bg-white/95 p-3 backdrop-blur-sm">
           <h2 className="truncate text-2xl font-bold text-black">
@@ -55,6 +60,11 @@ export default function ProductCard({
             />
           </div>
           {/* Status Badge */}
+          {isExpired && (
+            <Chip color="warning" size="sm" variant="flat" className="mr-2">
+              Outdated
+            </Chip>
+          )}
           {productData.status === "active" && (
             <Chip className="flex-shrink-0 border-2 border-black bg-green-500 text-xs font-bold text-white">
               Active

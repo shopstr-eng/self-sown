@@ -48,6 +48,10 @@ export default function DisplayProductModal({
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  const isExpired = productData.expiration
+    ? Date.now() / 1000 > productData.expiration
+    : false;
+
   const displayDate = (timestamp: number): [string, string] => {
     if (timestamp == 0 || !timestamp) return ["", ""];
     const d = new Date(timestamp * 1000);
@@ -126,7 +130,18 @@ export default function DisplayProductModal({
               {/* Updated text color */}
               <h2 className="text-2xl font-bold text-black">
                 {productData.title}
+                {isExpired && (
+                  <Chip color="warning" variant="flat" className="ml-2">
+                    Outdated
+                  </Chip>
+                )}
               </h2>
+              {productData.expiration && (
+                <p className="text-sm text-gray-500">
+                  Valid until:{" "}
+                  {new Date(productData.expiration * 1000).toLocaleDateString()}
+                </p>
+              )}
               <div>
                 {/* Updated "Active" chip styles */}
                 {productData.status === "active" && (
