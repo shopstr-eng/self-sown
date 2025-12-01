@@ -524,18 +524,13 @@ export default function Component() {
                               onChange={(e) =>
                                 setDiscountCodes({
                                   ...discountCodes,
-                                  [sellerPubkey]:
-                                    e.target.value.toUpperCase(),
+                                  [sellerPubkey]: e.target.value.toUpperCase(),
                                 })
                               }
-                              className="text-white flex-1"
-                              disabled={
-                                appliedDiscounts[sellerPubkey]! > 0
-                              }
+                              className="flex-1 text-white"
+                              disabled={appliedDiscounts[sellerPubkey]! > 0}
                               isInvalid={!!discountErrors[sellerPubkey]}
-                              errorMessage={
-                                discountErrors[sellerPubkey]
-                              }
+                              errorMessage={discountErrors[sellerPubkey]}
                             />
                             {appliedDiscounts[sellerPubkey]! > 0 ? (
                               <Button

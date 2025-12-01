@@ -150,8 +150,8 @@ const WalletSettingsPage = () => {
           <h2 className="mb-4 text-xl font-bold text-black">NWC Connection</h2>
           <p className="mb-4 text-sm text-black/70">
             Connect your wallet using a Nostr Wallet Connect (NIP-47) connection
-            string (e.g., from Alby, Mutiny, or Umbrel). This allows Shopstr to
-            request payments directly from your wallet.
+            string (e.g., from Alby, Mutiny, or Umbrel). This allows Milk Market
+            to request payments directly from your wallet.
           </p>
 
           <Input

@@ -38,12 +38,12 @@ export default function Faq() {
         {
           title: "What is Nostr Wallet Connect?",
           content:
-            "Nostr Wallet Connect (NIP-47) is a secure protocol that lets you connect your personal Lightning wallet (like Alby or Umbrel) to Shopstr. When you check out, Shopstr will ask your wallet to pay the invoice directly, so you don't have to copy and paste. You can set this up in 'Settings' -> 'Wallet Connection'.",
+            "Nostr Wallet Connect (NIP-47) is a secure protocol that lets you connect your personal Lightning wallet (like Alby or Umbrel) to Milk Market. When you check out, Milk Market will ask your wallet to pay the invoice directly, so you don't have to copy and paste. You can set this up in 'Settings' -> 'Wallet Connection'.",
         },
         {
-          title: "Does Shopstr control my funds with NIP-47?",
+          title: "Does Milk Market control my funds with NIP-47?",
           content:
-            "No. Shopstr never sees your private keys or has control of your funds. The NWC connection only gives Shopstr permission to request payments for purchases you initiate. Depending on your wallet settings, you may need to approve each payment, or you can configure a spending budget that allows automatic payments up to a certain amount.",
+            "No. Milk Market never sees your private keys or has control of your funds. The NWC connection only gives Milk Market permission to request payments for purchases you initiate. Depending on your wallet settings, you may need to approve each payment, or you can configure a spending budget that allows automatic payments up to a certain amount.",
         },
       ],
     },

@@ -8,7 +8,7 @@ import {
   Chip,
 } from "@nextui-org/react";
 import { TrashIcon } from "@heroicons/react/24/outline";
-import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import ConfirmActionDropdown from "../utility-components/dropdowns/confirm-action-dropdown";
 
@@ -164,7 +164,7 @@ export default function DiscountCodes() {
             className="text-white"
           />
           <Button
-            className={SHOPSTRBUTTONCLASSNAMES}
+            className={BLUEBUTTONCLASSNAMES}
             onClick={handleAddCode}
             isDisabled={!newCode || !newDiscount || isSaving}
             isLoading={isSaving}
