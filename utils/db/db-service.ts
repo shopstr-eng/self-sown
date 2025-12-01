@@ -17,7 +17,15 @@ export function getDbPool(): Pool {
     }
 
     // Use pooled connection for better performance
-    const poolUrl = databaseUrl.replace(".us-east-2", "-pooler.us-east-2");
+    // Extract the endpoint ID and construct proper pooler URL
+    const url = new URL(databaseUrl);
+    const hostname = url.hostname;
+    // Match pattern like: ep-lucky-union-aefj3mfs.us-east-2.aws.neon.tech
+    // Transform to: ep-lucky-union-aefj3mfs-pooler.us-east-2.aws.neon.tech
+    const poolerHostname = hostname.replace(/^([^.]+)\./, '$1-pooler.');
+    url.hostname = poolerHostname;
+    const poolUrl = url.toString();
+    
     pool = new Pool({
       connectionString: poolUrl,
       max: 10, // Increased pool size
