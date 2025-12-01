@@ -156,7 +156,7 @@ export default function CartInvoiceCard({
   const [selectedPickupLocations, setSelectedPickupLocations] = useState<{
     [productId: string]: string;
   }>({});
-  
+
   const [totalCost, setTotalCost] = useState<number>(subtotalCost);
 
   const {
@@ -684,7 +684,10 @@ export default function CartInvoiceCard({
         let shippingTotal = 0;
         products.forEach((product) => {
           const productShippingType = shippingTypes[product.id];
-          if (productShippingType === "Added Cost" || productShippingType === "Free") {
+          if (
+            productShippingType === "Added Cost" ||
+            productShippingType === "Free"
+          ) {
             const shippingCost = product.shippingCost || 0;
             const quantity = quantities[product.id] || 1;
             shippingTotal += Math.ceil(shippingCost * quantity);
@@ -2694,7 +2697,9 @@ export default function CartInvoiceCard({
                                 <span>
                                   -
                                   {formatWithCommas(
-                                    Math.ceil((basePrice * discount / 100) * 100) / 100,
+                                    Math.ceil(
+                                      ((basePrice * discount) / 100) * 100
+                                    ) / 100,
                                     product.currency
                                   )}
                                 </span>
@@ -2869,10 +2874,10 @@ export default function CartInvoiceCard({
                     const discount = appliedDiscounts[product.pubkey] || 0;
                     const originalPrice =
                       product.weightPrice != undefined
-                      ? product.weightPrice
-                      : product.volumePrice !== undefined
-                        ? product.volumePrice
-                        : product.price
+                        ? product.weightPrice
+                        : product.volumePrice !== undefined
+                          ? product.volumePrice
+                          : product.price;
                     const basePrice =
                       originalPrice * (quantities[product.id] || 1);
                     const discountedPrice =
@@ -2882,10 +2887,13 @@ export default function CartInvoiceCard({
 
                     // Determine if shipping should be shown for this product
                     const productShippingType = shippingTypes[product.id];
-                    const shouldShowShipping = formType === "shipping" ||
-                      (formType === "combined" && 
-                        ((productShippingType === "Added Cost" || productShippingType === "Free") ||
-                        (productShippingType === "Free/Pickup" && shippingPickupPreference === "shipping")));
+                    const shouldShowShipping =
+                      formType === "shipping" ||
+                      (formType === "combined" &&
+                        (productShippingType === "Added Cost" ||
+                          productShippingType === "Free" ||
+                          (productShippingType === "Free/Pickup" &&
+                            shippingPickupPreference === "shipping")));
 
                     return (
                       <div
@@ -2904,18 +2912,23 @@ export default function CartInvoiceCard({
                             {formatWithCommas(originalPrice, product.currency)}
                           </span>
                         </div>
-                        {quantities[product.id] && quantities[product.id]! > 1 && (
-                          <div className="flex justify-between text-sm">
-                            <span className="ml-2">Base cost ({quantities[product.id]}x):</span>
-                            <span
-                              className={
-                                discount > 0 ? "text-gray-500 line-through" : ""
-                              }
-                            >
-                              {formatWithCommas(basePrice, product.currency)}
-                            </span>
-                          </div>
-                        )}
+                        {quantities[product.id] &&
+                          quantities[product.id]! > 1 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="ml-2">
+                                Base cost ({quantities[product.id]}x):
+                              </span>
+                              <span
+                                className={
+                                  discount > 0
+                                    ? "text-gray-500 line-through"
+                                    : ""
+                                }
+                              >
+                                {formatWithCommas(basePrice, product.currency)}
+                              </span>
+                            </div>
+                          )}
                         {discount > 0 && (
                           <>
                             <div className="flex justify-between text-sm text-green-600">
@@ -2928,7 +2941,9 @@ export default function CartInvoiceCard({
                               <span>
                                 -
                                 {formatWithCommas(
-                                  Math.ceil((basePrice * discount / 100) * 100) / 100,
+                                  Math.ceil(
+                                    ((basePrice * discount) / 100) * 100
+                                  ) / 100,
                                   product.currency
                                 )}
                               </span>
@@ -2944,7 +2959,8 @@ export default function CartInvoiceCard({
                             </div>
                           </>
                         )}
-                        {shouldShowShipping && product.shippingCost! > 0 &&
+                        {shouldShowShipping &&
+                          product.shippingCost! > 0 &&
                           ((formType === "combined" &&
                             shippingPickupPreference === "shipping") ||
                             formType === "shipping") && (
@@ -3075,7 +3091,11 @@ export default function CartInvoiceCard({
                     let shippingTotal = 0;
                     products.forEach((product) => {
                       const productShippingType = shippingTypes[product.id];
-                      if (productShippingType === "Added Cost" || productShippingType === "Free" || productShippingType === "Free/Pickup") {
+                      if (
+                        productShippingType === "Added Cost" ||
+                        productShippingType === "Free" ||
+                        productShippingType === "Free/Pickup"
+                      ) {
                         const shippingCost = product.shippingCost || 0;
                         const quantity = quantities[product.id] || 1;
                         shippingTotal += Math.ceil(shippingCost * quantity);
@@ -3102,7 +3122,10 @@ export default function CartInvoiceCard({
                     let shippingTotal = 0;
                     products.forEach((product) => {
                       const productShippingType = shippingTypes[product.id];
-                      if (productShippingType === "Added Cost" || productShippingType === "Free") {
+                      if (
+                        productShippingType === "Added Cost" ||
+                        productShippingType === "Free"
+                      ) {
                         const shippingCost = product.shippingCost || 0;
                         const quantity = quantities[product.id] || 1;
                         shippingTotal += Math.ceil(shippingCost * quantity);

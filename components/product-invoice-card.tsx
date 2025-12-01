@@ -175,7 +175,8 @@ export default function ProductInvoiceCard({
     productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
   // Extract discount and current price from props
   const appliedDiscount = discountPercentage || 0;
-  const currentPrice = originalPrice !== undefined ? originalPrice : productData.price;
+  const currentPrice =
+    originalPrice !== undefined ? originalPrice : productData.price;
 
   useEffect(() => {
     const fetchKeys = async () => {
@@ -451,8 +452,9 @@ export default function ProductInvoiceCard({
     paymentType?: "fiat" | "lightning" | "cashu" | "nwc" | "stripe"
   ) => {
     try {
-      let price =
-        formType === "shipping" ? productData.totalCost : productData.price;
+      // Use discounted total instead of original price
+      let price = discountedTotal;
+
       if (
         !currencySelection.hasOwnProperty(productData.currency.toUpperCase())
       ) {
@@ -1994,7 +1996,7 @@ export default function ProductInvoiceCard({
 
       // Determine the amount and currency to send to Stripe
       // If currency is SAT, SATS, or BTC, we need to convert to USD
-      // Otherwise, use the original price in the product's currency
+      // Otherwise, use the discounted price in the product's currency
       let stripeAmount: number;
       let stripeCurrency: string;
 
@@ -2005,23 +2007,12 @@ export default function ProductInvoiceCard({
         currencyLower === "btc";
 
       if (isCrypto) {
-        // For crypto currencies, send the amount in sats to be converted by the API
-        stripeAmount =
-          formType === "shipping" ? productData.totalCost : productData.price;
+        // For crypto currencies, send the discounted total amount in sats to be converted by the API
+        stripeAmount = discountedTotal;
         stripeCurrency = productData.currency;
       } else {
-        // For fiat currencies, use the original price
-        const basePrice =
-          productData.volumePrice !== undefined
-            ? productData.volumePrice
-            : productData.weightPrice !== undefined
-              ? productData.weightPrice
-              : productData.price;
-
-        stripeAmount =
-          formType === "shipping"
-            ? basePrice + (productData.shippingCost || 0)
-            : basePrice;
+        // For fiat currencies, use the discounted total
+        stripeAmount = discountedTotal;
         stripeCurrency = productData.currency;
       }
 
@@ -2154,7 +2145,7 @@ export default function ProductInvoiceCard({
             "stripe",
             invoiceId,
             "",
-            formType === "shipping" ? productData.totalCost : productData.price
+            discountedTotal
           );
 
           // Send additional info and delivery messages similar to other payment methods
@@ -2342,19 +2333,17 @@ export default function ProductInvoiceCard({
   };
 
   // Calculate discounted price with proper rounding
-  const discountAmount = appliedDiscount > 0
-    ? Math.ceil((currentPrice * appliedDiscount / 100) * 100) / 100
-    : 0;
+  const discountAmount =
+    appliedDiscount > 0
+      ? Math.ceil(((currentPrice * appliedDiscount) / 100) * 100) / 100
+      : 0;
 
   const discountedPrice =
-    appliedDiscount > 0
-      ? currentPrice - discountAmount
-      : currentPrice;
+    appliedDiscount > 0 ? currentPrice - discountAmount : currentPrice;
 
   // Calculate shipping cost based on form type
-  const shippingCostToAdd = formType === "shipping"
-    ? (productData.shippingCost ?? 0)
-    : 0;
+  const shippingCostToAdd =
+    formType === "shipping" ? productData.shippingCost ?? 0 : 0;
 
   const discountedTotal = discountedPrice + shippingCostToAdd;
 
@@ -2812,7 +2801,7 @@ export default function ProductInvoiceCard({
                           <span className="text-gray-500 line-through">
                             {formatWithCommas(
                               currentPrice,
-                        productData.currency
+                              productData.currency
                             )}
                           </span>
                         </div>
@@ -2827,7 +2816,7 @@ export default function ProductInvoiceCard({
                                 )}
                               </span>
                             </div>
-                        )}
+                          )}
                         <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
                           <span className="ml-2">
                             {discountCode || "Discount"} ({appliedDiscount}%):
@@ -2854,32 +2843,27 @@ export default function ProductInvoiceCard({
                       <div className="flex justify-between text-sm">
                         <span className="ml-2">Product cost:</span>
                         <span>
-                          {formatWithCommas(
-                            currentPrice,
-                            productData.currency
-                          )}
+                          {formatWithCommas(currentPrice, productData.currency)}
                         </span>
                       </div>
                     )}
-                    {formType === "shipping" && productData.shippingCost! > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="ml-2">Shipping cost:</span>
-                        <span>
-                          {formatWithCommas(
-                            productData.shippingCost!,
-                            productData.currency
-                          )}
-                        </span>
-                      </div>
-                    )}
+                    {formType === "shipping" &&
+                      productData.shippingCost! > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="ml-2">Shipping cost:</span>
+                          <span>
+                            {formatWithCommas(
+                              productData.shippingCost!,
+                              productData.currency
+                            )}
+                          </span>
+                        </div>
+                      )}
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Total:</span>
                     <span>
-                      {formatWithCommas(
-                        discountedTotal,
-                        productData.currency
-                      )}
+                      {formatWithCommas(discountedTotal, productData.currency)}
                     </span>
                   </div>
                 </div>
@@ -3054,10 +3038,7 @@ export default function ProductInvoiceCard({
                       <div className="flex justify-between text-sm">
                         <span className="ml-2">Product cost:</span>
                         <span className="text-gray-500 line-through">
-                          {formatWithCommas(
-                            currentPrice,
-                            productData.currency
-                          )}
+                          {formatWithCommas(currentPrice, productData.currency)}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm text-green-600">
@@ -3086,10 +3067,7 @@ export default function ProductInvoiceCard({
                     <div className="flex justify-between text-sm">
                       <span className="ml-2">Product cost:</span>
                       <span>
-                        {formatWithCommas(
-                          currentPrice,
-                          productData.currency
-                        )}
+                        {formatWithCommas(currentPrice, productData.currency)}
                       </span>
                     </div>
                   )}
@@ -3108,10 +3086,7 @@ export default function ProductInvoiceCard({
                 <div className="flex justify-between border-t pt-2 font-semibold">
                   <span>Total:</span>
                   <span>
-                    {formatWithCommas(
-                      discountedTotal,
-                      productData.currency
-                    )}
+                    {formatWithCommas(discountedTotal, productData.currency)}
                   </span>
                 </div>
               </div>
@@ -3343,13 +3318,8 @@ export default function ProductInvoiceCard({
                 </h3>
                 <p className="mb-6 text-gray-400">
                   You will need{" "}
-                  {formatWithCommas(
-                    formType === "shipping"
-                      ? productData.totalCost
-                      : productData.price,
-                    productData.currency
-                  )}{" "}
-                  in cash for this order.
+                  {formatWithCommas(discountedTotal, productData.currency)} in
+                  cash for this order.
                 </p>
                 <div className="mb-6 flex items-center space-x-2">
                   <input
@@ -3375,13 +3345,7 @@ export default function ProductInvoiceCard({
                 </h3>
                 <p className="mb-4 text-gray-400">
                   Please send{" "}
-                  {formatWithCommas(
-                    formType === "shipping"
-                      ? productData.totalCost
-                      : productData.price,
-                    productData.currency
-                  )}{" "}
-                  to:
+                  {formatWithCommas(discountedTotal, productData.currency)} to:
                 </p>
                 <div className="mb-6 rounded-lg bg-gray-100 p-4">
                   <p className="font-semibold text-gray-900">
@@ -3410,9 +3374,7 @@ export default function ProductInvoiceCard({
                   if (fiatPaymentConfirmed) {
                     setShowFiatPaymentInstructions(false);
                     await handleFiatPayment(
-                      formType === "shipping"
-                        ? productData.totalCost
-                        : productData.price,
+                      discountedTotal,
                       pendingPaymentData || {}
                     );
                     setPendingPaymentData(null); // Clear stored data

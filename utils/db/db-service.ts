@@ -22,10 +22,10 @@ export function getDbPool(): Pool {
     const hostname = url.hostname;
     // Match pattern like: ep-lucky-union-aefj3mfs.us-east-2.aws.neon.tech
     // Transform to: ep-lucky-union-aefj3mfs-pooler.us-east-2.aws.neon.tech
-    const poolerHostname = hostname.replace(/^([^.]+)\./, '$1-pooler.');
+    const poolerHostname = hostname.replace(/^([^.]+)\./, "$1-pooler.");
     url.hostname = poolerHostname;
     const poolUrl = url.toString();
-    
+
     pool = new Pool({
       connectionString: poolUrl,
       max: 10, // Increased pool size
