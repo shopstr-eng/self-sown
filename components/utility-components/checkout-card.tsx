@@ -620,7 +620,7 @@ export default function CheckoutCard({
                         onChange={(e) =>
                           setDiscountCode(e.target.value.toUpperCase())
                         }
-                        className="flex-1 text-black"
+                        className="flex-1 text-white"
                         disabled={appliedDiscount > 0}
                         isInvalid={!!discountError}
                         errorMessage={discountError}

@@ -497,73 +497,73 @@ export default function Component() {
                                     )}
                                   </div>
                                 )}
-                                {/* Discount code section for this seller */}
-                                <div className="rounded-lg border border-gray-300 p-4 shadow-sm">
-                                  <h3 className="mb-3 font-semibold">
-                                    Have a discount code from this seller?
-                                  </h3>
-                                  <div className="flex gap-2">
-                                    <Input
-                                      label="Discount Code"
-                                      placeholder="Enter code"
-                                      value={discountCodes[sellerPubkey] || ""}
-                                      onChange={(e) =>
-                                        setDiscountCodes({
-                                          ...discountCodes,
-                                          [sellerPubkey]:
-                                            e.target.value.toUpperCase(),
-                                        })
-                                      }
-                                      className="text-light-text flex-1"
-                                      disabled={
-                                        appliedDiscounts[sellerPubkey]! > 0
-                                      }
-                                      isInvalid={!!discountErrors[sellerPubkey]}
-                                      errorMessage={
-                                        discountErrors[sellerPubkey]
-                                      }
-                                    />
-                                    {appliedDiscounts[sellerPubkey]! > 0 ? (
-                                      <Button
-                                        color="warning"
-                                        onClick={() =>
-                                          handleRemoveDiscount(sellerPubkey)
-                                        }
-                                      >
-                                        Remove
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        className={BLUEBUTTONCLASSNAMES}
-                                        onClick={() =>
-                                          handleApplyDiscount(sellerPubkey)
-                                        }
-                                      >
-                                        Apply
-                                      </Button>
-                                    )}
-                                  </div>
-                                  {appliedDiscounts[sellerPubkey]! > 0 && (
-                                    <p className="mt-2 text-sm text-green-600">
-                                      {appliedDiscounts[sellerPubkey]}% discount
-                                      applied to all items from this seller!
-                                    </p>
-                                  )}
-                                  <div className="mt-auto flex justify-end pt-2">
-                                    <button
-                                      onClick={() =>
-                                        handleRemoveFromCart(product.id)
-                                      }
-                                      className="cursor-pointer text-sm font-bold text-red-500"
-                                    >
-                                      Remove
-                                    </button>
-                                  </div>
+                                <div className="mt-auto flex justify-end pt-2">
+                                  <button
+                                    onClick={() =>
+                                      handleRemoveFromCart(product.id)
+                                    }
+                                    className="cursor-pointer text-sm font-bold text-red-500"
+                                  >
+                                    Remove
+                                  </button>
                                 </div>
                               </div>
                             </div>
                           </div>
                         ))}
+                        {/* Discount code section for this seller */}
+                        <div className="rounded-lg border border-gray-300 p-4 shadow-sm">
+                          <h3 className="mb-3 font-semibold">
+                            Have a discount code from this seller?
+                          </h3>
+                          <div className="flex gap-2">
+                            <Input
+                              label="Discount Code"
+                              placeholder="Enter code"
+                              value={discountCodes[sellerPubkey] || ""}
+                              onChange={(e) =>
+                                setDiscountCodes({
+                                  ...discountCodes,
+                                  [sellerPubkey]:
+                                    e.target.value.toUpperCase(),
+                                })
+                              }
+                              className="text-white flex-1"
+                              disabled={
+                                appliedDiscounts[sellerPubkey]! > 0
+                              }
+                              isInvalid={!!discountErrors[sellerPubkey]}
+                              errorMessage={
+                                discountErrors[sellerPubkey]
+                              }
+                            />
+                            {appliedDiscounts[sellerPubkey]! > 0 ? (
+                              <Button
+                                color="warning"
+                                onClick={() =>
+                                  handleRemoveDiscount(sellerPubkey)
+                                }
+                              >
+                                Remove
+                              </Button>
+                            ) : (
+                              <Button
+                                className={BLUEBUTTONCLASSNAMES}
+                                onClick={() =>
+                                  handleApplyDiscount(sellerPubkey)
+                                }
+                              >
+                                Apply
+                              </Button>
+                            )}
+                            {appliedDiscounts[sellerPubkey]! > 0 && (
+                              <p className="mt-2 text-sm text-green-600">
+                                {appliedDiscounts[sellerPubkey]}% discount
+                                applied to all items from this seller!
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )
                   )}

@@ -140,7 +140,7 @@ export default function DiscountCodes() {
             placeholder="SUMMER2024"
             value={newCode}
             onChange={(e) => setNewCode(e.target.value.toUpperCase())}
-            className="text-black"
+            className="text-white"
           />
           <Input
             type="number"
@@ -152,7 +152,7 @@ export default function DiscountCodes() {
             value={newDiscount}
             onChange={(e) => setNewDiscount(e.target.value)}
             endContent={<span className="text-default-400">%</span>}
-            className="text-black"
+            className="text-white"
           />
           <Input
             type="datetime-local"
@@ -161,7 +161,7 @@ export default function DiscountCodes() {
             value={newExpiration}
             onChange={(e) => setNewExpiration(e.target.value)}
             min={new Date().toISOString().slice(0, 16)}
-            className="text-black"
+            className="text-white"
           />
           <Button
             className={SHOPSTRBUTTONCLASSNAMES}
