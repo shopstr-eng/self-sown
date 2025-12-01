@@ -180,7 +180,7 @@ export default function Component() {
       const shipping: { [key: string]: number } = {};
       const totals: { [key: string]: number } = {};
       let subtotalAmount = 0;
-      let totalCostAmount = 0;
+      let totalShippingAmount = 0;
 
       for (const product of products) {
         try {
@@ -190,7 +190,6 @@ export default function Component() {
           let discountedPrice = priceSats;
           let productSubtotal = 0;
           let productShipping = 0;
-          let productTotal = 0;
 
           if (discount > 0) {
             discountedPrice = Math.ceil(priceSats * (1 - discount / 100));
@@ -204,19 +203,18 @@ export default function Component() {
               productShipping = Math.ceil(
                 shippingSatPrice * quantities[product.id]!
               );
-              productTotal = productSubtotal + productShipping;
               subtotalAmount += productSubtotal;
-              totalCostAmount += productTotal;
+              totalShippingAmount += productShipping;
             } else {
               productSubtotal = discountedPrice;
               productShipping = shippingSatPrice;
-              productTotal = discountedPrice + shippingSatPrice;
               subtotalAmount += discountedPrice;
-              totalCostAmount += productTotal;
+              totalShippingAmount += shippingSatPrice;
             }
             prices[product.id] = productSubtotal;
             shipping[product.id] = productShipping;
-            totals[product.pubkey] = productTotal;
+            // Store just the product cost in totals for now
+            totals[product.pubkey] = productSubtotal;
           }
         } catch (error) {
           console.error(
@@ -230,7 +228,8 @@ export default function Component() {
 
       setSatPrices(prices);
       setSubtotal(subtotalAmount);
-      setTotalCost(totalCostAmount);
+      // Total cost is just subtotal for now, shipping will be added based on selection
+      setTotalCost(subtotalAmount);
       setTotalCostsInSats(totals);
     };
 
@@ -619,7 +618,7 @@ export default function Component() {
                 quantities={quantities}
                 shippingTypes={shippingTypes}
                 totalCostsInSats={totalCostsInSats}
-                totalCost={totalCost}
+                subtotalCost={subtotal}
                 appliedDiscounts={appliedDiscounts}
                 discountCodes={discountCodes}
                 onBackToCart={toggleCheckout}

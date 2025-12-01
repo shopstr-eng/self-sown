@@ -173,6 +173,9 @@ export default function ProductInvoiceCard({
   // Check if Stripe should be available for this product
   const isStripeMerchant =
     productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+  // Extract discount and current price from props
+  const appliedDiscount = discountPercentage || 0;
+  const currentPrice = originalPrice !== undefined ? originalPrice : productData.price;
 
   useEffect(() => {
     const fetchKeys = async () => {
@@ -2338,6 +2341,23 @@ export default function ProductInvoiceCard({
     checkStatus();
   };
 
+  // Calculate discounted price with proper rounding
+  const discountAmount = appliedDiscount > 0
+    ? Math.ceil((currentPrice * appliedDiscount / 100) * 100) / 100
+    : 0;
+
+  const discountedPrice =
+    appliedDiscount > 0
+      ? currentPrice - discountAmount
+      : currentPrice;
+
+  // Calculate shipping cost based on form type
+  const shippingCostToAdd = formType === "shipping"
+    ? (productData.shippingCost ?? 0)
+    : 0;
+
+  const discountedTotal = discountedPrice + shippingCostToAdd;
+
   const renderContactForm = () => {
     if (!formType) return null;
 
@@ -2785,39 +2805,79 @@ export default function ProductInvoiceCard({
                     <div className="text-sm font-medium">
                       {productData.title}
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="ml-2">Product cost:</span>
-                      <span>
-                        {formatWithCommas(
-                          productData.volumePrice !== undefined
-                            ? productData.volumePrice
-                            : productData.weightPrice !== undefined
-                              ? productData.weightPrice
-                              : productData.price,
-                          productData.currency
-                        )}
-                      </span>
-                    </div>
-                    {productData.shippingCost! > 0 &&
-                      formType === "shipping" && (
+                    {appliedDiscount > 0 ? (
+                      <>
                         <div className="flex justify-between text-sm">
-                          <span className="ml-2">Shipping cost:</span>
-                          <span>
+                          <span className="ml-2">Product cost:</span>
+                          <span className="text-gray-500 line-through">
                             {formatWithCommas(
-                              productData.shippingCost!,
+                              currentPrice,
+                        productData.currency
+                            )}
+                          </span>
+                        </div>
+                        {productData.shippingCost! > 0 &&
+                          formType === "shipping" && (
+                            <div className="flex justify-between text-sm">
+                              <span className="ml-2">Shipping cost:</span>
+                              <span>
+                                {formatWithCommas(
+                                  productData.shippingCost!,
+                                  productData.currency
+                                )}
+                              </span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                          <span className="ml-2">
+                            {discountCode || "Discount"} ({appliedDiscount}%):
+                          </span>
+                          <span>
+                            -
+                            {formatWithCommas(
+                              discountAmount,
                               productData.currency
                             )}
                           </span>
                         </div>
-                      )}
+                        <div className="flex justify-between text-sm font-medium">
+                          <span className="ml-2">Discounted price:</span>
+                          <span>
+                            {formatWithCommas(
+                              discountedPrice,
+                              productData.currency
+                            )}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between text-sm">
+                        <span className="ml-2">Product cost:</span>
+                        <span>
+                          {formatWithCommas(
+                            currentPrice,
+                            productData.currency
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {formType === "shipping" && productData.shippingCost! > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="ml-2">Shipping cost:</span>
+                        <span>
+                          {formatWithCommas(
+                            productData.shippingCost!,
+                            productData.currency
+                          )}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Total:</span>
                     <span>
                       {formatWithCommas(
-                        formType === "shipping"
-                          ? productData.totalCost
-                          : productData.price,
+                        discountedTotal,
                         productData.currency
                       )}
                     </span>
@@ -2989,26 +3049,25 @@ export default function ProductInvoiceCard({
                 <h4 className="font-semibold text-gray-700">Cost Breakdown</h4>
                 <div className="space-y-2 border-l-2 border-gray-200 pl-3">
                   <div className="text-sm font-medium">{productData.title}</div>
-                  {discountPercentage && discountPercentage > 0 ? (
+                  {appliedDiscount > 0 ? (
                     <>
                       <div className="flex justify-between text-sm">
                         <span className="ml-2">Product cost:</span>
                         <span className="text-gray-500 line-through">
                           {formatWithCommas(
-                            originalPrice || productData.price,
+                            currentPrice,
                             productData.currency
                           )}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm text-green-600">
                         <span className="ml-2">
-                          {discountCode || "Discount"} ({discountPercentage}%):
+                          {discountCode || "Discount"} ({appliedDiscount}%):
                         </span>
                         <span>
                           -
                           {formatWithCommas(
-                            Math.ceil(((originalPrice || productData.price) *
-                              discountPercentage / 100) * 100) / 100,
+                            discountAmount,
                             productData.currency
                           )}
                         </span>
@@ -3017,7 +3076,7 @@ export default function ProductInvoiceCard({
                         <span className="ml-2">Discounted price:</span>
                         <span>
                           {formatWithCommas(
-                            productData.price,
+                            discountedPrice,
                             productData.currency
                           )}
                         </span>
@@ -3028,7 +3087,7 @@ export default function ProductInvoiceCard({
                       <span className="ml-2">Product cost:</span>
                       <span>
                         {formatWithCommas(
-                          productData.price,
+                          currentPrice,
                           productData.currency
                         )}
                       </span>
@@ -3050,9 +3109,7 @@ export default function ProductInvoiceCard({
                   <span>Total:</span>
                   <span>
                     {formatWithCommas(
-                      formType === "shipping"
-                        ? productData.totalCost
-                        : productData.price,
+                      discountedTotal,
                       productData.currency
                     )}
                   </span>
