@@ -2670,7 +2670,7 @@ export default function CartInvoiceCard({
                                 <span>
                                   -
                                   {formatWithCommas(
-                                    basePrice - discountedPrice,
+                                    Math.ceil((basePrice * discount / 100) * 100) / 100,
                                     product.currency
                                   )}
                                 </span>
@@ -2887,7 +2887,7 @@ export default function CartInvoiceCard({
                               <span>
                                 -
                                 {formatWithCommas(
-                                  basePrice - discountedPrice,
+                                  Math.ceil((basePrice * discount / 100) * 100) / 100,
                                   product.currency
                                 )}
                               </span>

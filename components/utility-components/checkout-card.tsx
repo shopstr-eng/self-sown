@@ -388,10 +388,14 @@ export default function CheckoutCard({
     );
   };
 
-  // Calculate discounted price
+  // Calculate discounted price with proper rounding
+  const discountAmount = appliedDiscount > 0 
+    ? Math.ceil((currentPrice * appliedDiscount / 100) * 100) / 100 
+    : 0;
+  
   const discountedPrice =
     appliedDiscount > 0
-      ? currentPrice * (1 - appliedDiscount / 100)
+      ? currentPrice - discountAmount
       : currentPrice;
 
   const discountedTotal = discountedPrice + (productData.shippingCost ?? 0);
@@ -403,6 +407,10 @@ export default function CheckoutCard({
     totalCost: discountedTotal,
     originalPrice: currentPrice,
     discountPercentage: appliedDiscount,
+    weightPrice:
+      selectedWeight && productData.weightPrices
+        ? productData.weightPrices.get(selectedWeight)
+        : undefined,
     volumePrice:
       selectedVolume && productData.volumePrices
         ? productData.volumePrices.get(selectedVolume)
