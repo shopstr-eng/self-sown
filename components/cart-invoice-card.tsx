@@ -158,6 +158,9 @@ export default function CartInvoiceCard({
   }>({});
 
   const [totalCost, setTotalCost] = useState<number>(subtotalCost);
+  const [totalCostsWithShipping, setTotalCostsWithShipping] = useState<{
+    [productId: string]: number;
+  }>({});
 
   const {
     handleSubmit: handleFormSubmit,
@@ -658,42 +661,59 @@ export default function CartInvoiceCard({
     }
   };
 
-  const handleOrderTypeSelection = (selectedOrderType: string) => {
+  const handleOrderTypeSelection = async (selectedOrderType: string) => {
     setShowOrderTypeSelection(false);
 
     if (selectedOrderType === "shipping") {
       setFormType("shipping");
-      // Calculate total with shipping
+      // Calculate total with shipping in sats
       let shippingTotal = 0;
-      products.forEach((product) => {
-        const shippingCost = product.shippingCost || 0;
+      const updatedTotalCostsInSats: { [productId: string]: number } = {};
+      
+      for (const product of products) {
+        const shippingCostInSats = await convertShippingToSats(product);
         const quantity = quantities[product.id] || 1;
-        shippingTotal += Math.ceil(shippingCost * quantity);
-      });
+        const productShippingCost = Math.ceil(shippingCostInSats * quantity);
+        shippingTotal += productShippingCost;
+        updatedTotalCostsInSats[product.id] =
+          (totalCostsInSats[product.id] || 0) + productShippingCost;
+      }
+      
       setTotalCost(subtotalCost + shippingTotal);
+      setTotalCostsWithShipping(updatedTotalCostsInSats);
     } else if (selectedOrderType === "contact") {
       setFormType("contact");
       // No shipping for contact/pickup
       setTotalCost(subtotalCost);
+      setTotalCostsWithShipping({}); // Clear shipping costs
     } else if (selectedOrderType === "combined") {
       setFormType("combined");
       if (hasMixedShippingWithPickup) {
         setShowFreePickupSelection(true);
       } else {
-        // Calculate shipping for combined non-Free/Pickup items
+        // Calculate shipping for combined non-Free/Pickup items in sats
         let shippingTotal = 0;
-        products.forEach((product) => {
+        const updatedTotalCostsInSats: { [productId: string]: number } = {};
+        
+        for (const product of products) {
           const productShippingType = shippingTypes[product.id];
           if (
             productShippingType === "Added Cost" ||
             productShippingType === "Free"
           ) {
-            const shippingCost = product.shippingCost || 0;
+            const shippingCostInSats = await convertShippingToSats(product);
             const quantity = quantities[product.id] || 1;
-            shippingTotal += Math.ceil(shippingCost * quantity);
+            const productShippingCost = Math.ceil(shippingCostInSats * quantity);
+            shippingTotal += productShippingCost;
+            updatedTotalCostsInSats[product.id] =
+              (totalCostsInSats[product.id] || 0) + productShippingCost;
+          } else {
+            updatedTotalCostsInSats[product.id] = totalCostsInSats[product.id] || 0;
           }
-        });
+        }
+        
         setTotalCost(subtotalCost + shippingTotal);
+        setTotalCostsWithShipping(updatedTotalCostsInSats);
       }
     }
   };
@@ -2079,6 +2099,34 @@ export default function CartInvoiceCard({
     }, 2100);
   };
 
+  const convertShippingToSats = async (product: ProductData): Promise<number> => {
+    const shippingCost = product.shippingCost || 0;
+    
+    if (
+      product.currency.toLowerCase() === "sats" ||
+      product.currency.toLowerCase() === "sat"
+    ) {
+      return shippingCost;
+    }
+    
+    if (product.currency.toLowerCase() === "btc") {
+      return shippingCost * 100000000;
+    }
+    
+    try {
+      const currencyData = {
+        amount: shippingCost,
+        currency: product.currency,
+      };
+      const { fiat } = await import("@getalby/lightning-tools");
+      const numSats = await fiat.getSatoshiValue(currencyData);
+      return Math.round(numSats);
+    } catch (err) {
+      console.error("Error converting shipping cost to sats:", err);
+      return 0;
+    }
+  };
+
   const formattedTotalCost = formatWithCommas(totalCost, "sats");
 
   const handleCashuPayment = async (price: number, data: any) => {
@@ -3084,24 +3132,35 @@ export default function CartInvoiceCard({
               </p>
               <div className="mb-6 space-y-4">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShippingPickupPreference("shipping");
                     setShowFreePickupSelection(false);
-                    // Calculate total with all applicable shipping
+                    // Calculate total with all applicable shipping in sats
                     let shippingTotal = 0;
-                    products.forEach((product) => {
+                    const updatedTotalCostsInSats: { [productId: string]: number } =
+                      {};
+                    
+                    for (const product of products) {
                       const productShippingType = shippingTypes[product.id];
                       if (
                         productShippingType === "Added Cost" ||
                         productShippingType === "Free" ||
                         productShippingType === "Free/Pickup"
                       ) {
-                        const shippingCost = product.shippingCost || 0;
+                        const shippingCostInSats = await convertShippingToSats(product);
                         const quantity = quantities[product.id] || 1;
-                        shippingTotal += Math.ceil(shippingCost * quantity);
+                        const productShippingCost = Math.ceil(shippingCostInSats * quantity);
+                        shippingTotal += productShippingCost;
+                        updatedTotalCostsInSats[product.id] =
+                          (totalCostsInSats[product.id] || 0) + productShippingCost;
+                      } else {
+                        updatedTotalCostsInSats[product.id] =
+                          totalCostsInSats[product.id] || 0;
                       }
-                    });
+                    }
+                    
                     setTotalCost(subtotalCost + shippingTotal);
+                    setTotalCostsWithShipping(updatedTotalCostsInSats);
                   }}
                   className={`w-full transform rounded-md border-2 border-black p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                     shippingPickupPreference === "shipping"
@@ -3115,23 +3174,34 @@ export default function CartInvoiceCard({
                   </div>
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShippingPickupPreference("contact");
                     setShowFreePickupSelection(false);
-                    // Calculate shipping for non-Free/Pickup items only
+                    // Calculate shipping for non-Free/Pickup items only in sats
                     let shippingTotal = 0;
-                    products.forEach((product) => {
+                    const updatedTotalCostsInSats: { [productId: string]: number } =
+                      {};
+                    
+                    for (const product of products) {
                       const productShippingType = shippingTypes[product.id];
                       if (
                         productShippingType === "Added Cost" ||
                         productShippingType === "Free"
                       ) {
-                        const shippingCost = product.shippingCost || 0;
+                        const shippingCostInSats = await convertShippingToSats(product);
                         const quantity = quantities[product.id] || 1;
-                        shippingTotal += Math.ceil(shippingCost * quantity);
+                        const productShippingCost = Math.ceil(shippingCostInSats * quantity);
+                        shippingTotal += productShippingCost;
+                        updatedTotalCostsInSats[product.id] =
+                          (totalCostsInSats[product.id] || 0) + productShippingCost;
+                      } else {
+                        updatedTotalCostsInSats[product.id] =
+                          totalCostsInSats[product.id] || 0;
                       }
-                    });
+                    }
+                    
                     setTotalCost(subtotalCost + shippingTotal);
+                    setTotalCostsWithShipping(updatedTotalCostsInSats);
                   }}
                   className={`w-full transform rounded-md border-2 border-black p-4 text-left shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                     shippingPickupPreference === "contact"
