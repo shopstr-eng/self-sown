@@ -7,7 +7,7 @@ import { ProfileWithDropdown } from "./profile/profile-dropdown";
 import { DisplayCheckoutCost } from "./display-monetary-info";
 import ProductInvoiceCard from "../product-invoice-card";
 import { useRouter } from "next/router";
-import { Button, Chip, useDisclosure } from "@nextui-org/react";
+import { Button, Chip, Input, useDisclosure } from "@nextui-org/react";
 import { locationAvatar } from "./dropdowns/location-dropdown";
 import {
   FaceFrownIcon,
@@ -23,6 +23,7 @@ import currencySelection from "../../public/currencySelection.json";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import VolumeSelector from "./volume-selector";
 import WeightSelector from "./weight-selector";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 const SUMMARY_CHARACTER_LIMIT = 200;
 
@@ -74,6 +75,9 @@ export default function CheckoutCard({
   const [selectedVolume, setSelectedVolume] = useState<string>("");
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [currentPrice, setCurrentPrice] = useState(productData.price);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
+  const [discountError, setDiscountError] = useState("");
 
   const reviewsContext = useContext(ReviewsContext);
 
@@ -272,6 +276,17 @@ export default function CheckoutCard({
       updatedCart = [...cart, productToAdd];
       setCart(updatedCart);
       localStorage.setItem("cart", JSON.stringify(updatedCart));
+
+      // Store discount code if applied
+      if (appliedDiscount > 0 && discountCode) {
+        const storedDiscounts = localStorage.getItem("cartDiscounts");
+        const discounts = storedDiscounts ? JSON.parse(storedDiscounts) : {};
+        discounts[productData.pubkey] = {
+          code: discountCode,
+          percentage: appliedDiscount,
+        };
+        localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
+      }
     } else {
       onOpen();
     }
@@ -308,6 +323,46 @@ export default function CheckoutCard({
     }
   };
 
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError("Please enter a discount code");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/db/discount-codes?validate=true&code=${encodeURIComponent(
+          discountCode
+        )}&pubkey=${productData.pubkey}`
+      );
+
+      if (!response.ok) {
+        setDiscountError("Failed to validate discount code");
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.valid && result.discount_percentage) {
+        setAppliedDiscount(result.discount_percentage);
+        setDiscountError("");
+      } else {
+        setDiscountError("Invalid or expired discount code");
+        setAppliedDiscount(0);
+      }
+    } catch (error) {
+      console.error("Failed to apply discount:", error);
+      setDiscountError("Failed to apply discount code");
+      setAppliedDiscount(0);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setDiscountCode("");
+    setAppliedDiscount(0);
+    setDiscountError("");
+  };
+
   const renderSizeGrid = () => {
     return (
       <div className="mb-4">
@@ -333,11 +388,25 @@ export default function CheckoutCard({
     );
   };
 
-  // Create updated product data with selected volume or weight price
+  // Calculate discounted price
+  const discountedPrice =
+    appliedDiscount > 0
+      ? currentPrice * (1 - appliedDiscount / 100)
+      : currentPrice;
+
+  const discountedTotal = discountedPrice + (productData.shippingCost ?? 0);
+
+  // Create updated product data with selected volume price and discount
   const updatedProductData = {
     ...productData,
-    price: currentPrice,
-    totalCost: currentPrice + (productData.shippingCost ?? 0),
+    price: discountedPrice,
+    totalCost: discountedTotal,
+    originalPrice: currentPrice,
+    discountPercentage: appliedDiscount,
+    volumePrice:
+      selectedVolume && productData.volumePrices
+        ? productData.volumePrices.get(selectedVolume)
+        : undefined,
   };
 
   return (
@@ -541,6 +610,43 @@ export default function CheckoutCard({
                   <DisplayCheckoutCost monetaryInfo={updatedProductData} />
                 </div>
 
+                {productData.pubkey !== userPubkey && (
+                  <div className="mt-4 space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        label="Discount Code"
+                        placeholder="Enter code"
+                        value={discountCode}
+                        onChange={(e) =>
+                          setDiscountCode(e.target.value.toUpperCase())
+                        }
+                        className="flex-1 text-black"
+                        disabled={appliedDiscount > 0}
+                        isInvalid={!!discountError}
+                        errorMessage={discountError}
+                      />
+                      {appliedDiscount > 0 ? (
+                        <Button color="warning" onClick={handleRemoveDiscount}>
+                          Remove
+                        </Button>
+                      ) : (
+                        <Button
+                          className={BLUEBUTTONCLASSNAMES}
+                          onClick={handleApplyDiscount}
+                        >
+                          Apply
+                        </Button>
+                      )}
+                    </div>
+                    {appliedDiscount > 0 && (
+                      <p className="text-sm text-green-600">
+                        {appliedDiscount}% discount applied! You save{" "}
+                        {currentPrice - discountedPrice} {productData.currency}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Location Chip */}
                 <div className="flex items-center gap-2">
                   <Chip
@@ -730,6 +836,7 @@ export default function CheckoutCard({
           <div className="flex flex-col items-center">
             <ProductInvoiceCard
               productData={updatedProductData}
+              setIsBeingPaid={setIsBeingPaid}
               setFiatOrderIsPlaced={setFiatOrderIsPlaced}
               setFiatOrderFailed={setFiatOrderFailed}
               setInvoiceIsPaid={setInvoiceIsPaid}
@@ -739,7 +846,11 @@ export default function CheckoutCard({
               selectedSize={selectedSize}
               selectedVolume={selectedVolume}
               selectedWeight={selectedWeight}
-              setIsBeingPaid={setIsBeingPaid}
+              discountCode={appliedDiscount > 0 ? discountCode : undefined}
+              discountPercentage={
+                appliedDiscount > 0 ? appliedDiscount : undefined
+              }
+              originalPrice={currentPrice}
             />
           </div>
         )}

@@ -8,6 +8,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  Input,
 } from "@nextui-org/react";
 import {
   PlusIcon,
@@ -114,6 +115,28 @@ export default function Component() {
   const [cashuPaymentSent, setCashuPaymentSent] = useState(false);
   const [cashuPaymentFailed, setCashuPaymentFailed] = useState(false);
 
+  const [discountCodes, setDiscountCodes] = useState<{
+    [pubkey: string]: string;
+  }>({});
+  const [appliedDiscounts, setAppliedDiscounts] = useState<{
+    [pubkey: string]: number;
+  }>({});
+  const [discountErrors, setDiscountErrors] = useState<{
+    [pubkey: string]: string;
+  }>({});
+
+  // Group products by seller pubkey
+  const productsBySeller = products.reduce(
+    (acc, product) => {
+      if (!acc[product.pubkey]) {
+        acc[product.pubkey] = [];
+      }
+      acc[product.pubkey]!.push(product);
+      return acc;
+    },
+    {} as { [pubkey: string]: ProductData[] }
+  );
+
   const router = useRouter();
 
   useEffect(() => {
@@ -132,42 +155,64 @@ export default function Component() {
           }
         }
       }
+
+      // Load saved discount codes
+      const storedDiscounts = localStorage.getItem("cartDiscounts");
+      if (storedDiscounts) {
+        const discounts = JSON.parse(storedDiscounts);
+        const codes: { [pubkey: string]: string } = {};
+        const applied: { [pubkey: string]: number } = {};
+
+        Object.entries(discounts).forEach(([pubkey, data]: [string, any]) => {
+          codes[pubkey] = data.code;
+          applied[pubkey] = data.percentage;
+        });
+
+        setDiscountCodes(codes);
+        setAppliedDiscounts(applied);
+      }
     }
   }, []);
 
   useEffect(() => {
     const fetchSatPrices = async () => {
       const prices: { [key: string]: number | null } = {};
-      const shipping: { [key: string]: number | null } = {};
+      const shipping: { [key: string]: number } = {};
       const totals: { [key: string]: number } = {};
       let subtotalAmount = 0;
       let totalCostAmount = 0;
 
       for (const product of products) {
         try {
+          const priceSats = await convertPriceToSats(product);
+          const shippingSatPrice = await convertShippingToSats(product);
+          const discount = appliedDiscounts[product.pubkey] || 0;
+          let discountedPrice = priceSats;
           let productSubtotal = 0;
           let productShipping = 0;
           let productTotal = 0;
-          const subtotalSatPrice = await convertPriceToSats(product);
-          prices[product.id] = subtotalSatPrice;
-          const shippingSatPrice = await convertShippingToSats(product);
-          shipping[product.id] = shippingSatPrice;
-          const totalSatPrice = await convertTotalToSats(product);
-          totals[product.pubkey] = totalSatPrice;
 
-          if (subtotalSatPrice !== null || shippingSatPrice !== null) {
+          if (discount > 0) {
+            discountedPrice = Math.ceil(priceSats * (1 - discount / 100));
+          }
+
+          if (discountedPrice !== null || shippingSatPrice !== null) {
             if (quantities[product.id]) {
-              productSubtotal = subtotalSatPrice * quantities[product.id]!;
-              productShipping = shippingSatPrice * quantities[product.id]!;
-              productTotal = totalSatPrice * quantities[product.id]!;
+              productSubtotal = Math.ceil(
+                discountedPrice * quantities[product.id]!
+              );
+              productShipping = Math.ceil(
+                shippingSatPrice * quantities[product.id]!
+              );
+              productTotal = productSubtotal + productShipping;
               subtotalAmount += productSubtotal;
               totalCostAmount += productTotal;
             } else {
-              subtotalAmount += subtotalSatPrice;
-              totalCostAmount += totalSatPrice;
-              productSubtotal = subtotalSatPrice;
+              productSubtotal = discountedPrice;
               productShipping = shippingSatPrice;
-              productTotal = totalSatPrice;
+              productTotal = discountedPrice + shippingSatPrice;
+              subtotalAmount += discountedPrice;
+              totalCostAmount += productTotal;
             }
             prices[product.id] = productSubtotal;
             shipping[product.id] = productShipping;
@@ -179,7 +224,7 @@ export default function Component() {
             error
           );
           prices[product.id] = null;
-          shipping[product.id] = null;
+          shipping[product.id] = 0;
         }
       }
 
@@ -190,7 +235,7 @@ export default function Component() {
     };
 
     fetchSatPrices();
-  }, [products, quantities]);
+  }, [products, quantities, appliedDiscounts]);
 
   useEffect(() => {
     const shippingTypeMap: { [key: string]: ShippingOptionsType } = {};
@@ -233,6 +278,79 @@ export default function Component() {
       );
       setProducts(updatedCart);
       localStorage.setItem("cart", JSON.stringify(updatedCart));
+    }
+  };
+
+  const handleApplyDiscount = async (pubkey: string) => {
+    const code = discountCodes[pubkey];
+    if (!code?.trim()) {
+      setDiscountErrors({
+        ...discountErrors,
+        [pubkey]: "Please enter a discount code",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/db/discount-codes?validate=true&code=${encodeURIComponent(
+          code
+        )}&pubkey=${pubkey}`
+      );
+
+      if (!response.ok) {
+        setDiscountErrors({
+          ...discountErrors,
+          [pubkey]: "Failed to validate discount code",
+        });
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.valid && result.discount_percentage) {
+        setAppliedDiscounts({
+          ...appliedDiscounts,
+          [pubkey]: result.discount_percentage,
+        });
+        setDiscountErrors({ ...discountErrors, [pubkey]: "" });
+
+        // Save to localStorage
+        const storedDiscounts = localStorage.getItem("cartDiscounts");
+        const discounts = storedDiscounts ? JSON.parse(storedDiscounts) : {};
+        discounts[pubkey] = {
+          code: code,
+          percentage: result.discount_percentage,
+        };
+        localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
+      } else {
+        setDiscountErrors({
+          ...discountErrors,
+          [pubkey]: "Invalid or expired discount code",
+        });
+        setAppliedDiscounts({ ...appliedDiscounts, [pubkey]: 0 });
+      }
+    } catch (error) {
+      console.error("Failed to apply discount:", error);
+      setDiscountErrors({
+        ...discountErrors,
+        [pubkey]: "Failed to apply discount code",
+      });
+      setAppliedDiscounts({ ...appliedDiscounts, [pubkey]: 0 });
+    }
+  };
+
+  const handleRemoveDiscount = (pubkey: string) => {
+    setDiscountCodes({ ...discountCodes, [pubkey]: "" });
+    setAppliedDiscounts({ ...appliedDiscounts, [pubkey]: 0 });
+    setDiscountErrors({ ...discountErrors, [pubkey]: "" });
+
+    // Remove from localStorage
+    const storedDiscounts = localStorage.getItem("cartDiscounts");
+    if (storedDiscounts) {
+      const discounts = JSON.parse(storedDiscounts);
+      delete discounts[pubkey];
+      localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
     }
   };
 
@@ -309,47 +427,6 @@ export default function Component() {
     return cost;
   };
 
-  const convertTotalToSats = async (product: ProductData): Promise<number> => {
-    // Use weightPrice, volumePrice if they exist, otherwise use default price
-    const basePrice =
-      product.weightPrice !== undefined
-        ? product.weightPrice
-        : product.volumePrice !== undefined
-          ? product.volumePrice
-          : product.price;
-    const shippingCost = product.shippingCost || 0;
-    const totalCost = basePrice + shippingCost;
-
-    if (
-      product.currency.toLowerCase() === "sats" ||
-      product.currency.toLowerCase() === "sat"
-    ) {
-      return totalCost;
-    }
-    let total = 0;
-    if (!currencySelection.hasOwnProperty(product.currency.toUpperCase())) {
-      throw new Error(`${product.currency} is not a supported currency.`);
-    } else if (
-      currencySelection.hasOwnProperty(product.currency.toUpperCase()) &&
-      product.currency.toLowerCase() !== "sats" &&
-      product.currency.toLowerCase() !== "sat"
-    ) {
-      try {
-        const currencyData = {
-          amount: totalCost,
-          currency: product.currency,
-        };
-        const numSats = await fiat.getSatoshiValue(currencyData);
-        total = Math.round(numSats);
-      } catch (err) {
-        console.error("ERROR", err);
-      }
-    } else if (product.currency.toLowerCase() === "btc") {
-      total = totalCost * 100000000;
-    }
-    return total;
-  };
-
   return (
     <>
       {!isBeingPaid ? (
@@ -361,74 +438,135 @@ export default function Component() {
             {products.length > 0 ? (
               <>
                 <div className="space-y-4">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="rounded-md border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
-                    >
-                      <div className="flex gap-4">
-                        <img
-                          src={product.images[0]}
-                          alt={product.title}
-                          className="h-24 w-24 flex-shrink-0 rounded-md border-2 border-black object-cover"
-                        />
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <div className="flex items-start justify-between gap-4">
-                            <h2 className="flex-1 text-lg font-bold">
-                              {product.title}
-                            </h2>
-                            <p className="flex-shrink-0 whitespace-nowrap text-xl font-bold">
-                              {satPrices[product.id] !== undefined
-                                ? satPrices[product.id] !== null
-                                  ? `${satPrices[product.id]} sats`
-                                  : "Price unavailable"
-                                : "Loading..."}
-                            </p>
-                          </div>
-                          {product.quantity && (
-                            <div className="mt-2">
-                              <p className="mb-2 text-sm font-semibold text-green-600">
-                                {product.quantity} in stock
-                              </p>
-                              <QuantitySelector
-                                value={quantities[product.id] || 1}
-                                onDecrease={() =>
-                                  handleQuantityChange(
-                                    product.id,
-                                    (quantities[product.id] || 1) - 1
-                                  )
-                                }
-                                onIncrease={() =>
-                                  handleQuantityChange(
-                                    product.id,
-                                    (quantities[product.id] || 1) + 1
-                                  )
-                                }
-                                onChange={(newVal) =>
-                                  handleQuantityChange(product.id, newVal)
-                                }
-                                min={1}
-                                max={parseInt(String(product.quantity))}
+                  {Object.entries(productsBySeller).map(
+                    ([sellerPubkey, sellerProducts]) => (
+                      <div key={sellerPubkey} className="space-y-4">
+                        {sellerProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="rounded-md border-4 border-black bg-white p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+                          >
+                            <div className="flex gap-4">
+                              <img
+                                src={product.images[0]}
+                                alt={product.title}
+                                className="h-24 w-24 flex-shrink-0 rounded-md border-2 border-black object-cover"
                               />
-                              {hasReachedMax[product.id] && (
-                                <p className="mt-2 text-xs font-semibold text-red-500">
-                                  Maximum quantity reached
-                                </p>
-                              )}
+                              <div className="flex min-w-0 flex-1 flex-col">
+                                <div className="flex items-start justify-between gap-4">
+                                  <h2 className="flex-1 text-lg font-bold">
+                                    {product.title}
+                                  </h2>
+                                  <p className="flex-shrink-0 whitespace-nowrap text-xl font-bold">
+                                    {satPrices[product.id] !== undefined
+                                      ? satPrices[product.id] !== null
+                                        ? `${satPrices[product.id]} sats`
+                                        : "Price unavailable"
+                                      : "Loading..."}
+                                  </p>
+                                </div>
+                                {product.quantity && (
+                                  <div className="mt-2">
+                                    <p className="mb-2 text-sm font-semibold text-green-600">
+                                      {product.quantity} in stock
+                                    </p>
+                                    <QuantitySelector
+                                      value={quantities[product.id] || 1}
+                                      onDecrease={() =>
+                                        handleQuantityChange(
+                                          product.id,
+                                          (quantities[product.id] || 1) - 1
+                                        )
+                                      }
+                                      onIncrease={() =>
+                                        handleQuantityChange(
+                                          product.id,
+                                          (quantities[product.id] || 1) + 1
+                                        )
+                                      }
+                                      onChange={(newVal) =>
+                                        handleQuantityChange(product.id, newVal)
+                                      }
+                                      min={1}
+                                      max={parseInt(String(product.quantity))}
+                                    />
+                                    {hasReachedMax[product.id] && (
+                                      <p className="mt-2 text-xs font-semibold text-red-500">
+                                        Maximum quantity reached
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                                {/* Discount code section for this seller */}
+                                <div className="rounded-lg border border-gray-300 p-4 shadow-sm">
+                                  <h3 className="mb-3 font-semibold">
+                                    Have a discount code from this seller?
+                                  </h3>
+                                  <div className="flex gap-2">
+                                    <Input
+                                      label="Discount Code"
+                                      placeholder="Enter code"
+                                      value={discountCodes[sellerPubkey] || ""}
+                                      onChange={(e) =>
+                                        setDiscountCodes({
+                                          ...discountCodes,
+                                          [sellerPubkey]:
+                                            e.target.value.toUpperCase(),
+                                        })
+                                      }
+                                      className="text-light-text flex-1"
+                                      disabled={
+                                        appliedDiscounts[sellerPubkey]! > 0
+                                      }
+                                      isInvalid={!!discountErrors[sellerPubkey]}
+                                      errorMessage={
+                                        discountErrors[sellerPubkey]
+                                      }
+                                    />
+                                    {appliedDiscounts[sellerPubkey]! > 0 ? (
+                                      <Button
+                                        color="warning"
+                                        onClick={() =>
+                                          handleRemoveDiscount(sellerPubkey)
+                                        }
+                                      >
+                                        Remove
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        className={BLUEBUTTONCLASSNAMES}
+                                        onClick={() =>
+                                          handleApplyDiscount(sellerPubkey)
+                                        }
+                                      >
+                                        Apply
+                                      </Button>
+                                    )}
+                                  </div>
+                                  {appliedDiscounts[sellerPubkey]! > 0 && (
+                                    <p className="mt-2 text-sm text-green-600">
+                                      {appliedDiscounts[sellerPubkey]}% discount
+                                      applied to all items from this seller!
+                                    </p>
+                                  )}
+                                  <div className="mt-auto flex justify-end pt-2">
+                                    <button
+                                      onClick={() =>
+                                        handleRemoveFromCart(product.id)
+                                      }
+                                      className="cursor-pointer text-sm font-bold text-red-500"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
                             </div>
-                          )}
-                          <div className="mt-auto flex justify-end pt-2">
-                            <button
-                              onClick={() => handleRemoveFromCart(product.id)}
-                              className="cursor-pointer text-sm font-bold text-red-500"
-                            >
-                              Remove
-                            </button>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
                 <div className="mt-6 space-y-4">
                   <div className="flex items-start rounded-md border-2 border-black bg-blue-50 p-4">
@@ -487,6 +625,8 @@ export default function Component() {
                 shippingTypes={shippingTypes}
                 totalCostsInSats={totalCostsInSats}
                 totalCost={totalCost}
+                appliedDiscounts={appliedDiscounts}
+                discountCodes={discountCodes}
                 onBackToCart={toggleCheckout}
                 setFiatOrderIsPlaced={setFiatOrderIsPlaced}
                 setFiatOrderFailed={setFiatOrderFailed}

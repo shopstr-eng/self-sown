@@ -19,7 +19,10 @@ import PDFAnnotator from "../utility-components/pdf-annotator";
 import { NostrMessageEvent } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
 import { getDecodedToken } from "@cashu/cashu-ts";
-import { NostrContext, SignerContext } from "@/components/utility-components/nostr-context-provider";
+import {
+  NostrContext,
+  SignerContext,
+} from "@/components/utility-components/nostr-context-provider";
 import { ChatsContext } from "@/utils/context/context";
 import {
   blossomUpload,

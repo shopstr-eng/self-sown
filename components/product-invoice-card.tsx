@@ -74,6 +74,9 @@ export default function ProductInvoiceCard({
   selectedSize,
   selectedVolume,
   selectedWeight,
+  discountCode,
+  discountPercentage,
+  originalPrice,
 }: {
   productData: ProductData;
   setIsBeingPaid: (isBeingPaid: boolean) => void;
@@ -86,6 +89,9 @@ export default function ProductInvoiceCard({
   selectedSize?: string;
   selectedVolume?: string;
   selectedWeight?: string;
+  discountCode?: string;
+  discountPercentage?: number;
+  originalPrice?: number;
 }) {
   const { mints, tokens, history } = getLocalStorageData();
   const {
@@ -2983,15 +2989,52 @@ export default function ProductInvoiceCard({
                 <h4 className="font-semibold text-gray-700">Cost Breakdown</h4>
                 <div className="space-y-2 border-l-2 border-gray-200 pl-3">
                   <div className="text-sm font-medium">{productData.title}</div>
-                  <div className="flex justify-between text-sm">
-                    <span className="ml-2">Product cost:</span>
-                    <span>
-                      {formatWithCommas(
-                        productData.price,
-                        productData.currency
-                      )}
-                    </span>
-                  </div>
+                  {discountPercentage && discountPercentage > 0 ? (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="ml-2">Product cost:</span>
+                        <span className="text-gray-500 line-through">
+                          {formatWithCommas(
+                            originalPrice || productData.price,
+                            productData.currency
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span className="ml-2">
+                          {discountCode || "Discount"} ({discountPercentage}%):
+                        </span>
+                        <span>
+                          -
+                          {formatWithCommas(
+                            ((originalPrice || productData.price) *
+                              discountPercentage) /
+                              100,
+                            productData.currency
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm font-medium">
+                        <span className="ml-2">Discounted price:</span>
+                        <span>
+                          {formatWithCommas(
+                            productData.price,
+                            productData.currency
+                          )}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-sm">
+                      <span className="ml-2">Product cost:</span>
+                      <span>
+                        {formatWithCommas(
+                          productData.price,
+                          productData.currency
+                        )}
+                      </span>
+                    </div>
+                  )}
                   {productData.shippingCost! > 0 && formType === "shipping" && (
                     <div className="flex justify-between text-sm">
                       <span className="ml-2">Shipping cost:</span>

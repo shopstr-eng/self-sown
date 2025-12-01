@@ -1686,7 +1686,7 @@ export default function ProductForm({
                         onChange={onChange}
                         onBlur={onBlur}
                         value={value as string}
-                        className="text-light-text dark:text-dark-text"
+                        className="text-black"
                       />
                       <p className="mt-1 text-tiny text-gray-500">
                         Listing will remain visible but marked as
