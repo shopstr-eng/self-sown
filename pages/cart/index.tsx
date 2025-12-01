@@ -85,7 +85,6 @@ export default function Component() {
     [key: string]: number;
   }>({});
   const [subtotal, setSubtotal] = useState<number>(0);
-  const [totalCost, setTotalCost] = useState<number>(0);
   const [shippingTypes, setShippingTypes] = useState<{
     [key: string]: ShippingOptionsType;
   }>({});
@@ -180,7 +179,6 @@ export default function Component() {
       const shipping: { [key: string]: number } = {};
       const totals: { [key: string]: number } = {};
       let subtotalAmount = 0;
-      let totalShippingAmount = 0;
 
       for (const product of products) {
         try {
@@ -204,12 +202,10 @@ export default function Component() {
                 shippingSatPrice * quantities[product.id]!
               );
               subtotalAmount += productSubtotal;
-              totalShippingAmount += productShipping;
             } else {
               productSubtotal = discountedPrice;
               productShipping = shippingSatPrice;
               subtotalAmount += discountedPrice;
-              totalShippingAmount += shippingSatPrice;
             }
             prices[product.id] = productSubtotal;
             shipping[product.id] = productShipping;
@@ -228,8 +224,6 @@ export default function Component() {
 
       setSatPrices(prices);
       setSubtotal(subtotalAmount);
-      // Total cost is just subtotal for now, shipping will be added based on selection
-      setTotalCost(subtotalAmount);
       setTotalCostsInSats(totals);
     };
 
