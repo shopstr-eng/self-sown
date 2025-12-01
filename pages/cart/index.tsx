@@ -107,8 +107,6 @@ export default function Component() {
   }>(Object.fromEntries(products.map((product) => [product.id, false])));
   const [isBeingPaid, setIsBeingPaid] = useState(false);
 
-  const [fiatOrderIsPlaced, setFiatOrderIsPlaced] = useState(false);
-  const [fiatOrderFailed, setFiatOrderFailed] = useState(false);
   const [invoiceIsPaid, setInvoiceIsPaid] = useState(false);
   const [invoiceGenerationFailed, setInvoiceGenerationFailed] = useState(false);
   const [cashuPaymentSent, setCashuPaymentSent] = useState(false);
@@ -616,8 +614,6 @@ export default function Component() {
                 appliedDiscounts={appliedDiscounts}
                 discountCodes={discountCodes}
                 onBackToCart={toggleCheckout}
-                setFiatOrderIsPlaced={setFiatOrderIsPlaced}
-                setFiatOrderFailed={setFiatOrderFailed}
                 setInvoiceIsPaid={setInvoiceIsPaid}
                 setInvoiceGenerationFailed={setInvoiceGenerationFailed}
                 setCashuPaymentSent={setCashuPaymentSent}
@@ -629,13 +625,12 @@ export default function Component() {
       )}
 
       {/* Success Modal */}
-      {fiatOrderIsPlaced || invoiceIsPaid || cashuPaymentSent ? (
+      {invoiceIsPaid || cashuPaymentSent ? (
         <>
           <Modal
             backdrop="blur"
-            isOpen={fiatOrderIsPlaced || invoiceIsPaid || cashuPaymentSent}
+            isOpen={invoiceIsPaid || cashuPaymentSent}
             onClose={() => {
-              setFiatOrderIsPlaced(false);
               setInvoiceIsPaid(false);
               setCashuPaymentSent(false);
               router.push("/orders");
@@ -734,43 +729,6 @@ export default function Component() {
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
                   You didn&apos;t have enough balance in your wallet to pay.
-                </div>
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-        </>
-      ) : null}
-
-      {/* Fiat Order Failed Modal */}
-      {fiatOrderFailed ? (
-        <>
-          <Modal
-            backdrop="blur"
-            isOpen={fiatOrderFailed}
-            onClose={() => setFiatOrderFailed(false)}
-            classNames={{
-              body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-4 border-black bg-white rounded-t-md",
-              footer: "border-t-4 border-black bg-white rounded-b-md",
-              closeButton: "hover:bg-black/5 active:bg-white/10",
-              wrapper: "items-center justify-center",
-              base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
-            }}
-            isDismissable={true}
-            scrollBehavior={"normal"}
-            placement={"center"}
-            size="2xl"
-          >
-            <ModalContent>
-              <ModalHeader className="flex items-center justify-center font-bold text-black">
-                <XCircleIcon className="h-6 w-6 text-red-500" />
-                <div className="ml-2">Order failed!</div>
-              </ModalHeader>
-              <ModalBody className="flex flex-col overflow-hidden text-black">
-                <div className="flex items-center justify-center">
-                  Your order information was not delivered to the seller. Please
-                  try again.
                 </div>
               </ModalBody>
             </ModalContent>
