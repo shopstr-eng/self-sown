@@ -532,14 +532,6 @@ export default function CheckoutCard({
                   )}
                 </h1>
 
-                {/* Availability Info */}
-                {productData.location && (
-                  <p className="text-sm text-red-600">
-                    Available for {productData.location} state orders since
-                    delivery available for King County residents
-                  </p>
-                )}
-
                 {/* Description */}
                 <div>
                   <p className="text-base text-black">{renderSummary()}</p>
