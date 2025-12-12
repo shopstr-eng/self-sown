@@ -49,7 +49,13 @@ export default function SignInModal({
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
-  const [showNostrOptions, setShowNostrOptions] = useState(false);
+  const [showSignInOptions, setShowSignInOptions] = useState(false);
+  const [showSignUpOptions, setShowSignUpOptions] = useState(false);
+  const [showEmailSignIn, setShowEmailSignIn] = useState(false);
+  const [showNostrSignUpOptions, setShowNostrSignUpOptions] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isEmailSignUp, setIsEmailSignUp] = useState(false);
 
   const relaysContext = useContext(RelaysContext);
 
@@ -87,7 +93,7 @@ export default function SignInModal({
       await signer.getPubKey();
       saveSigner(signer);
       onClose();
-      router.push("/onboarding/user-profile");
+      router.push("/marketplace");
     } catch (error) {
       setFailureText("Extension sign-in failed! " + error);
       setShowFailureModal(true);
@@ -103,7 +109,7 @@ export default function SignInModal({
       setIsBunkerConnecting(false);
       await signer.getPubKey();
       onClose();
-      router.push("/onboarding/user-profile");
+      router.push("/marketplace");
     } catch (error) {
       setFailureText("Bunker sign-in failed!");
       setShowFailureModal(true);
@@ -120,8 +126,133 @@ export default function SignInModal({
   }, [bunkerToken]);
 
   const handleGenerateKeys = () => {
+    setShowNostrSignUpOptions(true);
+  };
+
+  const startNewAccountCreation = () => {
     router.push("/onboarding/new-account");
     onClose();
+  };
+
+  const startExtensionSignup = async () => {
+    try {
+      const signer = newSigner!("nip07", {});
+      await signer.getPubKey();
+      saveSigner(signer);
+      onClose();
+      router.push("/onboarding/user-type");
+    } catch (error) {
+      setFailureText("Extension sign-up failed! " + error);
+      setShowFailureModal(true);
+    }
+  };
+
+  const startBunkerSignup = async () => {
+    setIsBunkerConnecting(true);
+    try {
+      const signer = newSigner!("nip46", { bunker: bunkerToken });
+      await signer.connect();
+      saveSigner(signer);
+      setIsBunkerConnecting(false);
+      await signer.getPubKey();
+      onClose();
+      router.push("/onboarding/user-type");
+    } catch (error) {
+      setFailureText("Bunker sign-up failed!");
+      setShowFailureModal(true);
+      setIsBunkerConnecting(false);
+    }
+  };
+
+  const handleNsecSignup = async () => {
+    if (validPrivateKey) {
+      if (passphrase === "" || passphrase === null) {
+        setFailureText("No passphrase provided!");
+        setShowFailureModal(true);
+      } else {
+        const { encryptedPrivKey, pubkey } = NostrNSecSigner.getEncryptedNSEC(
+          privateKey,
+          passphrase
+        );
+
+        setTimeout(() => {
+          onClose();
+        }, 500);
+
+        const signer = newSigner!("nsec", {
+          encryptedPrivKey: encryptedPrivKey,
+          pubkey,
+        });
+        await signer.getPubKey();
+        saveSigner(signer);
+        onClose();
+
+        router.push("/onboarding/user-type");
+      }
+    } else {
+      setFailureText(
+        "The private key inputted was not valid! Generate a new key pair or try again."
+      );
+      setShowFailureModal(true);
+    }
+  };
+
+  const handleEmailSignIn = async () => {
+    if (!email || !password) {
+      setFailureText("Email and password are required!");
+      setShowFailureModal(true);
+      return;
+    }
+
+    try {
+      const endpoint = isEmailSignUp ? "/api/auth/email-signup" : "/api/auth/email-signin";
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setFailureText(data.error || "Authentication failed!");
+        setShowFailureModal(true);
+        return;
+      }
+
+      // Use password as passphrase to encrypt the nsec
+      const { encryptedPrivKey, pubkey } = NostrNSecSigner.getEncryptedNSEC(
+        data.nsec,
+        password
+      );
+
+      const signer = newSigner!("nsec", {
+        encryptedPrivKey: encryptedPrivKey,
+        pubkey,
+        passphrase: password, // Store passphrase to prevent modal prompts
+      });
+      await signer.getPubKey();
+      saveSigner(signer);
+
+      // Store email provider info
+      localStorage.setItem("authProvider", "email");
+      localStorage.setItem("authEmail", email);
+
+      onClose();
+      // Route to onboarding for sign-up, marketplace for sign-in
+      router.push(isEmailSignUp ? "/onboarding/user-type" : "/marketplace");
+    } catch (error) {
+      setFailureText("Email sign-in failed: " + error);
+      setShowFailureModal(true);
+    }
+  };
+
+  const handleOAuthSignIn = (provider: "google" | "apple") => {
+    // Use window.location.href to get the full URL including port
+    const currentUrl = new URL(window.location.href);
+    const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/api/auth/oauth-callback`;
+    console.log("Client sending redirect URI:", redirectUri);
+    window.location.href = `/api/auth/oauth-redirect?provider=${provider}&redirect_uri=${encodeURIComponent(redirectUri)}`;
   };
 
   const handleSignIn = async () => {
@@ -147,7 +278,7 @@ export default function SignInModal({
         saveSigner(signer);
         onClose();
 
-        router.push("/onboarding/user-profile");
+        router.push("/marketplace");
       }
     } else {
       setFailureText(
@@ -179,7 +310,12 @@ export default function SignInModal({
           setShowNsecSignIn(false);
           setPrivateKey("");
           setPassphrase("");
-          setShowNostrOptions(false);
+          setShowSignInOptions(false);
+          setShowSignUpOptions(false);
+          setShowEmailSignIn(false);
+          setShowNostrSignUpOptions(false);
+          setEmail("");
+          setPassword("");
           onClose();
         }}
         classNames={{
@@ -198,7 +334,7 @@ export default function SignInModal({
       >
         <ModalContent>
           <ModalBody className="flex flex-col overflow-hidden text-black">
-            {!showNostrOptions ? (
+            {!showSignInOptions && !showSignUpOptions ? (
               // Initial landing view - Your neobrutalist styled version
               <div className="flex flex-col items-center justify-center space-y-6 py-8">
                 <div className="flex items-center justify-center">
@@ -232,7 +368,7 @@ export default function SignInModal({
 
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
-                    onClick={handleGenerateKeys}
+                    onClick={() => setShowSignUpOptions(true)}
                     size="lg"
                   >
                     Sign Up
@@ -244,14 +380,285 @@ export default function SignInModal({
 
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full text-lg`}
-                    onClick={() => setShowNostrOptions(true)}
+                    onClick={() => setShowSignInOptions(true)}
                     size="lg"
                   >
-                    Sign In with Nostr
+                    Sign In
                   </Button>
                 </div>
               </div>
-            ) : (
+            ) : showSignUpOptions && !showEmailSignIn && !showNostrSignUpOptions ? (
+              // Sign-up options view
+              <div className="flex w-full flex-col">
+                <div className="space-y-3">
+                  <div className="mb-3 flex items-center justify-center gap-3">
+                    <Image
+                      alt="Milk Market logo"
+                      height={50}
+                      radius="sm"
+                      src="/milk-market.png"
+                      width={50}
+                    />
+                    <div className="text-2xl font-bold text-black">
+                      Sign Up
+                    </div>
+                  </div>
+
+                  {/* Email Sign-up */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={() => {
+                      setShowEmailSignIn(true);
+                      setIsEmailSignUp(true);
+                    }}
+                  >
+                    Sign up with Email
+                  </Button>
+
+                  {/* OAuth Buttons */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full flex items-center justify-center gap-2`}
+                    onClick={() => handleOAuthSignIn("google")}
+                  >
+                    <Image
+                      src="/google-icon.png"
+                      alt="Google"
+                      width={20}
+                      height={20}
+                      className="flex-shrink-0"
+                    />
+                    <span>Sign up with Google</span>
+                  </Button>
+
+                  {/* <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={() => handleOAuthSignIn("apple")}
+                  >
+                    Sign up with Apple
+                  </Button> */}
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
+                  {/* Nostr Sign-up */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={handleGenerateKeys}
+                  >
+                    Sign up with Nostr
+                  </Button>
+
+                  <div className="mt-4 text-center">
+                    <button
+                      className="text-sm font-bold text-blue-600 underline"
+                      onClick={() => {
+                        setShowSignUpOptions(false);
+                        setShowSignInOptions(true);
+                      }}
+                    >
+                      Already have an account? Sign in
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : showNostrSignUpOptions && !showEmailSignIn ? (
+              // Nostr sign-up options view
+              <div className="flex w-full flex-col">
+                <div className="space-y-3">
+                  <div className="mb-3 flex items-center justify-center gap-3">
+                    <Image
+                      alt="Milk Market logo"
+                      height={50}
+                      radius="sm"
+                      src="/milk-market.png"
+                      width={50}
+                    />
+                    <div className="text-2xl font-bold text-black">
+                      Sign Up with Nostr
+                    </div>
+                  </div>
+
+                  {/* Extension Sign-up */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={startExtensionSignup}
+                  >
+                    Nostr Extension Sign-up
+                  </Button>
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
+                  {/* Bunker Sign-up */}
+                  <div className="flex flex-col">
+                    <div className="">
+                      <Button
+                        data-testid="bunker-signup-open-btn"
+                        onClick={() => {
+                          setShowNsecSignIn(false);
+                          setShowBunkerSignIn(true);
+                        }}
+                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                          showBunkerSignIn ? "hidden" : ""
+                        }`}
+                      >
+                        Nostr Bunker Sign-up
+                      </Button>
+                    </div>
+                    <div
+                      className={`flex flex-col justify-between space-y-3 ${
+                        showBunkerSignIn ? "" : "hidden"
+                      }`}
+                    >
+                      <div>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Bunker Token:
+                        </label>
+                        <Input
+                          color={validBunkerToken}
+                          width="100%"
+                          size="lg"
+                          value={bunkerToken}
+                          placeholder="Paste your bunker token (bunker://)..."
+                          onChange={(e) => setBunkerToken(e.target.value)}
+                          classNames={{
+                            input: "text-black font-medium",
+                            inputWrapper:
+                              "border-3 border-black rounded-md bg-white shadow-none",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Button
+                          data-testid="bunker-signup-submit-btn"
+                          className={`${BLUEBUTTONCLASSNAMES} w-full`}
+                          onClick={startBunkerSignup}
+                          isDisabled={validBunkerToken != "success"}
+                        >
+                          {isBunkerConnecting ? (
+                            <div className="flex items-center justify-center">
+                              <MilkMarketSpinner />
+                            </div>
+                          ) : (
+                            <>Bunker Sign-up</>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
+                  {/* nsec Sign-up */}
+                  <div className="flex flex-col">
+                    <div className="">
+                      <Button
+                        data-testid="nsec-signup-open-btn"
+                        onClick={() => {
+                          setShowBunkerSignIn(false);
+                          setShowNsecSignIn(true);
+                        }}
+                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                          showNsecSignIn ? "hidden" : ""
+                        }`}
+                      >
+                        Nostr nsec Sign-up
+                      </Button>
+                    </div>
+                    <div
+                      className={`flex flex-col justify-between space-y-3 ${
+                        showNsecSignIn ? "" : "hidden"
+                      }`}
+                    >
+                      <div>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Private Key:
+                        </label>
+                        <Input
+                          color={validPrivateKey}
+                          type="password"
+                          width="100%"
+                          size="lg"
+                          value={privateKey}
+                          placeholder="Paste your Nostr private key..."
+                          onChange={(e) => setPrivateKey(e.target.value)}
+                          classNames={{
+                            input: "text-black font-medium",
+                            inputWrapper:
+                              "border-3 border-black rounded-md bg-white shadow-none",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Encryption Passphrase:
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="password"
+                          width="100%"
+                          size="lg"
+                          value={passphrase}
+                          placeholder="Enter a passphrase of your choice..."
+                          onChange={(e) => setPassphrase(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && validPrivateKey)
+                              handleNsecSignup();
+                          }}
+                          classNames={{
+                            input: "text-black font-medium",
+                            inputWrapper:
+                              "border-3 border-black rounded-md bg-white shadow-none",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Button
+                          data-testid="nsec-signup-submit-btn"
+                          className={`${BLUEBUTTONCLASSNAMES} w-full`}
+                          onClick={handleNsecSignup}
+                          isDisabled={validPrivateKey != "success"}
+                        >
+                          nsec Sign-up
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
+                  {/* New Account Creation */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={startNewAccountCreation}
+                  >
+                    Create New Account
+                  </Button>
+
+                  <div className="mt-4 text-center">
+                    <button
+                      className="text-sm font-bold text-blue-600 underline"
+                      onClick={() => {
+                        setShowNostrSignUpOptions(false);
+                        setShowBunkerSignIn(false);
+                        setShowNsecSignIn(false);
+                        setBunkerToken("");
+                        setPrivateKey("");
+                        setPassphrase("");
+                      }}
+                    >
+                      Back to Sign Up Options
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : showSignInOptions && !showEmailSignIn ? (
               // Nostr sign-in options view
               <div className="flex w-full flex-col">
                 <div className="space-y-3">
@@ -268,11 +675,48 @@ export default function SignInModal({
                     </div>
                   </div>
 
+                  {/* Email/Password Sign-in */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={() => {
+                      setShowEmailSignIn(true);
+                      setIsEmailSignUp(false);
+                    }}
+                  >
+                    Sign in with Email
+                  </Button>
+
+                  {/* OAuth Buttons */}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full flex items-center justify-center gap-2`}
+                    onClick={() => handleOAuthSignIn("google")}
+                  >
+                    <Image
+                      src="/google-icon.png"
+                      alt="Google"
+                      width={20}
+                      height={20}
+                      className="flex-shrink-0"
+                    />
+                    <span>Sign in with Google</span>
+                  </Button>
+
+                  {/* <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={() => handleOAuthSignIn("apple")}
+                  >
+                    Sign in with Apple
+                  </Button> */}
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
                     onClick={startExtensionLogin}
                   >
-                    Extension Sign-in
+                    Nostr Extension Sign-in
                   </Button>
 
                   <div className="text-center text-xs font-bold text-black">
@@ -292,7 +736,7 @@ export default function SignInModal({
                           showBunkerSignIn ? "hidden" : ""
                         }`}
                       >
-                        Bunker Sign-in
+                        Nostr Bunker Sign-in
                       </Button>
                     </div>
                     <div
@@ -355,7 +799,7 @@ export default function SignInModal({
                         showNsecSignIn ? "hidden" : ""
                       }`}
                     >
-                      nsec Sign-in
+                      Nostr nsec Sign-in
                     </Button>
                   </div>
                   <div
@@ -416,6 +860,99 @@ export default function SignInModal({
                       </Button>
                     </div>
                   </div>
+                </div>
+              </div>
+            ) : (
+              // Email/Password Sign-in Form
+              <div className="flex w-full flex-col">
+                <div className="space-y-3">
+                  <div className="mb-3 flex items-center justify-center gap-3">
+                    <Image
+                      alt="Milk Market logo"
+                      height={50}
+                      radius="sm"
+                      src="/milk-market.png"
+                      width={50}
+                    />
+                    <div className="text-2xl font-bold text-black">
+                      {isEmailSignUp ? "Sign Up" : "Sign In"} with Email
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-black">
+                      Email:
+                    </label>
+                    <Input
+                      type="email"
+                      width="100%"
+                      size="lg"
+                      value={email}
+                      placeholder="Enter your email..."
+                      onChange={(e) => setEmail(e.target.value)}
+                      classNames={{
+                        input: "text-black font-medium",
+                        inputWrapper:
+                          "border-3 border-black rounded-md bg-white shadow-none",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-bold text-black">
+                      Password:
+                    </label>
+                    <Input
+                      type="password"
+                      width="100%"
+                      size="lg"
+                      value={password}
+                      placeholder="Enter your password..."
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleEmailSignIn();
+                      }}
+                      classNames={{
+                        input: "text-black font-medium",
+                        inputWrapper:
+                          "border-3 border-black rounded-md bg-white shadow-none",
+                      }}
+                    />
+                  </div>
+
+                  <Button
+                    className={`${BLUEBUTTONCLASSNAMES} w-full`}
+                    onClick={handleEmailSignIn}
+                  >
+                    {isEmailSignUp ? "Sign Up" : "Sign In"}
+                  </Button>
+
+                  <div className="text-center">
+                    <button
+                      className="text-sm font-bold text-blue-600 underline"
+                      onClick={() => setIsEmailSignUp(!isEmailSignUp)}
+                    >
+                      {isEmailSignUp
+                        ? "Already have an account? Sign in"
+                        : "Don't have an account? Sign up"}
+                    </button>
+                  </div>
+
+                  <div className="text-center text-xs font-bold text-black">
+                    ------ or ------
+                  </div>
+
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                    onClick={() => {
+                      setShowEmailSignIn(false);
+                      setEmail("");
+                      setPassword("");
+                      setIsEmailSignUp(false);
+                    }}
+                  >
+                    Back to {showSignUpOptions ? "Sign Up" : "Sign In"} Options
+                  </Button>
                 </div>
               </div>
             )}

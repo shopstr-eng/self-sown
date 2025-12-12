@@ -124,3 +124,31 @@ CREATE TABLE IF NOT EXISTS discount_codes (
 
 CREATE INDEX IF NOT EXISTS idx_discount_codes_pubkey ON discount_codes(pubkey);
 CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+
+-- Signups table
+CREATE TABLE IF NOT EXISTS signups (
+  id SERIAL PRIMARY KEY,
+  contact VARCHAR(255) NOT NULL UNIQUE,
+  contact_type VARCHAR(10) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS email_auth (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  pubkey VARCHAR(64) NOT NULL,
+  encrypted_nsec TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS oauth_auth (
+  id SERIAL PRIMARY KEY,
+  provider VARCHAR(50) NOT NULL,
+  provider_user_id VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  pubkey VARCHAR(64) NOT NULL,
+  encrypted_nsec TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(provider, provider_user_id)
+);
