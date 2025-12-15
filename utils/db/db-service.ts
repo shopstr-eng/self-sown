@@ -189,7 +189,6 @@ async function initializeTables(): Promise<void> {
 
     tablesInitialized = true;
     initializingTables = false;
-    console.log("Database tables initialized successfully");
   } catch (error) {
     console.error("Failed to initialize tables:", error);
     initializingTables = false;
@@ -378,11 +377,6 @@ export async function cacheEvents(events: NostrEvent[]): Promise<void> {
             if ((isDeadlock || isConnectionError) && attempt < maxRetries - 1) {
               attempt++;
               const delay = 100 * Math.pow(2, attempt);
-              console.log(
-                `Database error detected (${
-                  isDeadlock ? "deadlock" : "connection error"
-                }), retrying in ${delay}ms (attempt ${attempt}/${maxRetries})...`
-              );
               await new Promise((res) => setTimeout(res, delay));
             } else {
               reject(error);

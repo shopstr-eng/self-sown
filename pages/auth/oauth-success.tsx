@@ -10,7 +10,6 @@ export default function OAuthSuccess() {
   const router = useRouter();
   const { newSigner } = useContext(SignerContext);
   const relaysContext = useContext(RelaysContext);
-  const { nsec, pubkey, provider, email } = router.query;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

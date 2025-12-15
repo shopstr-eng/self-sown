@@ -254,7 +254,6 @@ export default function SignInModal({
     // Use window.location.href to get the full URL including port
     const currentUrl = new URL(window.location.href);
     const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/api/auth/oauth-callback`;
-    console.log("Client sending redirect URI:", redirectUri);
     window.location.href = `/api/auth/oauth-redirect?provider=${provider}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}`;

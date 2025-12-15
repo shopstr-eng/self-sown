@@ -14,7 +14,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { code, state } = req.query;
+  const { code } = req.query;
 
   if (!code) {
     return res.status(400).send("Missing authorization code");
@@ -35,7 +35,9 @@ export default async function handler(
         req.headers.cookie?.split(";").reduce(
           (acc, cookie) => {
             const [key, value] = cookie.trim().split("=");
-            acc[key] = value;
+            if (key && value) {
+              acc[key] = value;
+            }
             return acc;
           },
           {} as Record<string, string>
@@ -46,8 +48,6 @@ export default async function handler(
         `${req.headers["x-forwarded-proto"] || "https"}://${
           req.headers.host
         }/api/auth/oauth-callback`;
-
-      console.log("Using redirect URI for token exchange:", redirectUri);
 
       // Exchange code for token
       const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -63,7 +63,6 @@ export default async function handler(
       });
 
       const tokenData = await tokenResponse.json();
-      console.log("Token exchange response:", tokenData);
 
       if (!tokenResponse.ok || !tokenData.access_token) {
         throw new Error(`Token exchange failed: ${JSON.stringify(tokenData)}`);
@@ -78,7 +77,6 @@ export default async function handler(
       );
 
       userData = await userResponse.json();
-      console.log("Google OAuth user data:", userData);
 
       email = userData.email;
       userId = userData.id; // Google userinfo endpoint uses 'id' field for user ID
@@ -114,6 +112,15 @@ export default async function handler(
       userId = decoded.sub;
     }
     */
+    else {
+      throw new Error(`Unsupported OAuth provider: ${provider}`);
+    }
+
+    if (!email || !userId) {
+      throw new Error(
+        `Missing user data after OAuth. Email: ${email}, UserId: ${userId}`
+      );
+    }
 
     // Store or retrieve Nostr keys for this OAuth account
     const client = new Client({
@@ -173,13 +180,6 @@ export default async function handler(
         nsec,
         encryptionKey
       ).toString();
-
-      console.log("Inserting OAuth data:", {
-        provider,
-        userId,
-        email,
-        pubkey: pubkey.substring(0, 10) + "...",
-      });
 
       if (!userId) {
         throw new Error("userId is null or undefined before database insert");
