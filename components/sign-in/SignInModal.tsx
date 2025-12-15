@@ -24,6 +24,7 @@ import FailureModal from "../../components/utility-components/failure-modal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
+import { InformationCircleIcon } from "@heroicons/react/24/outline";
 
 export default function SignInModal({
   isOpen,
@@ -524,9 +525,9 @@ export default function SignInModal({
                           placeholder="Paste your bunker token (bunker://)..."
                           onChange={(e) => setBunkerToken(e.target.value)}
                           classNames={{
-                            input: "text-black font-medium",
+                            input: "!text-black font-medium",
                             inputWrapper:
-                              "border-3 border-black rounded-md bg-white shadow-none",
+                              "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                           }}
                         />
                       </div>
@@ -587,9 +588,9 @@ export default function SignInModal({
                           placeholder="Paste your Nostr private key..."
                           onChange={(e) => setPrivateKey(e.target.value)}
                           classNames={{
-                            input: "text-black font-medium",
+                            input: "!text-black font-medium",
                             inputWrapper:
-                              "border-3 border-black rounded-md bg-white shadow-none",
+                              "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                           }}
                         />
                       </div>
@@ -610,9 +611,9 @@ export default function SignInModal({
                               handleNsecSignup();
                           }}
                           classNames={{
-                            input: "text-black font-medium",
+                            input: "!text-black font-medium",
                             inputWrapper:
-                              "border-3 border-black rounded-md bg-white shadow-none",
+                              "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                           }}
                         />
                       </div>
@@ -756,9 +757,9 @@ export default function SignInModal({
                           placeholder="Paste your bunker token (bunker://)..."
                           onChange={(e) => setBunkerToken(e.target.value)}
                           classNames={{
-                            input: "text-black font-medium",
+                            input: "!text-black font-medium",
                             inputWrapper:
-                              "border-3 border-black rounded-md bg-white shadow-none",
+                              "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                           }}
                         />
                       </div>
@@ -820,9 +821,9 @@ export default function SignInModal({
                         placeholder="Paste your Nostr private key..."
                         onChange={(e) => setPrivateKey(e.target.value)}
                         classNames={{
-                          input: "text-black font-medium",
+                          input: "!text-black font-medium",
                           inputWrapper:
-                            "border-3 border-black rounded-md bg-white shadow-none",
+                            "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                         }}
                       />
                     </div>
@@ -843,9 +844,9 @@ export default function SignInModal({
                             handleSignIn();
                         }}
                         classNames={{
-                          input: "text-black font-medium",
+                          input: "!text-black font-medium",
                           inputWrapper:
-                            "border-3 border-black rounded-md bg-white shadow-none",
+                            "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                         }}
                       />
                     </div>
@@ -891,9 +892,9 @@ export default function SignInModal({
                       placeholder="Enter your email..."
                       onChange={(e) => setEmail(e.target.value)}
                       classNames={{
-                        input: "text-black font-medium",
+                        input: "!text-black font-medium",
                         inputWrapper:
-                          "border-3 border-black rounded-md bg-white shadow-none",
+                          "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                       }}
                     />
                   </div>
@@ -913,11 +914,19 @@ export default function SignInModal({
                         if (e.key === "Enter") handleEmailSignIn();
                       }}
                       classNames={{
-                        input: "text-black font-medium",
+                        input: "!text-black font-medium",
                         inputWrapper:
-                          "border-3 border-black rounded-md bg-white shadow-none",
+                          "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white group-data-[hover=true]:!bg-white group-data-[hover=true]:border-black group-data-[focus=true]:border-3 group-data-[focus=true]:border-black group-data-[focus=true]:!bg-white transition-none",
                       }}
                     />
+                    {isEmailSignUp && (
+                      <div className="mt-2 flex items-start gap-2 rounded-md border-2 border-yellow-500 bg-yellow-50 p-3">
+                        <InformationCircleIcon className="h-5 w-5 flex-shrink-0 text-yellow-700 mt-0.5" />
+                        <p className="text-xs font-medium text-yellow-900">
+                          Passwords cannot currently be recovered or changed. Please store your password securely.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <Button
