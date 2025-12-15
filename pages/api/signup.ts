@@ -80,6 +80,35 @@ export default async function handler(
       [contact, contactType]
     );
 
+    // If it's an email signup, also send to Beehiiv
+    if (contactType === "email") {
+      try {
+        const beehiivResponse = await fetch(
+          `${
+            req.headers.origin || "http://localhost:5000"
+          }/api/beehiiv-subscribe`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email: contact }),
+          }
+        );
+
+        if (!beehiivResponse.ok) {
+          console.warn(
+            "Failed to subscribe to Beehiiv:",
+            await beehiivResponse.text()
+          );
+          // Don't fail the whole request if Beehiiv fails
+        }
+      } catch (beehiivError) {
+        console.warn("Beehiiv subscription error:", beehiivError);
+        // Don't fail the whole request if Beehiiv fails
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: "Successfully registered for updates",

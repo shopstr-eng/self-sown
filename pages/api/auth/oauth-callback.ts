@@ -86,9 +86,8 @@ export default async function handler(
           `Missing user data from Google. Email: ${email}, UserId: ${userId}`
         );
       }
-    }
-
-    /* TODO: Implement Apple OAuth when credentials are available
+    } else {
+      /* TODO: Implement Apple OAuth when credentials are available
     else if (provider === "apple") {
       const origin = req.headers.origin || req.headers.referer?.split('/api/')[0] ||
                      `https://${req.headers.host}`;
@@ -112,7 +111,6 @@ export default async function handler(
       userId = decoded.sub;
     }
     */
-    else {
       throw new Error(`Unsupported OAuth provider: ${provider}`);
     }
 

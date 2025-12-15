@@ -689,7 +689,7 @@ export default function StandaloneLanding() {
               Latest from Our Channel
             </h2>
             <p className="text-lg text-zinc-600">
-              Stay updated with our latest videos and content
+              Keep up with our latest videos and content
             </p>
           </div>
 
@@ -857,10 +857,12 @@ export default function StandaloneLanding() {
         </div>
 
         <div className="relative z-10 mx-auto max-w-2xl px-4 text-center sm:px-6 lg:px-8">
-          <h2 className="mb-6 text-4xl font-black md:text-5xl">Stay Milky</h2>
+          <h2 className="mb-6 text-4xl font-black md:text-5xl">
+            Stay Updated on Farms, Food, and Freedom
+          </h2>
           <p className="mb-8 text-lg text-zinc-600">
-            Be the first to know when new products are listed and when updates
-            are released
+            Be in the know on new product listings, community events, and the
+            rearchitecting of our broken food system
           </p>
 
           <div className="rounded-lg border-2 border-black bg-white p-8 text-left shadow-neo">
@@ -879,7 +881,7 @@ export default function StandaloneLanding() {
                       onChange={() => setContactType("email")}
                       className="mr-2 accent-black"
                     />
-                    Email address
+                    Email
                   </label>
                   <label className="flex cursor-pointer items-center">
                     <input
@@ -890,7 +892,7 @@ export default function StandaloneLanding() {
                       onChange={() => setContactType("nostr")}
                       className="mr-2 accent-black"
                     />
-                    Nostr npub
+                    Nostr
                   </label>
                 </div>
               </div>
