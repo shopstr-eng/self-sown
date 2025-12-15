@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
@@ -57,11 +56,15 @@ export default async function handler(
 
     // Encrypt nsec with a deterministic key derived from email+password
     // This allows recovery if user forgets their password
-    const encryptionKey = CryptoJS.PBKDF2(email + password, "milk-market-salt", {
-      keySize: 256/32,
-      iterations: 1000
-    }).toString();
-    
+    const encryptionKey = CryptoJS.PBKDF2(
+      email + password,
+      "milk-market-salt",
+      {
+        keySize: 256 / 32,
+        iterations: 1000,
+      }
+    ).toString();
+
     const encryptedNsec = CryptoJS.AES.encrypt(nsec, encryptionKey).toString();
 
     // Store in database

@@ -63,7 +63,9 @@ export default function OAuthSuccess() {
           }
 
           // Route to onboarding for new users, marketplace for existing users
-          router.push(isNewUser === "true" ? "/onboarding/user-type" : "/marketplace");
+          router.push(
+            isNewUser === "true" ? "/onboarding/user-type" : "/marketplace"
+          );
         } catch (error) {
           console.error("OAuth sign-in failed:", error);
           router.push("/");

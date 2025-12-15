@@ -1,4 +1,3 @@
-
 import { useRouter } from "next/router";
 import { Button } from "@nextui-org/react";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
@@ -14,7 +13,8 @@ export default function OAuthError() {
           Authentication Failed
         </h1>
         <p className="mb-6 text-black">
-          {error || "An error occurred during authentication. Please try again."}
+          {error ||
+            "An error occurred during authentication. Please try again."}
         </p>
         <Button
           className={PRIMARYBUTTONCLASSNAMES}

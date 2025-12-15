@@ -5,7 +5,7 @@ import CryptoJS from "crypto-js";
 
 // Helper function to get the base URL from the request
 function getBaseUrl(req: NextApiRequest): string {
-  const protocol = req.headers['x-forwarded-proto'] || 'https';
+  const protocol = req.headers["x-forwarded-proto"] || "https";
   const host = req.headers.host;
   return `${protocol}://${host}`;
 }
@@ -31,14 +31,21 @@ export default async function handler(
 
     if (provider === "google") {
       // Get redirect URI from cookie to ensure it matches what was sent to Google
-      const cookies = req.headers.cookie?.split(';').reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>) || {};
+      const cookies =
+        req.headers.cookie?.split(";").reduce(
+          (acc, cookie) => {
+            const [key, value] = cookie.trim().split("=");
+            acc[key] = value;
+            return acc;
+          },
+          {} as Record<string, string>
+        ) || {};
 
-      const redirectUri = cookies['oauth_redirect_uri'] ||
-                         `${req.headers['x-forwarded-proto'] || 'https'}://${req.headers.host}/api/auth/oauth-callback`;
+      const redirectUri =
+        cookies["oauth_redirect_uri"] ||
+        `${req.headers["x-forwarded-proto"] || "https"}://${
+          req.headers.host
+        }/api/auth/oauth-callback`;
 
       console.log("Using redirect URI for token exchange:", redirectUri);
 
@@ -77,7 +84,9 @@ export default async function handler(
       userId = userData.id; // Google userinfo endpoint uses 'id' field for user ID
 
       if (!email || !userId) {
-        throw new Error(`Missing user data from Google. Email: ${email}, UserId: ${userId}`);
+        throw new Error(
+          `Missing user data from Google. Email: ${email}, UserId: ${userId}`
+        );
       }
     }
 
@@ -139,7 +148,7 @@ export default async function handler(
       const encryptionKey = CryptoJS.PBKDF2(
         `${provider}-${userId}`,
         "milk-market-oauth-salt",
-        { keySize: 256/32, iterations: 1000 }
+        { keySize: 256 / 32, iterations: 1000 }
       ).toString();
 
       nsec = CryptoJS.AES.decrypt(
@@ -157,12 +166,20 @@ export default async function handler(
       const encryptionKey = CryptoJS.PBKDF2(
         `${provider}-${userId}`,
         "milk-market-oauth-salt",
-        { keySize: 256/32, iterations: 1000 }
+        { keySize: 256 / 32, iterations: 1000 }
       ).toString();
 
-      const encryptedNsec = CryptoJS.AES.encrypt(nsec, encryptionKey).toString();
+      const encryptedNsec = CryptoJS.AES.encrypt(
+        nsec,
+        encryptionKey
+      ).toString();
 
-      console.log("Inserting OAuth data:", { provider, userId, email, pubkey: pubkey.substring(0, 10) + "..." });
+      console.log("Inserting OAuth data:", {
+        provider,
+        userId,
+        email,
+        pubkey: pubkey.substring(0, 10) + "...",
+      });
 
       if (!userId) {
         throw new Error("userId is null or undefined before database insert");
@@ -190,6 +207,8 @@ export default async function handler(
     res.redirect(successUrl.toString());
   } catch (error) {
     console.error("OAuth callback error:", error);
-    res.redirect(`/auth/oauth-error?error=${encodeURIComponent(String(error))}`);
+    res.redirect(
+      `/auth/oauth-error?error=${encodeURIComponent(String(error))}`
+    );
   }
 }

@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 
 export default async function handler(
@@ -12,13 +11,10 @@ export default async function handler(
   }
 
   // Store redirect URI in cookies for callback to use
-  res.setHeader(
-    "Set-Cookie",
-    [
-      `oauth_redirect=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
-      `oauth_redirect_uri=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`
-    ]
-  );
+  res.setHeader("Set-Cookie", [
+    `oauth_redirect=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
+    `oauth_redirect_uri=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
+  ]);
 
   if (provider === "google") {
     const googleClientId = process.env["GOOGLE_CLIENT_ID"];
@@ -28,8 +24,10 @@ export default async function handler(
 
     // Use the redirect_uri exactly as passed from the client
     console.log("Google OAuth redirect_uri:", redirect_uri);
-    
-    const googleAuthUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+
+    const googleAuthUrl = new URL(
+      "https://accounts.google.com/o/oauth2/v2/auth"
+    );
     googleAuthUrl.searchParams.set("client_id", googleClientId);
     googleAuthUrl.searchParams.set("redirect_uri", redirect_uri as string);
     googleAuthUrl.searchParams.set("response_type", "code");

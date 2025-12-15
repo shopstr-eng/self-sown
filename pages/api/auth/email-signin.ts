@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import CryptoJS from "crypto-js";
@@ -39,11 +38,15 @@ export default async function handler(
     const { pubkey, encrypted_nsec } = result.rows[0];
 
     // Decrypt nsec
-    const encryptionKey = CryptoJS.PBKDF2(email + password, "milk-market-salt", {
-      keySize: 256/32,
-      iterations: 1000
-    }).toString();
-    
+    const encryptionKey = CryptoJS.PBKDF2(
+      email + password,
+      "milk-market-salt",
+      {
+        keySize: 256 / 32,
+        iterations: 1000,
+      }
+    ).toString();
+
     const decryptedNsec = CryptoJS.AES.decrypt(
       encrypted_nsec,
       encryptionKey

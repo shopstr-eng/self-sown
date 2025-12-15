@@ -206,7 +206,9 @@ export default function SignInModal({
     }
 
     try {
-      const endpoint = isEmailSignUp ? "/api/auth/email-signup" : "/api/auth/email-signin";
+      const endpoint = isEmailSignUp
+        ? "/api/auth/email-signup"
+        : "/api/auth/email-signin";
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -253,7 +255,9 @@ export default function SignInModal({
     const currentUrl = new URL(window.location.href);
     const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/api/auth/oauth-callback`;
     console.log("Client sending redirect URI:", redirectUri);
-    window.location.href = `/api/auth/oauth-redirect?provider=${provider}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = `/api/auth/oauth-redirect?provider=${provider}&redirect_uri=${encodeURIComponent(
+      redirectUri
+    )}`;
   };
 
   const handleSignIn = async () => {
@@ -388,7 +392,9 @@ export default function SignInModal({
                   </Button>
                 </div>
               </div>
-            ) : showSignUpOptions && !showEmailSignIn && !showNostrSignUpOptions ? (
+            ) : showSignUpOptions &&
+              !showEmailSignIn &&
+              !showNostrSignUpOptions ? (
               // Sign-up options view
               <div className="flex w-full flex-col">
                 <div className="space-y-3">
@@ -400,9 +406,7 @@ export default function SignInModal({
                       src="/milk-market.png"
                       width={50}
                     />
-                    <div className="text-2xl font-bold text-black">
-                      Sign Up
-                    </div>
+                    <div className="text-2xl font-bold text-black">Sign Up</div>
                   </div>
 
                   {/* Email Sign-up */}
@@ -418,7 +422,7 @@ export default function SignInModal({
 
                   {/* OAuth Buttons */}
                   <Button
-                    className={`${WHITEBUTTONCLASSNAMES} w-full flex items-center justify-center gap-2`}
+                    className={`${WHITEBUTTONCLASSNAMES} flex w-full items-center justify-center gap-2`}
                     onClick={() => handleOAuthSignIn("google")}
                   >
                     <Image
@@ -689,7 +693,7 @@ export default function SignInModal({
 
                   {/* OAuth Buttons */}
                   <Button
-                    className={`${WHITEBUTTONCLASSNAMES} w-full flex items-center justify-center gap-2`}
+                    className={`${WHITEBUTTONCLASSNAMES} flex w-full items-center justify-center gap-2`}
                     onClick={() => handleOAuthSignIn("google")}
                   >
                     <Image
@@ -921,9 +925,10 @@ export default function SignInModal({
                     />
                     {isEmailSignUp && (
                       <div className="mt-2 flex items-start gap-2 rounded-md border-2 border-yellow-500 bg-yellow-50 p-3">
-                        <InformationCircleIcon className="h-5 w-5 flex-shrink-0 text-yellow-700 mt-0.5" />
+                        <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-700" />
                         <p className="text-xs font-medium text-yellow-900">
-                          Passwords cannot currently be recovered or changed. Please store your password securely.
+                          Passwords cannot currently be recovered or changed.
+                          Please store your password securely.
                         </p>
                       </div>
                     )}
