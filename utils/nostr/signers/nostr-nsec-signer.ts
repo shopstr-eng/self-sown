@@ -100,6 +100,7 @@ export class NostrNSecSigner implements NostrSigner {
       type: "nsec",
       encryptedPrivKey: this.encryptedPrivKey,
       pubkey: this.pubkey,
+      passphrase: this.passphrase, // Include passphrase for OAuth users
     };
   }
 

@@ -37,7 +37,6 @@ export default async function handler(
 
     // Check if we got any items
     if (!data.items || data.items.length === 0) {
-      console.log("No videos found for channel:", channelId);
       return res.status(200).json({ videos: [] });
     }
 
