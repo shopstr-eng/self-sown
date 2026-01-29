@@ -4,8 +4,6 @@ import { Button, Image, useDisclosure } from "@nextui-org/react";
 import { Bars4Icon } from "@heroicons/react/24/outline";
 import { countNumberOfUnreadMessagesFromChatsContext } from "@/utils/messages/utils";
 import { ChatsContext, ShopMapContext } from "@/utils/context/context";
-import { db } from "@/utils/nostr/cache-service";
-import { useLiveQuery } from "dexie-react-hooks";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { useRouter } from "next/router";
 import SignInModal from "./sign-in/SignInModal";
@@ -43,12 +41,6 @@ const TopNav = ({
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const liveChatMessagesFromCache = useLiveQuery(async () => {
-    if (db) {
-      await db.table("chatMessages").toArray();
-    }
-  });
-
   useEffect(() => {
     const fetchAndUpdateCartQuantity = async () => {
       const cartList = localStorage.getItem("cart")
@@ -76,7 +68,7 @@ const TopNav = ({
       setUnreadMsgCount(unreadMsgCount);
     };
     getUnreadMessages();
-  }, [chatsContext, liveChatMessagesFromCache]);
+  }, [chatsContext]);
 
   useEffect(() => {
     const npub = router.pathname
@@ -151,7 +143,12 @@ const TopNav = ({
         } hover:text-primary-yellow`}
         onClick={() => handleRoute("/orders")}
       >
-        Orders {unreadMsgCount > 0 && `(${unreadMsgCount})`}
+        Orders
+        {unreadMsgCount > 0 && (
+          <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold bg-yellow-600 text-white">
+            {unreadMsgCount}
+          </span>
+        )}
       </Button>
       <Button
         className={`w-full bg-transparent ${
@@ -175,7 +172,12 @@ const TopNav = ({
         } hover:text-primary-yellow`}
         onClick={() => handleRoute("/cart")}
       >
-        Cart {cartQuantity > 0 && `(${cartQuantity})`}
+        Cart
+        {cartQuantity > 0 && (
+          <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold bg-yellow-600 text-white">
+            {cartQuantity}
+          </span>
+        )}
       </Button>
     </div>
   );
@@ -254,7 +256,12 @@ const TopNav = ({
             } hover:text-primary-yellow`}
             onClick={() => handleRoute("/orders")}
           >
-            Orders {unreadMsgCount > 0 && `(${unreadMsgCount})`}
+            Orders
+            {unreadMsgCount > 0 && (
+              <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white bg-yellow-600">
+                {unreadMsgCount}
+              </span>
+            )}
           </Button>
           <span className="text-white">|</span>
           <Button
@@ -281,7 +288,12 @@ const TopNav = ({
             } hover:text-primary-yellow`}
             onClick={() => handleRoute("/cart")}
           >
-            Cart {cartQuantity > 0 && `(${cartQuantity})`}
+            Cart
+            {cartQuantity > 0 && (
+              <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white bg-yellow-600">
+                {cartQuantity}
+              </span>
+            )}
           </Button>
           <span className="text-white">|</span>
           {signedIn ? (

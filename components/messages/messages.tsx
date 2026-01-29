@@ -15,10 +15,6 @@ import MilkMarketSpinner from "../utility-components/mm-spinner";
 import ChatPanel from "./chat-panel";
 import ChatButton from "./chat-button";
 import { NostrMessageEvent, ChatObject } from "../../utils/types/types";
-import {
-  addChatMessagesToCache,
-  fetchChatMessagesFromCache,
-} from "@/utils/nostr/cache-service";
 import { useKeyPress } from "@/utils/keypress-handler";
 import FailureModal from "../utility-components/failure-modal";
 import {
@@ -160,13 +156,11 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
     Map<string, ChatObject>
   > = async () => {
     const decryptedChats: Map<string, ChatObject> = new Map(); //  entry: [chatPubkey, chat]
-    const chatMessagesFromCache: Map<string, NostrMessageEvent> =
-      await fetchChatMessagesFromCache();
     for (const entry of chatsContext.chatsMap) {
       const chatPubkey = entry[0] as string;
       const chat = entry[1] as NostrMessageEvent[];
       const decryptedChat: NostrMessageEvent[] = [];
-      let unreadCount = 0;
+      const unreadCount = 0;
 
       for (const messageEvent of chat) {
         let plainText;
@@ -187,14 +181,12 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
               subject === "order-info" ||
               subject === "payment-change" ||
               subject === "order-receipt" ||
-              subject === "shipping-info")) ||
+              subject === "shipping-info" ||
+              subject === "zapsnag-order")) ||
           (!isPayment && subject && subject === "listing-inquiry")
         ) {
           plainText &&
             decryptedChat.push({ ...messageEvent, content: plainText });
-          if (chatMessagesFromCache.get(messageEvent.id)?.read === false) {
-            unreadCount++;
-          }
         }
       }
       if (decryptedChat.length > 0) {
@@ -218,7 +210,6 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
         });
         const newChatMap = new Map(prevChatMap);
         newChatMap.set(pubkeyOfChat, updatedChat);
-        addChatMessagesToCache(encryptedChat);
         return newChatMap;
       }
       return prevChatMap;
@@ -287,9 +278,6 @@ const Messages = ({ isPayment }: { isPayment: boolean }) => {
         },
         true
       );
-      addChatMessagesToCache([
-        { ...giftWrappedMessageEvent, sig: "", read: true },
-      ]);
 
       setIsSendingDMLoading(false);
     } catch (_) {

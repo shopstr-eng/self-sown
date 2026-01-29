@@ -16,6 +16,7 @@ import {
   SelectSection,
   Chip,
   Image,
+  Switch,
 } from "@nextui-org/react";
 import {
   ChevronLeftIcon,
@@ -34,11 +35,11 @@ import {
 import {
   PostListing,
   getLocalStorageData,
+  finalizeAndSendNostrEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import { ProductContext, ProfileMapContext } from "../utils/context/context";
-import { addProductToCache } from "@/utils/nostr/cache-service";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { buildSrcSet } from "@/utils/images";
 import { FileUploaderButton } from "./utility-components/file-uploader";
@@ -77,6 +78,7 @@ export default function ProductForm({
   const [showOptionalTags, setShowOptionalTags] = useState(false);
   const [herdshareAgreementUrl, setHerdshareAgreementUrl] =
     useState<string>("");
+  const [isFlashSale, setIsFlashSale] = useState(false);
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
   const {
@@ -138,13 +140,24 @@ export default function ProductForm({
   useEffect(() => {
     setImages(oldValues?.images || []);
     setIsEdit(oldValues ? true : false);
+    
     // Initialize herdshare agreement URL if editing existing product
     if (oldValues?.herdshareAgreement) {
       setHerdshareAgreementUrl(oldValues.herdshareAgreement);
     } else {
       setHerdshareAgreementUrl("");
     }
-  }, [showModal]);
+
+    if (showModal && !oldValues && signerPubKey) {
+      const profile = profileContext.profileData.get(signerPubKey);
+      const hasLightning = !!(
+        profile?.content?.lud16 || profile?.content?.lnurl
+      );
+      setIsFlashSale(hasLightning);
+    } else {
+      setIsFlashSale(false);
+    }
+  }, [showModal, signerPubKey, profileContext]);
 
   const onSubmit = async (data: {
     [x: string]: string | Map<string, number> | string[];
@@ -281,6 +294,33 @@ export default function ProductForm({
 
     const newListing = await PostListing(tags, signer!, isLoggedIn!, nostr!);
 
+    //Handle Flash Sale (Zapsnag) Publication
+    if (isFlashSale) {
+      try {
+        const finalContent = `${data["Description"]}\n\nPrice: ${
+          data["Price"]
+        } ${data["Currency"]}\n\n#zapsnag\n${images[0] || ""}`;
+        const flashSaleEvent = {
+          kind: 1,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["t", "zapsnag"],
+            ["t", "milk-market-zapsnag"],
+            ["d", "zapsnag"],
+          ],
+          content: finalContent,
+        };
+
+        if (data["Quantity"]) {
+          flashSaleEvent.tags.push(["quantity", data["Quantity"].toString()]);
+        }
+        if (images[0]) flashSaleEvent.tags.push(["image", images[0]]);
+        await finalizeAndSendNostrEvent(signer!, nostr!, flashSaleEvent);
+      } catch (e) {
+        console.error("Failed to publish flash sale note", e);
+      }
+    }
+
     if (isEdit) {
       if (handleDelete && oldValues?.id) {
         try {
@@ -293,7 +333,6 @@ export default function ProductForm({
 
     clear();
     productEventContext.addNewlyCreatedProductEvent(newListing);
-    addProductToCache(newListing);
     setIsPostingOrUpdatingProduct(false);
     if (onSubmitCallback) {
       onSubmitCallback();
@@ -1375,7 +1414,27 @@ export default function ProductForm({
               }}
             />
 
-            <div className="mb-4 w-full max-w-xs">
+            {/* --- Flash Sale Toggle --- */}
+            <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 p-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-black">
+                  Post as Flash Sale
+                </span>
+                <span className="text-tiny text-gray-500">
+                  Also broadcast to Global Feed (Nostr)
+                </span>
+              </div>
+              <Switch
+                isSelected={isFlashSale}
+                onValueChange={setIsFlashSale}
+                classNames={{
+                  wrapper:
+                    "group-data-[selected=true]:bg-yellow-600",
+                }}
+              />
+            </div>
+
+            <div className="w-full max-w-xs">
               <Button
                 className="w-full justify-start text-base font-semibold text-black underline"
                 variant="light"
