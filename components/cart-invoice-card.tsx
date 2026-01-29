@@ -72,6 +72,7 @@ export default function CartInvoiceCard({
   subtotalCost,
   appliedDiscounts = {},
   discountCodes = {},
+  beefDonations,
   onBackToCart,
   setInvoiceIsPaid,
   setInvoiceGenerationFailed,
@@ -85,6 +86,7 @@ export default function CartInvoiceCard({
   subtotalCost: number;
   appliedDiscounts?: { [key: string]: number };
   discountCodes?: { [key: string]: string };
+  beefDonations: { [productId: string]: number };
   onBackToCart?: () => void;
   setInvoiceIsPaid?: (invoiceIsPaid: boolean) => void;
   setInvoiceGenerationFailed?: (invoiceGenerationFailed: boolean) => void;
@@ -785,7 +787,7 @@ export default function CartInvoiceCard({
           try {
             const proofs = await wallet.mintProofs(convertedPrice, hash);
             if (proofs && proofs.length > 0) {
-              await sendTokens(wallet, proofs, data);
+              await sendTokens(wallet, proofs, data, beefDonations);
               localStorage.setItem("cart", JSON.stringify([]));
               setPaymentConfirmed(true);
               if (setInvoiceIsPaid) {
@@ -801,7 +803,7 @@ export default function CartInvoiceCard({
               mintError.message.includes("issued")
             ) {
               // Quote was already processed, consider it successful
-              localStorage.setItem("cart", JSON.stringify([]));
+              localStorage.setItem("cart", JSON.JSON.stringify([]));
               setPaymentConfirmed(true);
               setQrCodeUrl(null);
               setFailureText(
@@ -870,7 +872,8 @@ export default function CartInvoiceCard({
   const sendTokens = async (
     wallet: CashuWallet,
     proofs: Proof[],
-    data: any
+    data: any,
+    beefDonations: { [productId: string]: number }
   ) => {
     let remainingProofs = proofs;
     for (const product of products) {
@@ -883,9 +886,21 @@ export default function CartInvoiceCard({
       const sellerProfile = profileContext.profileData.get(pubkey);
       const donationPercentage =
         sellerProfile?.content?.shopstr_donation || 2.1;
-      const donationAmount = Math.ceil(
-        (tokenAmount! * donationPercentage) / 100
-      );
+      const beefDonationPercentage = product.tags?.find(
+        (tag) => tag.name === "beefinit_donation_percentage"
+      )?.value;
+
+      let donationAmount = 0;
+      if (beefDonationPercentage) {
+        donationAmount = Math.ceil(
+          (tokenAmount! * parseFloat(beefDonationPercentage)) / 100
+        );
+      } else if (donationPercentage) {
+        donationAmount = Math.ceil(
+          (tokenAmount! * donationPercentage) / 100
+        );
+      }
+
       const sellerAmount = tokenAmount! - donationAmount;
       let sellerProofs: Proof[] = [];
 
@@ -1025,7 +1040,7 @@ export default function CartInvoiceCard({
                 lnurl +
                 ") for your sats.";
             }
-            await sendPaymentAndContactMessageWithKeys(
+            await sendPaymentAndContactMessageKeys(
               pubkey,
               paymentMessage,
               product,
@@ -1053,7 +1068,7 @@ export default function CartInvoiceCard({
               });
               const changeMessage = "Overpaid fee change: " + encodedChange;
               try {
-                await sendPaymentAndContactMessageWithKeys(
+                await sendPaymentAndContactMessageKeys(
                   pubkey,
                   changeMessage,
                   product,
@@ -1142,7 +1157,7 @@ export default function CartInvoiceCard({
                   " on milk.market: " +
                   unusedToken;
               }
-              await sendPaymentAndContactMessageWithKeys(
+              await sendPaymentAndContactMessageKeys(
                 pubkey,
                 paymentMessage,
                 product,
@@ -1219,7 +1234,7 @@ export default function CartInvoiceCard({
               " on milk.market: " +
               sellerToken;
           }
-          await sendPaymentAndContactMessageWithKeys(
+          await sendPaymentAndContactMessageKeys(
             pubkey,
             paymentMessage,
             product,
@@ -1730,7 +1745,7 @@ export default function CartInvoiceCard({
             .map((event) => event.id),
         ]),
       ];
-      await sendTokens(wallet, send, data);
+      await sendTokens(wallet, send, data, beefDonations);
       const changeProofs = keep;
       const remainingProofs = tokens.filter(
         (p: Proof) =>
@@ -2257,6 +2272,31 @@ export default function CartInvoiceCard({
                           ? basePrice * (1 - discount / 100)
                           : basePrice;
 
+                      // Calculate beef donation for this product
+                      const beefDonationPercentage = product.tags?.find(
+                        (tag) => tag.name === "beefinit_donation_percentage"
+                      )?.value;
+                      let beefDonationAmount = 0;
+                      if (beefDonationPercentage) {
+                        beefDonationAmount = Math.ceil(
+                          (basePrice * parseFloat(beefDonationPercentage)) / 100
+                        );
+                      }
+
+                      // Calculate milk market donation for this product
+                      const milkMarketDonationPercentage =
+                        profileContext.profileData.get(product.pubkey)?.content
+                          ?.shopstr_donation || 0;
+                      const milkMarketDonationAmount = Math.ceil(
+                        (basePrice * milkMarketDonationPercentage) / 100
+                      );
+
+                      const finalProductCost =
+                        basePrice -
+                        (discount > 0 ? (basePrice * discount) / 100 : 0) -
+                        beefDonationAmount -
+                        milkMarketDonationAmount;
+
                       return (
                         <div
                           key={product.id}
@@ -2308,6 +2348,35 @@ export default function CartInvoiceCard({
                               </div>
                             </>
                           )}
+                          {beefDonationAmount > 0 && (
+                            <div className="flex justify-between text-sm text-red-600">
+                              <span className="ml-2">
+                                Beef Donation ({beefDonationPercentage}%):
+                              </span>
+                              <span>
+                                -
+                                {formatWithCommas(
+                                  beefDonationAmount,
+                                  product.currency
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          {milkMarketDonationAmount > 0 && (
+                            <div className="flex justify-between text-sm text-orange-600">
+                              <span className="ml-2">
+                                Milk Market Donation ({milkMarketDonationPercentage}%):
+                              </span>
+                              <span>
+                                -
+                                {formatWithCommas(
+                                  milkMarketDonationAmount,
+                                  product.currency
+                                )}
+                              </span>
+                            </div>
+                          )}
+
                           {product.shippingCost! > 0 &&
                             ((formType === "combined" &&
                               shippingPickupPreference === "shipping") ||
@@ -2478,15 +2547,30 @@ export default function CartInvoiceCard({
                         ? basePrice * (1 - discount / 100)
                         : basePrice;
 
-                    // Determine if shipping should be shown for this product
-                    const productShippingType = shippingTypes[product.id];
-                    const shouldShowShipping =
-                      formType === "shipping" ||
-                      (formType === "combined" &&
-                        (productShippingType === "Added Cost" ||
-                          productShippingType === "Free" ||
-                          (productShippingType === "Free/Pickup" &&
-                            shippingPickupPreference === "shipping")));
+                    // Calculate beef donation for this product
+                    const beefDonationPercentage = product.tags?.find(
+                      (tag) => tag.name === "beefinit_donation_percentage"
+                    )?.value;
+                    let beefDonationAmount = 0;
+                    if (beefDonationPercentage) {
+                      beefDonationAmount = Math.ceil(
+                        (basePrice * parseFloat(beefDonationPercentage)) / 100
+                      );
+                    }
+
+                    // Calculate milk market donation for this product
+                    const milkMarketDonationPercentage =
+                      profileContext.profileData.get(product.pubkey)?.content
+                        ?.shopstr_donation || 0;
+                    const milkMarketDonationAmount = Math.ceil(
+                      (basePrice * milkMarketDonationPercentage) / 100
+                    );
+
+                    const finalProductCost =
+                      basePrice -
+                      (discount > 0 ? (basePrice * discount) / 100 : 0) -
+                      beefDonationAmount -
+                      milkMarketDonationAmount;
 
                     return (
                       <div
@@ -2551,6 +2635,34 @@ export default function CartInvoiceCard({
                               </span>
                             </div>
                           </>
+                        )}
+                        {beefDonationAmount > 0 && (
+                          <div className="flex justify-between text-sm text-red-600">
+                            <span className="ml-2">
+                              Beef Donation ({beefDonationPercentage}%):
+                            </span>
+                            <span>
+                              -
+                              {formatWithCommas(
+                                beefDonationAmount,
+                                product.currency
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        {milkMarketDonationAmount > 0 && (
+                          <div className="flex justify-between text-sm text-orange-600">
+                            <span className="ml-2">
+                              Milk Market Donation ({milkMarketDonationPercentage}%):
+                            </span>
+                            <span>
+                              -
+                              {formatWithCommas(
+                                milkMarketDonationAmount,
+                                product.currency
+                              )}
+                            </span>
+                          </div>
                         )}
                         {shouldShowShipping &&
                           product.shippingCost! > 0 &&

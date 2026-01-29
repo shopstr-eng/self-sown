@@ -77,6 +77,9 @@ export default function ProductForm({
   const [showOptionalTags, setShowOptionalTags] = useState(false);
   const [herdshareAgreementUrl, setHerdshareAgreementUrl] =
     useState<string>("");
+  const [beefDonationPercentage, setBeefDonationPercentage] = useState<
+    number | undefined
+  >(oldValues?.beefinit_donation_percentage);
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
   const {
@@ -143,6 +146,12 @@ export default function ProductForm({
       setHerdshareAgreementUrl(oldValues.herdshareAgreement);
     } else {
       setHerdshareAgreementUrl("");
+    }
+    // Initialize beef donation percentage if editing existing product
+    if (oldValues?.beefinit_donation_percentage !== undefined) {
+      setBeefDonationPercentage(oldValues.beefinit_donation_percentage);
+    } else {
+      setBeefDonationPercentage(undefined);
     }
   }, [showModal]);
 
@@ -254,6 +263,10 @@ export default function ProductForm({
 
     if (categories.includes("beef")) {
       tags.push(["t", "SAVEBEEF"]);
+      // Add beef donation percentage if set
+      if (beefDonationPercentage !== undefined && beefDonationPercentage > 0) {
+        tags.push(["beefinit_donation_percentage", beefDonationPercentage.toString()]);
+      }
     }
 
     if (data["Expiration"]) {
@@ -1338,6 +1351,42 @@ export default function ProductForm({
                   </EncryptedAgreementUploaderButton>
                 </div>
               )}
+
+            {watchCategory && watchCategory.toLowerCase().includes("beef") && (
+              <div className="mb-4 space-y-4">
+                <h3 className="text-base font-semibold text-black">
+                  Beef Initiative Donation
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Set a donation percentage for the Beef Initiative. This will
+                  be calculated from the total price and sent separately.
+                </p>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  value={beefDonationPercentage?.toString() || ""}
+                  onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    setBeefDonationPercentage(
+                      isNaN(value) ? undefined : value
+                    );
+                  }}
+                  placeholder="0"
+                  classNames={{
+                    input: "text-base !text-black",
+                    inputWrapper:
+                      "border-2 border-black rounded-md shadow-none h-14 !bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white data-[invalid=true]:!bg-white",
+                  }}
+                  endContent={
+                    <span className="text-base font-semibold text-black">
+                      %
+                    </span>
+                  }
+                />
+              </div>
+            )}
 
             <Controller
               name="Restrictions"

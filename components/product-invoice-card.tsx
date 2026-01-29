@@ -1230,11 +1230,20 @@ export default function ProductInvoiceCard({
     let remainingProofs = proofs;
     let sellerToken;
     let donationToken;
+    let beefDonationToken;
     const sellerProfile = profileContext.profileData.get(productData.pubkey);
     const donationPercentage = sellerProfile?.content?.shopstr_donation || 2.1;
     const donationAmount = Math.ceil((totalPrice * donationPercentage) / 100);
-    const sellerAmount = totalPrice - donationAmount;
+    
+    // Calculate beef donation if applicable
+    const beefDonationPercentage = productData.beefinit_donation_percentage || 0;
+    const beefDonationAmount = beefDonationPercentage > 0 
+      ? Math.ceil((totalPrice * beefDonationPercentage) / 100)
+      : 0;
+    
+    const sellerAmount = totalPrice - donationAmount - beefDonationAmount;
     let sellerProofs: Proof[] = [];
+    let beefDonationProofs: Proof[] = [];
 
     if (sellerAmount > 0) {
       const { keep, send } = await wallet.send(sellerAmount, remainingProofs, {
@@ -1257,6 +1266,22 @@ export default function ProductInvoiceCard({
         }
       );
       donationToken = getEncodedToken({
+        mint: mints[0]!,
+        proofs: send,
+      });
+      remainingProofs = keep;
+    }
+
+    if (beefDonationAmount > 0) {
+      const { keep, send } = await wallet.send(
+        beefDonationAmount,
+        remainingProofs,
+        {
+          includeFees: true,
+        }
+      );
+      beefDonationProofs = send;
+      beefDonationToken = getEncodedToken({
         mint: mints[0]!,
         proofs: send,
       });
@@ -1491,6 +1516,34 @@ export default function ProductInvoiceCard({
           mints[0],
           JSON.stringify(sellerProofs),
           sellerAmount
+        );
+      }
+
+      // Send beef donation if applicable
+      if (beefDonationToken && beefDonationProofs && beefDonationAmount > 0) {
+        const beefInitNpub = "npub1a8z76w04h64dqpxwpgjhx0arrkzupzal68vzu00n8ybe2lsv6dcsxn2m4c"; // Placeholder npub
+        const beefDonationMessage =
+          "Beef Initiative donation (" +
+          beefDonationPercentage +
+          "%) from purchase of " +
+          productData.title +
+          " by " +
+          userNPub +
+          " on milk.market: " +
+          beefDonationToken;
+        
+        await sendPaymentAndContactMessage(
+          beefInitNpub,
+          beefDonationMessage,
+          true,
+          false,
+          false,
+          false,
+          orderId + "_beef",
+          "ecash",
+          mints[0],
+          JSON.stringify(beefDonationProofs),
+          beefDonationAmount
         );
       }
     }
