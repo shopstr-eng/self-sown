@@ -84,7 +84,7 @@ export default function ProductCard({
           {isZapsnag && productData.pubkey === userPubkey && (
             <button
               onClick={handleNjumpClick}
-              className="inline-flex flex-shrink-0 items-center text-xs underline text-yellow-500 hover:text-yellow-700"
+              className="inline-flex flex-shrink-0 items-center text-xs text-yellow-500 underline hover:text-yellow-700"
               title="Track Sales on Nostr"
               aria-label="Open Flash Sale in Nostr client"
             >
@@ -176,17 +176,17 @@ export default function ProductCard({
                 <span className="truncate">{productData.location}</span>
               </Chip>
             </div>
-              {!isZapsnag ? (
-            <div className="min-w-0 flex-shrink-0">
+            {!isZapsnag ? (
+              <div className="min-w-0 flex-shrink-0">
                 <CompactPriceDisplay monetaryInfo={productData} />
-            </div>
-              ) : (
-                <div className="flex items-center justify-center rounded-md bg-black/10 px-2 py-1">
-                  <span className="text-sm font-bold text-yellow-600">
-                    ⚡ {productData.price} {productData.currency}
-                  </span>
-                </div>
-              )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center rounded-md bg-black/10 px-2 py-1">
+                <span className="text-sm font-bold text-yellow-600">
+                  ⚡ {productData.price} {productData.currency}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -222,17 +222,17 @@ export default function ProductCard({
       // Note: Your original shadow was 8px. shadow-neo is 4px. I've kept the 8px for hover.
       className="flex w-full max-w-sm cursor-pointer flex-col overflow-hidden rounded-md border-4 border-black bg-white shadow-neo duration-200 transition-transform hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-neo"
     >
-  {href ? (
-    <Link
-      href={href}
-      className="block flex h-full flex-col"
-      onClick={handleCardClick}
-    >
-      {content}
-    </Link>
-  ) : (
-    <div onClick={handleCardClick}>{content}</div>
-  )}
+      {href ? (
+        <Link
+          href={href}
+          className="block flex h-full flex-col"
+          onClick={handleCardClick}
+        >
+          {content}
+        </Link>
+      ) : (
+        <div onClick={handleCardClick}>{content}</div>
+      )}
       <RawEventModal
         isOpen={showRawEventModal}
         onClose={() => setShowRawEventModal(false)}

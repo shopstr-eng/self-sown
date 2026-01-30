@@ -13,7 +13,9 @@ const createEvent = (content: string, id = "event-123"): NostrEvent => ({
 
 describe("parseZapsnagNote", () => {
   it("extracts price and default currency (sats) correctly", () => {
-    const event = createEvent("Selling a cool hat price: 5000 sats #milk-market-zapsnag");
+    const event = createEvent(
+      "Selling a cool hat price: 5000 sats #milk-market-zapsnag"
+    );
     const result = parseZapsnagNote(event);
 
     expect(result.price).toBe(5000);
@@ -52,7 +54,8 @@ describe("parseZapsnagNote", () => {
   });
 
   it("generates a clean title by removing price, tags, and URLs", () => {
-    const content = "Super Cool Item price: 100 https://img.com/a.jpg #milk-market-zapsnag";
+    const content =
+      "Super Cool Item price: 100 https://img.com/a.jpg #milk-market-zapsnag";
     const event = createEvent(content);
     const result = parseZapsnagNote(event);
 

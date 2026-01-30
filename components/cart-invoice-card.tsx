@@ -1674,7 +1674,7 @@ export default function CartInvoiceCard({
 
             // Add delay between messages
             await new Promise((resolve) => setTimeout(resolve, 500));
-  
+
             await sendPaymentAndContactMessageWithKeys(
               userPubkey,
               receiptMessage,
@@ -1703,8 +1703,8 @@ export default function CartInvoiceCard({
         (productShippingType === "N/A" ||
           productShippingType === "Pickup" ||
           productShippingType === "Free/Pickup" ||
-          productShippingType === "Added Cost/Pickup"
-        )) {
+          productShippingType === "Added Cost/Pickup")
+      ) {
         await sendInquiryDM(pubkey, title);
 
         let productDetails = "";
@@ -1748,7 +1748,7 @@ export default function CartInvoiceCard({
 
           // Add delay between messages
           await new Promise((resolve) => setTimeout(resolve, 500));
-  
+
           await sendPaymentAndContactMessageWithKeys(
             userPubkey,
             receiptMessage,
@@ -2228,8 +2228,8 @@ export default function CartInvoiceCard({
 
         {/* Pickup location selectors for products with pickup locations */}
         {productsWithPickupLocations.length > 0 &&
-          (formType === "combined" &&
-              shippingPickupPreference === "contact") && (
+          formType === "combined" &&
+          shippingPickupPreference === "contact" && (
             <div className="space-y-4">
               <h4 className="font-medium text-gray-700">
                 Select Pickup Locations

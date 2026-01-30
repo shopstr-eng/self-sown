@@ -544,12 +544,12 @@ export default function CheckoutCard({
                 {/* Product Title */}
                 <div className="mt-4 flex w-full items-start justify-between">
                   <h2 className="text-left text-2xl font-bold text-black">
-                  {productData.title}
-                  {isExpired && (
-                    <Chip color="warning" variant="flat" className="ml-2">
-                      Outdated
-                    </Chip>
-                  )}
+                    {productData.title}
+                    {isExpired && (
+                      <Chip color="warning" variant="flat" className="ml-2">
+                        Outdated
+                      </Chip>
+                    )}
                   </h2>
                   {rawEvent && (
                     <Dropdown>
@@ -664,124 +664,128 @@ export default function CheckoutCard({
                   </div>
                 ) : (
                   <>
+                    {productData.pubkey !== userPubkey && (
+                      <div className="mt-4 space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            label="Discount Code"
+                            placeholder="Enter code"
+                            value={discountCode}
+                            onChange={(e) =>
+                              setDiscountCode(e.target.value.toUpperCase())
+                            }
+                            className="flex-1 text-white"
+                            disabled={appliedDiscount > 0}
+                            isInvalid={!!discountError}
+                            errorMessage={discountError}
+                          />
+                          {appliedDiscount > 0 ? (
+                            <Button
+                              color="warning"
+                              onClick={handleRemoveDiscount}
+                            >
+                              Remove
+                            </Button>
+                          ) : (
+                            <Button
+                              className={BLUEBUTTONCLASSNAMES}
+                              onClick={handleApplyDiscount}
+                            >
+                              Apply
+                            </Button>
+                          )}
+                        </div>
+                        {appliedDiscount > 0 && (
+                          <p className="text-sm text-green-600">
+                            {appliedDiscount}% discount applied! You save{" "}
+                            {currentPrice - discountedPrice}{" "}
+                            {productData.currency}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                {productData.pubkey !== userPubkey && (
-                  <div className="mt-4 space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        label="Discount Code"
-                        placeholder="Enter code"
-                        value={discountCode}
-                        onChange={(e) =>
-                          setDiscountCode(e.target.value.toUpperCase())
-                        }
-                        className="flex-1 text-white"
-                        disabled={appliedDiscount > 0}
-                        isInvalid={!!discountError}
-                        errorMessage={discountError}
-                      />
-                      {appliedDiscount > 0 ? (
-                        <Button color="warning" onClick={handleRemoveDiscount}>
-                          Remove
-                        </Button>
+                    {/* Location Chip */}
+                    <div className="flex items-center gap-2">
+                      <Chip
+                        startContent={locationAvatar(productData.location)}
+                        className="rounded-full border-2 border-black bg-white px-3 py-1 font-bold shadow-neo"
+                      >
+                        <span className="text-black">
+                          📍 {productData.location}
+                        </span>
+                      </Chip>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                      {productData.status !== "sold" ? (
+                        <>
+                          {/* Buy Now - Solid Yellow */}
+                          <Button
+                            className={`rounded-md border-2 border-black bg-primary-yellow px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                              (hasSizes && !selectedSize) ||
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight)
+                                ? "cursor-not-allowed opacity-50"
+                                : ""
+                            }`}
+                            onClick={toggleBuyNow}
+                            disabled={
+                              (hasSizes && !selectedSize) ||
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight) ||
+                              isExpired
+                            }
+                            size="lg"
+                          >
+                            Buy Now
+                          </Button>
+
+                          {/* Add To Cart - Light Blue */}
+                          <Button
+                            className={`rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5 ${
+                              isAdded ||
+                              (hasSizes && !selectedSize) ||
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight)
+                                ? "cursor-not-allowed opacity-50"
+                                : ""
+                            }`}
+                            onClick={handleAddToCart}
+                            disabled={
+                              isAdded ||
+                              (hasSizes && !selectedSize) ||
+                              (hasVolumes && !selectedVolume) ||
+                              (hasWeights && !selectedWeight) ||
+                              isExpired
+                            }
+                            size="lg"
+                          >
+                            Add To Cart
+                          </Button>
+                        </>
                       ) : (
                         <Button
-                          className={BLUEBUTTONCLASSNAMES}
-                          onClick={handleApplyDiscount}
+                          className="cursor-not-allowed rounded-md border-2 border-black bg-gray-300 px-6 py-2 font-bold text-gray-600 opacity-50 shadow-neo"
+                          disabled
+                          size="lg"
                         >
-                          Apply
+                          Sold Out
                         </Button>
                       )}
+
+                      {/* Share - Light Blue */}
+                      <Button
+                        className="rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5"
+                        onClick={handleShare}
+                        size="lg"
+                      >
+                        Share
+                      </Button>
                     </div>
-                    {appliedDiscount > 0 && (
-                      <p className="text-sm text-green-600">
-                        {appliedDiscount}% discount applied! You save{" "}
-                        {currentPrice - discountedPrice} {productData.currency}
-                      </p>
-                    )}
-                  </div>
+                  </>
                 )}
-
-                {/* Location Chip */}
-                <div className="flex items-center gap-2">
-                  <Chip
-                    startContent={locationAvatar(productData.location)}
-                    className="rounded-full border-2 border-black bg-white px-3 py-1 font-bold shadow-neo"
-                  >
-                    <span className="text-black">
-                      📍 {productData.location}
-                    </span>
-                  </Chip>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3">
-                  {productData.status !== "sold" ? (
-                    <>
-                      {/* Buy Now - Solid Yellow */}
-                      <Button
-                        className={`rounded-md border-2 border-black bg-primary-yellow px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                          (hasSizes && !selectedSize) ||
-                          (hasVolumes && !selectedVolume) ||
-                          (hasWeights && !selectedWeight)
-                            ? "cursor-not-allowed opacity-50"
-                            : ""
-                        }`}
-                        onClick={toggleBuyNow}
-                        disabled={
-                          (hasSizes && !selectedSize) ||
-                          (hasVolumes && !selectedVolume) ||
-                          (hasWeights && !selectedWeight) ||
-                          isExpired
-                        }
-                        size="lg"
-                      >
-                        Buy Now
-                      </Button>
-
-                      {/* Add To Cart - Light Blue */}
-                      <Button
-                        className={`rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5 ${
-                          isAdded ||
-                          (hasSizes && !selectedSize) ||
-                          (hasVolumes && !selectedVolume) ||
-                          (hasWeights && !selectedWeight)
-                            ? "cursor-not-allowed opacity-50"
-                            : ""
-                        }`}
-                        onClick={handleAddToCart}
-                        disabled={
-                          isAdded ||
-                          (hasSizes && !selectedSize) ||
-                          (hasVolumes && !selectedVolume) ||
-                          (hasWeights && !selectedWeight) ||
-                          isExpired
-                        }
-                        size="lg"
-                      >
-                        Add To Cart
-                      </Button>
-                    </>
-                  ) : (
-                    <Button
-                      className="cursor-not-allowed rounded-md border-2 border-black bg-gray-300 px-6 py-2 font-bold text-gray-600 opacity-50 shadow-neo"
-                      disabled
-                      size="lg"
-                    >
-                      Sold Out
-                    </Button>
-                  )}
-
-                  {/* Share - Light Blue */}
-                  <Button
-                    className="rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5"
-                    onClick={handleShare}
-                    size="lg"
-                  >
-                    Share
-                  </Button>
-                </div>
-                  </>)}
 
                 {/* Contact Seller */}
                 {productData.pubkey !== userPubkey && (

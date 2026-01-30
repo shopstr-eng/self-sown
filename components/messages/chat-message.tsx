@@ -681,16 +681,16 @@ const ChatMessage = ({
               renderMessageContent(messageEvent.content)
             )}
           </div>
-          </div>
-          <div className="m-1"></div>
-          <span
-            className={`text-xs opacity-60 ${
-              isUserMessage ? "text-right" : "text-left"
-            }`}
-          >
-            {timeSinceMessageDisplayText(messageEvent.created_at).dateTime}
-          </span>
         </div>
+        <div className="m-1"></div>
+        <span
+          className={`text-xs opacity-60 ${
+            isUserMessage ? "text-right" : "text-left"
+          }`}
+        >
+          {timeSinceMessageDisplayText(messageEvent.created_at).dateTime}
+        </span>
+      </div>
 
       {/* PDF Signing Modal */}
       {showPdfModal && currentPdfUrl && (

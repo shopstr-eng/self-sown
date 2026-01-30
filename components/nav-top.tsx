@@ -145,7 +145,7 @@ const TopNav = ({
       >
         Orders
         {unreadMsgCount > 0 && (
-          <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold bg-yellow-600 text-white">
+          <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full bg-yellow-600 px-1.5 text-xs font-bold text-white">
             {unreadMsgCount}
           </span>
         )}
@@ -174,7 +174,7 @@ const TopNav = ({
       >
         Cart
         {cartQuantity > 0 && (
-          <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold bg-yellow-600 text-white">
+          <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full bg-yellow-600 px-1.5 text-xs font-bold text-white">
             {cartQuantity}
           </span>
         )}
@@ -258,7 +258,7 @@ const TopNav = ({
           >
             Orders
             {unreadMsgCount > 0 && (
-              <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white bg-yellow-600">
+              <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full bg-yellow-600 px-1.5 text-xs font-bold text-white">
                 {unreadMsgCount}
               </span>
             )}
@@ -290,7 +290,7 @@ const TopNav = ({
           >
             Cart
             {cartQuantity > 0 && (
-              <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white bg-yellow-600">
+              <span className="min-w-5 ml-1 inline-flex h-5 items-center justify-center rounded-full bg-yellow-600 px-1.5 text-xs font-bold text-white">
                 {cartQuantity}
               </span>
             )}

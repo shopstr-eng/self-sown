@@ -1818,7 +1818,7 @@ export default function ProductInvoiceCard({
 
           // Add delay between messages
           await new Promise((resolve) => setTimeout(resolve, 500));
-  
+
           await sendPaymentAndContactMessage(
             userPubkey,
             receiptMessage,
@@ -1883,7 +1883,7 @@ export default function ProductInvoiceCard({
 
         // Add delay between messages
         await new Promise((resolve) => setTimeout(resolve, 500));
-  
+
         await sendPaymentAndContactMessage(
           userPubkey,
           receiptMessage,

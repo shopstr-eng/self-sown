@@ -140,7 +140,7 @@ export default function ProductForm({
   useEffect(() => {
     setImages(oldValues?.images || []);
     setIsEdit(oldValues ? true : false);
-    
+
     // Initialize herdshare agreement URL if editing existing product
     if (oldValues?.herdshareAgreement) {
       setHerdshareAgreementUrl(oldValues.herdshareAgreement);
@@ -1428,8 +1428,7 @@ export default function ProductForm({
                 isSelected={isFlashSale}
                 onValueChange={setIsFlashSale}
                 classNames={{
-                  wrapper:
-                    "group-data-[selected=true]:bg-yellow-600",
+                  wrapper: "group-data-[selected=true]:bg-yellow-600",
                 }}
               />
             </div>

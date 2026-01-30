@@ -110,7 +110,7 @@ const Listing = () => {
                   className="h-96 w-full object-cover"
                 />
                 <div className="p-6">
-                  <div className="mb-2 flex items-start justify-dark">
+                  <div className="justify-dark mb-2 flex items-start">
                     <h1 className="text-2xl font-bold text-black">
                       {productData.title}
                     </h1>

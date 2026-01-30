@@ -385,7 +385,7 @@ function MarketplacePage({
                     <Button
                       isIconOnly
                       variant="light"
-                      className="text-white hover:text-accent-white/10"
+                      className="hover:text-accent-white/10 text-white"
                     >
                       <EllipsisVerticalIcon className="h-6 w-6" />
                     </Button>
