@@ -36,7 +36,14 @@ import {
   sendGiftWrappedMessageEvent,
   generateKeys,
   publishReviewEvent,
+  blossomUpload,
+  getLocalStorageData,
 } from "@/utils/nostr/nostr-helper-functions";
+import { viewEncryptedAgreement } from "@/utils/encryption/agreement-viewer";
+import { encryptFileWithNip44 } from "@/utils/encryption/file-encryption";
+import PDFAnnotator from "@/components/utility-components/pdf-annotator";
+import FailureModal from "@/components/utility-components/failure-modal";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import {
   NostrContext,
   SignerContext,
@@ -92,6 +99,9 @@ interface OrderData {
   currency?: string;
   donationAmount?: number;
   donationPercentage?: number;
+  unsignedHerdshareUrl?: string;
+  signedHerdshareUrl?: string;
+  sellerPubkey?: string;
 }
 
 const OrdersDashboard = () => {
@@ -138,6 +148,17 @@ const OrdersDashboard = () => {
   const [currencyRates, setCurrencyRates] = useState<Record<string, number>>(
     {}
   );
+
+  const [showHerdshareModal, setShowHerdshareModal] = useState(false);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState("");
+  const [annotations, setAnnotations] = useState<any[]>([]);
+  const [isLoadingAgreement, setIsLoadingAgreement] = useState(false);
+  const [isUploadingSignedAgreement, setIsUploadingSignedAgreement] =
+    useState(false);
+  const [showFailureModal, setShowFailureModal] = useState(false);
+  const [failureText, setFailureText] = useState("");
+  const [herdshareOrder, setHerdshareOrder] = useState<OrderData | null>(null);
+  const [isViewMode, setIsViewMode] = useState(false);
 
   const {
     signer,
@@ -475,8 +496,54 @@ const OrdersDashboard = () => {
               currency: productCurrency,
               donationAmount,
               donationPercentage,
+              sellerPubkey: merchantPubkey || undefined,
             });
           }
+        }
+      }
+
+      const herdshareMessagesByChat = new Map<
+        string,
+        { unsigned?: string; signed?: string; timestamp?: number }
+      >();
+      for (const entry of chatsContext.chatsMap) {
+        const chatKey = entry[0];
+        const chat = entry[1] as NostrMessageEvent[];
+        const herdshareData: {
+          unsigned?: string;
+          signed?: string;
+          timestamp?: number;
+        } = {};
+
+        for (const messageEvent of chat) {
+          const content = messageEvent.content;
+          const urlRegex = /https?:\/\/[^\s]+\.pdf/gi;
+          const matches = content.match(urlRegex);
+
+          if (matches && matches.length > 0) {
+            const isSignedAgreement = content
+              .toLowerCase()
+              .includes("signed herdshare agreement");
+            const isUnsignedAgreement =
+              content.toLowerCase().includes("finalize") &&
+              content.toLowerCase().includes("herdshare agreement");
+
+            if (isSignedAgreement) {
+              if (
+                !herdshareData.timestamp ||
+                messageEvent.created_at > herdshareData.timestamp
+              ) {
+                herdshareData.signed = matches[0];
+                herdshareData.timestamp = messageEvent.created_at;
+              }
+            } else if (isUnsignedAgreement && !herdshareData.signed) {
+              herdshareData.unsigned = matches[0];
+            }
+          }
+        }
+
+        if (herdshareData.unsigned || herdshareData.signed) {
+          herdshareMessagesByChat.set(chatKey, herdshareData);
         }
       }
 
@@ -571,6 +638,26 @@ const OrdersDashboard = () => {
 
       const consolidatedOrders = Array.from(consolidatedOrdersMap.values());
       consolidatedOrders.sort((a, b) => b.timestamp - a.timestamp);
+
+      for (const order of consolidatedOrders) {
+        const sellerPubkey =
+          order.sellerPubkey || order.productAddress.split(":")[1];
+        order.sellerPubkey = sellerPubkey || undefined;
+
+        const chatCounterparty = order.isSale
+          ? order.buyerPubkey
+          : sellerPubkey;
+        if (chatCounterparty) {
+          const herdshareData = herdshareMessagesByChat.get(chatCounterparty);
+          if (herdshareData) {
+            if (herdshareData.signed) {
+              order.signedHerdshareUrl = herdshareData.signed;
+            } else if (herdshareData.unsigned) {
+              order.unsignedHerdshareUrl = herdshareData.unsigned;
+            }
+          }
+        }
+      }
 
       setOrders(consolidatedOrders);
       setTotalOrders(consolidatedOrders.length);
@@ -978,6 +1065,235 @@ const OrdersDashboard = () => {
     );
   };
 
+  const handleSignHerdshare = async (order: OrderData) => {
+    if (!order.unsignedHerdshareUrl || !signer) {
+      setFailureText("Please log in to sign agreements.");
+      setShowFailureModal(true);
+      return;
+    }
+
+    setIsLoadingAgreement(true);
+    setHerdshareOrder(order);
+    setIsViewMode(false);
+
+    try {
+      const sellerNpub = order.sellerPubkey
+        ? nip19.npubEncode(order.sellerPubkey)
+        : "";
+      const decryptedBlob = await viewEncryptedAgreement(
+        order.unsignedHerdshareUrl,
+        sellerNpub
+      );
+
+      if (!decryptedBlob || decryptedBlob.size === 0) {
+        setFailureText("Failed to decrypt agreement or received empty data.");
+        setShowFailureModal(true);
+        return;
+      }
+
+      const blobUrl = URL.createObjectURL(decryptedBlob);
+      setCurrentPdfUrl(blobUrl);
+      setShowHerdshareModal(true);
+    } catch (error) {
+      console.error("Error loading agreement:", error);
+      setFailureText(
+        "An error occurred while trying to view the agreement: " +
+          (error as Error).message
+      );
+      setShowFailureModal(true);
+    } finally {
+      setIsLoadingAgreement(false);
+    }
+  };
+
+  const handleViewHerdshare = async (order: OrderData) => {
+    if (!order.signedHerdshareUrl || !signer) {
+      setFailureText("Please log in to view agreements.");
+      setShowFailureModal(true);
+      return;
+    }
+
+    setIsLoadingAgreement(true);
+    setHerdshareOrder(order);
+    setIsViewMode(true);
+
+    try {
+      const sellerNpub = order.sellerPubkey
+        ? nip19.npubEncode(order.sellerPubkey)
+        : "";
+      const decryptedBlob = await viewEncryptedAgreement(
+        order.signedHerdshareUrl,
+        sellerNpub,
+        signer
+      );
+
+      if (!decryptedBlob || decryptedBlob.size === 0) {
+        setFailureText("Failed to decrypt agreement or received empty data.");
+        setShowFailureModal(true);
+        return;
+      }
+
+      const blobUrl = URL.createObjectURL(decryptedBlob);
+      setCurrentPdfUrl(blobUrl);
+      setShowHerdshareModal(true);
+    } catch (error) {
+      console.error("Error loading signed agreement:", error);
+      setFailureText(
+        "An error occurred while trying to view the agreement: " +
+          (error as Error).message
+      );
+      setShowFailureModal(true);
+    } finally {
+      setIsLoadingAgreement(false);
+    }
+  };
+
+  const handleFinishSigning = async () => {
+    if (!herdshareOrder || !signer || !nostr || !currentPdfUrl) return;
+
+    setIsUploadingSignedAgreement(true);
+
+    try {
+      const response = await fetch(currentPdfUrl);
+      const pdfBlob = await response.blob();
+
+      const formData = new FormData();
+      formData.append("pdf", pdfBlob, "agreement.pdf");
+      formData.append("annotations", JSON.stringify(annotations));
+
+      const processResponse = await fetch("/api/process-pdf-annotations", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!processResponse.ok) {
+        throw new Error("Failed to process PDF annotations");
+      }
+
+      const annotatedPdfBlob = await processResponse.blob();
+      const sellerNpub = herdshareOrder.sellerPubkey
+        ? nip19.npubEncode(herdshareOrder.sellerPubkey)
+        : "";
+      const encryptedFile = await encryptFileWithNip44(
+        new File([annotatedPdfBlob], "signed-agreement.pdf", {
+          type: "application/pdf",
+        }),
+        sellerNpub,
+        true,
+        signer
+      );
+
+      const encryptedPdfBlob = new Blob([await encryptedFile.arrayBuffer()], {
+        type: "application/pdf",
+      });
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const file = new File(
+        [encryptedPdfBlob],
+        `encrypted-signed-agreement-${timestamp}.pdf`,
+        { type: "application/pdf" }
+      );
+
+      const { blossomServers } = getLocalStorageData();
+      const servers =
+        blossomServers && blossomServers.length > 0
+          ? blossomServers
+          : ["https://cdn.nostrcheck.me"];
+
+      let uploadTags = null;
+      for (const server of servers) {
+        try {
+          uploadTags = await blossomUpload(file, false, signer, [server]);
+          if (uploadTags && Array.isArray(uploadTags)) {
+            const url = uploadTags.find((tag) => tag[0] === "url")?.[1];
+            if (url) {
+              break;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to upload to ${server}:`, err);
+        }
+      }
+
+      if (!uploadTags) {
+        throw new Error("Failed to upload PDF to any server");
+      }
+
+      const signedPdfUrl = uploadTags.find((tag) => tag[0] === "url")?.[1];
+      if (!signedPdfUrl) {
+        throw new Error("Upload succeeded but no URL returned from server");
+      }
+
+      const decodedRandomPubkeyForSender = nip19.decode(randomNpubForSender);
+      const decodedRandomPrivkeyForSender = nip19.decode(randomNsecForSender);
+      const decodedRandomPubkeyForReceiver = nip19.decode(
+        randomNpubForReceiver
+      );
+      const decodedRandomPrivkeyForReceiver = nip19.decode(
+        randomNsecForReceiver
+      );
+
+      const message = `Here is the encrypted signed herdshare agreement from ${userNPub}: ${signedPdfUrl}`;
+      const giftWrappedMessageEvent = await constructGiftWrappedEvent(
+        userPubkey!,
+        herdshareOrder.sellerPubkey!,
+        message,
+        "order-info"
+      );
+
+      const sealedEvent = await constructMessageSeal(
+        signer,
+        giftWrappedMessageEvent,
+        decodedRandomPubkeyForSender.data as string,
+        herdshareOrder.sellerPubkey!,
+        decodedRandomPrivkeyForSender.data as Uint8Array
+      );
+
+      const giftWrappedEvent = await constructMessageGiftWrap(
+        sealedEvent,
+        decodedRandomPubkeyForReceiver.data as string,
+        decodedRandomPrivkeyForReceiver.data as Uint8Array,
+        herdshareOrder.sellerPubkey!
+      );
+
+      await sendGiftWrappedMessageEvent(nostr, giftWrappedEvent);
+
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.orderId === herdshareOrder.orderId
+            ? {
+                ...order,
+                signedHerdshareUrl: signedPdfUrl,
+                unsignedHerdshareUrl: undefined,
+              }
+            : order
+        )
+      );
+
+      handleCloseHerdshareModal();
+    } catch (error) {
+      console.error("Error signing agreement:", error);
+      setFailureText(
+        "An error occurred while signing the agreement: " +
+          (error as Error).message
+      );
+      setShowFailureModal(true);
+    } finally {
+      setIsUploadingSignedAgreement(false);
+    }
+  };
+
+  const handleCloseHerdshareModal = () => {
+    setShowHerdshareModal(false);
+    if (currentPdfUrl && currentPdfUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(currentPdfUrl);
+    }
+    setCurrentPdfUrl("");
+    setAnnotations([]);
+    setHerdshareOrder(null);
+    setIsViewMode(false);
+  };
+
   if (isLoading || !chatsContext || chatsContext.isLoading) {
     return (
       <div className="flex h-[66vh] items-center justify-center">
@@ -1092,10 +1408,10 @@ const OrdersDashboard = () => {
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Pickup Location
                   </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Order Specs
                   </th>
-                    <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Payment
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
@@ -1104,13 +1420,16 @@ const OrdersDashboard = () => {
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Donation Amount
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
+                    Herdshare Agreement
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black bg-white">
                 {orders.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={11}
+                      colSpan={13}
                       className="px-6 py-4 text-center text-black"
                     >
                       No orders yet
@@ -1235,7 +1554,7 @@ const OrdersDashboard = () => {
                             {order.pickupLocation || "N/A"}
                           </div>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-sm text-light-text dark:text-dark-text">
+                        <td className="text-light-text dark:text-dark-text whitespace-nowrap px-4 py-4 text-sm">
                           {(() => {
                             const specs = [];
                             if (order.selectedSize)
@@ -1298,6 +1617,35 @@ const OrdersDashboard = () => {
                                     : ""
                                 }`
                             : "N/A"}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-4 text-sm">
+                          {order.signedHerdshareUrl ? (
+                            <button
+                              onClick={() => handleViewHerdshare(order)}
+                              disabled={isLoadingAgreement}
+                              className="inline-flex items-center gap-1 rounded-md border-2 border-black bg-blue-200 px-2 py-1 text-xs font-bold text-black hover:bg-blue-300"
+                            >
+                              <DocumentTextIcon className="h-4 w-4" />
+                              {isLoadingAgreement &&
+                              herdshareOrder?.orderId === order.orderId
+                                ? "Loading..."
+                                : "View Herdshare"}
+                            </button>
+                          ) : order.unsignedHerdshareUrl && !order.isSale ? (
+                            <button
+                              onClick={() => handleSignHerdshare(order)}
+                              disabled={isLoadingAgreement}
+                              className="inline-flex items-center gap-1 rounded-md border-2 border-black bg-primary-yellow px-2 py-1 text-xs font-bold text-black hover:bg-yellow-400"
+                            >
+                              <DocumentTextIcon className="h-4 w-4" />
+                              {isLoadingAgreement &&
+                              herdshareOrder?.orderId === order.orderId
+                                ? "Loading..."
+                                : "Sign Herdshare"}
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
                         </td>
                       </tr>
                     );
@@ -1596,6 +1944,81 @@ const OrdersDashboard = () => {
           </form>
         </ModalContent>
       </Modal>
+
+      {showHerdshareModal && currentPdfUrl && (
+        <Modal
+          isOpen={showHerdshareModal}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              handleCloseHerdshareModal();
+            }
+          }}
+          size="5xl"
+          scrollBehavior="inside"
+          classNames={{
+            body: "py-6 bg-white",
+            backdrop: "bg-black/20 backdrop-blur-sm",
+            header: "border-b-2 border-black bg-white rounded-t-md text-black",
+            footer: "border-t-2 border-black bg-white rounded-b-md",
+            closeButton: "hover:bg-black/5 active:bg-white/10",
+          }}
+          className="max-h-[90vh]"
+        >
+          <ModalContent className="flex h-full flex-col">
+            <ModalHeader className="flex-shrink-0 border-b bg-white">
+              <div className="flex items-center gap-2 text-black">
+                <DocumentTextIcon className="h-5 w-5" />
+                {isViewMode
+                  ? "View Signed Agreement"
+                  : "Review & Sign Agreement"}
+              </div>
+            </ModalHeader>
+            <ModalBody className="flex flex-grow flex-col p-4">
+              <div className="flex h-full flex-col rounded-lg border bg-white">
+                <div className="flex-grow overflow-auto p-4">
+                  <PDFAnnotator
+                    pdfUrl={currentPdfUrl}
+                    annotations={annotations}
+                    onAnnotationsChange={setAnnotations}
+                  />
+                </div>
+              </div>
+            </ModalBody>
+            <ModalFooter className="flex-shrink-0 border-t bg-gray-50">
+              <div className="flex w-full justify-end gap-3">
+                <Button
+                  color="default"
+                  variant="light"
+                  onPress={handleCloseHerdshareModal}
+                >
+                  {isViewMode ? "Close" : "Cancel"}
+                </Button>
+                {!isViewMode && (
+                  <Button
+                    color="warning"
+                    onPress={handleFinishSigning}
+                    isLoading={isUploadingSignedAgreement}
+                    disabled={isUploadingSignedAgreement}
+                  >
+                    {isUploadingSignedAgreement
+                      ? "Processing..."
+                      : "Finish Signing"}
+                  </Button>
+                )}
+              </div>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      <FailureModal
+        bodyText={failureText}
+        isOpen={showFailureModal}
+        onClose={() => {
+          setShowFailureModal(false);
+          setFailureText("");
+        }}
+      />
     </div>
   );
 };

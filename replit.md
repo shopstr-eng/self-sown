@@ -4,6 +4,12 @@ Milk Market is a permissionless marketplace built on the Nostr protocol for Bitc
 
 The platform enables users to create product listings, manage orders, communicate through encrypted messaging, and handle payments across multiple currencies while maintaining privacy and self-sovereignty through Nostr's decentralized architecture.
 
+# Recent Changes
+
+## February 2026
+
+- **Herdshare Agreement Column in Orders Dashboard**: Added a new column to display herdshare agreement status for orders. Buyers see a "Sign Herdshare" button to sign unsigned agreements, while both buyers and sellers can view signed agreements via a "View Herdshare" button. The signing flow uses the PDFAnnotator component and encrypts the signed document before sending it back to the seller.
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
