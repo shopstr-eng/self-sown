@@ -79,6 +79,7 @@ interface OrderData {
   pickupLocation?: string;
   selectedSize?: string;
   selectedVolume?: string;
+  selectedWeight?: string;
   paymentToken?: string;
   paymentMethod?: string;
   productTitle?: string;
@@ -335,6 +336,7 @@ const OrdersDashboard = () => {
             const pickupLocation = tagsMap.get("pickup");
             const selectedSize = tagsMap.get("size");
             const selectedVolume = tagsMap.get("volume");
+            const selectedWeight = tagsMap.get("weight");
 
             const donationTagArray = messageEvent.tags.find(
               (tag) => tag[0] === "donation_amount"
@@ -461,6 +463,7 @@ const OrdersDashboard = () => {
               pickupLocation,
               selectedSize,
               selectedVolume,
+              selectedWeight,
               paymentToken,
               paymentMethod,
               productTitle,
@@ -533,6 +536,7 @@ const OrdersDashboard = () => {
             pickupLocation: order.pickupLocation || existing.pickupLocation,
             selectedSize: order.selectedSize || existing.selectedSize,
             selectedVolume: order.selectedVolume || existing.selectedVolume,
+            selectedWeight: order.selectedWeight || existing.selectedWeight,
             paymentToken: order.paymentToken || existing.paymentToken,
             paymentMethod:
               order.paymentMethod !== "Not specified"
@@ -1238,6 +1242,8 @@ const OrdersDashboard = () => {
                               specs.push(`Size: ${order.selectedSize}`);
                             if (order.selectedVolume)
                               specs.push(`Volume: ${order.selectedVolume}`);
+                            if (order.selectedWeight)
+                              specs.push(`Weight: ${order.selectedWeight}`);
                             return specs.length > 0 ? specs.join(", ") : "N/A";
                           })()}
                         </td>
