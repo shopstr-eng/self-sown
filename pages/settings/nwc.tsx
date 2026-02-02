@@ -21,7 +21,7 @@ import {
 import { webln } from "@getalby/sdk";
 import { formatWithCommas } from "@/components/utility-components/display-monetary-info";
 
-const WalletSettingsPage = () => {
+const NWCSettingsPage = () => {
   const [nwcString, setNwcString] = useState("");
   const [walletInfo, setWalletInfo] = useState<any>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -241,4 +241,4 @@ const WalletSettingsPage = () => {
   );
 };
 
-export default WalletSettingsPage;
+export default NWCSettingsPage;
