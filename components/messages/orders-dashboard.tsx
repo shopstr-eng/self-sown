@@ -740,7 +740,7 @@ const OrdersDashboard = () => {
     setShowProductModal(!showProductModal);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async (_productId: string): Promise<void> => {
     setShowProductModal(false);
   };
 
