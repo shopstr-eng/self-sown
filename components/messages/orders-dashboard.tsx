@@ -977,30 +977,28 @@ const OrdersDashboard = () => {
     <div className="bg-light-bg dark:bg-dark-bg min-w-0 max-w-[98vw] px-4 py-4 sm:py-6">
       <div className="mx-auto w-full min-w-0 max-w-full">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-light-text dark:text-dark-text text-3xl font-bold">
-            Orders Dashboard
-          </h1>
+          <h1 className="text-3xl font-bold text-black">Orders Dashboard</h1>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <span className="text-sm font-bold text-black">
               Currency Displayed:
             </span>
-            <div className="inline-flex rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
+            <div className="inline-flex rounded-md border-2 border-black bg-white p-1">
               <button
                 onClick={() => setDisplayCurrency("sats")}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-md px-4 py-2 text-sm font-bold transition-transform ${
                   displayCurrency === "sats"
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                    ? "border-2 border-black bg-primary-yellow text-black shadow-neo"
+                    : "border-2 border-transparent bg-white text-black hover:-translate-y-0.5"
                 }`}
               >
                 sats
               </button>
               <button
                 onClick={() => setDisplayCurrency("USD")}
-                className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                className={`rounded-md px-4 py-2 text-sm font-bold transition-transform ${
                   displayCurrency === "USD"
-                    ? "bg-purple-600 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                    ? "border-2 border-black bg-primary-yellow text-black shadow-neo"
+                    : "border-2 border-transparent bg-white text-black hover:-translate-y-0.5"
                 }`}
               >
                 USD
@@ -1010,20 +1008,16 @@ const OrdersDashboard = () => {
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-            <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+          <div className="rounded-md border-2 border-black bg-white p-6 shadow-neo">
+            <h3 className="mb-2 text-sm font-medium text-black">
               Total Orders
             </h3>
-            <p className="text-light-text dark:text-dark-text text-3xl font-bold">
-              {totalOrders}
-            </p>
+            <p className="text-3xl font-bold text-black">{totalOrders}</p>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-            <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total GMV
-            </h3>
-            <p className="text-light-text dark:text-dark-text text-3xl font-bold">
+          <div className="rounded-md border-2 border-black bg-white p-6 shadow-neo">
+            <h3 className="mb-2 text-sm font-medium text-black">Total GMV</h3>
+            <p className="text-3xl font-bold text-black">
               {displayCurrency === "sats"
                 ? `${getDisplayedGMV().toLocaleString()} sats`
                 : `$${getDisplayedGMV().toLocaleString(undefined, {
@@ -1033,11 +1027,11 @@ const OrdersDashboard = () => {
             </p>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
-            <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+          <div className="rounded-md border-2 border-black bg-white p-6 shadow-neo">
+            <h3 className="mb-2 text-sm font-medium text-black">
               Average Order Size
             </h3>
-            <p className="text-light-text dark:text-dark-text text-3xl font-bold">
+            <p className="text-3xl font-bold text-black">
               {displayCurrency === "sats"
                 ? `${getDisplayedAverage().toFixed(0)} sats`
                 : `$${getDisplayedAverage().toLocaleString(undefined, {
@@ -1049,59 +1043,59 @@ const OrdersDashboard = () => {
         </div>
 
         {orders.length > 0 && (
-          <div className="mb-8 rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+          <div className="mb-8 rounded-md border-2 border-black bg-white p-6 shadow-neo">
             <div style={{ height: "300px" }}>
               <Line options={chartOptions} data={getChartData()} />
             </div>
           </div>
         )}
 
-        <div className="w-full overflow-hidden rounded-lg shadow-md">
+        <div className="w-full overflow-hidden rounded-md border-2 border-black bg-white shadow-neo">
           <div className="max-h-[70vh] overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-gray-500 dark:text-gray-400">
-              <thead className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
+            <table className="min-w-full text-left text-sm text-black">
+              <thead className="border-b-2 border-black bg-white">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Order ID
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Buyer/Seller
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Amount
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Status
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Date
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Address
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Pickup Location
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Payment
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Product
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-600 dark:text-gray-400">
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-black">
                     Donation Amount
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-black bg-white">
                 {orders.length === 0 ? (
                   <tr>
                     <td
                       colSpan={11}
-                      className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                      className="px-6 py-4 text-center text-black"
                     >
                       No orders yet
                     </td>
@@ -1114,21 +1108,21 @@ const OrdersDashboard = () => {
                     return (
                       <tr
                         key={order.orderId}
-                        className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                          isNewOrder ? "border-l-4 border-l-yellow-600" : ""
+                        className={`bg-white hover:bg-gray-50 ${
+                          isNewOrder ? "border-l-4 border-l-primary-yellow" : ""
                         }`}
                       >
-                        <td className="text-light-text dark:text-dark-text whitespace-nowrap px-4 py-4 text-sm">
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-black">
                           <div className="flex flex-col gap-1">
                             <span>{order.orderId.substring(0, 8)}...</span>
                             {order.reviewRating !== undefined ? (
-                              <span className="text-xs text-yellow-600 underline">
+                              <span className="text-xs text-primary-yellow underline">
                                 Rating: {order.reviewRating.toFixed(1)}
                               </span>
                             ) : canShowReviewButton(order) ? (
                               <button
                                 onClick={() => handleOpenReviewModal(order)}
-                                className="cursor-pointer text-left text-xs text-yellow-700 underline hover:text-yellow-900"
+                                className="cursor-pointer text-left text-xs text-primary-yellow underline hover:text-yellow-600"
                               >
                                 Leave Review
                               </button>
@@ -1137,16 +1131,16 @@ const OrdersDashboard = () => {
                         </td>
                         <td className="whitespace-nowrap px-4 py-4 text-sm">
                           <span
-                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                            className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
                               order.isSale
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                                ? "bg-purple-200 text-black"
+                                : "bg-orange-200 text-black"
                             }`}
                           >
                             {order.isSale ? "Sale" : "Purchase"}
                           </span>
                         </td>
-                        <td className="px-4 py-4 text-sm">
+                        <td className="px-4 py-4 text-sm text-black">
                           {(() => {
                             const displayPubkey = order.isSale
                               ? order.buyerPubkey
@@ -1156,16 +1150,14 @@ const OrdersDashboard = () => {
                               <ProfileWithDropdown
                                 pubkey={displayPubkey}
                                 dropDownKeys={["shop", "inquiry", "copy_npub"]}
-                                nameClassname="block"
+                                nameClassname="block text-black"
                               />
                             ) : (
-                              <span className="text-gray-500 dark:text-gray-400">
-                                Not available
-                              </span>
+                              <span className="text-black">Not available</span>
                             );
                           })()}
                         </td>
-                        <td className="text-light-text dark:text-dark-text whitespace-nowrap px-4 py-4 text-sm">
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-black">
                           {order.amount > 0
                             ? displayCurrency === "sats"
                               ? `${getConvertedAmount(
@@ -1184,14 +1176,14 @@ const OrdersDashboard = () => {
                         <td className="whitespace-nowrap px-4 py-4 text-sm">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                              className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
                                 order.status === "completed"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                  ? "bg-blue-200 text-black"
                                   : order.status === "shipped"
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                    ? "bg-green-200 text-black"
                                     : order.status === "pending"
-                                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                      : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                      ? "bg-primary-yellow text-black"
+                                      : "bg-gray-200 text-black"
                               }`}
                             >
                               {order.status}
@@ -1199,19 +1191,19 @@ const OrdersDashboard = () => {
                             {order.status === "pending" && (
                               <button
                                 onClick={() => handleOpenShippingModal(order)}
-                                className="cursor-pointer text-left text-xs text-yellow-700 underline hover:text-yellow-900"
+                                className="cursor-pointer text-left text-xs text-primary-yellow underline hover:text-yellow-600"
                               >
                                 Send Shipping Update
                               </button>
                             )}
                           </div>
                         </td>
-                        <td className="text-light-text dark:text-dark-text whitespace-nowrap px-4 py-4 text-sm">
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-black">
                           {new Date(
                             order.timestamp * 1000
                           ).toLocaleDateString()}
                         </td>
-                        <td className="text-light-text dark:text-dark-text max-w-xs px-4 py-4 text-sm">
+                        <td className="max-w-xs px-4 py-4 text-sm text-black">
                           <div
                             className="truncate"
                             title={order.address || "N/A"}
@@ -1219,7 +1211,7 @@ const OrdersDashboard = () => {
                             {order.address || "N/A"}
                           </div>
                         </td>
-                        <td className="text-light-text dark:text-dark-text max-w-xs px-4 py-4 text-sm">
+                        <td className="max-w-xs px-4 py-4 text-sm text-black">
                           <div
                             className="truncate"
                             title={order.pickupLocation || "N/A"}
@@ -1229,24 +1221,24 @@ const OrdersDashboard = () => {
                         </td>
                         <td className="px-4 py-4 text-sm">
                           {order.subject === "order-receipt" ? (
-                            <span className="text-green-600 dark:text-green-400">
+                            <span className="font-bold text-green-600">
                               Payment Sent
                             </span>
                           ) : order.paymentToken ? (
                             <ClaimButton token={order.paymentToken} />
                           ) : (
-                            <span className="text-gray-600 dark:text-gray-400">
+                            <span className="text-black">
                               {order.paymentMethod}
                             </span>
                           )}
                         </td>
-                        <td className="text-light-text dark:text-dark-text px-4 py-4 text-sm">
+                        <td className="px-4 py-4 text-sm text-black">
                           {order.productAddress ? (
                             <button
                               onClick={() =>
                                 handleProductClick(order.productAddress)
                               }
-                              className="cursor-pointer text-left underline hover:text-purple-600 dark:hover:text-purple-400"
+                              className="cursor-pointer text-left text-black underline hover:text-purple-600"
                             >
                               {order.productTitle} x {order.quantity || 1}
                             </button>
@@ -1254,7 +1246,7 @@ const OrdersDashboard = () => {
                             "N/A"
                           )}
                         </td>
-                        <td className="text-light-text dark:text-dark-text whitespace-nowrap px-4 py-4 text-sm">
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-black">
                           {order.donationAmount !== undefined &&
                           order.donationAmount > 0
                             ? displayCurrency === "sats"
@@ -1301,17 +1293,19 @@ const OrdersDashboard = () => {
         isOpen={showShippingModal}
         onClose={handleCloseShippingModal}
         classNames={{
-          body: "py-6",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46]",
-          footer: "border-t-[1px] border-[#292f46]",
+          wrapper: "shadow-neo",
+          base: "border-2 border-black rounded-md",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          header: "border-b-2 border-black bg-white rounded-t-md text-black",
+          body: "py-6 bg-white",
+          footer: "border-t-2 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",
         }}
         scrollBehavior={"outside"}
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="text-light-text dark:text-dark-text flex flex-col gap-1">
+          <ModalHeader className="flex flex-col gap-1 text-black">
             Enter Shipping Details
           </ModalHeader>
           <form onSubmit={handleShippingSubmit(onShippingSubmit)}>
@@ -1433,47 +1427,45 @@ const OrdersDashboard = () => {
         isOpen={showReviewModal}
         onClose={handleCloseReviewModal}
         classNames={{
-          body: "py-6",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46]",
-          footer: "border-t-[1px] border-[#292f46]",
+          wrapper: "shadow-neo",
+          base: "border-2 border-black rounded-md",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          header: "border-b-2 border-black bg-white rounded-t-md text-black",
+          body: "py-6 bg-white",
+          footer: "border-t-2 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",
         }}
         scrollBehavior={"outside"}
         size="2xl"
       >
         <ModalContent>
-          <ModalHeader className="text-light-text dark:text-dark-text flex flex-col gap-1">
+          <ModalHeader className="flex flex-col gap-1 text-black">
             Leave a Review
           </ModalHeader>
           <form onSubmit={handleReviewSubmit(onReviewSubmit)}>
             <ModalBody>
               <div className="mb-4 flex items-center justify-center gap-16">
                 <div className="flex items-center gap-3">
-                  <span className="text-light-text dark:text-dark-text">
-                    Good Overall
-                  </span>
+                  <span className="text-black">Good Overall</span>
                   <HandThumbUpIcon
-                    className={`h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors ${
+                    className={`h-12 w-12 cursor-pointer rounded-md border-2 p-2 transition-colors ${
                       selectedThumb === "up"
                         ? "border-green-500 text-green-500"
-                        : "border-light-text text-light-text dark:border-dark-text dark:text-dark-text hover:border-green-500 hover:text-green-500"
+                        : "border-black text-black hover:border-green-500 hover:text-green-500"
                     }`}
                     onClick={() => setSelectedThumb("up")}
                   />
                 </div>
                 <div className="flex items-center gap-3">
                   <HandThumbDownIcon
-                    className={`h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors ${
+                    className={`h-12 w-12 cursor-pointer rounded-md border-2 p-2 transition-colors ${
                       selectedThumb === "down"
                         ? "border-red-500 text-red-500"
-                        : "border-light-text text-light-text dark:border-dark-text dark:text-dark-text hover:border-red-500 hover:text-red-500"
+                        : "border-black text-black hover:border-red-500 hover:text-red-500"
                     }`}
                     onClick={() => setSelectedThumb("down")}
                   />
-                  <span className="text-light-text dark:text-dark-text">
-                    Bad Overall
-                  </span>
+                  <span className="text-black">Bad Overall</span>
                 </div>
               </div>
 
@@ -1481,6 +1473,7 @@ const OrdersDashboard = () => {
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 rounded border-2 border-black accent-primary-yellow"
                     checked={reviewOptions.get("value") === 1}
                     onChange={(e) =>
                       setReviewOptions((prev) => {
@@ -1490,13 +1483,12 @@ const OrdersDashboard = () => {
                       })
                     }
                   />
-                  <span className="text-light-text dark:text-dark-text">
-                    Good Value
-                  </span>
+                  <span className="text-black">Good Value</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 rounded border-2 border-black accent-primary-yellow"
                     checked={reviewOptions.get("quality") === 1}
                     onChange={(e) =>
                       setReviewOptions((prev) => {
@@ -1506,13 +1498,12 @@ const OrdersDashboard = () => {
                       })
                     }
                   />
-                  <span className="text-light-text dark:text-dark-text">
-                    Good Quality
-                  </span>
+                  <span className="text-black">Good Quality</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 rounded border-2 border-black accent-primary-yellow"
                     checked={reviewOptions.get("delivery") === 1}
                     onChange={(e) =>
                       setReviewOptions((prev) => {
@@ -1522,13 +1513,12 @@ const OrdersDashboard = () => {
                       })
                     }
                   />
-                  <span className="text-light-text dark:text-dark-text">
-                    Quick Delivery
-                  </span>
+                  <span className="text-black">Quick Delivery</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
+                    className="h-4 w-4 rounded border-2 border-black accent-primary-yellow"
                     checked={reviewOptions.get("communication") === 1}
                     onChange={(e) =>
                       setReviewOptions((prev) => {
@@ -1538,9 +1528,7 @@ const OrdersDashboard = () => {
                       })
                     }
                   />
-                  <span className="text-light-text dark:text-dark-text">
-                    Good Communication
-                  </span>
+                  <span className="text-black">Good Communication</span>
                 </label>
               </div>
 
@@ -1552,7 +1540,7 @@ const OrdersDashboard = () => {
                   <div>
                     <textarea
                       {...field}
-                      className="border-light-fg bg-light-bg text-light-text dark:border-dark-fg dark:bg-dark-bg dark:text-dark-text w-full rounded-md border-2 p-2"
+                      className="w-full rounded-md border-2 border-black bg-white p-2 text-black"
                       rows={4}
                       placeholder="Write your review comment here..."
                     />

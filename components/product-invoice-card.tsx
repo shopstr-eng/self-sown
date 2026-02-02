@@ -2282,7 +2282,7 @@ export default function ProductInvoiceCard({
           }
 
           const paymentMessage =
-            "You have received a credit card payment from " +
+            "You have received a stripe payment from " +
             userNPub +
             " for your " +
             productData.title +
@@ -2300,8 +2300,11 @@ export default function ProductInvoiceCard({
             orderId,
             "stripe",
             invoiceId,
-            "",
-            discountedTotal
+            invoiceId,
+            discountedTotal,
+            undefined,
+            undefined,
+            selectedPickupLocation || undefined
           );
 
           // Send additional info and delivery messages similar to other payment methods
@@ -2377,6 +2380,9 @@ export default function ProductInvoiceCard({
                 data.shippingCountry +
                 ".";
             }
+            const addressTag = data.shippingUnitNo
+              ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+              : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`;
             await sendPaymentAndContactMessage(
               productData.pubkey,
               contactMessage,
@@ -2384,7 +2390,13 @@ export default function ProductInvoiceCard({
               false,
               false,
               false,
-              orderId
+              orderId,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              addressTag
             );
 
             await new Promise((resolve) => setTimeout(resolve, 500));
@@ -2402,9 +2414,18 @@ export default function ProductInvoiceCard({
               true,
               false,
               false,
-              orderId
+              orderId,
+              "stripe",
+              invoiceId,
+              invoiceId,
+              undefined,
+              undefined,
+              addressTag,
+              selectedPickupLocation || undefined
             );
           } else if (data.contact && data.contactType) {
+            await sendInquiryDM(productData.pubkey, productData.title);
+
             await new Promise((resolve) => setTimeout(resolve, 500));
             const contactMessage =
               "To finalize the sale of your " +
@@ -2442,7 +2463,14 @@ export default function ProductInvoiceCard({
               true,
               false,
               false,
-              orderId
+              orderId,
+              "stripe",
+              invoiceId,
+              invoiceId,
+              undefined,
+              undefined,
+              undefined,
+              selectedPickupLocation || undefined
             );
           } else {
             await new Promise((resolve) => setTimeout(resolve, 500));
@@ -2460,7 +2488,14 @@ export default function ProductInvoiceCard({
               true,
               false,
               false,
-              orderId
+              orderId,
+              "stripe",
+              invoiceId,
+              invoiceId,
+              undefined,
+              undefined,
+              undefined,
+              selectedPickupLocation || undefined
             );
           }
         } else {

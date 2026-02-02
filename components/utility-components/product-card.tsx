@@ -132,22 +132,35 @@ export default function ProductCard({
             </Chip>
           )}
           {productData.rawEvent && (
-            <Dropdown>
+            <Dropdown
+              classNames={{
+                content:
+                  "rounded-md border-2 border-black bg-white shadow-neo p-0",
+              }}
+            >
               <DropdownTrigger>
                 <Button
                   isIconOnly
                   variant="light"
                   size="sm"
-                  className="min-w-8 h-8"
+                  className="min-w-8 h-8 rounded-md border-2 border-black bg-white shadow-neo"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                   }}
                 >
-                  <EllipsisVerticalIcon className="h-6 w-6 text-gray-500" />
+                  <EllipsisVerticalIcon className="h-5 w-5 text-black" />
                 </Button>
               </DropdownTrigger>
-              <DropdownMenu aria-label="Event Actions">
+              <DropdownMenu
+                aria-label="Event Actions"
+                classNames={{
+                  base: "p-1",
+                }}
+                itemClasses={{
+                  base: "rounded-md text-black data-[hover=true]:bg-primary-yellow data-[hover=true]:text-black",
+                }}
+              >
                 <DropdownItem
                   key="view-raw"
                   onPress={() => setShowRawEventModal(true)}
