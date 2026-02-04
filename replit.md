@@ -8,6 +8,19 @@ The platform enables users to create product listings, manage orders, communicat
 
 ## February 2026
 
+- **Landing Page Optimization (YC Best Practices)**: Completely redesigned the landing page following YC startup landing page principles for improved conversion:
+
+  - Single primary CTA in hero section ("Find Local Dairy Near You")
+  - Outcome-first headline ("Farm-Fresh Raw Milk Direct to Your Door")
+  - Shortened subheadline from 39 words to 15 words, removed jargon
+  - Added social proof bar with trust metrics (50+ Local Farms, 200+ Products, 0% Fees)
+  - Removed distracting floating animations throughout the page
+  - Added Problem/Transformation comparison section
+  - Simplified "How It Works" to 3-step process
+  - Added FAQ accordion section with 5 common objections
+  - Consolidated page from 10+ sections to focused 8-section layout
+  - Updated "Why Choose Us" with specific numbers (0%, 100%, 24/7)
+
 - **Herdshare Agreement Column in Orders Dashboard**: Added a new column to display herdshare agreement status for orders. Buyers see a "Sign Herdshare" button to sign unsigned agreements, while both buyers and sellers can view signed agreements via a "View Herdshare" button. The signing flow uses the PDFAnnotator component and encrypts the signed document before sending it back to the seller.
 
 # User Preferences
