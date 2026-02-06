@@ -15,6 +15,7 @@ import { ShopMapContext } from "@/utils/context/context";
 import { ShopProfile } from "../../utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import DiscountCodes from "./discount-codes";
+import StripeConnectBanner from "@/components/stripe-connect/StripeConnectBanner";
 
 const MyListingsPage = () => {
   const { pubkey: usersPubkey } = useContext(SignerContext);
@@ -152,6 +153,7 @@ const MyListingsPage = () => {
   return (
     <div className="mx-auto h-full w-full bg-white">
       <div className="flex max-w-[100%] flex-col px-3 pb-2">
+        <StripeConnectBanner returnPath="/my-listings?stripe=success" refreshPath="/my-listings?stripe=refresh" />
         {shopBannerURL != "" && !isFetchingShop ? (
           <>
             <div className="mb-6 flex h-auto w-full items-center justify-center overflow-hidden rounded-lg border-4 border-black shadow-neo">

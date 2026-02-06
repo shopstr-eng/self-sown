@@ -23,6 +23,19 @@ The platform enables users to create product listings, manage orders, communicat
 
 - **Herdshare Agreement Column in Orders Dashboard**: Added a new column to display herdshare agreement status for orders. Buyers see a "Sign Herdshare" button to sign unsigned agreements, while both buyers and sellers can view signed agreements via a "View Herdshare" button. The signing flow uses the PDFAnnotator component and encrypts the signed document before sending it back to the seller.
 
+- **Stripe Connect Integration for Sellers**: Implemented full Stripe Connect Express flow so all sellers (not just the platform account) can accept credit card payments through their own connected Stripe accounts:
+  - Added `stripe_connect_accounts` database table with helper functions (`getStripeConnectAccount`, `upsertStripeConnectAccount`)
+  - Built 4 Stripe Connect API routes: `create-account`, `create-account-link`, `account-status`, `seller-status`
+  - Created reusable `StripeConnectModal` and `StripeConnectBanner` components for prompting sellers
+  - Added onboarding step 5 (`/onboarding/stripe-connect`) after shop profile setup with skip option
+  - Integrated Stripe Connect prompts into Orders, My Listings, User Profile, and Shop Profile pages
+  - Post-listing pop-up checks seller's Stripe status and prompts setup if needed
+  - Updated payment flow: `isStripeMerchant` now dynamically checks seller's connected account via API
+  - `create-invoice.ts` uses `stripeAccount` parameter for connected accounts; `check-payment.ts` supports `connectedAccountId`
+  - Platform account (NEXT_PUBLIC_MILK_MARKET_PK) uses default Stripe credentials; other sellers use their connected accounts
+
+- **Database Initialization Fix**: Fixed pre-existing bug where `is_read` and `order_id` index creation on `message_events` table failed when the table already existed without those columns, preventing all table initialization including migrations
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -69,6 +82,7 @@ Preferred communication style: Simple, everyday language.
 
 - **Lightning Network**: Direct Lightning invoice generation and payment verification
 - **Cashu eCash**: Integration with Cashu mints for privacy-preserving Bitcoin payments
+- **Stripe Connect**: Express accounts for sellers to accept credit card payments, with platform-level connected account management via `stripe_connect_accounts` table
 - **Fiat Support**: Traditional payment processing for fiat currency transactions
 - **Multi-Currency**: Support for multiple currencies with dynamic conversion
 

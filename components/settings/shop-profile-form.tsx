@@ -87,7 +87,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     setIsUploadingShopProfile(false);
 
     if (isOnboarding) {
-      router.push("/marketplace");
+      router.push("/onboarding/stripe-connect");
     }
   };
 
