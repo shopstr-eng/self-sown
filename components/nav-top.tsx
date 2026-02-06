@@ -116,7 +116,7 @@ const TopNav = ({
   const handleHomeClick = () => {
     setFocusedPubkey("");
     setSelectedSection("");
-    router.push("/marketplace");
+    handleRoute("/marketplace");
     setIsMobileMenuOpen(false);
   };
 
@@ -134,7 +134,7 @@ const TopNav = ({
         className={`w-full bg-transparent ${
           isCommunitiesActive ? "text-primary-yellow" : "text-white"
         } hover:text-primary-yellow`}
-        onClick={() => router.push("/communities")}
+        onClick={() => handleRoute("/communities")}
       >
         Communities
       </Button>
@@ -220,7 +220,8 @@ const TopNav = ({
                 "settings",
                 "logout",
               ]}
-              nameClassname="hidden"
+              nameClassname="hidden text-white"
+              bg="dark"
             />
           ) : (
             <Button
@@ -246,7 +247,7 @@ const TopNav = ({
                 ? "font-bold text-primary-yellow"
                 : "text-white"
             } hover:text-primary-yellow`}
-            onClick={() => router.push("/communities")}
+            onClick={() => handleRoute("/communities")}
           >
             Communities
           </Button>
@@ -306,7 +307,8 @@ const TopNav = ({
                 "settings",
                 "logout",
               ]}
-              nameClassname="lg:block"
+              nameClassname="lg:block text-white"
+              bg="dark"
             />
           ) : (
             <Button
