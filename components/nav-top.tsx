@@ -19,11 +19,12 @@ const TopNav = ({
 }) => {
   const {
     isHomeActive,
+    isProfileActive,
+    isCommunitiesActive,
     isMessagesActive,
     isWalletActive,
     isMyListingsActive,
-    isProfileActive,
-    isCommunitiesActive,
+    isCartActive,
   } = useNavigation();
   const router = useRouter();
 
@@ -185,7 +186,7 @@ const TopNav = ({
   return (
     <div className="fixed top-0 z-50 w-full border-b-2 border-black bg-primary-blue shadow-lg">
       <div className="flex items-center justify-between py-2 pr-4">
-        <div className="flex items-center">
+        <div className="flex flex-shrink-0 items-center">
           <Button
             onClick={handleHomeClick}
             className="flex items-center bg-transparent text-white duration-200 hover:text-primary-yellow"
@@ -202,7 +203,7 @@ const TopNav = ({
             </span>
           </Button>
         </div>
-        <div className="flex flex-row items-center md:hidden">
+        <div className="ml-auto flex flex-row items-center md:hidden">
           <Button
             className="bg-transparent"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -212,47 +213,46 @@ const TopNav = ({
           {signedIn ? (
             <ProfileWithDropdown
               pubkey={userPubkey!}
-              baseClassname="w-full hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
+              baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
               dropDownKeys={[
                 "shop_profile",
                 "user_profile",
                 "settings",
                 "logout",
               ]}
-              nameClassname="md:block text-white"
-              bg="dark"
+              nameClassname="hidden"
             />
           ) : (
             <Button
               onClick={onOpen}
-              className="w-full bg-transparent text-white hover:text-primary-yellow"
+              className="bg-transparent text-white hover:text-primary-yellow"
             >
               Sign In
             </Button>
           )}
         </div>
-        <div className="hidden items-center space-x-2 font-bold md:flex">
+        <div className="hidden flex-1 items-center justify-evenly md:flex">
           <Button
             className={`bg-transparent ${
-              isHomeActive ? "text-primary-yellow" : "text-white"
+              isHomeActive ? "font-bold text-primary-yellow" : "text-white"
             } hover:text-primary-yellow`}
             onClick={handleHomeClick}
           >
             Marketplace
           </Button>
-          <span className="text-white">|</span>
           <Button
             className={`bg-transparent ${
-              isCommunitiesActive ? "text-primary-yellow" : "text-white"
+              isCommunitiesActive
+                ? "font-bold text-primary-yellow"
+                : "text-white"
             } hover:text-primary-yellow`}
-            onClick={() => handleRoute("/communities")}
+            onClick={() => router.push("/communities")}
           >
             Communities
           </Button>
-          <span className="text-white">|</span>
           <Button
             className={`bg-transparent ${
-              isMessagesActive ? "text-primary-yellow" : "text-white"
+              isMessagesActive ? "font-bold text-primary-yellow" : "text-white"
             } hover:text-primary-yellow`}
             onClick={() => handleRoute("/orders")}
           >
@@ -263,28 +263,27 @@ const TopNav = ({
               </span>
             )}
           </Button>
-          <span className="text-white">|</span>
           <Button
             className={`bg-transparent ${
-              isWalletActive ? "text-primary-yellow" : "text-white"
+              isWalletActive ? "font-bold text-primary-yellow" : "text-white"
             } hover:text-primary-yellow`}
             onClick={() => handleRoute("/wallet")}
           >
             Wallet
           </Button>
-          <span className="text-white">|</span>
           <Button
             className={`bg-transparent ${
-              isMyListingsActive ? "text-primary-yellow" : "text-white"
+              isMyListingsActive
+                ? "font-bold text-primary-yellow"
+                : "text-white"
             } hover:text-primary-yellow`}
             onClick={() => handleRoute("/my-listings")}
           >
             My Listings
           </Button>
-          <span className="text-white">|</span>
           <Button
             className={`bg-transparent ${
-              router.pathname === "/cart" ? "text-primary-yellow" : "text-white"
+              isCartActive ? "font-bold text-primary-yellow" : "text-white"
             } hover:text-primary-yellow`}
             onClick={() => handleRoute("/cart")}
           >
@@ -295,33 +294,29 @@ const TopNav = ({
               </span>
             )}
           </Button>
-          <span className="text-white">|</span>
+        </div>
+        <div className="hidden flex-shrink-0 items-center md:flex">
           {signedIn ? (
-            <>
-              <ProfileWithDropdown
-                pubkey={userPubkey!}
-                baseClassname="justify-start hover:bg-opacity-80 rounded-3xl py-2 hover:scale-105 hover:shadow-lg"
-                dropDownKeys={[
-                  "shop_profile",
-                  "user_profile",
-                  "settings",
-                  "logout",
-                ]}
-                nameClassname="md:block text-white"
-                bg="dark"
-              />
-            </>
+            <ProfileWithDropdown
+              pubkey={userPubkey!}
+              baseClassname="justify-start hover:bg-opacity-80 pl-2 rounded-3xl py-2 hover:scale-105 hover:shadow-lg"
+              dropDownKeys={[
+                "shop_profile",
+                "user_profile",
+                "settings",
+                "logout",
+              ]}
+              nameClassname="lg:block"
+            />
           ) : (
-            <>
-              <Button
-                onClick={onOpen}
-                className={`bg-transparent ${
-                  isProfileActive ? "text-primary-yellow" : "text-white"
-                } duration-200 hover:text-primary-yellow`}
-              >
-                Sign In
-              </Button>
-            </>
+            <Button
+              onClick={onOpen}
+              className={`bg-transparent ${
+                isProfileActive ? "font-bold text-primary-yellow" : "text-white"
+              } duration-200 hover:text-primary-yellow`}
+            >
+              Sign In
+            </Button>
           )}
         </div>
       </div>
