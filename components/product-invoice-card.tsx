@@ -247,9 +247,59 @@ export default function ProductInvoiceCard({
     string | null
   >(null);
 
-  // Check if Stripe should be available for this product
-  const isStripeMerchant =
-    productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+  const [isStripeMerchant, setIsStripeMerchant] = useState(
+    productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+  );
+  const [sellerConnectedAccountId, setSellerConnectedAccountId] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    const checkSellerStripe = async () => {
+      if (productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+        setIsStripeMerchant(true);
+        return;
+      }
+      try {
+        const res = await fetch("/api/stripe/connect/seller-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pubkey: productData.pubkey }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasStripeAccount && data.chargesEnabled) {
+            setIsStripeMerchant(true);
+          }
+        }
+      } catch {
+        // keep default
+      }
+    };
+    checkSellerStripe();
+  }, [productData.pubkey]);
+
+  useEffect(() => {
+    const fetchConnectedAccountId = async () => {
+      if (productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) return;
+      try {
+        const res = await fetch("/api/stripe/connect/seller-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pubkey: productData.pubkey }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasStripeAccount && data.chargesEnabled && data.connectedAccountId) {
+            setSellerConnectedAccountId(data.connectedAccountId);
+          }
+        }
+      } catch {
+        // keep null
+      }
+    };
+    fetchConnectedAccountId();
+  }, [productData.pubkey]);
 
   // Check if product requires pickup location selection (pickup-type shipping with pickup locations defined)
   const requiresPickupLocation =
@@ -2219,7 +2269,7 @@ export default function ProductInvoiceCard({
         throw new Error(errorData.details || "Failed to create Stripe invoice");
       }
 
-      const { invoiceUrl, invoiceId } = await response.json();
+      const { invoiceUrl, invoiceId, connectedAccountId: respConnectedId } = await response.json();
 
       setStripeInvoiceUrl(invoiceUrl);
       setStripeInvoiceId(invoiceId);
@@ -2227,9 +2277,8 @@ export default function ProductInvoiceCard({
       setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
       setHasTimedOut(false);
 
-      // Start polling for payment status
       setIsCheckingStripePayment(true);
-      checkStripePaymentStatus(invoiceId, data);
+      checkStripePaymentStatus(invoiceId, data, respConnectedId || sellerConnectedAccountId);
     } catch (error) {
       console.error("Stripe payment error:", error);
       setInvoiceGenerationFailed(true);
@@ -2237,9 +2286,9 @@ export default function ProductInvoiceCard({
     }
   };
 
-  const checkStripePaymentStatus = async (invoiceId: string, data: any) => {
+  const checkStripePaymentStatus = async (invoiceId: string, data: any, connectedAcctId?: string | null) => {
     let pollCount = 0;
-    const maxPolls = 120; // Poll for up to 10 minutes (5 seconds * 120)
+    const maxPolls = 120;
 
     const checkStatus = async () => {
       try {
@@ -2248,7 +2297,7 @@ export default function ProductInvoiceCard({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ invoiceId }),
+          body: JSON.stringify({ invoiceId, connectedAccountId: connectedAcctId || undefined }),
         });
 
         if (!response.ok) {

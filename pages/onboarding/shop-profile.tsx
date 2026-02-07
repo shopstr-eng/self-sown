@@ -9,7 +9,7 @@ const OnboardingShopProfile = () => {
   const router = useRouter();
 
   const handleFinish = () => {
-    router.push("/marketplace");
+    router.push("/onboarding/stripe-connect");
   };
 
   return (

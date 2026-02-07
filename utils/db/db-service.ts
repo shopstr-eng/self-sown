@@ -111,8 +111,6 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_message_events_pubkey ON message_events(pubkey);
       CREATE INDEX IF NOT EXISTS idx_message_events_created_at ON message_events(created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_message_events_is_read ON message_events(is_read);
-      CREATE INDEX IF NOT EXISTS idx_message_events_order_id ON message_events(order_id);
 
       -- Profile events (kind 0 - user profile, kind 30019 - shop profile)
       CREATE TABLE IF NOT EXISTS profile_events (
@@ -190,9 +188,23 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_discount_codes_pubkey ON discount_codes(pubkey);
       CREATE INDEX IF NOT EXISTS idx_discount_codes_code ON discount_codes(code);
+
+      -- Stripe Connect accounts table
+      CREATE TABLE IF NOT EXISTS stripe_connect_accounts (
+          id SERIAL PRIMARY KEY,
+          pubkey TEXT NOT NULL UNIQUE,
+          stripe_account_id TEXT NOT NULL,
+          onboarding_complete BOOLEAN DEFAULT FALSE,
+          charges_enabled BOOLEAN DEFAULT FALSE,
+          payouts_enabled BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_stripe_connect_pubkey ON stripe_connect_accounts(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_stripe_connect_account_id ON stripe_connect_accounts(stripe_account_id);
     `);
 
-    // Migration: Add is_read, order_status, order_id columns to existing message_events tables
     await client.query(`
       DO $$
       BEGIN
@@ -201,7 +213,6 @@ async function initializeTables(): Promise<void> {
           WHERE table_name = 'message_events' AND column_name = 'is_read'
         ) THEN
           ALTER TABLE message_events ADD COLUMN is_read BOOLEAN DEFAULT FALSE;
-          CREATE INDEX IF NOT EXISTS idx_message_events_is_read ON message_events(is_read);
         END IF;
         
         IF NOT EXISTS (
@@ -216,9 +227,13 @@ async function initializeTables(): Promise<void> {
           WHERE table_name = 'message_events' AND column_name = 'order_id'
         ) THEN
           ALTER TABLE message_events ADD COLUMN order_id TEXT DEFAULT NULL;
-          CREATE INDEX IF NOT EXISTS idx_message_events_order_id ON message_events(order_id);
         END IF;
       END $$;
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_message_events_is_read ON message_events(is_read);
+      CREATE INDEX IF NOT EXISTS idx_message_events_order_id ON message_events(order_id);
     `);
 
     tablesInitialized = true;
@@ -1095,6 +1110,66 @@ export async function deleteDiscountCode(
     if (client) {
       client.release();
     }
+  }
+}
+
+// Get Stripe Connect account by pubkey
+export async function getStripeConnectAccount(
+  pubkey: string
+): Promise<{
+  stripe_account_id: string;
+  onboarding_complete: boolean;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+} | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled FROM stripe_connect_accounts WHERE pubkey = $1`,
+      [pubkey]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0];
+  } catch (error) {
+    console.error("Failed to get Stripe Connect account:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Create or update Stripe Connect account
+export async function upsertStripeConnectAccount(
+  pubkey: string,
+  stripeAccountId: string,
+  onboardingComplete: boolean = false,
+  chargesEnabled: boolean = false,
+  payoutsEnabled: boolean = false
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `INSERT INTO stripe_connect_accounts (pubkey, stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, updated_at)
+       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+       ON CONFLICT (pubkey) DO UPDATE SET
+         stripe_account_id = EXCLUDED.stripe_account_id,
+         onboarding_complete = EXCLUDED.onboarding_complete,
+         charges_enabled = EXCLUDED.charges_enabled,
+         payouts_enabled = EXCLUDED.payouts_enabled,
+         updated_at = CURRENT_TIMESTAMP`,
+      [pubkey, stripeAccountId, onboardingComplete, chargesEnabled, payoutsEnabled] as any[]
+    );
+  } catch (error) {
+    console.error("Failed to upsert Stripe Connect account:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
   }
 }
 

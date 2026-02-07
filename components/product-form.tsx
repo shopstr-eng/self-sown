@@ -50,6 +50,8 @@ import {
   SignerContext,
 } from "@/components/utility-components/nostr-context-provider";
 import { ProductFormValues } from "../utils/types/types";
+import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
+import { createAuthEventTemplate } from "@/utils/stripe/verify-nostr-auth";
 
 interface ProductFormProps {
   handleModalToggle: () => void;
@@ -79,6 +81,7 @@ export default function ProductForm({
   const [herdshareAgreementUrl, setHerdshareAgreementUrl] =
     useState<string>("");
   const [isFlashSale, setIsFlashSale] = useState(false);
+  const [showStripeConnectModal, setShowStripeConnectModal] = useState(false);
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
   const {
@@ -337,6 +340,26 @@ export default function ProductForm({
     if (onSubmitCallback) {
       onSubmitCallback();
     }
+
+    if (pubkey && !isEdit && signer) {
+      try {
+        const template = createAuthEventTemplate(pubkey);
+        const signedEvent = await signer.sign(template);
+        const res = await fetch("/api/stripe/connect/account-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pubkey, signedEvent }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.chargesEnabled) {
+            setShowStripeConnectModal(true);
+          }
+        }
+      } catch {
+        // silently fail
+      }
+    }
   };
 
   const clear = () => {
@@ -368,6 +391,7 @@ export default function ProductForm({
   }));
 
   return (
+    <>
     <Modal
       backdrop="blur"
       isOpen={showModal}
@@ -1820,5 +1844,15 @@ export default function ProductForm({
         </form>
       </ModalContent>
     </Modal>
+    {pubkey && (
+      <StripeConnectModal
+        isOpen={showStripeConnectModal}
+        onClose={() => setShowStripeConnectModal(false)}
+        pubkey={pubkey}
+        returnPath="/my-listings?stripe=success"
+        refreshPath="/my-listings?stripe=refresh"
+      />
+    )}
+    </>
   );
 }
