@@ -27,7 +27,9 @@ export default async function handler(
 
     const authResult = verifyNostrAuth(signedEvent, pubkey);
     if (!authResult.valid) {
-      return res.status(401).json({ error: authResult.error || "Authentication failed" });
+      return res
+        .status(401)
+        .json({ error: authResult.error || "Authentication failed" });
     }
 
     const connectAccount = await getStripeConnectAccount(pubkey);

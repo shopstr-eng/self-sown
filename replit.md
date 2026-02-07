@@ -24,6 +24,7 @@ The platform enables users to create product listings, manage orders, communicat
 - **Herdshare Agreement Column in Orders Dashboard**: Added a new column to display herdshare agreement status for orders. Buyers see a "Sign Herdshare" button to sign unsigned agreements, while both buyers and sellers can view signed agreements via a "View Herdshare" button. The signing flow uses the PDFAnnotator component and encrypts the signed document before sending it back to the seller.
 
 - **Stripe Connect Integration for Sellers**: Implemented full Stripe Connect Express flow so all sellers (not just the platform account) can accept credit card payments through their own connected Stripe accounts:
+
   - Added `stripe_connect_accounts` database table with helper functions (`getStripeConnectAccount`, `upsertStripeConnectAccount`)
   - Built 4 Stripe Connect API routes: `create-account`, `create-account-link`, `account-status`, `seller-status`
   - Created reusable `StripeConnectModal` and `StripeConnectBanner` components for prompting sellers

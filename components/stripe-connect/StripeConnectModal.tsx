@@ -88,7 +88,11 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
       onClose();
     } catch (err) {
       console.error("Stripe setup error:", err);
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }

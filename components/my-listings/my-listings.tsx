@@ -153,7 +153,10 @@ const MyListingsPage = () => {
   return (
     <div className="mx-auto h-full w-full bg-white">
       <div className="flex max-w-[100%] flex-col px-3 pb-2">
-        <StripeConnectBanner returnPath="/my-listings?stripe=success" refreshPath="/my-listings?stripe=refresh" />
+        <StripeConnectBanner
+          returnPath="/my-listings?stripe=success"
+          refreshPath="/my-listings?stripe=refresh"
+        />
         {shopBannerURL != "" && !isFetchingShop ? (
           <>
             <div className="mb-6 flex h-auto w-full items-center justify-center overflow-hidden rounded-lg border-4 border-black shadow-neo">

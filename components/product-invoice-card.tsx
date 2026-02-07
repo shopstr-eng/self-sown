@@ -290,7 +290,11 @@ export default function ProductInvoiceCard({
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.hasStripeAccount && data.chargesEnabled && data.connectedAccountId) {
+          if (
+            data.hasStripeAccount &&
+            data.chargesEnabled &&
+            data.connectedAccountId
+          ) {
             setSellerConnectedAccountId(data.connectedAccountId);
           }
         }
@@ -2269,7 +2273,11 @@ export default function ProductInvoiceCard({
         throw new Error(errorData.details || "Failed to create Stripe invoice");
       }
 
-      const { invoiceUrl, invoiceId, connectedAccountId: respConnectedId } = await response.json();
+      const {
+        invoiceUrl,
+        invoiceId,
+        connectedAccountId: respConnectedId,
+      } = await response.json();
 
       setStripeInvoiceUrl(invoiceUrl);
       setStripeInvoiceId(invoiceId);
@@ -2278,7 +2286,11 @@ export default function ProductInvoiceCard({
       setHasTimedOut(false);
 
       setIsCheckingStripePayment(true);
-      checkStripePaymentStatus(invoiceId, data, respConnectedId || sellerConnectedAccountId);
+      checkStripePaymentStatus(
+        invoiceId,
+        data,
+        respConnectedId || sellerConnectedAccountId
+      );
     } catch (error) {
       console.error("Stripe payment error:", error);
       setInvoiceGenerationFailed(true);
@@ -2286,7 +2298,11 @@ export default function ProductInvoiceCard({
     }
   };
 
-  const checkStripePaymentStatus = async (invoiceId: string, data: any, connectedAcctId?: string | null) => {
+  const checkStripePaymentStatus = async (
+    invoiceId: string,
+    data: any,
+    connectedAcctId?: string | null
+  ) => {
     let pollCount = 0;
     const maxPolls = 120;
 
@@ -2297,7 +2313,10 @@ export default function ProductInvoiceCard({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ invoiceId, connectedAccountId: connectedAcctId || undefined }),
+          body: JSON.stringify({
+            invoiceId,
+            connectedAccountId: connectedAcctId || undefined,
+          }),
         });
 
         if (!response.ok) {

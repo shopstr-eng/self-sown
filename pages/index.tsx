@@ -325,7 +325,7 @@ export default function StandaloneLanding() {
 
         <div className="relative z-10 mx-auto max-w-4xl text-center">
           <h1 className="mb-6 text-4xl font-black leading-tight md:text-6xl">
-            Farm-Fresh Raw Milk <br />
+            Farm-Fresh Raw Dairy <br />
             <span className="relative inline-block">
               <span className="relative z-10 inline-block rounded-lg border-[3px] border-black bg-black px-4 py-2 text-white">
                 Direct to Your Door
@@ -335,12 +335,12 @@ export default function StandaloneLanding() {
           </h1>
 
           <p className="mx-auto mb-4 max-w-xl text-lg text-zinc-600">
-            Find local farmers selling raw milk, cheese, and dairy. Pay
+            Find local farmers selling raw milk, cheese, and dairy products. Pay
             directly. Pick up fresh.
           </p>
 
           <p className="mb-6 inline-block rounded-full border-2 border-black bg-primary-yellow px-4 py-1 text-sm font-bold">
-            Direct milk delivery in the greater Seattle area
+            Dairy-direct home delivery available for the greater Seattle area
           </p>
 
           <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-sm text-zinc-500">

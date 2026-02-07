@@ -16,20 +16,27 @@ export default async function handler(
   }
 
   try {
-    const { accountId, returnPath, refreshPath, pubkey, signedEvent } = req.body;
+    const { accountId, returnPath, refreshPath, pubkey, signedEvent } =
+      req.body;
 
     if (!accountId || !pubkey || !signedEvent) {
-      return res.status(400).json({ error: "accountId, pubkey, and signedEvent are required" });
+      return res
+        .status(400)
+        .json({ error: "accountId, pubkey, and signedEvent are required" });
     }
 
     const authResult = verifyNostrAuth(signedEvent, pubkey);
     if (!authResult.valid) {
-      return res.status(401).json({ error: authResult.error || "Authentication failed" });
+      return res
+        .status(401)
+        .json({ error: authResult.error || "Authentication failed" });
     }
 
     const connectAccount = await getStripeConnectAccount(pubkey);
     if (!connectAccount || connectAccount.stripe_account_id !== accountId) {
-      return res.status(403).json({ error: "Account does not belong to this user" });
+      return res
+        .status(403)
+        .json({ error: "Account does not belong to this user" });
     }
 
     const baseUrl =
@@ -40,8 +47,12 @@ export default async function handler(
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${baseUrl}${refreshPath || "/onboarding/stripe-connect?refresh=true"}`,
-      return_url: `${baseUrl}${returnPath || "/onboarding/stripe-connect?success=true"}`,
+      refresh_url: `${baseUrl}${
+        refreshPath || "/onboarding/stripe-connect?refresh=true"
+      }`,
+      return_url: `${baseUrl}${
+        returnPath || "/onboarding/stripe-connect?success=true"
+      }`,
       type: "account_onboarding",
     });
 

@@ -1114,9 +1114,7 @@ export async function deleteDiscountCode(
 }
 
 // Get Stripe Connect account by pubkey
-export async function getStripeConnectAccount(
-  pubkey: string
-): Promise<{
+export async function getStripeConnectAccount(pubkey: string): Promise<{
   stripe_account_id: string;
   onboarding_complete: boolean;
   charges_enabled: boolean;
@@ -1163,7 +1161,13 @@ export async function upsertStripeConnectAccount(
          charges_enabled = EXCLUDED.charges_enabled,
          payouts_enabled = EXCLUDED.payouts_enabled,
          updated_at = CURRENT_TIMESTAMP`,
-      [pubkey, stripeAccountId, onboardingComplete, chargesEnabled, payoutsEnabled] as any[]
+      [
+        pubkey,
+        stripeAccountId,
+        onboardingComplete,
+        chargesEnabled,
+        payoutsEnabled,
+      ] as any[]
     );
   } catch (error) {
     console.error("Failed to upsert Stripe Connect account:", error);

@@ -10,7 +10,10 @@ export default function MessageView() {
   return (
     <div className="bg-light-bg flex min-h-screen flex-col pt-16">
       <div className="px-4 pt-4">
-        <StripeConnectBanner returnPath="/orders?stripe=success" refreshPath="/orders?stripe=refresh" />
+        <StripeConnectBanner
+          returnPath="/orders?stripe=success"
+          refreshPath="/orders?stripe=refresh"
+        />
       </div>
       <MessageFeed
         {...(isInquiry !== undefined
