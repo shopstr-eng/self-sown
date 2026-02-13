@@ -685,6 +685,9 @@ export default function CheckoutCard({
                   />
                 )}
 
+                {/* Size Grid */}
+                {hasSizes && renderSizeGrid()}
+
                 {hasBulkPrices && (
                   <BulkSelector
                     bulkPrices={productData.bulkPrices!}
@@ -701,14 +704,6 @@ export default function CheckoutCard({
                       Bundle: {selectedBulkOption} units
                     </p>
                   )}
-                </div>
-
-                {/* Size Grid */}
-                {hasSizes && renderSizeGrid()}
-
-                {/* Price Display */}
-                <div className="mt-2">
-                  <DisplayCheckoutCost monetaryInfo={updatedProductData} />
                 </div>
 
                 {isZapsnag ? (
