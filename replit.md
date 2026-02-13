@@ -135,3 +135,68 @@ Preferred communication style: Simple, everyday language.
 - **Linting**: ESLint with TypeScript and Next.js configurations
 - **Code Quality**: Prettier for code formatting, TypeScript for type safety
 - **Security**: Semgrep for security scanning and vulnerability detection
+
+## Recent Changes
+
+### Bulk/Bundle Pricing Feature (February 12, 2026)
+
+- Added bulk pricing data model: `bulkPrices` (Map<number, number>), `selectedBulkOption`, and `bulkPrice` fields to ProductData type
+- Created `BulkSelector` component (`components/utility-components/bulk-selector.tsx`) for buyer-side bundle selection dropdown
+- Updated product parser (`utils/parsers/product-parser-functions.ts`) to parse "bulk" tags from Nostr events into bulkPrices Map
+- Added seller UI in product form (`components/product-form.tsx`) with toggle switch and dynamic tier management (add/remove unit-price pairs)
+- Product form writes bulk pricing as ["bulk", "units", "price"] Nostr event tags
+- Integrated BulkSelector into checkout card (`components/utility-components/checkout-card.tsx`) with price calculation and display
+- Updated cart page (`pages/cart/index.tsx`) to handle bulk selection, display bundle info, and use bulk prices in calculations
+- Added bulk pricing to all order messages in both ProductInvoiceCard and CartInvoiceCard via "bulk" tag in constructGiftWrappedEvent
+- Added `selectedBulkOption` to all message options (order-payment, order-receipt, order-info) in both invoice cards
+- Added bulk option display in productDetails strings and order summary UI throughout both invoice cards
+- Priority system: bulk pricing overrides single-unit price when selected (bulk > volume > base price)
+
+### Size and Volume Options for Orders (February 2, 2026)
+
+- Added "size" and "volume" tags to Nostr order messages via constructGiftWrappedEvent function
+- Updated sendPaymentAndContactMessageWithKeys in CartInvoiceCard to pass product.selectedSize and product.selectedVolume in messageOptions for payment, receipt, and order-info messages
+- Updated sendPaymentAndContactMessage in ProductInvoiceCard to pass selectedSize and selectedVolume at top level of messageOptions for all order message types
+- Added "Order Specs" column to orders dashboard combining size and volume into formatted display
+- Display format: "Size: S, Volume: 1 gal" when both present, individual values when only one, "N/A" when neither
+- Updated OrderData interface to include selectedSize and selectedVolume fields
+- Size and volume values are extracted from message tags and consolidated across related order messages
+
+### Pickup Location Selection and Address Tag for Orders (January 24, 2026)
+
+- Added pickup location dropdown in ProductInvoiceCard for contact orders when product has pickup shipping options (Pickup, Free/Pickup, Added Cost/Pickup) and pickupLocations array defined
+- Added pickup location selection to CartInvoiceCard for multi-product cart orders, with product title displayed next to each dropdown for clarity
+- Payment buttons disabled until pickup location is selected when required
+- Added "pickup" tag to Nostr order messages via constructGiftWrappedEvent function
+- Updated sendPaymentAndContactMessage in both ProductInvoiceCard and CartInvoiceCard to include pickup parameter
+- Pickup tags are applied per-product, only to order messages corresponding to that specific product (not all products in cart)
+- Added "Pickup Location" column to orders dashboard with proper tag parsing and display
+- Pickup location state resets when form type changes to prevent stale selections
+- Fixed "address" tag to be properly included in all order message types (payment, receipt, and info) when shipping information is provided
+- Both ProductInvoiceCard and CartInvoiceCard now construct address tag early and pass it to all relevant message calls
+- CartInvoiceCard handles both form field naming conventions (shippingName/shippingAddress and Name/Address)
+
+### Order Status Persistence (January 23, 2026)
+
+- Added `order_status` and `order_id` columns to `message_events` table for efficient order status tracking
+- Created API endpoints for updating and retrieving order statuses (`/api/db/update-order-status`, `/api/db/get-order-statuses`)
+- Orders dashboard now loads cached statuses from database first, then updates from parsed messages
+- Status priority system prevents status downgrades (canceled > completed > shipped > confirmed > pending)
+- Status persisted to database only when parsed status has higher priority than cached
+
+### Unread/Read Indicator System (January 23, 2026)
+
+- Added `is_read` column to `message_events` table for tracking read status
+- Navbar displays styled unread count badge (purple in light mode, yellow in dark mode)
+- New order indicators in orders dashboard with colored borders during current session
+- Messages automatically marked as read when orders page opens
+- Database migration handles existing deployments
+
+### Deployment Configuration (October 4, 2025)
+
+- Added health check endpoint at `/api/health` for Cloud Run deployment monitoring
+- Configured production server to bind to `0.0.0.0` and respect PORT environment variable
+- Removed `babel.config.json` to use Next.js 14's default SWC compiler for better performance
+- Enhanced error handling in `_app.tsx` initialization with individual try-catch blocks for each data fetch operation
+- Updated development workflow to run on port 5000
+- Configured autoscale deployment with proper build and run commands

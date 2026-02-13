@@ -240,6 +240,23 @@ export default function DisplayProductModal({
                         </span>
                       ))
                     : null}
+                  </div>
+                    </>
+                  ) : null}
+            {productData.bulkPrices && productData.bulkPrices.size > 0 ? (
+              <>
+                <span className="text-xl font-semibold">Bulk Pricing: </span>
+                <div className="flex flex-wrap items-center">
+                  {Array.from(productData.bulkPrices.entries())
+                    .sort((a, b) => a[0] - b[0])
+                    .map(([units, price]) => (
+                      <span
+                        key={units}
+                        className="mb-2 mr-4 text-black"
+                      >
+                        {units} units: {price} {productData.currency}
+                      </span>
+                    ))}
                 </div>
               </>
             ) : null}

@@ -87,6 +87,7 @@ interface OrderData {
   selectedSize?: string;
   selectedVolume?: string;
   selectedWeight?: string;
+  selectedBulkOption?: number;
   paymentToken?: string;
   paymentMethod?: string;
   productTitle?: string;
@@ -358,6 +359,9 @@ const OrdersDashboard = () => {
             const selectedSize = tagsMap.get("size");
             const selectedVolume = tagsMap.get("volume");
             const selectedWeight = tagsMap.get("weight");
+            const bulkTag = messageEvent.tags.find((tag) => tag[0] === "bulk");
+            const selectedBulkOption =
+              bulkTag && bulkTag[1] ? parseInt(bulkTag[1]) : undefined;
 
             const donationTagArray = messageEvent.tags.find(
               (tag) => tag[0] === "donation_amount"
@@ -485,6 +489,7 @@ const OrdersDashboard = () => {
               selectedSize,
               selectedVolume,
               selectedWeight,
+              selectedBulkOption,
               paymentToken,
               paymentMethod,
               productTitle,
@@ -604,6 +609,8 @@ const OrdersDashboard = () => {
             selectedSize: order.selectedSize || existing.selectedSize,
             selectedVolume: order.selectedVolume || existing.selectedVolume,
             selectedWeight: order.selectedWeight || existing.selectedWeight,
+            selectedBulkOption:
+              order.selectedBulkOption || existing.selectedBulkOption,
             paymentToken: order.paymentToken || existing.paymentToken,
             paymentMethod:
               order.paymentMethod !== "Not specified"
@@ -1303,7 +1310,7 @@ const OrdersDashboard = () => {
   }
 
   return (
-    <div className="bg-light-bg dark:bg-dark-bg min-w-0 max-w-[98vw] px-4 py-4 sm:py-6">
+    <div className="bg-white min-w-0 max-w-[98vw] px-4 py-4 sm:py-6">
       <div className="mx-auto w-full min-w-0 max-w-full">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-black">Orders Dashboard</h1>
@@ -1554,7 +1561,7 @@ const OrdersDashboard = () => {
                             {order.pickupLocation || "N/A"}
                           </div>
                         </td>
-                        <td className="text-light-text dark:text-dark-text whitespace-nowrap px-4 py-4 text-sm">
+                        <td className="text-black whitespace-nowrap px-4 py-4 text-sm">
                           {(() => {
                             const specs = [];
                             if (order.selectedSize)
@@ -1563,6 +1570,10 @@ const OrdersDashboard = () => {
                               specs.push(`Volume: ${order.selectedVolume}`);
                             if (order.selectedWeight)
                               specs.push(`Weight: ${order.selectedWeight}`);
+                            if (order.selectedBulkOption)
+                              specs.push(
+                                `Bundle: ${order.selectedBulkOption} units`
+                              );
                             return specs.length > 0 ? specs.join(", ") : "N/A";
                           })()}
                         </td>
@@ -1587,7 +1598,8 @@ const OrdersDashboard = () => {
                               }
                               className="cursor-pointer text-left text-black underline hover:text-purple-600"
                             >
-                              {order.productTitle} x {order.quantity || 1}
+                              {order.productTitle} x{" "}
+                              {order.selectedBulkOption || order.quantity || 1}
                             </button>
                           ) : (
                             "N/A"
@@ -1708,7 +1720,7 @@ const OrdersDashboard = () => {
                       variant="bordered"
                       isInvalid={isErrored}
                       errorMessage={errorMessage}
-                      className="text-light-text dark:text-dark-text"
+                      className="text-black"
                       type="number"
                       onChange={onChange}
                       onBlur={onBlur}
@@ -1738,7 +1750,7 @@ const OrdersDashboard = () => {
                       placeholder="Fedex, UPS, etc."
                       isInvalid={isErrored}
                       errorMessage={errorMessage}
-                      className="text-light-text dark:text-dark-text"
+                      className="text-black"
                       onChange={onChange}
                       onBlur={onBlur}
                       value={value}
@@ -1770,7 +1782,7 @@ const OrdersDashboard = () => {
                       variant="bordered"
                       isInvalid={isErrored}
                       errorMessage={errorMessage}
-                      className="text-light-text dark:text-dark-text"
+                      className="text-black"
                       onChange={onChange}
                       onBlur={onBlur}
                       value={value}

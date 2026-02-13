@@ -265,6 +265,7 @@ export async function constructGiftWrappedEvent(
     selectedSize?: string;
     selectedVolume?: string;
     selectedWeight?: string;
+    selectedBulkOption?: number;
   } = {}
 ): Promise<GiftWrappedMessageEvent> {
   const { relays } = getLocalStorageData();
@@ -293,6 +294,7 @@ export async function constructGiftWrappedEvent(
     selectedSize,
     selectedVolume,
     selectedWeight,
+    selectedBulkOption,
   } = options;
 
   const tags = [
@@ -327,6 +329,7 @@ export async function constructGiftWrappedEvent(
     if (selectedSize) tags.push(["size", selectedSize]);
     if (selectedVolume) tags.push(["volume", selectedVolume]);
     if (selectedWeight) tags.push(["weight", selectedWeight]);
+    if (selectedBulkOption) tags.push(["bulk", selectedBulkOption.toString()]);
     if (
       donationAmount &&
       donationAmount > 0 &&

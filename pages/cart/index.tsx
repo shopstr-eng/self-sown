@@ -346,9 +346,10 @@ export default function Component() {
   };
 
   const convertPriceToSats = async (product: ProductData): Promise<number> => {
-    // Use weightPrice, volumePrice if they exist, otherwise use default price
     const basePrice =
-      product.weightPrice !== undefined
+      product.bulkPrice !== undefined
+        ? product.bulkPrice
+      : product.weightPrice !== undefined
         ? product.weightPrice
         : product.volumePrice !== undefined
           ? product.volumePrice
@@ -448,14 +449,35 @@ export default function Component() {
                                   <h2 className="flex-1 text-lg font-bold">
                                     {product.title}
                                   </h2>
-                                  <p className="flex-shrink-0 whitespace-nowrap text-xl font-bold">
-                                    {satPrices[product.id] !== undefined
-                                      ? satPrices[product.id] !== null
-                                        ? `${satPrices[product.id]} sats`
-                                        : "Price unavailable"
-                                      : "Loading..."}
-                                  </p>
+                                  <div className="flex flex-col items-end">
+                                    <p className="text-lg font-bold">
+                                      {product.bulkPrice !== undefined
+                                        ? `${product.bulkPrice} ${product.currency}`
+                                        : product.volumePrice !== undefined
+                                          ? `${product.volumePrice} ${product.currency}`
+                                          : `${product.price} ${product.currency}`}
+                                    </p>
+                                    {product.currency.toLowerCase() !==
+                                      "sats" &&
+                                      product.currency.toLowerCase() !==
+                                        "sat" && (
+                                        <p className="text-sm text-gray-500">
+                                          {satPrices[product.id] !== undefined
+                                            ? satPrices[product.id] !== null
+                                              ? `≈ ${
+                                                  satPrices[product.id]
+                                                } sats`
+                                              : "Price unavailable"
+                                            : "Loading..."}
+                                        </p>
+                                      )}
+                                  </div>
                                 </div>
+                                {product.selectedBulkOption && (
+                                  <p className="text-sm text-yellow-700">
+                                    Bundle: {product.selectedBulkOption} units
+                                  </p>
+                                )}
                                 {product.quantity && (
                                   <div className="mt-2">
                                     <p className="mb-2 text-sm font-semibold text-green-600">

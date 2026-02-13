@@ -34,6 +34,7 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import VolumeSelector from "./volume-selector";
 import WeightSelector from "./weight-selector";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import BulkSelector from "./bulk-selector";
 import ZapsnagButton from "@/components/ZapsnagButton";
 import { RawEventModal, EventIdModal } from "./modals/event-modals";
 
@@ -90,6 +91,7 @@ export default function CheckoutCard({
   const [cart, setCart] = useState<ProductData[]>([]);
   const [selectedVolume, setSelectedVolume] = useState<string>("");
   const [selectedWeight, setSelectedWeight] = useState<string>("");
+  const [selectedBulkOption, setSelectedBulkOption] = useState<string>("1");
   const [currentPrice, setCurrentPrice] = useState(productData.price);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
@@ -101,6 +103,8 @@ export default function CheckoutCard({
 
   const hasVolumes = productData.volumes && productData.volumes.length > 0;
   const hasWeights = productData.weights && productData.weights.length > 0;
+  const hasBulkPrices =
+    productData.bulkPrices && productData.bulkPrices.size > 0;
 
   const isExpired = productData.expiration
     ? Date.now() / 1000 > productData.expiration
@@ -110,7 +114,18 @@ export default function CheckoutCard({
     productData.d === "zapsnag" || productData.categories?.includes("zapsnag");
 
   useEffect(() => {
-    if (selectedVolume && productData.volumePrices) {
+    if (
+      selectedBulkOption &&
+      selectedBulkOption !== "1" &&
+      productData.bulkPrices
+    ) {
+      const bulkPrice = productData.bulkPrices.get(
+        parseInt(selectedBulkOption)
+      );
+      if (bulkPrice !== undefined) {
+        setCurrentPrice(bulkPrice);
+      }
+    } else if (selectedVolume && productData.volumePrices) {
       const volumePrice = productData.volumePrices.get(selectedVolume);
       if (volumePrice !== undefined) {
         setCurrentPrice(volumePrice);
@@ -129,6 +144,8 @@ export default function CheckoutCard({
     productData.volumePrices,
     selectedWeight,
     productData.weightPrices,
+    selectedBulkOption,
+    productData.bulkPrices,
   ]);
 
   const toggleExpand = () => {
@@ -291,6 +308,17 @@ export default function CheckoutCard({
           }
         }
       }
+      if (selectedBulkOption && selectedBulkOption !== "1") {
+        productToAdd.selectedBulkOption = parseInt(selectedBulkOption);
+        if (productData.bulkPrices) {
+          const bulkPrice = productData.bulkPrices.get(
+            parseInt(selectedBulkOption)
+          );
+          if (bulkPrice !== undefined) {
+            productToAdd.bulkPrice = bulkPrice;
+          }
+        }
+      }
 
       updatedCart = [...cart, productToAdd];
       setCart(updatedCart);
@@ -418,7 +446,6 @@ export default function CheckoutCard({
 
   const discountedTotal = discountedPrice + (productData.shippingCost ?? 0);
 
-  // Create updated product data with selected volume price and discount
   const updatedProductData = {
     ...productData,
     price: discountedPrice,
@@ -432,6 +459,14 @@ export default function CheckoutCard({
     volumePrice:
       selectedVolume && productData.volumePrices
         ? productData.volumePrices.get(selectedVolume)
+        : undefined,
+    selectedBulkOption:
+      selectedBulkOption && selectedBulkOption !== "1"
+        ? parseInt(selectedBulkOption)
+        : undefined,
+    bulkPrice:
+      selectedBulkOption && selectedBulkOption !== "1" && productData.bulkPrices
+        ? productData.bulkPrices.get(parseInt(selectedBulkOption))
         : undefined,
   };
 
@@ -649,6 +684,24 @@ export default function CheckoutCard({
                     isRequired={true}
                   />
                 )}
+
+                {hasBulkPrices && (
+                  <BulkSelector
+                    bulkPrices={productData.bulkPrices!}
+                    basePrice={productData.price}
+                    currency={productData.currency}
+                    selectedBulkOption={selectedBulkOption}
+                    onBulkChange={setSelectedBulkOption}
+                  />
+                )}
+                <div className="mt-4">
+                  <DisplayCheckoutCost monetaryInfo={updatedProductData} />
+                  {selectedBulkOption && selectedBulkOption !== "1" && (
+                    <p className="mt-1 text-sm text-black">
+                      Bundle: {selectedBulkOption} units
+                    </p>
+                  )}
+                </div>
 
                 {/* Size Grid */}
                 {hasSizes && renderSizeGrid()}
@@ -906,6 +959,9 @@ export default function CheckoutCard({
               selectedSize={selectedSize}
               selectedVolume={selectedVolume}
               selectedWeight={selectedWeight}
+              selectedBulkOption={
+                selectedBulkOption ? parseInt(selectedBulkOption) : undefined
+              }
               discountCode={appliedDiscount > 0 ? discountCode : undefined}
               discountPercentage={
                 appliedDiscount > 0 ? appliedDiscount : undefined

@@ -72,6 +72,7 @@ export default function ProductInvoiceCard({
   selectedSize,
   selectedVolume,
   selectedWeight,
+  selectedBulkOption,
   discountCode,
   discountPercentage,
   originalPrice,
@@ -87,6 +88,7 @@ export default function ProductInvoiceCard({
   selectedSize?: string;
   selectedVolume?: string;
   selectedWeight?: string;
+  selectedBulkOption?: number;
   discountCode?: string;
   discountPercentage?: number;
   originalPrice?: number;
@@ -133,7 +135,7 @@ export default function ProductInvoiceCard({
     if (!signer || !nostr || !userPubkey) return;
 
     try {
-      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market DMs for any related order information.`;
+      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
 
       const { nsec: nsecForSellerReceiver, npub: npubForSellerReceiver } =
         await generateKeys();
@@ -460,6 +462,7 @@ export default function ProductInvoiceCard({
           selectedSize,
           selectedVolume,
           selectedWeight,
+          selectedBulkOption,
         },
         paymentType,
         paymentReference,
@@ -469,6 +472,7 @@ export default function ProductInvoiceCard({
         selectedSize,
         selectedVolume,
         selectedWeight,
+        selectedBulkOption,
         buyerPubkey,
         donationAmount: donationAmountValue,
         donationPercentage: donationPercentageValue,
@@ -485,6 +489,7 @@ export default function ProductInvoiceCard({
           selectedSize,
           selectedVolume,
           selectedWeight,
+          selectedBulkOption,
         },
         status: "confirmed",
         paymentType,
@@ -495,6 +500,7 @@ export default function ProductInvoiceCard({
         selectedSize,
         selectedVolume,
         selectedWeight,
+        selectedBulkOption,
         buyerPubkey,
         donationAmount: donationAmountValue,
         donationPercentage: donationPercentageValue,
@@ -513,6 +519,7 @@ export default function ProductInvoiceCard({
           selectedSize,
           selectedVolume,
           selectedWeight,
+          selectedBulkOption,
         },
         quantity: 1,
         contact,
@@ -521,6 +528,7 @@ export default function ProductInvoiceCard({
         selectedSize,
         selectedVolume,
         selectedWeight,
+        selectedBulkOption,
         buyerPubkey,
         donationAmount: donationAmountValue,
         donationPercentage: donationPercentageValue,
@@ -867,6 +875,13 @@ export default function ProductInvoiceCard({
         } else {
           productDetails += " weighing " + selectedWeight;
         }
+  }
+      if (selectedBulkOption) {
+        if (productDetails) {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
+        } else {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
+        }
       }
       if (selectedPickupLocation) {
         if (productDetails) {
@@ -976,6 +991,13 @@ export default function ProductInvoiceCard({
               productDetails += " and weighing " + selectedWeight;
             } else {
               productDetails += " weighing " + selectedWeight;
+  }
+  }
+          if (selectedBulkOption) {
+            if (productDetails) {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
+            } else {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
             }
           }
           if (selectedPickupLocation) {
@@ -1102,6 +1124,12 @@ export default function ProductInvoiceCard({
               productDetails += " and weighing " + selectedWeight;
             } else {
               productDetails += " weighing " + selectedWeight;
+  }}
+          if (selectedBulkOption) {
+            if (productDetails) {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
+            } else {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
             }
           }
           if (selectedPickupLocation) {
@@ -1164,6 +1192,12 @@ export default function ProductInvoiceCard({
             productDetails += " and weighing " + selectedWeight;
           } else {
             productDetails += " weighing " + selectedWeight;
+  }}
+        if (selectedBulkOption) {
+          if (productDetails) {
+            productDetails += " (bulk: " + selectedBulkOption + " units)";
+          } else {
+            productDetails += " (bulk: " + selectedBulkOption + " units)";
           }
         }
         if (selectedPickupLocation) {
@@ -1511,6 +1545,12 @@ export default function ProductInvoiceCard({
               productDetails += " and weighing " + selectedWeight;
             } else {
               productDetails += " weighing " + selectedWeight;
+  }}
+          if (selectedBulkOption) {
+            if (productDetails) {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
+            } else {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
             }
           }
           if (selectedPickupLocation) {
@@ -1605,6 +1645,12 @@ export default function ProductInvoiceCard({
               productDetails += " and weighing " + selectedWeight;
             } else {
               productDetails += " weighing " + selectedWeight;
+            }}
+          if (selectedBulkOption) {
+            if (productDetails) {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
+            } else {
+              productDetails += " (bulk: " + selectedBulkOption + " units)";
             }
           }
           if (selectedPickupLocation) {
@@ -1663,6 +1709,12 @@ export default function ProductInvoiceCard({
           productDetails += " and weighing " + selectedWeight;
         } else {
           productDetails += " weighing " + selectedWeight;
+        }}
+      if (selectedBulkOption) {
+        if (productDetails) {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
+        } else {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
         }
       }
       if (selectedPickupLocation) {
@@ -1800,6 +1852,12 @@ export default function ProductInvoiceCard({
             productDetails += " and weighing " + selectedWeight;
           } else {
             productDetails += " weighing " + selectedWeight;
+          }}
+        if (selectedBulkOption) {
+          if (productDetails) {
+            productDetails += " (bulk: " + selectedBulkOption + " units)";
+          } else {
+            productDetails += " (bulk: " + selectedBulkOption + " units)";
           }
         }
         if (selectedPickupLocation) {
@@ -1925,6 +1983,12 @@ export default function ProductInvoiceCard({
           productDetails += " and weighing " + selectedWeight;
         } else {
           productDetails += " weighing " + selectedWeight;
+        }}
+      if (selectedBulkOption) {
+        if (productDetails) {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
+        } else {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
         }
       }
       if (selectedPickupLocation) {
@@ -1983,6 +2047,12 @@ export default function ProductInvoiceCard({
           productDetails += " and weighing " + selectedWeight;
         } else {
           productDetails += " weighing " + selectedWeight;
+        }}
+      if (selectedBulkOption) {
+        if (productDetails) {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
+        } else {
+          productDetails += " (bulk: " + selectedBulkOption + " units)";
         }
       }
       if (selectedPickupLocation) {
@@ -2938,7 +3008,13 @@ export default function ProductInvoiceCard({
                   <p className="mb-1 text-gray-600">Weight: {selectedWeight}</p>
                 )}
 
+        {selectedBulkOption && (
+          <p className="mb-1 text-gray-600">
+            Bundle: {selectedBulkOption} units
+          </p>
+        )}
                 <p className="mb-1 text-gray-600">Quantity: 1</p>
+
               </div>
 
               <div className="border-t pt-4">
@@ -3181,6 +3257,11 @@ export default function ProductInvoiceCard({
                 <p className="mb-1 text-gray-600">Weight: {selectedWeight}</p>
               )}
 
+        {selectedBulkOption && (
+          <p className="mb-1 text-gray-600">
+            Bundle: {selectedBulkOption} units
+          </p>
+        )}
               <p className="mb-1 text-gray-600">Quantity: 1</p>
             </div>
 
