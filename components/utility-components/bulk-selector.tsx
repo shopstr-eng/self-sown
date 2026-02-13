@@ -31,63 +31,79 @@ export default function BulkSelector({
   };
 
   return (
-    <Select
-      variant="bordered"
-      aria-label="Bulk Pricing"
-      label="Select Bundle Size"
-      labelPlacement="inside"
-      selectedKeys={
-        selectedBulkOption ? new Set([selectedBulkOption]) : new Set(["1"])
-      }
-      onSelectionChange={(keys) => {
-        const selectedKey = Array.from(keys)[0] as string;
-        if (selectedKey) {
-          onBulkChange(selectedKey);
+    <div className="w-full">
+      <Select
+        variant="bordered"
+        aria-label="Bulk Pricing"
+        label={
+          <span className="font-semibold text-black">
+            Select Bundle Size{isRequired ? " *" : ""}
+          </span>
         }
-      }}
-      isRequired={isRequired}
-      className="mb-4 w-full text-black md:w-1/2"
-    >
-      <SelectSection className="text-black">
-        {[
-          <SelectItem
-            key="1"
-            value="1"
-            textValue={`1 unit - ${basePrice} ${currency}`}
-            className="text-black"
-          >
-            1 unit - {basePrice} {currency}
-          </SelectItem>,
-          ...sortedEntries.map(([units, price]) => {
-            const savings = getSavingsPercent(units, price);
-            const perUnit = (price / units).toFixed(2);
-            return (
-              <SelectItem
-                key={units.toString()}
-                value={units.toString()}
-                textValue={`${units} units - ${price} ${currency}${
-                  savings > 0 ? ` (Save ${savings}%)` : ""
-                }`}
-                className="text-black"
-              >
-                <div className="flex flex-col">
-                  <span>
-                    {units} units - {price} {currency}
-                  </span>
-                  <span className="text-tiny text-gray-500">
-                    {perUnit} {currency}/unit
-                    {savings > 0 && (
-                      <span className="ml-1 font-semibold text-green-600">
-                        — Save {savings}%
-                      </span>
-                    )}
-                  </span>
-                </div>
-              </SelectItem>
-            );
-          }),
-        ]}
-      </SelectSection>
-    </Select>
+        labelPlacement="outside"
+        placeholder="Choose a bundle size"
+        selectedKeys={
+          selectedBulkOption ? new Set([selectedBulkOption]) : new Set(["1"])
+        }
+        onSelectionChange={(keys) => {
+          const selectedKey = Array.from(keys)[0] as string;
+          if (selectedKey) {
+            onBulkChange(selectedKey);
+          }
+        }}
+        isRequired={isRequired}
+        className="w-full"
+        classNames={{
+          trigger:
+            "border-2 border-black rounded-md shadow-neo bg-white hover:bg-gray-50 data-[hover=true]:bg-gray-50",
+          value: "text-black font-semibold",
+          label: "text-black font-semibold",
+          listboxWrapper: "border-2 border-black rounded-md",
+          popoverContent:
+            "border-2 border-black rounded-md shadow-neo bg-white",
+        }}
+      >
+        <SelectSection>
+          {[
+            <SelectItem
+              key="1"
+              value="1"
+              textValue={`1 unit - ${basePrice} ${currency}`}
+              className="font-semibold text-black hover:bg-primary-yellow data-[hover=true]:bg-primary-yellow data-[selected=true]:bg-primary-yellow"
+            >
+              1 unit - {basePrice} {currency}
+            </SelectItem>,
+            ...sortedEntries.map(([units, price]) => {
+              const savings = getSavingsPercent(units, price);
+              const perUnit = (price / units).toFixed(2);
+              return (
+                <SelectItem
+                  key={units.toString()}
+                  value={units.toString()}
+                  textValue={`${units} units - ${price} ${currency}${
+                    savings > 0 ? ` (Save ${savings}%)` : ""
+                  }`}
+                  className="font-semibold text-black hover:bg-primary-yellow data-[hover=true]:bg-primary-yellow data-[selected=true]:bg-primary-yellow"
+                >
+                  <div className="flex flex-col">
+                    <span>
+                      {units} units - {price} {currency}
+                    </span>
+                    <span className="text-tiny text-gray-500">
+                      {perUnit} {currency}/unit
+                      {savings > 0 && (
+                        <span className="ml-1 font-semibold text-green-600">
+                          — Save {savings}%
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </SelectItem>
+              );
+            }),
+          ]}
+        </SelectSection>
+      </Select>
+    </div>
   );
 }

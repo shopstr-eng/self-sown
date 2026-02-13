@@ -349,11 +349,11 @@ export default function Component() {
     const basePrice =
       product.bulkPrice !== undefined
         ? product.bulkPrice
-      : product.weightPrice !== undefined
-        ? product.weightPrice
-        : product.volumePrice !== undefined
-          ? product.volumePrice
-          : product.price;
+        : product.weightPrice !== undefined
+          ? product.weightPrice
+          : product.volumePrice !== undefined
+            ? product.volumePrice
+            : product.price;
 
     if (
       product.currency.toLowerCase() === "sats" ||

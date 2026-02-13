@@ -1310,7 +1310,7 @@ const OrdersDashboard = () => {
   }
 
   return (
-    <div className="bg-white min-w-0 max-w-[98vw] px-4 py-4 sm:py-6">
+    <div className="min-w-0 max-w-[98vw] bg-white px-4 py-4 sm:py-6">
       <div className="mx-auto w-full min-w-0 max-w-full">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-3xl font-bold text-black">Orders Dashboard</h1>
@@ -1561,7 +1561,7 @@ const OrdersDashboard = () => {
                             {order.pickupLocation || "N/A"}
                           </div>
                         </td>
-                        <td className="text-black whitespace-nowrap px-4 py-4 text-sm">
+                        <td className="whitespace-nowrap px-4 py-4 text-sm text-black">
                           {(() => {
                             const specs = [];
                             if (order.selectedSize)

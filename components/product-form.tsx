@@ -249,8 +249,8 @@ export default function ProductForm({
         const price =
           (data["Weight Prices"] as Map<string, number>).get(weight) || 0;
         tags.push(["weight", weight, price.toString()]);
-        });
-        }
+      });
+    }
     if (data["Bulk Pricing Enabled"] && data["Bulk Prices"]) {
       const bulkPrices = data["Bulk Prices"] as unknown as Map<number, number>;
       bulkPrices.forEach((price, units) => {
@@ -1460,9 +1460,9 @@ export default function ProductForm({
                 name="Bulk Pricing Enabled"
                 control={control}
                 render={({ field: { onChange, value } }) => (
-                  <div className="mt-4 flex items-center justify-between rounded-lg border border-gray-200 p-3">
+                  <div className="mt-4 flex items-center justify-between rounded-md border-2 border-black bg-white p-3">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-blackt">
+                      <span className="text-sm font-semibold text-black">
                         Bulk/Bundle Pricing
                       </span>
                       <span className="text-tiny text-gray-500">
@@ -1473,8 +1473,7 @@ export default function ProductForm({
                       isSelected={!!value}
                       onValueChange={onChange}
                       classNames={{
-                        wrapper:
-                          "group-data-[selected=true]:bg-yellow-600",
+                        wrapper: "group-data-[selected=true]:bg-yellow-600",
                       }}
                     />
                   </div>
@@ -1549,6 +1548,13 @@ export default function ProductForm({
                                 )
                               }
                               className="w-24"
+                              variant="flat"
+                              classNames={{
+                                label: "!text-black font-semibold",
+                                input: "text-base !text-black",
+                                inputWrapper:
+                                  "border-2 border-black rounded-md shadow-none !bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                              }}
                             />
                             <Input
                               type="number"
@@ -1564,6 +1570,13 @@ export default function ProductForm({
                                 )
                               }
                               className="flex-1"
+                              variant="flat"
+                              classNames={{
+                                label: "!text-black font-semibold",
+                                input: "text-base !text-black",
+                                inputWrapper:
+                                  "border-2 border-black rounded-md shadow-none !bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                              }}
                               endContent={
                                 <span className="text-small text-default-400">
                                   {watchCurrency}
@@ -1581,18 +1594,17 @@ export default function ProductForm({
                           </div>
                         )
                       )}
-                        <Button
-                          variant="bordered"
-                          color="secondary"
-                          className="w-full"
-                          onClick={handleAddTier}
-                        >
-                          Add Bulk Tier
-                        </Button>
+                      <Button
+                        variant="bordered"
+                        className="w-full border-2 border-black bg-white font-bold text-black shadow-none hover:bg-gray-50"
+                        onClick={handleAddTier}
+                      >
+                        Add Bulk Tier
+                      </Button>
                       {entries.length > 0 && (
                         <div className="w-full text-xs text-black opacity-75">
-                          Note: Bulk prices override the single-unit price when a
-                          buyer selects a bundle option.
+                          Note: Bulk prices override the single-unit price when
+                          a buyer selects a bundle option.
                         </div>
                       )}
                     </div>

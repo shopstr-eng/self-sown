@@ -2431,11 +2431,11 @@ export default function CartInvoiceCard({
                       const basePrice =
                         (product.bulkPrice !== undefined
                           ? product.bulkPrice
-                         : product.weightPrice !== undefined
-                          ? product.weightPrice
-                          : product.volumePrice !== undefined
-                            ? product.volumePrice
-                            : product.price) * (quantities[product.id] || 1);
+                          : product.weightPrice !== undefined
+                            ? product.weightPrice
+                            : product.volumePrice !== undefined
+                              ? product.volumePrice
+                              : product.price) * (quantities[product.id] || 1);
                       const discountedPrice =
                         discount > 0
                           ? basePrice * (1 - discount / 100)
@@ -2656,12 +2656,12 @@ export default function CartInvoiceCard({
                     const discount = appliedDiscounts[product.pubkey] || 0;
                     const originalPrice =
                       product.bulkPrice !== undefined
-                      ? product.bulkPrice
-                      : product.weightPrice != undefined
-                        ? product.weightPrice
-                        : product.volumePrice !== undefined
-                          ? product.volumePrice
-                          : product.price;
+                        ? product.bulkPrice
+                        : product.weightPrice != undefined
+                          ? product.weightPrice
+                          : product.volumePrice !== undefined
+                            ? product.volumePrice
+                            : product.price;
                     const basePrice =
                       originalPrice * (quantities[product.id] || 1);
                     const discountedPrice =
