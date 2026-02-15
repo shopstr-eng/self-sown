@@ -2405,10 +2405,8 @@ export default function ProductInvoiceCard({
 
         if (paid) {
           setStripePaymentConfirmed(true);
-          setInvoiceIsPaid(true);
           setIsCheckingStripePayment(false);
 
-          // Send payment confirmation messages
           const orderId = uuidv4();
           let productDetails = "";
           if (selectedSize) {
@@ -2436,6 +2434,13 @@ export default function ProductInvoiceCard({
             }
           }
 
+          const addressTag =
+            data.shippingName && data.shippingAddress
+              ? data.shippingUnitNo
+                ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+                : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+              : undefined;
+
           const paymentMessage =
             "You have received a stripe payment from " +
             userNPub +
@@ -2458,11 +2463,10 @@ export default function ProductInvoiceCard({
             invoiceId,
             discountedTotal,
             undefined,
-            undefined,
+            addressTag,
             selectedPickupLocation || undefined
           );
 
-          // Send additional info and delivery messages similar to other payment methods
           if (data.additionalInfo) {
             await new Promise((resolve) => setTimeout(resolve, 500));
             const additionalMessage =
@@ -2494,7 +2498,6 @@ export default function ProductInvoiceCard({
             );
           }
 
-          // Handle shipping/contact information
           if (data.shippingName && data.shippingAddress) {
             await new Promise((resolve) => setTimeout(resolve, 500));
             let contactMessage = "";
@@ -2535,9 +2538,6 @@ export default function ProductInvoiceCard({
                 data.shippingCountry +
                 ".";
             }
-            const addressTag = data.shippingUnitNo
-              ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
-              : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`;
             await sendPaymentAndContactMessage(
               productData.pubkey,
               contactMessage,
@@ -2578,30 +2578,8 @@ export default function ProductInvoiceCard({
               addressTag,
               selectedPickupLocation || undefined
             );
-          } else if (data.contact && data.contactType) {
+          } else if (formType === "contact") {
             await sendInquiryDM(productData.pubkey, productData.title);
-
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            const contactMessage =
-              "To finalize the sale of your " +
-              productData.title +
-              " listing" +
-              productDetails +
-              " on milk.market, please contact " +
-              data.contact +
-              " over " +
-              data.contactType +
-              " using the following instructions: " +
-              data.contactInstructions;
-            await sendPaymentAndContactMessage(
-              productData.pubkey,
-              contactMessage,
-              false,
-              false,
-              false,
-              false,
-              orderId
-            );
 
             await new Promise((resolve) => setTimeout(resolve, 500));
             const receiptMessage =
@@ -2653,6 +2631,8 @@ export default function ProductInvoiceCard({
               selectedPickupLocation || undefined
             );
           }
+
+          setInvoiceIsPaid(true);
         } else {
           pollCount++;
           if (pollCount < maxPolls) {
