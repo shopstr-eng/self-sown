@@ -215,8 +215,8 @@ export const FileUploaderButton = ({
     hiddenFileInput.current?.click();
   };
 
-  const handleChange = async (e: React.FormEvent<HTMLInputElement>) => {
-    const files = e.currentTarget.files;
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
     setLoading(true);
     if (files) {
       const uploadedImages = await uploadImages(files);
@@ -344,7 +344,7 @@ export const FileUploaderButton = ({
           accept={ALLOWED_TYPES.join(",")}
           multiple
           ref={hiddenFileInput}
-          onInput={handleChange}
+          onChange={handleChange}
           className="hidden"
         />
 
