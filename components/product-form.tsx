@@ -624,7 +624,7 @@ export default function ProductForm({
                   }
                 }}
               >
-                ↑ Upload Images
+                Upload Images
               </FileUploaderButton>
 
               <Controller
