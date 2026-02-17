@@ -51,6 +51,7 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = {
+  bundlePagesRouterDependencies: true,
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
