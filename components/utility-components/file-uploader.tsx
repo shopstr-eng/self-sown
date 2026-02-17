@@ -7,7 +7,12 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { AnimatePresence, motion } from "framer-motion";
-import { PhotoIcon, ArrowUpTrayIcon, XCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  PhotoIcon,
+  ArrowUpTrayIcon,
+  XCircleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 // Import your primary button style
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
@@ -56,7 +61,10 @@ export const FileUploaderButton = ({
       let targetWidth = bitmap.width;
       let targetHeight = bitmap.height;
 
-      if (targetWidth > MAX_CANVAS_DIMENSION || targetHeight > MAX_CANVAS_DIMENSION) {
+      if (
+        targetWidth > MAX_CANVAS_DIMENSION ||
+        targetHeight > MAX_CANVAS_DIMENSION
+      ) {
         const scale = Math.min(
           MAX_CANVAS_DIMENSION / targetWidth,
           MAX_CANVAS_DIMENSION / targetHeight

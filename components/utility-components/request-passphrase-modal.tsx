@@ -40,6 +40,12 @@ export default function PassphraseChallengeModal({
       setIsLoading(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (error) {
+      setIsLoading(false);
+    }
+  }, [error]);
   const passphraseInputRef = useRef<HTMLInputElement>(null);
 
   const onSubmit = () => {
@@ -48,7 +54,9 @@ export default function PassphraseChallengeModal({
     } else if (!isButtonDisabled) {
       setIsLoading(true);
       if (actionOnSubmit) {
-        actionOnSubmit(passphraseInput, remindToggled);
+        setTimeout(() => {
+          actionOnSubmit(passphraseInput, remindToggled);
+        }, 0);
       }
     }
   };
