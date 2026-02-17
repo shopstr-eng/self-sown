@@ -54,9 +54,7 @@ const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   poweredByHeader: false,
-  experimental: {
-    turbo: {},
-  },
+  turbopack: {},
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "www.google.com" },
