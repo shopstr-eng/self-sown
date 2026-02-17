@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/router";
 import { Card, CardBody, Button, Image, Spinner } from "@nextui-org/react";
 import {

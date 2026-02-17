@@ -1,4 +1,3 @@
-import React from "react";
 import { Card, CardHeader, CardBody, Image, Button } from "@nextui-org/react";
 import { Community } from "@/utils/types/types";
 import { useRouter } from "next/router";

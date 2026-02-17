@@ -1,4 +1,3 @@
-import React from "react";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import UserProfileForm from "@/components/settings/user-profile-form";
 import StripeConnectBanner from "@/components/stripe-connect/StripeConnectBanner";

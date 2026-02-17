@@ -1,4 +1,3 @@
-import React from "react";
 import { CATEGORIES } from "@/utils/STATIC-VARIABLES";
 import { Chip, Tooltip } from "@nextui-org/react";
 
