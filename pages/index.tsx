@@ -1,4 +1,5 @@
 import { useState, useContext, useEffect } from "react";
+import type React from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { Image } from "@nextui-org/react";

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type React from "react";
 import { Button, Input, Textarea, Image } from "@nextui-org/react";
 import { Community } from "@/utils/types/types";
 import {

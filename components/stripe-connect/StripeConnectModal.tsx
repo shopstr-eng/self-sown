@@ -1,4 +1,5 @@
 import { useState, useContext } from "react";
+import type React from "react";
 import {
   Modal,
   ModalContent,

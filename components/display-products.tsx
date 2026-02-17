@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import type React from "react";
 import { nip19 } from "nostr-tools";
 import { deleteEvent } from "@/utils/nostr/nostr-helper-functions";
 import { NostrEvent } from "../utils/types/types";
