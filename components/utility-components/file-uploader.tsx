@@ -1,6 +1,6 @@
 import { useContext, useRef, useState } from "react";
 import type React from "react";
-import { Button, Input, Progress } from "@nextui-org/react";
+import { Button, Progress } from "@nextui-org/react";
 import {
   blossomUpload,
   getLocalStorageData,
@@ -339,7 +339,7 @@ export const FileUploaderButton = ({
           </Button>
         )}
 
-        <Input
+        <input
           type="file"
           accept={ALLOWED_TYPES.join(",")}
           multiple
