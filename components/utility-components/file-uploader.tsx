@@ -133,15 +133,11 @@ export const FileUploaderButton = ({
         targetHeight = Math.round(targetHeight * scale);
       }
 
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        bitmap.close();
-        throw new Error("Failed to get canvas context");
-      }
-
-      const outputType =
-        imageFile.type === "image/png" ? "image/webp" : imageFile.type;
+      const isPng = imageFile.type === "image/png";
+      const outputType = isPng ? "image/jpeg" : imageFile.type;
+      const outputName = isPng
+        ? imageFile.name.replace(/\.png$/i, ".jpg")
+        : imageFile.name;
 
       const qualitySteps = [0.85, 0.75, 0.65, 0.5, 0.4, 0.3];
       const scaleSteps = [1.0, 0.85, 0.7, 0.5, 0.35];
@@ -151,8 +147,18 @@ export const FileUploaderButton = ({
       for (const scale of scaleSteps) {
         const w = Math.round(targetWidth * scale);
         const h = Math.round(targetHeight * scale);
+
+        const canvas = document.createElement("canvas");
         canvas.width = w;
         canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+
+        if (isPng) {
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, w, h);
+        }
+
         ctx.drawImage(bitmap, 0, 0, w, h);
 
         for (const quality of qualitySteps) {
@@ -169,13 +175,7 @@ export const FileUploaderButton = ({
 
           if (blob.size <= COMPRESSION_THRESHOLD) {
             bitmap.close();
-            canvas.width = 0;
-            canvas.height = 0;
-            const name =
-              imageFile.type === "image/png"
-                ? imageFile.name.replace(/\.png$/i, ".webp")
-                : imageFile.name;
-            return new File([blob], name, {
+            return new File([blob], outputName, {
               type: outputType,
               lastModified: Date.now(),
             });
@@ -184,15 +184,9 @@ export const FileUploaderButton = ({
       }
 
       bitmap.close();
-      canvas.width = 0;
-      canvas.height = 0;
 
       if (lastBlob && lastBlob.size < imageFile.size) {
-        const name =
-          imageFile.type === "image/png"
-            ? imageFile.name.replace(/\.png$/i, ".webp")
-            : imageFile.name;
-        return new File([lastBlob], name, {
+        return new File([lastBlob], outputName, {
           type: outputType,
           lastModified: Date.now(),
         });
