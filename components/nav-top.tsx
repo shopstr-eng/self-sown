@@ -116,7 +116,7 @@ const TopNav = ({
   const handleHomeClick = () => {
     setFocusedPubkey("");
     setSelectedSection("");
-    handleRoute("/marketplace");
+    router.push("/marketplace");
     setIsMobileMenuOpen(false);
   };
 
@@ -134,7 +134,7 @@ const TopNav = ({
         className={`w-full bg-transparent ${
           isCommunitiesActive ? "text-primary-yellow" : "text-white"
         } hover:text-primary-yellow`}
-        onClick={() => handleRoute("/communities")}
+        onClick={() => router.push("/communities")}
       >
         Communities
       </Button>
@@ -247,7 +247,7 @@ const TopNav = ({
                 ? "font-bold text-primary-yellow"
                 : "text-white"
             } hover:text-primary-yellow`}
-            onClick={() => handleRoute("/communities")}
+            onClick={() => router.push("/communities")}
           >
             Communities
           </Button>
