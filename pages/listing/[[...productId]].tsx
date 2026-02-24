@@ -180,7 +180,7 @@ const Listing = () => {
                 setFiatOrderIsPlaced(false);
                 setInvoiceIsPaid(false);
                 setCashuPaymentSent(false);
-                router.push("/orders");
+                router.push("/order-summary");
               }}
               classNames={{
                 body: "py-6 bg-white",

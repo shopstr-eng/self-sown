@@ -152,3 +152,18 @@ CREATE TABLE IF NOT EXISTS oauth_auth (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(provider, provider_user_id)
 );
+
+-- Notification emails for buyers and sellers
+CREATE TABLE IF NOT EXISTS notification_emails (
+    id SERIAL PRIMARY KEY,
+    pubkey TEXT,
+    email TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('buyer', 'seller')),
+    order_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_emails_pubkey ON notification_emails(pubkey);
+CREATE INDEX IF NOT EXISTS idx_notification_emails_order_id ON notification_emails(order_id);
+CREATE INDEX IF NOT EXISTS idx_notification_emails_role ON notification_emails(role);

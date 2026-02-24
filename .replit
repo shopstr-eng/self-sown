@@ -1,5 +1,5 @@
 run = "npm run dev"
-modules = ["nodejs-20", "postgresql-16"]
+modules = ["nodejs-20", "postgresql-16", "python-3.11"]
 
 [nix]
 channel = "stable-22_11"
@@ -47,3 +47,4 @@ outputType = "webview"
 
 [agent]
 expertMode = true
+integrations = ["sendgrid:1.0.0"]

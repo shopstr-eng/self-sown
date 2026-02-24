@@ -265,77 +265,68 @@ export default function CheckoutCard({
   }, [reviewsContext, merchantReview, productData.pubkey]);
 
   const toggleBuyNow = () => {
-    if (isLoggedIn) {
-      setIsBeingPaid(!isBeingPaid);
-    } else {
-      onOpen();
-    }
+    setIsBeingPaid(!isBeingPaid);
   };
 
   const handleAddToCart = () => {
-    if (isLoggedIn) {
-      if (
-        !currencySelection.hasOwnProperty(productData.currency.toUpperCase()) ||
-        productData.totalCost < 1
-      ) {
-        setFailureText(
-          "The price and/or currency set for this listing was invalid."
+    if (
+      !currencySelection.hasOwnProperty(productData.currency.toUpperCase()) ||
+      productData.totalCost < 1
+    ) {
+      setFailureText(
+        "The price and/or currency set for this listing was invalid."
+      );
+      setShowFailureModal(true);
+      return;
+    }
+    let updatedCart = [];
+    const productToAdd = { ...productData };
+
+    if (selectedSize) {
+      productToAdd.selectedSize = selectedSize;
+    }
+    if (selectedVolume) {
+      productToAdd.selectedVolume = selectedVolume;
+      if (productData.volumePrices) {
+        const volumePrice = productData.volumePrices.get(selectedVolume);
+        if (volumePrice !== undefined) {
+          productToAdd.volumePrice = volumePrice;
+        }
+      }
+    }
+    if (selectedWeight) {
+      productToAdd.selectedWeight = selectedWeight;
+      if (productData.weightPrices) {
+        const weightPrice = productData.weightPrices.get(selectedWeight);
+        if (weightPrice !== undefined) {
+          productToAdd.weightPrice = weightPrice;
+        }
+      }
+    }
+    if (selectedBulkOption && selectedBulkOption !== "1") {
+      productToAdd.selectedBulkOption = parseInt(selectedBulkOption);
+      if (productData.bulkPrices) {
+        const bulkPrice = productData.bulkPrices.get(
+          parseInt(selectedBulkOption)
         );
-        setShowFailureModal(true);
-        return;
-      }
-      let updatedCart = [];
-      const productToAdd = { ...productData };
-
-      if (selectedSize) {
-        productToAdd.selectedSize = selectedSize;
-      }
-      if (selectedVolume) {
-        productToAdd.selectedVolume = selectedVolume;
-        if (productData.volumePrices) {
-          const volumePrice = productData.volumePrices.get(selectedVolume);
-          if (volumePrice !== undefined) {
-            productToAdd.volumePrice = volumePrice;
-          }
+        if (bulkPrice !== undefined) {
+          productToAdd.bulkPrice = bulkPrice;
         }
       }
-      if (selectedWeight) {
-        productToAdd.selectedWeight = selectedWeight;
-        if (productData.weightPrices) {
-          const weightPrice = productData.weightPrices.get(selectedWeight);
-          if (weightPrice !== undefined) {
-            productToAdd.weightPrice = weightPrice;
-          }
-        }
-      }
-      if (selectedBulkOption && selectedBulkOption !== "1") {
-        productToAdd.selectedBulkOption = parseInt(selectedBulkOption);
-        if (productData.bulkPrices) {
-          const bulkPrice = productData.bulkPrices.get(
-            parseInt(selectedBulkOption)
-          );
-          if (bulkPrice !== undefined) {
-            productToAdd.bulkPrice = bulkPrice;
-          }
-        }
-      }
+    }
 
-      updatedCart = [...cart, productToAdd];
-      setCart(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
+    updatedCart = [...cart, productToAdd];
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
 
-      // Store discount code if applied
-      if (appliedDiscount > 0 && discountCode) {
-        const storedDiscounts = localStorage.getItem("cartDiscounts");
-        const discounts = storedDiscounts ? JSON.parse(storedDiscounts) : {};
-        discounts[productData.pubkey] = {
-          code: discountCode,
-          percentage: appliedDiscount,
-        };
-        localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
-      }
-    } else {
-      onOpen();
+    if (appliedDiscount > 0 && discountCode) {
+      const storedDiscounts = localStorage.getItem("cartDiscounts");
+      const discounts = storedDiscounts ? JSON.parse(storedDiscounts) : {};
+      discounts[productData.pubkey] = {
+        code: discountCode,
+        percentage: appliedDiscount,
+      };
+      localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
     }
   };
 

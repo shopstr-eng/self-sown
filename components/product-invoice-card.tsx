@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import {
   CashuWalletContext,
   ChatsContext,
@@ -117,6 +117,40 @@ export default function ProductInvoiceCard({
 
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
+  const pendingOrderEmailRef = useRef<{
+    orderId: string;
+    productTitle: string;
+    amount: string;
+    currency: string;
+    paymentMethod: string;
+    sellerPubkey: string;
+    buyerName?: string;
+    shippingAddress?: string;
+    buyerContact?: string;
+    pickupLocation?: string;
+    selectedSize?: string;
+    selectedVolume?: string;
+    selectedWeight?: string;
+    selectedBulkOption?: string;
+  } | null>(null);
+
+  const [buyerEmail, setBuyerEmail] = useState("");
+  const [buyerEmailAutoFilled, setBuyerEmailAutoFilled] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn && userPubkey && !buyerEmailAutoFilled) {
+      fetch(`/api/email/notification-email?pubkey=${userPubkey}&role=buyer`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.email) {
+            setBuyerEmail(data.email);
+            setBuyerEmailAutoFilled(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isLoggedIn, userPubkey, buyerEmailAutoFilled]);
+
   const walletContext = useContext(CashuWalletContext);
 
   const [randomNpubForSender, setRandomNpubForSender] = useState<string>("");
@@ -130,6 +164,48 @@ export default function ProductInvoiceCard({
 
   const [formType, setFormType] = useState<"shipping" | "contact" | null>(null);
   const [showOrderTypeSelection, setShowOrderTypeSelection] = useState(true);
+
+  const triggerOrderEmail = async (params: {
+    orderId: string;
+    productTitle: string;
+    amount: string;
+    currency: string;
+    paymentMethod: string;
+    sellerPubkey: string;
+    buyerName?: string;
+    shippingAddress?: string;
+    buyerContact?: string;
+    pickupLocation?: string;
+    selectedSize?: string;
+    selectedVolume?: string;
+    selectedWeight?: string;
+    selectedBulkOption?: string;
+  }) => {
+    try {
+      await fetch("/api/email/send-order-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyerEmail: buyerEmail || undefined,
+          buyerPubkey: userPubkey || undefined,
+          sellerPubkey: params.sellerPubkey,
+          orderId: params.orderId,
+          productTitle: params.productTitle,
+          amount: params.amount,
+          currency: params.currency,
+          paymentMethod: params.paymentMethod,
+          buyerName: params.buyerName,
+          shippingAddress: params.shippingAddress,
+          buyerContact: params.buyerContact,
+          pickupLocation: params.pickupLocation,
+          selectedSize: params.selectedSize,
+          selectedVolume: params.selectedVolume,
+          selectedWeight: params.selectedWeight,
+          selectedBulkOption: params.selectedBulkOption,
+        }),
+      });
+    } catch (e) {}
+  };
 
   const sendInquiryDM = async (sellerPubkey: string, productTitle: string) => {
     if (!signer || !nostr || !userPubkey) return;
@@ -230,6 +306,44 @@ export default function ProductInvoiceCard({
   const [stripePaymentConfirmed, setStripePaymentConfirmed] = useState(false);
   const [stripeTimeoutSeconds, setStripeTimeoutSeconds] = useState<number>(600); // 10 minutes
   const [hasTimedOut, setHasTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (
+      (paymentConfirmed || stripePaymentConfirmed) &&
+      pendingOrderEmailRef.current
+    ) {
+      triggerOrderEmail(pendingOrderEmailRef.current);
+
+      try {
+        sessionStorage.setItem(
+          "orderSummary",
+          JSON.stringify({
+            productTitle: pendingOrderEmailRef.current.productTitle,
+            productImage: productData.images[0] || "",
+            amount: pendingOrderEmailRef.current.amount,
+            currency: pendingOrderEmailRef.current.currency,
+            paymentMethod: pendingOrderEmailRef.current.paymentMethod,
+            orderId: pendingOrderEmailRef.current.orderId,
+            shippingCost: productData.shippingCost
+              ? String(productData.shippingCost)
+              : undefined,
+            selectedSize,
+            selectedVolume,
+            selectedWeight,
+            selectedBulkOption: selectedBulkOption
+              ? String(selectedBulkOption)
+              : undefined,
+            buyerEmail: buyerEmail || undefined,
+            shippingAddress: pendingOrderEmailRef.current.shippingAddress,
+            pickupLocation: selectedPickupLocation || undefined,
+            sellerPubkey: pendingOrderEmailRef.current.sellerPubkey,
+          })
+        );
+      } catch {}
+
+      pendingOrderEmailRef.current = null;
+    }
+  }, [paymentConfirmed, stripePaymentConfirmed]);
 
   // Timeout constants
   const STRIPE_TIMEOUT_SECONDS = 600; // 10 minutes total timeout
@@ -442,7 +556,9 @@ export default function ProductInvoiceCard({
     const decodedRandomPubkeyForReceiver = nip19.decode(randomNpubForReceiver);
     const decodedRandomPrivkeyForReceiver = nip19.decode(randomNsecForReceiver);
 
-    const buyerPubkey = await signer?.getPubKey?.();
+    const buyerPubkey = signer
+      ? await signer.getPubKey?.()
+      : (decodedRandomPubkeyForSender.data as string);
 
     let messageSubject = "";
     let messageOptions: any = {};
@@ -545,7 +661,7 @@ export default function ProductInvoiceCard({
           messageOptions
         );
         const sealedEvent = await constructMessageSeal(
-          signer!,
+          signer || ({} as any),
           giftWrappedMessageEvent,
           decodedRandomPubkeyForSender.data as string,
           pubkeyToReceiveMessage,
@@ -698,7 +814,37 @@ export default function ProductInvoiceCard({
           setShowFiatTypeOption(true);
         }
         return; // Important: exit early for fiat payments
-      } else if (paymentType === "cashu") {
+      }
+
+      const emailAddressTag =
+        paymentData.shippingName && paymentData.shippingAddress
+          ? `${paymentData.shippingName}, ${paymentData.shippingAddress}, ${
+              paymentData.shippingCity || ""
+            }, ${paymentData.shippingState || ""}, ${
+              paymentData.shippingPostalCode || ""
+            }, ${paymentData.shippingCountry || ""}`
+          : undefined;
+      pendingOrderEmailRef.current = {
+        orderId: "",
+        productTitle: productData.title,
+        amount: String(price),
+        currency: "sats",
+        paymentMethod: paymentType || "lightning",
+        sellerPubkey: productData.pubkey,
+        buyerName: paymentData.shippingName || undefined,
+        shippingAddress: emailAddressTag,
+        buyerContact:
+          paymentData.contactEmail || paymentData.contactPhone || undefined,
+        pickupLocation: selectedPickupLocation || undefined,
+        selectedSize: selectedSize || undefined,
+        selectedVolume: selectedVolume || undefined,
+        selectedWeight: selectedWeight || undefined,
+        selectedBulkOption: selectedBulkOption
+          ? String(selectedBulkOption)
+          : undefined,
+      };
+
+      if (paymentType === "cashu") {
         await handleCashuPayment(price, paymentData);
       } else if (paymentType === "nwc") {
         await handleNWCPayment(price, paymentData);
@@ -850,6 +996,13 @@ export default function ProductInvoiceCard({
       const required = productData.required;
       const orderId = uuidv4();
 
+      if (
+        pendingOrderEmailRef.current &&
+        !pendingOrderEmailRef.current.orderId
+      ) {
+        pendingOrderEmailRef.current.orderId = orderId;
+      }
+
       // Construct address tag early so it can be passed to all messages
       const addressTag =
         data.shippingName && data.shippingAddress
@@ -893,7 +1046,7 @@ export default function ProductInvoiceCard({
 
       const paymentMessage =
         "You have received an order from " +
-        userNPub +
+        (userNPub || "a guest buyer") +
         " for your " +
         title +
         " listing on milk.market" +
@@ -1246,6 +1399,52 @@ export default function ProductInvoiceCard({
       setFiatOrderIsPlaced(true);
       setFormType(null);
       setOrderConfirmed(true);
+
+      try {
+        sessionStorage.setItem(
+          "orderSummary",
+          JSON.stringify({
+            productTitle: title,
+            productImage: productData.images[0] || "",
+            amount: String(productData.totalCost),
+            currency: productData.currency === "USD" ? "USD" : "sats",
+            paymentMethod: selectedFiatOption || "fiat",
+            orderId: orderId || "",
+            shippingCost: productData.shippingCost
+              ? String(productData.shippingCost)
+              : undefined,
+            selectedSize,
+            selectedVolume,
+            selectedWeight,
+            selectedBulkOption: selectedBulkOption
+              ? String(selectedBulkOption)
+              : undefined,
+            buyerEmail: buyerEmail || undefined,
+            shippingAddress: addressTag,
+            pickupLocation: selectedPickupLocation || undefined,
+            sellerPubkey: pubkey,
+          })
+        );
+      } catch {}
+
+      triggerOrderEmail({
+        orderId: orderId || "",
+        productTitle: title,
+        amount: String(productData.totalCost),
+        currency: productData.currency === "USD" ? "USD" : "sats",
+        paymentMethod: selectedFiatOption || "fiat",
+        sellerPubkey: pubkey,
+        buyerName: data.shippingName || data.contactName || undefined,
+        shippingAddress: addressTag,
+        buyerContact: data.contactEmail || data.contactPhone || undefined,
+        pickupLocation: selectedPickupLocation || undefined,
+        selectedSize: selectedSize || undefined,
+        selectedVolume: selectedVolume || undefined,
+        selectedWeight: selectedWeight || undefined,
+        selectedBulkOption: selectedBulkOption
+          ? String(selectedBulkOption)
+          : undefined,
+      });
     } catch (error) {
       setFiatOrderFailed(true);
     }
@@ -1496,6 +1695,11 @@ export default function ProductInvoiceCard({
     }
 
     const orderId = uuidv4();
+
+    if (pendingOrderEmailRef.current && !pendingOrderEmailRef.current.orderId) {
+      pendingOrderEmailRef.current.orderId = orderId;
+    }
+
     const paymentPreference =
       sellerProfile?.content?.payment_preference || "ecash";
     const lnurl = sellerProfile?.content?.lud16 || "";
@@ -1566,7 +1770,7 @@ export default function ProductInvoiceCard({
           let paymentMessage = "";
           paymentMessage =
             "You have received a payment from " +
-            userNPub +
+            (userNPub || "a guest buyer") +
             " for your " +
             productData.title +
             " listing" +
@@ -1668,7 +1872,7 @@ export default function ProductInvoiceCard({
           if (unusedToken && unusedProofs) {
             paymentMessage =
               "This is a Cashu token payment from " +
-              userNPub +
+              (userNPub || "a guest buyer") +
               " for your " +
               productData.title +
               " listing" +
@@ -1733,7 +1937,7 @@ export default function ProductInvoiceCard({
       if (sellerToken && sellerProofs) {
         paymentMessage =
           "This is a Cashu token payment from " +
-          userNPub +
+          (userNPub || "a guest buyer") +
           " for your " +
           productData.title +
           " listing" +
@@ -2238,6 +2442,7 @@ export default function ProductInvoiceCard({
         deletedEventIds
       );
       setCashuPaymentSent(true);
+      setPaymentConfirmed(true);
     } catch (error) {
       setCashuPaymentFailed(true);
     }
@@ -2276,6 +2481,13 @@ export default function ProductInvoiceCard({
       }
 
       const orderId = uuidv4();
+
+      if (
+        pendingOrderEmailRef.current &&
+        !pendingOrderEmailRef.current.orderId
+      ) {
+        pendingOrderEmailRef.current.orderId = orderId;
+      }
 
       // Build shipping info if available
       let shippingInfo = undefined;
@@ -2404,10 +2616,19 @@ export default function ProductInvoiceCard({
         const { paid } = await response.json();
 
         if (paid) {
-          setStripePaymentConfirmed(true);
           setIsCheckingStripePayment(false);
 
           const orderId = uuidv4();
+
+          if (
+            pendingOrderEmailRef.current &&
+            !pendingOrderEmailRef.current.orderId
+          ) {
+            pendingOrderEmailRef.current.orderId = orderId;
+          }
+
+          setStripePaymentConfirmed(true);
+
           let productDetails = "";
           if (selectedSize) {
             productDetails += " in size " + selectedSize;
@@ -2450,7 +2671,7 @@ export default function ProductInvoiceCard({
 
           const paymentMessage =
             "You have received a stripe payment from " +
-            userNPub +
+            (userNPub || "a guest buyer") +
             " for your " +
             productData.title +
             " listing" +
@@ -2693,6 +2914,14 @@ export default function ProductInvoiceCard({
               label="Pickup Location"
               placeholder="Choose a pickup location"
               className="max-w-full"
+              classNames={{
+                trigger:
+                  "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                value: "!text-black",
+                label: "text-gray-600",
+                popoverContent: "border-2 border-black rounded-md bg-white",
+                listbox: "!text-black",
+              }}
               selectedKeys={
                 selectedPickupLocation ? [selectedPickupLocation] : []
               }
@@ -3410,19 +3639,77 @@ export default function ProductInvoiceCard({
               >
                 {renderContactForm()}
 
+                {!isLoggedIn && (
+                  <div className="mt-4 space-y-2">
+                    <h3 className="text-lg font-semibold">
+                      Email for Order Updates
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Enter your email to receive order confirmations and
+                      updates.
+                    </p>
+                    <Input
+                      variant="bordered"
+                      fullWidth={true}
+                      label={
+                        <span className="text-light-text">Email Address</span>
+                      }
+                      labelPlacement="inside"
+                      type="email"
+                      isRequired={true}
+                      classNames={{
+                        inputWrapper:
+                          "border-2 border-black rounded-md shadow-neo",
+                      }}
+                      value={buyerEmail}
+                      onChange={(e) => setBuyerEmail(e.target.value)}
+                    />
+                    <p className="text-xs text-gray-400">
+                      Already have an account?{" "}
+                      <button
+                        type="button"
+                        className="text-primary-blue underline"
+                        onClick={onOpen}
+                      >
+                        Sign in
+                      </button>
+                    </p>
+                  </div>
+                )}
+
+                {isLoggedIn && (
+                  <div className="mt-4 space-y-2">
+                    <Input
+                      variant="bordered"
+                      fullWidth={true}
+                      label={
+                        <span className="text-light-text">
+                          Email for Order Updates (optional)
+                        </span>
+                      }
+                      labelPlacement="inside"
+                      type="email"
+                      classNames={{
+                        inputWrapper:
+                          "border-2 border-black rounded-md shadow-neo",
+                      }}
+                      value={buyerEmail}
+                      onChange={(e) => setBuyerEmail(e.target.value)}
+                    />
+                  </div>
+                )}
+
                 <div className="mt-6 space-y-3 border-t pt-6">
                   <h3 className="mb-4 text-xl font-bold">Payment Method</h3>
 
                   <Button
                     className={`w-full rounded-md border-2 border-black bg-primary-blue px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                      !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                      !isFormValid || (!isLoggedIn && !buyerEmail)
+                        ? "cursor-not-allowed opacity-50"
+                        : ""
                     }`}
-                    disabled={!isFormValid}
+                    disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
                     onClick={() => {
-                      if (!isLoggedIn) {
-                        onOpen();
-                        return;
-                      }
                       handleFormSubmit((data) =>
                         onFormSubmit(data, "lightning")
                       )();
@@ -3435,14 +3722,12 @@ export default function ProductInvoiceCard({
                   {hasTokensAvailable && (
                     <Button
                       className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                        !isFormValid || (!isLoggedIn && !buyerEmail)
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
-                      disabled={!isFormValid}
+                      disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
                       onClick={() => {
-                        if (!isLoggedIn) {
-                          onOpen();
-                          return;
-                        }
                         handleFormSubmit((data) =>
                           onFormSubmit(data, "cashu")
                         )();
@@ -3457,14 +3742,12 @@ export default function ProductInvoiceCard({
                   {isStripeMerchant && (
                     <Button
                       className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                        !isFormValid || (!isLoggedIn && !buyerEmail)
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
-                      disabled={!isFormValid}
+                      disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
                       onClick={() => {
-                        if (!isLoggedIn) {
-                          onOpen();
-                          return;
-                        }
                         handleFormSubmit((data) =>
                           onFormSubmit(data, "stripe")
                         )();
@@ -3478,14 +3761,12 @@ export default function ProductInvoiceCard({
                   {Object.keys(fiatPaymentOptions).length > 0 && (
                     <Button
                       className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                        !isFormValid || (!isLoggedIn && !buyerEmail)
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
-                      disabled={!isFormValid}
+                      disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
                       onClick={() => {
-                        if (!isLoggedIn) {
-                          onOpen();
-                          return;
-                        }
                         handleFormSubmit((data) =>
                           onFormSubmit(data, "fiat")
                         )();
@@ -3500,20 +3781,18 @@ export default function ProductInvoiceCard({
                   {nwcInfo && (
                     <Button
                       className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                        !isFormValid ? "cursor-not-allowed opacity-50" : ""
+                        !isFormValid || (!isLoggedIn && !buyerEmail)
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
                       }`}
-                      disabled={!isFormValid || isNwcLoading}
+                      disabled={
+                        !isFormValid ||
+                        (!isLoggedIn && !buyerEmail) ||
+                        isNwcLoading
+                      }
                       isLoading={isNwcLoading}
                       onClick={() => {
-                        if (!isLoggedIn) {
-                          onOpen();
-                          return;
-                        }
-                        // We must call handleFormSubmit to get the validated form data
-                        handleFormSubmit((data) =>
-                          // Then pass that data to our new NWC payment handler
-                          onFormSubmit(data, "nwc")
-                        )();
+                        handleFormSubmit((data) => onFormSubmit(data, "nwc"))();
                       }}
                       startContent={<WalletIcon className="h-6 w-6" />}
                     >
@@ -3666,10 +3945,17 @@ export default function ProductInvoiceCard({
               <Select
                 label="Fiat Payment Options"
                 className="max-w-xs"
+                classNames={{
+                  trigger:
+                    "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                  value: "!text-black",
+                  label: "text-gray-600",
+                  popoverContent: "border-2 border-black rounded-md bg-white",
+                  listbox: "!text-black",
+                }}
                 onChange={(e) => {
                   setSelectedFiatOption(e.target.value);
                   setShowFiatTypeOption(false);
-                  // Show payment instructions
                   setShowFiatPaymentInstructions(true);
                 }}
               >
