@@ -946,6 +946,21 @@ const OrdersDashboard = () => {
         console.error("Failed to persist shipped status:", err)
       );
 
+      fetch("/api/email/send-update-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: selectedOrder.orderId,
+          productTitle: selectedOrder.productTitle || "your order",
+          updateType: "shipping",
+          message:
+            "Your order has been shipped!" +
+            (trackingNumber ? ` Tracking: ${trackingNumber}` : ""),
+          trackingNumber: trackingNumber || undefined,
+          carrier: shippingCarrier || undefined,
+        }),
+      }).catch(() => {});
+
       handleCloseShippingModal();
     } catch (error) {
       console.error("Error sending shipping info:", error);

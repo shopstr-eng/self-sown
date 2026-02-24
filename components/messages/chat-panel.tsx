@@ -228,6 +228,54 @@ const ChatPanel = ({
       );
 
       await sendGiftWrappedMessageEvent(nostr, giftWrappedEvent);
+
+      const orderMessage = messages.find((msg) => {
+        const subject = msg.tags.find((tag) => tag[0] === "subject")?.[1];
+        return (
+          subject === "order-info" ||
+          subject === "order-receipt" ||
+          subject === "zapsnag-order"
+        );
+      });
+      let productTitle = "your order";
+      if (orderMessage) {
+        const lines = orderMessage.content.split("\n");
+        const productLine = lines.find(
+          (l) => l.startsWith("Product: ") || l.startsWith("Product/Service: ")
+        );
+        if (productLine) {
+          productTitle = productLine
+            .replace(/^Product(\/Service)?: /, "")
+            .trim();
+        }
+      }
+
+      fetch("/api/db/update-order-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          status: "completed",
+        }),
+      }).catch(() => {});
+
+      fetch("/api/email/send-update-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          productTitle,
+          updateType: "status",
+          message:
+            "Your order has been marked as completed." +
+            (shippingInfo.tracking
+              ? ` Tracking: ${shippingInfo.tracking}`
+              : "") +
+            (shippingInfo.carrier ? ` Carrier: ${shippingInfo.carrier}` : ""),
+          trackingNumber: shippingInfo.tracking || undefined,
+          carrier: shippingInfo.carrier || undefined,
+        }),
+      }).catch(() => {});
     } catch (error) {
       console.error("Error marking order as completed:", error);
     }

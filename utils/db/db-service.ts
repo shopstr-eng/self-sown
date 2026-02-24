@@ -206,6 +206,21 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_stripe_connect_pubkey ON stripe_connect_accounts(pubkey);
       CREATE INDEX IF NOT EXISTS idx_stripe_connect_account_id ON stripe_connect_accounts(stripe_account_id);
+
+      -- Notification emails table for buyers and sellers
+      CREATE TABLE IF NOT EXISTS notification_emails (
+          id SERIAL PRIMARY KEY,
+          pubkey TEXT,
+          email TEXT NOT NULL,
+          role TEXT NOT NULL CHECK (role IN ('buyer', 'seller')),
+          order_id TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_notification_emails_pubkey ON notification_emails(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_notification_emails_order_id ON notification_emails(order_id);
+      CREATE INDEX IF NOT EXISTS idx_notification_emails_role ON notification_emails(role);
     `);
 
     await client.query(`
@@ -1175,6 +1190,125 @@ export async function upsertStripeConnectAccount(
   } catch (error) {
     console.error("Failed to upsert Stripe Connect account:", error);
     throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Save notification email for a buyer (per order) or seller (per pubkey)
+export async function saveNotificationEmail(
+  email: string,
+  role: "buyer" | "seller",
+  pubkey?: string,
+  orderId?: string
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+
+    if (role === "seller" && pubkey) {
+      const existing = await client.query(
+        `SELECT id FROM notification_emails WHERE pubkey = $1 AND role = 'seller'`,
+        [pubkey]
+      );
+      if (existing.rows.length === 0) {
+        await client.query(
+          `INSERT INTO notification_emails (pubkey, email, role, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
+          [pubkey, email, role]
+        );
+      } else {
+        await client.query(
+          `UPDATE notification_emails SET email = $1, updated_at = CURRENT_TIMESTAMP WHERE pubkey = $2 AND role = 'seller'`,
+          [email, pubkey]
+        );
+      }
+    } else if (role === "buyer" && orderId) {
+      await client.query(
+        `INSERT INTO notification_emails (pubkey, email, role, order_id, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+        [pubkey || null, email, role, orderId] as any[]
+      );
+    }
+  } catch (error) {
+    console.error("Failed to save notification email:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Get notification email for a seller by pubkey
+export async function getSellerNotificationEmail(
+  pubkey: string
+): Promise<string | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT email FROM notification_emails WHERE pubkey = $1 AND role = 'seller' ORDER BY updated_at DESC LIMIT 1`,
+      [pubkey]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0].email;
+  } catch (error) {
+    console.error("Failed to get seller notification email:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Get buyer notification email for a specific order
+export async function getBuyerNotificationEmail(
+  orderId: string
+): Promise<string | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT email FROM notification_emails WHERE order_id = $1 AND role = 'buyer' ORDER BY updated_at DESC LIMIT 1`,
+      [orderId]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0].email;
+  } catch (error) {
+    console.error("Failed to get buyer notification email:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Get user's auth email from email_auth or oauth_auth tables
+export async function getUserAuthEmail(pubkey: string): Promise<string | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    // Check email_auth first
+    let result = await client.query(
+      `SELECT email FROM email_auth WHERE pubkey = $1 LIMIT 1`,
+      [pubkey]
+    );
+    if (result.rows.length > 0) return result.rows[0].email;
+
+    // Check oauth_auth
+    result = await client.query(
+      `SELECT email FROM oauth_auth WHERE pubkey = $1 LIMIT 1`,
+      [pubkey]
+    );
+    if (result.rows.length > 0) return result.rows[0].email;
+
+    return null;
+  } catch (error) {
+    console.error("Failed to get user auth email:", error);
+    return null;
   } finally {
     if (client) client.release();
   }

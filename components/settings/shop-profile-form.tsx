@@ -25,6 +25,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const { nostr } = useContext(NostrContext);
   const [isUploadingShopProfile, setIsUploadingShopProfile] = useState(false);
   const [isFetchingShop, setIsFetchingShop] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState("");
 
   const { signer, pubkey: userPubkey } = useContext(SignerContext);
 
@@ -61,6 +62,19 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     setIsFetchingShop(false);
   }, [shopContext, userPubkey, reset]);
 
+  useEffect(() => {
+    if (userPubkey) {
+      fetch(`/api/email/notification-email?pubkey=${userPubkey}&role=seller`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.email) {
+            setNotificationEmail(data.email);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [userPubkey]);
+
   const onSubmit = async (data: { [x: string]: string }) => {
     setIsUploadingShopProfile(true);
     const transformedData = {
@@ -84,6 +98,21 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       content: transformedData,
       created_at: 0,
     });
+
+    if (notificationEmail) {
+      try {
+        await fetch("/api/email/notification-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            pubkey: userPubkey,
+            email: notificationEmail,
+            role: "seller",
+          }),
+        });
+      } catch (e) {}
+    }
+
     setIsUploadingShopProfile(false);
 
     if (isOnboarding) {
@@ -189,6 +218,28 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             );
           }}
         />
+
+        <div>
+          <label className="mb-2 block text-base font-bold text-black">
+            Notification Email
+          </label>
+          <Input
+            classNames={{
+              inputWrapper:
+                "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+              input: "text-base",
+            }}
+            variant="bordered"
+            fullWidth={true}
+            type="email"
+            placeholder="Email for order notifications..."
+            value={notificationEmail}
+            onChange={(e) => setNotificationEmail(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Receive email alerts when customers place orders
+          </p>
+        </div>
 
         <Controller
           name="about"
