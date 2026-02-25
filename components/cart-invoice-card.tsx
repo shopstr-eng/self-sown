@@ -13,6 +13,10 @@ import {
   Divider,
   Image,
   useDisclosure,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
   Select,
   SelectItem,
   Input,
@@ -22,6 +26,7 @@ import {
   BoltIcon,
   CheckIcon,
   ClipboardIcon,
+  CurrencyDollarIcon,
   WalletIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -113,6 +118,41 @@ export default function CartInvoiceCard({
 
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
+  const isSingleSeller = useMemo(() => {
+    if (products.length === 0) return false;
+    const firstPubkey = products[0]!.pubkey;
+    return products.every((p) => p.pubkey === firstPubkey);
+  }, [products]);
+
+  const singleSellerPubkey = useMemo(() => {
+    if (!isSingleSeller || products.length === 0) return null;
+    return products[0]!.pubkey;
+  }, [isSingleSeller, products]);
+
+  const [fiatPaymentOptions, setFiatPaymentOptions] = useState<{
+    [key: string]: string;
+  }>({});
+  const [showFiatTypeOption, setShowFiatTypeOption] = useState(false);
+  const [selectedFiatOption, setSelectedFiatOption] = useState("");
+  const [showFiatPaymentInstructions, setShowFiatPaymentInstructions] =
+    useState(false);
+  const [fiatPaymentConfirmed, setFiatPaymentConfirmed] = useState(false);
+  const [pendingPaymentData, setPendingPaymentData] = useState<any>(null);
+
+  const [isStripeMerchant, setIsStripeMerchant] = useState(false);
+  const [sellerConnectedAccountId, setSellerConnectedAccountId] = useState<
+    string | null
+  >(null);
+  const [stripeInvoiceUrl, setStripeInvoiceUrl] = useState<string | null>(null);
+  const [_stripeInvoiceId, setStripeInvoiceId] = useState<string | null>(null);
+  const [isCheckingStripePayment, setIsCheckingStripePayment] = useState(false);
+  const [stripePaymentConfirmed, setStripePaymentConfirmed] = useState(false);
+  const STRIPE_TIMEOUT_SECONDS = 600;
+  const [stripeTimeoutSeconds, setStripeTimeoutSeconds] = useState<number>(
+    STRIPE_TIMEOUT_SECONDS
+  );
+  const [hasTimedOut, setHasTimedOut] = useState(false);
+
   const pendingOrderEmailRef = useRef<{
     orderId: string;
     productTitle: string;
@@ -176,7 +216,10 @@ export default function CartInvoiceCard({
   };
 
   useEffect(() => {
-    if (paymentConfirmed && pendingOrderEmailRef.current) {
+    if (
+      (paymentConfirmed || stripePaymentConfirmed) &&
+      pendingOrderEmailRef.current
+    ) {
       triggerOrderEmail(pendingOrderEmailRef.current);
 
       try {
@@ -216,7 +259,7 @@ export default function CartInvoiceCard({
 
       pendingOrderEmailRef.current = null;
     }
-  }, [paymentConfirmed]);
+  }, [paymentConfirmed, stripePaymentConfirmed]);
 
   useEffect(() => {
     if (isLoggedIn && userPubkey && !buyerEmailAutoFilled) {
@@ -410,6 +453,80 @@ export default function CartInvoiceCard({
     window.addEventListener("storage", loadNwcInfo);
     return () => window.removeEventListener("storage", loadNwcInfo);
   }, [products, profileContext.profileData]);
+
+  useEffect(() => {
+    if (!isSingleSeller || !singleSellerPubkey) {
+      setIsStripeMerchant(false);
+      setSellerConnectedAccountId(null);
+      setFiatPaymentOptions({});
+      setStripeInvoiceUrl(null);
+      setStripeInvoiceId(null);
+      setIsCheckingStripePayment(false);
+      setStripePaymentConfirmed(false);
+      setHasTimedOut(false);
+      setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
+      setShowFiatTypeOption(false);
+      setShowFiatPaymentInstructions(false);
+      setSelectedFiatOption("");
+      setFiatPaymentConfirmed(false);
+      setPendingPaymentData(null);
+      return;
+    }
+    if (singleSellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+      setIsStripeMerchant(true);
+      return;
+    }
+    const checkSellerStripe = async () => {
+      try {
+        const res = await fetch("/api/stripe/connect/seller-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pubkey: singleSellerPubkey }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.hasStripeAccount && data.chargesEnabled) {
+            setIsStripeMerchant(true);
+            if (data.connectedAccountId) {
+              setSellerConnectedAccountId(data.connectedAccountId);
+            }
+          }
+        }
+      } catch {}
+    };
+    checkSellerStripe();
+  }, [isSingleSeller, singleSellerPubkey]);
+
+  useEffect(() => {
+    if (!isSingleSeller || !singleSellerPubkey) {
+      setFiatPaymentOptions({});
+      return;
+    }
+    const sellerProfile = profileContext.profileData.get(singleSellerPubkey);
+    const fiatOptions = sellerProfile?.content?.fiat_options || {};
+    setFiatPaymentOptions(fiatOptions);
+  }, [isSingleSeller, singleSellerPubkey, profileContext.profileData]);
+
+  useEffect(() => {
+    if (!stripeInvoiceUrl || stripePaymentConfirmed || hasTimedOut) {
+      return;
+    }
+    const interval = setInterval(() => {
+      setStripeTimeoutSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setHasTimedOut(true);
+          setIsCheckingStripePayment(false);
+          setShowInvoiceCard(false);
+          setStripeInvoiceUrl(null);
+          setStripeInvoiceId(null);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [stripeInvoiceUrl, stripePaymentConfirmed, hasTimedOut]);
 
   // Validate form completion
   useEffect(() => {
@@ -768,10 +885,9 @@ export default function CartInvoiceCard({
 
   const onFormSubmit = async (
     data: { [x: string]: string },
-    paymentType?: "lightning" | "cashu" | "nwc"
+    paymentType?: "lightning" | "cashu" | "nwc" | "stripe" | "fiat"
   ) => {
     try {
-      // totalCost is already in sats with discounts applied
       const price = totalCost;
 
       if (price < 1) {
@@ -806,6 +922,18 @@ export default function CartInvoiceCard({
           shippingState: data["State/Province"],
           shippingCountry: data["Country"],
         };
+      }
+
+      if (paymentType === "fiat") {
+        setPendingPaymentData(paymentData);
+        const fiatOptionKeys = Object.keys(fiatPaymentOptions);
+        if (fiatOptionKeys.length === 1) {
+          setSelectedFiatOption(fiatOptionKeys[0]!);
+          setShowFiatPaymentInstructions(true);
+        } else if (fiatOptionKeys.length > 1) {
+          setShowFiatTypeOption(true);
+        }
+        return;
       }
 
       const emailAddressTag =
@@ -849,6 +977,8 @@ export default function CartInvoiceCard({
         await handleCashuPayment(price, paymentData);
       } else if (paymentType === "nwc") {
         await handleNWCPayment(price, paymentData);
+      } else if (paymentType === "stripe") {
+        await handleStripePayment(price, paymentData);
       } else {
         await handleLightningPayment(price, paymentData);
       }
@@ -969,6 +1099,477 @@ export default function CartInvoiceCard({
     } finally {
       nwc?.close();
       setIsNwcLoading(false);
+    }
+  };
+
+  const handleStripePayment = async (convertedPrice: number, data: any) => {
+    try {
+      validatePaymentData(convertedPrice, data);
+
+      const orderId = uuidv4();
+
+      if (
+        pendingOrderEmailRef.current &&
+        !pendingOrderEmailRef.current.orderId
+      ) {
+        pendingOrderEmailRef.current.orderId = orderId;
+      }
+
+      let shippingInfo = undefined;
+      if (data.shippingName && data.shippingAddress && data.shippingCity) {
+        shippingInfo = {
+          name: data.shippingName,
+          address: data.shippingAddress,
+          unit: data.shippingUnitNo || "",
+          city: data.shippingCity,
+          state: data.shippingState,
+          postalCode: data.shippingPostalCode,
+          country: data.shippingCountry,
+        };
+      }
+
+      const productTitles = products
+        .map((p: any) => p.title || p.productName)
+        .join(", ");
+
+      const stripeAmount = convertedPrice;
+      const stripeCurrency = "sats";
+
+      const response = await fetch("/api/stripe/create-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: stripeAmount,
+          currency: stripeCurrency,
+          customerEmail: userPubkey
+            ? `${userPubkey.substring(0, 8)}@nostr.com`
+            : undefined,
+          productTitle: `Cart Order: ${productTitles}`,
+          shippingInfo,
+          metadata: {
+            orderId,
+            productId: products.map((p) => p.id).join(","),
+            sellerPubkey: singleSellerPubkey || "",
+            buyerPubkey: userPubkey || "",
+            productTitle: productTitles,
+            isCart: "true",
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to create Stripe invoice");
+      }
+
+      const {
+        invoiceUrl,
+        invoiceId,
+        connectedAccountId: respConnectedId,
+      } = await response.json();
+
+      setStripeInvoiceUrl(invoiceUrl);
+      setStripeInvoiceId(invoiceId);
+      setShowInvoiceCard(true);
+      setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
+      setHasTimedOut(false);
+
+      setIsCheckingStripePayment(true);
+      checkStripePaymentStatus(
+        invoiceId,
+        data,
+        respConnectedId || sellerConnectedAccountId
+      );
+    } catch (error) {
+      console.error("Stripe payment error:", error);
+      if (setInvoiceGenerationFailed) {
+        setInvoiceGenerationFailed(true);
+      }
+      setShowInvoiceCard(false);
+    }
+  };
+
+  const checkStripePaymentStatus = async (
+    invoiceId: string,
+    data: any,
+    connectedAcctId?: string | null
+  ) => {
+    let pollCount = 0;
+    const maxPolls = 120;
+
+    const checkStatus = async () => {
+      try {
+        const response = await fetch("/api/stripe/check-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceId,
+            connectedAccountId: connectedAcctId || undefined,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to check Stripe payment status");
+        }
+
+        const { paid } = await response.json();
+
+        if (paid) {
+          setIsCheckingStripePayment(false);
+          const orderId = uuidv4();
+
+          if (
+            pendingOrderEmailRef.current &&
+            !pendingOrderEmailRef.current.orderId
+          ) {
+            pendingOrderEmailRef.current.orderId = orderId;
+          }
+
+          setStripePaymentConfirmed(true);
+
+          const productTitles = products
+            .map((p: any) => p.title || p.productName)
+            .join(", ");
+
+          const addressTag =
+            data.shippingName && data.shippingAddress
+              ? data.shippingUnitNo
+                ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+                : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+              : undefined;
+
+          const sellerPubkey = singleSellerPubkey || products[0]?.pubkey || "";
+
+          const paymentMessage =
+            "You have received a stripe payment from " +
+            (userNPub || "a guest buyer") +
+            " for your cart order (" +
+            productTitles +
+            ") on milk.market! Check your Stripe account for the payment.";
+
+          for (const product of products) {
+            await sendPaymentAndContactMessage(
+              sellerPubkey,
+              paymentMessage,
+              product,
+              true,
+              false,
+              false,
+              false,
+              orderId,
+              "stripe",
+              invoiceId,
+              invoiceId,
+              totalCostsInSats[product.pubkey],
+              quantities[product.id] || 1,
+              undefined,
+              addressTag,
+              selectedPickupLocations[product.id] || undefined
+            );
+          }
+
+          if (data.additionalInfo) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const additionalMessage =
+              "Additional customer information: " + data.additionalInfo;
+            await sendPaymentAndContactMessage(
+              sellerPubkey,
+              additionalMessage,
+              products[0]!,
+              false,
+              false,
+              false,
+              false,
+              orderId
+            );
+          }
+
+          if (data.shippingName && data.shippingAddress) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const contactMessage = data.shippingUnitNo
+              ? "Please ship the products to " +
+                data.shippingName +
+                " at " +
+                data.shippingAddress +
+                " " +
+                data.shippingUnitNo +
+                ", " +
+                data.shippingCity +
+                ", " +
+                data.shippingPostalCode +
+                ", " +
+                data.shippingState +
+                ", " +
+                data.shippingCountry +
+                "."
+              : "Please ship the products to " +
+                data.shippingName +
+                " at " +
+                data.shippingAddress +
+                ", " +
+                data.shippingCity +
+                ", " +
+                data.shippingPostalCode +
+                ", " +
+                data.shippingState +
+                ", " +
+                data.shippingCountry +
+                ".";
+            await sendPaymentAndContactMessage(
+              sellerPubkey,
+              contactMessage,
+              products[0]!,
+              false,
+              false,
+              false,
+              false,
+              orderId,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              addressTag
+            );
+
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const receiptMessage =
+              "Your cart order (" +
+              productTitles +
+              ") was processed successfully via Stripe. You should be receiving delivery information from " +
+              nip19.npubEncode(sellerPubkey) +
+              " as soon as they review your order.";
+            await sendPaymentAndContactMessage(
+              userPubkey!,
+              receiptMessage,
+              products[0]!,
+              false,
+              true,
+              false,
+              false,
+              orderId,
+              "stripe",
+              invoiceId,
+              invoiceId,
+              totalCost,
+              undefined,
+              undefined,
+              addressTag
+            );
+          }
+
+          for (const product of products) {
+            await sendInquiryDM(product.pubkey, product.title);
+          }
+
+          localStorage.setItem("cart", JSON.stringify([]));
+          setPaymentConfirmed(true);
+          setOrderConfirmed(true);
+          if (setInvoiceIsPaid) {
+            setInvoiceIsPaid(true);
+          }
+          return;
+        }
+
+        pollCount++;
+        if (pollCount < maxPolls) {
+          setTimeout(checkStatus, 5000);
+        }
+      } catch (error) {
+        console.error("Error checking Stripe payment:", error);
+        pollCount++;
+        if (pollCount < maxPolls) {
+          setTimeout(checkStatus, 5000);
+        }
+      }
+    };
+
+    checkStatus();
+  };
+
+  const handleFiatPayment = async (convertedPrice: number, data: any) => {
+    try {
+      validatePaymentData(convertedPrice, data);
+
+      const sellerPubkey = singleSellerPubkey || products[0]?.pubkey || "";
+      const orderId = uuidv4();
+
+      if (
+        pendingOrderEmailRef.current &&
+        !pendingOrderEmailRef.current.orderId
+      ) {
+        pendingOrderEmailRef.current.orderId = orderId;
+      }
+
+      const addressTag =
+        data.shippingName && data.shippingAddress
+          ? data.shippingUnitNo
+            ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+            : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+          : undefined;
+
+      const productTitles = products
+        .map((p: any) => p.title || p.productName)
+        .join(", ");
+
+      const paymentMessage =
+        "You have received an order from " +
+        (userNPub || "a guest buyer") +
+        " for your cart order (" +
+        productTitles +
+        ") on milk.market! Check your " +
+        selectedFiatOption +
+        " account for the payment.";
+
+      for (const product of products) {
+        await sendPaymentAndContactMessage(
+          sellerPubkey,
+          paymentMessage,
+          product,
+          true,
+          false,
+          false,
+          false,
+          orderId,
+          selectedFiatOption,
+          (fiatPaymentOptions as any)[selectedFiatOption] || "",
+          (fiatPaymentOptions as any)[selectedFiatOption] || "",
+          totalCostsInSats[product.pubkey],
+          quantities[product.id] || 1,
+          undefined,
+          addressTag,
+          selectedPickupLocations[product.id] || undefined
+        );
+      }
+
+      if (data.additionalInfo) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const additionalMessage =
+          "Additional customer information: " + data.additionalInfo;
+        await sendPaymentAndContactMessage(
+          sellerPubkey,
+          additionalMessage,
+          products[0]!,
+          false,
+          false,
+          false,
+          false,
+          orderId
+        );
+      }
+
+      if (data.shippingName && data.shippingAddress) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const contactMessage = data.shippingUnitNo
+          ? "Please ship the products to " +
+            data.shippingName +
+            " at " +
+            data.shippingAddress +
+            " " +
+            data.shippingUnitNo +
+            ", " +
+            data.shippingCity +
+            ", " +
+            data.shippingPostalCode +
+            ", " +
+            data.shippingState +
+            ", " +
+            data.shippingCountry +
+            "."
+          : "Please ship the products to " +
+            data.shippingName +
+            " at " +
+            data.shippingAddress +
+            ", " +
+            data.shippingCity +
+            ", " +
+            data.shippingPostalCode +
+            ", " +
+            data.shippingState +
+            ", " +
+            data.shippingCountry +
+            ".";
+        await sendPaymentAndContactMessage(
+          sellerPubkey,
+          contactMessage,
+          products[0]!,
+          false,
+          false,
+          false,
+          false,
+          orderId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          addressTag
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const receiptMessage =
+          "Your cart order (" +
+          productTitles +
+          ") was processed successfully via " +
+          selectedFiatOption +
+          ". You should be receiving delivery information from " +
+          nip19.npubEncode(sellerPubkey) +
+          " as soon as they review your order.";
+        await sendPaymentAndContactMessage(
+          userPubkey!,
+          receiptMessage,
+          products[0]!,
+          false,
+          true,
+          false,
+          false,
+          orderId,
+          selectedFiatOption,
+          (fiatPaymentOptions as any)[selectedFiatOption] || "",
+          (fiatPaymentOptions as any)[selectedFiatOption] || "",
+          totalCost,
+          undefined,
+          undefined,
+          addressTag
+        );
+      }
+
+      const emailAddressTag =
+        data.shippingName && data.shippingAddress
+          ? `${data.shippingName}, ${data.shippingAddress}, ${
+              data.shippingCity || ""
+            }, ${data.shippingState || ""}, ${data.shippingPostalCode || ""}, ${
+              data.shippingCountry || ""
+            }`
+          : undefined;
+
+      pendingOrderEmailRef.current = {
+        orderId,
+        productTitle: productTitles,
+        amount: String(totalCost),
+        currency: "sats",
+        paymentMethod: selectedFiatOption || "fiat",
+        sellerPubkey,
+        buyerName: data.shippingName || undefined,
+        shippingAddress: emailAddressTag,
+      };
+
+      for (const product of products) {
+        await sendInquiryDM(product.pubkey, product.title);
+      }
+
+      localStorage.setItem("cart", JSON.stringify([]));
+      setPaymentConfirmed(true);
+      setOrderConfirmed(true);
+      if (setInvoiceIsPaid) {
+        setInvoiceIsPaid(true);
+      }
+    } catch (error) {
+      console.error("Fiat payment error:", error);
+      setFailureText("Payment failed. Please try again.");
+      setShowFailureModal(true);
     }
   };
 
@@ -2699,17 +3300,19 @@ export default function CartInvoiceCard({
           {/* Divider */}
           <div className="h-px w-full bg-gray-300 lg:h-full lg:w-px"></div>
 
-          {/* Right Side - Lightning Invoice - maintain consistent width */}
+          {/* Right Side - Invoice - maintain consistent width */}
           <div className="w-full p-6 lg:w-1/2">
             <Card className="w-full">
               <CardHeader className="flex justify-center gap-3">
-                <span className="text-xl font-bold">Lightning Invoice</span>
+                <span className="text-xl font-bold">
+                  {stripeInvoiceUrl ? "Stripe Payment" : "Lightning Invoice"}
+                </span>
               </CardHeader>
               <Divider />
               <CardBody className="flex flex-col items-center">
-                {!paymentConfirmed ? (
+                {!paymentConfirmed && !stripePaymentConfirmed ? (
                   <div className="flex flex-col items-center justify-center">
-                    {qrCodeUrl ? (
+                    {qrCodeUrl && (
                       <>
                         <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
                           Don&apos;t refresh or close the page until the payment
@@ -2745,9 +3348,49 @@ export default function CartInvoiceCard({
                           />
                         </div>
                       </>
-                    ) : (
+                    )}
+                    {stripeInvoiceUrl && (
+                      <>
+                        <h3 className="text-dark-text mt-3 text-center text-lg font-medium leading-6">
+                          Please complete your payment via Stripe.
+                        </h3>
+                        <a
+                          href={stripeInvoiceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-4 rounded-md bg-blue-500 px-6 py-3 text-white no-underline hover:bg-blue-600"
+                        >
+                          Proceed to Stripe
+                        </a>
+                        {isCheckingStripePayment && (
+                          <div className="mt-4 text-center">
+                            <p>Checking payment status...</p>
+                            <p className="mt-2 text-sm text-gray-600">
+                              Time remaining:{" "}
+                              {Math.floor(stripeTimeoutSeconds / 60)}:
+                              {(stripeTimeoutSeconds % 60)
+                                .toString()
+                                .padStart(2, "0")}
+                            </p>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowInvoiceCard(false);
+                            setStripeInvoiceUrl(null);
+                            setStripeInvoiceId(null);
+                            setIsCheckingStripePayment(false);
+                            setHasTimedOut(false);
+                          }}
+                          className="mt-4 text-sm text-gray-600 underline hover:text-gray-800"
+                        >
+                          Cancel and return to checkout
+                        </button>
+                      </>
+                    )}
+                    {!qrCodeUrl && !stripeInvoiceUrl && (
                       <div>
-                        <p>Waiting for lightning invoice...</p>
+                        <p>Waiting for payment invoice...</p>
                       </div>
                     )}
                   </div>
@@ -3321,6 +3964,54 @@ export default function CartInvoiceCard({
                       Pay with {nwcInfo.alias || "NWC"}: {formattedTotalCost}
                     </Button>
                   )}
+
+                  {isSingleSeller && isStripeMerchant && (
+                    <Button
+                      className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                        !isFormValid || (!isLoggedIn && !buyerEmail)
+                          ? "cursor-not-allowed opacity-50"
+                          : ""
+                      }`}
+                      disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
+                      onClick={() => {
+                        handleFormSubmit((data) =>
+                          onFormSubmit(data, "stripe")
+                        )();
+                      }}
+                      startContent={<CurrencyDollarIcon className="h-6 w-6" />}
+                    >
+                      Pay with Card: {formattedTotalCost}
+                    </Button>
+                  )}
+
+                  {isSingleSeller &&
+                    Object.keys(fiatPaymentOptions).length > 0 && (
+                      <Button
+                        className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                          !isFormValid || (!isLoggedIn && !buyerEmail)
+                            ? "cursor-not-allowed opacity-50"
+                            : ""
+                        }`}
+                        disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
+                        onClick={() => {
+                          handleFormSubmit((data) =>
+                            onFormSubmit(data, "fiat")
+                          )();
+                        }}
+                        startContent={
+                          <CurrencyDollarIcon className="h-6 w-6" />
+                        }
+                      >
+                        Pay with Cash or Payment App: {formattedTotalCost}
+                      </Button>
+                    )}
+
+                  {!isSingleSeller && (
+                    <p className="mt-2 text-center text-sm text-gray-500">
+                      Only Bitcoin payments are supported for carts with
+                      products from different merchants.
+                    </p>
+                  )}
                 </div>
               </form>
             </>
@@ -3341,6 +4032,161 @@ export default function CartInvoiceCard({
         </div>
       </div>
 
+      {showFiatPaymentInstructions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="max-w-md rounded-lg bg-gray-800 p-8 text-center">
+            {selectedFiatOption === "cash" ? (
+              <>
+                <h3 className="mb-4 text-2xl font-bold text-white">
+                  Cash Payment
+                </h3>
+                <p className="mb-6 text-gray-400">
+                  You will need {formatWithCommas(totalCost, "sats")} in cash
+                  for this order.
+                </p>
+                <div className="mb-6 flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="paymentConfirmedCart"
+                    checked={fiatPaymentConfirmed}
+                    onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
+                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
+                  />
+                  <label
+                    htmlFor="paymentConfirmedCart"
+                    className="text-left text-gray-300"
+                  >
+                    I will have the sufficient cash to complete the order upon
+                    pickup or delivery
+                  </label>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="mb-4 text-2xl font-bold text-white">
+                  Send Payment
+                </h3>
+                <p className="mb-4 text-gray-400">
+                  Please send {formatWithCommas(totalCost, "sats")} to:
+                </p>
+                <div className="mb-6 rounded-lg bg-gray-100 p-4">
+                  <p className="font-semibold text-gray-900">
+                    {selectedFiatOption}:{" "}
+                    {singleSellerPubkey &&
+                      (profileContext.profileData.get(singleSellerPubkey)
+                        ?.content?.fiat_options?.[selectedFiatOption] ||
+                        "N/A")}
+                  </p>
+                </div>
+                <div className="mb-6 flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="paymentConfirmedCart"
+                    checked={fiatPaymentConfirmed}
+                    onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
+                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
+                  />
+                  <label
+                    htmlFor="paymentConfirmedCart"
+                    className="text-gray-300"
+                  >
+                    I have sent the payment
+                  </label>
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <Button
+                onClick={async () => {
+                  if (fiatPaymentConfirmed) {
+                    setShowFiatPaymentInstructions(false);
+                    await handleFiatPayment(
+                      totalCost,
+                      pendingPaymentData || {}
+                    );
+                    setPendingPaymentData(null);
+                  }
+                }}
+                disabled={!fiatPaymentConfirmed}
+                className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                  !fiatPaymentConfirmed ? "cursor-not-allowed opacity-50" : ""
+                }`}
+              >
+                {selectedFiatOption === "cash"
+                  ? "Confirm Order"
+                  : "Confirm Payment Sent"}
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowFiatPaymentInstructions(false);
+                  setFiatPaymentConfirmed(false);
+                  setSelectedFiatOption("");
+                  setPendingPaymentData(null);
+                }}
+                className="w-full rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Modal
+        backdrop="blur"
+        isOpen={showFiatTypeOption}
+        onClose={() => setShowFiatTypeOption(false)}
+        classNames={{
+          body: "py-6 bg-dark-fg",
+          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
+          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+          closeButton: "hover:bg-black/5 active:bg-white/10",
+        }}
+        isDismissable={true}
+        scrollBehavior={"normal"}
+        placement={"center"}
+        size="2xl"
+      >
+        <ModalContent>
+          <ModalHeader className="text-dark-text flex items-center justify-center">
+            Select your fiat payment preference:
+          </ModalHeader>
+          <ModalBody className="flex flex-col overflow-hidden">
+            <div className="flex items-center justify-center">
+              <Select
+                label="Fiat Payment Options"
+                className="max-w-xs"
+                classNames={{
+                  trigger:
+                    "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
+                  value: "!text-black",
+                  label: "text-gray-600",
+                  popoverContent: "border-2 border-black rounded-md bg-white",
+                  listbox: "!text-black",
+                }}
+                onChange={(e) => {
+                  setSelectedFiatOption(e.target.value);
+                  setShowFiatTypeOption(false);
+                  setShowFiatPaymentInstructions(true);
+                }}
+              >
+                {fiatPaymentOptions &&
+                  Object.keys(fiatPaymentOptions).map((option) => (
+                    <SelectItem
+                      key={option}
+                      value={option}
+                      className="text-dark-text"
+                    >
+                      {option}
+                    </SelectItem>
+                  ))}
+              </Select>
+            </div>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       <SignInModal isOpen={isOpen} onClose={onClose} />
 
       <FailureModal
@@ -3349,6 +4195,15 @@ export default function CartInvoiceCard({
         onClose={() => {
           setShowFailureModal(false);
           setFailureText("");
+        }}
+      />
+
+      <FailureModal
+        bodyText="The payment window has timed out. Please try again if you'd like to complete your purchase."
+        isOpen={hasTimedOut}
+        onClose={() => {
+          setHasTimedOut(false);
+          setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
         }}
       />
     </div>

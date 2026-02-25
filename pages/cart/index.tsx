@@ -577,14 +577,17 @@ export default function Component() {
                   )}
                 </div>
                 <div className="mt-6 space-y-4">
-                  <div className="flex items-start rounded-md border-2 border-black bg-blue-50 p-4">
-                    <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
-                    <p className="text-sm text-black">
-                      The cart currently only supports payments with Bitcoin. If
-                      you want to pay with credit, debit, or other digital cash
-                      options, you must purchase products individually.
-                    </p>
-                  </div>
+                  {Object.keys(productsBySeller).length > 1 && (
+                    <div className="flex items-start rounded-md border-2 border-black bg-blue-50 p-4">
+                      <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
+                      <p className="text-sm text-black">
+                        Only Bitcoin payments are supported for carts with
+                        products from different merchants. To pay with credit,
+                        debit, or other options, purchase from each merchant
+                        separately.
+                      </p>
+                    </div>
+                  )}
                   <div className="flex flex-col items-end gap-4">
                     <p className="text-2xl font-bold">
                       Subtotal ({products.length}{" "}

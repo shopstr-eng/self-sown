@@ -78,11 +78,7 @@ export default function OrderSummary() {
       for (const event of productContext.productEvents) {
         try {
           const parsed = parseTags(event);
-          if (
-            parsed &&
-            parsed.title &&
-            parsed.images.length > 0
-          ) {
+          if (parsed && parsed.title && parsed.images.length > 0) {
             products.push(parsed);
           }
         } catch {}

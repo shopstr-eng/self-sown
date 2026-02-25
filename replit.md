@@ -69,6 +69,7 @@ Preferred communication style: Simple, everyday language.
 - **Order Status Persistence**: Database persistence of order statuses with a priority system to prevent downgrades, ensuring consistent tracking.
 - **Unread/Read Indicator System**: Tracks read status of messages and orders, with visual indicators and automatic marking as read.
 - **Image Compression**: Automatic compression of large images before Blossom uploads, converting to WebP and scaling resolution if necessary.
+- **Cart Multi-Payment Support**: When all cart products are from the same merchant, Stripe (credit card) and fiat payment options (cash, payment apps) are available alongside Bitcoin options. Multi-merchant carts remain Bitcoin-only with an informational note.
 
 # External Dependencies
 
