@@ -81,8 +81,7 @@ export default function OrderSummary() {
           if (
             parsed &&
             parsed.title &&
-            parsed.images.length > 0 &&
-            parsed.pubkey !== orderData?.sellerPubkey
+            parsed.images.length > 0
           ) {
             products.push(parsed);
           }
