@@ -57,7 +57,8 @@ function buildProductDescriptors(params: {
   selectedBulkOption?: string;
 }): string {
   const descriptors: string[] = [];
-  if (params.selectedSize) descriptors.push(`Size: ${esc(params.selectedSize)}`);
+  if (params.selectedSize)
+    descriptors.push(`Size: ${esc(params.selectedSize)}`);
   if (params.selectedVolume)
     descriptors.push(`Volume: ${esc(params.selectedVolume)}`);
   if (params.selectedWeight)
@@ -84,7 +85,9 @@ function buildDeliverySection(params: {
     rows.push(`<tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Shipping Address</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.shippingAddress)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.shippingAddress
+          )}</p>
         </td>
       </tr>`);
   }
@@ -92,7 +95,9 @@ function buildDeliverySection(params: {
     rows.push(`<tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Pickup Location</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.pickupLocation)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.pickupLocation
+          )}</p>
         </td>
       </tr>`);
   }
@@ -119,7 +124,9 @@ export function orderConfirmationEmail(params: OrderEmailParams): {
   subject: string;
   html: string;
 } {
-  const greeting = params.buyerName ? `Hi ${esc(params.buyerName)},` : "Hi there,";
+  const greeting = params.buyerName
+    ? `Hi ${esc(params.buyerName)},`
+    : "Hi there,";
 
   const deliverySection = buildDeliverySection(params);
   const descriptorsSection = buildProductDescriptors(params);
@@ -131,26 +138,34 @@ export function orderConfirmationEmail(params: OrderEmailParams): {
       <tr>
         <td style="padding:8px 0;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Order ID</p>
-          <p style="margin:0;color:#111827;font-size:15px;font-family:monospace;">${esc(params.orderId)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;font-family:monospace;">${esc(
+            params.orderId
+          )}</p>
         </td>
       </tr>
       <tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Product</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.productTitle)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.productTitle
+          )}</p>
         </td>
       </tr>
       ${descriptorsSection}
       <tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Amount</p>
-          <p style="margin:0;color:#111827;font-size:18px;font-weight:600;">${esc(params.amount)} ${esc(params.currency)}</p>
+          <p style="margin:0;color:#111827;font-size:18px;font-weight:600;">${esc(
+            params.amount
+          )} ${esc(params.currency)}</p>
         </td>
       </tr>
       <tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Payment Method</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.paymentMethod)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.paymentMethod
+          )}</p>
         </td>
       </tr>
       ${deliverySection}
@@ -158,10 +173,9 @@ export function orderConfirmationEmail(params: OrderEmailParams): {
     <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">The seller has been notified and you'll receive updates about your order via email.</p>`;
 
   return {
-    subject: `Order Confirmed - ${esc(params.productTitle)} (#${esc(params.orderId.slice(
-      0,
-      8
-    ))})`,
+    subject: `Order Confirmed - ${esc(params.productTitle)} (#${esc(
+      params.orderId.slice(0, 8)
+    )})`,
     html: baseTemplate("Order Confirmation", body),
   };
 }
@@ -179,7 +193,9 @@ export function sellerNewOrderEmail(params: OrderEmailParams): {
     ? `<tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Buyer Contact</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.buyerContact)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.buyerContact
+          )}</p>
         </td>
       </tr>`
     : "";
@@ -191,26 +207,34 @@ export function sellerNewOrderEmail(params: OrderEmailParams): {
       <tr>
         <td style="padding:8px 0;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Order ID</p>
-          <p style="margin:0;color:#111827;font-size:15px;font-family:monospace;">${esc(params.orderId)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;font-family:monospace;">${esc(
+            params.orderId
+          )}</p>
         </td>
       </tr>
       <tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Product</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.productTitle)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.productTitle
+          )}</p>
         </td>
       </tr>
       ${descriptorsSection}
       <tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Amount</p>
-          <p style="margin:0;color:#111827;font-size:18px;font-weight:600;">${esc(params.amount)} ${esc(params.currency)}</p>
+          <p style="margin:0;color:#111827;font-size:18px;font-weight:600;">${esc(
+            params.amount
+          )} ${esc(params.currency)}</p>
         </td>
       </tr>
       <tr>
         <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Payment Method</p>
-          <p style="margin:0;color:#111827;font-size:15px;">${esc(params.paymentMethod)}</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            params.paymentMethod
+          )}</p>
         </td>
       </tr>
       ${deliverySection}
@@ -219,10 +243,9 @@ export function sellerNewOrderEmail(params: OrderEmailParams): {
     <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">Please check your Milk Market orders dashboard for full details and to manage this order.</p>`;
 
   return {
-    subject: `New Order - ${esc(params.productTitle)} (#${esc(params.orderId.slice(
-      0,
-      8
-    ))})`,
+    subject: `New Order - ${esc(params.productTitle)} (#${esc(
+      params.orderId.slice(0, 8)
+    )})`,
     html: baseTemplate("New Order", body),
   };
 }
@@ -241,15 +264,14 @@ export function orderUpdateEmail(params: {
 
   if (params.updateType === "shipping") {
     updateTitle = "Shipping Update";
-    subjectLine = `Shipped - ${esc(params.productTitle)} (#${esc(params.orderId.slice(
-      0,
-      8
-    ))})`;
+    subjectLine = `Shipped - ${esc(params.productTitle)} (#${esc(
+      params.orderId.slice(0, 8)
+    )})`;
   } else if (params.updateType === "status") {
     updateTitle = "Order Status Update";
-    subjectLine = `Status Update - ${esc(
-      params.productTitle
-    )} (#${esc(params.orderId.slice(0, 8))})`;
+    subjectLine = `Status Update - ${esc(params.productTitle)} (#${esc(
+      params.orderId.slice(0, 8)
+    )})`;
   }
 
   const trackingSection =
@@ -266,7 +288,9 @@ export function orderUpdateEmail(params: {
             )}</p>
             ${
               params.estimatedDelivery
-                ? `<p style="margin:0;color:#374151;font-size:14px;"><strong>Est. Delivery:</strong> ${esc(params.estimatedDelivery)}</p>`
+                ? `<p style="margin:0;color:#374151;font-size:14px;"><strong>Est. Delivery:</strong> ${esc(
+                    params.estimatedDelivery
+                  )}</p>`
                 : ""
             }
           </td>
@@ -276,10 +300,9 @@ export function orderUpdateEmail(params: {
 
   const body = `
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">${updateTitle}</h2>
-    <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">Order #${esc(params.orderId.slice(
-      0,
-      8
-    ))} &bull; ${esc(params.productTitle)}</p>
+    <p style="margin:0 0 8px;color:#6b7280;font-size:13px;">Order #${esc(
+      params.orderId.slice(0, 8)
+    )} &bull; ${esc(params.productTitle)}</p>
     <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">${esc(
       params.message
     )}</p>

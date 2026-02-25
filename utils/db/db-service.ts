@@ -1221,7 +1221,8 @@ export async function saveNotificationEmail(
          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
          ON CONFLICT (order_id) WHERE role = 'buyer'
          DO UPDATE SET email = EXCLUDED.email, pubkey = EXCLUDED.pubkey, updated_at = CURRENT_TIMESTAMP`;
-      await client.query(buyerQuery, [pubkey || null, email, role, orderId]);
+      const pubkeyValue: string = pubkey || "";
+      await client.query(buyerQuery, [pubkeyValue, email, role, orderId]);
     }
   } catch (error) {
     console.error("Failed to save notification email:", error);
@@ -1288,7 +1289,9 @@ export async function getUserAuthEmail(pubkey: string): Promise<string | null> {
       `SELECT table_name FROM information_schema.tables
        WHERE table_schema = 'public' AND table_name IN ('email_auth', 'oauth_auth')`
     );
-    const existingTables = new Set(tableCheck.rows.map((r: { table_name: string }) => r.table_name));
+    const existingTables = new Set(
+      tableCheck.rows.map((r: { table_name: string }) => r.table_name)
+    );
 
     if (existingTables.has("email_auth")) {
       const result = await client.query(
