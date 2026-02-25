@@ -1211,21 +1211,17 @@ export async function saveNotificationEmail(
     client = await dbPool.connect();
 
     if (role === "seller" && pubkey) {
-      await client.query(
-        `INSERT INTO notification_emails (pubkey, email, role, updated_at)
+      const sellerQuery = `INSERT INTO notification_emails (pubkey, email, role, updated_at)
          VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
          ON CONFLICT (pubkey) WHERE role = 'seller'
-         DO UPDATE SET email = EXCLUDED.email, updated_at = CURRENT_TIMESTAMP`,
-        [pubkey, email, role]
-      );
+         DO UPDATE SET email = EXCLUDED.email, updated_at = CURRENT_TIMESTAMP`;
+      await client.query(sellerQuery, [pubkey, email, role]);
     } else if (role === "buyer" && orderId) {
-      await client.query(
-        `INSERT INTO notification_emails (pubkey, email, role, order_id, updated_at)
+      const buyerQuery = `INSERT INTO notification_emails (pubkey, email, role, order_id, updated_at)
          VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
          ON CONFLICT (order_id) WHERE role = 'buyer'
-         DO UPDATE SET email = EXCLUDED.email, pubkey = EXCLUDED.pubkey, updated_at = CURRENT_TIMESTAMP`,
-        [pubkey || null, email, role, orderId]
-      );
+         DO UPDATE SET email = EXCLUDED.email, pubkey = EXCLUDED.pubkey, updated_at = CURRENT_TIMESTAMP`;
+      await client.query(buyerQuery, [pubkey || null, email, role, orderId]);
     }
   } catch (error) {
     console.error("Failed to save notification email:", error);
