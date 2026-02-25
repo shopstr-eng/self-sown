@@ -153,7 +153,7 @@ export default function CartInvoiceCard({
   );
   const [hasTimedOut, setHasTimedOut] = useState(false);
 
-  const pendingOrderEmailRef = useRef<{
+  const pendingOrderEmailRef = useRef<Array<{
     orderId: string;
     productTitle: string;
     amount: string;
@@ -168,7 +168,7 @@ export default function CartInvoiceCard({
     selectedVolume?: string;
     selectedWeight?: string;
     selectedBulkOption?: string;
-  } | null>(null);
+  }> | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerEmailAutoFilled, setBuyerEmailAutoFilled] = useState(false);
@@ -188,14 +188,16 @@ export default function CartInvoiceCard({
     selectedVolume?: string;
     selectedWeight?: string;
     selectedBulkOption?: string;
+    includeBuyerEmail?: boolean;
   }) => {
     try {
+      const shouldIncludeBuyer = params.includeBuyerEmail !== false;
       await fetch("/api/email/send-order-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          buyerEmail: buyerEmail || undefined,
-          buyerPubkey: userPubkey || undefined,
+          buyerEmail: shouldIncludeBuyer ? buyerEmail || undefined : undefined,
+          buyerPubkey: shouldIncludeBuyer ? userPubkey || undefined : undefined,
           sellerPubkey: params.sellerPubkey,
           orderId: params.orderId,
           productTitle: params.productTitle,
@@ -218,11 +220,22 @@ export default function CartInvoiceCard({
   useEffect(() => {
     if (
       (paymentConfirmed || stripePaymentConfirmed) &&
-      pendingOrderEmailRef.current
+      pendingOrderEmailRef.current &&
+      pendingOrderEmailRef.current.length > 0
     ) {
-      triggerOrderEmail(pendingOrderEmailRef.current);
+      const emailEntries = pendingOrderEmailRef.current;
+      emailEntries.forEach((entry, index) => {
+        triggerOrderEmail({
+          ...entry,
+          includeBuyerEmail: index === 0,
+        });
+      });
 
       try {
+        const firstEntry = emailEntries[0]!;
+        const allProductTitles = emailEntries
+          .map((e) => e.productTitle)
+          .join("; ");
         const cartItems = products.map((p: any) => ({
           title: p.title || p.productName,
           image: p.images?.[0] || "",
@@ -241,16 +254,16 @@ export default function CartInvoiceCard({
         sessionStorage.setItem(
           "orderSummary",
           JSON.stringify({
-            productTitle: pendingOrderEmailRef.current.productTitle,
+            productTitle: allProductTitles,
             productImage: products[0]?.images?.[0] || "",
             amount: String(totalCost),
             subtotal: String(subtotalCost),
-            currency: pendingOrderEmailRef.current.currency,
-            paymentMethod: pendingOrderEmailRef.current.paymentMethod,
-            orderId: pendingOrderEmailRef.current.orderId,
+            currency: firstEntry.currency,
+            paymentMethod: firstEntry.paymentMethod,
+            orderId: firstEntry.orderId,
             buyerEmail: buyerEmail || undefined,
-            shippingAddress: pendingOrderEmailRef.current.shippingAddress,
-            sellerPubkey: pendingOrderEmailRef.current.sellerPubkey,
+            shippingAddress: firstEntry.shippingAddress,
+            sellerPubkey: firstEntry.sellerPubkey,
             isCart: true,
             cartItems,
           })
@@ -944,34 +957,47 @@ export default function CartInvoiceCard({
               paymentData.shippingPostalCode || ""
             }, ${paymentData.shippingCountry || ""}`
           : undefined;
-      const productTitles = products
-        .map((p: any) => {
-          const parts = [p.title || p.productName];
-          if (p.selectedSize) parts.push(`Size: ${p.selectedSize}`);
-          if (p.selectedVolume) parts.push(`Volume: ${p.selectedVolume}`);
-          if (p.selectedWeight) parts.push(`Weight: ${p.selectedWeight}`);
-          if (p.selectedBulkOption)
-            parts.push(`Bundle: ${p.selectedBulkOption} units`);
-          const qty = quantities[p.id];
-          if (qty && qty > 1) parts.push(`Qty: ${qty}`);
-          return parts.join(" - ");
-        })
-        .join("; ");
-      const pickupSummary = products
-        .map((p: any) => selectedPickupLocations[p.id])
-        .filter(Boolean)
-        .join(", ");
-      pendingOrderEmailRef.current = {
-        orderId: "",
-        productTitle: productTitles,
-        amount: String(price),
-        currency: "sats",
-        paymentMethod: paymentType || "lightning",
-        sellerPubkey: products[0]?.pubkey || "",
-        buyerName: paymentData.shippingName || undefined,
-        shippingAddress: emailAddressTag,
-        pickupLocation: pickupSummary || undefined,
-      };
+      const productsBySeller: { [pubkey: string]: typeof products } = {};
+      for (const p of products) {
+        if (!productsBySeller[p.pubkey]) {
+          productsBySeller[p.pubkey] = [];
+        }
+        productsBySeller[p.pubkey]!.push(p);
+      }
+
+      pendingOrderEmailRef.current = Object.entries(productsBySeller).map(
+        ([sellerPubkey, sellerProducts]) => {
+          const sellerProductTitles = sellerProducts
+            .map((p: any) => {
+              const parts = [p.title || p.productName];
+              if (p.selectedSize) parts.push(`Size: ${p.selectedSize}`);
+              if (p.selectedVolume) parts.push(`Volume: ${p.selectedVolume}`);
+              if (p.selectedWeight) parts.push(`Weight: ${p.selectedWeight}`);
+              if (p.selectedBulkOption)
+                parts.push(`Bundle: ${p.selectedBulkOption} units`);
+              const qty = quantities[p.id];
+              if (qty && qty > 1) parts.push(`Qty: ${qty}`);
+              return parts.join(" - ");
+            })
+            .join("; ");
+          const sellerPickupSummary = sellerProducts
+            .map((p: any) => selectedPickupLocations[p.id])
+            .filter(Boolean)
+            .join(", ");
+          const sellerAmount = totalCostsInSats[sellerPubkey] || 0;
+          return {
+            orderId: "",
+            productTitle: sellerProductTitles,
+            amount: String(sellerAmount || price),
+            currency: "sats",
+            paymentMethod: paymentType || "lightning",
+            sellerPubkey,
+            buyerName: paymentData.shippingName || undefined,
+            shippingAddress: emailAddressTag,
+            pickupLocation: sellerPickupSummary || undefined,
+          };
+        }
+      );
 
       if (paymentType === "cashu") {
         await handleCashuPayment(price, paymentData);
@@ -1108,11 +1134,10 @@ export default function CartInvoiceCard({
 
       const orderId = uuidv4();
 
-      if (
-        pendingOrderEmailRef.current &&
-        !pendingOrderEmailRef.current.orderId
-      ) {
-        pendingOrderEmailRef.current.orderId = orderId;
+      if (pendingOrderEmailRef.current) {
+        pendingOrderEmailRef.current.forEach((entry) => {
+          if (!entry.orderId) entry.orderId = orderId;
+        });
       }
 
       let shippingInfo = undefined;
@@ -1218,11 +1243,10 @@ export default function CartInvoiceCard({
           setIsCheckingStripePayment(false);
           const orderId = uuidv4();
 
-          if (
-            pendingOrderEmailRef.current &&
-            !pendingOrderEmailRef.current.orderId
-          ) {
-            pendingOrderEmailRef.current.orderId = orderId;
+          if (pendingOrderEmailRef.current) {
+            pendingOrderEmailRef.current.forEach((entry) => {
+              if (!entry.orderId) entry.orderId = orderId;
+            });
           }
 
           setStripePaymentConfirmed(true);
@@ -1395,11 +1419,10 @@ export default function CartInvoiceCard({
       const sellerPubkey = singleSellerPubkey || products[0]?.pubkey || "";
       const orderId = uuidv4();
 
-      if (
-        pendingOrderEmailRef.current &&
-        !pendingOrderEmailRef.current.orderId
-      ) {
-        pendingOrderEmailRef.current.orderId = orderId;
+      if (pendingOrderEmailRef.current) {
+        pendingOrderEmailRef.current.forEach((entry) => {
+          if (!entry.orderId) entry.orderId = orderId;
+        });
       }
 
       const addressTag =
@@ -1545,16 +1568,18 @@ export default function CartInvoiceCard({
             }`
           : undefined;
 
-      pendingOrderEmailRef.current = {
-        orderId,
-        productTitle: productTitles,
-        amount: String(totalCost),
-        currency: "sats",
-        paymentMethod: selectedFiatOption || "fiat",
-        sellerPubkey,
-        buyerName: data.shippingName || undefined,
-        shippingAddress: emailAddressTag,
-      };
+      pendingOrderEmailRef.current = [
+        {
+          orderId,
+          productTitle: productTitles,
+          amount: String(totalCost),
+          currency: "sats",
+          paymentMethod: selectedFiatOption || "fiat",
+          sellerPubkey,
+          buyerName: data.shippingName || undefined,
+          shippingAddress: emailAddressTag,
+        },
+      ];
 
       for (const product of products) {
         await sendInquiryDM(product.pubkey, product.title);
@@ -1789,11 +1814,10 @@ export default function CartInvoiceCard({
 
       const orderId = uuidv4();
 
-      if (
-        pendingOrderEmailRef.current &&
-        !pendingOrderEmailRef.current.orderId
-      ) {
-        pendingOrderEmailRef.current.orderId = orderId;
+      if (pendingOrderEmailRef.current) {
+        pendingOrderEmailRef.current.forEach((entry) => {
+          if (!entry.orderId) entry.orderId = orderId;
+        });
       }
 
       // Generate keys once per order to ensure consistent sender pubkey
