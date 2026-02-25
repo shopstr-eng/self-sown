@@ -221,6 +221,8 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_notification_emails_pubkey ON notification_emails(pubkey);
       CREATE INDEX IF NOT EXISTS idx_notification_emails_order_id ON notification_emails(order_id);
       CREATE INDEX IF NOT EXISTS idx_notification_emails_role ON notification_emails(role);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_emails_seller_unique ON notification_emails(pubkey) WHERE role = 'seller';
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_emails_buyer_order_unique ON notification_emails(order_id) WHERE role = 'buyer';
     `);
 
     await client.query(`
@@ -1209,25 +1211,20 @@ export async function saveNotificationEmail(
     client = await dbPool.connect();
 
     if (role === "seller" && pubkey) {
-      const existing = await client.query(
-        `SELECT id FROM notification_emails WHERE pubkey = $1 AND role = 'seller'`,
-        [pubkey]
+      await client.query(
+        `INSERT INTO notification_emails (pubkey, email, role, updated_at)
+         VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+         ON CONFLICT (pubkey) WHERE role = 'seller'
+         DO UPDATE SET email = EXCLUDED.email, updated_at = CURRENT_TIMESTAMP`,
+        [pubkey, email, role]
       );
-      if (existing.rows.length === 0) {
-        await client.query(
-          `INSERT INTO notification_emails (pubkey, email, role, updated_at) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
-          [pubkey, email, role]
-        );
-      } else {
-        await client.query(
-          `UPDATE notification_emails SET email = $1, updated_at = CURRENT_TIMESTAMP WHERE pubkey = $2 AND role = 'seller'`,
-          [email, pubkey]
-        );
-      }
     } else if (role === "buyer" && orderId) {
       await client.query(
-        `INSERT INTO notification_emails (pubkey, email, role, order_id, updated_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
-        [pubkey || null, email, role, orderId] as any[]
+        `INSERT INTO notification_emails (pubkey, email, role, order_id, updated_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+         ON CONFLICT (order_id) WHERE role = 'buyer'
+         DO UPDATE SET email = EXCLUDED.email, pubkey = EXCLUDED.pubkey, updated_at = CURRENT_TIMESTAMP`,
+        [pubkey || null, email, role, orderId]
       );
     }
   } catch (error) {
@@ -1284,26 +1281,34 @@ export async function getBuyerNotificationEmail(
   }
 }
 
-// Get user's auth email from email_auth or oauth_auth tables
 export async function getUserAuthEmail(pubkey: string): Promise<string | null> {
   const dbPool = getDbPool();
   let client;
 
   try {
     client = await dbPool.connect();
-    // Check email_auth first
-    let result = await client.query(
-      `SELECT email FROM email_auth WHERE pubkey = $1 LIMIT 1`,
-      [pubkey]
-    );
-    if (result.rows.length > 0) return result.rows[0].email;
 
-    // Check oauth_auth
-    result = await client.query(
-      `SELECT email FROM oauth_auth WHERE pubkey = $1 LIMIT 1`,
-      [pubkey]
+    const tableCheck = await client.query(
+      `SELECT table_name FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_name IN ('email_auth', 'oauth_auth')`
     );
-    if (result.rows.length > 0) return result.rows[0].email;
+    const existingTables = new Set(tableCheck.rows.map((r: { table_name: string }) => r.table_name));
+
+    if (existingTables.has("email_auth")) {
+      const result = await client.query(
+        `SELECT email FROM email_auth WHERE pubkey = $1 LIMIT 1`,
+        [pubkey]
+      );
+      if (result.rows.length > 0) return result.rows[0].email;
+    }
+
+    if (existingTables.has("oauth_auth")) {
+      const result = await client.query(
+        `SELECT email FROM oauth_auth WHERE pubkey = $1 LIMIT 1`,
+        [pubkey]
+      );
+      if (result.rows.length > 0) return result.rows[0].email;
+    }
 
     return null;
   } catch (error) {

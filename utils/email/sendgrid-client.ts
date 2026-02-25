@@ -1,8 +1,11 @@
 import sgMail from "@sendgrid/mail";
 
-let connectionSettings: any;
+interface SendGridCredentials {
+  apiKey: string;
+  email: string;
+}
 
-async function getCredentials() {
+async function getCredentials(): Promise<SendGridCredentials> {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? "repl " + process.env.REPL_IDENTITY
@@ -14,7 +17,7 @@ async function getCredentials() {
     throw new Error("X_REPLIT_TOKEN not found for repl/depl");
   }
 
-  connectionSettings = await fetch(
+  const response = await fetch(
     "https://" +
       hostname +
       "/api/v2/connection?include_secrets=true&connector_names=sendgrid",
@@ -24,20 +27,20 @@ async function getCredentials() {
         X_REPLIT_TOKEN: xReplitToken,
       },
     }
-  )
-    .then((res) => res.json())
-    .then((data) => data.items?.[0]);
+  );
+  const data = await response.json();
+  const connection = data.items?.[0];
 
   if (
-    !connectionSettings ||
-    !connectionSettings.settings.api_key ||
-    !connectionSettings.settings.from_email
+    !connection ||
+    !connection.settings.api_key ||
+    !connection.settings.from_email
   ) {
     throw new Error("SendGrid not connected");
   }
   return {
-    apiKey: connectionSettings.settings.api_key,
-    email: connectionSettings.settings.from_email,
+    apiKey: connection.settings.api_key,
+    email: connection.settings.from_email,
   };
 }
 
