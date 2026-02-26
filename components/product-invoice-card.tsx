@@ -1049,7 +1049,7 @@ export default function ProductInvoiceCard({
         (userNPub || "a guest buyer") +
         " for your " +
         title +
-        " listing on milk.market" +
+        " listing on Milk Market" +
         productDetails +
         "! Check your " +
         selectedFiatOption +
@@ -1775,7 +1775,7 @@ export default function ProductInvoiceCard({
             productData.title +
             " listing" +
             productDetails +
-            " on milk.market! Check your Lightning address (" +
+            " on Milk Market! Check your Lightning address (" +
             lnurl +
             ") for your sats.";
           await sendPaymentAndContactMessage(
@@ -1877,7 +1877,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on milk.market: " +
+              " on Milk Market: " +
               unusedToken;
             await sendPaymentAndContactMessage(
               productData.pubkey,
@@ -1942,7 +1942,7 @@ export default function ProductInvoiceCard({
           productData.title +
           " listing" +
           productDetails +
-          " on milk.market: " +
+          " on Milk Market: " +
           sellerToken;
         await sendPaymentAndContactMessage(
           productData.pubkey,
@@ -2676,7 +2676,7 @@ export default function ProductInvoiceCard({
             productData.title +
             " listing" +
             productDetails +
-            " on milk.market! Check your Stripe account for the payment.";
+            " on Milk Market! Check your Stripe account for the payment.";
 
           await sendPaymentAndContactMessage(
             productData.pubkey,

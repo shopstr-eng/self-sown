@@ -1269,7 +1269,7 @@ export default function CartInvoiceCard({
             (userNPub || "a guest buyer") +
             " for your cart order (" +
             productTitles +
-            ") on milk.market! Check your Stripe account for the payment.";
+            ") on Milk Market! Check your Stripe account for the payment.";
 
           for (const product of products) {
             await sendPaymentAndContactMessage(
@@ -1441,7 +1441,7 @@ export default function CartInvoiceCard({
         (userNPub || "a guest buyer") +
         " for your cart order (" +
         productTitles +
-        ") on milk.market! Check your " +
+        ") on Milk Market! Check your " +
         selectedFiatOption +
         " account for the payment.";
 
@@ -2016,7 +2016,7 @@ export default function CartInvoiceCard({
                 title +
                 " listing" +
                 productDetails +
-                " on milk.market! Check your Lightning address (" +
+                " on Milk Market! Check your Lightning address (" +
                 lnurl +
                 ") for your sats.";
             } else {
@@ -2027,7 +2027,7 @@ export default function CartInvoiceCard({
                 title +
                 " listing" +
                 productDetails +
-                " on milk.market! Check your Lightning address (" +
+                " on Milk Market! Check your Lightning address (" +
                 lnurl +
                 ") for your sats.";
             }
@@ -2152,7 +2152,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on milk.market: " +
+                  " on Milk Market: " +
                   unusedToken;
               } else {
                 paymentMessage =
@@ -2162,7 +2162,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on milk.market: " +
+                  " on Milk Market: " +
                   unusedToken;
               }
               await sendPaymentAndContactMessageWithKeys(
@@ -2242,7 +2242,7 @@ export default function CartInvoiceCard({
               title +
               " listing" +
               productDetails +
-              " on milk.market: " +
+              " on Milk Market: " +
               sellerToken;
           } else {
             paymentMessage =
@@ -2252,7 +2252,7 @@ export default function CartInvoiceCard({
               title +
               " listing" +
               productDetails +
-              " on milk.market: " +
+              " on Milk Market: " +
               sellerToken;
           }
           await sendPaymentAndContactMessageWithKeys(
