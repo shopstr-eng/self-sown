@@ -423,7 +423,7 @@ export default function CartInvoiceCard({
   const cartCurrency = useMemo(() => {
     if (products.length === 0) return null;
     const currencies = new Set(products.map((p) => p.currency.toUpperCase()));
-    return currencies.size === 1 ? products[0].currency : null;
+    return currencies.size === 1 ? products[0]?.currency ?? null : null;
   }, [products]);
 
   const {
