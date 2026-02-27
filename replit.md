@@ -39,7 +39,7 @@ Preferred communication style: Simple, everyday language.
 
 - **Lightning Network**: Direct invoice generation and payment verification.
 - **Cashu eCash**: Integration with Cashu mints.
-- **Stripe Connect**: Express accounts for sellers to accept credit card payments.
+- **Stripe Connect**: Express accounts for sellers to accept credit card payments. Uses embedded Stripe Elements card form (PaymentIntent API) for on-site checkout instead of external Stripe hosted pages. Card form component at `components/utility-components/stripe-card-form.tsx`, PaymentIntent API at `pages/api/stripe/create-payment-intent.ts`.
 - **Fiat Support**: Traditional payment processing.
 - **Multi-Currency**: Support for dynamic currency conversion.
 
@@ -92,4 +92,5 @@ Preferred communication style: Simple, everyday language.
 
 - **Cryptography**: `crypto-js`, `nostr-tools`, `@cashu/cashu-ts`.
 - **UI Components**: `@nextui-org/react`, `@heroicons/react`, `framer-motion`.
+- **Payments**: `stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`.
 - **File Processing**: `pdf-lib`, `qrcode`.
