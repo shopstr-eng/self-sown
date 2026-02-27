@@ -755,6 +755,7 @@ function MilkMarket({ props }: { props: AppProps }) {
       <DynamicHead
         productEvents={productContext.productEvents}
         shopEvents={shopContext.shopData}
+        profileData={profileContext.profileData}
       />
       <RelaysContext.Provider value={relaysContext}>
         <BlossomContext.Provider value={blossomContext}>

@@ -11,6 +11,7 @@ import {
 } from "@nextui-org/react";
 import { nip19 } from "nostr-tools";
 import { useContext, useEffect, useState } from "react";
+import { getProfileSlug } from "@/utils/url-slugs";
 import {
   ArrowRightStartOnRectangleIcon,
   BuildingStorefrontIcon,
@@ -91,9 +92,8 @@ export const ProfileWithDropdown = ({
         <BuildingStorefrontIcon className={"h-5 w-5 !text-black"} />
       ),
       onClick: () => {
-        onDropdownClose();
-        const npub = nip19.npubEncode(pubkey);
-        router.push(`/marketplace/${npub}`);
+        const slug = getProfileSlug(pubkey, profileContext.profileData);
+        router.push(`/marketplace/${slug}`);
       },
       label: "Visit Seller",
     },
