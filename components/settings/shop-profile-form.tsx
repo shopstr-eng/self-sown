@@ -1,7 +1,14 @@
 import { useEffect, useState, useContext } from "react";
 import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
-import { Button, Textarea, Input, Image } from "@nextui-org/react";
+import {
+  Button,
+  Textarea,
+  Input,
+  Image,
+  Select,
+  SelectItem,
+} from "@nextui-org/react";
 
 import { ShopMapContext } from "@/utils/context/context";
 import {
@@ -15,10 +22,13 @@ import {
 import { createNostrShopEvent } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import currencySelection from "@/public/currencySelection.json";
 
 interface ShopProfileFormProps {
   isOnboarding?: boolean;
 }
+
+const CURRENCY_OPTIONS = Object.keys(currencySelection);
 
 const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const router = useRouter();
@@ -26,6 +36,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const [isUploadingShopProfile, setIsUploadingShopProfile] = useState(false);
   const [isFetchingShop, setIsFetchingShop] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState("");
+  const [freeShippingThreshold, setFreeShippingThreshold] =
+    useState<string>("");
+  const [freeShippingCurrency, setFreeShippingCurrency] =
+    useState<string>("USD");
 
   const { signer, pubkey: userPubkey } = useContext(SignerContext);
 
@@ -58,6 +72,15 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         banner: shop.content.ui.banner,
       };
       reset(mappedContent);
+      if (
+        shop.content.freeShippingThreshold !== undefined &&
+        shop.content.freeShippingThreshold > 0
+      ) {
+        setFreeShippingThreshold(String(shop.content.freeShippingThreshold));
+      }
+      if (shop.content.freeShippingCurrency) {
+        setFreeShippingCurrency(shop.content.freeShippingCurrency);
+      }
     }
     setIsFetchingShop(false);
   }, [shopContext, userPubkey, reset]);
@@ -77,7 +100,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
   const onSubmit = async (data: { [x: string]: string }) => {
     setIsUploadingShopProfile(true);
-    const transformedData = {
+    const thresholdValue = freeShippingThreshold
+      ? parseFloat(freeShippingThreshold)
+      : undefined;
+    const transformedData: any = {
       name: data.name || "",
       about: data.about || "",
       ui: {
@@ -88,6 +114,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       },
       merchants: [userPubkey!],
     };
+    if (thresholdValue && thresholdValue > 0) {
+      transformedData.freeShippingThreshold = thresholdValue;
+      transformedData.freeShippingCurrency = freeShippingCurrency;
+    }
     await createNostrShopEvent(
       nostr!,
       signer!,
@@ -281,6 +311,70 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             );
           }}
         />
+
+        <div>
+          <label className="mb-2 block text-base font-bold text-black">
+            Free Shipping Threshold
+          </label>
+          <p className="mb-3 text-sm text-gray-500">
+            Set a minimum order amount to offer free shipping. When a buyer's
+            order total from your shop reaches this amount, shipping costs will
+            be waived.
+          </p>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Input
+                classNames={{
+                  inputWrapper:
+                    "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                  input: "text-base",
+                }}
+                variant="bordered"
+                fullWidth={true}
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="e.g. 50.00"
+                value={freeShippingThreshold}
+                onChange={(e) => setFreeShippingThreshold(e.target.value)}
+              />
+            </div>
+            <div className="w-32">
+              <Select
+                classNames={{
+                  trigger:
+                    "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white",
+                  value: "text-base !text-black",
+                  popoverContent: "border-2 border-black rounded-lg bg-white",
+                  listbox: "!text-black",
+                }}
+                variant="bordered"
+                selectedKeys={[freeShippingCurrency]}
+                onChange={(e) => {
+                  if (e.target.value) setFreeShippingCurrency(e.target.value);
+                }}
+                aria-label="Currency"
+              >
+                {CURRENCY_OPTIONS.map((currency) => (
+                  <SelectItem
+                    key={currency}
+                    value={currency}
+                    className="text-black"
+                  >
+                    {currency}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
+          {freeShippingThreshold && parseFloat(freeShippingThreshold) > 0 && (
+            <p className="mt-2 text-sm text-green-600">
+              Buyers will get free shipping on orders of{" "}
+              {parseFloat(freeShippingThreshold).toFixed(2)}{" "}
+              {freeShippingCurrency} or more from your shop.
+            </p>
+          )}
+        </div>
 
         <Button
           className={`w-full text-lg ${BLUEBUTTONCLASSNAMES}`}

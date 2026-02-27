@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Event, nip19 } from "nostr-tools";
 import parseTags, {
   ProductData,
@@ -28,7 +28,12 @@ import {
   ArrowLongUpIcon,
   EllipsisVerticalIcon,
 } from "@heroicons/react/24/outline";
-import { ReviewsContext, ProductContext } from "@/utils/context/context";
+import {
+  ReviewsContext,
+  ProductContext,
+  ShopMapContext,
+} from "@/utils/context/context";
+import FreeShippingNotification from "../free-shipping-notification";
 import FailureModal from "../utility-components/failure-modal";
 import SuccessModal from "../utility-components/success-modal";
 import SignInModal from "../sign-in/SignInModal";
@@ -64,7 +69,10 @@ export default function CheckoutCard({
 }) {
   const { pubkey: userPubkey, isLoggedIn } = useContext(SignerContext);
   const productEventContext = useContext(ProductContext);
+  const shopMapContext = useContext(ShopMapContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [showFreeShippingNotification, setShowFreeShippingNotification] =
+    useState(false);
   const [showRawEventModal, setShowRawEventModal] = useState(false);
   const [showEventIdModal, setShowEventIdModal] = useState(false);
 
@@ -100,6 +108,7 @@ export default function CheckoutCard({
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [discountError, setDiscountError] = useState("");
+  const [satsEstimate, setSatsEstimate] = useState<number | null>(null);
 
   const reviewsContext = useContext(ReviewsContext);
 
@@ -332,6 +341,15 @@ export default function CheckoutCard({
       };
       localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
     }
+
+    const sellerShop = shopMapContext.shopData.get(productData.pubkey);
+    if (
+      sellerShop &&
+      sellerShop.content.freeShippingThreshold &&
+      sellerShop.content.freeShippingThreshold > 0
+    ) {
+      setShowFreeShippingNotification(true);
+    }
   };
 
   const handleShare = async () => {
@@ -431,6 +449,30 @@ export default function CheckoutCard({
       </div>
     );
   };
+
+  const isSatsCurrency =
+    productData.currency.toLowerCase() === "sats" ||
+    productData.currency.toLowerCase() === "sat";
+
+  useEffect(() => {
+    if (isSatsCurrency) {
+      setSatsEstimate(null);
+      return;
+    }
+    const fetchSatsEstimate = async () => {
+      try {
+        const { fiat } = await import("@getalby/lightning-tools");
+        const numSats = await fiat.getSatoshiValue({
+          amount: currentPrice,
+          currency: productData.currency,
+        });
+        setSatsEstimate(Math.round(numSats));
+      } catch {
+        setSatsEstimate(null);
+      }
+    };
+    fetchSatsEstimate();
+  }, [currentPrice, productData.currency, isSatsCurrency]);
 
   // Calculate discounted price with proper rounding
   const discountAmount =
@@ -695,7 +737,10 @@ export default function CheckoutCard({
                   />
                 )}
                 <div className="mt-4">
-                  <DisplayCheckoutCost monetaryInfo={updatedProductData} />
+                  <DisplayCheckoutCost
+                    monetaryInfo={updatedProductData}
+                    satsEstimate={satsEstimate}
+                  />
                   {selectedBulkOption && selectedBulkOption !== "1" && (
                     <p className="mt-1 text-sm text-black">
                       Bundle: {selectedBulkOption} units
@@ -982,6 +1027,12 @@ export default function CheckoutCard({
           isOpen={showEventIdModal}
           onClose={() => setShowEventIdModal(false)}
           rawEvent={rawEvent}
+        />
+        <FreeShippingNotification
+          isVisible={showFreeShippingNotification}
+          onClose={() => setShowFreeShippingNotification(false)}
+          shopData={shopMapContext.shopData}
+          cart={cart}
         />
       </div>
     </div>

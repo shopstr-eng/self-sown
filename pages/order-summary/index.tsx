@@ -36,6 +36,8 @@ interface OrderSummaryData {
   pickupLocation?: string;
   sellerPubkey?: string;
   subtotal?: string;
+  freeShippingApplied?: boolean;
+  originalShippingCost?: string;
   isCart?: boolean;
   cartItems?: Array<{
     title: string;
@@ -256,11 +258,60 @@ export default function OrderSummary() {
                     </div>
                     <div className="flex items-center justify-between border-b border-gray-100 pb-2">
                       <span className="text-gray-600">Shipping</span>
+                      {orderData.freeShippingApplied ? (
+                        <span className="flex items-center gap-2">
+                          {orderData.originalShippingCost && (
+                            <span className="text-gray-400 line-through">
+                              {Number(
+                                orderData.originalShippingCost
+                              ).toLocaleString()}{" "}
+                              {orderData.currency}
+                            </span>
+                          )}
+                          <span className="text-black">
+                            $0.00 (Free Shipping)
+                          </span>
+                          <span className="rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                            Free
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-black">
+                          {(
+                            Number(orderData.amount) -
+                            Number(orderData.subtotal)
+                          ).toLocaleString()}{" "}
+                          {orderData.currency}
+                        </span>
+                      )}
+                    </div>
+                  </>
+                ) : orderData.freeShippingApplied ? (
+                  <>
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                      <span className="text-gray-600">Subtotal</span>
                       <span className="text-black">
-                        {(
-                          Number(orderData.amount) - Number(orderData.subtotal)
-                        ).toLocaleString()}{" "}
+                        {Number(orderData.amount).toLocaleString()}{" "}
                         {orderData.currency}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                      <span className="text-gray-600">Shipping</span>
+                      <span className="flex items-center gap-2">
+                        {orderData.originalShippingCost && (
+                          <span className="text-gray-400 line-through">
+                            {Number(
+                              orderData.originalShippingCost
+                            ).toLocaleString()}{" "}
+                            {orderData.currency}
+                          </span>
+                        )}
+                        <span className="text-black">
+                          $0.00 (Free Shipping)
+                        </span>
+                        <span className="rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                          Free
+                        </span>
                       </span>
                     </div>
                   </>

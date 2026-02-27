@@ -7,16 +7,13 @@ import {
 import { useForm } from "react-hook-form";
 import {
   Button,
-  Card,
-  CardHeader,
-  CardBody,
-  Divider,
   Image,
   useDisclosure,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   Select,
   SelectItem,
   Input,
@@ -64,6 +61,7 @@ import {
   ShippingFormData,
   ContactFormData,
   CombinedFormData,
+  ShopProfile,
 } from "@/utils/types/types";
 import { Controller } from "react-hook-form";
 
@@ -75,6 +73,7 @@ export default function CartInvoiceCard({
   subtotalCost,
   appliedDiscounts = {},
   discountCodes = {},
+  shopProfiles,
   onBackToCart,
   setInvoiceIsPaid,
   setInvoiceGenerationFailed,
@@ -88,6 +87,7 @@ export default function CartInvoiceCard({
   subtotalCost: number;
   appliedDiscounts?: { [key: string]: number };
   discountCodes?: { [key: string]: string };
+  shopProfiles?: Map<string, ShopProfile>;
   onBackToCart?: () => void;
   setInvoiceIsPaid?: (invoiceIsPaid: boolean) => void;
   setInvoiceGenerationFailed?: (invoiceGenerationFailed: boolean) => void;
@@ -152,6 +152,7 @@ export default function CartInvoiceCard({
     STRIPE_TIMEOUT_SECONDS
   );
   const [hasTimedOut, setHasTimedOut] = useState(false);
+  const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
 
   const pendingOrderEmailRef = useRef<Array<{
     orderId: string;
@@ -172,6 +173,7 @@ export default function CartInvoiceCard({
 
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerEmailAutoFilled, setBuyerEmailAutoFilled] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const triggerOrderEmail = async (params: {
     orderId: string;
@@ -251,6 +253,23 @@ export default function CartInvoiceCard({
             ? String(p.selectedBulkOption)
             : undefined,
         }));
+        const anyFreeShipping = Object.values(sellerFreeShippingStatus).some(
+          (s) => s.qualifies
+        );
+        let originalShipping = 0;
+        if (anyFreeShipping) {
+          const sellersSeen = new Set<string>();
+          products.forEach((p) => {
+            if (sellersSeen.has(p.pubkey)) return;
+            sellersSeen.add(p.pubkey);
+            if (sellerFreeShippingStatus[p.pubkey]?.qualifies) {
+              const { highestShippingCost } = getConsolidatedShippingForSeller(
+                p.pubkey
+              );
+              originalShipping += highestShippingCost;
+            }
+          });
+        }
         sessionStorage.setItem(
           "orderSummary",
           JSON.stringify({
@@ -266,6 +285,10 @@ export default function CartInvoiceCard({
             sellerPubkey: firstEntry.sellerPubkey,
             isCart: true,
             cartItems,
+            freeShippingApplied: anyFreeShipping,
+            originalShippingCost: anyFreeShipping
+              ? String(originalShipping)
+              : undefined,
           })
         );
       } catch {}
@@ -397,6 +420,12 @@ export default function CartInvoiceCard({
 
   const [totalCost, setTotalCost] = useState<number>(subtotalCost);
 
+  const cartCurrency = useMemo(() => {
+    if (products.length === 0) return null;
+    const currencies = new Set(products.map((p) => p.currency.toUpperCase()));
+    return currencies.size === 1 ? products[0].currency : null;
+  }, [products]);
+
   const {
     handleSubmit: handleFormSubmit,
     control: formControl,
@@ -420,6 +449,160 @@ export default function CartInvoiceCard({
   const hasMixedShippingWithPickup = useMemo(() => {
     return uniqueShippingTypes.length > 1 && hasShippingPickupProducts;
   }, [uniqueShippingTypes, hasShippingPickupProducts]);
+
+  const sellerFreeShippingStatus = useMemo(() => {
+    const statusMap: {
+      [pubkey: string]: {
+        qualifies: boolean;
+        threshold: number;
+        currency: string;
+        sellerSubtotal: number;
+        sellerName: string;
+      };
+    } = {};
+    const productsBySeller: { [pubkey: string]: ProductData[] } = {};
+    products.forEach((p) => {
+      if (!productsBySeller[p.pubkey]) productsBySeller[p.pubkey] = [];
+      productsBySeller[p.pubkey]!.push(p);
+    });
+
+    Object.entries(productsBySeller).forEach(([pubkey, sellerProducts]) => {
+      const profile = shopProfiles?.get(pubkey);
+      if (
+        !profile?.content?.freeShippingThreshold ||
+        profile.content.freeShippingThreshold <= 0
+      )
+        return;
+      let sellerSubtotal = 0;
+      sellerProducts.forEach((product) => {
+        const discount = appliedDiscounts[pubkey] || 0;
+        const basePrice =
+          product.bulkPrice !== undefined
+            ? product.bulkPrice
+            : product.weightPrice !== undefined
+              ? product.weightPrice
+              : product.volumePrice !== undefined
+                ? product.volumePrice
+                : product.price;
+        const qty = quantities[product.id] || 1;
+        const discountedPrice =
+          discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
+        sellerSubtotal += discountedPrice * qty;
+      });
+      statusMap[pubkey] = {
+        qualifies: sellerSubtotal >= profile.content.freeShippingThreshold,
+        threshold: profile.content.freeShippingThreshold,
+        currency: profile.content.freeShippingCurrency || "USD",
+        sellerSubtotal,
+        sellerName: profile.content.name || pubkey.substring(0, 8),
+      };
+    });
+    return statusMap;
+  }, [products, quantities, appliedDiscounts, shopProfiles]);
+
+  const getConsolidatedShippingForSeller = (
+    sellerPubkey: string
+  ): {
+    highestShippingProduct: ProductData | null;
+    highestShippingCost: number;
+  } => {
+    const sellerProducts = products.filter((p) => p.pubkey === sellerPubkey);
+    let highestShippingCost = 0;
+    let highestShippingProduct: ProductData | null = null;
+    sellerProducts.forEach((product) => {
+      const cost = product.shippingCost || 0;
+      if (cost > highestShippingCost) {
+        highestShippingCost = cost;
+        highestShippingProduct = product;
+      }
+    });
+    return { highestShippingProduct, highestShippingCost };
+  };
+
+  const nativeTotalCost = useMemo(() => {
+    if (
+      !cartCurrency ||
+      cartCurrency.toLowerCase() === "sats" ||
+      cartCurrency.toLowerCase() === "sat"
+    )
+      return null;
+    let nativeSubtotal = 0;
+    products.forEach((product) => {
+      const basePrice =
+        product.bulkPrice !== undefined
+          ? product.bulkPrice
+          : product.weightPrice !== undefined
+            ? product.weightPrice
+            : product.volumePrice !== undefined
+              ? product.volumePrice
+              : product.price;
+      const discount = appliedDiscounts[product.pubkey] || 0;
+      const discountedPrice =
+        discount > 0 ? basePrice * (1 - discount / 100) : basePrice;
+      const qty = quantities[product.id] || 1;
+      nativeSubtotal += discountedPrice * qty;
+    });
+    let nativeShipping = 0;
+    if (
+      formType === "shipping" ||
+      (formType === "combined" && shippingPickupPreference === "shipping")
+    ) {
+      const sellersSeen = new Set<string>();
+      products.forEach((product) => {
+        if (sellersSeen.has(product.pubkey)) return;
+        sellersSeen.add(product.pubkey);
+        if (sellerFreeShippingStatus[product.pubkey]?.qualifies) return;
+        const sellerProducts = products.filter(
+          (p) => p.pubkey === product.pubkey
+        );
+        if (sellerProducts.length > 1) {
+          const { highestShippingCost } = getConsolidatedShippingForSeller(
+            product.pubkey
+          );
+          nativeShipping += highestShippingCost;
+        } else {
+          nativeShipping +=
+            (product.shippingCost || 0) * (quantities[product.id] || 1);
+        }
+      });
+    }
+    return Math.round((nativeSubtotal + nativeShipping) * 100) / 100;
+  }, [
+    products,
+    quantities,
+    appliedDiscounts,
+    cartCurrency,
+    formType,
+    shippingPickupPreference,
+    sellerFreeShippingStatus,
+  ]);
+
+  const isSatsCart =
+    !cartCurrency ||
+    cartCurrency.toLowerCase() === "sats" ||
+    cartCurrency.toLowerCase() === "sat";
+
+  useEffect(() => {
+    if (!isSatsCart) {
+      setUsdEstimate(null);
+      return;
+    }
+    const fetchUsdEstimate = async () => {
+      try {
+        const { fiat } = await import("@getalby/lightning-tools");
+        const satsPerUsd = await fiat.getSatoshiValue({
+          amount: 1,
+          currency: "USD",
+        });
+        if (satsPerUsd > 0) {
+          setUsdEstimate(Math.round((totalCost / satsPerUsd) * 100) / 100);
+        }
+      } catch {
+        setUsdEstimate(null);
+      }
+    };
+    fetchUsdEstimate();
+  }, [totalCost, isSatsCart]);
 
   const [requiredInfo, setRequiredInfo] = useState("");
 
@@ -985,11 +1168,17 @@ export default function CartInvoiceCard({
             .filter(Boolean)
             .join(", ");
           const sellerAmount = totalCostsInSats[sellerPubkey] || 0;
+          const orderCurrency =
+            nativeTotalCost !== null && cartCurrency ? cartCurrency : "sats";
+          const orderAmount =
+            nativeTotalCost !== null && cartCurrency
+              ? String(nativeTotalCost)
+              : String(sellerAmount || price);
           return {
             orderId: "",
             productTitle: sellerProductTitles,
-            amount: String(sellerAmount || price),
-            currency: "sats",
+            amount: orderAmount,
+            currency: orderCurrency,
             paymentMethod: paymentType || "lightning",
             sellerPubkey,
             buyerName: paymentData.shippingName || undefined,
@@ -1019,17 +1208,45 @@ export default function CartInvoiceCard({
 
     if (selectedOrderType === "shipping") {
       setFormType("shipping");
-      // Calculate total with shipping in sats
       let shippingTotal = 0;
       const updatedTotalCostsInSats: { [productId: string]: number } = {};
+      const processedSellers = new Set<string>();
 
       for (const product of products) {
-        const shippingCostInSats = await convertShippingToSats(product);
-        const quantity = quantities[product.id] || 1;
-        const productShippingCost = Math.ceil(shippingCostInSats * quantity);
-        shippingTotal += productShippingCost;
-        updatedTotalCostsInSats[product.id] =
-          (totalCostsInSats[product.id] || 0) + productShippingCost;
+        const sellerPubkey = product.pubkey;
+        if (sellerFreeShippingStatus[sellerPubkey]?.qualifies) {
+          updatedTotalCostsInSats[product.id] =
+            totalCostsInSats[product.id] || 0;
+          continue;
+        }
+        if (!processedSellers.has(sellerPubkey)) {
+          processedSellers.add(sellerPubkey);
+          const sellerProducts = products.filter(
+            (p) => p.pubkey === sellerPubkey
+          );
+          if (sellerProducts.length > 1) {
+            const { highestShippingProduct } =
+              getConsolidatedShippingForSeller(sellerPubkey);
+            if (highestShippingProduct) {
+              const shippingCostInSats = await convertShippingToSats(
+                highestShippingProduct
+              );
+              shippingTotal += Math.ceil(shippingCostInSats);
+            }
+            sellerProducts.forEach((sp) => {
+              updatedTotalCostsInSats[sp.id] = totalCostsInSats[sp.id] || 0;
+            });
+          } else {
+            const shippingCostInSats = await convertShippingToSats(product);
+            const quantity = quantities[product.id] || 1;
+            const productShippingCost = Math.ceil(
+              shippingCostInSats * quantity
+            );
+            shippingTotal += productShippingCost;
+            updatedTotalCostsInSats[product.id] =
+              (totalCostsInSats[product.id] || 0) + productShippingCost;
+          }
+        }
       }
 
       setTotalCost(subtotalCost + shippingTotal);
@@ -1042,24 +1259,55 @@ export default function CartInvoiceCard({
       if (hasMixedShippingWithPickup) {
         setShowFreePickupSelection(true);
       } else {
-        // Calculate shipping for combined non-Free/Pickup items in sats
         let shippingTotal = 0;
         const updatedTotalCostsInSats: { [productId: string]: number } = {};
+        const processedSellers = new Set<string>();
 
         for (const product of products) {
+          const sellerPubkey = product.pubkey;
           const productShippingType = shippingTypes[product.id];
+
+          if (sellerFreeShippingStatus[sellerPubkey]?.qualifies) {
+            updatedTotalCostsInSats[product.id] =
+              totalCostsInSats[product.id] || 0;
+            continue;
+          }
+
           if (
             productShippingType === "Added Cost" ||
             productShippingType === "Free"
           ) {
-            const shippingCostInSats = await convertShippingToSats(product);
-            const quantity = quantities[product.id] || 1;
-            const productShippingCost = Math.ceil(
-              shippingCostInSats * quantity
-            );
-            shippingTotal += productShippingCost;
-            updatedTotalCostsInSats[product.id] =
-              (totalCostsInSats[product.id] || 0) + productShippingCost;
+            if (!processedSellers.has(sellerPubkey)) {
+              processedSellers.add(sellerPubkey);
+              const sellerProducts = products.filter(
+                (p) =>
+                  p.pubkey === sellerPubkey &&
+                  (shippingTypes[p.id] === "Added Cost" ||
+                    shippingTypes[p.id] === "Free")
+              );
+              if (sellerProducts.length > 1) {
+                const { highestShippingProduct } =
+                  getConsolidatedShippingForSeller(sellerPubkey);
+                if (highestShippingProduct) {
+                  const shippingCostInSats = await convertShippingToSats(
+                    highestShippingProduct
+                  );
+                  shippingTotal += Math.ceil(shippingCostInSats);
+                }
+                sellerProducts.forEach((sp) => {
+                  updatedTotalCostsInSats[sp.id] = totalCostsInSats[sp.id] || 0;
+                });
+              } else {
+                const shippingCostInSats = await convertShippingToSats(product);
+                const quantity = quantities[product.id] || 1;
+                const productShippingCost = Math.ceil(
+                  shippingCostInSats * quantity
+                );
+                shippingTotal += productShippingCost;
+                updatedTotalCostsInSats[product.id] =
+                  (totalCostsInSats[product.id] || 0) + productShippingCost;
+              }
+            }
           } else {
             updatedTotalCostsInSats[product.id] =
               totalCostsInSats[product.id] || 0;
@@ -1157,8 +1405,12 @@ export default function CartInvoiceCard({
         .map((p: any) => p.title || p.productName)
         .join(", ");
 
-      const stripeAmount = convertedPrice;
-      const stripeCurrency = "sats";
+      const stripeAmount =
+        nativeTotalCost !== null && cartCurrency
+          ? nativeTotalCost
+          : convertedPrice;
+      const stripeCurrency =
+        nativeTotalCost !== null && cartCurrency ? cartCurrency : "sats";
 
       const response = await fetch("/api/stripe/create-invoice", {
         method: "POST",
@@ -1166,9 +1418,11 @@ export default function CartInvoiceCard({
         body: JSON.stringify({
           amount: stripeAmount,
           currency: stripeCurrency,
-          customerEmail: userPubkey
-            ? `${userPubkey.substring(0, 8)}@nostr.com`
-            : undefined,
+          customerEmail:
+            buyerEmail ||
+            (userPubkey
+              ? `${userPubkey.substring(0, 8)}@nostr.com`
+              : `guest-${orderId.substring(0, 8)}@nostr.com`),
           productTitle: `Cart Order: ${productTitles}`,
           shippingInfo,
           metadata: {
@@ -1572,8 +1826,12 @@ export default function CartInvoiceCard({
         {
           orderId,
           productTitle: productTitles,
-          amount: String(totalCost),
-          currency: "sats",
+          amount:
+            nativeTotalCost !== null && cartCurrency
+              ? String(nativeTotalCost)
+              : String(totalCost),
+          currency:
+            nativeTotalCost !== null && cartCurrency ? cartCurrency : "sats",
           paymentMethod: selectedFiatOption || "fiat",
           sellerPubkey,
           buyerName: data.shippingName || undefined,
@@ -2725,7 +2983,23 @@ export default function CartInvoiceCard({
     }
   };
 
-  const formattedTotalCost = formatWithCommas(totalCost, "sats");
+  const formattedLightningCost =
+    nativeTotalCost !== null && cartCurrency
+      ? `${formatWithCommas(
+          nativeTotalCost,
+          cartCurrency
+        )} (≈ ${formatWithCommas(totalCost, "sats")})`
+      : formatWithCommas(totalCost, "sats");
+
+  const formattedCardCost =
+    nativeTotalCost !== null && cartCurrency
+      ? formatWithCommas(nativeTotalCost, cartCurrency)
+      : usdEstimate != null
+        ? `${formatWithCommas(totalCost, "sats")} (≈ ${formatWithCommas(
+            usdEstimate,
+            "USD"
+          )})`
+        : formatWithCommas(totalCost, "sats");
 
   const handleCashuPayment = async (price: number, data: any) => {
     try {
@@ -3287,27 +3561,130 @@ export default function CartInvoiceCard({
                               </div>
                             </>
                           )}
-                          {product.shippingCost! > 0 &&
-                            ((formType === "combined" &&
-                              shippingPickupPreference === "shipping") ||
-                              formType === "shipping") && (
-                              <div className="flex justify-between text-sm">
-                                <span className="ml-2">Shipping cost:</span>
-                                <span>
-                                  {formatWithCommas(
-                                    product.shippingCost!,
-                                    product.currency
-                                  )}
-                                </span>
-                              </div>
-                            )}
                         </div>
                       );
                     })}
                   </div>
+                  {((formType === "combined" &&
+                    shippingPickupPreference === "shipping") ||
+                    formType === "shipping") &&
+                    (() => {
+                      const sellersSeen = new Set<string>();
+                      const shippingLines: {
+                        pubkey: string;
+                        name: string;
+                        cost: number;
+                        currency: string;
+                        isFree: boolean;
+                      }[] = [];
+                      products.forEach((product) => {
+                        if (sellersSeen.has(product.pubkey)) return;
+                        sellersSeen.add(product.pubkey);
+                        const freeStatus =
+                          sellerFreeShippingStatus[product.pubkey];
+                        if (freeStatus?.qualifies) {
+                          const {
+                            highestShippingCost,
+                            highestShippingProduct,
+                          } = getConsolidatedShippingForSeller(product.pubkey);
+                          shippingLines.push({
+                            pubkey: product.pubkey,
+                            name: freeStatus.sellerName,
+                            cost: highestShippingCost,
+                            currency:
+                              highestShippingProduct?.currency ||
+                              product.currency,
+                            isFree: true,
+                          });
+                        } else {
+                          const sellerProducts = products.filter(
+                            (p) => p.pubkey === product.pubkey
+                          );
+                          if (sellerProducts.length > 1) {
+                            const {
+                              highestShippingCost,
+                              highestShippingProduct,
+                            } = getConsolidatedShippingForSeller(
+                              product.pubkey
+                            );
+                            if (highestShippingCost > 0) {
+                              shippingLines.push({
+                                pubkey: product.pubkey,
+                                name:
+                                  shopProfiles?.get(product.pubkey)?.content
+                                    ?.name || product.pubkey.substring(0, 8),
+                                cost: highestShippingCost,
+                                currency:
+                                  highestShippingProduct?.currency ||
+                                  product.currency,
+                                isFree: false,
+                              });
+                            }
+                          } else if (
+                            product.shippingCost &&
+                            product.shippingCost > 0
+                          ) {
+                            shippingLines.push({
+                              pubkey: product.pubkey,
+                              name:
+                                shopProfiles?.get(product.pubkey)?.content
+                                  ?.name || product.pubkey.substring(0, 8),
+                              cost:
+                                product.shippingCost *
+                                (quantities[product.id] || 1),
+                              currency: product.currency,
+                              isFree: false,
+                            });
+                          }
+                        }
+                      });
+                      if (shippingLines.length === 0) return null;
+                      return (
+                        <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                          <h4 className="text-sm font-semibold text-gray-700">
+                            Shipping
+                          </h4>
+                          {shippingLines.map((line) => (
+                            <div
+                              key={line.pubkey}
+                              className="flex justify-between text-sm"
+                            >
+                              <span className="ml-2">
+                                Shipping ({line.name}):
+                              </span>
+                              {line.isFree ? (
+                                <span className="flex items-center gap-2">
+                                  <span className="text-gray-400 line-through">
+                                    {formatWithCommas(line.cost, line.currency)}
+                                  </span>
+                                  <span className="rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
+                                    Free
+                                  </span>
+                                </span>
+                              ) : (
+                                <span>
+                                  {formatWithCommas(line.cost, line.currency)}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   <div className="flex justify-between border-t pt-2 font-semibold">
                     <span>Total:</span>
-                    <span>{formatWithCommas(totalCost, "sats")}</span>
+                    <span>
+                      {nativeTotalCost !== null && cartCurrency ? (
+                        <>
+                          {formatWithCommas(nativeTotalCost, cartCurrency)}
+                          <span className="ml-2 text-sm font-normal text-gray-500">
+                            ≈ {formatWithCommas(totalCost, "sats")}
+                          </span>
+                        </>
+                      ) : (
+                        formatWithCommas(totalCost, "sats")
+                      )}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -3324,16 +3701,15 @@ export default function CartInvoiceCard({
           {/* Divider */}
           <div className="h-px w-full bg-gray-300 lg:h-full lg:w-px"></div>
 
-          {/* Right Side - Invoice - maintain consistent width */}
+          {/* Right Side - Lightning Invoice - maintain consistent width */}
           <div className="w-full p-6 lg:w-1/2">
-            <Card className="w-full">
-              <CardHeader className="flex justify-center gap-3">
-                <span className="text-xl font-bold">
+            <div className="w-full">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold">
                   {stripeInvoiceUrl ? "Stripe Payment" : "Lightning Invoice"}
-                </span>
-              </CardHeader>
-              <Divider />
-              <CardBody className="flex flex-col items-center">
+                </h2>
+              </div>
+              <div className="flex flex-col items-center">
                 {!paymentConfirmed && !stripePaymentConfirmed ? (
                   <div className="flex flex-col items-center justify-center">
                     {qrCodeUrl && (
@@ -3431,8 +3807,8 @@ export default function CartInvoiceCard({
                     />
                   </div>
                 )}
-              </CardBody>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -3506,16 +3882,6 @@ export default function CartInvoiceCard({
                         ? basePrice * (1 - discount / 100)
                         : basePrice;
 
-                    // Determine if shipping should be shown for this product
-                    const productShippingType = shippingTypes[product.id];
-                    const shouldShowShipping =
-                      formType === "shipping" ||
-                      (formType === "combined" &&
-                        (productShippingType === "Added Cost" ||
-                          productShippingType === "Free" ||
-                          (productShippingType === "Free/Pickup" &&
-                            shippingPickupPreference === "shipping")));
-
                     return (
                       <div
                         key={product.id}
@@ -3580,29 +3946,126 @@ export default function CartInvoiceCard({
                             </div>
                           </>
                         )}
-                        {shouldShowShipping &&
-                          product.shippingCost! > 0 &&
-                          ((formType === "combined" &&
-                            shippingPickupPreference === "shipping") ||
-                            formType === "shipping") && (
-                            <div className="flex justify-between text-sm">
-                              <span className="ml-2">Shipping cost:</span>
-                              <span>
-                                {formatWithCommas(
-                                  product.shippingCost! *
-                                    (quantities[product.id] || 1),
-                                  product.currency
-                                )}
-                              </span>
-                            </div>
-                          )}
                       </div>
                     );
                   })}
                 </div>
+                {((formType === "combined" &&
+                  shippingPickupPreference === "shipping") ||
+                  formType === "shipping") &&
+                  (() => {
+                    const sellersSeen2 = new Set<string>();
+                    const shippingLines2: {
+                      pubkey: string;
+                      name: string;
+                      cost: number;
+                      currency: string;
+                      isFree: boolean;
+                    }[] = [];
+                    products.forEach((product) => {
+                      if (sellersSeen2.has(product.pubkey)) return;
+                      sellersSeen2.add(product.pubkey);
+                      const freeStatus =
+                        sellerFreeShippingStatus[product.pubkey];
+                      if (freeStatus?.qualifies) {
+                        const { highestShippingCost, highestShippingProduct } =
+                          getConsolidatedShippingForSeller(product.pubkey);
+                        shippingLines2.push({
+                          pubkey: product.pubkey,
+                          name: freeStatus.sellerName,
+                          cost: highestShippingCost,
+                          currency:
+                            highestShippingProduct?.currency ||
+                            product.currency,
+                          isFree: true,
+                        });
+                      } else {
+                        const sellerProducts = products.filter(
+                          (p) => p.pubkey === product.pubkey
+                        );
+                        if (sellerProducts.length > 1) {
+                          const {
+                            highestShippingCost,
+                            highestShippingProduct,
+                          } = getConsolidatedShippingForSeller(product.pubkey);
+                          if (highestShippingCost > 0) {
+                            shippingLines2.push({
+                              pubkey: product.pubkey,
+                              name:
+                                shopProfiles?.get(product.pubkey)?.content
+                                  ?.name || product.pubkey.substring(0, 8),
+                              cost: highestShippingCost,
+                              currency:
+                                highestShippingProduct?.currency ||
+                                product.currency,
+                              isFree: false,
+                            });
+                          }
+                        } else if (
+                          product.shippingCost &&
+                          product.shippingCost > 0
+                        ) {
+                          shippingLines2.push({
+                            pubkey: product.pubkey,
+                            name:
+                              shopProfiles?.get(product.pubkey)?.content
+                                ?.name || product.pubkey.substring(0, 8),
+                            cost:
+                              product.shippingCost *
+                              (quantities[product.id] || 1),
+                            currency: product.currency,
+                            isFree: false,
+                          });
+                        }
+                      }
+                    });
+                    if (shippingLines2.length === 0) return null;
+                    return (
+                      <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+                        <h4 className="text-sm font-semibold text-gray-700">
+                          Shipping
+                        </h4>
+                        {shippingLines2.map((line) => (
+                          <div
+                            key={line.pubkey}
+                            className="flex justify-between text-sm"
+                          >
+                            <span className="ml-2">
+                              Shipping ({line.name}):
+                            </span>
+                            {line.isFree ? (
+                              <span className="flex items-center gap-2">
+                                <span className="text-gray-400 line-through">
+                                  {formatWithCommas(line.cost, line.currency)}
+                                </span>
+                                <span className="rounded-full border border-green-300 bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">
+                                  Free
+                                </span>
+                              </span>
+                            ) : (
+                              <span>
+                                {formatWithCommas(line.cost, line.currency)}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 <div className="flex justify-between border-t pt-2 font-semibold">
                   <span>Total:</span>
-                  <span>{formatWithCommas(totalCost, "sats")}</span>
+                  <span>
+                    {nativeTotalCost !== null && cartCurrency ? (
+                      <>
+                        {formatWithCommas(nativeTotalCost, cartCurrency)}
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          ≈ {formatWithCommas(totalCost, "sats")}
+                        </span>
+                      </>
+                    ) : (
+                      formatWithCommas(totalCost, "sats")
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
@@ -3709,32 +4172,47 @@ export default function CartInvoiceCard({
                   onClick={async () => {
                     setShippingPickupPreference("shipping");
                     setShowFreePickupSelection(false);
-                    // Calculate total with all applicable shipping in sats
                     let shippingTotal = 0;
-                    const updatedTotalCostsInSats: {
-                      [productId: string]: number;
-                    } = {};
+                    const processedSellers = new Set<string>();
 
                     for (const product of products) {
+                      const sellerPubkey = product.pubkey;
                       const productShippingType = shippingTypes[product.id];
+                      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies)
+                        continue;
                       if (
                         productShippingType === "Added Cost" ||
                         productShippingType === "Free" ||
                         productShippingType === "Free/Pickup"
                       ) {
-                        const shippingCostInSats =
-                          await convertShippingToSats(product);
-                        const quantity = quantities[product.id] || 1;
-                        const productShippingCost = Math.ceil(
-                          shippingCostInSats * quantity
-                        );
-                        shippingTotal += productShippingCost;
-                        updatedTotalCostsInSats[product.id] =
-                          (totalCostsInSats[product.id] || 0) +
-                          productShippingCost;
-                      } else {
-                        updatedTotalCostsInSats[product.id] =
-                          totalCostsInSats[product.id] || 0;
+                        if (!processedSellers.has(sellerPubkey)) {
+                          processedSellers.add(sellerPubkey);
+                          const sellerProducts = products.filter(
+                            (p) =>
+                              p.pubkey === sellerPubkey &&
+                              (shippingTypes[p.id] === "Added Cost" ||
+                                shippingTypes[p.id] === "Free" ||
+                                shippingTypes[p.id] === "Free/Pickup")
+                          );
+                          if (sellerProducts.length > 1) {
+                            const { highestShippingProduct } =
+                              getConsolidatedShippingForSeller(sellerPubkey);
+                            if (highestShippingProduct) {
+                              const shippingCostInSats =
+                                await convertShippingToSats(
+                                  highestShippingProduct
+                                );
+                              shippingTotal += Math.ceil(shippingCostInSats);
+                            }
+                          } else {
+                            const shippingCostInSats =
+                              await convertShippingToSats(product);
+                            const quantity = quantities[product.id] || 1;
+                            shippingTotal += Math.ceil(
+                              shippingCostInSats * quantity
+                            );
+                          }
+                        }
                       }
                     }
 
@@ -3755,31 +4233,45 @@ export default function CartInvoiceCard({
                   onClick={async () => {
                     setShippingPickupPreference("contact");
                     setShowFreePickupSelection(false);
-                    // Calculate shipping for non-Free/Pickup items only in sats
                     let shippingTotal = 0;
-                    const updatedTotalCostsInSats: {
-                      [productId: string]: number;
-                    } = {};
+                    const processedSellers = new Set<string>();
 
                     for (const product of products) {
+                      const sellerPubkey = product.pubkey;
                       const productShippingType = shippingTypes[product.id];
+                      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies)
+                        continue;
                       if (
                         productShippingType === "Added Cost" ||
                         productShippingType === "Free"
                       ) {
-                        const shippingCostInSats =
-                          await convertShippingToSats(product);
-                        const quantity = quantities[product.id] || 1;
-                        const productShippingCost = Math.ceil(
-                          shippingCostInSats * quantity
-                        );
-                        shippingTotal += productShippingCost;
-                        updatedTotalCostsInSats[product.id] =
-                          (totalCostsInSats[product.id] || 0) +
-                          productShippingCost;
-                      } else {
-                        updatedTotalCostsInSats[product.id] =
-                          totalCostsInSats[product.id] || 0;
+                        if (!processedSellers.has(sellerPubkey)) {
+                          processedSellers.add(sellerPubkey);
+                          const sellerProducts = products.filter(
+                            (p) =>
+                              p.pubkey === sellerPubkey &&
+                              (shippingTypes[p.id] === "Added Cost" ||
+                                shippingTypes[p.id] === "Free")
+                          );
+                          if (sellerProducts.length > 1) {
+                            const { highestShippingProduct } =
+                              getConsolidatedShippingForSeller(sellerPubkey);
+                            if (highestShippingProduct) {
+                              const shippingCostInSats =
+                                await convertShippingToSats(
+                                  highestShippingProduct
+                                );
+                              shippingTotal += Math.ceil(shippingCostInSats);
+                            }
+                          } else {
+                            const shippingCostInSats =
+                              await convertShippingToSats(product);
+                            const quantity = quantities[product.id] || 1;
+                            shippingTotal += Math.ceil(
+                              shippingCostInSats * quantity
+                            );
+                          }
+                        }
                       }
                     }
 
@@ -3878,12 +4370,21 @@ export default function CartInvoiceCard({
                       type="email"
                       isRequired={true}
                       classNames={{
-                        inputWrapper:
-                          "border-2 border-black rounded-md shadow-neo",
+                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                          emailError ? "border-red-500" : "border-black"
+                        }`,
                       }}
                       value={buyerEmail}
-                      onChange={(e) => setBuyerEmail(e.target.value)}
+                      onChange={(e) => {
+                        setBuyerEmail(e.target.value);
+                        if (emailError) setEmailError("");
+                      }}
                     />
+                    {emailError && (
+                      <p className="text-xs font-medium text-red-500">
+                        {emailError}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-400">
                       Already have an account?{" "}
                       <button
@@ -3910,12 +4411,21 @@ export default function CartInvoiceCard({
                       labelPlacement="inside"
                       type="email"
                       classNames={{
-                        inputWrapper:
-                          "border-2 border-black rounded-md shadow-neo",
+                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                          emailError ? "border-red-500" : "border-black"
+                        }`,
                       }}
                       value={buyerEmail}
-                      onChange={(e) => setBuyerEmail(e.target.value)}
+                      onChange={(e) => {
+                        setBuyerEmail(e.target.value);
+                        if (emailError) setEmailError("");
+                      }}
                     />
+                    {emailError && (
+                      <p className="text-xs font-medium text-red-500">
+                        {emailError}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -3944,7 +4454,7 @@ export default function CartInvoiceCard({
                     }}
                     startContent={<BoltIcon className="h-6 w-6" />}
                   >
-                    Pay with Lightning: {formattedTotalCost}
+                    Pay with Lightning: {formattedLightningCost}
                   </Button>
 
                   {hasTokensAvailable && (
@@ -3962,7 +4472,7 @@ export default function CartInvoiceCard({
                       }}
                       startContent={<BanknotesIcon className="h-6 w-6" />}
                     >
-                      Pay with Cashu: {formattedTotalCost}
+                      Pay with Cashu: {formattedLightningCost}
                     </Button>
                   )}
 
@@ -3985,7 +4495,8 @@ export default function CartInvoiceCard({
                       }}
                       startContent={<WalletIcon className="h-6 w-6" />}
                     >
-                      Pay with {nwcInfo.alias || "NWC"}: {formattedTotalCost}
+                      Pay with {nwcInfo.alias || "NWC"}:{" "}
+                      {formattedLightningCost}
                     </Button>
                   )}
 
@@ -3998,13 +4509,21 @@ export default function CartInvoiceCard({
                       }`}
                       disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
                       onClick={() => {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!buyerEmail || !emailRegex.test(buyerEmail)) {
+                          setEmailError(
+                            "Please enter a valid email address to pay with card"
+                          );
+                          return;
+                        }
+                        setEmailError("");
                         handleFormSubmit((data) =>
                           onFormSubmit(data, "stripe")
                         )();
                       }}
                       startContent={<CurrencyDollarIcon className="h-6 w-6" />}
                     >
-                      Pay with Card: {formattedTotalCost}
+                      Pay with Card: {formattedCardCost}
                     </Button>
                   )}
 
@@ -4026,7 +4545,7 @@ export default function CartInvoiceCard({
                           <CurrencyDollarIcon className="h-6 w-6" />
                         }
                       >
-                        Pay with Cash or Payment App: {formattedTotalCost}
+                        Pay with Cash or Payment App: {formattedCardCost}
                       </Button>
                     )}
 
@@ -4057,69 +4576,123 @@ export default function CartInvoiceCard({
       </div>
 
       {showFiatPaymentInstructions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="max-w-md rounded-lg bg-gray-800 p-8 text-center">
-            {selectedFiatOption === "cash" ? (
-              <>
-                <h3 className="mb-4 text-2xl font-bold text-white">
-                  Cash Payment
-                </h3>
-                <p className="mb-6 text-gray-400">
-                  You will need {formatWithCommas(totalCost, "sats")} in cash
-                  for this order.
-                </p>
-                <div className="mb-6 flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="paymentConfirmedCart"
-                    checked={fiatPaymentConfirmed}
-                    onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
-                  />
-                  <label
-                    htmlFor="paymentConfirmedCart"
-                    className="text-left text-gray-300"
-                  >
-                    I will have the sufficient cash to complete the order upon
-                    pickup or delivery
-                  </label>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3 className="mb-4 text-2xl font-bold text-white">
-                  Send Payment
-                </h3>
-                <p className="mb-4 text-gray-400">
-                  Please send {formatWithCommas(totalCost, "sats")} to:
-                </p>
-                <div className="mb-6 rounded-lg bg-gray-100 p-4">
-                  <p className="font-semibold text-gray-900">
-                    {selectedFiatOption}:{" "}
-                    {singleSellerPubkey &&
-                      (profileContext.profileData.get(singleSellerPubkey)
-                        ?.content?.fiat_options?.[selectedFiatOption] ||
-                        "N/A")}
+        <Modal
+          backdrop="blur"
+          isOpen={showFiatPaymentInstructions}
+          onClose={() => {
+            setShowFiatPaymentInstructions(false);
+            setFiatPaymentConfirmed(false);
+            setSelectedFiatOption("");
+            setPendingPaymentData(null);
+          }}
+          classNames={{
+            wrapper: "shadow-neo",
+            base: "border-2 border-black rounded-md",
+            backdrop: "bg-black/20 backdrop-blur-sm",
+            header: "border-b-2 border-black bg-white rounded-t-md text-black",
+            body: "py-6 bg-white",
+            footer: "border-t-2 border-black bg-white rounded-b-md",
+            closeButton:
+              "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
+          }}
+          isDismissable={true}
+          scrollBehavior={"normal"}
+          placement={"center"}
+          size="md"
+        >
+          <ModalContent>
+            <ModalHeader className="flex items-center justify-center text-black">
+              {selectedFiatOption === "cash" ? "Cash Payment" : "Send Payment"}
+            </ModalHeader>
+            <ModalBody className="flex flex-col overflow-hidden text-black">
+              {selectedFiatOption === "cash" ? (
+                <>
+                  <p className="mb-4 text-center text-gray-600">
+                    You will need{" "}
+                    <span className="font-semibold text-black">
+                      {nativeTotalCost !== null && cartCurrency
+                        ? `${formatWithCommas(
+                            nativeTotalCost,
+                            cartCurrency
+                          )} (≈ ${formatWithCommas(totalCost, "sats")})`
+                        : formatWithCommas(totalCost, "sats")}
+                    </span>{" "}
+                    in cash for this order.
                   </p>
-                </div>
-                <div className="mb-6 flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="paymentConfirmedCart"
-                    checked={fiatPaymentConfirmed}
-                    onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
-                  />
-                  <label
-                    htmlFor="paymentConfirmedCart"
-                    className="text-gray-300"
-                  >
-                    I have sent the payment
-                  </label>
-                </div>
-              </>
-            )}
-            <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="paymentConfirmedCart"
+                      checked={fiatPaymentConfirmed}
+                      onChange={(e) =>
+                        setFiatPaymentConfirmed(e.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-2 border-black accent-black"
+                    />
+                    <label
+                      htmlFor="paymentConfirmedCart"
+                      className="text-left text-sm text-gray-700"
+                    >
+                      I will have the sufficient cash to complete the order upon
+                      pickup or delivery
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mb-4 text-center text-gray-600">
+                    Please send{" "}
+                    <span className="font-semibold text-black">
+                      {nativeTotalCost !== null && cartCurrency
+                        ? `${formatWithCommas(
+                            nativeTotalCost,
+                            cartCurrency
+                          )} (≈ ${formatWithCommas(totalCost, "sats")})`
+                        : formatWithCommas(totalCost, "sats")}
+                    </span>{" "}
+                    to:
+                  </p>
+                  <div className="mb-4 rounded-md border-2 border-black bg-gray-50 p-4 shadow-neo">
+                    <p className="text-center font-semibold text-black">
+                      {selectedFiatOption}:{" "}
+                      {singleSellerPubkey &&
+                        (profileContext.profileData.get(singleSellerPubkey)
+                          ?.content?.fiat_options?.[selectedFiatOption] ||
+                          "N/A")}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="paymentConfirmedCart"
+                      checked={fiatPaymentConfirmed}
+                      onChange={(e) =>
+                        setFiatPaymentConfirmed(e.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-2 border-black accent-black"
+                    />
+                    <label
+                      htmlFor="paymentConfirmedCart"
+                      className="text-sm text-gray-700"
+                    >
+                      I have sent the payment
+                    </label>
+                  </div>
+                </>
+              )}
+            </ModalBody>
+            <ModalFooter className="flex justify-center gap-2">
+              <Button
+                onClick={() => {
+                  setShowFiatPaymentInstructions(false);
+                  setFiatPaymentConfirmed(false);
+                  setSelectedFiatOption("");
+                  setPendingPaymentData(null);
+                }}
+                className="rounded-md border-2 border-black bg-white px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={async () => {
                   if (fiatPaymentConfirmed) {
@@ -4132,7 +4705,7 @@ export default function CartInvoiceCard({
                   }
                 }}
                 disabled={!fiatPaymentConfirmed}
-                className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={`rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                   !fiatPaymentConfirmed ? "cursor-not-allowed opacity-50" : ""
                 }`}
               >
@@ -4140,20 +4713,9 @@ export default function CartInvoiceCard({
                   ? "Confirm Order"
                   : "Confirm Payment Sent"}
               </Button>
-              <Button
-                onClick={() => {
-                  setShowFiatPaymentInstructions(false);
-                  setFiatPaymentConfirmed(false);
-                  setSelectedFiatOption("");
-                  setPendingPaymentData(null);
-                }}
-                className="w-full rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       )}
 
       <Modal
@@ -4161,25 +4723,27 @@ export default function CartInvoiceCard({
         isOpen={showFiatTypeOption}
         onClose={() => setShowFiatTypeOption(false)}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          wrapper: "shadow-neo",
+          base: "border-2 border-black rounded-md",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          header: "border-b-2 border-black bg-white rounded-t-md text-black",
+          body: "py-6 bg-white",
+          closeButton:
+            "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
         }}
         isDismissable={true}
         scrollBehavior={"normal"}
         placement={"center"}
-        size="2xl"
+        size="md"
       >
         <ModalContent>
-          <ModalHeader className="text-dark-text flex items-center justify-center">
-            Select your fiat payment preference:
+          <ModalHeader className="flex items-center justify-center text-black">
+            Select your payment method
           </ModalHeader>
-          <ModalBody className="flex flex-col overflow-hidden">
+          <ModalBody className="flex flex-col overflow-hidden text-black">
             <div className="flex items-center justify-center">
               <Select
-                label="Fiat Payment Options"
+                label="Payment Options"
                 className="max-w-xs"
                 classNames={{
                   trigger:
@@ -4200,7 +4764,7 @@ export default function CartInvoiceCard({
                     <SelectItem
                       key={option}
                       value={option}
-                      className="text-dark-text"
+                      className="text-black"
                     >
                       {option}
                     </SelectItem>

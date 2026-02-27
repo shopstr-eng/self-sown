@@ -13,6 +13,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   Select,
   SelectItem,
   Input,
@@ -136,6 +137,7 @@ export default function ProductInvoiceCard({
 
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerEmailAutoFilled, setBuyerEmailAutoFilled] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
     if (isLoggedIn && userPubkey && !buyerEmailAutoFilled) {
@@ -2311,11 +2313,6 @@ export default function ProductInvoiceCard({
     }, 2100);
   };
 
-  const formattedTotalCost = formatWithCommas(
-    formType === "shipping" ? productData.totalCost : productData.price,
-    productData.currency
-  );
-
   const handleCashuPayment = async (price: number, data: any) => {
     try {
       if (!mints || mints.length === 0) {
@@ -2534,9 +2531,11 @@ export default function ProductInvoiceCard({
         body: JSON.stringify({
           amount: stripeAmount,
           currency: stripeCurrency,
-          customerEmail: userPubkey
-            ? `${userPubkey.substring(0, 8)}@nostr.com`
-            : undefined,
+          customerEmail:
+            buyerEmail ||
+            (userPubkey
+              ? `${userPubkey.substring(0, 8)}@nostr.com`
+              : `guest-${orderId.substring(0, 8)}@nostr.com`),
           productTitle: productData.title,
           productDescription:
             selectedSize || selectedVolume || selectedWeight
@@ -2900,6 +2899,60 @@ export default function ProductInvoiceCard({
     formType === "shipping" ? productData.shippingCost ?? 0 : 0;
 
   const discountedTotal = discountedPrice + shippingCostToAdd;
+
+  const isSatsCurrency =
+    productData.currency.toLowerCase() === "sats" ||
+    productData.currency.toLowerCase() === "sat";
+
+  const [satsEstimate, setSatsEstimate] = useState<number | null>(null);
+  const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchEstimates = async () => {
+      try {
+        const { fiat } = await import("@getalby/lightning-tools");
+        if (!isSatsCurrency) {
+          const numSats = await fiat.getSatoshiValue({
+            amount: discountedTotal,
+            currency: productData.currency,
+          });
+          setSatsEstimate(Math.round(numSats));
+          setUsdEstimate(null);
+        } else {
+          const satsPerUsd = await fiat.getSatoshiValue({
+            amount: 1,
+            currency: "USD",
+          });
+          if (satsPerUsd > 0) {
+            setUsdEstimate(
+              Math.round((discountedTotal / satsPerUsd) * 100) / 100
+            );
+          }
+          setSatsEstimate(null);
+        }
+      } catch {
+        setSatsEstimate(null);
+        setUsdEstimate(null);
+      }
+    };
+    fetchEstimates();
+  }, [discountedTotal, productData.currency, isSatsCurrency]);
+
+  const formattedLightningCost =
+    !isSatsCurrency && satsEstimate != null
+      ? `${formatWithCommas(
+          discountedTotal,
+          productData.currency
+        )} (≈ ${formatWithCommas(satsEstimate, "sats")})`
+      : formatWithCommas(discountedTotal, productData.currency);
+
+  const formattedCardCost =
+    isSatsCurrency && usdEstimate != null
+      ? `${formatWithCommas(
+          discountedTotal,
+          productData.currency
+        )} (≈ ${formatWithCommas(usdEstimate, "USD")})`
+      : formatWithCommas(discountedTotal, productData.currency);
 
   const renderContactForm = () => {
     if (!formType) return null;
@@ -3319,6 +3372,11 @@ export default function ProductInvoiceCard({
                     <span>Total:</span>
                     <span>
                       {formatWithCommas(discountedTotal, productData.currency)}
+                      {!isSatsCurrency && satsEstimate != null && (
+                        <span className="ml-2 text-sm font-normal text-gray-500">
+                          ≈ {formatWithCommas(satsEstimate, "sats")}
+                        </span>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -3547,6 +3605,11 @@ export default function ProductInvoiceCard({
                   <span>Total:</span>
                   <span>
                     {formatWithCommas(discountedTotal, productData.currency)}
+                    {!isSatsCurrency && satsEstimate != null && (
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ≈ {formatWithCommas(satsEstimate, "sats")}
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>
@@ -3658,12 +3721,21 @@ export default function ProductInvoiceCard({
                       type="email"
                       isRequired={true}
                       classNames={{
-                        inputWrapper:
-                          "border-2 border-black rounded-md shadow-neo",
+                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                          emailError ? "border-red-500" : "border-black"
+                        }`,
                       }}
                       value={buyerEmail}
-                      onChange={(e) => setBuyerEmail(e.target.value)}
+                      onChange={(e) => {
+                        setBuyerEmail(e.target.value);
+                        if (emailError) setEmailError("");
+                      }}
                     />
+                    {emailError && (
+                      <p className="text-xs font-medium text-red-500">
+                        {emailError}
+                      </p>
+                    )}
                     <p className="text-xs text-gray-400">
                       Already have an account?{" "}
                       <button
@@ -3690,12 +3762,21 @@ export default function ProductInvoiceCard({
                       labelPlacement="inside"
                       type="email"
                       classNames={{
-                        inputWrapper:
-                          "border-2 border-black rounded-md shadow-neo",
+                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                          emailError ? "border-red-500" : "border-black"
+                        }`,
                       }}
                       value={buyerEmail}
-                      onChange={(e) => setBuyerEmail(e.target.value)}
+                      onChange={(e) => {
+                        setBuyerEmail(e.target.value);
+                        if (emailError) setEmailError("");
+                      }}
                     />
+                    {emailError && (
+                      <p className="text-xs font-medium text-red-500">
+                        {emailError}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -3716,7 +3797,7 @@ export default function ProductInvoiceCard({
                     }}
                     startContent={<BoltIcon className="h-6 w-6" />}
                   >
-                    Pay with Lightning: {formattedTotalCost}
+                    Pay with Lightning: {formattedLightningCost}
                   </Button>
 
                   {hasTokensAvailable && (
@@ -3734,7 +3815,7 @@ export default function ProductInvoiceCard({
                       }}
                       startContent={<BanknotesIcon className="h-6 w-6" />}
                     >
-                      Pay with Cashu: {formattedTotalCost}
+                      Pay with Cashu: {formattedLightningCost}
                     </Button>
                   )}
 
@@ -3748,13 +3829,21 @@ export default function ProductInvoiceCard({
                       }`}
                       disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
                       onClick={() => {
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        if (!buyerEmail || !emailRegex.test(buyerEmail)) {
+                          setEmailError(
+                            "Please enter a valid email address to pay with card"
+                          );
+                          return;
+                        }
+                        setEmailError("");
                         handleFormSubmit((data) =>
                           onFormSubmit(data, "stripe")
                         )();
                       }}
                       startContent={<CurrencyDollarIcon className="h-6 w-6" />}
                     >
-                      Pay with Card: {formattedTotalCost}
+                      Pay with Card: {formattedCardCost}
                     </Button>
                   )}
 
@@ -3773,7 +3862,7 @@ export default function ProductInvoiceCard({
                       }}
                       startContent={<CurrencyDollarIcon className="h-6 w-6" />}
                     >
-                      Pay with Cash or Payment App: {formattedTotalCost}
+                      Pay with Cash or Payment App: {formattedCardCost}
                     </Button>
                   )}
 
@@ -3796,7 +3885,8 @@ export default function ProductInvoiceCard({
                       }}
                       startContent={<WalletIcon className="h-6 w-6" />}
                     >
-                      Pay with {nwcInfo.alias || "NWC"}: {formattedTotalCost}
+                      Pay with {nwcInfo.alias || "NWC"}:{" "}
+                      {formattedLightningCost}
                     </Button>
                   )}
                 </div>
@@ -3823,66 +3913,111 @@ export default function ProductInvoiceCard({
 
       {/* Fiat Payment Instructions */}
       {showFiatPaymentInstructions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="max-w-md rounded-lg bg-gray-800 p-8 text-center">
-            {selectedFiatOption === "cash" ? (
-              <>
-                <h3 className="mb-4 text-2xl font-bold text-white">
-                  Cash Payment
-                </h3>
-                <p className="mb-6 text-gray-400">
-                  You will need{" "}
-                  {formatWithCommas(discountedTotal, productData.currency)} in
-                  cash for this order.
-                </p>
-                <div className="mb-6 flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="paymentConfirmed"
-                    checked={fiatPaymentConfirmed}
-                    onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
-                  />
-                  <label
-                    htmlFor="paymentConfirmed"
-                    className="text-left text-gray-300"
-                  >
-                    I will have the sufficient cash to complete the order upon
-                    pickup or delivery
-                  </label>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3 className="mb-4 text-2xl font-bold text-white">
-                  Send Payment
-                </h3>
-                <p className="mb-4 text-gray-400">
-                  Please send{" "}
-                  {formatWithCommas(discountedTotal, productData.currency)} to:
-                </p>
-                <div className="mb-6 rounded-lg bg-gray-100 p-4">
-                  <p className="font-semibold text-gray-900">
-                    {selectedFiatOption}:{" "}
-                    {profileContext.profileData.get(productData.pubkey)?.content
-                      ?.fiat_options?.[selectedFiatOption] || "N/A"}
+        <Modal
+          backdrop="blur"
+          isOpen={showFiatPaymentInstructions}
+          onClose={() => {
+            setShowFiatPaymentInstructions(false);
+            setFiatPaymentConfirmed(false);
+            setSelectedFiatOption("");
+            setPendingPaymentData(null);
+          }}
+          classNames={{
+            wrapper: "shadow-neo",
+            base: "border-2 border-black rounded-md",
+            backdrop: "bg-black/20 backdrop-blur-sm",
+            header: "border-b-2 border-black bg-white rounded-t-md text-black",
+            body: "py-6 bg-white",
+            footer: "border-t-2 border-black bg-white rounded-b-md",
+            closeButton:
+              "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
+          }}
+          isDismissable={true}
+          scrollBehavior={"normal"}
+          placement={"center"}
+          size="md"
+        >
+          <ModalContent>
+            <ModalHeader className="flex items-center justify-center text-black">
+              {selectedFiatOption === "cash" ? "Cash Payment" : "Send Payment"}
+            </ModalHeader>
+            <ModalBody className="flex flex-col overflow-hidden text-black">
+              {selectedFiatOption === "cash" ? (
+                <>
+                  <p className="mb-4 text-center text-gray-600">
+                    You will need{" "}
+                    <span className="font-semibold text-black">
+                      {formatWithCommas(discountedTotal, productData.currency)}
+                    </span>{" "}
+                    in cash for this order.
                   </p>
-                </div>
-                <div className="mb-6 flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="paymentConfirmed"
-                    checked={fiatPaymentConfirmed}
-                    onChange={(e) => setFiatPaymentConfirmed(e.target.checked)}
-                    className="text-light-text focus:ring-accent-light-text h-4 w-4 rounded border-gray-300"
-                  />
-                  <label htmlFor="paymentConfirmed" className="text-gray-300">
-                    I have sent the payment
-                  </label>
-                </div>
-              </>
-            )}
-            <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="paymentConfirmed"
+                      checked={fiatPaymentConfirmed}
+                      onChange={(e) =>
+                        setFiatPaymentConfirmed(e.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-2 border-black accent-black"
+                    />
+                    <label
+                      htmlFor="paymentConfirmed"
+                      className="text-left text-sm text-gray-700"
+                    >
+                      I will have the sufficient cash to complete the order upon
+                      pickup or delivery
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mb-4 text-center text-gray-600">
+                    Please send{" "}
+                    <span className="font-semibold text-black">
+                      {formatWithCommas(discountedTotal, productData.currency)}
+                    </span>{" "}
+                    to:
+                  </p>
+                  <div className="mb-4 rounded-md border-2 border-black bg-gray-50 p-4 shadow-neo">
+                    <p className="text-center font-semibold text-black">
+                      {selectedFiatOption}:{" "}
+                      {profileContext.profileData.get(productData.pubkey)
+                        ?.content?.fiat_options?.[selectedFiatOption] || "N/A"}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="paymentConfirmed"
+                      checked={fiatPaymentConfirmed}
+                      onChange={(e) =>
+                        setFiatPaymentConfirmed(e.target.checked)
+                      }
+                      className="h-4 w-4 rounded border-2 border-black accent-black"
+                    />
+                    <label
+                      htmlFor="paymentConfirmed"
+                      className="text-sm text-gray-700"
+                    >
+                      I have sent the payment
+                    </label>
+                  </div>
+                </>
+              )}
+            </ModalBody>
+            <ModalFooter className="flex justify-center gap-2">
+              <Button
+                onClick={() => {
+                  setShowFiatPaymentInstructions(false);
+                  setFiatPaymentConfirmed(false);
+                  setSelectedFiatOption("");
+                  setPendingPaymentData(null);
+                }}
+                className="rounded-md border-2 border-black bg-white px-6 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={async () => {
                   if (fiatPaymentConfirmed) {
@@ -3891,11 +4026,11 @@ export default function ProductInvoiceCard({
                       discountedTotal,
                       pendingPaymentData || {}
                     );
-                    setPendingPaymentData(null); // Clear stored data
+                    setPendingPaymentData(null);
                   }
                 }}
                 disabled={!fiatPaymentConfirmed}
-                className={`w-full rounded-md border-2 border-black bg-black px-4 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={`rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                   !fiatPaymentConfirmed ? "cursor-not-allowed opacity-50" : ""
                 }`}
               >
@@ -3903,20 +4038,9 @@ export default function ProductInvoiceCard({
                   ? "Confirm Order"
                   : "Confirm Payment Sent"}
               </Button>
-              <Button
-                onClick={() => {
-                  setShowFiatPaymentInstructions(false);
-                  setFiatPaymentConfirmed(false);
-                  setSelectedFiatOption("");
-                  setPendingPaymentData(null); // Clear stored data
-                }}
-                className="w-full rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black shadow-neo transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       )}
 
       {/* Modals */}
@@ -3925,25 +4049,27 @@ export default function ProductInvoiceCard({
         isOpen={showFiatTypeOption}
         onClose={() => setShowFiatTypeOption(false)}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
-          closeButton: "hover:bg-black/5 active:bg-white/10",
+          wrapper: "shadow-neo",
+          base: "border-2 border-black rounded-md",
+          backdrop: "bg-black/20 backdrop-blur-sm",
+          header: "border-b-2 border-black bg-white rounded-t-md text-black",
+          body: "py-6 bg-white",
+          closeButton:
+            "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
         }}
         isDismissable={true}
         scrollBehavior={"normal"}
         placement={"center"}
-        size="2xl"
+        size="md"
       >
         <ModalContent>
-          <ModalHeader className="text-dark-text flex items-center justify-center">
-            Select your fiat payment preference:
+          <ModalHeader className="flex items-center justify-center text-black">
+            Select your payment method
           </ModalHeader>
-          <ModalBody className="flex flex-col overflow-hidden">
+          <ModalBody className="flex flex-col overflow-hidden text-black">
             <div className="flex items-center justify-center">
               <Select
-                label="Fiat Payment Options"
+                label="Payment Options"
                 className="max-w-xs"
                 classNames={{
                   trigger:
@@ -3964,7 +4090,7 @@ export default function ProductInvoiceCard({
                     <SelectItem
                       key={option}
                       value={option}
-                      className="text-dark-text"
+                      className="text-black"
                     >
                       {option}
                     </SelectItem>

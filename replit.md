@@ -70,6 +70,7 @@ Preferred communication style: Simple, everyday language.
 - **Unread/Read Indicator System**: Tracks read status of messages and orders, with visual indicators and automatic marking as read.
 - **Image Compression**: Automatic compression of large images before Blossom uploads, converting to WebP and scaling resolution if necessary.
 - **Cart Multi-Payment Support**: When all cart products are from the same merchant, Stripe (credit card) and fiat payment options (cash, payment apps) are available alongside Bitcoin options. Multi-merchant carts remain Bitcoin-only with an informational note.
+- **Free Shipping Threshold**: Merchants can set a minimum order amount (with currency) in their shop profile; when a buyer's order from that seller meets the threshold, all shipping costs drop to zero. Shipping is consolidated per seller (highest shipping cost used, not sum). Progress toward free shipping is shown in cart and checkout with progress bars, and a popup notification appears when adding items to cart from eligible merchants. Order summary shows strikethrough original shipping cost with green "Free" badge when threshold is met. Shop profile fields: `freeShippingThreshold` (number) and `freeShippingCurrency` (string) stored in Kind 30019 event content JSON.
 
 # External Dependencies
 
