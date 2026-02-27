@@ -171,7 +171,10 @@ const TopNav = ({
         className={`w-full bg-transparent ${
           router.pathname === "/cart" ? "text-primary-yellow" : "text-white"
         } hover:text-primary-yellow`}
-        onClick={() => handleRoute("/cart")}
+        onClick={() => {
+          router.push("/cart");
+          setIsMobileMenuOpen(false);
+        }}
       >
         Cart
         {cartQuantity > 0 && (
@@ -286,7 +289,7 @@ const TopNav = ({
             className={`bg-transparent ${
               isCartActive ? "font-bold text-primary-yellow" : "text-white"
             } hover:text-primary-yellow`}
-            onClick={() => handleRoute("/cart")}
+            onClick={() => router.push("/cart")}
           >
             Cart
             {cartQuantity > 0 && (
