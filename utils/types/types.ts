@@ -60,6 +60,7 @@ export interface ShopProfile {
     merchants: string[];
     freeShippingThreshold?: number;
     freeShippingCurrency?: string;
+    paymentMethodDiscounts?: { [method: string]: number };
   };
   created_at: number;
   event?: NostrEvent;

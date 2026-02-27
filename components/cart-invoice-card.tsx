@@ -3,6 +3,7 @@ import {
   CashuWalletContext,
   ChatsContext,
   ProfileMapContext,
+  ShopMapContext,
 } from "../utils/context/context";
 import { useForm } from "react-hook-form";
 import {
@@ -109,6 +110,7 @@ export default function CartInvoiceCard({
   const profileContext = useContext(ProfileMapContext);
 
   const { nostr } = useContext(NostrContext);
+  const shopContext = useContext(ShopMapContext);
 
   const [showInvoiceCard, setShowInvoiceCard] = useState(false);
 
@@ -1089,7 +1091,15 @@ export default function CartInvoiceCard({
     paymentType?: "lightning" | "cashu" | "nwc" | "stripe" | "fiat"
   ) => {
     try {
-      const price = totalCost;
+      const methodCosts =
+        paymentType === "lightning" ||
+        paymentType === "cashu" ||
+        paymentType === "nwc"
+          ? bitcoinCosts
+          : paymentType === "stripe"
+            ? stripeCosts
+            : { nativeTotal: nativeTotalCost, satsTotal: totalCost };
+      const price = methodCosts.satsTotal;
 
       if (price < 1) {
         throw new Error("Total price is less than 1 sat.");
@@ -2931,23 +2941,132 @@ export default function CartInvoiceCard({
     }
   };
 
-  const formattedLightningCost =
-    nativeTotalCost !== null && cartCurrency
-      ? `${formatWithCommas(
-          nativeTotalCost,
-          cartCurrency
-        )} (≈ ${formatWithCommas(totalCost, "sats")})`
-      : formatWithCommas(totalCost, "sats");
+  const singleSellerShopProfile =
+    isSingleSeller && singleSellerPubkey
+      ? shopContext.shopData.get(singleSellerPubkey)
+      : undefined;
+  const pmDiscounts =
+    singleSellerShopProfile?.content?.paymentMethodDiscounts || {};
 
-  const formattedCardCost =
-    nativeTotalCost !== null && cartCurrency
-      ? formatWithCommas(nativeTotalCost, cartCurrency)
-      : usdEstimate != null
-        ? `${formatWithCommas(totalCost, "sats")} (≈ ${formatWithCommas(
-            usdEstimate,
-            "USD"
+  const getMethodDiscountedCosts = (methodKey: string) => {
+    const pct = pmDiscounts[methodKey] || 0;
+    if (pct <= 0)
+      return {
+        nativeTotal: nativeTotalCost,
+        satsTotal: totalCost,
+      };
+    let nativeMethodSubtotal = 0;
+    products.forEach((product) => {
+      const basePrice =
+        product.bulkPrice !== undefined
+          ? product.bulkPrice
+          : product.weightPrice !== undefined
+            ? product.weightPrice
+            : product.volumePrice !== undefined
+              ? product.volumePrice
+              : product.price;
+      const codeDis = appliedDiscounts[product.pubkey] || 0;
+      const codeDiscountedPrice =
+        codeDis > 0 ? basePrice * (1 - codeDis / 100) : basePrice;
+      const methodDiscountedPrice = codeDiscountedPrice * (1 - pct / 100);
+      const qty = quantities[product.id] || 1;
+      nativeMethodSubtotal += methodDiscountedPrice * qty;
+    });
+    let nativeShipping = 0;
+    if (
+      formType === "shipping" ||
+      (formType === "combined" && shippingPickupPreference === "shipping")
+    ) {
+      const sellersSeen = new Set<string>();
+      products.forEach((product) => {
+        if (sellersSeen.has(product.pubkey)) return;
+        sellersSeen.add(product.pubkey);
+        if (sellerFreeShippingStatus[product.pubkey]?.qualifies) return;
+        const sellerProducts = products.filter(
+          (p) => p.pubkey === product.pubkey
+        );
+        if (sellerProducts.length > 1) {
+          const { highestShippingCost } = getConsolidatedShippingForSeller(
+            product.pubkey
+          );
+          nativeShipping += highestShippingCost;
+        } else {
+          nativeShipping +=
+            (product.shippingCost || 0) * (quantities[product.id] || 1);
+        }
+      });
+    }
+    const nativeMethodTotal =
+      Math.round((nativeMethodSubtotal + nativeShipping) * 100) / 100;
+    const ratio =
+      nativeTotalCost && nativeTotalCost > 0
+        ? nativeMethodTotal / nativeTotalCost
+        : nativeMethodSubtotal / (subtotalCost > 0 ? subtotalCost : 1);
+    const satsMethodTotal = Math.round(totalCost * ratio);
+    return {
+      nativeTotal: !isSatsCart && cartCurrency ? nativeMethodTotal : null,
+      satsTotal: isSatsCart
+        ? Math.round(nativeMethodSubtotal + nativeShipping)
+        : satsMethodTotal,
+    };
+  };
+
+  const bitcoinCosts = getMethodDiscountedCosts("bitcoin");
+  const stripeCosts = getMethodDiscountedCosts("stripe");
+  const getFiatMethodCosts = (fiatKey: string) =>
+    getMethodDiscountedCosts(fiatKey);
+
+  const bitcoinDiscountPct = pmDiscounts["bitcoin"] || 0;
+  const stripeDiscountPct = pmDiscounts["stripe"] || 0;
+
+  const getDiscountLabel = (pct: number) => {
+    if (pct <= 0) return "";
+    return ` (${pct}% off)`;
+  };
+
+  const formatCartMethodCost = (
+    native: number | null,
+    sats: number,
+    mode: "lightning" | "card"
+  ) => {
+    if (mode === "lightning") {
+      return native !== null && cartCurrency
+        ? `${formatWithCommas(native, cartCurrency)} (≈ ${formatWithCommas(
+            sats,
+            "sats"
           )})`
-        : formatWithCommas(totalCost, "sats");
+        : formatWithCommas(sats, "sats");
+    }
+    if (native !== null && cartCurrency) {
+      return formatWithCommas(native, cartCurrency);
+    }
+    if (usdEstimate != null && nativeTotalCost !== null && totalCost > 0) {
+      const ratio = sats / totalCost;
+      const methodUsd = Math.round(usdEstimate * ratio * 100) / 100;
+      return `${formatWithCommas(sats, "sats")} (≈ ${formatWithCommas(
+        methodUsd,
+        "USD"
+      )})`;
+    }
+    return formatWithCommas(sats, "sats");
+  };
+
+  const formattedLightningCost = formatCartMethodCost(
+    bitcoinCosts.nativeTotal,
+    bitcoinCosts.satsTotal,
+    "lightning"
+  );
+
+  const formattedCardCost = formatCartMethodCost(
+    stripeCosts.nativeTotal,
+    stripeCosts.satsTotal,
+    "card"
+  );
+
+  const getFormattedFiatCost = (fiatKey: string) => {
+    const costs = getFiatMethodCosts(fiatKey);
+    return formatCartMethodCost(costs.nativeTotal, costs.satsTotal, "card");
+  };
 
   const handleCashuPayment = async (price: number, data: any) => {
     try {
@@ -4386,6 +4505,7 @@ export default function CartInvoiceCard({
                     startContent={<BoltIcon className="h-6 w-6" />}
                   >
                     Pay with Lightning: {formattedLightningCost}
+                    {getDiscountLabel(bitcoinDiscountPct)}
                   </Button>
 
                   {hasTokensAvailable && (
@@ -4404,6 +4524,7 @@ export default function CartInvoiceCard({
                       startContent={<BanknotesIcon className="h-6 w-6" />}
                     >
                       Pay with Cashu: {formattedLightningCost}
+                      {getDiscountLabel(bitcoinDiscountPct)}
                     </Button>
                   )}
 
@@ -4428,6 +4549,7 @@ export default function CartInvoiceCard({
                     >
                       Pay with {nwcInfo.alias || "NWC"}:{" "}
                       {formattedLightningCost}
+                      {getDiscountLabel(bitcoinDiscountPct)}
                     </Button>
                   )}
 
@@ -4455,6 +4577,7 @@ export default function CartInvoiceCard({
                       startContent={<CurrencyDollarIcon className="h-6 w-6" />}
                     >
                       Pay with Card: {formattedCardCost}
+                      {getDiscountLabel(stripeDiscountPct)}
                     </Button>
                   )}
 
@@ -4476,7 +4599,28 @@ export default function CartInvoiceCard({
                           <CurrencyDollarIcon className="h-6 w-6" />
                         }
                       >
-                        Pay with Cash or Payment App: {formattedCardCost}
+                        Pay with Cash or Payment App:{" "}
+                        {(() => {
+                          const fiatKeys = Object.keys(fiatPaymentOptions);
+                          const fiatDiscountVals = fiatKeys.map(
+                            (k) => pmDiscounts[k] || 0
+                          );
+                          const allSame =
+                            fiatDiscountVals.length > 0 &&
+                            fiatDiscountVals.every(
+                              (d) => d === fiatDiscountVals[0]
+                            );
+                          if (allSame && fiatDiscountVals[0]! > 0) {
+                            return `${getFormattedFiatCost(
+                              fiatKeys[0]!
+                            )}${getDiscountLabel(fiatDiscountVals[0]!)}`;
+                          }
+                          return formatCartMethodCost(
+                            nativeTotalCost,
+                            totalCost,
+                            "card"
+                          );
+                        })()}
                       </Button>
                     )}
 
@@ -4628,8 +4772,9 @@ export default function CartInvoiceCard({
                 onClick={async () => {
                   if (fiatPaymentConfirmed) {
                     setShowFiatPaymentInstructions(false);
+                    const fiatCosts = getFiatMethodCosts(selectedFiatOption);
                     await handleFiatPayment(
-                      totalCost,
+                      fiatCosts.satsTotal,
                       pendingPaymentData || {}
                     );
                     setPendingPaymentData(null);

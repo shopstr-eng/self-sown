@@ -10,7 +10,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 
-import { ShopMapContext } from "@/utils/context/context";
+import { ShopMapContext, ProfileMapContext } from "@/utils/context/context";
 import {
   WHITEBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
@@ -40,10 +40,14 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     useState<string>("");
   const [freeShippingCurrency, setFreeShippingCurrency] =
     useState<string>("USD");
+  const [paymentMethodDiscounts, setPaymentMethodDiscounts] = useState<{
+    [method: string]: string;
+  }>({});
 
   const { signer, pubkey: userPubkey } = useContext(SignerContext);
 
   const shopContext = useContext(ShopMapContext);
+  const profileContext = useContext(ProfileMapContext);
   const { handleSubmit, control, reset, watch, setValue } = useForm({
     defaultValues: {
       banner: "",
@@ -81,6 +85,17 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       if (shop.content.freeShippingCurrency) {
         setFreeShippingCurrency(shop.content.freeShippingCurrency);
       }
+      if (shop.content.paymentMethodDiscounts) {
+        const stringDiscounts: { [method: string]: string } = {};
+        Object.entries(shop.content.paymentMethodDiscounts).forEach(
+          ([key, value]) => {
+            if (value > 0) {
+              stringDiscounts[key] = String(value);
+            }
+          }
+        );
+        setPaymentMethodDiscounts(stringDiscounts);
+      }
     }
     setIsFetchingShop(false);
   }, [shopContext, userPubkey, reset]);
@@ -117,6 +132,16 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     if (thresholdValue && thresholdValue > 0) {
       transformedData.freeShippingThreshold = thresholdValue;
       transformedData.freeShippingCurrency = freeShippingCurrency;
+    }
+    const parsedDiscounts: { [method: string]: number } = {};
+    Object.entries(paymentMethodDiscounts).forEach(([key, value]) => {
+      const num = parseFloat(value);
+      if (!isNaN(num) && num > 0 && num <= 100) {
+        parsedDiscounts[key] = num;
+      }
+    });
+    if (Object.keys(parsedDiscounts).length > 0) {
+      transformedData.paymentMethodDiscounts = parsedDiscounts;
     }
     await createNostrShopEvent(
       nostr!,
@@ -372,6 +397,79 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
               Buyers will get free shipping on orders of{" "}
               {parseFloat(freeShippingThreshold).toFixed(2)}{" "}
               {freeShippingCurrency} or more from your shop.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="mb-2 block text-base font-bold text-black">
+            Payment Method Discounts
+          </label>
+          <p className="mb-3 text-sm text-gray-500">
+            Offer flat percentage discounts for specific payment methods. Buyers
+            will see the discounted price on each payment button at checkout.
+          </p>
+          <div className="space-y-3">
+            {[
+              { key: "bitcoin", label: "Bitcoin (Lightning / Cashu / NWC)" },
+              { key: "stripe", label: "Card (Stripe)" },
+              ...(userPubkey
+                ? Object.keys(
+                    profileContext.profileData.get(userPubkey)?.content
+                      ?.fiat_options || {}
+                  ).map((key) => ({
+                    key,
+                    label:
+                      {
+                        cash: "Cash",
+                        venmo: "Venmo",
+                        zelle: "Zelle",
+                        cashapp: "Cash App",
+                        applepay: "Apple Pay",
+                        googlepay: "Google Pay",
+                        paypal: "PayPal",
+                      }[key] || key,
+                  }))
+                : []),
+            ].map((method) => (
+              <div key={method.key} className="flex items-center gap-3">
+                <span className="w-56 text-sm font-medium text-black">
+                  {method.label}
+                </span>
+                <div className="flex-1">
+                  <Input
+                    classNames={{
+                      inputWrapper:
+                        "border-3 border-black rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
+                      input: "text-base",
+                    }}
+                    variant="bordered"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="0"
+                    value={paymentMethodDiscounts[method.key] || ""}
+                    onChange={(e) => {
+                      setPaymentMethodDiscounts((prev) => ({
+                        ...prev,
+                        [method.key]: e.target.value,
+                      }));
+                    }}
+                    endContent={
+                      <span className="text-sm text-gray-500">%</span>
+                    }
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {Object.entries(paymentMethodDiscounts).some(
+            ([, v]) => parseFloat(v) > 0
+          ) && (
+            <p className="mt-2 text-sm text-green-600">
+              Discounts will be shown to buyers on the payment buttons at
+              checkout.
             </p>
           )}
         </div>

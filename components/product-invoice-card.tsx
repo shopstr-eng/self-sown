@@ -3,6 +3,7 @@ import {
   CashuWalletContext,
   ChatsContext,
   ProfileMapContext,
+  ShopMapContext,
 } from "../utils/context/context";
 import { useForm } from "react-hook-form";
 import {
@@ -109,6 +110,7 @@ export default function ProductInvoiceCard({
   const profileContext = useContext(ProfileMapContext);
 
   const { nostr } = useContext(NostrContext);
+  const shopContext = useContext(ShopMapContext);
 
   const [showInvoiceCard, setShowInvoiceCard] = useState(false);
 
@@ -763,8 +765,16 @@ export default function ProductInvoiceCard({
     paymentType?: "fiat" | "lightning" | "cashu" | "nwc" | "stripe"
   ) => {
     try {
-      // Use discounted total instead of original price
-      let price = discountedTotal;
+      let price =
+        paymentType === "lightning" ||
+        paymentType === "cashu" ||
+        paymentType === "nwc"
+          ? bitcoinTotal
+          : paymentType === "stripe"
+            ? stripeTotal
+            : paymentType === "fiat"
+              ? discountedTotal
+              : discountedTotal;
 
       if (
         !currencySelection.hasOwnProperty(productData.currency.toUpperCase())
@@ -2502,10 +2512,10 @@ export default function ProductInvoiceCard({
         currencyLower === "btc";
 
       if (isCrypto) {
-        stripeAmount = discountedTotal;
+        stripeAmount = stripeTotal;
         stripeCurrency = productData.currency;
       } else {
-        stripeAmount = discountedTotal;
+        stripeAmount = stripeTotal;
         stripeCurrency = productData.currency;
       }
 
@@ -2830,12 +2840,44 @@ export default function ProductInvoiceCard({
 
   const discountedTotal = discountedPrice + shippingCostToAdd;
 
+  const sellerShopProfile = shopContext.shopData.get(productData.pubkey);
+  const pmDiscounts = sellerShopProfile?.content?.paymentMethodDiscounts || {};
+
+  const getMethodDiscountedTotal = (methodKey: string) => {
+    const pct = pmDiscounts[methodKey] || 0;
+    if (pct <= 0) return discountedTotal;
+    const methodDiscountAmount =
+      Math.ceil(((discountedPrice * pct) / 100) * 100) / 100;
+    return discountedPrice - methodDiscountAmount + shippingCostToAdd;
+  };
+
+  const bitcoinTotal = getMethodDiscountedTotal("bitcoin");
+  const stripeTotal = getMethodDiscountedTotal("stripe");
+  const getFiatMethodTotal = (fiatKey: string) => {
+    return getMethodDiscountedTotal(fiatKey);
+  };
+
   const isSatsCurrency =
     productData.currency.toLowerCase() === "sats" ||
     productData.currency.toLowerCase() === "sat";
 
   const [satsEstimate, setSatsEstimate] = useState<number | null>(null);
   const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
+  const [bitcoinSatsEstimate, setBitcoinSatsEstimate] = useState<number | null>(
+    null
+  );
+  const [bitcoinUsdEstimate, setBitcoinUsdEstimate] = useState<number | null>(
+    null
+  );
+  const [stripeSatsEstimate, setStripeSatsEstimate] = useState<number | null>(
+    null
+  );
+  const [stripeUsdEstimate, setStripeUsdEstimate] = useState<number | null>(
+    null
+  );
+  const [fiatMethodEstimates, setFiatMethodEstimates] = useState<{
+    [key: string]: { sats: number | null; usd: number | null };
+  }>({});
 
   useEffect(() => {
     const fetchEstimates = async () => {
@@ -2848,6 +2890,34 @@ export default function ProductInvoiceCard({
           });
           setSatsEstimate(Math.round(numSats));
           setUsdEstimate(null);
+
+          const btcSats = await fiat.getSatoshiValue({
+            amount: bitcoinTotal,
+            currency: productData.currency,
+          });
+          setBitcoinSatsEstimate(Math.round(btcSats));
+          setBitcoinUsdEstimate(null);
+
+          const stSats = await fiat.getSatoshiValue({
+            amount: stripeTotal,
+            currency: productData.currency,
+          });
+          setStripeSatsEstimate(Math.round(stSats));
+          setStripeUsdEstimate(null);
+
+          const fiatEst: {
+            [key: string]: { sats: number | null; usd: number | null };
+          } = {};
+          const fiatKeys = Object.keys(fiatPaymentOptions);
+          for (const fk of fiatKeys) {
+            const ft = getFiatMethodTotal(fk);
+            const fSats = await fiat.getSatoshiValue({
+              amount: ft,
+              currency: productData.currency,
+            });
+            fiatEst[fk] = { sats: Math.round(fSats), usd: null };
+          }
+          setFiatMethodEstimates(fiatEst);
         } else {
           const satsPerUsd = await fiat.getSatoshiValue({
             amount: 1,
@@ -2857,32 +2927,98 @@ export default function ProductInvoiceCard({
             setUsdEstimate(
               Math.round((discountedTotal / satsPerUsd) * 100) / 100
             );
+            setBitcoinUsdEstimate(
+              Math.round((bitcoinTotal / satsPerUsd) * 100) / 100
+            );
+            setStripeUsdEstimate(
+              Math.round((stripeTotal / satsPerUsd) * 100) / 100
+            );
+            const fiatEst: {
+              [key: string]: { sats: number | null; usd: number | null };
+            } = {};
+            const fiatKeys = Object.keys(fiatPaymentOptions);
+            for (const fk of fiatKeys) {
+              const ft = getFiatMethodTotal(fk);
+              fiatEst[fk] = {
+                sats: null,
+                usd: Math.round((ft / satsPerUsd) * 100) / 100,
+              };
+            }
+            setFiatMethodEstimates(fiatEst);
           }
           setSatsEstimate(null);
+          setBitcoinSatsEstimate(null);
+          setStripeSatsEstimate(null);
         }
       } catch {
         setSatsEstimate(null);
         setUsdEstimate(null);
+        setBitcoinSatsEstimate(null);
+        setBitcoinUsdEstimate(null);
+        setStripeSatsEstimate(null);
+        setStripeUsdEstimate(null);
+        setFiatMethodEstimates({});
       }
     };
     fetchEstimates();
-  }, [discountedTotal, productData.currency, isSatsCurrency]);
+  }, [
+    discountedTotal,
+    bitcoinTotal,
+    stripeTotal,
+    productData.currency,
+    isSatsCurrency,
+    fiatPaymentOptions,
+  ]);
 
-  const formattedLightningCost =
-    !isSatsCurrency && satsEstimate != null
-      ? `${formatWithCommas(
-          discountedTotal,
-          productData.currency
-        )} (≈ ${formatWithCommas(satsEstimate, "sats")})`
-      : formatWithCommas(discountedTotal, productData.currency);
+  const formatMethodCost = (
+    total: number,
+    sEst: number | null,
+    uEst: number | null,
+    mode: "lightning" | "card"
+  ) => {
+    if (mode === "lightning") {
+      return !isSatsCurrency && sEst != null
+        ? `${formatWithCommas(
+            total,
+            productData.currency
+          )} (≈ ${formatWithCommas(sEst, "sats")})`
+        : formatWithCommas(total, productData.currency);
+    }
+    return isSatsCurrency && uEst != null
+      ? `${formatWithCommas(total, productData.currency)} (≈ ${formatWithCommas(
+          uEst,
+          "USD"
+        )})`
+      : formatWithCommas(total, productData.currency);
+  };
 
-  const formattedCardCost =
-    isSatsCurrency && usdEstimate != null
-      ? `${formatWithCommas(
-          discountedTotal,
-          productData.currency
-        )} (≈ ${formatWithCommas(usdEstimate, "USD")})`
-      : formatWithCommas(discountedTotal, productData.currency);
+  const formattedLightningCost = formatMethodCost(
+    bitcoinTotal,
+    bitcoinSatsEstimate,
+    bitcoinUsdEstimate,
+    "lightning"
+  );
+
+  const formattedCardCost = formatMethodCost(
+    stripeTotal,
+    stripeSatsEstimate,
+    stripeUsdEstimate,
+    "card"
+  );
+
+  const getFormattedFiatCost = (fiatKey: string) => {
+    const ft = getFiatMethodTotal(fiatKey);
+    const est = fiatMethodEstimates[fiatKey];
+    return formatMethodCost(ft, est?.sats ?? null, est?.usd ?? null, "card");
+  };
+
+  const bitcoinDiscountPct = pmDiscounts["bitcoin"] || 0;
+  const stripeDiscountPct = pmDiscounts["stripe"] || 0;
+
+  const getDiscountLabel = (pct: number) => {
+    if (pct <= 0) return "";
+    return ` (${pct}% off)`;
+  };
 
   const renderContactForm = () => {
     if (!formType) return null;
@@ -3713,6 +3849,7 @@ export default function ProductInvoiceCard({
                     startContent={<BoltIcon className="h-6 w-6" />}
                   >
                     Pay with Lightning: {formattedLightningCost}
+                    {getDiscountLabel(bitcoinDiscountPct)}
                   </Button>
 
                   {hasTokensAvailable && (
@@ -3731,6 +3868,7 @@ export default function ProductInvoiceCard({
                       startContent={<BanknotesIcon className="h-6 w-6" />}
                     >
                       Pay with Cashu: {formattedLightningCost}
+                      {getDiscountLabel(bitcoinDiscountPct)}
                     </Button>
                   )}
 
@@ -3759,6 +3897,7 @@ export default function ProductInvoiceCard({
                       startContent={<CurrencyDollarIcon className="h-6 w-6" />}
                     >
                       Pay with Card: {formattedCardCost}
+                      {getDiscountLabel(stripeDiscountPct)}
                     </Button>
                   )}
 
@@ -3777,7 +3916,27 @@ export default function ProductInvoiceCard({
                       }}
                       startContent={<CurrencyDollarIcon className="h-6 w-6" />}
                     >
-                      Pay with Cash or Payment App: {formattedCardCost}
+                      Pay with Cash or Payment App:{" "}
+                      {(() => {
+                        const fiatKeys = Object.keys(fiatPaymentOptions);
+                        const fiatDiscounts = fiatKeys.map(
+                          (k) => pmDiscounts[k] || 0
+                        );
+                        const allSame =
+                          fiatDiscounts.length > 0 &&
+                          fiatDiscounts.every((d) => d === fiatDiscounts[0]);
+                        if (allSame && fiatDiscounts[0]! > 0) {
+                          return `${getFormattedFiatCost(
+                            fiatKeys[0]!
+                          )}${getDiscountLabel(fiatDiscounts[0]!)}`;
+                        }
+                        return formatMethodCost(
+                          discountedTotal,
+                          satsEstimate,
+                          usdEstimate,
+                          "card"
+                        );
+                      })()}
                     </Button>
                   )}
 
@@ -3802,6 +3961,7 @@ export default function ProductInvoiceCard({
                     >
                       Pay with {nwcInfo.alias || "NWC"}:{" "}
                       {formattedLightningCost}
+                      {getDiscountLabel(bitcoinDiscountPct)}
                     </Button>
                   )}
                 </div>
@@ -3938,7 +4098,7 @@ export default function ProductInvoiceCard({
                   if (fiatPaymentConfirmed) {
                     setShowFiatPaymentInstructions(false);
                     await handleFiatPayment(
-                      discountedTotal,
+                      getFiatMethodTotal(selectedFiatOption),
                       pendingPaymentData || {}
                     );
                     setPendingPaymentData(null);
