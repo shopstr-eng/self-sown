@@ -95,3 +95,59 @@ Preferred communication style: Simple, everyday language.
 - **UI Components**: `@nextui-org/react`, `@heroicons/react`, `framer-motion`.
 - **Payments**: `stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`.
 - **File Processing**: `pdf-lib`, `qrcode`.
+- **MCP**: `@modelcontextprotocol/sdk` for AI agent integration.
+
+## MCP Server (AI Agent Integration)
+
+The platform exposes a Model Context Protocol (MCP) server that allows AI agents to programmatically browse the marketplace and place orders.
+
+### Architecture
+
+- **MCP Endpoint**: `pages/api/mcp/index.ts` — Streamable HTTP transport endpoint that handles MCP protocol messages
+- **Server Factory**: `mcp/server.ts` — Creates the MCP server with registered tools and resources
+- **Read Tools**: `mcp/tools/read-tools.ts` — Tools for browsing products, companies, reviews, and discount codes
+- **Purchase Tools**: `mcp/tools/purchase-tools.ts` — Database functions for MCP order management
+- **Resources**: `mcp/resources.ts` — MCP resources (product catalog)
+- **Auth Middleware**: `utils/mcp/auth.ts` — API key generation, validation, and request authentication
+- **API Key Management**: `pages/api/mcp/api-keys.ts` — CRUD endpoints for API keys
+- **Order API**: `pages/api/mcp/create-order.ts` — Order creation, status, and listing endpoint
+- **Settings UI**: `pages/settings/api-keys.tsx` — UI page for managing API keys
+
+### Available MCP Tools
+
+- `search_products` — Search/filter products by keyword, category, location, price range
+- `get_product_details` — Get full details for a product by ID
+- `list_companies` — List all seller/shop profiles
+- `get_company_details` — Get a company's profile, products, and reviews
+- `get_reviews` — Get reviews for a product or seller
+- `check_discount_code` — Validate a discount code
+- `get_payment_methods` — Get available payment methods for a seller (stripe, lightning, cashu, fiat)
+- `create_order` — Place an order with payment method selection (requires read_write key). Supports: `stripe` (credit card), `lightning` (Bitcoin Lightning invoice), `cashu` (ecash tokens), `fiat` (Venmo, Cash App, Zelle, etc.)
+- `verify_payment` — Verify Lightning invoice payment status (requires read_write key)
+- `get_order_status` — Check order status (requires read_write key)
+- `list_orders` — List orders (requires read_write key)
+
+### Payment Methods
+
+- **Lightning**: Generates a Cashu mint quote (bolt11 invoice) via `@cashu/cashu-ts`. Agent pays the invoice, then calls `verify_payment` to confirm. Default mint: `https://mint.minibits.cash/Bitcoin`.
+- **Cashu**: Agent provides a serialized Cashu token string. Server verifies and redeems the tokens.
+- **Stripe**: Creates a Stripe PaymentIntent. Agent completes payment via Stripe SDK.
+- **Fiat**: Returns seller's fiat payment handles (Venmo, Cash App, etc.). Agent sends payment externally and includes order ID in memo. Seller confirms receipt manually.
+- **Payment method discounts**: Sellers can set per-method discounts (e.g., 10% off Bitcoin). Applied automatically in order pricing.
+
+### Database Tables
+
+- `mcp_api_keys` — API keys with hashed secrets, permissions (read/read_write), and usage tracking
+- `mcp_orders` — Orders placed through the MCP/API with payment and status tracking
+
+### Agentic Commerce Endpoints
+
+- **Capabilities Manifest**: `GET /.well-known/agent.json` — Machine-readable service description (unauthenticated). Describes all tools, resources, auth method, endpoints, and pricing model. Implemented via `pages/api/.well-known/agent.json.ts` with a middleware rewrite in `middleware.ts`.
+- **Automated Onboarding**: `POST /api/mcp/onboard` — Zero-touch agent registration (unauthenticated). Accepts `{ name, permissions?, contact?, pubkey? }`. If `pubkey` is omitted, generates a new Nostr keypair and returns the `nsec` (bech32-encoded). If `pubkey` is provided (hex or npub1... format), uses that existing identity (no nsec returned, `existingIdentity: true`). Always returns `npub` in bech32 format. Rate-limited to 10 per IP per hour.
+- **Status & Metrics**: `GET /api/mcp/status` — Real-time service health and performance metrics (unauthenticated). Returns uptime, latency percentiles (p50/p95/p99), throughput, reliability rates, and data freshness counts. Backed by `utils/mcp/metrics.ts` in-memory collector.
+- **Pricing in Protocol**: Every product response includes a structured `pricing` block with amount, currency, unit, shippingCost, shippingType, totalEstimate, and paymentMethods. Order creation returns HTTP 402 with payment instructions when Stripe payment is required.
+- **Response Metadata**: All MCP tool responses include `_meta` blocks with `responseTimeMs`, `dataSource` ("cached_db" or "live"), `dataFreshness`, and `resultCount`. HTTP responses include `X-Response-Time` headers.
+
+### Authentication
+
+API keys are created via the `/settings/api-keys` UI page, the `/api/mcp/api-keys` endpoint, or the zero-touch `/api/mcp/onboard` endpoint. Keys use SHA-256 hashing and Bearer token authentication. Two permission levels: `read` (browse only) and `read_write` (browse + purchase).

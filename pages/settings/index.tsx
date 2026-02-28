@@ -6,6 +6,7 @@ import {
   UserGroupIcon,
   ArrowRightStartOnRectangleIcon,
   BanknotesIcon,
+  KeyIcon,
 } from "@heroicons/react/24/outline";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
 
@@ -52,6 +53,14 @@ const SettingsPage = () => {
       icon: BanknotesIcon,
       iconBg: "bg-slate-600",
       route: "/settings/nwc",
+    },
+    {
+      id: "api-keys",
+      title: "API Keys",
+      description: "Manage API keys for MCP and AI agent access",
+      icon: KeyIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/api-keys",
     },
   ];
 

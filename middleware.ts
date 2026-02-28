@@ -6,6 +6,12 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get("host") || "";
 
+  if (pathname === "/.well-known/agent.json") {
+    return NextResponse.rewrite(
+      new URL("/api/.well-known/agent.json", request.url)
+    );
+  }
+
   // Handle subdomain redirects to base domain
   if (hostname.includes("milk.market")) {
     // Redirect www.milk.market to milk.market
