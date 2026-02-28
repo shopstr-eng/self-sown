@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { PoolClient } from "pg";
 import { getDbPool } from "@/utils/db/db-service";
 
 export type ApiKeyPermission = "read" | "read_write";
@@ -32,7 +33,7 @@ export function generateApiKey(): { key: string; prefix: string } {
 
 export async function initializeApiKeysTable(): Promise<void> {
   const pool = getDbPool();
-  let client;
+  let client: PoolClient | undefined;
   try {
     client = await pool.connect();
     await client.query(`
@@ -90,7 +91,7 @@ export async function createApiKey(
   const keyHash = hashApiKey(key);
 
   const pool = getDbPool();
-  let client;
+  let client: PoolClient | undefined;
   try {
     client = await pool.connect();
     const result = await client.query(
@@ -111,7 +112,7 @@ export async function validateApiKey(
   const keyHash = hashApiKey(key);
 
   const pool = getDbPool();
-  let client;
+  let client: PoolClient | undefined;
   try {
     client = await pool.connect();
     const result = await client.query(
@@ -134,7 +135,7 @@ export async function validateApiKey(
 
 export async function listApiKeys(pubkey: string): Promise<ApiKeyRecord[]> {
   const pool = getDbPool();
-  let client;
+  let client: PoolClient | undefined;
   try {
     client = await pool.connect();
     const result = await client.query(
@@ -153,12 +154,12 @@ export async function revokeApiKey(
   pubkey: string
 ): Promise<boolean> {
   const pool = getDbPool();
-  let client;
+  let client: PoolClient | undefined;
   try {
     client = await pool.connect();
     const result = await client.query(
       `UPDATE mcp_api_keys SET is_active = FALSE WHERE id = $1 AND pubkey = $2`,
-      [id, pubkey]
+      [String(id), pubkey]
     );
     return (result.rowCount ?? 0) > 0;
   } finally {
