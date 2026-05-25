@@ -217,6 +217,27 @@ export function buildStripeAccountStatusProof(pubkey: string): McpRequestProof {
   };
 }
 
+export function buildShippingBuyLabelProof({
+  pubkey,
+  shipmentId,
+  rateId,
+}: {
+  pubkey: string;
+  shipmentId: string;
+  rateId: string;
+}): McpRequestProof {
+  return {
+    action: "shipping_buy_label",
+    method: "POST",
+    path: "/api/shipping/buy-label",
+    pubkey,
+    fields: {
+      shipmentId,
+      rateId,
+    },
+  };
+}
+
 export function buildStripeManageLinkProof({
   pubkey,
   accountId,

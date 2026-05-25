@@ -406,6 +406,42 @@ export default function CartInvoiceCard({
   const [taxCalculationId, setTaxCalculationId] = useState<string | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
 
+  // Live USPS shipping rates fetched from EasyPost, keyed by seller pubkey.
+  // When present, overrides the seller's static shipping cost in cart math.
+  interface LiveShippingEntry {
+    amountUsd: number;
+    shipmentId: string;
+    rateId: string;
+    service: string;
+    carrier: string;
+  }
+  const [liveShippingBySeller, setLiveShippingBySeller] = useState<
+    Map<string, LiveShippingEntry>
+  >(new Map());
+  const [isFetchingLiveRates, setIsFetchingLiveRates] = useState(false);
+
+  // EasyPost address verification result for the buyer's shipping address.
+  type AddressVerificationStatus =
+    | "idle"
+    | "checking"
+    | "verified"
+    | "issues"
+    | "error";
+  interface AddressVerificationState {
+    status: AddressVerificationStatus;
+    suggestion?: {
+      street1: string;
+      street2?: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+    };
+    messages: string[];
+  }
+  const [addressVerification, setAddressVerification] =
+    useState<AddressVerificationState>({ status: "idle", messages: [] });
+
   const triggerOrderEmail = async (params: {
     orderId: string;
     productTitle: string;
@@ -856,6 +892,7 @@ export default function CartInvoiceCard({
     handleSubmit: handleFormSubmit,
     control: formControl,
     watch,
+    setValue: formSetValue,
   } = useForm();
 
   // Watch form values to validate completion
@@ -1012,20 +1049,21 @@ export default function CartInvoiceCard({
             discountBadge: buildBadge(curr),
           });
         }
-      } else if (product.shippingCost && product.shippingCost > 0) {
-        const rawCost = product.shippingCost * (quantities[product.id] || 1);
-        const discounted = applyShippingDiscount(rawCost, product.pubkey);
-        const curr = product.shippingCurrency || product.currency;
-        lines.push({
-          pubkey: product.pubkey,
-          name:
-            shopProfiles?.get(product.pubkey)?.content?.name ||
-            product.pubkey.substring(0, 8),
-          cost: discounted,
-          originalCost: rawCost,
-          currency: curr,
-          discountBadge: buildBadge(curr),
-        });
+      } else {
+        const eff = getEffectiveSingleProductShipping(product);
+        if (eff.cost > 0) {
+          const discounted = applyShippingDiscount(eff.cost, product.pubkey);
+          lines.push({
+            pubkey: product.pubkey,
+            name:
+              shopProfiles?.get(product.pubkey)?.content?.name ||
+              product.pubkey.substring(0, 8),
+            cost: discounted,
+            originalCost: eff.cost,
+            currency: eff.currency,
+            discountBadge: buildBadge(eff.currency),
+          });
+        }
       }
     });
     return lines;
@@ -1091,6 +1129,21 @@ export default function CartInvoiceCard({
     highestShippingCost: number;
   } => {
     const sellerProducts = products.filter((p) => p.pubkey === sellerPubkey);
+    // Live USPS rate overrides static shipping when present. We synthesize
+    // a product carrying the live USD cost so downstream code (currency
+    // FX, label display) uses the live amount in USD.
+    const live = liveShippingBySeller.get(sellerPubkey);
+    if (live && sellerProducts.length > 0) {
+      const base = sellerProducts[0]!;
+      return {
+        highestShippingProduct: {
+          ...base,
+          shippingCost: live.amountUsd,
+          shippingCurrency: "USD",
+        },
+        highestShippingCost: live.amountUsd,
+      };
+    }
     let highestShippingCost = 0;
     let highestShippingProduct: ProductData | null = null;
     sellerProducts.forEach((product) => {
@@ -1101,6 +1154,40 @@ export default function CartInvoiceCard({
       }
     });
     return { highestShippingProduct, highestShippingCost };
+  };
+
+  // Returns the effective shipping cost + currency for a single-product
+  // seller, preferring live USPS rate over the static (qty-multiplied)
+  // value. Used to keep all single-product code paths consistent.
+  const getEffectiveSingleProductShipping = (
+    product: ProductData
+  ): {
+    cost: number;
+    currency: string;
+    syntheticProduct: ProductData;
+    isLive: boolean;
+  } => {
+    const live = liveShippingBySeller.get(product.pubkey);
+    if (live) {
+      return {
+        cost: live.amountUsd,
+        currency: "USD",
+        syntheticProduct: {
+          ...product,
+          shippingCost: live.amountUsd,
+          shippingCurrency: "USD",
+        },
+        isLive: true,
+      };
+    }
+    const qty = quantities[product.id] || 1;
+    const cost = (product.shippingCost || 0) * qty;
+    return {
+      cost,
+      currency: product.shippingCurrency || product.currency,
+      syntheticProduct: { ...product, shippingCost: cost },
+      isLive: false,
+    };
   };
 
   const [nativeTotalCost, setNativeTotalCost] = useState<number | null>(null);
@@ -1201,10 +1288,9 @@ export default function CartInvoiceCard({
             shippingProductCurrency =
               hsp?.shippingCurrency || hsp?.currency || product.currency;
           } else {
-            shippingForSeller =
-              (product.shippingCost || 0) * (quantities[product.id] || 1);
-            shippingProductCurrency =
-              product.shippingCurrency || product.currency;
+            const eff = getEffectiveSingleProductShipping(product);
+            shippingForSeller = eff.cost;
+            shippingProductCurrency = eff.currency;
           }
           // Apply any per-seller shipping discount carried by the redeemed
           // discount code, in the seller's shipping-currency units. For
@@ -1268,6 +1354,7 @@ export default function CartInvoiceCard({
     formType,
     shippingPickupPreference,
     sellerFreeShippingStatus,
+    liveShippingBySeller,
   ]);
 
   const isSatsCart =
@@ -2195,10 +2282,12 @@ export default function CartInvoiceCard({
               updatedTotalCostsInSats[sp.id] = totalCostsInSats[sp.id] || 0;
             });
           } else {
-            const shippingCostInSats = await convertShippingToSats(product);
-            const quantity = quantities[product.id] || 1;
+            const eff = getEffectiveSingleProductShipping(product);
+            const shippingCostInSats = await convertShippingToSats(
+              eff.syntheticProduct
+            );
             const productShippingCost = Math.ceil(
-              applyShippingDiscount(shippingCostInSats * quantity, sellerPubkey)
+              applyShippingDiscount(shippingCostInSats, sellerPubkey)
             );
             shippingTotal += productShippingCost;
             updatedTotalCostsInSats[product.id] =
@@ -2258,13 +2347,12 @@ export default function CartInvoiceCard({
                   updatedTotalCostsInSats[sp.id] = totalCostsInSats[sp.id] || 0;
                 });
               } else {
-                const shippingCostInSats = await convertShippingToSats(product);
-                const quantity = quantities[product.id] || 1;
+                const eff = getEffectiveSingleProductShipping(product);
+                const shippingCostInSats = await convertShippingToSats(
+                  eff.syntheticProduct
+                );
                 const productShippingCost = Math.ceil(
-                  applyShippingDiscount(
-                    shippingCostInSats * quantity,
-                    sellerPubkey
-                  )
+                  applyShippingDiscount(shippingCostInSats, sellerPubkey)
                 );
                 shippingTotal += productShippingCost;
                 updatedTotalCostsInSats[product.id] =
@@ -2327,12 +2415,12 @@ export default function CartInvoiceCard({
             );
           }
         } else if (sellerProducts.length === 1) {
+          const eff = getEffectiveSingleProductShipping(sellerProducts[0]!);
           const shippingCostInSats = await convertShippingToSats(
-            sellerProducts[0]!
+            eff.syntheticProduct
           );
-          const quantity = quantities[sellerProducts[0]!.id] || 1;
           shippingTotal += Math.ceil(
-            applyShippingDiscount(shippingCostInSats * quantity, sellerPubkey)
+            applyShippingDiscount(shippingCostInSats, sellerPubkey)
           );
         }
       }
@@ -2352,6 +2440,7 @@ export default function CartInvoiceCard({
     quantities,
     shippingTypes,
     sellerFreeShippingStatus,
+    liveShippingBySeller,
   ]);
 
   const handleNWCError = (error: any) => {
@@ -4876,8 +4965,7 @@ export default function CartInvoiceCard({
             );
             sellerShipping = highestShippingCost;
           } else {
-            sellerShipping =
-              (product.shippingCost || 0) * (quantities[product.id] || 1);
+            sellerShipping = getEffectiveSingleProductShipping(product).cost;
           }
           nativeShipping += applyShippingDiscount(
             sellerShipping,
@@ -5026,6 +5114,279 @@ export default function CartInvoiceCard({
     stripeCosts.satsTotal,
     cartCurrency,
     singleSellerPubkey,
+  ]);
+
+  // Address verification (EasyPost) — debounced, US only, non-blocking.
+  useEffect(() => {
+    const isShippingForm = formType === "shipping" || formType === "combined";
+    if (!isShippingForm) {
+      if (addressVerification.status !== "idle") {
+        setAddressVerification({ status: "idle", messages: [] });
+      }
+      return;
+    }
+    const country = (watchedValues?.Country || "").toString().trim();
+    const postal = (watchedValues?.["Postal Code"] || "").toString().trim();
+    const city = (watchedValues?.City || "").toString().trim();
+    const state = (watchedValues?.["State/Province"] || "").toString().trim();
+    const line1 = (watchedValues?.Address || "").toString().trim();
+    const line2 = (watchedValues?.Unit || "").toString().trim();
+
+    if (country.toUpperCase() !== "US" && country.toUpperCase() !== "USA") {
+      if (addressVerification.status !== "idle") {
+        setAddressVerification({ status: "idle", messages: [] });
+      }
+      return;
+    }
+    if (!postal || !line1 || !city || !state) return;
+
+    let cancelled = false;
+    setAddressVerification((prev) =>
+      prev.status === "checking" ? prev : { ...prev, status: "checking" }
+    );
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/shipping/verify-address", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            street1: line1,
+            street2: line2 || undefined,
+            city,
+            state,
+            zip: postal,
+            country: "US",
+          }),
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        if (!data || data.success === false) {
+          setAddressVerification({
+            status: "issues",
+            messages: (data?.messages || []).map(
+              (m: { text?: string }) => m.text || "Unknown issue"
+            ),
+          });
+          return;
+        }
+        if (data.valid) {
+          // Compare suggested vs entered; show "use suggested" if different
+          const changed =
+            (data.street1 || "").toUpperCase() !== line1.toUpperCase() ||
+            (data.city || "").toUpperCase() !== city.toUpperCase() ||
+            (data.state || "").toUpperCase() !== state.toUpperCase() ||
+            (data.zip || "").split("-")[0] !== postal.split("-")[0];
+          if (changed) {
+            setAddressVerification({
+              status: "issues",
+              messages: ["USPS suggests a corrected address."],
+              suggestion: {
+                street1: data.street1,
+                street2: data.street2,
+                city: data.city,
+                state: data.state,
+                zip: data.zip,
+                country: data.country || "US",
+              },
+            });
+          } else {
+            setAddressVerification({ status: "verified", messages: [] });
+          }
+        } else {
+          setAddressVerification({
+            status: "issues",
+            messages:
+              (data.messages || []).map(
+                (m: { text?: string }) => m.text || "Unknown issue"
+              ) || [],
+          });
+        }
+      } catch {
+        if (!cancelled)
+          setAddressVerification({ status: "idle", messages: [] });
+      }
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    watchedValues?.Country,
+    watchedValues?.["Postal Code"],
+    watchedValues?.["State/Province"],
+    watchedValues?.City,
+    watchedValues?.Address,
+    watchedValues?.Unit,
+    formType,
+  ]);
+
+  // Live USPS shipping rates (EasyPost) — debounced, per seller.
+  // For each seller whose products all carry ship_from_zip + parcel.weightOz
+  // we ask EasyPost for the cheapest USPS rate to the buyer's address.
+  useEffect(() => {
+    const isShippingForm = formType === "shipping" || formType === "combined";
+    if (!isShippingForm) {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+    const country = (watchedValues?.Country || "").toString().trim();
+    const postal = (watchedValues?.["Postal Code"] || "").toString().trim();
+    const city = (watchedValues?.City || "").toString().trim();
+    const state = (watchedValues?.["State/Province"] || "").toString().trim();
+    const line1 = (watchedValues?.Address || "").toString().trim();
+
+    if (country.toUpperCase() !== "US" && country.toUpperCase() !== "USA") {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+    if (!postal || !line1 || !city || !state) {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+
+    // Bucket products by seller and identify which sellers are eligible.
+    const productsBySeller = new Map<string, ProductData[]>();
+    for (const p of products) {
+      if (!productsBySeller.has(p.pubkey)) productsBySeller.set(p.pubkey, []);
+      productsBySeller.get(p.pubkey)!.push(p);
+    }
+
+    const eligibleSellers: Array<{
+      pubkey: string;
+      fromZip: string;
+      fromCountry: string;
+      totalWeightOz: number;
+      maxLengthIn?: number;
+      maxWidthIn?: number;
+      maxHeightIn?: number;
+    }> = [];
+
+    for (const [pubkey, sellerProducts] of productsBySeller) {
+      // Free-shipping threshold or non-shipping form types: skip live rates.
+      if (sellerFreeShippingStatus[pubkey]?.qualifies) continue;
+      // Require every product to carry origin zip + parcel weight.
+      const allHaveData = sellerProducts.every(
+        (p) =>
+          p.shipFromZip &&
+          (p.shipFromCountry || "US").toUpperCase() === "US" &&
+          p.packageWeightOz &&
+          p.packageWeightOz > 0
+      );
+      if (!allHaveData) continue;
+      // All sellerProducts must share the same origin zip (different origins
+      // would mean separate shipments; we treat as ineligible for v1).
+      const fromZip = sellerProducts[0]!.shipFromZip!;
+      if (!sellerProducts.every((p) => p.shipFromZip === fromZip)) continue;
+      let totalWeight = 0;
+      let maxL: number | undefined;
+      let maxW: number | undefined;
+      let maxH: number | undefined;
+      for (const p of sellerProducts) {
+        const qty = quantities[p.id] || 1;
+        totalWeight += (p.packageWeightOz || 0) * qty;
+        if (p.packageLengthIn && (!maxL || p.packageLengthIn > maxL))
+          maxL = p.packageLengthIn;
+        if (p.packageWidthIn && (!maxW || p.packageWidthIn > maxW))
+          maxW = p.packageWidthIn;
+        if (p.packageHeightIn && (!maxH || p.packageHeightIn > maxH))
+          maxH = p.packageHeightIn;
+      }
+      // USPS max ~1120 oz (70 lb). Cap to avoid 4xx; users with bigger
+      // shipments stay on static cost.
+      if (totalWeight > 1120) continue;
+      eligibleSellers.push({
+        pubkey,
+        fromZip,
+        fromCountry: "US",
+        totalWeightOz: totalWeight,
+        maxLengthIn: maxL,
+        maxWidthIn: maxW,
+        maxHeightIn: maxH,
+      });
+    }
+
+    if (eligibleSellers.length === 0) {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetchingLiveRates(true);
+    const t = setTimeout(async () => {
+      try {
+        const next = new Map<string, LiveShippingEntry>();
+        await Promise.all(
+          eligibleSellers.map(async (seller) => {
+            try {
+              const res = await fetch("/api/shipping/rates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  from: {
+                    street1: "Unknown",
+                    city: "Unknown",
+                    state: "",
+                    zip: seller.fromZip,
+                    country: seller.fromCountry,
+                  },
+                  to: {
+                    street1: line1,
+                    city,
+                    state,
+                    zip: postal,
+                    country: "US",
+                  },
+                  parcel: {
+                    weightOz: seller.totalWeightOz,
+                    lengthIn: seller.maxLengthIn,
+                    widthIn: seller.maxWidthIn,
+                    heightIn: seller.maxHeightIn,
+                  },
+                  carriers: ["USPS"],
+                }),
+              });
+              const data = await res.json();
+              if (
+                data?.success &&
+                data.cheapest &&
+                typeof data.cheapest.rate === "number"
+              ) {
+                next.set(seller.pubkey, {
+                  amountUsd: data.cheapest.rate,
+                  shipmentId: data.shipmentId,
+                  rateId: data.cheapest.id,
+                  service: data.cheapest.service,
+                  carrier: data.cheapest.carrier,
+                });
+              }
+            } catch {
+              // Per-seller failure — fall back to static for that seller.
+            }
+          })
+        );
+        if (cancelled) return;
+        setLiveShippingBySeller(next);
+      } finally {
+        if (!cancelled) setIsFetchingLiveRates(false);
+      }
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      setIsFetchingLiveRates(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    watchedValues?.Country,
+    watchedValues?.["Postal Code"],
+    watchedValues?.["State/Province"],
+    watchedValues?.City,
+    watchedValues?.Address,
+    formType,
+    products,
+    quantities,
+    sellerFreeShippingStatus,
   ]);
 
   const bitcoinDiscountPct = pmDiscounts["bitcoin"] || 0;
@@ -5450,6 +5811,90 @@ export default function CartInvoiceCard({
                 )}
               />
             </div>
+
+            {/* Address verification banner (US only, EasyPost) */}
+            {(addressVerification.status === "checking" ||
+              addressVerification.status === "verified" ||
+              addressVerification.status === "issues") && (
+              <div
+                className={`mt-3 rounded-md border-2 p-3 text-sm ${
+                  addressVerification.status === "verified"
+                    ? "border-green-700 bg-green-50 text-green-900"
+                    : addressVerification.status === "issues"
+                      ? "border-yellow-700 bg-yellow-50 text-yellow-900"
+                      : "border-black bg-white text-black"
+                }`}
+              >
+                {addressVerification.status === "checking" && (
+                  <span>Verifying address…</span>
+                )}
+                {addressVerification.status === "verified" && (
+                  <span>Address verified by USPS.</span>
+                )}
+                {addressVerification.status === "issues" && (
+                  <div>
+                    <p className="font-semibold">
+                      We couldn&apos;t fully verify your address.
+                    </p>
+                    {addressVerification.messages.length > 0 && (
+                      <ul className="mt-1 ml-4 list-disc">
+                        {addressVerification.messages.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {addressVerification.suggestion && (
+                      <button
+                        type="button"
+                        className="mt-2 rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-semibold hover:bg-yellow-50"
+                        onClick={() => {
+                          const s = addressVerification.suggestion!;
+                          formSetValue("Address", s.street1, {
+                            shouldValidate: true,
+                          });
+                          if (s.street2)
+                            formSetValue("Unit", s.street2, {
+                              shouldValidate: true,
+                            });
+                          formSetValue("City", s.city, {
+                            shouldValidate: true,
+                          });
+                          formSetValue("State/Province", s.state, {
+                            shouldValidate: true,
+                          });
+                          formSetValue("Postal Code", s.zip, {
+                            shouldValidate: true,
+                          });
+                          setAddressVerification({
+                            status: "verified",
+                            messages: [],
+                          });
+                        }}
+                      >
+                        Use suggested address
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Live USPS rate status indicator */}
+            {(isFetchingLiveRates || liveShippingBySeller.size > 0) && (
+              <div className="mt-2 rounded-md border-2 border-black bg-yellow-50 p-2 text-xs text-black">
+                {isFetchingLiveRates ? (
+                  <span>Calculating live USPS shipping rates…</span>
+                ) : (
+                  <span>
+                    Live USPS shipping rates applied
+                    {liveShippingBySeller.size > 1
+                      ? ` for ${liveShippingBySeller.size} sellers`
+                      : ""}
+                    .
+                  </span>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -6437,12 +6882,13 @@ export default function CartInvoiceCard({
                               );
                             }
                           } else {
+                            const eff =
+                              getEffectiveSingleProductShipping(product);
                             const shippingCostInSats =
-                              await convertShippingToSats(product);
-                            const quantity = quantities[product.id] || 1;
+                              await convertShippingToSats(eff.syntheticProduct);
                             shippingTotal += Math.ceil(
                               applyShippingDiscount(
-                                shippingCostInSats * quantity,
+                                shippingCostInSats,
                                 sellerPubkey
                               )
                             );
@@ -6504,12 +6950,13 @@ export default function CartInvoiceCard({
                               );
                             }
                           } else {
+                            const eff =
+                              getEffectiveSingleProductShipping(product);
                             const shippingCostInSats =
-                              await convertShippingToSats(product);
-                            const quantity = quantities[product.id] || 1;
+                              await convertShippingToSats(eff.syntheticProduct);
                             shippingTotal += Math.ceil(
                               applyShippingDiscount(
-                                shippingCostInSats * quantity,
+                                shippingCostInSats,
                                 sellerPubkey
                               )
                             );

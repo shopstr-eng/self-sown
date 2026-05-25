@@ -166,12 +166,27 @@ export default function ProductForm({
           Expiration: oldValues.expiration
             ? formatUnixTimestampAsDateTimeLocalValue(oldValues.expiration)
             : "",
+          "Ship From Zip": oldValues.shipFromZip || "",
+          "Ship From Country": oldValues.shipFromCountry || "US",
+          "Package Weight Oz": oldValues.packageWeightOz
+            ? String(oldValues.packageWeightOz)
+            : "",
+          "Package Length In": oldValues.packageLengthIn
+            ? String(oldValues.packageLengthIn)
+            : "",
+          "Package Width In": oldValues.packageWidthIn
+            ? String(oldValues.packageWidthIn)
+            : "",
+          "Package Height In": oldValues.packageHeightIn
+            ? String(oldValues.packageHeightIn)
+            : "",
         }
       : {
           Currency: "USD",
           "Shipping Option": "Pickup",
           Status: "active",
           "Pickup Locations": [""],
+          "Ship From Country": "US",
         },
   });
 
@@ -332,6 +347,41 @@ export default function ProductForm({
         String(data["Currency"] ?? ""),
       ],
     ];
+
+    const shipFromZip = (data["Ship From Zip"] as string | undefined)?.trim();
+    const shipFromCountry =
+      (data["Ship From Country"] as string | undefined)?.trim().toUpperCase() ||
+      "";
+    if (shipFromZip) {
+      tags.push(["ship_from_zip", shipFromZip, shipFromCountry || "US"]);
+    }
+
+    const pkgWeight = data["Package Weight Oz"]
+      ? Number(data["Package Weight Oz"])
+      : NaN;
+    if (Number.isFinite(pkgWeight) && pkgWeight > 0) {
+      const pkgLen = data["Package Length In"]
+        ? Number(data["Package Length In"])
+        : NaN;
+      const pkgWid = data["Package Width In"]
+        ? Number(data["Package Width In"])
+        : NaN;
+      const pkgHei = data["Package Height In"]
+        ? Number(data["Package Height In"])
+        : NaN;
+      const parcelTag: string[] = ["parcel", String(pkgWeight)];
+      if (Number.isFinite(pkgLen) && pkgLen > 0) parcelTag.push(String(pkgLen));
+      else parcelTag.push("");
+      if (Number.isFinite(pkgWid) && pkgWid > 0) parcelTag.push(String(pkgWid));
+      else parcelTag.push("");
+      if (Number.isFinite(pkgHei) && pkgHei > 0) parcelTag.push(String(pkgHei));
+      else parcelTag.push("");
+      // Trim trailing empty values so we don't emit zero-padded dims.
+      while (parcelTag.length > 2 && parcelTag[parcelTag.length - 1] === "") {
+        parcelTag.pop();
+      }
+      tags.push(parcelTag as [string, ...string[]]);
+    }
 
     images.forEach((image) => {
       tags.push(["image", image]);
@@ -1150,6 +1200,143 @@ export default function ProductForm({
                   );
                 }}
               />
+
+              {(watchShippingOption === "Added Cost" ||
+                watchShippingOption === "Added Cost/Pickup" ||
+                watchShippingOption === "Free") && (
+                <div className="mb-4 rounded-md border-2 border-black bg-yellow-50 p-3 text-sm text-black">
+                  <p className="font-semibold">
+                    USPS live shipping rates (optional)
+                  </p>
+                  <p className="mt-1 text-gray-700">
+                    Fill in the &quot;Ship From&quot; ZIP <em>and</em> package
+                    weight below to enable live USPS rate calculations at
+                    checkout — buyers pay the exact USPS price based on their
+                    address. If left blank, your static shipping cost above is
+                    used instead. Dimensions improve accuracy for larger
+                    parcels.
+                  </p>
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Controller
+                      name="Ship From Zip"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          aria-label="Ship From Zip"
+                          label="Ship From ZIP"
+                          labelPlacement="outside"
+                          placeholder="e.g. 90210"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Weight Oz"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Package Weight (oz)"
+                          label="Package Weight (oz)"
+                          labelPlacement="outside"
+                          placeholder="e.g. 16"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Length In"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Length (in)"
+                          label="Length (in)"
+                          labelPlacement="outside"
+                          placeholder="optional"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Width In"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Width (in)"
+                          label="Width (in)"
+                          labelPlacement="outside"
+                          placeholder="optional"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Height In"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Height (in)"
+                          label="Height (in)"
+                          labelPlacement="outside"
+                          placeholder="optional"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
 
               {(watchShippingOption === "Added Cost" ||
                 watchShippingOption === "Added Cost/Pickup") && (
