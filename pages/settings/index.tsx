@@ -8,6 +8,7 @@ import {
   KeyIcon,
   EnvelopeIcon,
   CreditCardIcon,
+  TruckIcon,
 } from "@heroicons/react/24/outline";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
 import ProtectedRoute from "@/components/utility-components/protected-route";
@@ -56,6 +57,15 @@ const SettingsPage = () => {
       icon: CreditCardIcon,
       iconBg: "bg-slate-600",
       route: "/settings/payments",
+    },
+    {
+      id: "shipping",
+      title: "Shipping",
+      description:
+        "Manage default ship-from address, parcel templates, carriers, return labels, and view label history",
+      icon: TruckIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/shipping",
     },
     {
       id: "account",

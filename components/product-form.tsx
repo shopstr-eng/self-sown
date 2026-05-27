@@ -60,6 +60,11 @@ import {
   buildMcpRequestProofTemplate,
   buildStripeAccountStatusProof,
 } from "@/utils/mcp/request-proof";
+import {
+  ShippoParcelTemplate,
+  fetchShippoDefaults,
+  listShippoParcelTemplates,
+} from "@/utils/shipping/client-api";
 
 interface ProductFormProps {
   handleModalToggle: () => void;
@@ -102,6 +107,12 @@ export default function ProductForm({
   const [hasStripeAccount, setHasStripeAccount] = useState<boolean | null>(
     null
   );
+  const [parcelTemplates, setParcelTemplates] = useState<
+    ShippoParcelTemplate[]
+  >([]);
+  const [selectedParcelTemplateId, setSelectedParcelTemplateId] = useState<
+    string | null
+  >(null);
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
   const {
@@ -111,7 +122,7 @@ export default function ProductForm({
   } = useContext(SignerContext);
   const { nostr } = useContext(NostrContext);
 
-  const { handleSubmit, control, reset, watch } = useForm({
+  const { handleSubmit, control, reset, watch, setValue } = useForm({
     defaultValues: oldValues
       ? {
           "Product Name": oldValues.title,
@@ -197,6 +208,39 @@ export default function ProductForm({
       setRelayHint(relays[0] as string);
     }
   }, [signerPubKey]);
+
+  // Load seller's saved parcel templates + shipping defaults so the form
+  // can offer one-click parcel fills and pre-fill ship-from on new listings.
+  useEffect(() => {
+    if (!signer?.sign || !signerPubKey) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [templates, defaults] = await Promise.all([
+          listShippoParcelTemplates(signer, signerPubKey).catch(() => []),
+          fetchShippoDefaults(signer, signerPubKey).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setParcelTemplates(templates);
+        // Only pre-fill ship-from on brand-new listings, never overwrite
+        // values the user already entered or values from oldValues.
+        if (!oldValues && defaults?.fromZip) {
+          setValue("Ship From Zip", defaults.fromZip, { shouldDirty: false });
+          if (defaults.fromCountry) {
+            setValue("Ship From Country", defaults.fromCountry, {
+              shouldDirty: false,
+            });
+          }
+        }
+      } catch {
+        // non-fatal
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signer, signerPubKey]);
 
   useEffect(() => {
     setImages(oldValues?.images || []);
@@ -1216,6 +1260,60 @@ export default function ProductForm({
                     used instead. Dimensions improve accuracy for larger
                     parcels.
                   </p>
+                  {parcelTemplates.length > 0 && (
+                    <div className="mt-3">
+                      <label className="mb-1 block text-sm font-semibold text-black">
+                        Parcel template
+                      </label>
+                      <select
+                        className="h-10 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black"
+                        value={selectedParcelTemplateId || ""}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedParcelTemplateId(id || null);
+                          if (!id) return;
+                          const tpl = parcelTemplates.find(
+                            (t) => String(t.id) === id
+                          );
+                          if (!tpl) return;
+                          setValue("Package Weight Oz", String(tpl.weightOz), {
+                            shouldDirty: true,
+                          });
+                          setValue(
+                            "Package Length In",
+                            tpl.lengthIn ? String(tpl.lengthIn) : "",
+                            { shouldDirty: true }
+                          );
+                          setValue(
+                            "Package Width In",
+                            tpl.widthIn ? String(tpl.widthIn) : "",
+                            { shouldDirty: true }
+                          );
+                          setValue(
+                            "Package Height In",
+                            tpl.heightIn ? String(tpl.heightIn) : "",
+                            { shouldDirty: true }
+                          );
+                        }}
+                      >
+                        <option value="">
+                          — Pick a saved template (optional) —
+                        </option>
+                        {parcelTemplates.map((t) => (
+                          <option key={t.id} value={String(t.id)}>
+                            {t.name} ({t.weightOz} oz
+                            {t.lengthIn && t.widthIn && t.heightIn
+                              ? `, ${t.lengthIn}×${t.widthIn}×${t.heightIn} in`
+                              : ""}
+                            )
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Manage templates in Settings → Shipping.
+                      </p>
+                    </div>
+                  )}
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <Controller
                       name="Ship From Zip"

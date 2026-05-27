@@ -410,7 +410,7 @@ export default function CartInvoiceCard({
   const [taxCalculationId, setTaxCalculationId] = useState<string | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
 
-  // Live USPS shipping rates fetched from EasyPost, keyed by seller pubkey.
+  // Live USPS shipping rates fetched from Shippo, keyed by seller pubkey.
   // When present, overrides the seller's static shipping cost in cart math.
   interface LiveShippingEntry {
     amountUsd: number;
@@ -424,7 +424,7 @@ export default function CartInvoiceCard({
   >(new Map());
   const [isFetchingLiveRates, setIsFetchingLiveRates] = useState(false);
 
-  // EasyPost address verification result for the buyer's shipping address.
+  // Shippo address verification result for the buyer's shipping address.
   type AddressVerificationStatus =
     | "idle"
     | "checking"
@@ -5227,7 +5227,7 @@ export default function CartInvoiceCard({
     singleSellerPubkey,
   ]);
 
-  // Address verification (EasyPost) — debounced, US only, non-blocking.
+  // Address verification (Shippo) — debounced, US only, non-blocking.
   useEffect(() => {
     const isShippingForm = formType === "shipping" || formType === "combined";
     if (!isShippingForm) {
@@ -5332,9 +5332,9 @@ export default function CartInvoiceCard({
     formType,
   ]);
 
-  // Live USPS shipping rates (EasyPost) — debounced, per seller.
+  // Live USPS shipping rates (Shippo) — debounced, per seller.
   // For each seller whose products all carry ship_from_zip + parcel.weightOz
-  // we ask EasyPost for the cheapest USPS rate to the buyer's address.
+  // we ask Shippo for the cheapest USPS rate to the buyer's address.
   useEffect(() => {
     const isShippingForm = formType === "shipping" || formType === "combined";
     if (!isShippingForm) {
@@ -5923,7 +5923,7 @@ export default function CartInvoiceCard({
               />
             </div>
 
-            {/* Address verification banner (US only, EasyPost) */}
+            {/* Address verification banner (US only, Shippo) */}
             {(addressVerification.status === "checking" ||
               addressVerification.status === "verified" ||
               addressVerification.status === "issues") && (

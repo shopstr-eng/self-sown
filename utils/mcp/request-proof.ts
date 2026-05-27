@@ -238,6 +238,69 @@ export function buildShippingBuyLabelProof({
   };
 }
 
+export function buildShippingListLabelsProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_list_labels",
+    method: "GET",
+    path: "/api/shipping/labels",
+    pubkey,
+  };
+}
+
+export function buildShippingSpendProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_spend",
+    method: "GET",
+    path: "/api/shipping/spend",
+    pubkey,
+  };
+}
+
+export function buildShippingDefaultsProof({
+  pubkey,
+  method,
+}: {
+  pubkey: string;
+  method: "GET" | "POST";
+}): McpRequestProof {
+  return {
+    action:
+      method === "GET" ? "shipping_defaults_get" : "shipping_defaults_set",
+    method,
+    path: "/api/shipping/defaults",
+    pubkey,
+  };
+}
+
+export function buildShippingParcelTemplatesProof({
+  pubkey,
+  method,
+}: {
+  pubkey: string;
+  method: "GET" | "POST" | "DELETE";
+}): McpRequestProof {
+  return {
+    action:
+      method === "GET"
+        ? "shipping_parcel_templates_list"
+        : method === "POST"
+          ? "shipping_parcel_templates_upsert"
+          : "shipping_parcel_templates_delete",
+    method,
+    path: "/api/shipping/parcel-templates",
+    pubkey,
+  };
+}
+
+export function buildShippingReturnLabelProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_return_label",
+    method: "POST",
+    path: "/api/shipping/return-label",
+    pubkey,
+  };
+}
+
 export function buildStripeManageLinkProof({
   pubkey,
   accountId,

@@ -713,6 +713,71 @@ async function initializeTables(): Promise<void> {
         ip_address VARCHAR(45),
         visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Shippo: purchased shipping labels (label history per seller)
+      CREATE TABLE IF NOT EXISTS shipping_labels (
+        id SERIAL PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        shipment_id TEXT NOT NULL,
+        order_id TEXT,
+        tracking_code TEXT,
+        tracking_url TEXT,
+        label_url TEXT NOT NULL,
+        label_format TEXT,
+        rate_usd NUMERIC(10, 2) NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        carrier TEXT,
+        service TEXT,
+        is_return BOOLEAN NOT NULL DEFAULT FALSE,
+        from_summary TEXT,
+        to_summary TEXT,
+        parcel_summary TEXT,
+        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      -- Drop the legacy UNIQUE(shipment_id, is_return) constraint if it
+      -- exists from an earlier deploy. Label rows are append-only so that
+      -- every purchased label contributes to the daily spend ledger.
+      ALTER TABLE shipping_labels
+        DROP CONSTRAINT IF EXISTS shipping_labels_shipment_id_is_return_key;
+      CREATE INDEX IF NOT EXISTS idx_shipping_labels_pubkey
+        ON shipping_labels(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_shipping_labels_purchased_at
+        ON shipping_labels(purchased_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_shipping_labels_pubkey_purchased_at
+        ON shipping_labels(pubkey, purchased_at DESC);
+
+      -- Shippo: per-seller saved parcel templates
+      CREATE TABLE IF NOT EXISTS shipping_parcel_templates (
+        id SERIAL PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        name TEXT NOT NULL,
+        weight_oz NUMERIC(8, 2) NOT NULL,
+        length_in NUMERIC(8, 2),
+        width_in NUMERIC(8, 2),
+        height_in NUMERIC(8, 2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(pubkey, name)
+      );
+      CREATE INDEX IF NOT EXISTS idx_parcel_templates_pubkey
+        ON shipping_parcel_templates(pubkey);
+
+      -- Shippo: per-seller shipping defaults (ship-from + preferred carriers)
+      CREATE TABLE IF NOT EXISTS shipping_defaults (
+        pubkey TEXT PRIMARY KEY,
+        from_name TEXT,
+        from_company TEXT,
+        from_street1 TEXT,
+        from_street2 TEXT,
+        from_city TEXT,
+        from_state TEXT,
+        from_zip TEXT,
+        from_country TEXT DEFAULT 'US',
+        from_phone TEXT,
+        from_email TEXT,
+        preferred_carriers TEXT NOT NULL DEFAULT 'USPS',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     await client.query(`

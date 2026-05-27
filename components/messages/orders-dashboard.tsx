@@ -157,6 +157,9 @@ const OrdersDashboard = ({
 
   const [showBuyLabelModal, setShowBuyLabelModal] = useState(false);
   const [buyLabelOrder, setBuyLabelOrder] = useState<OrderData | null>(null);
+  const [buyLabelMode, setBuyLabelMode] = useState<"outbound" | "return">(
+    "outbound"
+  );
 
   const findProductDataForOrder = (order: OrderData) => {
     if (!order.productAddress || !productContext?.productEvents) return null;
@@ -2082,12 +2085,29 @@ const OrdersDashboard = ({
                               canBuyLabelForOrder(order) && (
                                 <button
                                   onClick={() => {
+                                    setBuyLabelMode("outbound");
                                     setBuyLabelOrder(order);
                                     setShowBuyLabelModal(true);
                                   }}
                                   className="cursor-pointer text-left text-xs text-blue-600 underline hover:text-blue-800"
                                 >
-                                  Buy USPS Label
+                                  Buy Shipping Label
+                                </button>
+                              )}
+                            {order.isSale &&
+                              (order.status === "shipped" ||
+                                order.status === "completed" ||
+                                order.hasReturnRequest) &&
+                              canBuyLabelForOrder(order) && (
+                                <button
+                                  onClick={() => {
+                                    setBuyLabelMode("return");
+                                    setBuyLabelOrder(order);
+                                    setShowBuyLabelModal(true);
+                                  }}
+                                  className="cursor-pointer text-left text-xs text-orange-700 underline hover:text-orange-900"
+                                >
+                                  Buy Return Label
                                 </button>
                               )}
                             {order.hasReturnRequest && order.isSale && (
@@ -2721,6 +2741,8 @@ const OrdersDashboard = ({
                 setShowBuyLabelModal(false);
                 setBuyLabelOrder(null);
               }}
+              mode={buyLabelMode}
+              orderId={buyLabelOrder.orderId}
               fromZip={productData.shipFromZip}
               fromCountry={productData.shipFromCountry || "US"}
               toAddress={{

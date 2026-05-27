@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { getRates, isEasyPostConfigured } from "@/utils/shipping/easypost";
+import { getRates, isShippoConfigured } from "@/utils/shipping/shippo";
 import {
   isListedSeller,
   rememberShipmentOwner,
@@ -16,11 +16,27 @@ import type { ParcelInput, ShippingAddressInput } from "@/utils/shipping/types";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
+const KNOWN_CARRIERS = new Set([
+  "USPS",
+  "UPS",
+  "FEDEX",
+  "DHL_EXPRESS",
+  "CANADA_POST",
+]);
+
 interface RatesRequestBody {
   from: ShippingAddressInput;
   to: ShippingAddressInput;
   parcel: ParcelInput;
   carriers?: string[];
+}
+
+function normalizeCarriers(input: string[] | undefined): string[] {
+  const list = (input || ["USPS"])
+    .map((c) => c.trim().toUpperCase())
+    .filter(Boolean);
+  const filtered = list.filter((c) => KNOWN_CARRIERS.has(c));
+  return filtered.length > 0 ? filtered : ["USPS"];
 }
 
 export default async function handler(
@@ -31,7 +47,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!applyRateLimit(req, res, "shipping-rates", RATE_LIMIT)) return;
-  if (!isEasyPostConfigured()) {
+  if (!isShippoConfigured()) {
     return res
       .status(503)
       .json({ error: "Shipping provider not configured", skipped: true });
@@ -84,7 +100,7 @@ export default async function handler(
         name: to.name,
       },
       parcel,
-      carriers,
+      carriers: normalizeCarriers(carriers),
     });
 
     // Optional ownership registration: if caller supplied a signed event,

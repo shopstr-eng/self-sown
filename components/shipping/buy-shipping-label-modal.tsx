@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext, useMemo } from "react";
 import {
   Button,
   Modal,
@@ -13,7 +13,14 @@ import {
   buildShippingBuyLabelProof,
 } from "@/utils/mcp/request-proof";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
-import { useContext } from "react";
+import {
+  SUPPORTED_CARRIERS,
+  ShippoDefaults,
+  ShippoSpend,
+  buyReturnLabel,
+  fetchShippoDefaults,
+  fetchShippoSpend,
+} from "@/utils/shipping/client-api";
 
 interface RateOption {
   id: string;
@@ -37,26 +44,32 @@ interface PurchasedLabel {
   service: string;
 }
 
+type ShipAddress = {
+  name?: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+};
+
 export interface BuyShippingLabelModalProps {
   isOpen: boolean;
   onClose: () => void;
   fromZip: string;
   fromCountry?: string;
-  toAddress: {
-    name?: string;
-    street1: string;
-    street2?: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-  };
+  toAddress: ShipAddress;
   parcel: {
     weightOz: number;
     lengthIn?: number;
     widthIn?: number;
     heightIn?: number;
   };
+  orderId?: string;
+  // "outbound" = ship to buyer (default). "return" = generate a return label
+  // FROM the buyer's address TO the seller's ship-from defaults.
+  mode?: "outbound" | "return";
   onPurchased?: (label: PurchasedLabel) => void;
 }
 
@@ -67,6 +80,8 @@ export default function BuyShippingLabelModal({
   fromCountry,
   toAddress,
   parcel,
+  orderId,
+  mode = "outbound",
   onPurchased,
 }: BuyShippingLabelModalProps) {
   const { signer, pubkey } = useContext(SignerContext);
@@ -76,6 +91,24 @@ export default function BuyShippingLabelModal({
   const [buying, setBuying] = useState(false);
   const [purchased, setPurchased] = useState<PurchasedLabel | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [defaults, setDefaults] = useState<ShippoDefaults | null>(null);
+  const [spend, setSpend] = useState<ShippoSpend | null>(null);
+  // Carriers the user has toggled on for this purchase (defaults from settings)
+  const [carriers, setCarriers] = useState<string[]>(["USPS"]);
+
+  const isReturn = mode === "return";
+
+  // For return labels, the original "to" (buyer) becomes the new "from"
+  // and the seller's saved defaults become the new "to".
+  const sellerHasReturnAddress = useMemo(() => {
+    if (!isReturn || !defaults) return false;
+    return !!(
+      defaults.fromStreet1 &&
+      defaults.fromCity &&
+      defaults.fromState &&
+      defaults.fromZip
+    );
+  }, [isReturn, defaults]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -92,15 +125,31 @@ export default function BuyShippingLabelModal({
       setRates([]);
       return;
     }
+
     let cancelled = false;
     const run = async () => {
+      // Always load defaults + spend on open (cheap, gives the carriers picker
+      // its initial state and shows the daily-cap indicator).
+      try {
+        const [d, s] = await Promise.all([
+          fetchShippoDefaults(signer, pubkey).catch(() => null),
+          fetchShippoSpend(signer, pubkey).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setDefaults(d);
+        setSpend(s);
+        if (d?.preferredCarriers?.length) setCarriers(d.preferredCarriers);
+      } catch {
+        // non-fatal
+      }
+
+      // Return label flow doesn't pre-quote rates — the seller picks the
+      // carrier and we buy the cheapest rate from that carrier in one shot.
+      if (isReturn) return;
+
       setLoadingRates(true);
       setError(null);
       try {
-        // Sign an ownership-registration proof: we reuse the buy-label proof
-        // structure but with a placeholder rateId — the server only uses this
-        // header to record `shipmentId → pubkey`, and re-validates the real
-        // proof at purchase time with the actual rateId.
         const ownershipProof = buildShippingBuyLabelProof({
           pubkey,
           shipmentId: "pending",
@@ -125,7 +174,7 @@ export default function BuyShippingLabelModal({
             },
             to: toAddress,
             parcel,
-            carriers: ["USPS"],
+            carriers,
           }),
         });
         const data = await res.json();
@@ -150,20 +199,91 @@ export default function BuyShippingLabelModal({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, fromZip, fromCountry, toAddress, parcel, signer, pubkey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isOpen,
+    fromZip,
+    fromCountry,
+    JSON.stringify(toAddress),
+    JSON.stringify(parcel),
+    carriers.join(","),
+    signer,
+    pubkey,
+    isReturn,
+  ]);
+
+  const toggleCarrier = (id: string) => {
+    setCarriers((prev) => {
+      const set = new Set(prev);
+      if (set.has(id)) set.delete(id);
+      else set.add(id);
+      const next = Array.from(set);
+      return next.length > 0 ? next : prev;
+    });
+  };
 
   const handleBuy = async () => {
-    if (!selectedRateId) return;
-    const rate = rates.find((r) => r.id === selectedRateId);
-    if (!rate) return;
-
+    if (!signer?.sign || !pubkey) {
+      setError("Sign in with your Nostr key to buy a label.");
+      return;
+    }
     setBuying(true);
     setError(null);
     try {
-      if (!signer?.sign || !pubkey) {
-        setError("Sign in with your Nostr key to buy a label.");
+      if (isReturn) {
+        if (!defaults || !sellerHasReturnAddress) {
+          setError(
+            "Set a default ship-from address in Settings → Shipping before issuing return labels."
+          );
+          return;
+        }
+        const data = await buyReturnLabel(signer, pubkey, {
+          // Reverse: buyer → seller
+          from: {
+            name: toAddress.name,
+            street1: toAddress.street1,
+            street2: toAddress.street2,
+            city: toAddress.city,
+            state: toAddress.state,
+            zip: toAddress.zip,
+            country: toAddress.country || "US",
+          },
+          to: {
+            name: defaults.fromName || undefined,
+            street1: defaults.fromStreet1 as string,
+            street2: defaults.fromStreet2 || undefined,
+            city: defaults.fromCity as string,
+            state: defaults.fromState as string,
+            zip: defaults.fromZip as string,
+            country: defaults.fromCountry || "US",
+            phone: defaults.fromPhone || undefined,
+            email: defaults.fromEmail || undefined,
+          },
+          parcel,
+          carriers,
+          orderId,
+        });
+        const label: PurchasedLabel = {
+          shipmentId: data.shipmentId,
+          trackingCode: data.trackingCode || "",
+          trackingUrl: data.trackingUrl,
+          labelUrl: data.labelUrl,
+          labelFormat: data.labelFormat || "PDF",
+          rate: data.rateUsd,
+          currency: data.currency,
+          carrier: data.carrier || "",
+          service: data.service || "",
+        };
+        setPurchased(label);
+        setSpend(data.spend);
+        onPurchased?.(label);
         return;
       }
+
+      if (!selectedRateId) return;
+      const rate = rates.find((r) => r.id === selectedRateId);
+      if (!rate) return;
+
       const proof = buildShippingBuyLabelProof({
         pubkey,
         shipmentId: rate.shipmentId,
@@ -172,6 +292,14 @@ export default function BuyShippingLabelModal({
       const template = buildMcpRequestProofTemplate(proof);
       const signedEvent = await signer.sign(template);
       const signedHeader = JSON.stringify(signedEvent);
+
+      const fromSummary = `ZIP ${fromZip}`;
+      const toSummary = `${toAddress.street1}, ${toAddress.city}, ${toAddress.state} ${toAddress.zip}`;
+      const parcelSummary = `${parcel.weightOz} oz${
+        parcel.lengthIn && parcel.widthIn && parcel.heightIn
+          ? ` ${parcel.lengthIn}×${parcel.widthIn}×${parcel.heightIn} in`
+          : ""
+      }`;
 
       const res = await fetch("/api/shipping/buy-label", {
         method: "POST",
@@ -182,6 +310,10 @@ export default function BuyShippingLabelModal({
         body: JSON.stringify({
           shipmentId: rate.shipmentId,
           rateId: rate.id,
+          orderId,
+          fromSummary,
+          toSummary,
+          parcelSummary,
         }),
       });
       const data = await res.json();
@@ -201,6 +333,7 @@ export default function BuyShippingLabelModal({
         service: data.service,
       };
       setPurchased(label);
+      if (data.spend) setSpend(data.spend);
       onPurchased?.(label);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Label purchase failed");
@@ -209,13 +342,42 @@ export default function BuyShippingLabelModal({
     }
   };
 
+  const spendPct =
+    spend && spend.capUsd > 0
+      ? Math.min(100, Math.round((spend.spentUsd / spend.capUsd) * 100))
+      : 0;
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" backdrop="blur">
       <ModalContent className="border-2 border-black bg-white text-black">
         <ModalHeader className="flex flex-col gap-1">
-          Buy USPS Shipping Label
+          {isReturn ? "Buy Return Label" : "Buy Shipping Label"}
         </ModalHeader>
         <ModalBody>
+          {spend && (
+            <div className="mb-2">
+              <div className="flex items-baseline justify-between text-xs text-gray-700">
+                <span>
+                  Daily spend: ${spend.spentUsd.toFixed(2)} / $
+                  {spend.capUsd.toFixed(2)}
+                </span>
+                <span>${spend.remainingUsd.toFixed(2)} remaining</span>
+              </div>
+              <div className="mt-1 h-2 w-full overflow-hidden rounded border border-black bg-white">
+                <div
+                  className={`h-full ${
+                    spendPct >= 90
+                      ? "bg-red-500"
+                      : spendPct >= 70
+                        ? "bg-yellow-400"
+                        : "bg-green-500"
+                  }`}
+                  style={{ width: `${spendPct}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {purchased ? (
             <div className="space-y-3">
               <p className="font-semibold text-green-700">
@@ -254,14 +416,31 @@ export default function BuyShippingLabelModal({
           ) : (
             <div className="space-y-3">
               <div className="text-sm text-gray-700">
-                <div>
-                  <strong>From ZIP:</strong> {fromZip}
-                </div>
-                <div>
-                  <strong>To:</strong> {toAddress.street1},{" "}
-                  {toAddress.street2 ? toAddress.street2 + ", " : ""}
-                  {toAddress.city}, {toAddress.state} {toAddress.zip}
-                </div>
+                {isReturn ? (
+                  <>
+                    <div>
+                      <strong>Return from:</strong> {toAddress.street1},{" "}
+                      {toAddress.city}, {toAddress.state} {toAddress.zip}
+                    </div>
+                    <div>
+                      <strong>Return to:</strong>{" "}
+                      {sellerHasReturnAddress
+                        ? `${defaults?.fromStreet1}, ${defaults?.fromCity}, ${defaults?.fromState} ${defaults?.fromZip}`
+                        : "Set a default ship-from address in Settings → Shipping"}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <strong>From ZIP:</strong> {fromZip}
+                    </div>
+                    <div>
+                      <strong>To:</strong> {toAddress.street1},{" "}
+                      {toAddress.street2 ? toAddress.street2 + ", " : ""}
+                      {toAddress.city}, {toAddress.state} {toAddress.zip}
+                    </div>
+                  </>
+                )}
                 <div>
                   <strong>Weight:</strong> {parcel.weightOz} oz
                   {parcel.lengthIn && parcel.widthIn && parcel.heightIn
@@ -270,10 +449,35 @@ export default function BuyShippingLabelModal({
                 </div>
               </div>
 
-              {loadingRates && <p>Loading USPS rates…</p>}
+              <div>
+                <p className="mb-1 text-xs font-semibold text-black">
+                  Carriers
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SUPPORTED_CARRIERS.map((c) => {
+                    const active = carriers.includes(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => toggleCarrier(c.id)}
+                        className={`rounded-md border-2 border-black px-2.5 py-1 text-xs font-semibold ${
+                          active
+                            ? "bg-primary-yellow text-black"
+                            : "bg-white text-black hover:bg-gray-100"
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {!isReturn && loadingRates && <p>Loading rates…</p>}
               {error && <p className="text-red-700">{error}</p>}
 
-              {!loadingRates && rates.length > 0 && (
+              {!isReturn && !loadingRates && rates.length > 0 && (
                 <div className="space-y-2">
                   {rates.map((r) => (
                     <label
@@ -308,8 +512,15 @@ export default function BuyShippingLabelModal({
                 </div>
               )}
 
-              {!loadingRates && rates.length === 0 && !error && (
-                <p>No USPS rates available for this shipment.</p>
+              {!isReturn && !loadingRates && rates.length === 0 && !error && (
+                <p>No rates available for this shipment.</p>
+              )}
+
+              {isReturn && (
+                <p className="text-xs text-gray-600">
+                  We&apos;ll buy the cheapest available rate from the selected
+                  carriers and send you a return label PDF.
+                </p>
               )}
             </div>
           )}
@@ -322,10 +533,15 @@ export default function BuyShippingLabelModal({
             <Button
               className="bg-primary-yellow font-semibold text-black"
               onPress={handleBuy}
-              isDisabled={!selectedRateId || buying || loadingRates}
+              isDisabled={
+                buying ||
+                loadingRates ||
+                (isReturn ? !sellerHasReturnAddress : !selectedRateId) ||
+                (spend ? spend.remainingUsd <= 0 : false)
+              }
               isLoading={buying}
             >
-              Buy Label
+              {isReturn ? "Buy Return Label" : "Buy Label"}
             </Button>
           )}
         </ModalFooter>

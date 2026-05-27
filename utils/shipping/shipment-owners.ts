@@ -52,16 +52,13 @@ export function getShipmentOwner(shipmentId: string): string | null {
 }
 
 // --- Financial guardrails -------------------------------------------------
+//
+// Spend tracking is persisted in the `shipping_labels` table (see
+// `getDailySpendForPubkey` in `utils/db/shipping-service`). The in-memory
+// `purchasedShipments` set is a short-lived dedupe to prevent racing buys
+// of the same shipment before the row commits.
 
-const PER_PUBKEY_DAILY_CAP_USD = Number(
-  process.env.EASYPOST_PUBKEY_DAILY_CAP_USD || 200
-);
 const purchasedShipments = new Set<string>();
-const spendByPubkey = new Map<
-  string,
-  { totalUsd: number; windowStart: number }
->();
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function isShipmentAlreadyPurchased(shipmentId: string): boolean {
   return purchasedShipments.has(shipmentId);
@@ -69,34 +66,4 @@ export function isShipmentAlreadyPurchased(shipmentId: string): boolean {
 
 export function markShipmentPurchased(shipmentId: string) {
   if (shipmentId) purchasedShipments.add(shipmentId);
-}
-
-export function checkPubkeySpend(
-  pubkey: string,
-  amountUsd: number
-): { ok: true } | { ok: false; remainingUsd: number } {
-  const now = Date.now();
-  const entry = spendByPubkey.get(pubkey);
-  const window =
-    !entry || now - entry.windowStart > DAY_MS
-      ? { totalUsd: 0, windowStart: now }
-      : entry;
-  const projected = window.totalUsd + amountUsd;
-  if (projected > PER_PUBKEY_DAILY_CAP_USD) {
-    return {
-      ok: false,
-      remainingUsd: Math.max(0, PER_PUBKEY_DAILY_CAP_USD - window.totalUsd),
-    };
-  }
-  return { ok: true };
-}
-
-export function recordPubkeySpend(pubkey: string, amountUsd: number) {
-  const now = Date.now();
-  const entry = spendByPubkey.get(pubkey);
-  if (!entry || now - entry.windowStart > DAY_MS) {
-    spendByPubkey.set(pubkey, { totalUsd: amountUsd, windowStart: now });
-  } else {
-    entry.totalUsd += amountUsd;
-  }
 }

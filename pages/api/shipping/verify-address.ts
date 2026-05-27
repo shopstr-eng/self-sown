@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { isEasyPostConfigured, verifyAddress } from "@/utils/shipping/easypost";
+import { isShippoConfigured, verifyAddress } from "@/utils/shipping/shippo";
 import type { ShippingAddressInput } from "@/utils/shipping/types";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
@@ -13,7 +13,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!applyRateLimit(req, res, "shipping-verify", RATE_LIMIT)) return;
-  if (!isEasyPostConfigured()) {
+  if (!isShippoConfigured()) {
     return res
       .status(503)
       .json({ error: "Shipping provider not configured", skipped: true });
