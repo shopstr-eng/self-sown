@@ -49,7 +49,9 @@ const ShippoOAuthRedirect = () => {
         if (cancelled) return;
         setStatus("error");
         setMessage(
-          e instanceof Error ? e.message : "Failed to connect your Shippo account."
+          e instanceof Error
+            ? e.message
+            : "Failed to connect your Shippo account."
         );
       }
     })();

@@ -17,7 +17,8 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "shipping-oauth-disconnect", RATE_LIMIT)) return;
+  if (!applyRateLimit(req, res, "shipping-oauth-disconnect", RATE_LIMIT))
+    return;
 
   try {
     const { pubkey, signedEvent } = (req.body || {}) as {
@@ -37,7 +38,7 @@ export default async function handler(
         typeof verifyAndConsumeSignedRequestProof
       >[0]) ||
       (typeof normalizedHeader === "string"
-        ? parseSignedEventHeader(normalizedHeader) ?? undefined
+        ? (parseSignedEventHeader(normalizedHeader) ?? undefined)
         : undefined);
 
     const verification = await verifyAndConsumeSignedRequestProof(
@@ -45,7 +46,9 @@ export default async function handler(
       buildShippingOAuthDisconnectProof(pubkey)
     );
     if (!verification.ok) {
-      return res.status(verification.status).json({ error: verification.error });
+      return res
+        .status(verification.status)
+        .json({ error: verification.error });
     }
 
     await deleteShippoConnection(pubkey);

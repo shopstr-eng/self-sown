@@ -21,6 +21,7 @@ had to become a DB-backed atomic claim that also holds across multiple server
 instances (in-memory state is per-process and breaks when scaled out).
 
 **How to apply:**
+
 - The winner of a claim MUST `releaseShipmentClaim` (reverts `purchased`→`owned`)
   on any pre-success failure, or the seller can never retry that shipment.
 - `getShipmentOwner` must stay status-agnostic within the TTL so a duplicate buy

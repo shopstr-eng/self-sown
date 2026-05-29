@@ -32,7 +32,7 @@ export default async function handler(
       : headerValue;
     const event =
       typeof normalizedHeader === "string"
-        ? parseSignedEventHeader(normalizedHeader) ?? undefined
+        ? (parseSignedEventHeader(normalizedHeader) ?? undefined)
         : undefined;
 
     const verification = await verifyAndConsumeSignedRequestProof(
@@ -40,7 +40,9 @@ export default async function handler(
       buildShippingOAuthStatusProof(pubkey)
     );
     if (!verification.ok) {
-      return res.status(verification.status).json({ error: verification.error });
+      return res
+        .status(verification.status)
+        .json({ error: verification.error });
     }
 
     if (!isShippoOAuthConfigured()) {

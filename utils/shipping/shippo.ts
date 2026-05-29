@@ -182,10 +182,14 @@ export async function getRates(
     async: false,
   };
 
-  const shipment = await shippoFetch<ShippoShipment>(accessToken, "/shipments/", {
-    method: "POST",
-    body,
-  });
+  const shipment = await shippoFetch<ShippoShipment>(
+    accessToken,
+    "/shipments/",
+    {
+      method: "POST",
+      body,
+    }
+  );
 
   const allRates = mapRates(shipment.object_id, shipment.rates || []);
   const filtered = allRates.filter((r) =>
@@ -293,10 +297,14 @@ export async function buyReturnLabel(
     async: false,
   };
 
-  const shipment = await shippoFetch<ShippoShipment>(accessToken, "/shipments/", {
-    method: "POST",
-    body: shipmentBody,
-  });
+  const shipment = await shippoFetch<ShippoShipment>(
+    accessToken,
+    "/shipments/",
+    {
+      method: "POST",
+      body: shipmentBody,
+    }
+  );
 
   const allRates = shipment.rates || [];
   const matchingCarrier = allRates.filter((r) =>
@@ -339,10 +347,14 @@ async function buildTransaction(
   shipmentId: string,
   body: Record<string, unknown>
 ): Promise<PurchasedLabel> {
-  const tx = await shippoFetch<ShippoTransaction>(accessToken, "/transactions/", {
-    method: "POST",
-    body,
-  });
+  const tx = await shippoFetch<ShippoTransaction>(
+    accessToken,
+    "/transactions/",
+    {
+      method: "POST",
+      body,
+    }
+  );
 
   if (tx.status !== "SUCCESS") {
     const msg =

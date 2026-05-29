@@ -46,7 +46,7 @@ export default async function handler(
         typeof verifyAndConsumeSignedRequestProof
       >[0]) ||
       (typeof normalizedHeader === "string"
-        ? parseSignedEventHeader(normalizedHeader) ?? undefined
+        ? (parseSignedEventHeader(normalizedHeader) ?? undefined)
         : undefined);
 
     const verification = await verifyAndConsumeSignedRequestProof(
@@ -54,7 +54,9 @@ export default async function handler(
       buildShippingOAuthStartProof(pubkey)
     );
     if (!verification.ok) {
-      return res.status(verification.status).json({ error: verification.error });
+      return res
+        .status(verification.status)
+        .json({ error: verification.error });
     }
 
     const state = randomBytes(24).toString("hex");
