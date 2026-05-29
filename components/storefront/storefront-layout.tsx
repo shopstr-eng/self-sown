@@ -542,6 +542,67 @@ export default function StorefrontLayout({
           body.sf-active [data-overlay-container] h6 {
             font-family: var(--font-heading, var(--font-body, inherit));
           }
+          .sf-layout h1, .sf-layout h2, .sf-layout h3, .sf-layout h4, .sf-layout h5, .sf-layout h6,
+          .sf-layout p, .sf-layout span, .sf-layout li, .sf-layout a,
+          .sf-layout td, .sf-layout th, .sf-layout dt, .sf-layout dd,
+          .sf-layout blockquote, .sf-layout figcaption, .sf-layout label {
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+            min-width: 0;
+            max-width: 100%;
+            white-space: normal;
+          }
+          /* Flex/grid children default to min-width: auto and, inside
+             items-center flex columns, size themselves to max-content of
+             their text instead of the parent width. That makes long headings
+             render on one line wider than the viewport. Force every flex/grid
+             item inside a storefront to shrink to 0 and cap at 100% of its
+             parent so the wrapping rules above can take effect. */
+          .sf-layout :where(:is([class*="flex"], [class*="grid"]) > *) {
+            min-width: 0;
+            min-height: 0;
+            max-width: 100%;
+          }
+          .sf-layout img, .sf-layout video, .sf-layout iframe, .sf-layout svg, .sf-layout canvas {
+            max-width: 100%;
+          }
+          .sf-layout pre, .sf-layout code {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            max-width: 100%;
+          }
+          /* Hard viewport clamp: nothing inside a storefront may exceed the
+             screen width on mobile. This is the safety net for fixed-px
+             widths (e.g. social cards, product cards with max-w-sm) and
+             third-party embeds that ignore parent constraints. */
+          .sf-layout, .sf-layout * {
+            box-sizing: border-box;
+          }
+          .sf-layout > *,
+          .sf-layout > * > *,
+          .sf-layout section {
+            max-width: 100vw;
+          }
+          /* Carousel tracks must be allowed to be wider than the viewport so
+             they can scroll horizontally inside their overflow-hidden parent.
+             Re-allow width on track + item, but the outer carousel container
+             itself stays capped via overflow-hidden. */
+          .sf-layout .storefront-social-carousel-track {
+            max-width: none;
+          }
+          /* Round avatars must stay square — flex children get forced to
+             max-width: 100% above, which can squish a fixed h/w image into
+             an oval on narrow screens. Lock their aspect ratio. */
+          .sf-layout img.rounded-full {
+            flex-shrink: 0;
+            aspect-ratio: 1 / 1;
+          }
+          @media (max-width: 640px) {
+            .sf-layout :where(.shadow-neo, [class*="shadow-["]) {
+              max-width: calc(100vw - 1rem);
+            }
+          }
         `}</style>
         <style>{themedCss}</style>
       </Head>
@@ -555,13 +616,13 @@ export default function StorefrontLayout({
         }}
       >
         <nav
-          className="fixed top-0 right-0 left-0 z-50 border-b"
+          className="fixed top-0 right-0 left-0 z-50 h-14 border-b"
           style={{
             backgroundColor: navBg,
             borderColor: navAccent + "33",
           }}
         >
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 md:px-6">
+          <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 md:px-6">
             <Link href={homeHref} className="flex items-center gap-2">
               {pictureUrl && (
                 <img

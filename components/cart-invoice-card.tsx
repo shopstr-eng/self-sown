@@ -19,6 +19,7 @@ import {
   Select,
   SelectItem,
   Input,
+  Spinner,
 } from "@heroui/react";
 import {
   BanknotesIcon,
@@ -36,6 +37,7 @@ import {
   Keyset as MintKeyset,
 } from "@cashu/cashu-ts";
 import { safeSwap } from "@/utils/cashu/swap-retry-service";
+import { pickMintForPayment } from "@/utils/cashu/wallet-mint-sync";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
 import {
@@ -49,6 +51,10 @@ import {
   removePendingMintQuote,
 } from "@/utils/cashu/pending-mint-operations";
 import WalletRecoveryModal from "@/components/utility-components/wallet-recovery-modal";
+import {
+  PaymentCountdown,
+  PaymentElapsed,
+} from "@/components/utility-components/payment-countdown";
 import {
   constructGiftWrappedEvent,
   constructMessageSeal,
@@ -239,6 +245,14 @@ export default function CartInvoiceCard({
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [invoice, setInvoice] = useState("");
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  // Wall-clock deadline (ms) the Lightning polling loop will give up at; null
+  // when no poll is in flight. Drives the visible countdown above the "don't
+  // refresh" message so the buyer can see we're still actively watching.
+  const [pollDeadlineMs, setPollDeadlineMs] = useState<number | null>(null);
+  // Wall-clock start (ms) of a direct Cashu swap+melt; null when no payment
+  // is in flight. Drives the count-up timer in the processing overlay so the
+  // buyer can see the swap/melt is still alive when the mint is slow.
+  const [cashuStartedAtMs, setCashuStartedAtMs] = useState<number | null>(null);
 
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
@@ -1863,7 +1877,14 @@ export default function CartInvoiceCard({
       messageOptions = {
         isOrder: true,
         type: 2,
-        orderAmount: messageAmount ? messageAmount : totalCost,
+        // Only emit an amount when the caller explicitly passed one. The old
+        // `messageAmount || totalCost` fallback paired a sats-denominated
+        // totalCost with whatever orderCurrency the caller passed (e.g. USD),
+        // which the orders dashboard would render as ~1500x the real amount.
+        // We also treat 0 as "no amount" so the dashboard can fall back to
+        // productPrice * quantity in the product's own currency.
+        orderAmount:
+          messageAmount && messageAmount > 0 ? messageAmount : undefined,
         orderCurrency: orderCurrency || undefined,
         orderId,
         productData: product,
@@ -1888,7 +1909,10 @@ export default function CartInvoiceCard({
       messageOptions = {
         isOrder: true,
         type: 4,
-        orderAmount: messageAmount ? messageAmount : totalCost,
+        // See note on order-payment above — don't fall back to sats totalCost
+        // when the caller's orderCurrency may be a fiat currency.
+        orderAmount:
+          messageAmount && messageAmount > 0 ? messageAmount : undefined,
         orderCurrency: orderCurrency || undefined,
         orderId,
         productData: product,
@@ -1913,7 +1937,8 @@ export default function CartInvoiceCard({
       messageOptions = {
         isOrder: true,
         type: 1,
-        orderAmount: messageAmount ? messageAmount : undefined,
+        orderAmount:
+          messageAmount && messageAmount > 0 ? messageAmount : undefined,
         orderCurrency: orderCurrency || undefined,
         orderId,
         productData: product,
@@ -1924,7 +1949,10 @@ export default function CartInvoiceCard({
       messageOptions = {
         isOrder: true,
         type: 1,
-        orderAmount: messageAmount ? messageAmount : totalCost,
+        // See note on order-payment above — don't fall back to sats totalCost
+        // when the caller's orderCurrency may be a fiat currency.
+        orderAmount:
+          messageAmount && messageAmount > 0 ? messageAmount : undefined,
         orderCurrency: orderCurrency || undefined,
         orderId,
         productData: product,
@@ -2903,12 +2931,27 @@ export default function CartInvoiceCard({
               }
             : undefined;
 
-        const productAmount =
-          !isSatsCart && nativeCostsPerProduct
-            ? nativeCostsPerProduct[product.id] || product.price
-            : totalCostsInSats[product.pubkey];
-        const productCurrency =
-          !isSatsCart && cartCurrency ? cartCurrency : "sats";
+        // The native and sats branches must be gated by the same condition,
+        // otherwise we can pick the sats value (from totalCostsInSats) while
+        // still tagging it as the cart's native currency (e.g. USD) — which
+        // renders as ~1500x the actual amount in the orders dashboard. We
+        // also intentionally do NOT fall back to product.price, because for
+        // a product priced in a currency that differs from the cart's
+        // native currency, product.price would be in the wrong unit.
+        const nativeAmt = nativeCostsPerProduct?.[product.id];
+        const useNativeForMsg =
+          !isSatsCart &&
+          !!cartCurrency &&
+          typeof nativeAmt === "number" &&
+          nativeAmt > 0;
+        const productAmount = useNativeForMsg
+          ? nativeAmt
+          : totalCostsInSats[product.id] ||
+            totalCostsInSats[product.pubkey] ||
+            0;
+        const productCurrency = useNativeForMsg
+          ? (cartCurrency as string)
+          : "sats";
 
         const sellerProfileForDonation = profileContext.profileData.get(
           product.pubkey
@@ -3043,14 +3086,22 @@ export default function CartInvoiceCard({
         .map((pk) => nip19.npubEncode(pk))
         .join(", ");
       for (const product of products) {
-        const productAmount =
-          !isSatsCart && nativeCostsPerProduct
-            ? nativeCostsPerProduct[product.id] || product.price
-            : totalCostsInSats[product.id] ||
-              totalCostsInSats[product.pubkey] ||
-              0;
-        const productCurrency =
-          !isSatsCart && cartCurrency ? cartCurrency : "sats";
+        // Keep amount and currency tags in the same unit — see the matching
+        // comment on the seller-side stripe payment message above.
+        const nativeAmt = nativeCostsPerProduct?.[product.id];
+        const useNativeForMsg =
+          !isSatsCart &&
+          !!cartCurrency &&
+          typeof nativeAmt === "number" &&
+          nativeAmt > 0;
+        const productAmount = useNativeForMsg
+          ? nativeAmt
+          : totalCostsInSats[product.id] ||
+            totalCostsInSats[product.pubkey] ||
+            0;
+        const productCurrency = useNativeForMsg
+          ? (cartCurrency as string)
+          : "sats";
         const qty = quantities[product.id] || 1;
         const sel = subscriptionSelections[product.id];
         const subInfo =
@@ -3179,6 +3230,22 @@ export default function CartInvoiceCard({
             " account for the payment.";
 
           for (const product of sellerProducts) {
+            // Keep amount and currency tags in the same unit — see the
+            // matching comment on the stripe payment message above.
+            const nativeAmt = nativeCostsPerProduct?.[product.id];
+            const useNativeForMsg =
+              !isSatsCart &&
+              !!cartCurrency &&
+              typeof nativeAmt === "number" &&
+              nativeAmt > 0;
+            const fiatAmount = useNativeForMsg
+              ? nativeAmt
+              : totalCostsInSats[product.id] ||
+                totalCostsInSats[product.pubkey] ||
+                0;
+            const fiatCurrency = useNativeForMsg
+              ? (cartCurrency as string)
+              : "sats";
             await sendPaymentAndContactMessage(
               sellerPubkey,
               paymentMessage,
@@ -3191,11 +3258,7 @@ export default function CartInvoiceCard({
               sellerFiatOption,
               sellerFiatHandle,
               sellerFiatHandle,
-              !isSatsCart && nativeCostsPerProduct
-                ? nativeCostsPerProduct[product.id] || product.price
-                : totalCostsInSats[product.id] ||
-                    totalCostsInSats[product.pubkey] ||
-                    0,
+              fiatAmount,
               quantities[product.id] || 1,
               undefined,
               addressTag,
@@ -3204,7 +3267,7 @@ export default function CartInvoiceCard({
               undefined,
               undefined,
               undefined,
-              !isSatsCart && cartCurrency ? cartCurrency : "sats"
+              fiatCurrency
             );
           }
 
@@ -3275,14 +3338,22 @@ export default function CartInvoiceCard({
 
             await new Promise((resolve) => setTimeout(resolve, 500));
             for (const product of sellerProducts) {
-              const productAmount =
-                !isSatsCart && nativeCostsPerProduct
-                  ? nativeCostsPerProduct[product.id] || product.price
-                  : totalCostsInSats[product.id] ||
-                    totalCostsInSats[product.pubkey] ||
-                    0;
-              const productCurrency =
-                !isSatsCart && cartCurrency ? cartCurrency : "sats";
+              // Keep amount and currency tags in the same unit — see the
+              // matching comment on the stripe payment message above.
+              const nativeAmt = nativeCostsPerProduct?.[product.id];
+              const useNativeForMsg =
+                !isSatsCart &&
+                !!cartCurrency &&
+                typeof nativeAmt === "number" &&
+                nativeAmt > 0;
+              const productAmount = useNativeForMsg
+                ? nativeAmt
+                : totalCostsInSats[product.id] ||
+                  totalCostsInSats[product.pubkey] ||
+                  0;
+              const productCurrency = useNativeForMsg
+                ? (cartCurrency as string)
+                : "sats";
               const qty = quantities[product.id] || 1;
               const receiptMessage =
                 "Your cart order (" +
@@ -3331,6 +3402,22 @@ export default function CartInvoiceCard({
           " account for the payment.";
 
         for (const product of products) {
+          // Keep amount and currency tags in the same unit — see the
+          // matching comment on the stripe payment message above.
+          const nativeAmt = nativeCostsPerProduct?.[product.id];
+          const useNativeForMsg =
+            !isSatsCart &&
+            !!cartCurrency &&
+            typeof nativeAmt === "number" &&
+            nativeAmt > 0;
+          const fiatAmount = useNativeForMsg
+            ? nativeAmt
+            : totalCostsInSats[product.id] ||
+              totalCostsInSats[product.pubkey] ||
+              0;
+          const fiatCurrency = useNativeForMsg
+            ? (cartCurrency as string)
+            : "sats";
           await sendPaymentAndContactMessage(
             sellerPubkey,
             paymentMessage,
@@ -3343,9 +3430,7 @@ export default function CartInvoiceCard({
             selectedFiatOption,
             (fiatPaymentOptions as any)[selectedFiatOption] || "",
             (fiatPaymentOptions as any)[selectedFiatOption] || "",
-            !isSatsCart && nativeCostsPerProduct
-              ? nativeCostsPerProduct[product.id] || product.price
-              : totalCostsInSats[product.pubkey],
+            fiatAmount,
             quantities[product.id] || 1,
             undefined,
             addressTag,
@@ -3354,7 +3439,7 @@ export default function CartInvoiceCard({
             undefined,
             undefined,
             undefined,
-            !isSatsCart && cartCurrency ? cartCurrency : "sats"
+            fiatCurrency
           );
         }
 
@@ -3425,14 +3510,22 @@ export default function CartInvoiceCard({
 
           await new Promise((resolve) => setTimeout(resolve, 500));
           for (const product of products) {
-            const productAmount =
-              !isSatsCart && nativeCostsPerProduct
-                ? nativeCostsPerProduct[product.id] || product.price
-                : totalCostsInSats[product.id] ||
-                  totalCostsInSats[product.pubkey] ||
-                  0;
-            const productCurrency =
-              !isSatsCart && cartCurrency ? cartCurrency : "sats";
+            // Keep amount and currency tags in the same unit — see the
+            // matching comment on the stripe payment message above.
+            const nativeAmt = nativeCostsPerProduct?.[product.id];
+            const useNativeForMsg =
+              !isSatsCart &&
+              !!cartCurrency &&
+              typeof nativeAmt === "number" &&
+              nativeAmt > 0;
+            const productAmount = useNativeForMsg
+              ? nativeAmt
+              : totalCostsInSats[product.id] ||
+                totalCostsInSats[product.pubkey] ||
+                0;
+            const productCurrency = useNativeForMsg
+              ? (cartCurrency as string)
+              : "sats";
             const qty = quantities[product.id] || 1;
             const receiptMessage =
               "Your cart order (" +
@@ -3634,168 +3727,205 @@ export default function CartInvoiceCard({
     data: any
   ) {
     let retryCount = 0;
-    const maxRetries = 30; // Maximum 30 retries (about 1 minute)
+    // ~2.1s per round * 150 ≈ 5 minutes of mint polling. Lightning invoices
+    // typically don't expire for an hour, so 5 minutes is comfortable headroom
+    // for routing retries / sender wallet delays without giving up early.
+    const maxRetries = 150;
+    const pollIntervalMs = 2100;
+    setPollDeadlineMs(Date.now() + maxRetries * pollIntervalMs);
     let handledTerminalOutcome = false;
 
-    while (retryCount < maxRetries) {
-      try {
-        // First check if the quote has been paid
-        const quoteState = await wallet.checkMintQuoteBolt11(hash);
+    try {
+      while (retryCount < maxRetries) {
+        try {
+          // First check if the quote has been paid
+          const quoteState = await wallet.checkMintQuoteBolt11(hash);
 
-        if (quoteState.state === "PAID") {
-          markMintQuotePaid(hash);
-          // Quote is paid, try to mint proofs
-          try {
-            const proofs = await wallet.mintProofsBolt11(convertedPrice, hash);
-            if (!proofs || proofs.length === 0) {
-              // Mint returned no proofs without throwing — treat as a
-              // transient state and back off, otherwise we'd spin in this
-              // branch and never advance the retry counter (the outer
-              // else only catches UNPAID).
-              retryCount++;
-              await new Promise((resolve) => setTimeout(resolve, 2100));
-              continue;
-            }
-            if (proofs && proofs.length > 0) {
-              try {
-                await sendTokens(wallet, proofs, data);
-              } catch (sendErr) {
-                console.warn(
-                  "sendTokens failed after Lightning mint; stashing proofs locally:",
-                  sendErr
-                );
-                // Prefer the live recoverable-proofs set computed inside
-                // sendTokens — the original `proofs` array is mostly SPENT
-                // on the mint by the time sendTokens fails partway through.
-                const recoverableProofs =
-                  sendErr instanceof SendTokensRecoverableError
-                    ? sendErr.recoverableProofs
-                    : proofs;
-                const recoveryMintUrl =
-                  sendErr instanceof SendTokensRecoverableError
-                    ? sendErr.mintUrl
-                    : mints[0]!;
-                const stashed = stashProofsLocally(
-                  recoverableProofs,
-                  recoveryMintUrl,
-                  { note: "Recovered from failed cart Lightning payment" }
-                );
-                markMintQuoteClaimed(hash);
-                setWalletRecovery({
-                  isOpen: true,
-                  amountSats: stashed,
-                  mintUrl: recoveryMintUrl,
-                });
-                setShowInvoiceCard(false);
-                setInvoice("");
-                setQrCodeUrl(null);
-                handledTerminalOutcome = true;
-                return;
-              }
-              markMintQuoteClaimed(hash);
-              clearPurchasedFromCart();
-              flushPendingOrderEmails();
-              setPaymentConfirmed(true);
-              if (discountCodes) {
-                Object.entries(discountCodes).forEach(([pubkey, code]) => {
-                  if (code && shouldRedeemCodeForSeller(pubkey)) {
-                    fetch("/api/db/discount-code-used", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ code, pubkey }),
-                    }).catch(() => {});
-                  }
-                });
-              }
-              if (setInvoiceIsPaid) {
-                setInvoiceIsPaid(true);
-              }
-              setQrCodeUrl(null);
-              break;
-            }
-          } catch (mintError) {
-            // If minting fails but quote is paid, it might be already issued
-            if (
-              mintError instanceof Error &&
-              mintError.message.includes("issued")
-            ) {
-              // Quote was already processed elsewhere — proofs are not
-              // recoverable client-side from this device.
-              removePendingMintQuote(hash);
-              clearPurchasedFromCart();
-              flushPendingOrderEmails();
-              setPaymentConfirmed(true);
-              setQrCodeUrl(null);
-              setFailureText(
-                "Payment was received but your connection dropped! Please check your wallet balance."
+          if (quoteState.state === "PAID") {
+            markMintQuotePaid(hash);
+            // Quote is paid, try to mint proofs
+            try {
+              const proofs = await wallet.mintProofsBolt11(
+                convertedPrice,
+                hash
               );
-              setShowFailureModal(true);
-              handledTerminalOutcome = true;
-              break;
+              if (!proofs || proofs.length === 0) {
+                // Mint returned no proofs without throwing — treat as a
+                // transient state and back off, otherwise we'd spin in this
+                // branch and never advance the retry counter (the outer
+                // else only catches UNPAID).
+                retryCount++;
+                await new Promise((resolve) => setTimeout(resolve, 2100));
+                continue;
+              }
+              if (proofs && proofs.length > 0) {
+                try {
+                  // Lightning-mint path constructs `wallet` against mints[0]
+                  // (the buyer's default receiving mint); pass that explicitly
+                  // so recovery stashes proofs against the correct mint.
+                  await sendTokens(wallet, proofs, data, mints[0]!);
+                } catch (sendErr) {
+                  console.warn(
+                    "sendTokens failed after Lightning mint; stashing proofs locally:",
+                    sendErr
+                  );
+                  // Prefer the live recoverable-proofs set computed inside
+                  // sendTokens — the original `proofs` array is mostly SPENT
+                  // on the mint by the time sendTokens fails partway through.
+                  const recoverableProofs =
+                    sendErr instanceof SendTokensRecoverableError
+                      ? sendErr.recoverableProofs
+                      : proofs;
+                  const recoveryMintUrl =
+                    sendErr instanceof SendTokensRecoverableError
+                      ? sendErr.mintUrl
+                      : mints[0]!;
+                  const stashed = stashProofsLocally(
+                    recoverableProofs,
+                    recoveryMintUrl,
+                    { note: "Recovered from failed cart Lightning payment" }
+                  );
+                  markMintQuoteClaimed(hash);
+                  setWalletRecovery({
+                    isOpen: true,
+                    amountSats: stashed,
+                    mintUrl: recoveryMintUrl,
+                  });
+                  setShowInvoiceCard(false);
+                  setInvoice("");
+                  setQrCodeUrl(null);
+                  handledTerminalOutcome = true;
+                  return;
+                }
+                markMintQuoteClaimed(hash);
+                clearPurchasedFromCart();
+                flushPendingOrderEmails();
+                setPaymentConfirmed(true);
+                if (discountCodes) {
+                  Object.entries(discountCodes).forEach(([pubkey, code]) => {
+                    if (code && shouldRedeemCodeForSeller(pubkey)) {
+                      fetch("/api/db/discount-code-used", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ code, pubkey }),
+                      }).catch(() => {});
+                    }
+                  });
+                }
+                if (setInvoiceIsPaid) {
+                  setInvoiceIsPaid(true);
+                }
+                setQrCodeUrl(null);
+                break;
+              }
+            } catch (mintError) {
+              // If minting fails but quote is paid, it might be already issued
+              if (
+                mintError instanceof Error &&
+                mintError.message.includes("issued")
+              ) {
+                // Quote was already processed elsewhere — proofs are not
+                // recoverable client-side from this device.
+                removePendingMintQuote(hash);
+                clearPurchasedFromCart();
+                flushPendingOrderEmails();
+                setPaymentConfirmed(true);
+                setQrCodeUrl(null);
+                setFailureText(
+                  "Payment was received but your connection dropped! Please check your wallet balance."
+                );
+                setShowFailureModal(true);
+                handledTerminalOutcome = true;
+                break;
+              }
+              throw mintError;
             }
-            throw mintError;
-          }
-        } else if (quoteState.state === "ISSUED") {
-          // Quote was already processed successfully (likely on another tab/device).
-          removePendingMintQuote(hash);
-          clearPurchasedFromCart();
-          flushPendingOrderEmails();
-          setPaymentConfirmed(true);
-          setQrCodeUrl(null);
-          setFailureText(
-            "Payment was received but your connection dropped! Please check your wallet balance."
-          );
-          setShowFailureModal(true);
-          handledTerminalOutcome = true;
-          break;
-        } else {
-          // Quote not paid yet (UNPAID), or PAID but mintProofsBolt11
-          // returned an empty array without throwing — in either case we
-          // need to advance the retry counter and back off, otherwise we
-          // tight-loop or silently fall out of the while when the counter
-          // is exhausted.
-          retryCount++;
-          await new Promise((resolve) => setTimeout(resolve, 2100));
-          continue;
-        }
-      } catch (error) {
-        retryCount++;
-
-        if (error instanceof TypeError) {
-          setShowInvoiceCard(false);
-          setInvoice("");
-          setQrCodeUrl(null);
-          if (setInvoiceGenerationFailed) {
-            setInvoiceGenerationFailed(true);
-          } else {
+          } else if (quoteState.state === "ISSUED") {
+            // Quote was already processed successfully (likely on another tab/device).
+            removePendingMintQuote(hash);
+            clearPurchasedFromCart();
+            flushPendingOrderEmails();
+            setPaymentConfirmed(true);
+            setQrCodeUrl(null);
             setFailureText(
-              "Failed to validate invoice! Change your mint in settings and/or please try again."
+              "Payment was received but your connection dropped! Please check your wallet balance."
             );
             setShowFailureModal(true);
+            handledTerminalOutcome = true;
+            break;
+          } else {
+            // Quote not paid yet (UNPAID), or PAID but mintProofsBolt11
+            // returned an empty array without throwing — in either case we
+            // need to advance the retry counter and back off, otherwise we
+            // tight-loop or silently fall out of the while when the counter
+            // is exhausted.
+            retryCount++;
+            await new Promise((resolve) => setTimeout(resolve, 2100));
+            continue;
           }
-          handledTerminalOutcome = true;
-          break;
-        }
+        } catch (error) {
+          retryCount++;
 
-        // If we've exceeded max retries, surface the recovery modal — the
-        // pending mint quote stays in localStorage so MintRecoveryBoot can
-        // finish the claim on next sign-in if the LN payment did settle.
-        if (retryCount >= maxRetries) {
-          setShowInvoiceCard(false);
-          setInvoice("");
-          setQrCodeUrl(null);
-          setWalletRecovery({
-            isOpen: true,
-            amountSats: convertedPrice,
-            mintUrl: mints[0],
-            pendingRecovery: true,
-          });
-          handledTerminalOutcome = true;
-          break;
-        }
+          if (error instanceof TypeError) {
+            setShowInvoiceCard(false);
+            setInvoice("");
+            setQrCodeUrl(null);
+            if (setInvoiceGenerationFailed) {
+              setInvoiceGenerationFailed(true);
+            } else {
+              setFailureText(
+                "Failed to validate invoice! Change your mint in settings and/or please try again."
+              );
+              setShowFailureModal(true);
+            }
+            handledTerminalOutcome = true;
+            break;
+          }
 
-        await new Promise((resolve) => setTimeout(resolve, 2100));
+          // If we've exceeded max retries, surface the recovery modal — the
+          // pending mint quote stays in localStorage so MintRecoveryBoot can
+          // finish the claim on next sign-in if the LN payment did settle.
+          if (retryCount >= maxRetries) {
+            setShowInvoiceCard(false);
+            setInvoice("");
+            setQrCodeUrl(null);
+            setWalletRecovery({
+              isOpen: true,
+              amountSats: convertedPrice,
+              mintUrl: mints[0],
+              pendingRecovery: true,
+            });
+            handledTerminalOutcome = true;
+            break;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 2100));
+        }
       }
+
+      // Safety net: if the while loop exited naturally (e.g. retryCount hit
+      // maxRetries on the UNPAID branch with no exception ever thrown), the
+      // QR card would otherwise stay on screen forever with no success or
+      // failure surfaced. Mirror the in-catch maxRetries handler so the
+      // buyer always sees an outcome and any settled LN payment can be
+      // recovered on next sign-in via MintRecoveryBoot. Skip if an in-loop
+      // terminal branch already opened a modal so we don't double-fire.
+      if (!handledTerminalOutcome && retryCount >= maxRetries) {
+        setShowInvoiceCard(false);
+        setInvoice("");
+        setQrCodeUrl(null);
+        setWalletRecovery({
+          isOpen: true,
+          amountSats: convertedPrice,
+          mintUrl: mints[0],
+          pendingRecovery: true,
+        });
+      }
+    } finally {
+      // Polling done (success, failure, early return, or thrown) — always
+      // clear the countdown so stale deadline state can't bleed into a later
+      // session if the component is reused.
+      setPollDeadlineMs(null);
     }
 
     // Safety net: if the while loop exited naturally (e.g. retryCount hit
@@ -3821,7 +3951,8 @@ export default function CartInvoiceCard({
   const sendTokens = async (
     wallet: CashuWallet,
     proofs: Proof[],
-    data: any
+    data: any,
+    spendMint: string
   ) => {
     let remainingProofs = proofs;
     // Track which proofs the buyer can still recover at any point. The
@@ -4203,7 +4334,14 @@ export default function CartInvoiceCard({
                 orderKeys,
                 undefined,
                 shippingAddressTag,
-                pickupLocationForLightning || undefined
+                pickupLocationForLightning || undefined,
+                undefined,
+                undefined,
+                undefined,
+                // meltAmount is always in sats — tag it as such so the
+                // orders dashboard doesn't fall back to the product's
+                // listed currency (which would render sats as USD).
+                "sats"
               );
 
               if (
@@ -4234,7 +4372,16 @@ export default function CartInvoiceCard({
                     undefined,
                     changeAmount,
                     undefined,
-                    orderKeys
+                    orderKeys,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    undefined,
+                    // changeAmount is in sats — tag it so the dashboard
+                    // doesn't fall back to the product's listed currency.
+                    "sats"
                   );
                   __recoverableTracker.consume(changeProofs);
                   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -4339,7 +4486,13 @@ export default function CartInvoiceCard({
                   orderKeys,
                   undefined,
                   shippingAddressTag,
-                  pickupLocation || undefined
+                  pickupLocation || undefined,
+                  undefined,
+                  undefined,
+                  undefined,
+                  // unusedAmount is in sats — tag it so the dashboard
+                  // doesn't fall back to the product's listed currency.
+                  "sats"
                 );
                 __recoverableTracker.consume(unusedProofs);
               }
@@ -4434,7 +4587,11 @@ export default function CartInvoiceCard({
               undefined,
               undefined,
               undefined,
-              !isSatsCart && cartCurrency ? cartCurrency : undefined
+              // sellerAmount is in sats (Cashu proofs are denominated in
+              // sats), so the currency tag must be "sats". Previously
+              // this used cartCurrency, which tagged a sats value as USD
+              // and rendered as ~1500x in the orders dashboard.
+              "sats"
             );
             __recoverableTracker.consume(sellerProofs);
           }
@@ -4806,7 +4963,10 @@ export default function CartInvoiceCard({
                 donationAmount,
                 donationPercentage,
                 undefined,
-                !isSatsCart && cartCurrency ? cartCurrency : undefined
+                // sellerAmount is in sats — see matching comment on the cashu
+                // payment message above. Tagging this as cartCurrency rendered
+                // sats as USD (~1500x) in the orders dashboard.
+                "sats"
               );
             }
           }
@@ -4891,7 +5051,10 @@ export default function CartInvoiceCard({
               donationAmount,
               donationPercentage,
               undefined,
-              !isSatsCart && cartCurrency ? cartCurrency : undefined
+              // sellerAmount is in sats — see matching comment on the cashu
+              // payment message above. Tagging this as cartCurrency rendered
+              // sats as USD (~1500x) in the orders dashboard.
+              "sats"
             );
           }
         } else {
@@ -4964,15 +5127,22 @@ export default function CartInvoiceCard({
             donationAmount,
             donationPercentage,
             undefined,
-            !isSatsCart && cartCurrency ? cartCurrency : undefined
+            // sellerAmount is in sats — see matching comment on the cashu
+            // payment message above. Tagging this as cartCurrency rendered
+            // sats as USD (~1500x) in the orders dashboard.
+            "sats"
           );
         }
       }
     } catch (err) {
+      // Use the actual mint we swapped/melted against, not mints[0]. In
+      // multi-mint wallets the spend mint may differ from the default, and
+      // stashing recovered proofs under the wrong mint would mis-attribute
+      // their keysets and they'd present as an unusable balance.
       throw new SendTokensRecoverableError(
         err instanceof Error ? err.message : "sendTokens failed",
         __recoverableTracker.getProofs(),
-        mints[0]!,
+        spendMint || mints[0]!,
         err
       );
     }
@@ -5573,6 +5743,18 @@ export default function CartInvoiceCard({
   };
 
   const handleCashuPayment = async (price: number, data: any) => {
+    // Track recoverable proofs from the moment the mint swaps the buyer's
+    // inputs. If `sendTokens` (or anything after the swap) throws, we stash
+    // these so the buyer's wallet doesn't lose the new outputs while still
+    // showing the now-SPENT inputs as a phantom balance.
+    let postSwapRecovery: {
+      mintUrl: string;
+      proofs: Proof[];
+    } | null = null;
+    // Drive the "Processing payment: 0:23 elapsed" overlay so the buyer
+    // gets feedback while the mint is doing swap+melt. Cleared in finally
+    // regardless of outcome so a slow mint can never leave the spinner up.
+    setCashuStartedAtMs(Date.now());
     try {
       if (!mints || mints.length === 0) {
         throw new Error("No Cashu mint available");
@@ -5584,7 +5766,13 @@ export default function CartInvoiceCard({
 
       validatePaymentData(price, data);
 
-      const mint = new CashuMint(mints[0]!);
+      // Pick the mint that actually holds enough proofs to cover `price`
+      // instead of blindly using mints[0]. Without this, a stale or wrongly-
+      // ordered default mint surfaces a misleading "not enough funds" error
+      // even though the buyer's wallet has the sats under another mint.
+      const payMint =
+        (await pickMintForPayment(price, mints, tokens)) ?? mints[0]!;
+      const mint = new CashuMint(payMint);
       const wallet = new CashuWallet(mint);
       await wallet.loadMint();
       const mintKeySetIds = await wallet.keyChain.getKeysets();
@@ -5601,6 +5789,7 @@ export default function CartInvoiceCard({
         );
       }
       const { keep, send } = __swapOutcomeA_4;
+      postSwapRecovery = { mintUrl: payMint, proofs: [...keep, ...send] };
       const deletedEventIds = [
         ...new Set([
           ...walletContext.proofEvents
@@ -5628,7 +5817,12 @@ export default function CartInvoiceCard({
             .map((event) => event.id),
         ]),
       ];
-      await sendTokens(wallet, send, data);
+      await sendTokens(wallet, send, data, payMint);
+      // sendTokens returned without throwing — `send` is now in flight to
+      // the seller / donation recipient(s). Narrow recovery to just `keep`
+      // (still in the buyer's wallet), which the localStorage write below
+      // commits.
+      postSwapRecovery = { mintUrl: payMint, proofs: keep };
       const changeProofs = keep;
       const remainingProofs = tokens.filter(
         (p: Proof) =>
@@ -5641,6 +5835,8 @@ export default function CartInvoiceCard({
         proofArray = [...remainingProofs];
       }
       localStorage.setItem("tokens", JSON.stringify(proofArray));
+      // Change is committed; nothing left to recover from this flow.
+      postSwapRecovery = null;
       localStorage.setItem(
         "history",
         JSON.stringify([
@@ -5648,10 +5844,13 @@ export default function CartInvoiceCard({
           ...history,
         ])
       );
+      // Tag the proof event with the mint we actually spent from, otherwise
+      // the syncMintsFromTokens reverse-lookup will mis-attribute future
+      // change proofs to mints[0] and corrupt the mint-order/default logic.
       await publishProofEvent(
         nostr!,
         signer!,
-        mints[0]!,
+        payMint,
         changeProofs && changeProofs.length >= 1 ? changeProofs : [],
         "out",
         price.toString(),
@@ -5665,13 +5864,45 @@ export default function CartInvoiceCard({
       if (setCashuPaymentSent) {
         setCashuPaymentSent(true);
       }
-    } catch {
+    } catch (err) {
+      console.error("Cart cashu payment failed:", err);
+      // Prefer the live recoverable-proofs set the tracker inside sendTokens
+      // computed; the original swap outputs are mostly SPENT by the time
+      // sendTokens fails partway through. Fall back to keep+send when the
+      // throw happened outside sendTokens (pre-melt, swap stage, etc.).
+      const recoveryProofs =
+        err instanceof SendTokensRecoverableError
+          ? err.recoverableProofs
+          : (postSwapRecovery?.proofs ?? []);
+      const recoveryMint =
+        err instanceof SendTokensRecoverableError
+          ? err.mintUrl
+          : (postSwapRecovery?.mintUrl ?? mints?.[0]);
+      if (recoveryProofs.length > 0 && recoveryMint) {
+        try {
+          const stashed = stashProofsLocally(recoveryProofs, recoveryMint, {
+            note: "Recovered from failed cart cashu payment",
+          });
+          setWalletRecovery({
+            isOpen: true,
+            amountSats: stashed,
+            mintUrl: recoveryMint,
+          });
+        } catch (stashErr) {
+          console.error(
+            "Failed to stash post-swap proofs after cart cashu failure:",
+            stashErr
+          );
+        }
+      }
       if (setCashuPaymentFailed) {
         setCashuPaymentFailed(true);
       } else {
         setFailureText("Cashu payment failed. Please try again.");
         setShowFailureModal(true);
       }
+    } finally {
+      setCashuStartedAtMs(null);
     }
   };
 
@@ -6440,6 +6671,7 @@ export default function CartInvoiceCard({
                   <div className="flex w-full flex-col items-center justify-center">
                     {qrCodeUrl && (
                       <>
+                        <PaymentCountdown deadlineMs={pollDeadlineMs} />
                         <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
@@ -7829,6 +8061,40 @@ export default function CartInvoiceCard({
         isLoggedIn={isLoggedIn}
         pendingRecovery={walletRecovery.pendingRecovery}
       />
+
+      {/* Direct Cashu processing overlay. Non-dismissable so the buyer
+          can't accidentally close it mid-swap; cleared by the finally in
+          handleCashuPayment regardless of outcome. */}
+      <Modal
+        backdrop="blur"
+        isOpen={cashuStartedAtMs !== null}
+        hideCloseButton
+        isDismissable={false}
+        isKeyboardDismissDisabled
+        classNames={{
+          body: "py-6 bg-white",
+          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          header: "border-b-4 border-black bg-white rounded-t-md",
+          wrapper: "items-center justify-center",
+          base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",
+        }}
+        placement="center"
+        size="sm"
+      >
+        <ModalContent>
+          <ModalHeader className="flex items-center justify-center font-bold text-black">
+            Processing Cashu payment
+          </ModalHeader>
+          <ModalBody className="flex flex-col items-center gap-3 text-black">
+            <Spinner size="lg" />
+            <PaymentElapsed startedAtMs={cashuStartedAtMs} />
+            <p className="text-center text-sm">
+              Please don&apos;t close this tab while your mint completes the
+              payment.
+            </p>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

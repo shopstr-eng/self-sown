@@ -281,10 +281,13 @@ export default function SectionSocialPosts({
 
   return (
     <div
-      className="w-full max-w-[100vw] overflow-x-hidden px-4 py-16 md:px-6"
-      style={{ backgroundColor: colors.secondary + "08" }}
+      className="box-border w-full min-w-0 overflow-hidden px-3 py-16 sm:px-4 md:px-6"
+      style={{
+        backgroundColor: colors.secondary + "08",
+        maxWidth: "100vw",
+      }}
     >
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto box-border w-full max-w-6xl min-w-0">
         {section.heading && (
           <FormattedText
             text={section.heading}
@@ -310,7 +313,7 @@ export default function SectionSocialPosts({
           </div>
         ) : (
           <div
-            className={`storefront-social-carousel relative mx-auto w-full max-w-[calc(100vw-2rem)] md:max-w-[calc(100vw-3rem)] ${
+            className={`storefront-social-carousel relative mx-auto w-full max-w-full ${
               autoplay ? "overflow-hidden" : "overflow-x-auto pb-2"
             }`}
             style={{ minWidth: 0 }}
@@ -363,15 +366,16 @@ export default function SectionSocialPosts({
         }
         .storefront-social-carousel-item {
           width: 340px;
-          max-width: calc(100vw - 3rem);
+          max-width: calc(100vw - 2rem);
         }
-        @media (max-width: 480px) {
+        @media (max-width: 640px) {
           .storefront-social-carousel-item {
-            width: calc(100vw - 3rem);
+            width: min(320px, calc(100vw - 4rem));
           }
         }
         .storefront-social-card {
           height: 600px;
+          width: 100%;
           max-width: 100%;
           min-width: 0;
         }
