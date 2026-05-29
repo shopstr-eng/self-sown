@@ -3,11 +3,11 @@ import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getRates } from "@/utils/shipping/shippo";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
-import { getShippoAccessToken } from "@/utils/db/shipping-service";
 import {
-  isListedSeller,
+  getShippoAccessToken,
   rememberShipmentOwner,
-} from "@/utils/shipping/shipment-owners";
+} from "@/utils/db/shipping-service";
+import { isListedSeller } from "@/utils/shipping/shipment-owners";
 import {
   MCP_REQUEST_PROOF_KIND,
   MCP_SIGNED_EVENT_HEADER,
@@ -156,7 +156,7 @@ export default async function handler(
     // valid signed event, record them as the owner of this shipment so
     // /api/shipping/buy-label can authorize the purchase.
     if (ownerPubkey && result.shipmentId) {
-      rememberShipmentOwner(result.shipmentId, ownerPubkey);
+      await rememberShipmentOwner(result.shipmentId, ownerPubkey);
     }
 
     return res.status(200).json({ success: true, ...result });

@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
@@ -11,9 +12,11 @@ import {
   parseSignedEventHeader,
 } from "@/utils/mcp/request-proof";
 import {
+  claimShipmentForPurchase,
   getShippoAccessToken,
   getShippingDefaultsForPubkey,
   insertShippingLabel,
+  releaseShipmentClaim,
 } from "@/utils/db/shipping-service";
 import type { ParcelInput, ShippingAddressInput } from "@/utils/shipping/types";
 
@@ -41,6 +44,29 @@ function fmtParcel(p: ParcelInput): string {
       ? ` ${p.lengthIn}×${p.widthIn}×${p.heightIn} in`
       : "";
   return `${p.weightOz} oz${dims}`;
+}
+
+// Produce a stable, canonical representation so logically-identical return
+// requests hash to the same idempotency key regardless of object key order,
+// string casing/whitespace, or array ordering produced by different clients.
+function canonicalize(value: unknown): unknown {
+  if (typeof value === "string") return value.trim().toLowerCase();
+  if (Array.isArray(value)) {
+    // Sort so order-insensitive lists (e.g. carriers) hash identically.
+    return value
+      .map(canonicalize)
+      .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const k of Object.keys(obj).sort()) {
+      if (obj[k] === undefined) continue;
+      out[k] = canonicalize(obj[k]);
+    }
+    return out;
+  }
+  return value ?? null;
 }
 
 export default async function handler(
@@ -140,43 +166,80 @@ export default async function handler(
       });
     }
 
-    const label = await buyReturnLabel(accessToken, {
-      from: body.from as ShippingAddressInput,
-      to: lockedTo,
-      parcel: body.parcel as ParcelInput,
-      carriers: body.carriers,
-      serviceToken: body.serviceToken,
-      insuranceAmount: body.insuranceAmount,
-    });
+    // Return labels create a brand-new Shippo shipment each call, so there is
+    // no client shipmentId to dedupe on. Derive a deterministic idempotency key
+    // from the seller + the fields that define this return, and claim it in the
+    // shared registry so a double-click/retry can't buy two identical returns.
+    const idempotencyKey =
+      "return:" +
+      createHash("sha256")
+        .update(
+          JSON.stringify(
+            canonicalize({
+              pubkey: event.pubkey,
+              orderId: body.orderId ?? null,
+              from: body.from,
+              to: lockedTo,
+              parcel: body.parcel,
+              carriers: body.carriers ?? null,
+              serviceToken: body.serviceToken ?? null,
+              insuranceAmount: body.insuranceAmount ?? null,
+            })
+          )
+        )
+        .digest("hex");
 
-    let dbId: number | null = null;
-    try {
-      const rec = await insertShippingLabel({
-        pubkey: event.pubkey,
-        shipmentId: label.shipmentId,
-        orderId: body.orderId ?? null,
-        trackingCode: label.trackingCode || null,
-        trackingUrl: label.trackingUrl ?? null,
-        labelUrl: label.labelUrl,
-        labelFormat: label.labelFormat,
-        rateUsd: label.rate,
-        currency: label.currency,
-        carrier: label.carrier,
-        service: label.service,
-        isReturn: true,
-        fromSummary: fmtAddr(body.from as ShippingAddressInput),
-        toSummary: fmtAddr(lockedTo),
-        parcelSummary: fmtParcel(body.parcel as ParcelInput),
+    if (!(await claimShipmentForPurchase(idempotencyKey, event.pubkey))) {
+      return res.status(409).json({
+        error:
+          "A return label for this order was already issued. Refresh to see it.",
       });
-      dbId = rec.id;
-    } catch (dbErr) {
-      console.error(
-        "CRITICAL: Shippo return label purchased but history insert failed",
-        { pubkey: event.pubkey, shipmentId: label.shipmentId, dbErr }
-      );
     }
 
-    return res.status(200).json({ success: true, id: dbId, ...label });
+    try {
+      const label = await buyReturnLabel(accessToken, {
+        from: body.from as ShippingAddressInput,
+        to: lockedTo,
+        parcel: body.parcel as ParcelInput,
+        carriers: body.carriers,
+        serviceToken: body.serviceToken,
+        insuranceAmount: body.insuranceAmount,
+      });
+
+      let dbId: number | null = null;
+      try {
+        const rec = await insertShippingLabel({
+          pubkey: event.pubkey,
+          shipmentId: label.shipmentId,
+          orderId: body.orderId ?? null,
+          trackingCode: label.trackingCode || null,
+          trackingUrl: label.trackingUrl ?? null,
+          labelUrl: label.labelUrl,
+          labelFormat: label.labelFormat,
+          rateUsd: label.rate,
+          currency: label.currency,
+          carrier: label.carrier,
+          service: label.service,
+          isReturn: true,
+          fromSummary: fmtAddr(body.from as ShippingAddressInput),
+          toSummary: fmtAddr(lockedTo),
+          parcelSummary: fmtParcel(body.parcel as ParcelInput),
+        });
+        dbId = rec.id;
+      } catch (dbErr) {
+        console.error(
+          "CRITICAL: Shippo return label purchased but history insert failed",
+          { pubkey: event.pubkey, shipmentId: label.shipmentId, dbErr }
+        );
+      }
+
+      return res.status(200).json({ success: true, id: dbId, ...label });
+    } catch (buyErr) {
+      // Purchase failed before/at Shippo — release the claim so the seller can
+      // retry this return.
+      await releaseShipmentClaim(idempotencyKey);
+      throw buyErr;
+    }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Buy return label failed:", message);

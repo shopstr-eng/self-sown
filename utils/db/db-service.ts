@@ -801,6 +801,23 @@ async function initializeTables(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_shipping_oauth_states_created_at
         ON shipping_oauth_states(created_at);
+
+      -- Shippo: cross-instance shipment registry used for (a) shipment
+      -- ownership (which seller quoted a shipment, authorizing its purchase)
+      -- and (b) the atomic duplicate-purchase guard. Replaces the old
+      -- in-memory maps so the guard holds across multiple server instances.
+      -- Rows are transient: pruned automatically (owned rows after ~1h,
+      -- purchased rows after ~7d). The permanent record of a purchased label
+      -- lives in shipping_labels.
+      CREATE TABLE IF NOT EXISTS shipping_shipment_claims (
+        shipment_id TEXT PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'owned',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_shipment_claims_created_at
+        ON shipping_shipment_claims(created_at);
     `);
 
     await client.query(`

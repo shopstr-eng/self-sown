@@ -3,12 +3,7 @@ import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { buyLabel } from "@/utils/shipping/shippo";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
-import {
-  claimShipmentForPurchase,
-  getShipmentOwner,
-  isListedSeller,
-  releaseShipmentClaim,
-} from "@/utils/shipping/shipment-owners";
+import { isListedSeller } from "@/utils/shipping/shipment-owners";
 import {
   MCP_REQUEST_PROOF_KIND,
   MCP_SIGNED_EVENT_HEADER,
@@ -18,8 +13,11 @@ import {
   parseSignedEventHeader,
 } from "@/utils/mcp/request-proof";
 import {
+  claimShipmentForPurchase,
+  getShipmentOwner,
   getShippoAccessToken,
   insertShippingLabel,
+  releaseShipmentClaim,
 } from "@/utils/db/shipping-service";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
@@ -107,7 +105,7 @@ export default async function handler(
     // Ownership check: the shipment must have been quoted by /api/shipping/rates
     // with a signed-event header from this same pubkey. This prevents callers
     // from buying labels against a shipment they did not quote.
-    const owner = getShipmentOwner(shipmentId);
+    const owner = await getShipmentOwner(shipmentId);
     if (!owner) {
       return res.status(403).json({
         error:
@@ -120,11 +118,11 @@ export default async function handler(
         .json({ error: "Shipment is owned by a different pubkey" });
     }
 
-    // Atomically claim this shipment BEFORE any `await`, so two concurrent
-    // requests can never both buy the same label (a duplicate charge). The
-    // claim is released below if the purchase cannot be completed, so the
-    // seller can retry.
-    if (!claimShipmentForPurchase(shipmentId)) {
+    // Atomically claim this shipment in the shared registry so two concurrent
+    // requests (even across different server instances) can never both buy the
+    // same label (a duplicate charge). The claim is released below if the
+    // purchase cannot be completed, so the seller can retry.
+    if (!(await claimShipmentForPurchase(shipmentId, event.pubkey))) {
       return res
         .status(409)
         .json({ error: "Shipment label already purchased" });
@@ -135,7 +133,7 @@ export default async function handler(
       // seller directly, so there is no platform spend cap to enforce.
       const accessToken = await getShippoAccessToken(event.pubkey);
       if (!accessToken) {
-        releaseShipmentClaim(shipmentId);
+        await releaseShipmentClaim(shipmentId);
         return res.status(409).json({
           error:
             "Connect your Shippo account in Settings → Shipping before buying labels.",
@@ -182,7 +180,7 @@ export default async function handler(
     } catch (buyErr) {
       // Purchase failed before/at Shippo — release the claim so the seller can
       // retry this shipment.
-      releaseShipmentClaim(shipmentId);
+      await releaseShipmentClaim(shipmentId);
       throw buyErr;
     }
   } catch (err) {

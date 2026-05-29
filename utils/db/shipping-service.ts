@@ -315,6 +315,133 @@ export async function consumeShippoOAuthState(
   return result.rows[0]?.pubkey || null;
 }
 
+// --- Shipment registry: ownership + duplicate-purchase guard -------------
+//
+// A single cross-instance table backs two things:
+//   1. Ownership — which seller pubkey quoted a shipment (via /rates). Only
+//      that pubkey may buy the label, so this must be visible to every server
+//      instance, not just the one that handled the quote.
+//   2. Duplicate-purchase guard — an atomic claim so two concurrent buys of
+//      the same shipment can never both succeed (a double charge).
+//
+// Rows are transient; `pruneShipmentClaims` removes stale ones. The permanent
+// record of a purchased label lives in `shipping_labels`.
+
+// How long a quoted shipment stays purchasable after it was registered.
+const SHIPMENT_OWNER_TTL_MINUTES = 30;
+
+// Register (or refresh) the seller that owns a freshly quoted shipment. A row
+// that has already advanced to 'purchased' is left untouched so a late re-quote
+// can't reopen it for a second purchase.
+export async function rememberShipmentOwner(
+  shipmentId: string,
+  pubkey: string
+): Promise<void> {
+  if (!shipmentId || !pubkey) return;
+  const pool = getDbPool();
+  await pool.query(
+    `INSERT INTO shipping_shipment_claims (shipment_id, pubkey, status, updated_at)
+     VALUES ($1, $2, 'owned', NOW())
+     ON CONFLICT (shipment_id) DO UPDATE SET
+       pubkey = EXCLUDED.pubkey,
+       updated_at = NOW()
+     WHERE shipping_shipment_claims.status = 'owned'`,
+    [shipmentId, pubkey]
+  );
+  void pruneShipmentClaimsThrottled();
+}
+
+// Returns the owning pubkey if the shipment was registered within the TTL,
+// regardless of whether it has since been purchased (so the caller can still
+// distinguish "already purchased" from "never quoted"). Null if unknown/expired.
+export async function getShipmentOwner(
+  shipmentId: string
+): Promise<string | null> {
+  if (!shipmentId) return null;
+  const pool = getDbPool();
+  const result = await pool.query<{ pubkey: string }>(
+    `SELECT pubkey FROM shipping_shipment_claims
+     WHERE shipment_id = $1
+       AND created_at > NOW() - INTERVAL '${SHIPMENT_OWNER_TTL_MINUTES} minutes'
+     LIMIT 1`,
+    [shipmentId]
+  );
+  return result.rows[0]?.pubkey || null;
+}
+
+// Atomically claim a shipment for purchase. Returns true if the caller now owns
+// the claim, false if it was already claimed/purchased. Works for both:
+//   - outbound labels: an 'owned' row exists (from rates) and is flipped to
+//     'purchased';
+//   - return labels: no prior row exists, so the row is inserted directly as
+//     'purchased' (the caller passes a deterministic idempotency key).
+// The DB enforces atomicity, so concurrent requests across any number of
+// instances resolve to exactly one winner. The winner MUST call
+// `releaseShipmentClaim` if the purchase ultimately fails, so it can be retried.
+export async function claimShipmentForPurchase(
+  shipmentId: string,
+  pubkey: string
+): Promise<boolean> {
+  if (!shipmentId || !pubkey) return false;
+  const pool = getDbPool();
+  const result = await pool.query(
+    `INSERT INTO shipping_shipment_claims (shipment_id, pubkey, status, updated_at)
+     VALUES ($1, $2, 'purchased', NOW())
+     ON CONFLICT (shipment_id) DO UPDATE SET
+       status = 'purchased',
+       updated_at = NOW()
+     WHERE shipping_shipment_claims.status = 'owned'
+     RETURNING shipment_id`,
+    [shipmentId, pubkey]
+  );
+  void pruneShipmentClaimsThrottled();
+  return (result.rowCount || 0) > 0;
+}
+
+// Revert a claim back to 'owned' so the shipment can be retried after a failed
+// purchase. (Reverting rather than deleting preserves ownership for outbound
+// retries; leftover return-label rows are pruned automatically.)
+export async function releaseShipmentClaim(shipmentId: string): Promise<void> {
+  if (!shipmentId) return;
+  const pool = getDbPool();
+  await pool.query(
+    `UPDATE shipping_shipment_claims
+       SET status = 'owned', updated_at = NOW()
+     WHERE shipment_id = $1 AND status = 'purchased'`,
+    [shipmentId]
+  );
+}
+
+// Delete stale registry rows: 'owned' rows past the ownership window, and
+// 'purchased' rows older than a generous retention (the permanent record is in
+// shipping_labels). Returns the number of rows removed.
+export async function pruneShipmentClaims(): Promise<number> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `DELETE FROM shipping_shipment_claims
+     WHERE (status = 'owned' AND created_at < NOW() - INTERVAL '1 hour')
+        OR (status = 'purchased' AND created_at < NOW() - INTERVAL '7 days')`
+  );
+  return result.rowCount || 0;
+}
+
+// Throttled, fire-and-forget cleanup so the table never grows unbounded without
+// requiring an external cron. Runs at most once per interval per instance.
+const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+let lastPruneAt = 0;
+
+async function pruneShipmentClaimsThrottled(): Promise<void> {
+  const now = Date.now();
+  if (now - lastPruneAt < PRUNE_INTERVAL_MS) return;
+  lastPruneAt = now;
+  try {
+    await pruneShipmentClaims();
+  } catch (err) {
+    // Non-fatal: cleanup is best-effort and will retry on the next call.
+    console.warn("pruneShipmentClaims failed:", err);
+  }
+}
+
 // --- Parcel templates ----------------------------------------------------
 
 interface ParcelTemplateRow {
