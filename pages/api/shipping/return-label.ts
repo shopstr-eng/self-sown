@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { buyReturnLabel, isShippoConfigured } from "@/utils/shipping/shippo";
+import { buyReturnLabel } from "@/utils/shipping/shippo";
+import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isListedSeller } from "@/utils/shipping/shipment-owners";
 import {
   MCP_REQUEST_PROOF_KIND,
@@ -10,10 +11,9 @@ import {
   parseSignedEventHeader,
 } from "@/utils/mcp/request-proof";
 import {
-  getDailySpendForPubkey,
+  getShippoAccessToken,
   getShippingDefaultsForPubkey,
   insertShippingLabel,
-  withPubkeySpendLock,
 } from "@/utils/db/shipping-service";
 import type { ParcelInput, ShippingAddressInput } from "@/utils/shipping/types";
 
@@ -51,7 +51,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!applyRateLimit(req, res, "shipping-return-label", RATE_LIMIT)) return;
-  if (!isShippoConfigured()) {
+  if (!isShippoOAuthConfigured()) {
     return res.status(503).json({ error: "Shipping provider not configured" });
   }
 
@@ -130,79 +130,53 @@ export default async function handler(
         .json({ error: "parcel.weightOz (oz) is required and must be > 0" });
     }
 
-    type SpendStatus = Awaited<ReturnType<typeof getDailySpendForPubkey>>;
-    let dbId: number | null = null;
-    let labelResult: Awaited<ReturnType<typeof buyReturnLabel>> | null = null;
-    let capError: { spend: SpendStatus; message: string } | null = null;
-    let spend: SpendStatus | null = null;
-    let postSpend: SpendStatus | null = null;
-
-    await withPubkeySpendLock(event.pubkey, async (status) => {
-      spend = status;
-      if (status.remainingUsd <= 0) {
-        capError = {
-          spend: status,
-          message: `Daily shipping spend cap reached ($${status.capUsd.toFixed(2)}).`,
-        };
-        return;
-      }
-
-      const label = await buyReturnLabel({
-        from: body.from as ShippingAddressInput,
-        to: lockedTo,
-        parcel: body.parcel as ParcelInput,
-        carriers: body.carriers,
-        serviceToken: body.serviceToken,
-        insuranceAmount: body.insuranceAmount,
+    // Resolve the seller's own connected Shippo account. Shippo bills the
+    // seller directly, so there is no platform spend cap to enforce.
+    const accessToken = await getShippoAccessToken(event.pubkey);
+    if (!accessToken) {
+      return res.status(409).json({
+        error:
+          "Connect your Shippo account in Settings → Shipping before issuing return labels.",
       });
-      labelResult = label;
+    }
 
-      try {
-        const rec = await insertShippingLabel({
-          pubkey: event.pubkey,
-          shipmentId: label.shipmentId,
-          orderId: body.orderId ?? null,
-          trackingCode: label.trackingCode || null,
-          trackingUrl: label.trackingUrl ?? null,
-          labelUrl: label.labelUrl,
-          labelFormat: label.labelFormat,
-          rateUsd: label.rate,
-          currency: label.currency,
-          carrier: label.carrier,
-          service: label.service,
-          isReturn: true,
-          fromSummary: fmtAddr(body.from as ShippingAddressInput),
-          toSummary: fmtAddr(lockedTo),
-          parcelSummary: fmtParcel(body.parcel as ParcelInput),
-        });
-        dbId = rec.id;
-      } catch (dbErr) {
-        console.error(
-          "CRITICAL: Shippo return label purchased but ledger insert failed",
-          { pubkey: event.pubkey, shipmentId: label.shipmentId, dbErr }
-        );
-      }
+    const label = await buyReturnLabel(accessToken, {
+      from: body.from as ShippingAddressInput,
+      to: lockedTo,
+      parcel: body.parcel as ParcelInput,
+      carriers: body.carriers,
+      serviceToken: body.serviceToken,
+      insuranceAmount: body.insuranceAmount,
+    });
 
-      postSpend = await getDailySpendForPubkey(event.pubkey).catch(
-        () => status
+    let dbId: number | null = null;
+    try {
+      const rec = await insertShippingLabel({
+        pubkey: event.pubkey,
+        shipmentId: label.shipmentId,
+        orderId: body.orderId ?? null,
+        trackingCode: label.trackingCode || null,
+        trackingUrl: label.trackingUrl ?? null,
+        labelUrl: label.labelUrl,
+        labelFormat: label.labelFormat,
+        rateUsd: label.rate,
+        currency: label.currency,
+        carrier: label.carrier,
+        service: label.service,
+        isReturn: true,
+        fromSummary: fmtAddr(body.from as ShippingAddressInput),
+        toSummary: fmtAddr(lockedTo),
+        parcelSummary: fmtParcel(body.parcel as ParcelInput),
+      });
+      dbId = rec.id;
+    } catch (dbErr) {
+      console.error(
+        "CRITICAL: Shippo return label purchased but history insert failed",
+        { pubkey: event.pubkey, shipmentId: label.shipmentId, dbErr }
       );
-    });
-
-    const ce = capError as { spend: SpendStatus; message: string } | null;
-    if (ce) {
-      return res.status(429).json({ error: ce.message, spend: ce.spend });
-    }
-    const lr = labelResult as Awaited<ReturnType<typeof buyReturnLabel>> | null;
-    if (!lr) {
-      return res.status(500).json({ error: "Return label purchase failed" });
     }
 
-    return res.status(200).json({
-      success: true,
-      id: dbId,
-      ...lr,
-      spend: (postSpend as SpendStatus | null) ?? (spend as SpendStatus | null),
-    });
+    return res.status(200).json({ success: true, id: dbId, ...label });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Buy return label failed:", message);

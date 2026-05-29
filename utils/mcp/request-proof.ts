@@ -247,11 +247,31 @@ export function buildShippingListLabelsProof(pubkey: string): McpRequestProof {
   };
 }
 
-export function buildShippingSpendProof(pubkey: string): McpRequestProof {
+export function buildShippingOAuthStartProof(pubkey: string): McpRequestProof {
   return {
-    action: "shipping_spend",
+    action: "shipping_oauth_start",
+    method: "POST",
+    path: "/api/shipping/oauth/start",
+    pubkey,
+  };
+}
+
+export function buildShippingOAuthStatusProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_oauth_status",
     method: "GET",
-    path: "/api/shipping/spend",
+    path: "/api/shipping/oauth/status",
+    pubkey,
+  };
+}
+
+export function buildShippingOAuthDisconnectProof(
+  pubkey: string
+): McpRequestProof {
+  return {
+    action: "shipping_oauth_disconnect",
+    method: "POST",
+    path: "/api/shipping/oauth/disconnect",
     pubkey,
   };
 }

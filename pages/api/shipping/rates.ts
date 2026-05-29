@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { getRates, isShippoConfigured } from "@/utils/shipping/shippo";
+import { getRates } from "@/utils/shipping/shippo";
+import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
+import { getShippoAccessToken } from "@/utils/db/shipping-service";
 import {
   isListedSeller,
   rememberShipmentOwner,
@@ -29,6 +31,10 @@ interface RatesRequestBody {
   to: ShippingAddressInput;
   parcel: ParcelInput;
   carriers?: string[];
+  // Pubkey of the seller whose connected Shippo account should be used to
+  // quote rates. Required for buyer-side (unsigned) checkout estimation; the
+  // seller's own signed-event flow infers this from the event pubkey.
+  sellerPubkey?: string;
 }
 
 function normalizeCarriers(input: string[] | undefined): string[] {
@@ -47,14 +53,14 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!applyRateLimit(req, res, "shipping-rates", RATE_LIMIT)) return;
-  if (!isShippoConfigured()) {
+  if (!isShippoOAuthConfigured()) {
     return res
       .status(503)
       .json({ error: "Shipping provider not configured", skipped: true });
   }
 
   try {
-    const { from, to, parcel, carriers } = (req.body ||
+    const { from, to, parcel, carriers, sellerPubkey } = (req.body ||
       {}) as Partial<RatesRequestBody>;
 
     if (
@@ -88,7 +94,50 @@ export default async function handler(
       company: from.company,
     };
 
-    const result = await getRates({
+    // Resolve which seller's connected Shippo account to quote against.
+    // Priority: a valid signed event (the seller quoting their own rates),
+    // otherwise the explicit sellerPubkey from the body (buyer checkout).
+    const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
+    const signedHeaderValue = Array.isArray(signedHeader)
+      ? signedHeader[0]
+      : signedHeader;
+    let ownerPubkey: string | null = null;
+    if (signedHeaderValue) {
+      try {
+        const event = parseSignedEventHeader(signedHeaderValue);
+        if (
+          event &&
+          event.kind === MCP_REQUEST_PROOF_KIND &&
+          verifyEvent(event) &&
+          isMcpRequestProofFresh(event) &&
+          (await isListedSeller(event.pubkey))
+        ) {
+          ownerPubkey = event.pubkey;
+        }
+      } catch {
+        // Non-fatal: fall through to sellerPubkey resolution.
+      }
+    }
+    const resolvedSeller = ownerPubkey || sellerPubkey || null;
+    if (!resolvedSeller) {
+      return res.status(200).json({
+        success: false,
+        rates: [],
+        cheapest: null,
+        error: "No seller specified for shipping rates",
+      });
+    }
+    const accessToken = await getShippoAccessToken(resolvedSeller);
+    if (!accessToken) {
+      return res.status(200).json({
+        success: false,
+        rates: [],
+        cheapest: null,
+        error: "Seller has not connected a Shippo account",
+      });
+    }
+
+    const result = await getRates(accessToken, {
       from: filled,
       to: {
         street1: to.street1,
@@ -103,30 +152,11 @@ export default async function handler(
       carriers: normalizeCarriers(carriers),
     });
 
-    // Optional ownership registration: if caller supplied a signed event,
-    // record the requester pubkey as the owner of this shipment so that
-    // /api/shipping/buy-label can authorize purchase. Cart-side rate
-    // queries omit the header (rates are public).
-    const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
-    const signedHeaderValue = Array.isArray(signedHeader)
-      ? signedHeader[0]
-      : signedHeader;
-    if (signedHeaderValue && result.shipmentId) {
-      try {
-        const event = parseSignedEventHeader(signedHeaderValue);
-        if (
-          event &&
-          event.kind === MCP_REQUEST_PROOF_KIND &&
-          verifyEvent(event) &&
-          isMcpRequestProofFresh(event) &&
-          (await isListedSeller(event.pubkey))
-        ) {
-          rememberShipmentOwner(result.shipmentId, event.pubkey);
-        }
-      } catch {
-        // Non-fatal: ownership simply won't be registered, and buy-label
-        // will reject. Don't block public rate display.
-      }
+    // Ownership registration: if the seller quoted their own rates with a
+    // valid signed event, record them as the owner of this shipment so
+    // /api/shipping/buy-label can authorize the purchase.
+    if (ownerPubkey && result.shipmentId) {
+      rememberShipmentOwner(result.shipmentId, ownerPubkey);
     }
 
     return res.status(200).json({ success: true, ...result });

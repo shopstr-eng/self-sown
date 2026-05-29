@@ -15,11 +15,11 @@ import {
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import {
   SUPPORTED_CARRIERS,
+  ShippoConnectionStatus,
   ShippoDefaults,
-  ShippoSpend,
   buyReturnLabel,
+  fetchShippoConnectionStatus,
   fetchShippoDefaults,
-  fetchShippoSpend,
 } from "@/utils/shipping/client-api";
 
 interface RateOption {
@@ -92,7 +92,9 @@ export default function BuyShippingLabelModal({
   const [purchased, setPurchased] = useState<PurchasedLabel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [defaults, setDefaults] = useState<ShippoDefaults | null>(null);
-  const [spend, setSpend] = useState<ShippoSpend | null>(null);
+  const [connection, setConnection] = useState<ShippoConnectionStatus | null>(
+    null
+  );
   // Carriers the user has toggled on for this purchase (defaults from settings)
   const [carriers, setCarriers] = useState<string[]>(["USPS"]);
 
@@ -128,16 +130,17 @@ export default function BuyShippingLabelModal({
 
     let cancelled = false;
     const run = async () => {
-      // Always load defaults + spend on open (cheap, gives the carriers picker
-      // its initial state and shows the daily-cap indicator).
+      // Always load defaults + connection status on open (cheap, gives the
+      // carriers picker its initial state and tells us if the seller has
+      // connected their own Shippo account).
       try {
-        const [d, s] = await Promise.all([
+        const [d, c] = await Promise.all([
           fetchShippoDefaults(signer, pubkey).catch(() => null),
-          fetchShippoSpend(signer, pubkey).catch(() => null),
+          fetchShippoConnectionStatus(signer, pubkey).catch(() => null),
         ]);
         if (cancelled) return;
         setDefaults(d);
-        setSpend(s);
+        setConnection(c);
         if (d?.preferredCarriers?.length) setCarriers(d.preferredCarriers);
       } catch {
         // non-fatal
@@ -275,7 +278,6 @@ export default function BuyShippingLabelModal({
           service: data.service || "",
         };
         setPurchased(label);
-        setSpend(data.spend);
         onPurchased?.(label);
         return;
       }
@@ -333,7 +335,6 @@ export default function BuyShippingLabelModal({
         service: data.service,
       };
       setPurchased(label);
-      if (data.spend) setSpend(data.spend);
       onPurchased?.(label);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Label purchase failed");
@@ -342,10 +343,7 @@ export default function BuyShippingLabelModal({
     }
   };
 
-  const spendPct =
-    spend && spend.capUsd > 0
-      ? Math.min(100, Math.round((spend.spentUsd / spend.capUsd) * 100))
-      : 0;
+  const notConnected = connection ? !connection.connected : false;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" backdrop="blur">
@@ -354,27 +352,11 @@ export default function BuyShippingLabelModal({
           {isReturn ? "Buy Return Label" : "Buy Shipping Label"}
         </ModalHeader>
         <ModalBody>
-          {spend && (
-            <div className="mb-2">
-              <div className="flex items-baseline justify-between text-xs text-gray-700">
-                <span>
-                  Daily spend: ${spend.spentUsd.toFixed(2)} / $
-                  {spend.capUsd.toFixed(2)}
-                </span>
-                <span>${spend.remainingUsd.toFixed(2)} remaining</span>
-              </div>
-              <div className="mt-1 h-2 w-full overflow-hidden rounded border border-black bg-white">
-                <div
-                  className={`h-full ${
-                    spendPct >= 90
-                      ? "bg-red-500"
-                      : spendPct >= 70
-                        ? "bg-yellow-400"
-                        : "bg-green-500"
-                  }`}
-                  style={{ width: `${spendPct}%` }}
-                />
-              </div>
+          {notConnected && (
+            <div className="mb-2 rounded-md border-2 border-black bg-yellow-50 p-3 text-sm">
+              Connect your own Shippo account in{" "}
+              <strong>Settings → Shipping</strong> before buying labels. Shippo
+              bills your account directly.
             </div>
           )}
 
@@ -537,7 +519,7 @@ export default function BuyShippingLabelModal({
                 buying ||
                 loadingRates ||
                 (isReturn ? !sellerHasReturnAddress : !selectedRateId) ||
-                (spend ? spend.remainingUsd <= 0 : false)
+                notConnected
               }
               isLoading={buying}
             >

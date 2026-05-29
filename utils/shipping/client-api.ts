@@ -7,19 +7,21 @@ import {
   buildMcpRequestProofTemplate,
   buildShippingDefaultsProof,
   buildShippingListLabelsProof,
+  buildShippingOAuthDisconnectProof,
+  buildShippingOAuthStartProof,
+  buildShippingOAuthStatusProof,
   buildShippingParcelTemplatesProof,
   buildShippingReturnLabelProof,
-  buildShippingSpendProof,
   type McpRequestProof,
 } from "@/utils/mcp/request-proof";
 import { NostrEventTemplate } from "@/utils/nostr/nostr-manager";
 
-export interface ShippoSpend {
-  spentUsd: number;
-  capUsd: number;
-  remainingUsd: number;
-  windowStart: string;
-  windowEnd: string;
+export interface ShippoConnectionStatus {
+  configured: boolean;
+  connected: boolean;
+  accountId: string | null;
+  scope: string | null;
+  connectedAt: string | null;
 }
 
 export interface ShippoLabel {
@@ -75,17 +77,74 @@ async function signedHeader(
   return JSON.stringify(signed);
 }
 
-export async function fetchShippoSpend(
+export async function fetchShippoConnectionStatus(
   signer: Signer,
   pubkey: string
-): Promise<ShippoSpend> {
-  const header = await signedHeader(signer, buildShippingSpendProof(pubkey));
-  const res = await fetch("/api/shipping/spend", {
-    headers: { [MCP_SIGNED_EVENT_HEADER]: header },
+): Promise<ShippoConnectionStatus> {
+  const header = await signedHeader(
+    signer,
+    buildShippingOAuthStatusProof(pubkey)
+  );
+  const res = await fetch(
+    `/api/shipping/oauth/status?pubkey=${encodeURIComponent(pubkey)}`,
+    { headers: { [MCP_SIGNED_EVENT_HEADER]: header } }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Failed");
+  return data as ShippoConnectionStatus;
+}
+
+// Returns the Shippo authorize URL the browser should navigate to in order to
+// connect the seller's own Shippo account.
+export async function startShippoOAuth(
+  signer: Signer,
+  pubkey: string
+): Promise<string> {
+  const template = buildMcpRequestProofTemplate(
+    buildShippingOAuthStartProof(pubkey)
+  );
+  const signedEvent = await signer.sign(template);
+  const res = await fetch("/api/shipping/oauth/start", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pubkey, signedEvent }),
   });
   const data = await res.json();
   if (!res.ok || !data?.success) throw new Error(data?.error || "Failed");
-  return data.spend as ShippoSpend;
+  return data.authorizeUrl as string;
+}
+
+export async function disconnectShippo(
+  signer: Signer,
+  pubkey: string
+): Promise<void> {
+  const template = buildMcpRequestProofTemplate(
+    buildShippingOAuthDisconnectProof(pubkey)
+  );
+  const signedEvent = await signer.sign(template);
+  const res = await fetch("/api/shipping/oauth/disconnect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pubkey, signedEvent }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data?.success) throw new Error(data?.error || "Failed");
+}
+
+// Exchange the OAuth code+state returned by Shippo for a stored connection.
+// Called by the /shippo-oauth-redirect page; no signed event needed (the
+// single-use state binds the callback to the initiating pubkey).
+export async function completeShippoOAuth(
+  code: string,
+  state: string
+): Promise<void> {
+  const res = await fetch("/api/shipping/oauth/callback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, state }),
+  });
+  const data = await res.json();
+  if (!res.ok || !data?.success) throw new Error(data?.error || "Failed");
 }
 
 export async function fetchShippoLabels(
@@ -231,7 +290,7 @@ export async function buyReturnLabel(
   signer: Signer,
   pubkey: string,
   input: BuyReturnLabelInput
-): Promise<ShippoLabel & { spend: ShippoSpend }> {
+): Promise<ShippoLabel> {
   const header = await signedHeader(
     signer,
     buildShippingReturnLabelProof(pubkey)
@@ -246,7 +305,7 @@ export async function buyReturnLabel(
   });
   const data = await res.json();
   if (!res.ok || !data?.success) throw new Error(data?.error || "Failed");
-  return data as ShippoLabel & { spend: ShippoSpend };
+  return data as ShippoLabel;
 }
 
 export const SUPPORTED_CARRIERS = [

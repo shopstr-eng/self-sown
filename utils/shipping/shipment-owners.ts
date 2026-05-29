@@ -51,10 +51,11 @@ export function getShipmentOwner(shipmentId: string): string | null {
   return entry.pubkey;
 }
 
-// --- Financial guardrails -------------------------------------------------
+// --- Duplicate-purchase guard ---------------------------------------------
 //
-// Spend tracking is persisted in the `shipping_labels` table (see
-// `getDailySpendForPubkey` in `utils/db/shipping-service`). The in-memory
+// Sellers connect their own Shippo account (OAuth) and Shippo bills them
+// directly, so the platform enforces no spend cap. Purchased-label history is
+// still persisted in the `shipping_labels` table. The in-memory
 // `purchasedShipments` set is a short-lived dedupe to prevent racing buys
 // of the same shipment before the row commits.
 
@@ -66,4 +67,21 @@ export function isShipmentAlreadyPurchased(shipmentId: string): boolean {
 
 export function markShipmentPurchased(shipmentId: string) {
   if (shipmentId) purchasedShipments.add(shipmentId);
+}
+
+// Atomically claim a shipment for purchase. Node is single-threaded, so this
+// synchronous check-and-set is race-free as long as there is no `await`
+// between the check and the set. Returns true if the caller now owns the
+// claim, false if the shipment was already claimed/purchased. The caller MUST
+// `releaseShipmentClaim` if the purchase ultimately fails, so the seller can
+// retry. (Single-instance guard, matching the in-memory dedup model.)
+export function claimShipmentForPurchase(shipmentId: string): boolean {
+  if (!shipmentId) return false;
+  if (purchasedShipments.has(shipmentId)) return false;
+  purchasedShipments.add(shipmentId);
+  return true;
+}
+
+export function releaseShipmentClaim(shipmentId: string) {
+  if (shipmentId) purchasedShipments.delete(shipmentId);
 }

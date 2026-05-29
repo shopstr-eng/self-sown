@@ -8,22 +8,14 @@ import type {
 
 const SHIPPO_BASE = "https://api.goshippo.com";
 
-function getAuthHeader(): string {
-  const key = process.env.SHIPPO_API_KEY;
-  if (!key) {
-    throw new Error("SHIPPO_API_KEY is not configured");
+// Per-seller OAuth access token (prefix `oauth.`). In the gray-label model the
+// platform never holds a Shippo key; every Shippo call is authenticated with
+// the connected seller's own bearer token.
+function getAuthHeader(accessToken: string): string {
+  if (!accessToken) {
+    throw new Error("Shippo account is not connected");
   }
-  return `ShippoToken ${key}`;
-}
-
-export function isShippoConfigured(): boolean {
-  return !!process.env.SHIPPO_API_KEY;
-}
-
-export function isShippoTestMode(): boolean {
-  const key = process.env.SHIPPO_API_KEY || "";
-  // shippo_test_ = Test, shippo_live_ = Production. Default to "live" for unknown prefixes.
-  return key.startsWith("shippo_test_");
+  return `Bearer ${accessToken}`;
 }
 
 interface ShippoError {
@@ -33,13 +25,14 @@ interface ShippoError {
 }
 
 async function shippoFetch<T>(
+  accessToken: string,
   path: string,
   init?: { method?: string; body?: unknown }
 ): Promise<T> {
   const res = await fetch(`${SHIPPO_BASE}${path}`, {
     method: init?.method || "GET",
     headers: {
-      Authorization: getAuthHeader(),
+      Authorization: getAuthHeader(accessToken),
       "Content-Type": "application/json",
     },
     body: init?.body ? JSON.stringify(init.body) : undefined,
@@ -91,6 +84,7 @@ interface ShippoAddress {
 }
 
 export async function verifyAddress(
+  accessToken: string,
   input: ShippingAddressInput
 ): Promise<VerifiedAddress> {
   const body = {
@@ -107,7 +101,7 @@ export async function verifyAddress(
     validate: true,
   };
 
-  const addr = await shippoFetch<ShippoAddress>("/addresses/", {
+  const addr = await shippoFetch<ShippoAddress>(accessToken, "/addresses/", {
     method: "POST",
     body,
   });
@@ -173,7 +167,10 @@ export interface GetRatesResult {
   cheapest: ShippingRate | null;
 }
 
-export async function getRates(args: GetRatesArgs): Promise<GetRatesResult> {
+export async function getRates(
+  accessToken: string,
+  args: GetRatesArgs
+): Promise<GetRatesResult> {
   const wantedCarriers = (args.carriers || ["USPS"]).map((c) =>
     c.toUpperCase()
   );
@@ -185,7 +182,7 @@ export async function getRates(args: GetRatesArgs): Promise<GetRatesResult> {
     async: false,
   };
 
-  const shipment = await shippoFetch<ShippoShipment>("/shipments/", {
+  const shipment = await shippoFetch<ShippoShipment>(accessToken, "/shipments/", {
     method: "POST",
     body,
   });
@@ -251,7 +248,10 @@ interface ShippoTransaction {
   messages?: Array<{ source?: string; code?: string; text?: string }>;
 }
 
-export async function buyLabel(args: BuyLabelArgs): Promise<PurchasedLabel> {
+export async function buyLabel(
+  accessToken: string,
+  args: BuyLabelArgs
+): Promise<PurchasedLabel> {
   const body: Record<string, unknown> = {
     rate: args.rateId,
     label_file_type: "PDF",
@@ -260,7 +260,7 @@ export async function buyLabel(args: BuyLabelArgs): Promise<PurchasedLabel> {
   if (typeof args.insuranceAmount === "number" && args.insuranceAmount > 0) {
     body.insurance_amount = String(args.insuranceAmount);
   }
-  return buildTransaction(args.shipmentId, body);
+  return buildTransaction(accessToken, args.shipmentId, body);
 }
 
 export interface BuyReturnLabelArgs {
@@ -276,6 +276,7 @@ export interface BuyReturnLabelArgs {
 }
 
 export async function buyReturnLabel(
+  accessToken: string,
   args: BuyReturnLabelArgs
 ): Promise<PurchasedLabel> {
   // Shippo supports return shipments by setting `return: true` on the
@@ -292,7 +293,7 @@ export async function buyReturnLabel(
     async: false,
   };
 
-  const shipment = await shippoFetch<ShippoShipment>("/shipments/", {
+  const shipment = await shippoFetch<ShippoShipment>(accessToken, "/shipments/", {
     method: "POST",
     body: shipmentBody,
   });
@@ -330,14 +331,15 @@ export async function buyReturnLabel(
   if (typeof args.insuranceAmount === "number" && args.insuranceAmount > 0) {
     body.insurance_amount = String(args.insuranceAmount);
   }
-  return buildTransaction(shipment.object_id, body);
+  return buildTransaction(accessToken, shipment.object_id, body);
 }
 
 async function buildTransaction(
+  accessToken: string,
   shipmentId: string,
   body: Record<string, unknown>
 ): Promise<PurchasedLabel> {
-  const tx = await shippoFetch<ShippoTransaction>("/transactions/", {
+  const tx = await shippoFetch<ShippoTransaction>(accessToken, "/transactions/", {
     method: "POST",
     body,
   });
@@ -360,7 +362,10 @@ async function buildTransaction(
   let rateDetails: ShippoRate | null = null;
   if (typeof tx.rate === "string") {
     try {
-      rateDetails = await shippoFetch<ShippoRate>(`/rates/${tx.rate}/`);
+      rateDetails = await shippoFetch<ShippoRate>(
+        accessToken,
+        `/rates/${tx.rate}/`
+      );
     } catch {
       rateDetails = null;
     }

@@ -735,8 +735,8 @@ async function initializeTables(): Promise<void> {
         purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       -- Drop the legacy UNIQUE(shipment_id, is_return) constraint if it
-      -- exists from an earlier deploy. Label rows are append-only so that
-      -- every purchased label contributes to the daily spend ledger.
+      -- exists from an earlier deploy. Label rows are append-only so the
+      -- table is a complete history of every purchased label.
       ALTER TABLE shipping_labels
         DROP CONSTRAINT IF EXISTS shipping_labels_shipment_id_is_return_key;
       CREATE INDEX IF NOT EXISTS idx_shipping_labels_pubkey
@@ -778,6 +778,29 @@ async function initializeTables(): Promise<void> {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Shippo OAuth: per-seller connected Shippo accounts (gray-label).
+      -- Sellers connect their own Shippo account; the access token never
+      -- expires (no refresh flow) and Shippo bills the seller directly.
+      CREATE TABLE IF NOT EXISTS shipping_oauth_connections (
+        pubkey TEXT PRIMARY KEY,
+        access_token TEXT NOT NULL,
+        account_id TEXT,
+        scope TEXT,
+        status TEXT NOT NULL DEFAULT 'connected',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Shippo OAuth: short-lived state→pubkey binding for the OAuth callback
+      -- (CSRF protection; the browser redirect carries no signed event).
+      CREATE TABLE IF NOT EXISTS shipping_oauth_states (
+        state TEXT PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_oauth_states_created_at
+        ON shipping_oauth_states(created_at);
     `);
 
     await client.query(`

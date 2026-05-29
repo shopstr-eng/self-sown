@@ -1,12 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyEvent } from "nostr-tools";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { buyLabel, isShippoConfigured } from "@/utils/shipping/shippo";
+import { buyLabel } from "@/utils/shipping/shippo";
+import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import {
+  claimShipmentForPurchase,
   getShipmentOwner,
   isListedSeller,
-  isShipmentAlreadyPurchased,
-  markShipmentPurchased,
+  releaseShipmentClaim,
 } from "@/utils/shipping/shipment-owners";
 import {
   MCP_REQUEST_PROOF_KIND,
@@ -17,9 +18,8 @@ import {
   parseSignedEventHeader,
 } from "@/utils/mcp/request-proof";
 import {
-  getDailySpendForPubkey,
+  getShippoAccessToken,
   insertShippingLabel,
-  withPubkeySpendLock,
 } from "@/utils/db/shipping-service";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
@@ -42,7 +42,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!applyRateLimit(req, res, "shipping-buy-label", RATE_LIMIT)) return;
-  if (!isShippoConfigured()) {
+  if (!isShippoOAuthConfigured()) {
     return res.status(503).json({ error: "Shipping provider not configured" });
   }
 
@@ -96,9 +96,8 @@ export default async function handler(
     }
 
     // Entitlement check: only pubkeys that have published at least one product
-    // listing to this marketplace can spend platform Shippo balance on
-    // labels. This bars random signed-in callers from buying labels for
-    // arbitrary shipments.
+    // listing to this marketplace may purchase labels. This bars random
+    // signed-in callers from buying labels for arbitrary shipments.
     if (!(await isListedSeller(event.pubkey))) {
       return res.status(403).json({
         error: "Only registered sellers may purchase shipping labels",
@@ -106,8 +105,8 @@ export default async function handler(
     }
 
     // Ownership check: the shipment must have been quoted by /api/shipping/rates
-    // with a signed-event header from this same pubkey. This prevents arbitrary
-    // callers from spending the platform's Shippo balance.
+    // with a signed-event header from this same pubkey. This prevents callers
+    // from buying labels against a shipment they did not quote.
     const owner = getShipmentOwner(shipmentId);
     if (!owner) {
       return res.status(403).json({
@@ -121,39 +120,36 @@ export default async function handler(
         .json({ error: "Shipment is owned by a different pubkey" });
     }
 
-    // Single-use lock: never buy the same shipment label twice.
-    if (isShipmentAlreadyPurchased(shipmentId)) {
+    // Atomically claim this shipment BEFORE any `await`, so two concurrent
+    // requests can never both buy the same label (a duplicate charge). The
+    // claim is released below if the purchase cannot be completed, so the
+    // seller can retry.
+    if (!claimShipmentForPurchase(shipmentId)) {
       return res
         .status(409)
         .json({ error: "Shipment label already purchased" });
     }
 
-    // Serialize concurrent purchases for this pubkey via a Postgres
-    // advisory lock, then enforce the daily USD spend cap (default $200,
-    // override via SHIPPO_PUBKEY_DAILY_CAP_USD). Charging Shippo and
-    // appending the spend ledger row happen inside the lock so the cap
-    // can be at most exceeded by one in-flight label, not by N racers.
-    type SpendStatus = Awaited<ReturnType<typeof getDailySpendForPubkey>>;
-    let dbId: number | null = null;
-    let labelResult: Awaited<ReturnType<typeof buyLabel>> | null = null;
-    let capError: { spend: SpendStatus; message: string } | null = null;
-    let spend: SpendStatus | null = null;
-    let postSpend: SpendStatus | null = null;
-
-    await withPubkeySpendLock(event.pubkey, async (status) => {
-      spend = status;
-      if (status.remainingUsd <= 0) {
-        capError = {
-          spend: status,
-          message: `Daily shipping spend cap reached ($${status.capUsd.toFixed(2)}). Try again later.`,
-        };
-        return;
+    try {
+      // Resolve the seller's own connected Shippo account. Shippo bills the
+      // seller directly, so there is no platform spend cap to enforce.
+      const accessToken = await getShippoAccessToken(event.pubkey);
+      if (!accessToken) {
+        releaseShipmentClaim(shipmentId);
+        return res.status(409).json({
+          error:
+            "Connect your Shippo account in Settings → Shipping before buying labels.",
+        });
       }
 
-      const label = await buyLabel({ shipmentId, rateId, insuranceAmount });
-      labelResult = label;
-      markShipmentPurchased(shipmentId);
+      const label = await buyLabel(accessToken, {
+        shipmentId,
+        rateId,
+        insuranceAmount,
+      });
 
+      // Purchase succeeded — keep the claim as the permanent "purchased" marker.
+      let dbId: number | null = null;
       try {
         const rec = await insertShippingLabel({
           pubkey: event.pubkey,
@@ -174,35 +170,21 @@ export default async function handler(
         });
         dbId = rec.id;
       } catch (dbErr) {
-        // Spend ledger insert failed AFTER Shippo charged. Log loudly so
-        // operators can reconcile manually — the seller still gets the
-        // label below, but the daily cap will under-count until corrected.
+        // Label history insert failed AFTER Shippo charged the seller. Log
+        // loudly so operators can reconcile — the seller still gets the label.
         console.error(
-          "CRITICAL: Shippo label purchased but ledger insert failed",
+          "CRITICAL: Shippo label purchased but history insert failed",
           { pubkey: event.pubkey, shipmentId: label.shipmentId, dbErr }
         );
       }
 
-      postSpend = await getDailySpendForPubkey(event.pubkey).catch(
-        () => status
-      );
-    });
-
-    const ce = capError as { spend: SpendStatus; message: string } | null;
-    if (ce) {
-      return res.status(429).json({ error: ce.message, spend: ce.spend });
+      return res.status(200).json({ success: true, id: dbId, ...label });
+    } catch (buyErr) {
+      // Purchase failed before/at Shippo — release the claim so the seller can
+      // retry this shipment.
+      releaseShipmentClaim(shipmentId);
+      throw buyErr;
     }
-    const lr = labelResult as Awaited<ReturnType<typeof buyLabel>> | null;
-    if (!lr) {
-      return res.status(500).json({ error: "Label purchase failed" });
-    }
-
-    return res.status(200).json({
-      success: true,
-      id: dbId,
-      ...lr,
-      spend: (postSpend as SpendStatus | null) ?? (spend as SpendStatus | null),
-    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Buy shipping label failed:", message);

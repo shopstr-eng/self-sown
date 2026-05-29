@@ -4,3 +4,4 @@
 - [Payment overlay cleanup](payment-overlay-cleanup.md) — long-running payment overlays must clear their visibility flag in `finally`, not `catch`; non-dismissable modals turn asymmetric cleanup into a hard-block.
 - [Multi-mint wallet attribution](multi-mint-wallet-attribution.md) — proofs carry no mint; attribute via keysets, promote receiving mint to default, pick spend mint by probe, dedup reactive reloads, and retry loadMint on failure or balances go stale/zero.
 - [Cashu spent-proof self-heal sweep](spent-proof-self-heal.md) — wallet must periodically checkProofsStates and prune SPENT local proofs, with merge-safe writes and a per-tab lock so it can't delete funds added mid-probe.
+- [Shipment label purchase dedup race](shipment-purchase-claim-race.md) — buy-label dedup must be one synchronous claim before any await; removing a serializing lock re-exposes the check-then-mark TOCTOU.

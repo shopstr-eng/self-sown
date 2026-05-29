@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { Button, Input, Spinner } from "@heroui/react";
 import {
   ArrowDownTrayIcon,
@@ -9,16 +9,18 @@ import ProtectedRoute from "@/components/utility-components/protected-route";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import {
   SUPPORTED_CARRIERS,
+  ShippoConnectionStatus,
   ShippoDefaults,
   ShippoLabel,
   ShippoParcelTemplate,
-  ShippoSpend,
   deleteShippoParcelTemplate,
+  disconnectShippo,
+  fetchShippoConnectionStatus,
   fetchShippoDefaults,
   fetchShippoLabels,
-  fetchShippoSpend,
   listShippoParcelTemplates,
   saveShippoDefaults,
+  startShippoOAuth,
   upsertShippoParcelTemplate,
 } from "@/utils/shipping/client-api";
 
@@ -61,7 +63,11 @@ const ShippingSettingsPage = () => {
   const [defaultsToast, setDefaultsToast] = useState<string | null>(null);
 
   const [defaults, setDefaults] = useState<ShippoDefaults>(EMPTY_DEFAULTS);
-  const [spend, setSpend] = useState<ShippoSpend | null>(null);
+  const [connection, setConnection] = useState<ShippoConnectionStatus | null>(
+    null
+  );
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
   const [labels, setLabels] = useState<ShippoLabel[]>([]);
   const [templates, setTemplates] = useState<ShippoParcelTemplate[]>([]);
 
@@ -75,16 +81,16 @@ const ShippingSettingsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const [d, s, l, t] = await Promise.all([
+      const [d, c, l, t] = await Promise.all([
         fetchShippoDefaults(signer, pubkey).catch(() => null),
-        fetchShippoSpend(signer, pubkey).catch(() => null),
+        fetchShippoConnectionStatus(signer, pubkey).catch(() => null),
         fetchShippoLabels(signer, pubkey).catch(() => [] as ShippoLabel[]),
         listShippoParcelTemplates(signer, pubkey).catch(
           () => [] as ShippoParcelTemplate[]
         ),
       ]);
       setDefaults({ ...EMPTY_DEFAULTS, ...(d || {}) });
-      setSpend(s);
+      setConnection(c);
       setLabels(l);
       setTemplates(t);
     } catch (e) {
@@ -166,11 +172,36 @@ const ShippingSettingsPage = () => {
     });
   };
 
-  const spendPct = useMemo(() => {
-    if (!spend) return 0;
-    if (spend.capUsd <= 0) return 0;
-    return Math.min(100, Math.round((spend.spentUsd / spend.capUsd) * 100));
-  }, [spend]);
+  const handleConnect = async () => {
+    if (!signer || !pubkey) return;
+    setConnecting(true);
+    setError(null);
+    try {
+      const authorizeUrl = await startShippoOAuth(signer, pubkey);
+      window.location.href = authorizeUrl;
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to start Shippo connection"
+      );
+      setConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (!signer || !pubkey) return;
+    setDisconnecting(true);
+    setError(null);
+    try {
+      await disconnectShippo(signer, pubkey);
+      await reload();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to disconnect Shippo account"
+      );
+    } finally {
+      setDisconnecting(false);
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -202,42 +233,59 @@ const ShippingSettingsPage = () => {
 
           {!loading && signerReady && (
             <div className="space-y-6">
-              {/* Daily spend */}
+              {/* Shippo account connection */}
               <section className={sectionCls}>
-                <h2 className="mb-3 text-xl font-bold text-black">
-                  Daily Spend
+                <h2 className="mb-1 text-xl font-bold text-black">
+                  Shippo Account
                 </h2>
-                {spend ? (
-                  <>
-                    <div className="mb-2 flex items-baseline justify-between">
-                      <div className="text-2xl font-bold text-black">
-                        ${spend.spentUsd.toFixed(2)}{" "}
-                        <span className="text-sm font-normal text-gray-600">
-                          / ${spend.capUsd.toFixed(2)} cap
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-700">
-                        ${spend.remainingUsd.toFixed(2)} remaining
-                      </div>
+                <p className="mb-4 text-sm text-gray-600">
+                  Connect your own Shippo account to buy shipping labels. Shippo
+                  bills your account directly — the marketplace never charges you
+                  for shipping.
+                </p>
+                {connection && !connection.configured ? (
+                  <div className="rounded-md border-2 border-black bg-yellow-50 p-3 text-sm text-black">
+                    Shipping is not configured on this marketplace yet. Check
+                    back later.
+                  </div>
+                ) : connection?.connected ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-green-700">
+                        Connected to Shippo
+                      </p>
+                      {connection.accountId && (
+                        <p className="text-xs text-gray-600">
+                          Account: {connection.accountId}
+                        </p>
+                      )}
+                      {connection.connectedAt && (
+                        <p className="text-xs text-gray-600">
+                          Connected{" "}
+                          {new Date(
+                            connection.connectedAt
+                          ).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
-                    <div className="h-3 w-full overflow-hidden rounded-md border-2 border-black bg-white">
-                      <div
-                        className={`h-full ${
-                          spendPct >= 90
-                            ? "bg-red-500"
-                            : spendPct >= 70
-                              ? "bg-yellow-400"
-                              : "bg-green-500"
-                        }`}
-                        style={{ width: `${spendPct}%` }}
-                      />
-                    </div>
-                    <p className="mt-2 text-xs text-gray-600">
-                      Rolling 24-hour window. Resets continuously.
-                    </p>
-                  </>
+                    <Button
+                      className="border-2 border-black bg-white font-semibold text-black"
+                      onPress={handleDisconnect}
+                      isLoading={disconnecting}
+                      isDisabled={disconnecting}
+                    >
+                      Disconnect
+                    </Button>
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-600">No spend data.</p>
+                  <Button
+                    className="bg-primary-yellow border-2 border-black font-semibold text-black"
+                    onPress={handleConnect}
+                    isLoading={connecting}
+                    isDisabled={connecting}
+                  >
+                    Connect Shippo account
+                  </Button>
                 )}
               </section>
 

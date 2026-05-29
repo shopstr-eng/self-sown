@@ -5437,6 +5437,7 @@ export default function CartInvoiceCard({
             state,
             zip: postal,
             country: "US",
+            sellerPubkey: products[0]?.pubkey,
           }),
         });
         if (cancelled) return;
@@ -5625,6 +5626,7 @@ export default function CartInvoiceCard({
                     heightIn: seller.maxHeightIn,
                   },
                   carriers: ["USPS"],
+                  sellerPubkey: seller.pubkey,
                 }),
               });
               const data = await res.json();

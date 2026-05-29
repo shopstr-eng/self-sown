@@ -170,82 +170,149 @@ export async function getShippingLabelForPubkey(
   return result.rows[0] ? mapLabelRow(result.rows[0]) : null;
 }
 
-export interface DailySpendStatus {
-  spentUsd: number;
-  capUsd: number;
-  remainingUsd: number;
-  windowStart: string;
-  windowEnd: string;
+// --- Shippo OAuth connected accounts -------------------------------------
+//
+// Each seller connects their OWN Shippo account via OAuth. The access token
+// (prefix `oauth.`) never expires, so there is no refresh flow. Shippo bills
+// the seller directly — the platform holds no balance and enforces no spend
+// caps. Tokens are stored per pubkey.
+
+export interface ShippoConnectionRecord {
+  pubkey: string;
+  accessToken: string;
+  accountId: string | null;
+  scope: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-const DEFAULT_DAILY_CAP_USD = Number(
-  process.env.SHIPPO_PUBKEY_DAILY_CAP_USD || 200
-);
+interface ShippoConnectionRow {
+  pubkey: string;
+  access_token: string;
+  account_id: string | null;
+  scope: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
 
-function buildSpendStatus(spent: number): DailySpendStatus {
-  const now = new Date();
+function mapConnectionRow(row: ShippoConnectionRow): ShippoConnectionRecord {
   return {
-    spentUsd: spent,
-    capUsd: DEFAULT_DAILY_CAP_USD,
-    remainingUsd: Math.max(0, DEFAULT_DAILY_CAP_USD - spent),
-    windowStart: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-    windowEnd: now.toISOString(),
+    pubkey: row.pubkey,
+    accessToken: row.access_token,
+    accountId: row.account_id,
+    scope: row.scope,
+    status: row.status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
-export async function getDailySpendForPubkey(
-  pubkey: string
-): Promise<DailySpendStatus> {
-  const pool = getDbPool();
-  const result = await pool.query<{ total: string | null }>(
-    `SELECT COALESCE(SUM(rate_usd), 0)::text AS total
-     FROM shipping_labels
-     WHERE pubkey = $1
-       AND purchased_at > NOW() - INTERVAL '24 hours'`,
-    [pubkey]
-  );
-  const spent = Number(result.rows[0]?.total || 0);
-  return buildSpendStatus(spent);
+export interface UpsertShippoConnectionInput {
+  pubkey: string;
+  accessToken: string;
+  accountId?: string | null;
+  scope?: string | null;
+  status?: string;
 }
 
-/**
- * Serialize label purchases per pubkey using a Postgres session-level
- * advisory lock. This prevents two concurrent buys from both passing the
- * pre-flight cap check (race-then-overshoot). The callback receives the
- * current spend status computed *inside* the lock and is expected to
- * perform the Shippo charge + persist the resulting label row before
- * returning. The lock is released in finally so a thrown Shippo error
- * never wedges a pubkey.
- */
-export async function withPubkeySpendLock<T>(
-  pubkey: string,
-  fn: (status: DailySpendStatus) => Promise<T>
-): Promise<T> {
+export async function upsertShippoConnection(
+  input: UpsertShippoConnectionInput
+): Promise<ShippoConnectionRecord> {
   const pool = getDbPool();
-  const client = await pool.connect();
-  try {
-    await client.query("SELECT pg_advisory_lock(hashtext($1)::bigint)", [
-      pubkey,
-    ]);
-    const result = await client.query<{ total: string | null }>(
-      `SELECT COALESCE(SUM(rate_usd), 0)::text AS total
-       FROM shipping_labels
-       WHERE pubkey = $1
-         AND purchased_at > NOW() - INTERVAL '24 hours'`,
-      [pubkey]
-    );
-    const spent = Number(result.rows[0]?.total || 0);
-    return await fn(buildSpendStatus(spent));
-  } finally {
-    try {
-      await client.query("SELECT pg_advisory_unlock(hashtext($1)::bigint)", [
-        pubkey,
-      ]);
-    } catch {
-      // best-effort; client.release() below will reset session state
-    }
-    client.release();
-  }
+  const result = await pool.query<ShippoConnectionRow>(
+    `INSERT INTO shipping_oauth_connections
+       (pubkey, access_token, account_id, scope, status, updated_at)
+     VALUES ($1, $2, $3, $4, $5, NOW())
+     ON CONFLICT (pubkey) DO UPDATE SET
+       access_token = EXCLUDED.access_token,
+       account_id = EXCLUDED.account_id,
+       scope = EXCLUDED.scope,
+       status = EXCLUDED.status,
+       updated_at = NOW()
+     RETURNING *`,
+    [
+      input.pubkey,
+      input.accessToken,
+      input.accountId ?? null,
+      input.scope ?? null,
+      input.status ?? "connected",
+    ]
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("Failed to upsert Shippo connection");
+  return mapConnectionRow(row);
+}
+
+export async function getShippoConnection(
+  pubkey: string
+): Promise<ShippoConnectionRecord | null> {
+  const pool = getDbPool();
+  const result = await pool.query<ShippoConnectionRow>(
+    `SELECT * FROM shipping_oauth_connections WHERE pubkey = $1 LIMIT 1`,
+    [pubkey]
+  );
+  return result.rows[0] ? mapConnectionRow(result.rows[0]) : null;
+}
+
+// Resolve just the bearer token for a seller, or null if not connected.
+export async function getShippoAccessToken(
+  pubkey: string
+): Promise<string | null> {
+  const conn = await getShippoConnection(pubkey);
+  return conn?.accessToken || null;
+}
+
+export async function deleteShippoConnection(pubkey: string): Promise<boolean> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `DELETE FROM shipping_oauth_connections WHERE pubkey = $1`,
+    [pubkey]
+  );
+  return (result.rowCount || 0) > 0;
+}
+
+// --- Shippo OAuth state (CSRF + state→pubkey binding) --------------------
+//
+// There are no server sessions, so the OAuth `state` is persisted briefly and
+// mapped to the initiating pubkey. The callback (a plain browser redirect from
+// Shippo with no signed event) is authorized solely by this single-use state.
+
+const OAUTH_STATE_TTL_MINUTES = 15;
+
+export async function createShippoOAuthState(
+  pubkey: string,
+  state: string
+): Promise<void> {
+  const pool = getDbPool();
+  // Opportunistic cleanup of expired states.
+  await pool.query(
+    `DELETE FROM shipping_oauth_states
+     WHERE created_at < NOW() - INTERVAL '${OAUTH_STATE_TTL_MINUTES} minutes'`
+  );
+  await pool.query(
+    `INSERT INTO shipping_oauth_states (state, pubkey)
+     VALUES ($1, $2)
+     ON CONFLICT (state) DO NOTHING`,
+    [state, pubkey]
+  );
+}
+
+// Single-use: returns the bound pubkey and deletes the row. Returns null if the
+// state is unknown or expired.
+export async function consumeShippoOAuthState(
+  state: string
+): Promise<string | null> {
+  const pool = getDbPool();
+  const result = await pool.query<{ pubkey: string }>(
+    `DELETE FROM shipping_oauth_states
+     WHERE state = $1
+       AND created_at > NOW() - INTERVAL '${OAUTH_STATE_TTL_MINUTES} minutes'
+     RETURNING pubkey`,
+    [state]
+  );
+  return result.rows[0]?.pubkey || null;
 }
 
 // --- Parcel templates ----------------------------------------------------
