@@ -22,3 +22,4 @@
 - [Pro feature enforcement surfaces](pro-feature-enforcement-surfaces.md) — gate server-backed Pro features (domain/MCP/email) at the write endpoint; Nostr-published design has no server write path, enforce at the serve/render layer.
 - [Stripe webhook claim release](stripe-webhook-claim-release.md) — claimStripeEvent permanently dedups; release the claim in catch on handler failure or Stripe's retry is silently dropped.
 - [Membership extension atomicity](membership-extension-atomicity.md) — stack paid time in one SQL stmt from GREATEST(now, current end), never read-modify-write, or concurrent settles drop a term.
+- [ON CONFLICT granters need a created flag](conflict-insert-created-flag.md) — one-time INSERT...ON CONFLICT DO NOTHING grants must return whether a row was created; gate success UI on it, not on a 200, or stale clients fake the grant.

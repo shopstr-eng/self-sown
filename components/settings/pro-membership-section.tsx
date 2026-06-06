@@ -207,7 +207,8 @@ const ProMembershipSection = () => {
               </p>
               <p className="text-sm text-gray-600">
                 Upgrade to Pro for advanced storefronts, custom domains, email
-                flows, custom product pages, shipping, and the MCP API.
+                flows, custom product pages, shipping (coming soon), and the MCP
+                API. Start with a 30-day free trial — no payment required.
               </p>
             </div>
             <Button

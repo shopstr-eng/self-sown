@@ -15,6 +15,7 @@ import {
   buildProCreateSubscriptionProof,
   buildProHistoryProof,
   buildProManualInvoiceProof,
+  buildProStartTrialProof,
   buildProSyncProof,
   buildProVerifyInvoiceProof,
   SIGNED_EVENT_HEADER,
@@ -35,6 +36,13 @@ interface ProMembershipContextValue {
   isPro: boolean;
   /** Re-fetch the public status for the current pubkey. */
   refresh: () => Promise<void>;
+  /**
+   * Start a 30-day no-payment trial for the selected plan (new sellers).
+   * `created` is false when a membership row already existed (no trial granted).
+   */
+  startFreeTrial: (
+    term: ProTerm
+  ) => Promise<{ created: boolean; view: MembershipView }>;
   /** Start a Stripe subscription; returns the PaymentIntent client secret. */
   startStripeSubscription: (
     term: ProTerm
@@ -144,6 +152,28 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
     return { pubkey, signer };
   }, [pubkey, signer]);
 
+  const startFreeTrial = useCallback(
+    async (term: ProTerm) => {
+      const { pubkey: pk, signer: s } = requireAuth();
+      const data = await postSigned(
+        "/api/pro/start-trial",
+        s,
+        buildProStartTrialProof({ pubkey: pk, term }),
+        { pubkey: pk, term }
+      );
+      if (data?.view) {
+        setMembership(data.view as MembershipView);
+      } else {
+        await refresh();
+      }
+      return {
+        created: !!data?.created,
+        view: data?.view as MembershipView,
+      };
+    },
+    [requireAuth, refresh]
+  );
+
   const startStripeSubscription = useCallback(
     async (term: ProTerm) => {
       const { pubkey: pk, signer: s } = requireAuth();
@@ -224,6 +254,7 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       loading,
       isPro: membership.isPro,
       refresh,
+      startFreeTrial,
       startStripeSubscription,
       syncStripe,
       cancel,
@@ -235,6 +266,7 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       membership,
       loading,
       refresh,
+      startFreeTrial,
       startStripeSubscription,
       syncStripe,
       cancel,

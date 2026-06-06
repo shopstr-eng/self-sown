@@ -73,7 +73,7 @@ export async function runProLifecycle(
         await notifySeller(row.pubkey, {
           column: "trial_reminder_sent_at",
           subject: "Your Milk Market Pro trial is ending soon",
-          body: "Your free Milk Market Pro trial ends soon. Subscribe to keep your Pro features (custom storefront, custom domains, email flows, custom product pages, shipping, and the MCP API) active.",
+          body: "Your free Milk Market Pro trial ends soon. Subscribe to keep your Pro features (custom storefront, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API) active.",
         });
         result.trialEndingNotices += 1;
       }

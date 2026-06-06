@@ -7,12 +7,14 @@ import {
   ArrowLeftIcon,
   CheckCircleIcon,
   ClipboardDocumentIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import StripeCardForm from "@/components/utility-components/stripe-card-form";
 import {
   PRO_ANNUAL_PRICE_CENTS,
   PRO_MONTHLY_PRICE_CENTS,
+  PRO_NEW_USER_TRIAL_DAYS,
   proPriceUsd,
   type ProTerm,
 } from "@/utils/pro/constants";
@@ -29,8 +31,11 @@ const ANNUAL_SAVINGS_PERCENT = Math.round(
 );
 
 interface ProCheckoutProps {
-  /** Called once Pro is paid (card/bitcoin) or a manual fiat invoice is set up. */
-  onComplete: (status: "paid" | "pending") => void;
+  /**
+   * Called once Pro is set up: "paid" (card/bitcoin), "pending" (manual fiat
+   * invoice), or "trial" (30-day no-payment trial started).
+   */
+  onComplete: (status: "paid" | "pending" | "trial") => void;
   className?: string;
 }
 
@@ -42,13 +47,20 @@ export default function ProCheckout({
   className,
 }: ProCheckoutProps) {
   const {
+    membership,
+    startFreeTrial,
     startStripeSubscription,
     syncStripe,
     createManualInvoice,
     verifyManualInvoice,
   } = useProMembership();
 
-  const [term, setTerm] = useState<ProTerm>("yearly");
+  // Offer the no-payment trial only to sellers who've never had a membership
+  // (status "free"). Lapsed sellers (grace/readonly/hidden) already used their
+  // entitlement and must pay to restore Pro.
+  const canStartTrial = membership.status === "free";
+
+  const [term, setTerm] = useState<ProTerm>(membership.term ?? "yearly");
   const [method, setMethod] = useState<PayMethod | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +82,28 @@ export default function ProCheckout({
     setInvoice(null);
     setQrDataUrl("");
     setError(null);
+  };
+
+  const handleTrial = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { created, view } = await startFreeTrial(term);
+      // Only treat it as a fresh trial when a row was actually created. If a
+      // membership already existed (created=false), don't fake a trial — surface
+      // the real state instead so we never grant a trial twice or to a payer.
+      if (created || view?.status === "trialing") {
+        onComplete("trial");
+      } else {
+        setError(
+          "You already have a membership on this account, so the free trial isn't available. Choose a payment method below to continue."
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCard = async () => {
@@ -318,12 +352,39 @@ export default function ProCheckout({
         </p>
       )}
 
+      {canStartTrial && (
+        <div className="mb-5">
+          <button
+            type="button"
+            onClick={handleTrial}
+            disabled={loading}
+            className={`${BLUEBUTTONCLASSNAMES} w-full justify-center disabled:opacity-50`}
+          >
+            <SparklesIcon className="mr-2 h-5 w-5" />
+            Start {PRO_NEW_USER_TRIAL_DAYS}-day free trial
+          </button>
+          <p className="mt-2 text-center text-xs font-medium text-zinc-600">
+            No payment now. We&apos;ll remind you to pay for your{" "}
+            {term === "yearly" ? "yearly" : "monthly"} plan when the trial ends.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-black/15" />
+            <span className="text-xs font-bold tracking-wide text-zinc-500 uppercase">
+              or pay now
+            </span>
+            <div className="h-px flex-1 bg-black/15" />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
         <button
           type="button"
           onClick={handleCard}
           disabled={loading}
-          className={`${BLUEBUTTONCLASSNAMES} w-full justify-center disabled:opacity-50`}
+          className={`${
+            canStartTrial ? BLACKBUTTONCLASSNAMES : BLUEBUTTONCLASSNAMES
+          } w-full justify-center disabled:opacity-50`}
         >
           <CreditCardIcon className="mr-2 h-5 w-5" />
           Pay with card

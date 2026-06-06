@@ -6,12 +6,14 @@ import type Stripe from "stripe";
 import {
   computeLapseTimeline,
   PRO_MANUAL_GRACE_DAYS,
+  PRO_NEW_USER_TRIAL_DAYS,
   PRO_STRIPE_GRACE_DAYS,
   PRO_TRIAL_DAYS,
   addDays,
   addTerm,
   type MembershipView,
   type ProBillingHistoryItem,
+  type ProTerm,
 } from "@/utils/pro/constants";
 import { isProEntitled, membershipView } from "@/utils/pro/membership-status";
 import {
@@ -46,6 +48,38 @@ export async function getMembershipView(
 export async function isPubkeyProEntitled(pubkey: string): Promise<boolean> {
   const view = await getMembershipView(pubkey);
   return isProEntitled(view.status);
+}
+
+/**
+ * Start a 30-day no-payment Pro trial for a new seller. The seller picks a plan
+ * (monthly/yearly) up front so we know what to charge at trial end, but no
+ * payment is collected now. The trial carries the same lapse timeline as a
+ * lapsed paid plan (grace → read-only → hidden), so the existing lifecycle cron
+ * naturally reminds them to pay once the trial ends.
+ *
+ * Idempotent and one-time per seller: backed by `grantProTrialIfMissing`'s
+ * ON CONFLICT DO NOTHING, so it never resets an existing trial, a 90-day
+ * grandfathered trial, or an active/lapsed paid membership. Returns whether a
+ * fresh trial row was created plus the resolved membership view either way.
+ */
+export async function startNewUserProTrial(
+  pubkey: string,
+  term: ProTerm
+): Promise<{ created: boolean; view: MembershipView }> {
+  const trialEnd = addDays(new Date(), PRO_NEW_USER_TRIAL_DAYS);
+  const { graceUntil, readonlyUntil } = computeLapseTimeline(
+    trialEnd,
+    PRO_MANUAL_GRACE_DAYS
+  );
+  const created = await grantProTrialIfMissing({
+    pubkey,
+    term,
+    trialEnd,
+    graceUntil,
+    readonlyUntil,
+  });
+  const view = await getMembershipView(pubkey);
+  return { created, view };
 }
 
 /**

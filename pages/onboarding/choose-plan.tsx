@@ -14,7 +14,21 @@ const OnboardingChoosePlan = () => {
 
   const migrate = router.query.migrate as string | undefined;
   const planParam = router.query.plan as string | undefined;
+  const typeParam = router.query.type as string | undefined;
   const [selected, setSelected] = useState<"free" | "pro" | null>(null);
+
+  // Plan selection is for sellers only — shoppers don't have a stall to upgrade.
+  // Fail closed: only an explicit seller flow may stay here. Buyers go straight
+  // to their profile step; anyone else is sent back to pick their account type.
+  useEffect(() => {
+    if (!router.isReady) return;
+    if (typeParam === "seller") return;
+    if (typeParam === "buyer") {
+      router.replace("/onboarding/market-profile?type=buyer");
+    } else {
+      router.replace("/onboarding/user-type");
+    }
+  }, [router, router.isReady, typeParam]);
 
   // Honor a plan intent deep-linked from the landing page (e.g. "Go Pro").
   useEffect(() => {
@@ -57,8 +71,8 @@ const OnboardingChoosePlan = () => {
                 Step 3: Choose Your Plan
               </h2>
               <p className="font-medium text-black">
-                Start free and upgrade anytime, or go Pro now to unlock
-                everything from day one.
+                Start free and upgrade anytime, or try Pro free for 30 days to
+                unlock everything from day one — no payment required.
               </p>
             </div>
 
@@ -100,11 +114,14 @@ const OnboardingChoosePlan = () => {
                 }`}
               >
                 <h3 className="text-xl font-black text-black">Pro</h3>
-                <p className="mb-3">
+                <p className="mb-1">
                   <span className="text-3xl font-black text-black">$21</span>{" "}
                   <span className="text-sm font-medium text-zinc-700">
                     /mo · or $168/yr
                   </span>
+                </p>
+                <p className="mb-3 text-xs font-bold text-green-700">
+                  30-day free trial — no payment required
                 </p>
                 <ul className="space-y-2">
                   {PRO_FEATURES.map((f) => (
@@ -122,9 +139,13 @@ const OnboardingChoosePlan = () => {
 
             {selected === "pro" && (
               <div className="mb-6 rounded-md border-2 border-black bg-gray-50 p-6">
-                <h3 className="mb-4 text-center text-lg font-bold text-black">
-                  Set up your Pro membership
+                <h3 className="mb-2 text-center text-lg font-bold text-black">
+                  Start your Pro membership
                 </h3>
+                <p className="mb-4 text-center text-sm font-medium text-zinc-600">
+                  Pick a plan and start your 30-day free trial — no payment now,
+                  or pay upfront if you prefer.
+                </p>
                 <ProCheckout onComplete={() => continueWith("pro")} />
               </div>
             )}

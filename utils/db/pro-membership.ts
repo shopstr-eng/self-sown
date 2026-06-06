@@ -57,16 +57,25 @@ export async function grantProTrialIfMissing(args: {
   trialEnd: Date;
   graceUntil: Date;
   readonlyUntil: Date;
+  /** The plan the seller picked for their trial, so we know what to charge at
+   * trial end. Optional — the grandfather backfill leaves it null. */
+  term?: ProTerm | null;
 }): Promise<boolean> {
   let client;
   try {
     client = await getDbPool().connect();
     const result = await client.query(
       `INSERT INTO pro_memberships
-         (pubkey, status, trial_end, grace_until, readonly_until)
-       VALUES ($1, 'trialing', $2, $3, $4)
+         (pubkey, status, term, trial_end, grace_until, readonly_until)
+       VALUES ($1, 'trialing', $2, $3, $4, $5)
        ON CONFLICT (pubkey) DO NOTHING`,
-      [args.pubkey, args.trialEnd, args.graceUntil, args.readonlyUntil]
+      [
+        args.pubkey,
+        args.term ?? null,
+        args.trialEnd,
+        args.graceUntil,
+        args.readonlyUntil,
+      ]
     );
     return (result.rowCount ?? 0) > 0;
   } finally {

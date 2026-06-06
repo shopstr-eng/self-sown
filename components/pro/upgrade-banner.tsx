@@ -26,7 +26,9 @@ export default function UpgradeBanner({
   const body =
     membership.isReadOnly || membership.isHidden
       ? "Your Pro plan has lapsed. Re-subscribe to restore your Pro features."
-      : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping, and the MCP API.";
+      : membership.status === "free"
+        ? "Try Pro free for 30 days — no payment required. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API."
+        : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API.";
 
   return (
     <Card className={className} shadow="sm">

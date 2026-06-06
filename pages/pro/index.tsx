@@ -15,9 +15,11 @@ import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
 const ProUpgradePage = () => {
   const router = useRouter();
   const { membership, loading, refresh } = useProMembership();
-  const [completion, setCompletion] = useState<"paid" | "pending" | null>(null);
+  const [completion, setCompletion] = useState<
+    "paid" | "pending" | "trial" | null
+  >(null);
 
-  const handleComplete = (status: "paid" | "pending") => {
+  const handleComplete = (status: "paid" | "pending" | "trial") => {
     setCompletion(status);
     void refresh();
   };
@@ -51,12 +53,16 @@ const ProUpgradePage = () => {
                   <h2 className="mb-2 text-2xl font-bold text-black">
                     {completion === "paid"
                       ? "Welcome to Pro!"
-                      : "Invoice created"}
+                      : completion === "trial"
+                        ? "Your 30-day free trial is active!"
+                        : "Invoice created"}
                   </h2>
                   <p className="mb-6 max-w-md text-sm font-medium text-black">
                     {completion === "paid"
                       ? "Your Pro features are now unlocked. Head to your stall to start customizing."
-                      : "We'll activate Pro as soon as your payment is confirmed. You can keep using your stall in the meantime."}
+                      : completion === "trial"
+                        ? "All Pro features are unlocked for the next 30 days — no payment needed yet. We'll remind you to pay for your plan before the trial ends."
+                        : "We'll activate Pro as soon as your payment is confirmed. You can keep using your stall in the meantime."}
                   </p>
                   <Button
                     className={BLUEBUTTONCLASSNAMES}
@@ -104,6 +110,11 @@ const ProUpgradePage = () => {
                       product pages, Shippo shipping (coming soon), and the MCP
                       API.
                     </p>
+                    {membership.status === "free" && (
+                      <p className="bg-primary-yellow mt-3 inline-block rounded-md border-2 border-black px-3 py-1 text-sm font-bold text-black">
+                        Start with a 30-day free trial — no payment required.
+                      </p>
+                    )}
                   </div>
 
                   <div className="mb-8 grid gap-4 md:grid-cols-2">

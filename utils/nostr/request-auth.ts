@@ -620,6 +620,22 @@ export function buildProCreateSubscriptionProof({
   };
 }
 
+export function buildProStartTrialProof({
+  pubkey,
+  term,
+}: {
+  pubkey: string;
+  term: "monthly" | "yearly";
+}): SignedHttpRequestProof {
+  return {
+    action: "start_pro_trial",
+    method: "POST",
+    path: "/api/pro/start-trial",
+    pubkey,
+    fields: { term },
+  };
+}
+
 export function buildProSyncProof(pubkey: string): SignedHttpRequestProof {
   return {
     action: "sync_pro_subscription",

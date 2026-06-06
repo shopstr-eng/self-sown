@@ -21,7 +21,8 @@ export const PRO_PRICE_CURRENCY = "usd";
 export const PRO_MONTHLY_PRICE_CENTS = 2100; // $21.00 / month
 export const PRO_ANNUAL_PRICE_CENTS = 16800; // $168.00 / year
 
-export const PRO_TRIAL_DAYS = 90; // 3-month grandfathered trial
+export const PRO_TRIAL_DAYS = 90; // 3-month grandfathered trial (pre-existing accounts)
+export const PRO_NEW_USER_TRIAL_DAYS = 30; // 30-day no-payment trial for new sellers
 export const PRO_MANUAL_GRACE_DAYS = 7; // one week to pay a manual invoice
 export const PRO_STRIPE_GRACE_DAYS = 3; // small buffer for dunning/webhook lag
 export const PRO_READONLY_DAYS = 30; // read-only month before hiding

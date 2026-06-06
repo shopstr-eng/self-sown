@@ -920,8 +920,11 @@ export default function StandaloneLanding() {
                 <span className="text-4xl font-black">$21</span>
                 <span className="ml-1 text-zinc-700">/month</span>
               </p>
-              <p className="mb-6 text-sm font-bold text-zinc-700">
+              <p className="mb-2 text-sm font-bold text-zinc-700">
                 or $168/year &mdash; save 33%
+              </p>
+              <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
+                30-day free trial &mdash; no payment required
               </p>
               <ul className="mb-8 space-y-3 text-zinc-800">
                 {PRO_FEATURES.map((feature) => (
@@ -933,7 +936,7 @@ export default function StandaloneLanding() {
               </ul>
               <Link href="/onboarding/new-account?plan=pro" className="mt-auto">
                 <button className={`${BLACKBUTTONCLASSNAMES} w-full`}>
-                  Go Pro
+                  Start 30-Day Free Trial
                 </button>
               </Link>
             </div>
@@ -961,7 +964,7 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. New sellers get a 30-day free trial of Pro — no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
               question="Do I own my customers and store?"
