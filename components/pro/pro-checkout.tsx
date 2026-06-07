@@ -282,7 +282,7 @@ export default function ProCheckout({
           <div className="mb-3 flex items-center gap-2">
             <CheckCircleIcon className="h-6 w-6 text-green-600" />
             <h3 className="text-lg font-bold text-black">
-              Invoice created — ${invoice.amountUsd}
+              Invoice created: ${invoice.amountUsd}
             </h3>
           </div>
           <p className="mb-4 text-sm text-zinc-700">
@@ -311,7 +311,7 @@ export default function ProCheckout({
             onClick={() => onComplete("pending")}
             className={`${BLUEBUTTONCLASSNAMES} mt-4 w-full justify-center`}
           >
-            I&apos;ve sent payment &mdash; continue
+            I&apos;ve sent payment, continue
           </button>
         </div>
       </div>
@@ -365,7 +365,7 @@ export default function ProCheckout({
           </button>
           <p className="mt-2 text-center text-xs font-medium text-zinc-600">
             No payment now. We&apos;ll remind you to pay for your{" "}
-            {term === "yearly" ? "yearly" : "monthly"} plan when the trial ends.
+            {term === "yearly" ? "yearly" : "monthly"} plan once the trial ends.
           </p>
           <div className="mt-4 flex items-center gap-3">
             <div className="h-px flex-1 bg-black/15" />

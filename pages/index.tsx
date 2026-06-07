@@ -84,7 +84,7 @@ function YouTubeCarousel() {
   }
 
   return (
-    <div className="relative max-w-[84vw] overflow-hidden">
+    <div className="relative w-full max-w-full min-w-0 overflow-hidden">
       <div className="animate-scroll flex gap-6 will-change-transform">
         {[...videos, ...videos].map((video, index) => (
           <a
@@ -92,7 +92,7 @@ function YouTubeCarousel() {
             href={`https://www.youtube.com/watch?v=${video.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group shadow-neo block w-80 flex-shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none"
+            className="group shadow-neo block w-64 flex-shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
           >
             <div className="relative aspect-video overflow-hidden">
               <Image
@@ -228,98 +228,97 @@ export default function StandaloneLanding() {
   return (
     <div className="w-full overflow-x-hidden bg-white font-sans text-black">
       {/* Navigation */}
-      <nav className="relative z-20 mx-auto flex max-w-7xl items-center justify-between p-4 md:p-6">
-        <div className="flex items-center space-x-2">
-          <Image
-            src="/milk-market.png"
-            alt="Milk Market logo - local food and artisan marketplace"
-            width={32}
-            height={32}
-            className="h-8 w-8"
-            loading="eager"
-          />
-          <span className="text-xl font-bold">Milk Market</span>
+      <nav className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-3 p-4 md:p-6">
+        <div className="flex min-w-0 items-center gap-x-6">
+          <div className="flex min-w-0 items-center space-x-2">
+            <Image
+              src="/milk-market.png"
+              alt="Milk Market logo - local food and artisan marketplace"
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0"
+              loading="eager"
+            />
+            <span className="hidden truncate text-lg font-bold sm:inline-block sm:text-xl">
+              Milk Market
+            </span>
+          </div>
+
+          <div className="hidden lg:flex lg:items-center lg:space-x-4">
+            <a
+              href="#how-it-works"
+              className="font-bold text-black hover:underline"
+            >
+              How it works
+            </a>
+            <a href="#compare" className="font-bold text-black hover:underline">
+              Compare
+            </a>
+            <a href="#pricing" className="font-bold text-black hover:underline">
+              Pricing
+            </a>
+          </div>
         </div>
 
-        <div className="hidden md:flex md:items-center md:space-x-4">
-          <a
-            href="#how-it-works"
-            className="font-bold text-black hover:underline"
-          >
-            How it works
-          </a>
-          <a href="#compare" className="font-bold text-black hover:underline">
-            Compare
-          </a>
-          <a href="#pricing" className="font-bold text-black hover:underline">
-            Pricing
-          </a>
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <button
-            className={WHITEBUTTONCLASSNAMES}
+            className={`${WHITEBUTTONCLASSNAMES} whitespace-nowrap`}
             onClick={() => setIsSignInOpen(true)}
           >
             Start Selling
           </button>
-          <Link href="/marketplace" className="w-auto">
+          <Link href="/marketplace" className="hidden w-auto lg:block">
             <button className={PRIMARYBUTTONCLASSNAMES}>
               Discover Products
             </button>
           </Link>
-        </div>
 
-        <div className="relative md:hidden">
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="z-50 rounded-md border-2 border-black bg-white p-2"
-          >
-            {isMobileMenuOpen ? (
-              <XMarkIcon className="h-6 w-6 text-black" />
-            ) : (
-              <Bars3Icon className="h-6 w-6 text-black" />
-            )}
-          </button>
-          {isMobileMenuOpen && (
-            <div className="fixed inset-0 top-20 z-40 flex flex-col items-center space-y-6 bg-white pt-10">
-              <a
-                href="#how-it-works"
-                className="text-lg font-bold text-black hover:underline"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                How it works
-              </a>
-              <a
-                href="#compare"
-                className="text-lg font-bold text-black hover:underline"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Compare
-              </a>
-              <a
-                href="#pricing"
-                className="text-lg font-bold text-black hover:underline"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Pricing
-              </a>
-              <button
-                className={WHITEBUTTONCLASSNAMES}
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  setIsSignInOpen(true);
-                }}
-              >
-                Start Selling
-              </button>
-              <Link href="/marketplace" className="block">
-                <button
-                  className={PRIMARYBUTTONCLASSNAMES}
+          <div className="relative lg:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="z-50 rounded-md border-2 border-black bg-white p-2"
+              aria-label="Open menu"
+            >
+              {isMobileMenuOpen ? (
+                <XMarkIcon className="h-6 w-6 text-black" />
+              ) : (
+                <Bars3Icon className="h-6 w-6 text-black" />
+              )}
+            </button>
+            {isMobileMenuOpen && (
+              <div className="fixed inset-0 top-20 z-40 flex flex-col items-center space-y-6 bg-white pt-10">
+                <a
+                  href="#how-it-works"
+                  className="text-lg font-bold text-black hover:underline"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Discover Products
-                </button>
-              </Link>
-            </div>
-          )}
+                  How it works
+                </a>
+                <a
+                  href="#compare"
+                  className="text-lg font-bold text-black hover:underline"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Compare
+                </a>
+                <a
+                  href="#pricing"
+                  className="text-lg font-bold text-black hover:underline"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Pricing
+                </a>
+                <Link href="/marketplace" className="block">
+                  <button
+                    className={PRIMARYBUTTONCLASSNAMES}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Discover Products
+                  </button>
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -370,10 +369,10 @@ export default function StandaloneLanding() {
             For food producers &amp; local artisans
           </span>
 
-          <h1 className="mb-4 text-4xl leading-tight font-black md:text-6xl">
+          <h1 className="mb-4 text-3xl leading-tight font-black break-words sm:text-4xl md:text-6xl">
             Sell local food online,{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10 inline-block rounded-lg border-[3px] border-black bg-black px-4 py-2 text-white">
+            <span className="relative mt-2 inline-block">
+              <span className="relative z-10 inline-block rounded-lg border-[3px] border-black bg-black px-3 py-1.5 text-white sm:px-4 sm:py-2">
                 without the middlemen
               </span>
               <span className="bg-primary-yellow absolute right-[-5px] bottom-[-5px] z-0 h-full w-full rounded-lg border-[3px] border-black"></span>
@@ -381,47 +380,41 @@ export default function StandaloneLanding() {
           </h1>
 
           <p className="mx-auto mb-5 max-w-2xl text-lg font-bold text-zinc-800 md:text-xl">
-            Commerce that flows silky smooth.
+            Commerce that flows milky smooth.
           </p>
 
-          <p className="mx-auto mb-4 max-w-2xl text-lg text-zinc-600">
-            Milk Market is the permissionless marketplace for food producers and
-            local artisans. Open a storefront in minutes, set your own prices,
-            and reach shoppers who want transparent, sustainable food from real
-            people nearby.
-          </p>
-
-          <div className="mb-8 flex flex-wrap items-center justify-center gap-4 text-sm text-zinc-500">
-            <span className="flex items-center gap-1">
-              <span className="text-green-500">&#10003;</span> 0% mandatory fees
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="text-green-500">&#10003;</span> Live in minutes
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="text-green-500">&#10003;</span> You own your
-              customers
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/onboarding/new-account">
+          <div className="mx-auto mt-8 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row">
+            <Link href="/onboarding/new-account" className="w-full sm:w-auto">
               <button
-                className={`${PRIMARYBUTTONCLASSNAMES} px-8 py-4 text-lg`}
+                className={`${PRIMARYBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
                 List your own
               </button>
             </Link>
-            <Link href="/marketplace">
-              <button className={`${WHITEBUTTONCLASSNAMES} px-8 py-4 text-lg`}>
+            <Link href="/marketplace" className="w-full sm:w-auto">
+              <button
+                className={`${WHITEBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
+              >
                 Discover products
               </button>
             </Link>
           </div>
 
           <p className="mt-4 text-sm text-zinc-500">
-            Discover products or list your own &mdash; free to start, no
-            mandatory fees, ever.
+            Discover products or list your own. Free to start, no mandatory
+            fees, ever.
+          </p>
+        </div>
+      </section>
+
+      {/* Intro paragraph */}
+      <section className="border-b-2 border-black bg-white py-12">
+        <div className="mx-auto max-w-3xl px-4 text-center">
+          <p className="text-lg text-zinc-600 md:text-xl">
+            Milk Market is the permissionless marketplace for food producers and
+            local artisans. Open a storefront in minutes, set your own prices,
+            and reach shoppers who want transparent, sustainable food from real
+            people nearby.
           </p>
         </div>
       </section>
@@ -486,7 +479,7 @@ export default function StandaloneLanding() {
               <ul className="space-y-3 text-zinc-700">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Keep what you earn &mdash; 0% mandatory fees, ever
+                  Keep what you earn, with 0% mandatory fees, ever
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
@@ -494,7 +487,8 @@ export default function StandaloneLanding() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Permissionless &mdash; no approvals, no one can deplatform you
+                  Permissionless, with no approvals and no one who can
+                  deplatform you
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
@@ -633,7 +627,7 @@ export default function StandaloneLanding() {
                       Choose what you want
                     </h3>
                     <p className="text-zinc-600">
-                      Shop as a guest or with a secure account &mdash; your data
+                      Shop as a guest or with a secure account, and your data
                       stays private.
                     </p>
                   </div>
@@ -681,8 +675,8 @@ export default function StandaloneLanding() {
               >
                 $17.5 billion in 2022
               </a>
-              , up 25% since 2017 according to the USDA Census of Agriculture
-              &mdash; reflecting surging demand for fresh, traceable food bought
+              , up 25% since 2017 according to the USDA Census of Agriculture.
+              That reflects surging demand for fresh, traceable food bought
               direct from local producers and artisans.
             </p>
           </div>
@@ -702,7 +696,7 @@ export default function StandaloneLanding() {
               <h3 className="mb-2 text-xl font-bold">Own Your Store</h3>
               <p className="text-zinc-600">
                 Built on Nostr, an open and decentralized network. Your
-                customers and storefront are yours &mdash; no one can deplatform
+                customers and storefront are yours, and no one can deplatform
                 you.
               </p>
             </div>
@@ -724,7 +718,7 @@ export default function StandaloneLanding() {
               fresher it is and the more transparent the system is.&rdquo;
             </p>
             <cite className="text-sm font-bold text-black not-italic">
-              &mdash; Joel Salatin,{" "}
+              Joel Salatin,{" "}
               <span className="font-normal italic">
                 Everything I Want To Do Is Illegal
               </span>
@@ -750,22 +744,22 @@ export default function StandaloneLanding() {
           </div>
 
           <div className="shadow-neo overflow-x-auto rounded-lg border-2 border-black bg-white">
-            <table className="w-full min-w-[640px] text-left">
+            <table className="w-full text-left sm:min-w-[640px]">
               <thead>
                 <tr className="border-b-2 border-black">
-                  <th className="p-4 text-sm font-black"></th>
-                  <th className="bg-primary-yellow border-x-2 border-black p-4 text-center text-base font-black">
+                  <th className="p-2 text-xs font-black sm:p-4 sm:text-sm"></th>
+                  <th className="bg-primary-yellow border-x-2 border-black p-2 text-center text-xs font-black sm:p-4 sm:text-base">
                     Milk Market
                   </th>
-                  <th className="p-4 text-center text-base font-bold text-zinc-700">
+                  <th className="p-2 text-center text-xs font-bold text-zinc-700 sm:p-4 sm:text-base">
                     Shopify
                   </th>
-                  <th className="p-4 text-center text-base font-bold text-zinc-700">
+                  <th className="p-2 text-center text-xs font-bold text-zinc-700 sm:p-4 sm:text-base">
                     Barn2Door
                   </th>
                 </tr>
               </thead>
-              <tbody className="text-sm">
+              <tbody className="text-xs sm:text-sm">
                 {[
                   {
                     feature: "Up-front & platform fees",
@@ -786,7 +780,7 @@ export default function StandaloneLanding() {
                     barn: true,
                   },
                   {
-                    feature: "Open & decentralized — you own your store",
+                    feature: "Open & decentralized, so you own your store",
                     mm: true,
                     shopify: false,
                     barn: false,
@@ -798,7 +792,7 @@ export default function StandaloneLanding() {
                     barn: false,
                   },
                   {
-                    feature: "Censorship-resistant — no central shutdown",
+                    feature: "Censorship-resistant, with no central shutdown",
                     mm: true,
                     shopify: false,
                     barn: false,
@@ -812,18 +806,22 @@ export default function StandaloneLanding() {
                   {
                     feature: "AI agent commerce (MCP)",
                     mm: true,
-                    shopify: false,
+                    shopify: true,
                     barn: false,
                   },
                 ].map((row, i) => {
                   const renderCell = (val: boolean | string) => {
                     if (val === true)
                       return (
-                        <span className="text-xl text-green-600">&#10003;</span>
+                        <span className="text-base text-green-600 sm:text-xl">
+                          &#10003;
+                        </span>
                       );
                     if (val === false)
                       return (
-                        <span className="text-xl text-red-400">&#10007;</span>
+                        <span className="text-base text-red-400 sm:text-xl">
+                          &#10007;
+                        </span>
                       );
                     return <span className="font-bold">{val}</span>;
                   };
@@ -834,14 +832,16 @@ export default function StandaloneLanding() {
                         i % 2 === 1 ? "bg-zinc-50" : ""
                       }`}
                     >
-                      <td className="p-4 font-bold">{row.feature}</td>
-                      <td className="bg-primary-yellow/20 border-x-2 border-black p-4 text-center">
+                      <td className="p-2 align-top font-bold sm:p-4">
+                        {row.feature}
+                      </td>
+                      <td className="bg-primary-yellow/20 border-x-2 border-black p-2 text-center align-top sm:p-4">
                         {renderCell(row.mm)}
                       </td>
-                      <td className="p-4 text-center text-zinc-700">
+                      <td className="p-2 text-center align-top text-zinc-700 sm:p-4">
                         {renderCell(row.shopify)}
                       </td>
-                      <td className="p-4 text-center text-zinc-700">
+                      <td className="p-2 text-center align-top text-zinc-700 sm:p-4">
                         {renderCell(row.barn)}
                       </td>
                     </tr>
@@ -921,10 +921,10 @@ export default function StandaloneLanding() {
                 <span className="ml-1 text-zinc-700">/month</span>
               </p>
               <p className="mb-2 text-sm font-bold text-zinc-700">
-                or $168/year &mdash; save 33%
+                or $168/year, save 33%
               </p>
               <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
-                30-day free trial &mdash; no payment required
+                30-day free trial, no payment required
               </p>
               <ul className="mb-8 space-y-3 text-zinc-800">
                 {PRO_FEATURES.map((feature) => (
@@ -964,7 +964,7 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. New sellers get a 30-day free trial of Pro — no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. New sellers get a 30-day free trial of Pro, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
               question="Do I own my customers and store?"
@@ -1020,7 +1020,7 @@ export default function StandaloneLanding() {
             </p>
           </div>
 
-          <div className="flex items-center justify-center">
+          <div className="flex w-full min-w-0 items-center justify-center">
             <YouTubeCarousel />
           </div>
 
@@ -1142,22 +1142,24 @@ export default function StandaloneLanding() {
       <section className="relative z-10 bg-black py-16 text-white">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="mb-6 text-3xl font-black md:text-4xl">
-            Commerce that flows silky smooth
+            Commerce that flows milky smooth
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-300">
             Join the movement building a transparent, sustainable, and
             decentralized food system. Discover products or list your own.
           </p>
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/onboarding/new-account">
+          <div className="mx-auto flex w-full max-w-md flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row">
+            <Link href="/onboarding/new-account" className="w-full sm:w-auto">
               <button
-                className={`${PRIMARYBUTTONCLASSNAMES} px-8 py-4 text-lg`}
+                className={`${PRIMARYBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
                 List your own
               </button>
             </Link>
-            <Link href="/marketplace">
-              <button className={`${WHITEBUTTONCLASSNAMES} px-8 py-4 text-lg`}>
+            <Link href="/marketplace" className="w-full sm:w-auto">
+              <button
+                className={`${WHITEBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
+              >
                 Discover products
               </button>
             </Link>
@@ -1201,7 +1203,7 @@ export default function StandaloneLanding() {
               <span className="text-xl font-bold">Milk Market</span>
             </div>
             <p className="mb-6 text-lg font-bold">
-              Commerce that flows silky smooth. Join the movement.
+              Rearchitecting the food system. Freeing the food.
             </p>
             <div className="mb-6 flex flex-wrap items-center justify-center gap-6">
               <Link href="/about" className="text-sm hover:underline">

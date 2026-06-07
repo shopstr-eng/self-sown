@@ -208,7 +208,7 @@ const ProMembershipSection = () => {
               <p className="text-sm text-gray-600">
                 Upgrade to Pro for advanced storefronts, custom domains, email
                 flows, custom product pages, shipping (coming soon), and the MCP
-                API. Start with a 30-day free trial — no payment required.
+                API. Start with a 30-day free trial, no payment required.
               </p>
             </div>
             <Button
@@ -324,8 +324,8 @@ const ProMembershipSection = () => {
               </div>
             ) : history.length === 0 ? (
               <p className="text-sm text-gray-600">
-                No charges yet. Your trial doesn&apos;t include a payment —
-                receipts will appear here after your first paid term.
+                No charges yet. Your trial doesn&apos;t include a payment.
+                Receipts will appear here after your first paid term.
               </p>
             ) : (
               <div className="overflow-x-auto">

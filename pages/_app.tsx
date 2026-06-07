@@ -1624,8 +1624,8 @@ function MilkMarket({ props }: { props: AppProps }) {
                                   setSelectedSection={setSelectedSection}
                                 />
                               )}
-                            <div className="flex">
-                              <main className="flex-1">
+                            <div className="flex w-full min-w-0">
+                              <main className="min-w-0 flex-1">
                                 <CustomDomainProvider
                                   value={domainState.isCustomDomain}
                                   isResolved={domainState.isResolved}

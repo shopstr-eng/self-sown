@@ -72,7 +72,7 @@ const OnboardingChoosePlan = () => {
               </h2>
               <p className="font-medium text-black">
                 Start free and upgrade anytime, or try Pro free for 30 days to
-                unlock everything from day one — no payment required.
+                unlock everything from day one, with no payment required.
               </p>
             </div>
 
@@ -121,7 +121,7 @@ const OnboardingChoosePlan = () => {
                   </span>
                 </p>
                 <p className="mb-3 text-xs font-bold text-green-700">
-                  30-day free trial — no payment required
+                  30-day free trial, no payment required
                 </p>
                 <ul className="space-y-2">
                   {PRO_FEATURES.map((f) => (
@@ -143,7 +143,7 @@ const OnboardingChoosePlan = () => {
                   Start your Pro membership
                 </h3>
                 <p className="mb-4 text-center text-sm font-medium text-zinc-600">
-                  Pick a plan and start your 30-day free trial — no payment now,
+                  Pick a plan and start your 30-day free trial. No payment now,
                   or pay upfront if you prefer.
                 </p>
                 <ProCheckout onComplete={() => continueWith("pro")} />
@@ -165,7 +165,7 @@ const OnboardingChoosePlan = () => {
                 onClick={() => continueWith("free")}
                 className="text-sm font-bold text-black underline hover:text-gray-700"
               >
-                Skip for now &mdash; I&apos;ll decide later
+                Skip for now, I&apos;ll decide later
               </button>
             </div>
           </CardBody>

@@ -27,7 +27,7 @@ export default function UpgradeBanner({
     membership.isReadOnly || membership.isHidden
       ? "Your Pro plan has lapsed. Re-subscribe to restore your Pro features."
       : membership.status === "free"
-        ? "Try Pro free for 30 days — no payment required. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API."
+        ? "Try Pro free for 30 days, no payment required. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API."
         : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API.";
 
   return (

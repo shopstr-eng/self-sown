@@ -61,7 +61,7 @@ const ProUpgradePage = () => {
                     {completion === "paid"
                       ? "Your Pro features are now unlocked. Head to your stall to start customizing."
                       : completion === "trial"
-                        ? "All Pro features are unlocked for the next 30 days — no payment needed yet. We'll remind you to pay for your plan before the trial ends."
+                        ? "All Pro features are unlocked for the next 30 days, with no payment needed yet. We'll remind you to pay for your plan before the trial ends."
                         : "We'll activate Pro as soon as your payment is confirmed. You can keep using your stall in the meantime."}
                   </p>
                   <Button
@@ -112,7 +112,7 @@ const ProUpgradePage = () => {
                     </p>
                     {membership.status === "free" && (
                       <p className="bg-primary-yellow mt-3 inline-block rounded-md border-2 border-black px-3 py-1 text-sm font-bold text-black">
-                        Start with a 30-day free trial — no payment required.
+                        Start with a 30-day free trial, no payment required.
                       </p>
                     )}
                   </div>

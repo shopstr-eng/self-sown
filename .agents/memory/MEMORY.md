@@ -23,3 +23,4 @@
 - [Stripe webhook claim release](stripe-webhook-claim-release.md) — claimStripeEvent permanently dedups; release the claim in catch on handler failure or Stripe's retry is silently dropped.
 - [Membership extension atomicity](membership-extension-atomicity.md) — stack paid time in one SQL stmt from GREATEST(now, current end), never read-modify-write, or concurrent settles drop a term.
 - [ON CONFLICT granters need a created flag](conflict-insert-created-flag.md) — one-time INSERT...ON CONFLICT DO NOTHING grants must return whether a row was created; gate success UI on it, not on a 200, or stale clients fake the grant.
+- [Landing mobile "overflow"](landing-mobile-overflow.md) — globals force body overflow-x:hidden, so overflow complaints = fixed-width clipping; cap carousel cards at w-[min(20rem,calc(100vw-Xrem))] like the storefront social section.
