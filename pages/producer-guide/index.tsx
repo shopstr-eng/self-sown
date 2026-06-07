@@ -53,7 +53,7 @@ const ProducerGuidePage = () => {
     },
     {
       id: "step-1",
-      label: "Step 1",
+      label: "Step 1: Account",
       threads: [
         { id: "step-1-1", label: "1.1 Sign In Modal" },
         { id: "step-1-2", label: "1.2 Keys Page" },
@@ -63,32 +63,52 @@ const ProducerGuidePage = () => {
     },
     {
       id: "step-2",
-      label: "Step 2",
-      threads: [
-        { id: "step-2-1", label: "2.1 Listing Password" },
-        { id: "step-2-2", label: "2.2 Product Details" },
-        { id: "step-2-3", label: "2.3 Pickup Details" },
-        { id: "step-2-4", label: "2.4 List Product" },
-      ],
+      label: "Step 2: Membership",
+      threads: [],
     },
     {
       id: "step-3",
-      label: "Step 3",
+      label: "Step 3: List Product",
       threads: [
-        { id: "step-3-1", label: "3.1 Fiat Order Chat" },
-        { id: "step-3-2", label: "3.2 Bitcoin Order Chat" },
-        { id: "step-3-3", label: "3.3 Payment Redemption" },
-        { id: "step-3-4", label: "3.4 Wallet Page" },
+        { id: "step-3-1", label: "3.1 Listing Password" },
+        { id: "step-3-2", label: "3.2 Product Details" },
+        { id: "step-3-3", label: "3.3 Pickup Details" },
+        { id: "step-3-4", label: "3.4 List Product" },
       ],
     },
     {
       id: "step-4",
-      label: "Step 4",
+      label: "Step 4: Orders",
       threads: [
-        { id: "step-4-1", label: "4.1 Update Listings" },
-        { id: "step-4-2", label: "4.2 Build Relationships" },
-        { id: "step-4-3", label: "4.3 Share Story" },
-        { id: "step-4-4", label: "4.4 Network Growth" },
+        { id: "step-4-1", label: "4.1 Fiat Order Chat" },
+        { id: "step-4-2", label: "4.2 Bitcoin Order Chat" },
+        { id: "step-4-3", label: "4.3 Payment Redemption" },
+        { id: "step-4-4", label: "4.4 Wallet Page" },
+      ],
+    },
+    {
+      id: "step-5",
+      label: "Step 5: Storefront",
+      threads: [],
+    },
+    {
+      id: "step-6",
+      label: "Step 6: Email Flows",
+      threads: [],
+    },
+    {
+      id: "step-7",
+      label: "Step 7: AI Agents (MCP)",
+      threads: [],
+    },
+    {
+      id: "step-8",
+      label: "Step 8: Grow",
+      threads: [
+        { id: "step-8-1", label: "8.1 Update Listings" },
+        { id: "step-8-2", label: "8.2 Build Relationships" },
+        { id: "step-8-3", label: "8.3 Share Story" },
+        { id: "step-8-4", label: "8.4 Network Growth" },
       ],
     },
   ];
@@ -138,9 +158,9 @@ const ProducerGuidePage = () => {
           and transactions and protects your wealth over time. Payment
           processors like Stripe, PayPal, etc. can freeze your funds, close your
           account, or even ban you for selling products they don&apos;t deem
-          acceptable (which raw milk and dairy can easily fall under). If
-          desired, you can exchange it for cash or other currencies at your own
-          pace using tools like{" "}
+          acceptable (which local food like raw milk and dairy can easily fall
+          under). If desired, you can exchange it for cash or other currencies
+          at your own pace using tools like{" "}
           <a
             href="https://cash.app/bitcoin"
             target="_blank"
@@ -230,12 +250,10 @@ const ProducerGuidePage = () => {
           name="viewport"
           content="width=device-width, initial-scale=1, maximum-scale=1"
         />
-        <title>
-          Producer Guide - Milk Market | Start Selling Farm-Fresh Dairy Products
-        </title>
+        <title>Producer Guide - Milk Market | Start Selling Local Food</title>
         <meta
           name="description"
-          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling raw milk and dairy products directly to customers using the permissionless marketplace."
+          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling local food — from raw milk and dairy to meat, eggs, produce, and baked goods — directly to customers using the permissionless marketplace."
         />
         <link rel="canonical" href="https://milk.market/producer-guide" />
         <link rel="apple-touch-icon" href="/milk-market.png" />
@@ -244,11 +262,11 @@ const ProducerGuidePage = () => {
         <meta property="og:type" content="website" />
         <meta
           property="og:title"
-          content="Producer Guide - Milk Market | Start Selling Farm-Fresh Dairy Products"
+          content="Producer Guide - Milk Market | Start Selling Local Food"
         />
         <meta
           property="og:description"
-          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling raw milk and dairy products directly to customers using the permissionless marketplace."
+          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling local food — from raw milk and dairy to meat, eggs, produce, and baked goods — directly to customers using the permissionless marketplace."
         />
         <meta property="og:image" content="/milk-market.png" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -259,16 +277,16 @@ const ProducerGuidePage = () => {
         />
         <meta
           name="twitter:title"
-          content="Producer Guide - Milk Market | Start Selling Farm-Fresh Dairy Products"
+          content="Producer Guide - Milk Market | Start Selling Local Food"
         />
         <meta
           name="twitter:description"
-          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling raw milk and dairy products directly to customers using the permissionless marketplace."
+          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling local food — from raw milk and dairy to meat, eggs, produce, and baked goods — directly to customers using the permissionless marketplace."
         />
         <meta name="twitter:image" content="/milk-market.png" />
         <meta
           name="keywords"
-          content="milk market producer guide, sell raw dairy, sell farm-fresh dairy, bitcoin payments, nostr marketplace, dairy producer, farm to consumer, direct sales, raw milk sales"
+          content="milk market producer guide, sell local food, sell raw milk and dairy, bitcoin payments, nostr marketplace, local food producer, farm to consumer, direct sales, decentralized food"
         />
       </Head>
       <div className="min-h-screen bg-white">
@@ -350,8 +368,9 @@ const ProducerGuidePage = () => {
                   Producer Guide
                 </h1>
                 <p className="text-primary-blue mx-auto max-w-3xl text-lg">
-                  Learn how to start selling your raw dairy products and other
-                  goods on Milk Market.
+                  Learn how to start selling your local food and goods on Milk
+                  Market &mdash; from raw milk and dairy to meat, eggs, produce,
+                  baked goods, honey, and handmade goods.
                 </p>
               </div>
             </div>
@@ -457,7 +476,7 @@ const ProducerGuidePage = () => {
                     },
                     {
                       src: "/shop-page.png",
-                      alt: "Customizable farm shop page for displaying dairy products",
+                      alt: "Customizable shop page for displaying local food products",
                       step: "1.4",
                     },
                   ].map((image, idx) => (
@@ -484,24 +503,81 @@ const ProducerGuidePage = () => {
                 id="step-2"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+                  <div className="flex items-start gap-4 lg:flex-1">
+                    <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                      2
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="mb-2 text-2xl font-bold text-white">
+                        Choose Your Membership
+                      </h3>
+                      <p className="mb-4 text-base text-white">
+                        Selling is free with unlimited listings and no mandatory
+                        transaction fees. Upgrade to Pro whenever you want a
+                        fully custom storefront and pro tools.
+                      </p>
+                      <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                        <li>
+                          Start free with unlimited listings, your seller
+                          profile, Stripe payouts, discount codes, and affiliate
+                          tools
+                        </li>
+                        <li>
+                          Go Pro for $21/month (or $168/year, saving 33%) to
+                          unlock advanced storefronts, custom domains, email
+                          flows, custom product pages, shipping labels (coming
+                          soon), and AI agent (MCP) access
+                        </li>
+                        <li>
+                          New sellers get a 30-day free trial of Pro with no
+                          payment required up front
+                        </li>
+                        <li>
+                          We&apos;ll remind you to pay for your selected plan
+                          before the trial ends &mdash; you can stay on free
+                          anytime
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center lg:w-1/2">
+                    <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
+                      <h3 className="mb-1 text-xl font-bold text-black">
+                        30-Day Free Trial
+                      </h3>
+                      <p className="text-sm text-zinc-700">
+                        Try every Pro feature free for 30 days &mdash; no
+                        payment required to start.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div
+                id="step-3"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                    2
+                    3
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
                       List Your First Product
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Create detailed product listings that showcase your dairy
+                      Create detailed product listings that showcase your
                       products and attract customers.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                      <li id="step-2-1">
+                      <li id="step-3-1">
                         Navigate to &ldquo;My Listings&rdquo; and click
                         &ldquo;Add Product&rdquo;
                       </li>
-                      <li id="step-2-2">
+                      <li id="step-3-2">
                         Enter the listing passphrase{" "}
                         <span className="inline-flex items-center">
                           if this is your first product{" "}
@@ -520,8 +596,8 @@ const ProducerGuidePage = () => {
                           />
                         </span>
                       </li>
-                      <li id="step-2-3">Upload clear product photos</li>
-                      <li id="step-2-4">
+                      <li id="step-3-3">Upload clear product photos</li>
+                      <li id="step-3-4">
                         Write detailed descriptions and set pricing and/or
                         volume pricing
                       </li>
@@ -536,23 +612,23 @@ const ProducerGuidePage = () => {
                   {[
                     {
                       src: "/listing-password-modal.png",
-                      alt: "Listing passphrase verification for trusted dairy producers",
-                      step: "2.1",
+                      alt: "Listing passphrase verification for trusted local food producers",
+                      step: "3.1",
                     },
                     {
                       src: "/product-details-form.png",
-                      alt: "Product listing form for raw milk, cheese, and dairy with pricing options",
-                      step: "2.2",
+                      alt: "Product listing form for local food with pricing options",
+                      step: "3.2",
                     },
                     {
                       src: "/pickup-and-volume-details.png",
-                      alt: "Pickup location and volume pricing configuration for farm products",
-                      step: "2.3",
+                      alt: "Pickup location and volume pricing configuration for local food products",
+                      step: "3.3",
                     },
                     {
                       src: "/list-product-with-passphrase.png",
-                      alt: "Publishing a new dairy product listing to the Milk Market marketplace",
-                      step: "2.4",
+                      alt: "Publishing a new product listing to the Milk Market marketplace",
+                      step: "3.4",
                     },
                   ].map((image, idx) => (
                     <div
@@ -573,14 +649,14 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 3 */}
+              {/* Step 4 */}
               <div
-                id="step-3"
+                id="step-4"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                    3
+                    4
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
@@ -591,15 +667,15 @@ const ProducerGuidePage = () => {
                       messaging system.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                      <li id="step-3-1">
+                      <li id="step-4-1">
                         Monitor the &ldquo;Orders&rdquo; section for new
                         messages
                       </li>
-                      <li id="step-3-2">
+                      <li id="step-4-2">
                         Respond promptly to customer inquiries
                       </li>
-                      <li id="step-3-3">Coordinate pickup/delivery details</li>
-                      <li id="step-3-4">
+                      <li id="step-4-3">Coordinate pickup/delivery details</li>
+                      <li id="step-4-4">
                         Process payments{" "}
                         <span className="inline-flex items-center">
                           according to your preferences{" "}
@@ -627,23 +703,23 @@ const ProducerGuidePage = () => {
                   {[
                     {
                       src: "/fiat-order-chat.png",
-                      alt: "Encrypted chat interface for processing fiat dairy orders",
-                      step: "3.1",
+                      alt: "Encrypted chat interface for processing fiat local food orders",
+                      step: "4.1",
                     },
                     {
                       src: "/bitcoin-order-chat.png",
-                      alt: "Bitcoin Lightning payment order chat with dairy customer",
-                      step: "3.2",
+                      alt: "Bitcoin Lightning payment order chat with a customer",
+                      step: "4.2",
                     },
                     {
                       src: "/bitcoin-payment-redemption-modal.png",
-                      alt: "Redeeming Bitcoin Cashu payment from dairy product sale",
-                      step: "3.3",
+                      alt: "Redeeming Bitcoin Cashu payment from a product sale",
+                      step: "4.3",
                     },
                     {
                       src: "/wallet-page.png",
-                      alt: "Milk Market wallet showing Bitcoin and Cashu balance for dairy sales",
-                      step: "3.4",
+                      alt: "Milk Market wallet showing Bitcoin and Cashu balance for sales",
+                      step: "4.4",
                     },
                   ].map((image, idx) => (
                     <div
@@ -664,15 +740,125 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 4 */}
+              {/* Step 5 */}
               <div
-                id="step-4"
+                id="step-5"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    5
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
+                      Customize Your Storefront
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Pro
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Make your stall your own with a fully branded storefront
+                      that you control.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>Pick your own colors, fonts, and theme</li>
+                      <li>
+                        Arrange your shop with the page builder and custom
+                        product pages
+                      </li>
+                      <li>Connect your own custom domain (self-serve)</li>
+                      <li>
+                        Set your SEO and social sharing (OpenGraph) previews
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 6 */}
+              <div
+                id="step-6"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    6
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
+                      Automate Your Email Flows
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Pro
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Stay in touch with buyers automatically so you never miss
+                      a follow-up.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>
+                        Send automated welcome, follow-up, and re-engagement
+                        emails
+                      </li>
+                      <li>
+                        Build multi-step flows that trigger on customer actions
+                      </li>
+                      <li>Customize the copy and timing for each message</li>
+                      <li>
+                        Unsubscribe handling is built in for every contact
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 7 */}
+              <div
+                id="step-7"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    7
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
+                      Connect AI Agents with MCP
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Pro
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Open your store to AI shopping agents through the Model
+                      Context Protocol (MCP) API.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>
+                        Create API keys with read, purchase, or write permission
+                        levels
+                      </li>
+                      <li>
+                        Let agents browse your listings and check live inventory
+                      </li>
+                      <li>
+                        Enable agentic checkout so AI buyers can purchase
+                        directly
+                      </li>
+                      <li>Manage and revoke access anytime from settings</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 8 */}
+              <div
+                id="step-8"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
                     <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                      4
+                      8
                     </div>
                     <div className="flex-1">
                       <h3 className="mb-2 text-2xl font-bold text-white">
@@ -683,16 +869,16 @@ const ProducerGuidePage = () => {
                         the Milk Market community.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                        <li id="step-4-1">
+                        <li id="step-8-1">
                           Regularly update your product listings
                         </li>
-                        <li id="step-4-2">
+                        <li id="step-8-2">
                           Engage with customers and build relationships
                         </li>
-                        <li id="step-4-3">
-                          Share your farm story and practices
+                        <li id="step-8-3">
+                          Share your story and growing practices
                         </li>
-                        <li id="step-4-4">Leverage the Milk Market network</li>
+                        <li id="step-8-4">Leverage the Milk Market network</li>
                       </ul>
                     </div>
                   </div>
@@ -751,7 +937,10 @@ const ProducerGuidePage = () => {
               </h2>
               <p className="mb-6 text-base text-white">
                 Join the growing community of producers providing fresh, local
-                dairy products directly to consumers.
+                food &mdash; from raw milk and dairy to meat, eggs, and produce
+                &mdash; directly to consumers. Selling is free with unlimited
+                listings, and new sellers get a 30-day free trial of Pro &mdash;
+                no payment required up front.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button

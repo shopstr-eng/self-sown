@@ -15,7 +15,7 @@ export default function AboutPage() {
         <title>About Milk Market - Our Mission & Story</title>
         <meta
           name="description"
-          content="Milk Market is a decentralized marketplace connecting local dairy farmers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers."
+          content="Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers."
         />
         <link rel="canonical" href="https://milk.market/about" />
         <meta
@@ -24,7 +24,7 @@ export default function AboutPage() {
         />
         <meta
           property="og:description"
-          content="Milk Market is a decentralized marketplace connecting local dairy farmers directly with consumers. Learn about our mission for food sovereignty."
+          content="Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty."
         />
         <meta property="og:url" content="https://milk.market/about" />
         <meta
@@ -38,7 +38,7 @@ export default function AboutPage() {
         />
         <meta
           name="twitter:description"
-          content="Decentralized marketplace connecting local dairy farmers directly with consumers. Zero platform fees."
+          content="Decentralized marketplace connecting local food producers directly with consumers. Zero platform fees."
         />
         <script
           type="application/ld+json"
@@ -49,7 +49,7 @@ export default function AboutPage() {
               name: "About Milk Market",
               url: "https://milk.market/about",
               description:
-                "Milk Market is a decentralized marketplace connecting local dairy farmers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers.",
+                "Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers.",
               mainEntity: {
                 "@type": "Organization",
                 name: "Milk Market",
@@ -57,12 +57,12 @@ export default function AboutPage() {
                 logo: "https://milk.market/milk-market.png",
                 foundingDate: "2024",
                 description:
-                  "Decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero mandatory platform fees, direct payments via Bitcoin and traditional methods.",
+                  "Decentralized, permissionless marketplace connecting local food producers directly with consumers. Zero mandatory platform fees, direct payments via Bitcoin and traditional methods.",
                 founder: {
                   "@type": "Person",
                   name: "Milk Market Team",
                   description:
-                    "Advocates for food sovereignty and direct farm-to-consumer commerce, with expertise in decentralized marketplace technology and dairy supply chains.",
+                    "Advocates for food sovereignty and direct farm-to-consumer commerce, with expertise in decentralized marketplace technology and local food supply chains.",
                 },
                 areaServed: {
                   "@type": "Country",
@@ -103,9 +103,10 @@ export default function AboutPage() {
             <h2 className="mb-4 text-2xl font-black">Our Mission</h2>
             <p className="mb-4 text-lg text-zinc-700">
               Milk Market exists to restore the direct connection between local
-              dairy farmers and the people they feed. We believe everyone
-              deserves access to fresh, high-quality dairy products without
-              middlemen inflating prices or dictating what you can buy.
+              food producers and the people they feed. We believe everyone
+              deserves access to fresh, high-quality food &mdash; from raw milk
+              and dairy to meat, eggs, and produce &mdash; without middlemen
+              inflating prices or dictating what you can buy.
             </p>
             <p className="mb-4 text-lg text-zinc-700">
               According to the{" "}
@@ -137,7 +138,7 @@ export default function AboutPage() {
           <section className="shadow-neo mb-12 rounded-lg border-2 border-black bg-zinc-50 p-8">
             <h2 className="mb-4 text-2xl font-black">Why We Built This</h2>
             <p className="mb-4 text-zinc-700">
-              The modern dairy supply chain is broken. Large processors and
+              The modern food supply chain is broken. Large processors and
               retailers capture most of the value, while small farmers struggle
               to survive and consumers pay premium prices for products that may
               be weeks old. The{" "}
@@ -167,9 +168,13 @@ export default function AboutPage() {
             <p className="text-zinc-700">
               Milk Market solves this by creating a permissionless marketplace
               where farmers list products, set their own prices, and keep their
-              earnings. There are no mandatory platform fees &mdash; farmers can
-              optionally elect a donation rate to support the site, but
-              it&apos;s always their choice. No gatekeepers. No middlemen.
+              earnings. There are no mandatory platform fees or per-sale
+              commissions &mdash; farmers can optionally elect a donation rate
+              to support the site, but it&apos;s always their choice. Selling is
+              free with unlimited listings, and an optional Pro plan ($21/month
+              or $168/year, with a 30-day free trial for new sellers) unlocks
+              advanced tools like custom domains and automated email. No
+              gatekeepers. No middlemen.
             </p>
           </section>
 
@@ -181,9 +186,11 @@ export default function AboutPage() {
               <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                 <h3 className="mb-2 text-xl font-bold">No Mandatory Fees</h3>
                 <p className="text-zinc-600">
-                  There are no mandatory platform fees. Farmers can elect an
-                  optional donation rate to give back to the site if they wish,
-                  but every sale defaults to 100% going to the farmer.
+                  There are no mandatory platform fees or per-sale commissions.
+                  Farmers can elect an optional donation rate to give back to
+                  the site if they wish, but every sale defaults to 100% going
+                  to the farmer. An optional Pro plan adds advanced tools for
+                  sellers who want them.
                 </p>
               </div>
               <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
@@ -232,8 +239,8 @@ export default function AboutPage() {
               </li>
               <li>
                 <strong>Agricultural economics</strong> &mdash; Understanding
-                the challenges facing small-scale dairy farmers in the modern
-                supply chain
+                the challenges facing small-scale farmers and food producers in
+                the modern supply chain
               </li>
               <li>
                 <strong>Privacy engineering</strong> &mdash; Commitment to
@@ -245,16 +252,16 @@ export default function AboutPage() {
               </li>
             </ul>
             <p className="text-zinc-700">
-              We are headquartered in the greater Seattle area and serve dairy
-              farms and consumers across the United States, with plans to expand
-              internationally.
+              We are headquartered in the greater Seattle area and serve farms,
+              food producers, and consumers across the United States, with plans
+              to expand internationally.
             </p>
           </section>
 
           <section className="mb-12">
             <h2 className="mb-4 text-2xl font-black">Industry Context</h2>
             <p className="mb-4 text-zinc-700">
-              The direct-to-consumer dairy movement is accelerating. Key
+              The direct-to-consumer local food movement is accelerating. Key
               statistics:
             </p>
             <div className="grid gap-4 md:grid-cols-3">
@@ -310,7 +317,7 @@ export default function AboutPage() {
             <h2 className="mb-4 text-2xl font-black">Ready to Get Started?</h2>
             <p className="mb-6 text-zinc-300">
               Whether you&apos;re a farmer looking to sell or a consumer seeking
-              fresh local dairy, Milk Market is here for you.
+              fresh local food, Milk Market is here for you.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link href="/marketplace">

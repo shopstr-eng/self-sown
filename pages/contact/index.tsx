@@ -26,7 +26,7 @@ export default function ContactPage() {
         <title>Contact Milk Market - Get in Touch</title>
         <meta
           name="description"
-          content="Contact the Milk Market team for questions about our farm-fresh dairy marketplace. Reach us by email, social media, or Nostr. We're here to help farmers and buyers connect."
+          content="Contact the Milk Market team for questions about our local food marketplace. Reach us by email, social media, or Nostr. We're here to help farmers and buyers connect."
         />
         <meta
           property="og:title"
@@ -34,7 +34,7 @@ export default function ContactPage() {
         />
         <meta
           property="og:description"
-          content="Contact the Milk Market team for questions about our farm-fresh dairy marketplace."
+          content="Contact the Milk Market team for questions about our local food marketplace."
         />
         <meta
           property="og:image"
@@ -376,7 +376,7 @@ export default function ContactPage() {
                 </p>
               </div>
               <div>
-                <h3 className="font-bold">Want to browse local dairy?</h3>
+                <h3 className="font-bold">Want to browse local food?</h3>
                 <p className="text-sm text-zinc-600">
                   Head to the{" "}
                   <Link

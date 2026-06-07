@@ -46,6 +46,11 @@ export default function PrivacyPolicy() {
         "As a permissionless platform, users maintain full control over their: private keys and funds, product listings, relay selections, communication preferences, and local data storage. You can delete local data at any time through your browser settings. Note that due to the nature of distributed systems, messages and listings published to Nostr relays may persist on those relays according to their individual data retention policies.",
     },
     {
+      title: "Pro Subscriptions & Email Notifications",
+      content:
+        "Optional features require limited data handling. If you subscribe to the Pro plan, payments are processed by Stripe (for card payments) or settled via Bitcoin/manual invoice; Stripe handles your payment details under its own privacy policy and we never store full card numbers. If you sign in with an email address or opt into order and lifecycle notifications, your email is used to deliver transactional messages via our email provider (SendGrid) and is not sold or shared for marketing. You can opt out of non-essential emails via the unsubscribe link.",
+    },
+    {
       title: "Changes to Privacy Policy",
       content:
         "Any updates to this privacy policy will be posted on this page. As a permissionless platform, fundamental changes to data handling are unlikely as the platform operates on open protocols with minimal central coordination.",

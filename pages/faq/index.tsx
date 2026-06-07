@@ -56,14 +56,24 @@ export default function Faq() {
             "To start selling, you'll simply need to: 1) Sign in with your email, Google account, or existing Nostr keys, 2) Set up your profile in settings, 3) List your products with descriptions and images, 4) Start receiving orders!",
         },
         {
+          title: "How much does it cost to sell?",
+          content:
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent (MCP) access. You can set an optional donation rate to support the platform, but that's always your choice.",
+        },
+        {
+          title: "Is there a free trial of Pro?",
+          content:
+            "Yes. New sellers get a 30-day free trial of Pro with no payment required up front. All Pro features are unlocked for the trial period, and we'll remind you to pay for your selected plan before the trial ends. You can stay on the free plan at any time.",
+        },
+        {
           title: "What types of items can I sell?",
           content:
-            "Milk Market supports various product types related to raw milk and dairy. Each listing should clearly indicate the category and any shipping requirements.",
+            "Milk Market supports a wide range of local food and goods — raw milk and dairy, meat, eggs, produce, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
         },
         {
           title: "How does shipping work?",
           content:
-            "Vendors can offer different shipping options including free shipping, local pickup, or an added shipping cost. The shipping method and any restrictions should be clearly specified in each listing and fulfillment will be handled by the merchant themselves.",
+            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Pro feature coming soon.",
         },
       ],
     },
@@ -164,7 +174,7 @@ export default function Faq() {
         <title>FAQ - Milk Market | Frequently Asked Questions</title>
         <meta
           name="description"
-          content="Get answers to common questions about Milk Market, the permissionless marketplace for raw dairy products. Learn about payments, selling, account setup, and privacy features."
+          content="Get answers to common questions about Milk Market, the permissionless marketplace for local food. Learn about payments, selling, account setup, and privacy features."
         />
         <link rel="apple-touch-icon" href="/milk-market.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
@@ -175,7 +185,7 @@ export default function Faq() {
         />
         <meta
           property="og:description"
-          content="Get answers to common questions about Milk Market, the permissionless marketplace for raw dairy products. Learn about payments, selling, account setup, and privacy features."
+          content="Get answers to common questions about Milk Market, the permissionless marketplace for local food. Learn about payments, selling, account setup, and privacy features."
         />
         <meta property="og:image" content="/milk-market.png" />
         <meta
@@ -184,12 +194,12 @@ export default function Faq() {
         />
         <meta
           name="twitter:description"
-          content="Get answers to common questions about Milk Market, the permissionless marketplace for raw dairy products. Learn about payments, selling, account setup, and privacy features."
+          content="Get answers to common questions about Milk Market, the permissionless marketplace for local food. Learn about payments, selling, account setup, and privacy features."
         />
         <meta name="twitter:image" content="/milk-market.png" />
         <meta
           name="keywords"
-          content="milk market, FAQ, raw dairy, farm-fresh dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce"
+          content="milk market, FAQ, local food, raw dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, decentralized food"
         />
         <script
           type="application/ld+json"

@@ -51,7 +51,12 @@ export default function Tos() {
         "Any disputes must be resolved directly between buyers and sellers. We encourage users to communicate clearly and honestly. The platform's review system helps create accountability in the marketplace, but Milk Market cannot enforce resolutions or provide refunds.",
     },
     {
-      title: "10. Modifications",
+      title: "10. Pro Subscription",
+      content:
+        "Selling on Milk Market is free with unlimited listings and no mandatory transaction fees. The optional Pro plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent/MCP access) for $21/month or $168/year. New sellers receive a 30-day free trial with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Subscription payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law.",
+    },
+    {
+      title: "11. Modifications",
       content:
         "These terms may be updated periodically. Users are responsible for reviewing changes. Continued use of Milk Market constitutes acceptance of current terms.",
     },
