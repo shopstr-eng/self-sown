@@ -232,6 +232,10 @@ const DynamicHead = ({
   const faviconUrl = ssrFavicon || customDomainShopLogo || "/milk-market.ico";
   const appleTouchIconUrl =
     ssrFavicon || customDomainShopLogo || "/milk-market.png";
+  // Only advertise the SVG favicon on the default (un-branded) Milk Market
+  // chrome. Custom stalls/domains set their own logo as the favicon, so we must
+  // not add an SVG icon that browsers might prefer over the seller's brand.
+  const useDefaultFavicon = !ssrFavicon && !customDomainShopLogo;
 
   // OG/Twitter facets that describe the storefront itself. When SSR ogMeta is
   // present (custom stalls + custom domains) these come from the seller's
@@ -256,6 +260,14 @@ const DynamicHead = ({
       <title>{metaTags.title}</title>
       <meta name="description" content={metaTags.description} />
       <link rel="canonical" href={metaTags.url} key="canonical" />
+      {useDefaultFavicon && (
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          key="favicon-svg"
+          href="/favicon.svg"
+        />
+      )}
       <link rel="icon" key="favicon" href={faviconUrl} />
       <link
         rel="apple-touch-icon"

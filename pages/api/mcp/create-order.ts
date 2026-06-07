@@ -21,6 +21,7 @@ import {
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { issueMacaroon, setL402Challenge, buildL402Body } from "@/utils/l402";
 
 // MCP create-order is on the payment critical path; the per-IP cap is
 // generous so a buyer cannot accidentally lock themselves out across
@@ -594,6 +595,14 @@ async function handleLightningPayment(
       emailOptions
     );
 
+    // L402: attach the standard WWW-Authenticate challenge so agents that
+    // speak the L402 protocol can discover how to pay this 402. The macaroon
+    // binds the challenge to this order; settlement is confirmed via the mint
+    // quote in verify-payment. See /.well-known/l402.json.
+    const macaroon = issueMacaroon(orderId, amountInSats);
+    const l402 = { macaroon, invoice: mintQuote.request };
+    setL402Challenge(res, l402);
+
     return res.status(402).json({
       status: "payment_required",
       message:
@@ -614,6 +623,7 @@ async function handleLightningPayment(
             "Once the invoice is paid, the order status will update to confirmed",
         },
       },
+      l402: buildL402Body(l402),
       pricing: pricingBlock,
     });
   } catch (error) {

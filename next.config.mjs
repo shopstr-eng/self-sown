@@ -106,6 +106,22 @@ const nextConfig = {
           source: "/sitemap.xml",
           destination: "/api/sitemap.xml",
         },
+        {
+          source: "/rss.xml",
+          destination: "/api/rss.xml",
+        },
+        {
+          source: "/feed.xml",
+          destination: "/api/rss.xml",
+        },
+        {
+          source: "/openapi.json",
+          destination: "/api/openapi.json",
+        },
+        {
+          source: "/.well-known/agent.json",
+          destination: "/api/.well-known/agent.json",
+        },
       ],
       fallback: [],
     };
