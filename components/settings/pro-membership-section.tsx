@@ -42,9 +42,10 @@ function formatDate(iso: string | null): string | null {
 }
 
 function planLabel(membership: MembershipView): string {
-  if (membership.term === "yearly") return "Pro · Yearly";
-  if (membership.term === "monthly") return "Pro · Monthly";
-  return "Pro";
+  if (membership.isLifetime) return "Wrangler · Lifetime";
+  if (membership.term === "yearly") return "Herd · Yearly";
+  if (membership.term === "monthly") return "Herd · Monthly";
+  return "Herd";
 }
 
 function formatMoney(amountCents: number, currency: string): string {
@@ -75,9 +76,10 @@ function formatCoverage(
   return `${startStr} – ${endStr}`;
 }
 
-function termLabel(term: ProBillingHistoryItem["term"]): string {
-  if (term === "yearly") return "Yearly";
-  if (term === "monthly") return "Monthly";
+function termLabel(item: ProBillingHistoryItem): string {
+  if (item.lifetime) return "Lifetime";
+  if (item.term === "yearly") return "Yearly";
+  if (item.term === "monthly") return "Monthly";
   return "—";
 }
 
@@ -94,6 +96,9 @@ function statusDescription(membership: MembershipView): string {
   const graceUntil = formatDate(membership.graceUntil);
   const readonlyUntil = formatDate(membership.readonlyUntil);
 
+  if (membership.isLifetime) {
+    return "Your Wrangler lifetime access never expires. You keep every Herd feature for good — no renewals, no payments.";
+  }
   if (membership.isTrialing) {
     return trialEnd
       ? `Your free trial is active until ${trialEnd}.`
@@ -111,16 +116,16 @@ function statusDescription(membership: MembershipView): string {
   }
   if (membership.status === "grace") {
     return graceUntil
-      ? `Your last payment didn't go through. Pro features stay active until ${graceUntil} while we retry.`
-      : "Your last payment didn't go through. Update billing to keep Pro features.";
+      ? `Your last payment didn't go through. Herd features stay active until ${graceUntil} while we retry.`
+      : "Your last payment didn't go through. Update billing to keep Herd features.";
   }
   if (membership.isReadOnly) {
     return readonlyUntil
-      ? `Your Pro plan has lapsed. Your shop stays live but locked for editing until ${readonlyUntil}. Re-subscribe to restore Pro.`
-      : "Your Pro plan has lapsed. Re-subscribe to restore Pro features.";
+      ? `Your Herd plan has lapsed. Your shop stays live but locked for editing until ${readonlyUntil}. Re-subscribe to restore Herd.`
+      : "Your Herd plan has lapsed. Re-subscribe to restore Herd features.";
   }
   if (membership.isHidden) {
-    return "Your Pro plan has lapsed and your Pro content is hidden. Re-subscribe to restore it.";
+    return "Your Herd plan has lapsed and your Herd content is hidden. Re-subscribe to restore it.";
   }
   return "";
 }
@@ -170,7 +175,7 @@ const ProMembershipSection = () => {
       await cancel();
       setShowCancelModal(false);
       setSuccessText(
-        "Your membership has been canceled. You'll keep your Pro features until the end of the current billing period."
+        "Your membership has been canceled. You'll keep your Herd features until the end of the current billing period."
       );
       setShowSuccessModal(true);
     } catch (error) {
@@ -206,16 +211,17 @@ const ProMembershipSection = () => {
                 You&apos;re on the Free plan
               </p>
               <p className="text-sm text-gray-600">
-                Upgrade to Pro for advanced storefronts, custom domains, email
+                Upgrade to Herd for advanced storefronts, custom domains, email
                 flows, custom product pages, shipping (coming soon), and the MCP
-                API. Start with a 30-day free trial, no payment required.
+                API. Start with a 30-day free trial, no payment required — or go
+                Wrangler for one-time lifetime access.
               </p>
             </div>
             <Button
               className={`${BLUEBUTTONCLASSNAMES} shrink-0`}
               onClick={() => router.push("/pro")}
             >
-              Upgrade to Pro
+              Upgrade to Herd
             </Button>
           </CardBody>
         </Card>
@@ -225,6 +231,7 @@ const ProMembershipSection = () => {
     const description = statusDescription(membership);
     const canCancel =
       membership.isPro &&
+      !membership.isLifetime &&
       membership.billingMethod === "stripe" &&
       !membership.cancelAtPeriodEnd;
     const showResubscribe = membership.isReadOnly || membership.isHidden;
@@ -236,22 +243,32 @@ const ProMembershipSection = () => {
             <span className="text-lg font-bold text-black">
               {planLabel(membership)}
             </span>
-            <ProBadge variant={membership.isTrialing ? "trial" : "active"} />
+            <ProBadge
+              variant={
+                membership.isLifetime
+                  ? "lifetime"
+                  : membership.isTrialing
+                    ? "trial"
+                    : "active"
+              }
+            />
           </div>
 
           {description && (
             <p className="text-sm text-gray-700">{description}</p>
           )}
 
-          {membership.billingMethod === "manual" && membership.isPro && (
-            <div className="flex items-start gap-2 text-sm text-gray-600">
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
-              <p>
-                Your membership is paid manually (Bitcoin or fiat). Renew from
-                the Pro page before it expires to keep your features.
-              </p>
-            </div>
-          )}
+          {membership.billingMethod === "manual" &&
+            membership.isPro &&
+            !membership.isLifetime && (
+              <div className="flex items-start gap-2 text-sm text-gray-600">
+                <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <p>
+                  Your membership is paid manually (Bitcoin or fiat). Renew from
+                  the plans page before it expires to keep your features.
+                </p>
+              </div>
+            )}
 
           <div className="flex flex-wrap gap-3">
             {canCancel && (
@@ -263,7 +280,7 @@ const ProMembershipSection = () => {
                 Cancel membership
               </Button>
             )}
-            {showResubscribe ? (
+            {membership.isLifetime ? null : showResubscribe ? (
               <Button
                 className={BLUEBUTTONCLASSNAMES}
                 onClick={() => router.push("/pro")}
@@ -359,7 +376,7 @@ const ProMembershipSection = () => {
                           {formatMoney(item.amountCents, item.currency)}
                         </td>
                         <td className="py-2 pr-4 text-black">
-                          {termLabel(item.term)}
+                          {termLabel(item)}
                         </td>
                         <td className="py-2 pr-4 text-black">
                           {methodLabel(item.method)}
@@ -434,11 +451,11 @@ const ProMembershipSection = () => {
       >
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1 font-bold text-black">
-            Cancel Pro membership?
+            Cancel Herd membership?
           </ModalHeader>
           <ModalBody className="text-black">
             <p>
-              Your Pro features will stay active until the end of your current
+              Your Herd features will stay active until the end of your current
               billing period
               {formatDate(membership.currentPeriodEnd)
                 ? ` (${formatDate(membership.currentPeriodEnd)})`

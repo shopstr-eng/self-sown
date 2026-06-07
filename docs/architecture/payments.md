@@ -16,6 +16,15 @@
 - **Pending payments & failures**: `stripe_pending_payments` (`utils/stripe/pending-payments.ts`); webhook updates status. Failures email both parties (`sendPaymentFailedToBuyer`/`Seller`); transfer failures alert admin (`sendTransferFailureAlert`).
 - **Cron cleanup** (`pages/api/stripe/cron-cleanup.ts`, gated by `FLOW_PROCESSOR_SECRET`): prunes `stripe_processed_events` >45d and terminal `stripe_pending_payments` (`succeeded`/`failed_terminal`/`abandoned`) >30d. Active rows preserved.
 
+### Runbook — lifetime member with a stuck recurring subscription
+
+When a seller buys lifetime (Wrangler) access while holding a recurring Herd subscription, we cancel the old subscription best-effort at purchase (`cancelExistingProSubscription`) and auto-retry on every later subscription webhook (`applyStripeSubscriptionToMembership`'s lifetime guard, both in `utils/pro/membership.ts`). If Stripe cancellation keeps failing, the seller could be charged for one more cycle before a retry succeeds — and a truly wedged subscription would never clear on its own.
+
+- **Detect**: every cancel attempt emits a structured log line tagged `[pro_lifetime_lingering_subscription_cancel]` with a JSON payload (`event: "pro_lifetime_lingering_subscription_cancel"`, `outcome: attempt | success | failure`, `source: purchase | renewal_webhook`, `pubkey`, `subscriptionId`, and `error` on failure). Filter logs for that tag (or `"outcome":"failure"`) to surface persistent failures. A `pubkey` showing repeated `failure` outcomes with no following `success` is stuck and needs manual intervention.
+- **Alert**: on any cancel `failure`, an admin alert email is sent automatically (`sendProLifetimeLingeringCancelAlert`, mirroring `sendTransferFailureAlert`) with the `pubkey`, `subscriptionId`, failure source, and last error so you don't have to be watching logs. Recipient resolves to the SendGrid verified `from_email` (the operator's own mailbox). The alert is rate-limited to once per day per subscription via a `pro_settings` key `lifetime_lingering_cancel_alert:<subscriptionId>` (timestamp written only after a mail actually sends, so a transient mail failure still re-alerts on the next webhook retry), so a single wedged subscription can't spam an alert on every renewal webhook.
+- **Confirm**: in the Stripe Dashboard, look up the `subscriptionId` from the log line and verify it's still `active`/`past_due` (i.e. not already canceled by a retry).
+- **Resolve**: cancel the subscription immediately in the Stripe Dashboard (Subscriptions → the sub → Cancel, "immediately"), or via API `stripe.subscriptions.cancel(<subscriptionId>)`. The lifetime grant already nulled `stripe_subscription_id` in our DB, so no DB change is needed — this only stops the live recurring charge at Stripe. If the seller was already wrongly charged for an extra cycle, issue a refund from the Dashboard.
+
 ## Donations (platform fee)
 
 - **Field**: Sellers' donation percent lives in Nostr profile JSON under `mm_donation` (was `shopstr_donation` upstream). Defaults to 2.1% when absent. Profile form writes only `mm_donation` and strips stale `shopstr_donation`.

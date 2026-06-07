@@ -6,6 +6,7 @@ import {
   settleProManualInvoiceAtomic,
 } from "@/utils/db/pro-membership";
 import {
+  cancelExistingProSubscription,
   getMembershipView,
   sendProManualReceiptEmail,
 } from "@/utils/pro/membership";
@@ -43,6 +44,13 @@ export default async function handler(
     const invoice = await getProManualInvoice(invoiceId);
     if (!invoice) {
       return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    // A lifetime (Wrangler) purchase replaces any recurring Herd subscription —
+    // cancel it before the settle clears the stored subscription id, so the
+    // seller is never charged again. Best-effort; retries are idempotent.
+    if (invoice.lifetime) {
+      await cancelExistingProSubscription(invoice.pubkey);
     }
 
     // Atomic + idempotent: confirming an already-settled invoice is a no-op,

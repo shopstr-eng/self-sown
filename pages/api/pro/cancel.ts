@@ -61,8 +61,8 @@ export default async function handler(
       ...view,
       message:
         membership.billing_method === "manual"
-          ? "Your manual Pro plan won't renew. Access continues until the current period ends."
-          : "Your Pro subscription will end when the current period ends.",
+          ? "Your manual Herd plan won't renew. Access continues until the current period ends."
+          : "Your Herd subscription will end when the current period ends.",
     });
   } catch (error) {
     console.error("pro cancel failed:", error);

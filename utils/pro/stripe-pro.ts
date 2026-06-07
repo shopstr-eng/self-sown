@@ -12,6 +12,8 @@ import {
   PRO_ANNUAL_LOOKUP_KEY,
   PRO_MONTHLY_LOOKUP_KEY,
   PRO_PRICE_CURRENCY,
+  WRANGLER_LIFETIME_LOOKUP_KEY,
+  WRANGLER_LIFETIME_PRICE_CENTS,
   proPriceCents,
   type ProTerm,
 } from "@/utils/pro/constants";
@@ -63,7 +65,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
     const product = await withStripeRetry(() =>
       stripe.products.create(
         {
-          name: "Milk Market Pro",
+          name: "Milk Market Herd",
           metadata: { mm_pro: "true" },
         },
         { idempotencyKey: stableIdempotencyKey("pro-product", { v: 1 }) }
@@ -83,6 +85,62 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
         metadata: { mm_pro: "true", term },
       },
       { idempotencyKey: stableIdempotencyKey("pro-price", { key }) }
+    )
+  );
+  return price.id;
+}
+
+/**
+ * Find-or-create the one-time "Wrangler" lifetime Price on the platform
+ * account. Non-recurring, $1,050. Keyed by a stable `lookup_key` and attached
+ * to the same "Milk Market Pro" product so it shows up alongside the recurring
+ * Herd prices. Mirrors `ensureProPrice` minus the `recurring` field.
+ */
+export async function ensureWranglerLifetimePrice(): Promise<string> {
+  const stripe = getProStripe();
+  const key = WRANGLER_LIFETIME_LOOKUP_KEY;
+
+  const existing = await withStripeRetry(() =>
+    stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
+  );
+  if (existing.data[0]) return existing.data[0].id;
+
+  let productId: string | null = null;
+  try {
+    const products = await withStripeRetry(() =>
+      stripe.products.search({
+        query: "metadata['mm_pro']:'true'",
+        limit: 1,
+      })
+    );
+    productId = products.data[0]?.id ?? null;
+  } catch {
+    productId = null;
+  }
+
+  if (!productId) {
+    const product = await withStripeRetry(() =>
+      stripe.products.create(
+        {
+          name: "Milk Market Herd",
+          metadata: { mm_pro: "true" },
+        },
+        { idempotencyKey: stableIdempotencyKey("pro-product", { v: 1 }) }
+      )
+    );
+    productId = product.id;
+  }
+
+  const price = await withStripeRetry(() =>
+    stripe.prices.create(
+      {
+        product: productId!,
+        unit_amount: WRANGLER_LIFETIME_PRICE_CENTS,
+        currency: PRO_PRICE_CURRENCY,
+        lookup_key: key,
+        metadata: { mm_pro: "true", lifetime: "true" },
+      },
+      { idempotencyKey: stableIdempotencyKey("wrangler-price", { key }) }
     )
   );
   return price.id;

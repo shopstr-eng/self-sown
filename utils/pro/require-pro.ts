@@ -11,7 +11,7 @@ import type { NextApiResponse } from "next";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
 
 export const PRO_REQUIRED_MESSAGE =
-  "This feature requires an active Pro membership.";
+  "This feature requires an active Herd membership.";
 
 /**
  * Reject the request with 403 + a clear message unless `pubkey` is currently

@@ -658,17 +658,37 @@ export function buildProManualInvoiceProof({
   pubkey,
   term,
   method,
+  lifetime,
 }: {
   pubkey: string;
-  term: "monthly" | "yearly";
+  // Omitted for a lifetime (Wrangler) invoice.
+  term?: "monthly" | "yearly";
   method: "bitcoin" | "fiat";
+  // Set true for a one-time lifetime invoice. Undefined fields are omitted from
+  // the proof, so existing monthly/yearly requests sign identically (no break).
+  lifetime?: boolean;
 }): SignedHttpRequestProof {
   return {
     action: "create_pro_invoice",
     method: "POST",
     path: "/api/pro/manual-invoice",
     pubkey,
-    fields: { term, method },
+    fields: {
+      ...(term ? { term } : {}),
+      method,
+      ...(lifetime ? { lifetime: "true" } : {}),
+    },
+  };
+}
+
+export function buildProCreateLifetimeProof(
+  pubkey: string
+): SignedHttpRequestProof {
+  return {
+    action: "create_pro_lifetime",
+    method: "POST",
+    path: "/api/pro/create-lifetime",
+    pubkey,
   };
 }
 

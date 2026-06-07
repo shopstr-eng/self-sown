@@ -20,6 +20,10 @@ export type MembershipStatus =
 export const PRO_PRICE_CURRENCY = "usd";
 export const PRO_MONTHLY_PRICE_CENTS = 2100; // $21.00 / month
 export const PRO_ANNUAL_PRICE_CENTS = 16800; // $168.00 / year
+// "Wrangler" lifetime tier: a one-time charge that grants the Herd (Pro)
+// feature set forever. Internally still part of the "pro" entitlement.
+export const WRANGLER_LIFETIME_PRICE_CENTS = 105000; // $1,050.00 one-time
+export const WRANGLER_LIFETIME_PRICE_USD = WRANGLER_LIFETIME_PRICE_CENTS / 100;
 
 export const PRO_TRIAL_DAYS = 90; // 3-month grandfathered trial (pre-existing accounts)
 export const PRO_NEW_USER_TRIAL_DAYS = 30; // 30-day no-payment trial for new sellers
@@ -30,6 +34,8 @@ export const PRO_READONLY_DAYS = 30; // read-only month before hiding
 // Stripe Price lookup keys (find-or-create on the platform account).
 export const PRO_MONTHLY_LOOKUP_KEY = "milkmarket_pro_monthly_v1";
 export const PRO_ANNUAL_LOOKUP_KEY = "milkmarket_pro_annual_v1";
+// One-time price for the Wrangler lifetime tier (non-recurring).
+export const WRANGLER_LIFETIME_LOOKUP_KEY = "milkmarket_wrangler_lifetime_v1";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -81,6 +87,9 @@ export interface ProMembershipRow {
   pubkey: string;
   billing_method: ProBillingMethod | null;
   term: ProTerm | null;
+  // Wrangler lifetime grant: when true the membership never expires and the
+  // lapse timeline (period/grace/readonly) is ignored.
+  lifetime?: boolean;
   status: string;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
@@ -107,6 +116,8 @@ export interface MembershipView {
   isReadOnly: boolean; // content live but locked for editing
   isHidden: boolean; // content hidden from the public
   isPubliclyVisible: boolean; // anything except hidden
+  // Wrangler lifetime member — entitled forever, no renewal/lapse dates.
+  isLifetime: boolean;
   billingMethod: ProBillingMethod | null;
   term: ProTerm | null;
   trialEnd: string | null;
@@ -130,6 +141,8 @@ export interface ProBillingHistoryItem {
   amountCents: number;
   currency: string; // lowercase ISO code, e.g. "usd"
   term: ProTerm | null;
+  // One-time Wrangler lifetime purchase (no term).
+  lifetime?: boolean;
   method: ProBillingHistoryMethod;
   // The coverage window this charge actually paid for (ISO timestamps). For
   // manual renewals this stacks from the prior period end (early renewals

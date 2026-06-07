@@ -72,8 +72,8 @@ export async function runProLifecycle(
       if (trialEnd > 0 && trialEnd - nowMs <= TRIAL_ENDING_WINDOW_MS) {
         await notifySeller(row.pubkey, {
           column: "trial_reminder_sent_at",
-          subject: "Your Milk Market Pro trial is ending soon",
-          body: "Your free Milk Market Pro trial ends soon. Subscribe to keep your Pro features (custom storefront, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API) active.",
+          subject: "Your Milk Market Herd trial is ending soon",
+          body: "Your free Milk Market Herd trial ends soon. Subscribe to keep your Herd features (custom storefront, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API) active.",
         });
         result.trialEndingNotices += 1;
       }
@@ -84,8 +84,8 @@ export async function runProLifecycle(
     if (status === "grace" && !row.due_reminder_sent_at) {
       await notifySeller(row.pubkey, {
         column: "due_reminder_sent_at",
-        subject: "Action needed: your Milk Market Pro payment is overdue",
-        body: "Your Milk Market Pro plan has lapsed. Pay now to avoid your Pro features becoming read-only. If you don't pay, they'll go read-only soon and be hidden a month later.",
+        subject: "Action needed: your Milk Market Herd payment is overdue",
+        body: "Your Milk Market Herd plan has lapsed. Pay now to avoid your Herd features becoming read-only. If you don't pay, they'll go read-only soon and be hidden a month later.",
       });
       result.dueNotices += 1;
       continue;
@@ -95,8 +95,8 @@ export async function runProLifecycle(
     if (status === "readonly" && !row.readonly_notice_sent_at) {
       await notifySeller(row.pubkey, {
         column: "readonly_notice_sent_at",
-        subject: "Your Milk Market Pro features are now read-only",
-        body: "Your Milk Market Pro plan is still unpaid, so your Pro features are now read-only. They'll stay visible for one month, then be hidden from the public. Re-subscribe to unlock editing again.",
+        subject: "Your Milk Market Herd features are now read-only",
+        body: "Your Milk Market Herd plan is still unpaid, so your Herd features are now read-only. They'll stay visible for one month, then be hidden from the public. Re-subscribe to unlock editing again.",
       });
       result.readonlyNotices += 1;
       continue;
@@ -106,8 +106,8 @@ export async function runProLifecycle(
     if (status === "hidden" && !row.hidden_notice_sent_at) {
       await notifySeller(row.pubkey, {
         column: "hidden_notice_sent_at",
-        subject: "Your Milk Market Pro features are now hidden",
-        body: "Your Milk Market Pro plan stayed unpaid, so your Pro features are now hidden from the public. Re-subscribe anytime to restore them.",
+        subject: "Your Milk Market Herd features are now hidden",
+        body: "Your Milk Market Herd plan stayed unpaid, so your Herd features are now hidden from the public. Re-subscribe anytime to restore them.",
       });
       result.hiddenNotices += 1;
       continue;

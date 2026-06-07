@@ -87,6 +87,7 @@ function makeMembership(
     graceUntil: null,
     readonlyUntil: null,
     cancelAtPeriodEnd: false,
+    isLifetime: false,
     ...overrides,
   };
 }

@@ -58,12 +58,12 @@ export default function Faq() {
         {
           title: "How much does it cost to sell?",
           content:
-            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent (MCP) access. You can set an optional donation rate to support the platform, but that's always your choice.",
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
         },
         {
-          title: "Is there a free trial of Pro?",
+          title: "Is there a free trial of Herd?",
           content:
-            "Yes. New sellers get a 30-day free trial of Pro with no payment required up front. All Pro features are unlocked for the trial period, and we'll remind you to pay for your selected plan before the trial ends. You can stay on the free plan at any time.",
+            "Yes. New sellers get a 30-day free trial of Herd with no payment required up front. All Herd features are unlocked for the trial period, and we'll remind you to pay for your selected plan before the trial ends. You can stay on the free plan at any time.",
         },
         {
           title: "What types of items can I sell?",
@@ -73,7 +73,7 @@ export default function Faq() {
         {
           title: "How does shipping work?",
           content:
-            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Pro feature coming soon.",
+            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Herd feature coming soon.",
         },
       ],
     },

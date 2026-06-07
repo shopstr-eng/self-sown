@@ -7,6 +7,7 @@ import { getDbPool } from "@/utils/db/db-service";
 import {
   PRO_MANUAL_GRACE_DAYS,
   PRO_READONLY_DAYS,
+  type ProBillingMethod,
   type ProManualMethod,
   type ProMembershipRow,
   type ProTerm,
@@ -228,6 +229,83 @@ export async function applyProManualState(args: {
   }
 }
 
+// Grant (or upgrade to) a Wrangler lifetime membership in one atomic upsert.
+// Sets `lifetime = TRUE` and status 'active', clears the term and all reminder
+// bookkeeping, and preserves an existing Stripe customer id when the new grant
+// doesn't carry one (e.g. a manual lifetime layered over a prior card sub).
+// Used by both the Stripe one-time webhook and (inline, see settle) the manual
+// rail. Lifetime never lapses, so no period/grace/readonly timeline is written.
+const LIFETIME_GRANT_SQL = `
+  INSERT INTO pro_memberships
+    (pubkey, billing_method, term, lifetime, status, stripe_customer_id,
+     cancel_at_period_end, updated_at)
+  VALUES ($1, $2, NULL, TRUE, 'active', $3, FALSE, now())
+  ON CONFLICT (pubkey) DO UPDATE SET
+    billing_method = EXCLUDED.billing_method,
+    term = NULL,
+    lifetime = TRUE,
+    status = 'active',
+    stripe_customer_id =
+      COALESCE(EXCLUDED.stripe_customer_id, pro_memberships.stripe_customer_id),
+    stripe_subscription_id = NULL,
+    current_period_end = NULL,
+    grace_until = NULL,
+    readonly_until = NULL,
+    cancel_at_period_end = FALSE,
+    trial_reminder_sent_at = NULL,
+    due_reminder_sent_at = NULL,
+    readonly_notice_sent_at = NULL,
+    hidden_notice_sent_at = NULL,
+    updated_at = now()`;
+
+// Supersede any still-open (pending) manual invoices for a seller once a
+// lifetime (Wrangler) grant takes effect. Cancelling them stops further
+// polling/settlement (so a stale Herd invoice can't stack a paid term on top of
+// lifetime), the past-due expiry sweep, and any invoice-driven reminders. Only
+// touches 'pending' rows, so historical paid/expired/canceled rows are left
+// untouched. Callers must run this BEFORE locking the pro_memberships row so the
+// membership lock is always acquired last (see lock-ordering note below).
+const CANCEL_PENDING_MANUAL_INVOICES_SQL = `
+  UPDATE pro_manual_invoices
+     SET status = 'canceled', updated_at = now()
+   WHERE pubkey = $1 AND status = 'pending'`;
+
+export async function grantLifetimeMembership(args: {
+  pubkey: string;
+  billingMethod: ProBillingMethod;
+  customerId?: string | null;
+}): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    // Grant lifetime and cancel any in-flight Herd invoices in one transaction
+    // so we never end up granted-but-still-billable (or vice versa).
+    // Lock ordering: cancel the invoice rows FIRST, then upsert the membership
+    // row LAST. The non-lifetime settle path also locks the invoice row before
+    // the membership row, so keeping membership last across every path avoids a
+    // lock-order cycle (and Postgres deadlock) under concurrent settle/grant.
+    await client.query("BEGIN");
+    await client.query(CANCEL_PENDING_MANUAL_INVOICES_SQL, [args.pubkey]);
+    await client.query(LIFETIME_GRANT_SQL, [
+      args.pubkey,
+      args.billingMethod,
+      args.customerId ?? null,
+    ]);
+    await client.query("COMMIT");
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        // ignore rollback failure; original error is rethrown below
+      }
+    }
+    throw err;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 /**
  * Atomically extend a manual membership in a single statement. The new period
  * stacks from GREATEST(now, current_period_end, trial_end) so two invoices
@@ -330,6 +408,37 @@ export async function settleProManualInvoiceAtomic(args: {
     if (invoice.status !== "pending" && invoice.status !== "paid") {
       await client.query("ROLLBACK");
       return { outcome: "not_settleable", invoice };
+    }
+
+    // Wrangler lifetime invoice: grant lifetime access (no term to stack) and
+    // stamp the invoice paid with no coverage window — all in this transaction.
+    if (invoice.lifetime) {
+      // Lock ordering (see grantLifetimeMembership): touch the invoice rows
+      // first, grant the membership LAST, so the pro_memberships lock is always
+      // acquired after invoice locks and can't form a deadlock cycle with a
+      // concurrent settle. Cancel OTHER still-open invoices for this seller
+      // (exclude the one we're settling — it's still 'pending' at this point and
+      // about to become 'paid' below).
+      await client.query(
+        `UPDATE pro_manual_invoices
+            SET status = 'canceled', updated_at = now()
+          WHERE pubkey = $1 AND status = 'pending' AND invoice_id <> $2`,
+        [invoice.pubkey, args.invoiceId]
+      );
+      await client.query(
+        `UPDATE pro_manual_invoices
+           SET status = 'paid',
+               paid_at = COALESCE(paid_at, now()),
+               membership_applied_at = now(),
+               coverage_start = NULL,
+               coverage_end = NULL,
+               updated_at = now()
+         WHERE invoice_id = $1`,
+        [args.invoiceId]
+      );
+      await client.query(LIFETIME_GRANT_SQL, [invoice.pubkey, "manual", null]);
+      await client.query("COMMIT");
+      return { outcome: "settled", invoice };
     }
 
     const termInterval = invoice.term === "yearly" ? "1 year" : "1 month";
@@ -439,7 +548,10 @@ export interface ProManualInvoiceRow {
   id: number;
   invoice_id: string;
   pubkey: string;
-  term: ProTerm;
+  // Null for a Wrangler lifetime invoice (see `lifetime`).
+  term: ProTerm | null;
+  // One-time lifetime purchase rather than a renewable term.
+  lifetime: boolean;
   method: ProManualMethod;
   amount_usd_cents: number;
   amount_sats: number | null;
@@ -462,7 +574,9 @@ export interface ProManualInvoiceRow {
 export async function createProManualInvoice(args: {
   invoiceId: string;
   pubkey: string;
-  term: ProTerm;
+  // Null when `lifetime` is true (one-time Wrangler purchase).
+  term: ProTerm | null;
+  lifetime?: boolean;
   method: ProManualMethod;
   amountUsdCents: number;
   amountSats?: number | null;
@@ -476,14 +590,15 @@ export async function createProManualInvoice(args: {
     client = await getDbPool().connect();
     const result = await client.query(
       `INSERT INTO pro_manual_invoices
-         (invoice_id, pubkey, term, method, amount_usd_cents, amount_sats,
-          bolt11, verify_url, payment_hash, status, due_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10)
+         (invoice_id, pubkey, term, lifetime, method, amount_usd_cents,
+          amount_sats, bolt11, verify_url, payment_hash, status, due_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
        RETURNING *`,
       [
         args.invoiceId,
         args.pubkey,
         args.term,
+        args.lifetime ?? false,
         args.method,
         args.amountUsdCents,
         args.amountSats ?? null,

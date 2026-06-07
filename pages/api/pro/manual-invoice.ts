@@ -13,13 +13,16 @@ import {
   PRO_MANUAL_GRACE_DAYS,
   proPriceCents,
   proPriceUsd,
+  WRANGLER_LIFETIME_PRICE_CENTS,
+  WRANGLER_LIFETIME_PRICE_USD,
 } from "@/utils/pro/constants";
 import { createProManualInvoice } from "@/utils/db/pro-membership";
 import { createPlatformBitcoinInvoice } from "@/utils/pro/lightning-pro";
 
 // Issue a manual Pro invoice (one week to pay). Bitcoin invoices route to the
 // Milk Market Lightning address and auto-verify; fiat returns the platform's
-// payment handles and is confirmed by an operator.
+// payment handles and is confirmed by an operator. Pass `lifetime: true`
+// (instead of a term) for a one-time Wrangler lifetime purchase.
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -35,17 +38,24 @@ export default async function handler(
   )
     return;
 
-  const { pubkey, term, method } = req.body || {};
-  if (!pubkey || !isProTerm(term) || !isProManualMethod(method)) {
+  const { pubkey, term, method, lifetime } = req.body || {};
+  const isLifetime = lifetime === true || lifetime === "true";
+  if (
+    !pubkey ||
+    !isProManualMethod(method) ||
+    (!isLifetime && !isProTerm(term))
+  ) {
     return res.status(400).json({
       error:
-        "pubkey, a valid term (monthly|yearly), and method (bitcoin|fiat) are required",
+        "pubkey, method (bitcoin|fiat), and either a valid term (monthly|yearly) or lifetime are required",
     });
   }
 
   const verification = verifySignedHttpRequestProof(
     extractSignedEventFromRequest(req),
-    buildProManualInvoiceProof({ pubkey, term, method })
+    buildProManualInvoiceProof(
+      isLifetime ? { pubkey, method, lifetime: true } : { pubkey, term, method }
+    )
   );
   if (!verification.ok) {
     return res.status(verification.status).json({ error: verification.error });
@@ -53,14 +63,20 @@ export default async function handler(
 
   try {
     const invoiceId = `pmi_${randomBytes(12).toString("hex")}`;
-    const amountUsdCents = proPriceCents(term);
-    const amountUsd = proPriceUsd(term);
+    const amountUsdCents = isLifetime
+      ? WRANGLER_LIFETIME_PRICE_CENTS
+      : proPriceCents(term);
+    const amountUsd = isLifetime
+      ? WRANGLER_LIFETIME_PRICE_USD
+      : proPriceUsd(term);
+    const invoiceTerm = isLifetime ? null : term;
+    const planLabel = isLifetime ? "Wrangler (lifetime)" : `Herd (${term})`;
     const dueAt = addDays(new Date(), PRO_MANUAL_GRACE_DAYS);
 
     if (method === "bitcoin") {
       const invoice = await createPlatformBitcoinInvoice(
         amountUsd,
-        `Milk Market Pro (${term})`
+        `Milk Market ${planLabel}`
       );
       if (!invoice) {
         return res
@@ -71,7 +87,8 @@ export default async function handler(
       await createProManualInvoice({
         invoiceId,
         pubkey,
-        term,
+        term: invoiceTerm,
+        lifetime: isLifetime,
         method,
         amountUsdCents,
         amountSats: invoice.sats,
@@ -84,7 +101,8 @@ export default async function handler(
       return res.status(200).json({
         invoiceId,
         method,
-        term,
+        term: invoiceTerm,
+        lifetime: isLifetime,
         amountUsd,
         amountSats: invoice.sats,
         bolt11: invoice.bolt11,
@@ -97,7 +115,8 @@ export default async function handler(
     await createProManualInvoice({
       invoiceId,
       pubkey,
-      term,
+      term: invoiceTerm,
+      lifetime: isLifetime,
       method,
       amountUsdCents,
       dueAt,
@@ -106,11 +125,12 @@ export default async function handler(
     return res.status(200).json({
       invoiceId,
       method,
-      term,
+      term: invoiceTerm,
+      lifetime: isLifetime,
       amountUsd,
       fiatHandles,
       dueAt: dueAt.toISOString(),
-      note: "After paying, the Milk Market team will confirm your payment and activate Pro.",
+      note: "After paying, the Milk Market team will confirm your payment and activate your membership.",
     });
   } catch (error) {
     console.error("pro manual-invoice failed:", error);

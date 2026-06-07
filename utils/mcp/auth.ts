@@ -8,7 +8,7 @@ import { isPubkeyProEntitled } from "@/utils/pro/membership";
 // Shared "Pro required" message for MCP authentication failures so REST and
 // JSON-RPC entry points surface identical copy.
 export const MCP_PRO_REQUIRED_MESSAGE =
-  "This API key's owner does not have an active Pro membership. MCP access requires Pro.";
+  "This API key's owner does not have an active Herd membership. MCP access requires Herd.";
 
 /**
  * True when the API key's owning seller is currently Pro-entitled. Used by the

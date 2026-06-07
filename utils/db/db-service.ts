@@ -1165,6 +1165,9 @@ async function initializeTables(): Promise<void> {
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
+      ALTER TABLE pro_memberships
+        ADD COLUMN IF NOT EXISTS lifetime BOOLEAN NOT NULL DEFAULT FALSE;
+
       CREATE INDEX IF NOT EXISTS idx_pro_memberships_pubkey ON pro_memberships(pubkey);
       CREATE INDEX IF NOT EXISTS idx_pro_memberships_stripe_subscription_id ON pro_memberships(stripe_subscription_id);
       CREATE INDEX IF NOT EXISTS idx_pro_memberships_stripe_customer_id ON pro_memberships(stripe_customer_id);
@@ -1198,6 +1201,13 @@ async function initializeTables(): Promise<void> {
 
       ALTER TABLE pro_manual_invoices
         ADD COLUMN IF NOT EXISTS coverage_end TIMESTAMP;
+
+      ALTER TABLE pro_manual_invoices
+        ADD COLUMN IF NOT EXISTS lifetime BOOLEAN NOT NULL DEFAULT FALSE;
+
+      -- Lifetime invoices carry a NULL term, so the original NOT NULL must go.
+      ALTER TABLE pro_manual_invoices
+        ALTER COLUMN term DROP NOT NULL;
 
       CREATE INDEX IF NOT EXISTS idx_pro_manual_invoices_pubkey ON pro_manual_invoices(pubkey);
       CREATE INDEX IF NOT EXISTS idx_pro_manual_invoices_status ON pro_manual_invoices(status);

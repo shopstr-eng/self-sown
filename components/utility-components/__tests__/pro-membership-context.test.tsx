@@ -67,6 +67,7 @@ function makeView(overrides: Partial<MembershipView> = {}): MembershipView {
     graceUntil: null,
     readonlyUntil: null,
     cancelAtPeriodEnd: false,
+    isLifetime: false,
     ...overrides,
   };
 }

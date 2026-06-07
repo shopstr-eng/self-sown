@@ -11,6 +11,7 @@ import {
 } from "@/utils/db/pro-membership";
 import { verifyBitcoinInvoicePaid } from "@/utils/pro/lightning-pro";
 import {
+  cancelExistingProSubscription,
   getMembershipView,
   sendProManualReceiptEmail,
 } from "@/utils/pro/membership";
@@ -71,6 +72,13 @@ export default async function handler(
     );
     if (!paid) {
       return res.status(200).json({ paid: false });
+    }
+
+    // A lifetime (Wrangler) purchase replaces any recurring Herd subscription —
+    // cancel it before the settle clears the stored subscription id, so the
+    // seller is never charged again. Best-effort; retries are idempotent.
+    if (invoice.lifetime) {
+      await cancelExistingProSubscription(invoice.pubkey);
     }
 
     // Atomic + idempotent: flips paid, stamps applied, and extends membership in

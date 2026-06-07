@@ -15,6 +15,7 @@ import {
   PRO_ANNUAL_PRICE_CENTS,
   PRO_MONTHLY_PRICE_CENTS,
   PRO_NEW_USER_TRIAL_DAYS,
+  WRANGLER_LIFETIME_PRICE_USD,
   proPriceUsd,
   type ProTerm,
 } from "@/utils/pro/constants";
@@ -50,15 +51,21 @@ export default function ProCheckout({
     membership,
     startFreeTrial,
     startStripeSubscription,
+    startStripeLifetime,
     syncStripe,
     createManualInvoice,
+    createManualLifetimeInvoice,
     verifyManualInvoice,
   } = useProMembership();
 
+  // "herd" = recurring subscription, "wrangler" = one-time lifetime purchase.
+  const [plan, setPlan] = useState<"herd" | "wrangler">("herd");
+  const isLifetime = plan === "wrangler";
+
   // Offer the no-payment trial only to sellers who've never had a membership
-  // (status "free"). Lapsed sellers (grace/readonly/hidden) already used their
-  // entitlement and must pay to restore Pro.
-  const canStartTrial = membership.status === "free";
+  // (status "free") AND only on the recurring Herd plan — lifetime is always
+  // pay-now. Lapsed sellers already used their entitlement and must pay.
+  const canStartTrial = membership.status === "free" && !isLifetime;
 
   const [term, setTerm] = useState<ProTerm>(membership.term ?? "yearly");
   const [method, setMethod] = useState<PayMethod | null>(null);
@@ -75,6 +82,7 @@ export default function ProCheckout({
 
   const monthly = proPriceUsd("monthly");
   const yearly = proPriceUsd("yearly");
+  const lifetimePrice = WRANGLER_LIFETIME_PRICE_USD;
 
   const resetMethod = () => {
     setMethod(null);
@@ -110,9 +118,11 @@ export default function ProCheckout({
     setLoading(true);
     setError(null);
     try {
-      const { clientSecret: cs } = await startStripeSubscription(term);
+      const { clientSecret: cs } = isLifetime
+        ? await startStripeLifetime()
+        : await startStripeSubscription(term);
       if (!cs) {
-        throw new Error("Could not start the card subscription. Try again.");
+        throw new Error("Could not start the card payment. Try again.");
       }
       setClientSecret(cs);
       setMethod("card");
@@ -127,7 +137,9 @@ export default function ProCheckout({
     setLoading(true);
     setError(null);
     try {
-      const data = await createManualInvoice(term, m);
+      const data = isLifetime
+        ? await createManualLifetimeInvoice(m)
+        : await createManualInvoice(term, m);
       setInvoice(data);
       setMethod(m);
     } catch (err) {
@@ -233,7 +245,8 @@ export default function ProCheckout({
             Pay {invoice.amountSats?.toLocaleString()} sats
           </h3>
           <p className="mb-4 text-center text-sm text-zinc-600">
-            Scan with a Lightning wallet. Pro activates automatically once paid.
+            Scan with a Lightning wallet. Access activates automatically once
+            paid.
           </p>
           {qrDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -287,7 +300,7 @@ export default function ProCheckout({
           </div>
           <p className="mb-4 text-sm text-zinc-700">
             {invoice.note ||
-              "After paying, the Milk Market team will confirm your payment and activate Pro."}
+              "After paying, the Milk Market team will confirm your payment and activate your membership."}
           </p>
           {handles ? (
             <div className="rounded-md border-2 border-black bg-gray-50 p-4">
@@ -304,7 +317,7 @@ export default function ProCheckout({
             </p>
           )}
           <p className="mt-4 text-xs text-zinc-500">
-            Pro features unlock as soon as your payment is confirmed.
+            Your features unlock as soon as your payment is confirmed.
           </p>
           <button
             type="button"
@@ -321,30 +334,64 @@ export default function ProCheckout({
   // ── Plan + method selection ────────────────────────────────────────────────
   return (
     <div className={className}>
-      {/* Term toggle */}
-      <div className="shadow-neo mb-5 flex rounded-md border-2 border-black bg-white p-1">
+      {/* Plan toggle: recurring Herd vs one-time Wrangler lifetime */}
+      <div className="shadow-neo mb-3 flex rounded-md border-2 border-black bg-white p-1">
         <button
           type="button"
-          onClick={() => setTerm("monthly")}
+          onClick={() => setPlan("herd")}
           className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
-            term === "monthly" ? "bg-black text-white" : "text-black"
+            plan === "herd" ? "bg-black text-white" : "text-black"
           }`}
         >
-          Monthly · ${monthly}/mo
+          Herd · subscription
         </button>
         <button
           type="button"
-          onClick={() => setTerm("yearly")}
+          onClick={() => setPlan("wrangler")}
           className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
-            term === "yearly" ? "bg-black text-white" : "text-black"
+            plan === "wrangler" ? "bg-black text-white" : "text-black"
           }`}
         >
-          Yearly · ${yearly}/yr
-          <span className="ml-1 text-xs font-bold text-green-600">
-            Save {ANNUAL_SAVINGS_PERCENT}%
-          </span>
+          Wrangler · lifetime
         </button>
       </div>
+
+      {/* Term toggle (recurring Herd only) */}
+      {!isLifetime ? (
+        <div className="shadow-neo mb-5 flex rounded-md border-2 border-black bg-white p-1">
+          <button
+            type="button"
+            onClick={() => setTerm("monthly")}
+            className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+              term === "monthly" ? "bg-black text-white" : "text-black"
+            }`}
+          >
+            Monthly · ${monthly}/mo
+          </button>
+          <button
+            type="button"
+            onClick={() => setTerm("yearly")}
+            className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+              term === "yearly" ? "bg-black text-white" : "text-black"
+            }`}
+          >
+            Yearly · ${yearly}/yr
+            <span className="ml-1 text-xs font-bold text-green-600">
+              Save {ANNUAL_SAVINGS_PERCENT}%
+            </span>
+          </button>
+        </div>
+      ) : (
+        <div className="shadow-neo mb-5 rounded-md border-2 border-black bg-white p-4 text-center">
+          <p className="text-lg font-bold text-black">
+            ${lifetimePrice} one-time
+          </p>
+          <p className="mt-1 text-sm font-medium text-zinc-600">
+            Pay once, keep every Herd feature for life. Never expires, no
+            renewals.
+          </p>
+        </div>
+      )}
 
       {error && (
         <p className="mb-4 text-center text-sm font-bold text-red-600">

@@ -71,8 +71,9 @@ const OnboardingChoosePlan = () => {
                 Step 3: Choose Your Plan
               </h2>
               <p className="font-medium text-black">
-                Start free and upgrade anytime, or try Pro free for 30 days to
-                unlock everything from day one, with no payment required.
+                Start free and upgrade anytime, or try Herd free for 30 days to
+                unlock everything from day one, with no payment required. Prefer
+                to pay once? Choose Wrangler for lifetime access.
               </p>
             </div>
 
@@ -113,7 +114,7 @@ const OnboardingChoosePlan = () => {
                     : "bg-white hover:bg-gray-50"
                 }`}
               >
-                <h3 className="text-xl font-black text-black">Pro</h3>
+                <h3 className="text-xl font-black text-black">Herd</h3>
                 <p className="mb-1">
                   <span className="text-3xl font-black text-black">$21</span>{" "}
                   <span className="text-sm font-medium text-zinc-700">
@@ -140,11 +141,11 @@ const OnboardingChoosePlan = () => {
             {selected === "pro" && (
               <div className="mb-6 rounded-md border-2 border-black bg-gray-50 p-6">
                 <h3 className="mb-2 text-center text-lg font-bold text-black">
-                  Start your Pro membership
+                  Start your membership
                 </h3>
                 <p className="mb-4 text-center text-sm font-medium text-zinc-600">
-                  Pick a plan and start your 30-day free trial. No payment now,
-                  or pay upfront if you prefer.
+                  Pick Herd to start your 30-day free trial (no payment now), or
+                  choose Wrangler for one-time lifetime access.
                 </p>
                 <ProCheckout onComplete={() => continueWith("pro")} />
               </div>

@@ -1025,6 +1025,44 @@ export function transferFailureAlertEmail(params: {
   };
 }
 
+export function proLifetimeLingeringCancelAlertEmail(params: {
+  pubkey: string;
+  subscriptionId: string;
+  source: "purchase" | "renewal_webhook";
+  error: string;
+}): { subject: string; html: string } {
+  const sourceLabel =
+    params.source === "renewal_webhook"
+      ? "Renewal webhook auto-retry"
+      : "At-purchase cancellation";
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Lifetime Member — Stuck Subscription Alert</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
+      A lifetime (Wrangler) member still has a live recurring (Herd) subscription that failed to cancel automatically. Until it is canceled by hand, the seller will keep being charged on every billing cycle. Please cancel this subscription in the Stripe dashboard.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef2f2;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Subscription:</strong> <span style="font-family:monospace;">${esc(
+        params.subscriptionId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;font-family:monospace;"><strong>Seller pubkey:</strong> ${esc(
+        params.pubkey
+      )}</td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Failure source:</strong> ${esc(
+        sourceLabel
+      )}</td></tr>
+      <tr><td style="padding:4px 0;color:#991b1b;font-size:14px;"><strong>Last error:</strong> ${esc(
+        params.error
+      )}</td></tr>
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+      Cancel this subscription in the Stripe dashboard. See the Stripe Connect runbook (docs/architecture/payments.md) and filter logs on <code>[pro_lifetime_lingering_subscription_cancel]</code> for history. This alert is rate-limited to once per day per subscription.
+    </p>`;
+  return {
+    subject: `${BRAND_NAME} — Stuck lifetime-member subscription needs manual cancel`,
+    html: baseTemplate("Stuck Subscription Alert", body),
+  };
+}
+
 export function customDomainAdminNotificationEmail(params: {
   domain: string;
   domainType: "subdomain" | "apex";
@@ -1235,15 +1273,18 @@ export function proReceiptEmail(params: {
   paidAt: string | null;
   receiptUrl?: string | null;
   invoicePdfUrl?: string | null;
+  // One-time Wrangler lifetime purchase (no recurring term).
+  lifetime?: boolean;
 }): { subject: string; html: string } {
   const amount = formatProAmount(params.amountCents, params.currency);
   const date = formatProDate(params.paidAt);
-  const termLabel =
-    params.term === "yearly"
-      ? "Annual"
+  const planLabel = params.lifetime
+    ? "Wrangler (Lifetime)"
+    : params.term === "yearly"
+      ? "Herd (Annual)"
       : params.term === "monthly"
-        ? "Monthly"
-        : "—";
+        ? "Herd (Monthly)"
+        : "Herd";
   const methodLabel =
     params.method === "stripe"
       ? "Card (Stripe)"
@@ -1273,15 +1314,18 @@ export function proReceiptEmail(params: {
       ? `<p style="margin:0 0 16px;color:#374151;font-size:14px;line-height:1.6;">${links.join(" &nbsp;·&nbsp; ")}</p>`
       : "";
 
+  const activeLine = params.lifetime
+    ? "Your Wrangler lifetime access is active and never expires"
+    : "Your Herd features stay active";
   const body = `
     <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Payment received — thank you</h2>
     <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
-      We received your ${BRAND_NAME} Pro payment of <strong>${esc(amount)}</strong>. Your Pro features stay active — here are the details for your records.
+      We received your ${BRAND_NAME} payment of <strong>${esc(amount)}</strong>. ${activeLine} — here are the details for your records.
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
       ${date ? row("Date", date) : ""}
       ${row("Amount", amount)}
-      ${row("Plan", `${termLabel} Pro`)}
+      ${row("Plan", planLabel)}
       ${row("Payment method", methodLabel)}
     </table>
     ${linksHtml}
@@ -1290,7 +1334,7 @@ export function proReceiptEmail(params: {
     </p>`;
 
   return {
-    subject: `${BRAND_NAME} — Pro payment receipt (${amount})`,
-    html: baseTemplate("Pro payment receipt", body),
+    subject: `${BRAND_NAME} — payment receipt (${amount})`,
+    html: baseTemplate("Payment receipt", body),
   };
 }

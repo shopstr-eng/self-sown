@@ -15,7 +15,7 @@ describe("proReceiptEmail", () => {
     expect(html).toContain("$15.00");
     // Date formatted as long en-US date.
     expect(html).toContain("May 30, 2026");
-    expect(html).toContain("Monthly Pro");
+    expect(html).toContain("Herd (Monthly)");
     expect(html).toContain("Bitcoin");
     expect(subject).toContain("$15.00");
   });
@@ -27,11 +27,11 @@ describe("proReceiptEmail", () => {
       method: "stripe",
     });
 
-    expect(html).toContain("Annual Pro");
+    expect(html).toContain("Herd (Annual)");
     expect(html).toContain("Card (Stripe)");
   });
 
-  it("labels fiat payments and a null term with the em-dash placeholder", () => {
+  it("labels fiat payments and a null term with the plain Herd label", () => {
     const { html } = proReceiptEmail({
       ...base,
       term: null,
@@ -39,7 +39,18 @@ describe("proReceiptEmail", () => {
     });
 
     expect(html).toContain("Fiat");
-    expect(html).toContain("— Pro");
+    expect(html).toContain(">Herd<");
+  });
+
+  it("labels a lifetime purchase as Wrangler (Lifetime)", () => {
+    const { html } = proReceiptEmail({
+      ...base,
+      term: null,
+      lifetime: true,
+    });
+
+    expect(html).toContain("Wrangler (Lifetime)");
+    expect(html).toContain("never expires");
   });
 
   it("formats non-USD amounts with the currency code suffix", () => {

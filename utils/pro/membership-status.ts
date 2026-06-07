@@ -39,6 +39,10 @@ export function resolveMembershipStatus(
 ): MembershipStatus {
   if (!row) return "free";
 
+  // Wrangler lifetime grant never lapses — always active regardless of any
+  // (absent) period/grace/readonly timeline.
+  if (row.lifetime) return "active";
+
   const trialEnd = toMs(row.trial_end);
   const periodEnd = toMs(row.current_period_end);
   const graceUntil = toMs(row.grace_until);
@@ -86,6 +90,7 @@ export function membershipView(
   nowMs: number = Date.now()
 ): MembershipView {
   const status = resolveMembershipStatus(row, nowMs);
+  const isLifetime = !!row?.lifetime;
   return {
     pubkey,
     status,
@@ -95,12 +100,15 @@ export function membershipView(
     isReadOnly: isReadOnlyStatus(status),
     isHidden: isHiddenStatus(status),
     isPubliclyVisible: isPubliclyVisible(status),
+    isLifetime,
     billingMethod: (row?.billing_method as ProBillingMethod | null) ?? null,
     term: (row?.term as ProTerm | null) ?? null,
     trialEnd: toIso(row?.trial_end),
-    currentPeriodEnd: toIso(row?.current_period_end),
-    graceUntil: toIso(row?.grace_until),
-    readonlyUntil: toIso(row?.readonly_until),
+    // Lifetime members have no renewal/lapse dates — surface them as null so
+    // the UI never shows a (nonexistent) expiry.
+    currentPeriodEnd: isLifetime ? null : toIso(row?.current_period_end),
+    graceUntil: isLifetime ? null : toIso(row?.grace_until),
+    readonlyUntil: isLifetime ? null : toIso(row?.readonly_until),
     cancelAtPeriodEnd: !!row?.cancel_at_period_end,
   };
 }

@@ -20,6 +20,7 @@ import {
   applyProStripeState,
   getProMembership,
   getProMembershipBySubscription,
+  grantLifetimeMembership,
   grantProTrialIfMissing,
   listExistingStallPubkeys,
   listPaidProManualInvoices,
@@ -31,12 +32,123 @@ import {
   type ProManualInvoiceRow,
 } from "@/utils/db/pro-membership";
 import {
+  getProStripe,
   listProStripeInvoices,
   mapStripeSubscription,
 } from "@/utils/pro/stripe-pro";
+import { withStripeRetry } from "@/utils/stripe/retry-service";
 import { getSellerNotificationEmail } from "@/utils/db/db-service";
-import { sendProReceipt } from "@/utils/email/email-service";
+import {
+  sendProReceipt,
+  sendProLifetimeLingeringCancelAlert,
+} from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
+
+/**
+ * Emit a structured, greppable log event for every attempt to cancel a lingering
+ * recurring (Herd) subscription that a lifetime (Wrangler) member still holds.
+ *
+ * Operators watch the `failure` outcome to catch a subscription that refuses to
+ * cancel — left stuck, the seller is charged for one more cycle before the next
+ * webhook auto-retry (or never, if it's truly wedged). A `failure` also fires an
+ * admin alert email (`alertLifetimeLingeringCancelFailure`) so operators don't
+ * have to be actively watching logs. `source` separates the
+ * at-purchase cancellation (`purchase`) from the renewal-webhook auto-retry
+ * (`renewal_webhook`). All three outcomes share the
+ * `pro_lifetime_lingering_subscription_cancel` event name and a
+ * `[pro_lifetime_lingering_subscription_cancel]` tag so logs are filterable; the
+ * `pubkey` + `subscriptionId` fields tell an operator exactly what to cancel by
+ * hand. See docs/architecture/payments.md → Stripe Connect runbook.
+ */
+type LingeringCancelOutcome = "attempt" | "success" | "failure";
+
+function logLifetimeLingeringCancel(
+  outcome: LingeringCancelOutcome,
+  fields: {
+    pubkey: string;
+    subscriptionId: string;
+    source: "purchase" | "renewal_webhook";
+    error?: unknown;
+  }
+): void {
+  const payload = {
+    event: "pro_lifetime_lingering_subscription_cancel",
+    outcome,
+    source: fields.source,
+    pubkey: fields.pubkey,
+    subscriptionId: fields.subscriptionId,
+    ...(fields.error !== undefined
+      ? {
+          error:
+            fields.error instanceof Error
+              ? fields.error.message
+              : String(fields.error),
+        }
+      : {}),
+  };
+  const tag = "[pro_lifetime_lingering_subscription_cancel]";
+  if (outcome === "failure") {
+    console.error(tag, JSON.stringify(payload), fields.error);
+  } else {
+    console.warn(tag, JSON.stringify(payload));
+  }
+}
+
+// Once a stuck subscription has alerted the operator, suppress further alerts
+// for the same subscription for this long. A truly wedged subscription would
+// otherwise fire a fresh alert on every renewal-webhook auto-retry; the
+// structured logs still record every attempt for anyone watching.
+const LINGERING_CANCEL_ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function lingeringCancelAlertDedupKey(subscriptionId: string): string {
+  return `lifetime_lingering_cancel_alert:${subscriptionId}`;
+}
+
+/**
+ * Email the operator when a lingering-subscription cancel fails so they can
+ * cancel it by hand before the seller is charged again — mirroring how transfer
+ * failures already alert admin. Deduped per subscription via `pro_settings`: the
+ * dedup timestamp is only written after a mail actually goes out, so a transient
+ * mail failure still re-alerts on the next webhook retry, while a single stuck
+ * subscription can't spam an alert on every renewal. Best-effort: never throws,
+ * so it can't fail the webhook or block the (already best-effort) cancel path.
+ */
+async function alertLifetimeLingeringCancelFailure(fields: {
+  pubkey: string;
+  subscriptionId: string;
+  source: "purchase" | "renewal_webhook";
+  error: unknown;
+}): Promise<void> {
+  try {
+    const dedupKey = lingeringCancelAlertDedupKey(fields.subscriptionId);
+    const last = await getProSetting(dedupKey);
+    if (last) {
+      const lastMs = new Date(last).getTime();
+      if (
+        Number.isFinite(lastMs) &&
+        Date.now() - lastMs < LINGERING_CANCEL_ALERT_COOLDOWN_MS
+      ) {
+        return;
+      }
+    }
+
+    const sent = await sendProLifetimeLingeringCancelAlert({
+      pubkey: fields.pubkey,
+      subscriptionId: fields.subscriptionId,
+      source: fields.source,
+      error:
+        fields.error instanceof Error
+          ? fields.error.message
+          : String(fields.error),
+    });
+
+    if (sent) {
+      await setProSetting(dedupKey, new Date().toISOString());
+    }
+  } catch (err) {
+    console.error("alertLifetimeLingeringCancelFailure failed:", err);
+  }
+}
 
 export async function getMembershipView(
   pubkey: string
@@ -111,6 +223,51 @@ export async function applyStripeSubscriptionToMembership(
     return;
   }
 
+  // A lifetime (Wrangler) member must never be downgraded by a recurring
+  // subscription webhook, and must never keep paying for one. If a lifetime
+  // member still has a live subscription (e.g. an at-purchase cancellation
+  // failed), cancel it now — this makes the renewal webhook itself an automatic
+  // retry path — and skip applying any subscription state so the lifetime row
+  // (status/term/timeline) is never clobbered. `lifetime` is sticky: only the
+  // lifetime grant sets it, so this guard stays correct across webhook orderings.
+  const current = await getProMembership(pubkey);
+  if (current?.lifetime) {
+    const stillLive =
+      mapped.baseStatus !== "canceled" &&
+      mapped.baseStatus !== "incomplete_expired";
+    if (stillLive) {
+      logLifetimeLingeringCancel("attempt", {
+        pubkey,
+        subscriptionId: mapped.subscriptionId,
+        source: "renewal_webhook",
+      });
+      try {
+        await withStripeRetry(() =>
+          getProStripe().subscriptions.cancel(mapped.subscriptionId)
+        );
+        logLifetimeLingeringCancel("success", {
+          pubkey,
+          subscriptionId: mapped.subscriptionId,
+          source: "renewal_webhook",
+        });
+      } catch (err) {
+        logLifetimeLingeringCancel("failure", {
+          pubkey,
+          subscriptionId: mapped.subscriptionId,
+          source: "renewal_webhook",
+          error: err,
+        });
+        await alertLifetimeLingeringCancelFailure({
+          pubkey,
+          subscriptionId: mapped.subscriptionId,
+          source: "renewal_webhook",
+          error: err,
+        });
+      }
+    }
+    return;
+  }
+
   const grant =
     (mapped.baseStatus === "active" || mapped.baseStatus === "trialing") &&
     mapped.periodEnd !== null &&
@@ -142,6 +299,112 @@ export async function applyStripeSubscriptionToMembership(
       cancelAtPeriodEnd: mapped.cancelAtPeriodEnd,
     });
   }
+}
+
+/**
+ * Cancel a seller's live recurring Herd subscription, if any, when they switch
+ * to lifetime (Wrangler) access — so they're never charged again. Cancels
+ * immediately (not at period end) since lifetime already covers them forever.
+ * Best-effort: a Stripe failure here must not block the lifetime grant. The
+ * lifetime grant clears `stripe_subscription_id` in the DB regardless, so this
+ * only stops the live recurring charge at Stripe. Read the membership BEFORE
+ * the grant to capture the id (the grant nulls it), then cancel.
+ */
+export async function cancelExistingProSubscription(
+  pubkey: string
+): Promise<void> {
+  let existing;
+  try {
+    existing = await getProMembership(pubkey);
+  } catch (err) {
+    console.error(
+      "cancelExistingProSubscription: membership lookup failed",
+      err
+    );
+    return;
+  }
+
+  const subscriptionId = existing?.stripe_subscription_id;
+  if (!subscriptionId) return;
+
+  logLifetimeLingeringCancel("attempt", {
+    pubkey,
+    subscriptionId,
+    source: "purchase",
+  });
+  try {
+    await withStripeRetry(() =>
+      getProStripe().subscriptions.cancel(subscriptionId as string)
+    );
+    logLifetimeLingeringCancel("success", {
+      pubkey,
+      subscriptionId,
+      source: "purchase",
+    });
+  } catch (err) {
+    logLifetimeLingeringCancel("failure", {
+      pubkey,
+      subscriptionId,
+      source: "purchase",
+      error: err,
+    });
+    await alertLifetimeLingeringCancelFailure({
+      pubkey,
+      subscriptionId,
+      source: "purchase",
+      error: err,
+    });
+  }
+}
+
+/**
+ * Apply a settled one-time Wrangler lifetime PaymentIntent: grant the seller
+ * permanent (never-expiring) access and send the receipt over email + Nostr.
+ * Idempotent at the DB level (the lifetime upsert is keyed on pubkey), so
+ * Stripe webhook retries can't double-grant or corrupt state. Best-effort on
+ * the receipt — a mail/DM failure never throws out of the webhook handler.
+ */
+export async function applyStripeLifetimePayment(
+  pi: Stripe.PaymentIntent
+): Promise<void> {
+  const pubkey = pi.metadata?.mmProPubkey;
+  if (!pubkey) {
+    console.warn("applyStripeLifetimePayment: no mmProPubkey on PaymentIntent");
+    return;
+  }
+  const customerId =
+    typeof pi.customer === "string" ? pi.customer : (pi.customer?.id ?? null);
+
+  // If the buyer already had a recurring Herd subscription, cancel it now so
+  // they're never charged again after buying lifetime access.
+  await cancelExistingProSubscription(pubkey);
+
+  await grantLifetimeMembership({
+    pubkey,
+    billingMethod: "stripe",
+    customerId,
+  });
+
+  const details: ProReceiptDetails = {
+    amountCents: pi.amount_received || pi.amount || 0,
+    currency: pi.currency || "usd",
+    term: null,
+    method: "stripe",
+    paidAt: pi.created ? new Date(pi.created * 1000).toISOString() : null,
+    receiptUrl: null,
+    lifetime: true,
+  };
+
+  try {
+    const email = await getSellerNotificationEmail(pubkey);
+    if (email) {
+      await sendProReceipt(email, { ...details, invoicePdfUrl: null });
+    }
+  } catch (err) {
+    console.error("applyStripeLifetimePayment: receipt email failed", err);
+  }
+
+  await sendProReceiptNostrDM(pubkey, details);
 }
 
 function toIso(value: string | Date | null | undefined): string | null {
@@ -188,6 +451,9 @@ function computeManualCoverage(
   let runningEnd: Date | null = null;
 
   for (const inv of sorted) {
+    // Lifetime (Wrangler) invoices have no term to stack and never expire, so
+    // they contribute no coverage window to the renewal timeline.
+    if (inv.lifetime || !inv.term) continue;
     const paidAt = toDate(inv.paid_at) ?? toDate(inv.created_at);
     if (!paidAt) continue;
     let baseMs = paidAt.getTime();
@@ -209,6 +475,8 @@ interface ProReceiptDetails {
   method: "stripe" | "bitcoin" | "fiat";
   paidAt: string | null;
   receiptUrl?: string | null;
+  // One-time Wrangler lifetime purchase (no recurring term).
+  lifetime?: boolean;
 }
 
 function formatReceiptAmount(amountCents: number, currency: string): string {
@@ -242,11 +510,12 @@ async function sendProReceiptNostrDM(
   try {
     const amount = formatReceiptAmount(details.amountCents, details.currency);
     const date = formatReceiptDate(details.paidAt);
-    const termLabel =
-      details.term === "yearly"
-        ? "Annual"
+    const planLabel = details.lifetime
+      ? "Wrangler (Lifetime)"
+      : details.term === "yearly"
+        ? "Herd (Annual)"
         : details.term === "monthly"
-          ? "Monthly"
+          ? "Herd (Monthly)"
           : null;
     const methodLabel =
       details.method === "stripe"
@@ -255,13 +524,13 @@ async function sendProReceiptNostrDM(
           ? "Bitcoin"
           : "Fiat";
 
-    const lines: string[] = [
-      `We received your Milk Market Pro payment of ${amount}. Your Pro features stay active — here are the details for your records:`,
-      "",
-    ];
+    const activeLine = details.lifetime
+      ? `We received your Milk Market payment of ${amount}. Your Wrangler lifetime access is active and never expires — here are the details for your records:`
+      : `We received your Milk Market payment of ${amount}. Your Herd features stay active — here are the details for your records:`;
+    const lines: string[] = [activeLine, ""];
     if (date) lines.push(`Date: ${date}`);
     lines.push(`Amount: ${amount}`);
-    if (termLabel) lines.push(`Plan: ${termLabel} Pro`);
+    if (planLabel) lines.push(`Plan: ${planLabel}`);
     lines.push(`Payment method: ${methodLabel}`);
     if (details.receiptUrl) {
       lines.push("");
@@ -275,7 +544,7 @@ async function sendProReceiptNostrDM(
     await sendServerSideNostrDM(
       pubkey,
       lines.join("\n"),
-      `Milk Market — Pro payment receipt (${amount})`
+      `Milk Market — payment receipt (${amount})`
     );
   } catch (err) {
     console.error("sendProReceiptNostrDM failed:", err);
@@ -302,6 +571,7 @@ export async function sendProManualReceiptEmail(
     method: invoice.method,
     paidAt,
     receiptUrl: null,
+    lifetime: invoice.lifetime,
   };
 
   try {
@@ -419,6 +689,7 @@ export async function getProBillingHistory(
       amountCents: inv.amount_usd_cents,
       currency: "usd",
       term: inv.term,
+      lifetime: inv.lifetime,
       method: inv.method,
       coverageStart: storedStart ?? (cov ? cov.start.toISOString() : null),
       coverageEnd: storedEnd ?? (cov ? cov.end.toISOString() : null),

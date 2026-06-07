@@ -88,12 +88,12 @@ Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,
 How to start selling local food and goods on Milk Market.
 
 1. **Create your account** with a Nostr identity (new or existing).
-2. **Choose your membership** — a free plan with unlimited listings, or Pro ($21/month or $168/year, saving 33%) with a 30-day free trial for new sellers.
+2. **Choose your membership** — a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) with a 30-day free trial for new sellers, or Wrangler (one-time $1,050) for lifetime access to every Herd feature.
 3. **List your first product** — title, description, price, images, categories, shipping (coming soon), pickup, variants, and bulk pricing.
 4. **Manage orders & communication** through encrypted buyer chat.
-5. **Customize your storefront** (Pro) — colors, fonts, page builder, SEO/OG meta, and a custom domain.
-6. **Automate your email flows** (Pro) — welcome series, order follow-ups, re-engagement.
-7. **Connect AI agents with MCP** (Pro) so autonomous agents can manage listings and orders.
+5. **Customize your storefront** (Herd) — colors, fonts, page builder, SEO/OG meta, and a custom domain.
+6. **Automate your email flows** (Herd) — welcome series, order follow-ups, re-engagement.
+7. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders.
 8. **Grow your business** — update listings, build relationships, share your story, and expand reach.
 
 Start at the [marketplace](${SITE}/marketplace) or read the [FAQ](${SITE}/faq).`,

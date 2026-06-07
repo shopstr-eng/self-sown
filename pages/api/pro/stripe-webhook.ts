@@ -11,6 +11,7 @@ import {
 } from "@/utils/pro/stripe-pro";
 import { withStripeRetry } from "@/utils/stripe/retry-service";
 import {
+  applyStripeLifetimePayment,
   applyStripeSubscriptionToMembership,
   sendProStripeReceiptEmail,
 } from "@/utils/pro/membership";
@@ -83,6 +84,15 @@ export default async function handler(
         const subscription = event.data.object as Stripe.Subscription;
         if (isProMembershipSubscription(subscription)) {
           await applyStripeSubscriptionToMembership(subscription);
+        }
+        break;
+      }
+      case "payment_intent.succeeded": {
+        // One-time Wrangler lifetime purchase (no subscription). Grant lifetime
+        // access only for our tagged PaymentIntents; ignore all others.
+        const pi = event.data.object as Stripe.PaymentIntent;
+        if (pi.metadata?.proLifetime === "true" && pi.metadata?.mmProPubkey) {
+          await applyStripeLifetimePayment(pi);
         }
         break;
       }

@@ -514,7 +514,7 @@ const ProducerGuidePage = () => {
                       </h3>
                       <p className="mb-4 text-base text-white">
                         Selling is free with unlimited listings and no mandatory
-                        transaction fees. Upgrade to Pro whenever you want a
+                        transaction fees. Upgrade to Herd whenever you want a
                         fully custom storefront and pro tools.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
@@ -524,13 +524,14 @@ const ProducerGuidePage = () => {
                           tools
                         </li>
                         <li>
-                          Go Pro for $21/month (or $168/year, saving 33%) to
+                          Go Herd for $21/month (or $168/year, saving 33%) to
                           unlock advanced storefronts, custom domains, email
                           flows, custom product pages, shipping labels (coming
-                          soon), and AI agent (MCP) access
+                          soon), and AI agent (MCP) access &mdash; or go
+                          Wrangler for one-time $1,050 lifetime access
                         </li>
                         <li>
-                          New sellers get a 30-day free trial of Pro with no
+                          New sellers get a 30-day free trial of Herd with no
                           payment required up front
                         </li>
                         <li>
@@ -547,7 +548,7 @@ const ProducerGuidePage = () => {
                         30-Day Free Trial
                       </h3>
                       <p className="text-sm text-zinc-700">
-                        Try every Pro feature free for 30 days &mdash; no
+                        Try every Herd feature free for 30 days &mdash; no
                         payment required to start.
                       </p>
                     </div>
@@ -939,8 +940,8 @@ const ProducerGuidePage = () => {
                 Join the growing community of producers providing fresh, local
                 food &mdash; from raw milk and dairy to meat, eggs, and produce
                 &mdash; directly to consumers. Selling is free with unlimited
-                listings, and new sellers get a 30-day free trial of Pro &mdash;
-                no payment required up front.
+                listings, and new sellers get a 30-day free trial of Herd
+                &mdash; no payment required up front.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button

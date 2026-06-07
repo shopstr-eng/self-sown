@@ -680,6 +680,8 @@ CREATE TABLE IF NOT EXISTS pro_memberships (
     pubkey TEXT NOT NULL UNIQUE,
     billing_method TEXT CHECK (billing_method IN ('stripe', 'manual')),
     term TEXT CHECK (term IN ('monthly', 'yearly')),
+    -- Wrangler lifetime grant: never expires, lapse timeline ignored.
+    lifetime BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'free',
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
@@ -704,7 +706,10 @@ CREATE TABLE IF NOT EXISTS pro_manual_invoices (
     id SERIAL PRIMARY KEY,
     invoice_id TEXT NOT NULL UNIQUE,
     pubkey TEXT NOT NULL,
-    term TEXT NOT NULL CHECK (term IN ('monthly', 'yearly')),
+    -- NULL term marks a one-time Wrangler lifetime invoice (see `lifetime`).
+    term TEXT CHECK (term IN ('monthly', 'yearly')),
+    -- When true this invoice buys lifetime access rather than one term.
+    lifetime BOOLEAN NOT NULL DEFAULT FALSE,
     method TEXT NOT NULL CHECK (method IN ('bitcoin', 'fiat')),
     amount_usd_cents INTEGER NOT NULL,
     amount_sats INTEGER,

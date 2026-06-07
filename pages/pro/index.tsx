@@ -11,6 +11,7 @@ import ProtectedRoute from "@/components/utility-components/protected-route";
 import ProCheckout from "@/components/pro/pro-checkout";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
+import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
 
 const ProUpgradePage = () => {
   const router = useRouter();
@@ -39,7 +40,7 @@ const ProUpgradePage = () => {
                   width={50}
                 />
                 <h1 className="text-center text-3xl font-bold text-black">
-                  Milk Market Pro
+                  Milk Market Herd
                 </h1>
               </div>
 
@@ -52,17 +53,17 @@ const ProUpgradePage = () => {
                   <CheckCircleIcon className="mb-4 h-16 w-16 text-green-600" />
                   <h2 className="mb-2 text-2xl font-bold text-black">
                     {completion === "paid"
-                      ? "Welcome to Pro!"
+                      ? "Welcome aboard!"
                       : completion === "trial"
                         ? "Your 30-day free trial is active!"
                         : "Invoice created"}
                   </h2>
                   <p className="mb-6 max-w-md text-sm font-medium text-black">
                     {completion === "paid"
-                      ? "Your Pro features are now unlocked. Head to your stall to start customizing."
+                      ? "Your features are now unlocked. Head to your stall to start customizing."
                       : completion === "trial"
-                        ? "All Pro features are unlocked for the next 30 days, with no payment needed yet. We'll remind you to pay for your plan before the trial ends."
-                        : "We'll activate Pro as soon as your payment is confirmed. You can keep using your stall in the meantime."}
+                        ? "All Herd features are unlocked for the next 30 days, with no payment needed yet. We'll remind you to pay for your plan before the trial ends."
+                        : "We'll activate your membership as soon as your payment is confirmed. You can keep using your stall in the meantime."}
                   </p>
                   <Button
                     className={BLUEBUTTONCLASSNAMES}
@@ -76,11 +77,14 @@ const ProUpgradePage = () => {
                 <div className="bg-primary-yellow flex flex-col items-center justify-center rounded-md border-2 border-black p-8 text-center">
                   <SparklesIcon className="mb-4 h-16 w-16 text-black" />
                   <h2 className="mb-2 text-2xl font-bold text-black">
-                    You&apos;re a Pro member
+                    {membership.isLifetime
+                      ? "You're a Wrangler member"
+                      : "You're a Herd member"}
                   </h2>
                   <p className="mb-6 max-w-md text-sm font-medium text-black">
-                    All Pro features are unlocked. Manage your membership and
-                    billing from your account settings.
+                    {membership.isLifetime
+                      ? "Your Wrangler lifetime access never expires. Manage your account from your settings."
+                      : "All Herd features are unlocked. Manage your membership and billing from your account settings."}
                   </p>
                   <div className="flex flex-wrap justify-center gap-3">
                     <Button
@@ -102,7 +106,7 @@ const ProUpgradePage = () => {
                   <div className="mb-8 text-center">
                     <h2 className="mb-3 text-2xl font-bold text-black">
                       {membership.isReadOnly || membership.isHidden
-                        ? "Re-subscribe to restore Pro"
+                        ? "Re-subscribe to restore Herd"
                         : "Upgrade to unlock everything"}
                     </h2>
                     <p className="font-medium text-black">
@@ -117,7 +121,7 @@ const ProUpgradePage = () => {
                     )}
                   </div>
 
-                  <div className="mb-8 grid gap-4 md:grid-cols-2">
+                  <div className="mb-8 grid gap-4 md:grid-cols-3">
                     <PlanCard
                       title="Free"
                       price="$0"
@@ -126,10 +130,20 @@ const ProUpgradePage = () => {
                       muted
                     />
                     <PlanCard
-                      title="Pro"
+                      title="Herd"
                       price="$21"
                       cadence="/mo · or $168/yr"
                       features={PRO_FEATURES}
+                    />
+                    <PlanCard
+                      title="Wrangler"
+                      price={`$${WRANGLER_LIFETIME_PRICE_USD.toLocaleString()}`}
+                      cadence="one-time · lifetime"
+                      features={[
+                        "Everything in Herd",
+                        "Pay once, never expires",
+                        "No renewals or subscriptions",
+                      ]}
                     />
                   </div>
 

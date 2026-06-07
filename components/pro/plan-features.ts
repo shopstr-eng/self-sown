@@ -1,5 +1,6 @@
-// Shared Free vs Pro feature lists so the landing page, the /pro upgrade page,
-// and the onboarding plan step stay in sync.
+// Shared Free vs Herd feature lists so the landing page, the /pro upgrade page,
+// and the onboarding plan step stay in sync. The Wrangler lifetime tier
+// includes everything in Herd.
 
 export const FREE_FEATURES: string[] = [
   "Unlimited product listings",

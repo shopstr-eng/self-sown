@@ -20,14 +20,14 @@ export default function UpgradeBanner({
   if (loading || membership.isPro) return null;
 
   const title = feature
-    ? `${feature} is a Pro feature`
-    : "Unlock Milk Market Pro";
+    ? `${feature} is a Herd feature`
+    : "Unlock Milk Market Herd";
 
   const body =
     membership.isReadOnly || membership.isHidden
-      ? "Your Pro plan has lapsed. Re-subscribe to restore your Pro features."
+      ? "Your Herd plan has lapsed. Re-subscribe to restore your Herd features."
       : membership.status === "free"
-        ? "Try Pro free for 30 days, no payment required. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API."
+        ? "Try Herd free for 30 days, no payment required, or go Wrangler for one-time lifetime access. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API."
         : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API.";
 
   return (
@@ -44,7 +44,7 @@ export default function UpgradeBanner({
         >
           {membership.isReadOnly || membership.isHidden
             ? "Re-subscribe"
-            : "Upgrade to Pro"}
+            : "Upgrade to Herd"}
         </Button>
       </CardBody>
     </Card>

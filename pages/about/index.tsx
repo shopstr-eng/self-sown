@@ -171,9 +171,10 @@ export default function AboutPage() {
               earnings. There are no mandatory platform fees or per-sale
               commissions &mdash; farmers can optionally elect a donation rate
               to support the site, but it&apos;s always their choice. Selling is
-              free with unlimited listings, and an optional Pro plan ($21/month
+              free with unlimited listings, and an optional Herd plan ($21/month
               or $168/year, with a 30-day free trial for new sellers) unlocks
-              advanced tools like custom domains and automated email. No
+              advanced tools like custom domains and automated email. Prefer to
+              pay once? Wrangler gives lifetime access for a one-time $1,050. No
               gatekeepers. No middlemen.
             </p>
           </section>
@@ -189,7 +190,7 @@ export default function AboutPage() {
                   There are no mandatory platform fees or per-sale commissions.
                   Farmers can elect an optional donation rate to give back to
                   the site if they wish, but every sale defaults to 100% going
-                  to the farmer. An optional Pro plan adds advanced tools for
+                  to the farmer. An optional Herd plan adds advanced tools for
                   sellers who want them.
                 </p>
               </div>

@@ -12,6 +12,7 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import {
   buildSignedHttpRequestProofTemplate,
   buildProCancelProof,
+  buildProCreateLifetimeProof,
   buildProCreateSubscriptionProof,
   buildProHistoryProof,
   buildProManualInvoiceProof,
@@ -47,12 +48,22 @@ interface ProMembershipContextValue {
   startStripeSubscription: (
     term: ProTerm
   ) => Promise<{ subscriptionId: string; clientSecret: string | null }>;
+  /**
+   * Start a one-time Wrangler lifetime Stripe purchase; returns the
+   * PaymentIntent client secret for the client to confirm the card.
+   */
+  startStripeLifetime: () => Promise<{
+    paymentIntentId: string;
+    clientSecret: string | null;
+  }>;
   /** Pull the latest Stripe state after card confirmation. */
   syncStripe: () => Promise<MembershipView>;
   /** Cancel the membership (Stripe cancels at period end). */
   cancel: () => Promise<MembershipView>;
-  /** Create a manual Bitcoin/fiat invoice. */
+  /** Create a manual Bitcoin/fiat invoice for a recurring term. */
   createManualInvoice: (term: ProTerm, method: ProManualMethod) => Promise<any>;
+  /** Create a manual Bitcoin/fiat invoice for the Wrangler lifetime purchase. */
+  createManualLifetimeInvoice: (method: ProManualMethod) => Promise<any>;
   /** Poll a Bitcoin manual invoice for payment. */
   verifyManualInvoice: (invoiceId: string) => Promise<any>;
   /** Read the seller's past Pro charges (Stripe + manual), newest first. */
@@ -147,7 +158,7 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
 
   const requireAuth = useCallback(() => {
     if (!pubkey || !signer) {
-      throw new Error("You must be signed in to manage your Pro membership.");
+      throw new Error("You must be signed in to manage your Herd membership.");
     }
     return { pubkey, signer };
   }, [pubkey, signer]);
@@ -187,6 +198,16 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
     [requireAuth]
   );
 
+  const startStripeLifetime = useCallback(async () => {
+    const { pubkey: pk, signer: s } = requireAuth();
+    return postSigned(
+      "/api/pro/create-lifetime",
+      s,
+      buildProCreateLifetimeProof(pk),
+      { pubkey: pk }
+    );
+  }, [requireAuth]);
+
   const syncStripe = useCallback(async () => {
     const { pubkey: pk, signer: s } = requireAuth();
     const view = await postSigned("/api/pro/sync", s, buildProSyncProof(pk), {
@@ -216,6 +237,19 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
         s,
         buildProManualInvoiceProof({ pubkey: pk, term, method }),
         { pubkey: pk, term, method }
+      );
+    },
+    [requireAuth]
+  );
+
+  const createManualLifetimeInvoice = useCallback(
+    async (method: ProManualMethod) => {
+      const { pubkey: pk, signer: s } = requireAuth();
+      return postSigned(
+        "/api/pro/manual-invoice",
+        s,
+        buildProManualInvoiceProof({ pubkey: pk, method, lifetime: true }),
+        { pubkey: pk, method, lifetime: true }
       );
     },
     [requireAuth]
@@ -256,9 +290,11 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       refresh,
       startFreeTrial,
       startStripeSubscription,
+      startStripeLifetime,
       syncStripe,
       cancel,
       createManualInvoice,
+      createManualLifetimeInvoice,
       verifyManualInvoice,
       fetchHistory,
     }),
@@ -268,9 +304,11 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       refresh,
       startFreeTrial,
       startStripeSubscription,
+      startStripeLifetime,
       syncStripe,
       cancel,
       createManualInvoice,
+      createManualLifetimeInvoice,
       verifyManualInvoice,
       fetchHistory,
     ]

@@ -2,16 +2,23 @@ import { Chip } from "@heroui/react";
 
 interface ProBadgeProps {
   size?: "sm" | "md" | "lg";
-  variant?: "trial" | "active";
+  variant?: "trial" | "active" | "lifetime";
   className?: string;
 }
 
-// Small "Pro" marker. Use `variant="trial"` to signal a trialing seller.
+// Small membership marker. Use `variant="trial"` for a trialing seller and
+// `variant="lifetime"` for a Wrangler lifetime member.
 export default function ProBadge({
   size = "sm",
   variant = "active",
   className,
 }: ProBadgeProps) {
+  const label =
+    variant === "trial"
+      ? "Herd trial"
+      : variant === "lifetime"
+        ? "Wrangler"
+        : "Herd";
   return (
     <Chip
       size={size}
@@ -19,7 +26,7 @@ export default function ProBadge({
       variant="flat"
       className={className}
     >
-      {variant === "trial" ? "Pro trial" : "Pro"}
+      {label}
     </Chip>
   );
 }

@@ -16,6 +16,7 @@ import {
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import SignInModal from "@/components/sign-in/SignInModal";
 import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
+import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -769,7 +770,7 @@ export default function StandaloneLanding() {
                   },
                   {
                     feature: "Monthly subscription",
-                    mm: "Free, or $21 Pro",
+                    mm: "Free, or $21 Herd",
                     shopify: "From $39/mo",
                     barn: "From $99/mo²",
                   },
@@ -799,7 +800,7 @@ export default function StandaloneLanding() {
                   },
                   {
                     feature: "Custom domain & storefront",
-                    mm: "Pro",
+                    mm: "Herd",
                     shopify: true,
                     barn: true,
                   },
@@ -870,24 +871,24 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
-      {/* Pricing - Free vs Pro for Sellers */}
+      {/* Pricing - Free vs Herd vs Wrangler for Sellers */}
       <section
         id="pricing"
         className="relative z-10 border-b-2 border-black bg-white py-16"
       >
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-black md:text-4xl">
               Simple Pricing for Sellers
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-600">
-              Start selling for free. Upgrade to Pro when you want a fully
-              custom storefront and pro tools. No mandatory transaction fees,
-              ever.
+              Start selling for free. Upgrade to Herd when you want a fully
+              custom storefront and pro tools, or go Wrangler for one-time
+              lifetime access. No mandatory transaction fees, ever.
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-3">
             {/* Free plan */}
             <div className="shadow-neo flex flex-col rounded-lg border-2 border-black bg-white p-8">
               <h3 className="text-2xl font-black">Free</h3>
@@ -910,12 +911,12 @@ export default function StandaloneLanding() {
               </Link>
             </div>
 
-            {/* Pro plan */}
+            {/* Herd plan */}
             <div className="shadow-neo bg-primary-yellow relative flex flex-col rounded-lg border-2 border-black p-8">
               <span className="absolute -top-3 right-6 rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
                 MOST POPULAR
               </span>
-              <h3 className="text-2xl font-black">Pro</h3>
+              <h3 className="text-2xl font-black">Herd</h3>
               <p className="mt-2 mb-1">
                 <span className="text-4xl font-black">$21</span>
                 <span className="ml-1 text-zinc-700">/month</span>
@@ -937,6 +938,39 @@ export default function StandaloneLanding() {
               <Link href="/onboarding/new-account?plan=pro" className="mt-auto">
                 <button className={`${BLACKBUTTONCLASSNAMES} w-full`}>
                   Start 30-Day Free Trial
+                </button>
+              </Link>
+            </div>
+
+            {/* Wrangler lifetime plan */}
+            <div className="shadow-neo flex flex-col rounded-lg border-2 border-black bg-white p-8">
+              <h3 className="text-2xl font-black">Wrangler</h3>
+              <p className="mt-2 mb-1">
+                <span className="text-4xl font-black">
+                  ${WRANGLER_LIFETIME_PRICE_USD.toLocaleString()}
+                </span>
+                <span className="ml-1 text-zinc-600">one-time</span>
+              </p>
+              <p className="mb-6 inline-block self-start rounded-md border-2 border-black bg-black px-3 py-1 text-xs font-bold text-white">
+                Lifetime access, never expires
+              </p>
+              <ul className="mb-8 space-y-3 text-zinc-700">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600">&#10003;</span>
+                  Everything in Herd
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600">&#10003;</span>
+                  Pay once, keep it for life
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600">&#10003;</span>
+                  No renewals or subscriptions
+                </li>
+              </ul>
+              <Link href="/onboarding/new-account?plan=pro" className="mt-auto">
+                <button className={`${WHITEBUTTONCLASSNAMES} w-full`}>
+                  Get Lifetime Access
                 </button>
               </Link>
             </div>
@@ -964,7 +998,7 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Pro is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. New sellers get a 30-day free trial of Pro, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
               question="Do I own my customers and store?"

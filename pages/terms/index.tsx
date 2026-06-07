@@ -56,9 +56,9 @@ export default function Tos() {
         "Any disputes must be resolved directly between buyers and sellers. We encourage users to communicate clearly and honestly. The platform's review system helps create accountability in the marketplace, but Milk Market cannot enforce resolutions or provide refunds.",
     },
     {
-      title: "11. Pro Subscription",
+      title: "11. Herd & Wrangler Memberships",
       content:
-        "Selling on Milk Market is free with unlimited listings and no mandatory transaction fees. The optional Pro plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent/MCP access) for $21/month or $168/year. New sellers receive a 30-day free trial with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Subscription payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law.",
+        "Selling on Milk Market is free with unlimited listings and no mandatory transaction fees. The optional Herd plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent/MCP access) for $21/month or $168/year. The Wrangler plan is a one-time $1,050 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law.",
     },
     {
       title: "12. Modifications",
