@@ -4,6 +4,11 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
+        <script
+          src="https://analytics.ahrefs.com/analytics.js"
+          data-key="rwWnlkfh1u2od+FKCbb90w"
+          async
+        />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#ffffff" />
         <link
