@@ -14,6 +14,7 @@ import {
   resolveStallBranding,
   buildStallOgMeta,
 } from "@/utils/storefront/stall-branding";
+import { getMembershipView } from "@/utils/pro/membership";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -32,11 +33,16 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   try {
     const pubkey = await fetchShopPubkeyBySlug(shopSlug);
     if (pubkey) {
+      // Custom storefront branding is a Pro feature, so only entitled sellers
+      // (active/trialing/grace) serve their custom OG meta. Lapsed sellers
+      // (read-only/hidden) fall back to the default meta — crawlers/social bots
+      // never see premium title/description/image without an active membership.
+      const membership = await getMembershipView(pubkey);
       const [shopEvent, profileEvent] = await Promise.all([
         fetchShopProfileByPubkeyFromDb(pubkey),
         fetchProfileByPubkeyFromDb(pubkey),
       ]);
-      if (shopEvent) {
+      if (shopEvent && membership.isPro) {
         const content = JSON.parse(shopEvent.content);
         let profileContent: Record<string, unknown> | null = null;
         if (profileEvent) {

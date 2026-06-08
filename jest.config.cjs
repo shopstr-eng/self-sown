@@ -34,14 +34,17 @@ const customJestConfig = {
 
 module.exports = async () => {
   const jestConfig = await createJestConfig(customJestConfig)();
-  // pnpm hoists modules under node_modules/.pnpm/<pkg>@<ver>/node_modules/<pkg>.
+  // ESM-only deps (nostr-tools, @noble/*, @scure/*, @cashu/cashu-ts, etc.) must
+  // be transformed by Jest or Node crashes with "Cannot use import statement
+  // outside a module".
+  //
   // A single optional-group negative lookahead does NOT work here: because the
   // pattern isn't anchored, the regex engine backtracks and matches at the outer
   // `node_modules/.pnpm` (with the optional `.pnpm/.../node_modules/` group empty),
   // wrongly IGNORING ESM-only deps like @noble/curves/secp256k1.js so they reach
-  // Node untransformed and crash with "Cannot use import statement outside a module".
-  // Use TWO explicit patterns instead — one for the pnpm layout and one for the
-  // classic/hoisted layout — each asserting the package dir right before its files.
+  // Node untransformed and crash. Use TWO explicit patterns instead — one for the
+  // pnpm store layout and one for the classic/hoisted layout — each asserting the
+  // package dir right before its files.
   const esmAllowlist = "dexie|nostr-tools|@noble|@scure|@getalby|@cashu|uuid";
   jestConfig.transformIgnorePatterns = [
     `node_modules/\\.pnpm/[^/]+/node_modules/(?!(${esmAllowlist})/)`,

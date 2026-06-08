@@ -1,0 +1,38 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schema/mcp.json",
+  "name": "Milk Market",
+  "description": "Model Context Protocol server for Milk Market — a permissionless, Bitcoin-native marketplace for local food and decentralized food systems built on Nostr. Browse and buy products, manage shops and listings, send messages, and operate a Cashu wallet.",
+  "version": "2.0.0",
+  "vendor": "Milk Market",
+  "homepage": "https://milk.market",
+  "documentation": "https://milk.market/skill.md",
+  "transport": {
+    "type": "streamable-http",
+    "jsonrpc": "2.0",
+    "endpoint": "https://milk.market/api/mcp"
+  },
+  "endpoints": {
+    "rpc": "https://milk.market/api/mcp",
+    "status": "https://milk.market/api/mcp/status",
+    "onboard": "https://milk.market/api/mcp/onboard"
+  },
+  "payments": {
+    "l402": "https://milk.market/.well-known/l402.json",
+    "description": "Paid endpoints follow the L402 standard: they respond with HTTP 402 and a WWW-Authenticate: L402 challenge (macaroon + bolt11 Lightning invoice). Cashu, Stripe, and manual fiat are also supported."
+  },
+  "authentication": {
+    "type": "bearer",
+    "tokenPrefix": "sk_",
+    "scopes": ["read", "read_write", "full_access"],
+    "description": "Bearer API key. Some read tools are available without a key; purchasing requires read_write and account/shop management requires full_access."
+  },
+  "rateLimits": {
+    "perIp": { "limit": 600, "windowSeconds": 60 },
+    "perKey": { "limit": 300, "windowSeconds": 60 },
+    "headers": ["RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset", "Retry-After"]
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": true
+  }
+}

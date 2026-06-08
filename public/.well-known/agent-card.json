@@ -1,0 +1,64 @@
+{
+  "protocolVersion": "0.3.0",
+  "name": "Milk Market",
+  "description": "A permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on Nostr. Browse and buy products, manage seller shops and listings, read and write reviews, send encrypted messages, and operate a Cashu wallet — as both buyer and seller.",
+  "version": "2.0.0",
+  "url": "https://milk.market/api/mcp",
+  "preferredTransport": "JSONRPC",
+  "provider": {
+    "organization": "Milk Market",
+    "url": "https://milk.market"
+  },
+  "iconUrl": "https://milk.market/milk-market.png",
+  "documentationUrl": "https://milk.market/skill.md",
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": ["application/json", "text/plain"],
+  "defaultOutputModes": ["application/json", "text/plain"],
+  "securitySchemes": {
+    "apiKey": {
+      "type": "http",
+      "scheme": "bearer",
+      "description": "Bearer API key with prefix sk_ and scopes read, read_write, full_access."
+    }
+  },
+  "security": [{ "apiKey": [] }],
+  "skills": [
+    {
+      "id": "search-products",
+      "name": "Search products",
+      "description": "Search and filter local food product listings by keyword, category, location, price range, and currency.",
+      "tags": ["shopping", "search", "food", "marketplace"],
+      "examples": [
+        "Find raw milk near Austin under $15",
+        "Show pasture-raised eggs available for pickup"
+      ]
+    },
+    {
+      "id": "place-order",
+      "name": "Place an order",
+      "description": "Place an order for a product and pay with Lightning, Cashu ecash, Stripe, or manual fiat, then track its status.",
+      "tags": ["shopping", "checkout", "payments", "bitcoin"],
+      "examples": [
+        "Order 2 dozen eggs from this seller and pay with Lightning",
+        "Check the status of my last order"
+      ]
+    },
+    {
+      "id": "manage-shop",
+      "name": "Manage a producer shop",
+      "description": "Create and update a shop profile, publish and edit product listings, manage discount codes, and respond to buyers.",
+      "tags": ["selling", "listings", "shop", "producer"],
+      "examples": [
+        "List a new batch of sourdough at $8 each",
+        "Create a 10% discount code for my shop"
+      ]
+    }
+  ],
+  "additionalInterfaces": [
+    { "url": "https://milk.market/api/mcp", "transport": "JSONRPC" }
+  ]
+}

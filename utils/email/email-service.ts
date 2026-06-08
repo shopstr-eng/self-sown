@@ -13,10 +13,12 @@ import {
   paymentFailedBuyerEmail,
   paymentFailedSellerEmail,
   transferFailureAlertEmail,
+  proLifetimeLingeringCancelAlertEmail,
   customDomainAdminNotificationEmail,
   affiliatePaidEmail,
   affiliatePausedToAffiliateEmail,
   affiliatePausedToSellerEmail,
+  proReceiptEmail,
   OrderEmailParams,
   SubscriptionEmailParams,
   StorefrontBranding,
@@ -363,6 +365,23 @@ export async function sendCustomDomainAdminNotification(
   return ok;
 }
 
+export async function sendProReceipt(
+  sellerEmail: string,
+  params: {
+    amountCents: number;
+    currency: string;
+    term: "monthly" | "yearly" | null;
+    method: "stripe" | "bitcoin" | "fiat";
+    paidAt: string | null;
+    receiptUrl?: string | null;
+    invoicePdfUrl?: string | null;
+    lifetime?: boolean;
+  }
+): Promise<boolean> {
+  const { subject, html } = proReceiptEmail(params);
+  return sendEmail(sellerEmail, subject, html);
+}
+
 export async function sendTransferFailureAlert(
   adminEmail: string,
   params: {
@@ -377,4 +396,42 @@ export async function sendTransferFailureAlert(
 ): Promise<boolean> {
   const { subject, html } = transferFailureAlertEmail(params);
   return sendEmail(adminEmail, subject, html);
+}
+
+/**
+ * Alert the operator that a lifetime (Wrangler) member's lingering recurring
+ * subscription failed to cancel and is still charging the seller. Resolves the
+ * recipient the same way the custom-domain admin notice does — explicit
+ * adminEmail > SendGrid verified from_email (the operator's own mailbox) — so
+ * the alert lands somewhere the operator owns even with no dedicated admin env.
+ * Returns whether the email was actually sent so the caller can dedup correctly.
+ */
+export async function sendProLifetimeLingeringCancelAlert(params: {
+  pubkey: string;
+  subscriptionId: string;
+  source: "purchase" | "renewal_webhook";
+  error: string;
+  adminEmail?: string;
+}): Promise<boolean> {
+  const { subject, html } = proLifetimeLingeringCancelAlertEmail(params);
+  let recipient = (params.adminEmail || "").trim();
+  try {
+    if (!recipient) {
+      const { fromEmail } = await getUncachableSendGridClient();
+      recipient = (fromEmail || "").trim();
+    }
+  } catch (err) {
+    console.error(
+      "[pro_lifetime_lingering_subscription_cancel] Failed to resolve admin email recipient:",
+      err
+    );
+    return false;
+  }
+  if (!recipient) {
+    console.error(
+      "[pro_lifetime_lingering_subscription_cancel] No admin email recipient available (configure SendGrid from_email)"
+    );
+    return false;
+  }
+  return sendEmail(recipient, subject, html);
 }

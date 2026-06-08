@@ -6,4 +6,54 @@ Disallow: /onboarding/
 Disallow: /auth/
 Disallow: /wallet/
 
+# AI / LLM agents — explicitly welcomed. See /llms.txt and /agents.txt.
+User-agent: GPTBot
+Allow: /
+Disallow: /settings/
+Disallow: /onboarding/
+Disallow: /auth/
+Disallow: /wallet/
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /settings/
+Disallow: /onboarding/
+Disallow: /auth/
+Disallow: /wallet/
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: PerplexityBot-User
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
 Sitemap: https://milk.market/sitemap.xml
+
+# Resources for agents and LLMs
+# /llms.txt
+# /llms-full.txt
+# /agents.txt
+# /openapi.json
+# /.well-known/mcp.json
+# /.well-known/agent-card.json

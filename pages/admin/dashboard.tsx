@@ -3,6 +3,7 @@
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import ProtectedRoute from "@/components/utility-components/protected-route";
+import SellerMembershipsPanel from "@/components/admin/seller-memberships-panel";
 
 type AdminDomain = {
   domain: string;
@@ -91,7 +92,7 @@ function AdminDomainsInner() {
         if (cancelled) return;
         setGate(data.isAdmin ? "allowed" : "denied");
       } catch (err) {
-        console.error("[admin/domains] admin check failed", err);
+        console.error("[admin/dashboard] admin check failed", err);
         if (!cancelled) setGate("denied");
       }
     }
@@ -156,7 +157,7 @@ function AdminDomainsInner() {
       }
       setDomains((data && data.domains) || []);
     } catch (err: any) {
-      console.error("[admin/domains] load failed", err);
+      console.error("[admin/dashboard] load failed", err);
       setError(err?.message || "Failed to load domains");
     } finally {
       inflightRef.current = false;
@@ -221,7 +222,7 @@ function AdminDomainsInner() {
         }
         await load();
       } catch (err: any) {
-        console.error("[admin/domains] update failed", err);
+        console.error("[admin/dashboard] update failed", err);
         setError(err?.message || "Update failed");
       } finally {
         setUpdating(null);
@@ -360,6 +361,8 @@ function AdminDomainsInner() {
           ))}
         </div>
       )}
+
+      <SellerMembershipsPanel />
     </div>
   );
 }

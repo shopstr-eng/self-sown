@@ -94,6 +94,61 @@ const PLATFORM_HOST_SUFFIXES = [
 
 const PLATFORM_HOST_EXACT = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 
+// --- Content negotiation for LLMs / AI agents --------------------------------
+// On the main platform host, the content pages below can be served as
+// markdown/JSON/plain-text (via /api/agent-view) when the client asks for a
+// non-HTML representation by Accept header or identifies as a known LLM
+// crawler. Browsers and SEO/social unfurlers keep getting HTML so OpenGraph
+// and SSR behaviour is preserved.
+const AGENT_VIEW_PATHS = new Set([
+  "/",
+  "/about",
+  "/faq",
+  "/contact",
+  "/producer-guide",
+  "/terms",
+  "/privacy",
+]);
+
+// Per-stall GEO/agent files served dynamically (tailored to the seller) on a
+// custom domain instead of falling through to the platform's static /public
+// copies. Maps the request path to the stall-agent-view `format` it produces.
+const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
+  "/llms.txt": "llms",
+  "/robots.txt": "robots",
+  "/rss.xml": "rss",
+  "/feed.xml": "rss",
+};
+
+const LLM_AGENT_UA =
+  /(GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Perplexity|Google-Extended|Applebot-Extended|CCBot|cohere-ai|Bytespider|Amazonbot|Diffbot|YouBot|Meta-ExternalAgent)/i;
+
+const HTML_ONLY_UA =
+  /(Googlebot|bingbot|DuckDuckBot|Slurp|Baiduspider|YandexBot|facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|WhatsApp|Pinterest|redditbot|Embedly|SkypeUriPreview)/i;
+
+function negotiateAgentFormat(
+  accept: string,
+  userAgent: string
+): "md" | "json" | "txt" | null {
+  if (HTML_ONLY_UA.test(userAgent)) return null;
+
+  const a = accept.toLowerCase();
+
+  // High-signal explicit machine formats win even when text/html is also
+  // present (e.g. "text/markdown, text/html;q=0.9" from agent SDKs). Browsers
+  // and social/SEO bots never request markdown or json explicitly, so this is
+  // safe for normal navigation and link unfurling.
+  if (a.includes("application/json")) return "json";
+  if (a.includes("text/markdown") || a.includes("text/x-markdown")) return "md";
+
+  // text/plain is lower-signal, so only honor it when html isn't requested.
+  if (!a.includes("text/html") && a.includes("text/plain")) return "txt";
+
+  if (LLM_AGENT_UA.test(userAgent)) return "md";
+
+  return null;
+}
+
 function hostStripPort(host: string): string {
   return host.split(":")[0]?.toLowerCase() ?? "";
 }
@@ -124,11 +179,76 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
+  // Content negotiation for LLMs/agents on the main platform host only. Custom
+  // domains fall through to their own storefront routing below.
+  if (!isCustomDomain(hostname) && AGENT_VIEW_PATHS.has(pathname)) {
+    const format = negotiateAgentFormat(
+      request.headers.get("accept") || "",
+      request.headers.get("user-agent") || ""
+    );
+    if (format) {
+      const url = new URL("/api/agent-view", request.url);
+      url.searchParams.set("path", pathname);
+      url.searchParams.set("format", format);
+      // Forward path/format via request headers too: NextResponse.rewrite can
+      // override the destination query string with the original request's, so
+      // headers are the reliable channel for the API route to read.
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-agent-view-path", pathname);
+      requestHeaders.set("x-agent-view-format", format);
+      const res = NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+      });
+      res.headers.set("Vary", "Accept, User-Agent");
+      return res;
+    }
+  }
+
+  // Per-stall content negotiation on the platform host: /stall/<slug> can be
+  // served as tailored markdown/JSON/plain-text for agents. Custom domains are
+  // handled separately inside their own block below.
+  if (!isCustomDomain(hostname)) {
+    const stallMatch = pathname.match(/^\/stall\/([^/]+)\/?$/);
+    if (stallMatch && stallMatch[1]) {
+      let stallSlug = "";
+      try {
+        stallSlug = decodeURIComponent(stallMatch[1]);
+      } catch {
+        // Malformed percent-encoding — leave blank so we skip negotiation and
+        // let the normal route handle (and 404) it instead of throwing.
+        stallSlug = "";
+      }
+      if (stallSlug && stallSlug !== "_custom-domain") {
+        const format = negotiateAgentFormat(
+          request.headers.get("accept") || "",
+          request.headers.get("user-agent") || ""
+        );
+        if (format) {
+          const url = new URL("/api/stall-agent-view", request.url);
+          url.searchParams.set("slug", stallSlug);
+          url.searchParams.set("format", format);
+          const requestHeaders = new Headers(request.headers);
+          requestHeaders.set("x-stall-slug", stallSlug);
+          requestHeaders.set("x-stall-format", format);
+          const res = NextResponse.rewrite(url, {
+            request: { headers: requestHeaders },
+          });
+          res.headers.set("Vary", "Accept, User-Agent");
+          return res;
+        }
+      }
+    }
+  }
+
   if (isCustomDomain(hostname)) {
-    // Static assets and Next internals always pass through.
+    // GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml) are served
+    // dynamically + tailored to the seller below, so they must NOT be caught by
+    // the static-asset passthrough. Everything else static still passes through.
+    const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
     if (
-      CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
-      STATIC_ASSET_EXT_RE.test(pathname)
+      !isStallGeoDynamic &&
+      (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
+        STATIC_ASSET_EXT_RE.test(pathname))
     ) {
       return NextResponse.next();
     }
@@ -158,6 +278,38 @@ export async function proxy(request: NextRequest) {
       if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
       return h;
     };
+
+    const rewriteToStallAgentView = (format: string) => {
+      const url = new URL("/api/stall-agent-view", request.url);
+      url.searchParams.set("slug", slug as string);
+      url.searchParams.set("format", format);
+      const h = buildHeaders();
+      h.set("x-stall-slug", slug as string);
+      h.set("x-stall-format", format);
+      const res = NextResponse.rewrite(url, { request: { headers: h } });
+      res.headers.set("Vary", "Accept, User-Agent");
+      return res;
+    };
+
+    // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml),
+    // tailored to this seller. If the domain has no resolved slug, fall through
+    // to the platform's static /public copies.
+    const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
+    if (geoFormat) {
+      if (!slug) return NextResponse.next();
+      return rewriteToStallAgentView(geoFormat);
+    }
+
+    // Content negotiation for the stall homepage: when an LLM/agent asks for a
+    // non-HTML representation, serve tailored markdown/JSON/plain-text. Browsers
+    // and SEO/social bots keep getting the HTML storefront.
+    if (slug && (pathname === "/" || pathname === "")) {
+      const format = negotiateAgentFormat(
+        request.headers.get("accept") || "",
+        request.headers.get("user-agent") || ""
+      );
+      if (format) return rewriteToStallAgentView(format);
+    }
 
     // Shared platform routes (listing, cart, checkout, auth, etc.) render
     // their own standalone pages instead of being rewritten under /stall/<slug>/.

@@ -103,6 +103,9 @@ describe("SignInModal", () => {
       screen.getByRole("button", { name: /sign up with nostr/i })
     );
     await user.click(
+      screen.getByRole("button", { name: /sign up with nostr/i })
+    );
+    await user.click(
       screen.getByRole("button", { name: /create new account/i })
     );
     await waitFor(() =>

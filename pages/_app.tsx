@@ -74,6 +74,7 @@ import {
 } from "@/components/utility-components/nostr-context-provider";
 import { retryFailedRelayPublishes } from "@/utils/nostr/retry-service";
 import { MintRecoveryBoot } from "@/components/utility-components/mint-recovery-boot";
+import { ProMembershipProvider } from "@/components/utility-components/pro-membership-context";
 import AffiliateRefTracker from "@/components/utility-components/affiliate-ref-tracker";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
 
@@ -1623,8 +1624,8 @@ function MilkMarket({ props }: { props: AppProps }) {
                                   setSelectedSection={setSelectedSection}
                                 />
                               )}
-                            <div className="flex">
-                              <main className="flex-1">
+                            <div className="flex w-full min-w-0">
+                              <main className="min-w-0 flex-1">
                                 <CustomDomainProvider
                                   value={domainState.isCustomDomain}
                                   isResolved={domainState.isResolved}
@@ -1698,8 +1699,10 @@ function App(props: AppProps) {
         <NextThemesProvider attribute="class">
           <NostrContextProvider>
             <SignerContextProvider>
-              <MintRecoveryBoot />
-              <MilkMarket props={props} />
+              <ProMembershipProvider>
+                <MintRecoveryBoot />
+                <MilkMarket props={props} />
+              </ProMembershipProvider>
             </SignerContextProvider>
           </NostrContextProvider>
         </NextThemesProvider>

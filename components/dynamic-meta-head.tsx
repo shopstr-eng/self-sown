@@ -232,6 +232,10 @@ const DynamicHead = ({
   const faviconUrl = ssrFavicon || customDomainShopLogo || "/milk-market.ico";
   const appleTouchIconUrl =
     ssrFavicon || customDomainShopLogo || "/milk-market.png";
+  // Only advertise the SVG favicon on the default (un-branded) Milk Market
+  // chrome. Custom stalls/domains set their own logo as the favicon, so we must
+  // not add an SVG icon that browsers might prefer over the seller's brand.
+  const useDefaultFavicon = !ssrFavicon && !customDomainShopLogo;
 
   // OG/Twitter facets that describe the storefront itself. When SSR ogMeta is
   // present (custom stalls + custom domains) these come from the seller's
@@ -242,7 +246,7 @@ const DynamicHead = ({
   const ogLocale = ssrOgMeta?.locale || "en_US";
   const keywords =
     ssrOgMeta?.keywords ||
-    "milk market, raw dairy, farm-fresh dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, local farmers, raw milk";
+    "milk market, sell food online, local food marketplace, local artisans, food producers, farm to table, sustainable food, decentralized commerce, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, shopify alternative, barn2door alternative";
   const geoRegion = ssrOgMeta?.locationRegion || "";
   const geoCity = ssrOgMeta?.locationCity || "";
   const geoPlaceName = [geoCity, geoRegion].filter(Boolean).join(", ");
@@ -256,6 +260,14 @@ const DynamicHead = ({
       <title>{metaTags.title}</title>
       <meta name="description" content={metaTags.description} />
       <link rel="canonical" href={metaTags.url} key="canonical" />
+      {useDefaultFavicon && (
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          key="favicon-svg"
+          href="/favicon.svg"
+        />
+      )}
       <link rel="icon" key="favicon" href={faviconUrl} />
       <link
         rel="apple-touch-icon"

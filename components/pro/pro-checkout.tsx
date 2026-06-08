@@ -1,0 +1,467 @@
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
+import {
+  CreditCardIcon,
+  BoltIcon,
+  BanknotesIcon,
+  ArrowLeftIcon,
+  CheckCircleIcon,
+  ClipboardDocumentIcon,
+  SparklesIcon,
+} from "@heroicons/react/24/outline";
+import { useProMembership } from "@/components/utility-components/pro-membership-context";
+import StripeCardForm from "@/components/utility-components/stripe-card-form";
+import {
+  PRO_ANNUAL_PRICE_CENTS,
+  PRO_MONTHLY_PRICE_CENTS,
+  PRO_NEW_USER_TRIAL_DAYS,
+  WRANGLER_LIFETIME_PRICE_USD,
+  proPriceUsd,
+  type ProTerm,
+} from "@/utils/pro/constants";
+import {
+  BLACKBUTTONCLASSNAMES,
+  BLUEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
+
+type PayMethod = "card" | "bitcoin" | "fiat";
+
+// Annual savings vs paying monthly for a year, e.g. $252 - $168 = $84 (~33%).
+const ANNUAL_SAVINGS_PERCENT = Math.round(
+  (1 - PRO_ANNUAL_PRICE_CENTS / (PRO_MONTHLY_PRICE_CENTS * 12)) * 100
+);
+
+interface ProCheckoutProps {
+  /**
+   * Called once Pro is set up: "paid" (card/bitcoin), "pending" (manual fiat
+   * invoice), or "trial" (30-day no-payment trial started).
+   */
+  onComplete: (status: "paid" | "pending" | "trial") => void;
+  className?: string;
+}
+
+// Shared Pro checkout used by the /pro upgrade page and the onboarding plan
+// step. It only consumes the billing engine's membership hook + endpoints; it
+// never talks to Stripe/Lightning directly beyond the shared StripeCardForm.
+export default function ProCheckout({
+  onComplete,
+  className,
+}: ProCheckoutProps) {
+  const {
+    membership,
+    startFreeTrial,
+    startStripeSubscription,
+    startStripeLifetime,
+    syncStripe,
+    createManualInvoice,
+    createManualLifetimeInvoice,
+    verifyManualInvoice,
+  } = useProMembership();
+
+  // "herd" = recurring subscription, "wrangler" = one-time lifetime purchase.
+  const [plan, setPlan] = useState<"herd" | "wrangler">("herd");
+  const isLifetime = plan === "wrangler";
+
+  // Offer the no-payment trial only to sellers who've never had a membership
+  // (status "free") AND only on the recurring Herd plan — lifetime is always
+  // pay-now. Lapsed sellers already used their entitlement and must pay.
+  const canStartTrial = membership.status === "free" && !isLifetime;
+
+  const [term, setTerm] = useState<ProTerm>(membership.term ?? "yearly");
+  const [method, setMethod] = useState<PayMethod | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Card
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+
+  // Bitcoin / fiat manual invoice
+  const [invoice, setInvoice] = useState<any | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [copied, setCopied] = useState(false);
+
+  const monthly = proPriceUsd("monthly");
+  const yearly = proPriceUsd("yearly");
+  const lifetimePrice = WRANGLER_LIFETIME_PRICE_USD;
+
+  const resetMethod = () => {
+    setMethod(null);
+    setClientSecret(null);
+    setInvoice(null);
+    setQrDataUrl("");
+    setError(null);
+  };
+
+  const handleTrial = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { created, view } = await startFreeTrial(term);
+      // Only treat it as a fresh trial when a row was actually created. If a
+      // membership already existed (created=false), don't fake a trial — surface
+      // the real state instead so we never grant a trial twice or to a payer.
+      if (created || view?.status === "trialing") {
+        onComplete("trial");
+      } else {
+        setError(
+          "You already have a membership on this account, so the free trial isn't available. Choose a payment method below to continue."
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCard = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { clientSecret: cs } = isLifetime
+        ? await startStripeLifetime()
+        : await startStripeSubscription(term);
+      if (!cs) {
+        throw new Error("Could not start the card payment. Try again.");
+      }
+      setClientSecret(cs);
+      setMethod("card");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManual = async (m: "bitcoin" | "fiat") => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = isLifetime
+        ? await createManualLifetimeInvoice(m)
+        : await createManualInvoice(term, m);
+      setInvoice(data);
+      setMethod(m);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate a QR for the Bitcoin (Lightning) invoice.
+  useEffect(() => {
+    if (method === "bitcoin" && invoice?.bolt11) {
+      QRCode.toDataURL(invoice.bolt11, { width: 240, margin: 1 })
+        .then(setQrDataUrl)
+        .catch(() => setQrDataUrl(""));
+    }
+  }, [method, invoice]);
+
+  // Poll the Bitcoin invoice until it's paid.
+  useEffect(() => {
+    if (method !== "bitcoin" || !invoice?.invoiceId) return;
+    let active = true;
+    const poll = setInterval(async () => {
+      try {
+        const data = await verifyManualInvoice(invoice.invoiceId);
+        if (active && data?.paid) {
+          clearInterval(poll);
+          onComplete("paid");
+        }
+      } catch {
+        // Keep polling; transient errors are expected while unpaid.
+      }
+    }, 4000);
+    return () => {
+      active = false;
+      clearInterval(poll);
+    };
+  }, [method, invoice, verifyManualInvoice, onComplete]);
+
+  const handleCardSuccess = async () => {
+    setLoading(true);
+    try {
+      await syncStripe();
+      onComplete("paid");
+    } catch {
+      // Even if the immediate sync fails, the webhook will reconcile — let
+      // them proceed rather than blocking on a transient error.
+      onComplete("paid");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyBolt11 = async () => {
+    try {
+      await navigator.clipboard.writeText(invoice?.bolt11 || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+
+  // ── Card payment view ──────────────────────────────────────────────────────
+  if (method === "card" && clientSecret) {
+    return (
+      <div className={className}>
+        <button
+          type="button"
+          onClick={resetMethod}
+          className="mb-3 flex items-center gap-1 text-sm font-bold text-black underline"
+        >
+          <ArrowLeftIcon className="h-4 w-4" /> Choose a different method
+        </button>
+        <StripeCardForm
+          clientSecret={clientSecret}
+          onPaymentSuccess={handleCardSuccess}
+          onPaymentError={(e) => setError(e)}
+          onCancel={resetMethod}
+        />
+        {error && (
+          <p className="mt-3 text-center text-sm font-bold text-red-600">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ── Bitcoin (Lightning) view ───────────────────────────────────────────────
+  if (method === "bitcoin" && invoice) {
+    return (
+      <div className={className}>
+        <button
+          type="button"
+          onClick={resetMethod}
+          className="mb-3 flex items-center gap-1 text-sm font-bold text-black underline"
+        >
+          <ArrowLeftIcon className="h-4 w-4" /> Choose a different method
+        </button>
+        <div className="shadow-neo flex flex-col items-center rounded-md border-2 border-black bg-white p-6">
+          <h3 className="mb-1 text-lg font-bold text-black">
+            Pay {invoice.amountSats?.toLocaleString()} sats
+          </h3>
+          <p className="mb-4 text-center text-sm text-zinc-600">
+            Scan with a Lightning wallet. Access activates automatically once
+            paid.
+          </p>
+          {qrDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={qrDataUrl}
+              alt="Lightning invoice QR code"
+              className="rounded-md border-2 border-black"
+              width={240}
+              height={240}
+            />
+          ) : (
+            <div className="flex h-[240px] w-[240px] items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black" />
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={copyBolt11}
+            className="mt-4 flex items-center gap-2 text-sm font-bold text-black underline"
+          >
+            <ClipboardDocumentIcon className="h-4 w-4" />
+            {copied ? "Copied!" : "Copy invoice"}
+          </button>
+          <div className="mt-4 flex items-center gap-2 text-sm font-medium text-zinc-600">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+            Waiting for payment…
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Manual fiat view ───────────────────────────────────────────────────────
+  if (method === "fiat" && invoice) {
+    const handles = (invoice.fiatHandles || "").trim();
+    return (
+      <div className={className}>
+        <button
+          type="button"
+          onClick={resetMethod}
+          className="mb-3 flex items-center gap-1 text-sm font-bold text-black underline"
+        >
+          <ArrowLeftIcon className="h-4 w-4" /> Choose a different method
+        </button>
+        <div className="shadow-neo rounded-md border-2 border-black bg-white p-6">
+          <div className="mb-3 flex items-center gap-2">
+            <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            <h3 className="text-lg font-bold text-black">
+              Invoice created: ${invoice.amountUsd}
+            </h3>
+          </div>
+          <p className="mb-4 text-sm text-zinc-700">
+            {invoice.note ||
+              "After paying, the Milk Market team will confirm your payment and activate your membership."}
+          </p>
+          {handles ? (
+            <div className="rounded-md border-2 border-black bg-gray-50 p-4">
+              <p className="mb-1 text-xs font-bold tracking-wide text-zinc-500 uppercase">
+                Send payment to
+              </p>
+              <p className="font-mono text-sm break-words text-black">
+                {handles}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-600">
+              Contact the Milk Market team to arrange payment.
+            </p>
+          )}
+          <p className="mt-4 text-xs text-zinc-500">
+            Your features unlock as soon as your payment is confirmed.
+          </p>
+          <button
+            type="button"
+            onClick={() => onComplete("pending")}
+            className={`${BLUEBUTTONCLASSNAMES} mt-4 w-full justify-center`}
+          >
+            I&apos;ve sent payment, continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Plan + method selection ────────────────────────────────────────────────
+  return (
+    <div className={className}>
+      {/* Plan toggle: recurring Herd vs one-time Wrangler lifetime */}
+      <div className="shadow-neo mb-3 flex rounded-md border-2 border-black bg-white p-1">
+        <button
+          type="button"
+          onClick={() => setPlan("herd")}
+          className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+            plan === "herd" ? "bg-black text-white" : "text-black"
+          }`}
+        >
+          Herd · subscription
+        </button>
+        <button
+          type="button"
+          onClick={() => setPlan("wrangler")}
+          className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+            plan === "wrangler" ? "bg-black text-white" : "text-black"
+          }`}
+        >
+          Wrangler · lifetime
+        </button>
+      </div>
+
+      {/* Term toggle (recurring Herd only) */}
+      {!isLifetime ? (
+        <div className="shadow-neo mb-5 flex rounded-md border-2 border-black bg-white p-1">
+          <button
+            type="button"
+            onClick={() => setTerm("monthly")}
+            className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+              term === "monthly" ? "bg-black text-white" : "text-black"
+            }`}
+          >
+            Monthly · ${monthly}/mo
+          </button>
+          <button
+            type="button"
+            onClick={() => setTerm("yearly")}
+            className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+              term === "yearly" ? "bg-black text-white" : "text-black"
+            }`}
+          >
+            Yearly · ${yearly}/yr
+            <span className="ml-1 text-xs font-bold text-green-600">
+              Save {ANNUAL_SAVINGS_PERCENT}%
+            </span>
+          </button>
+        </div>
+      ) : (
+        <div className="shadow-neo mb-5 rounded-md border-2 border-black bg-white p-4 text-center">
+          <p className="text-lg font-bold text-black">
+            ${lifetimePrice} one-time
+          </p>
+          <p className="mt-1 text-sm font-medium text-zinc-600">
+            Pay once, keep every Herd feature for life. Never expires, no
+            renewals.
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <p className="mb-4 text-center text-sm font-bold text-red-600">
+          {error}
+        </p>
+      )}
+
+      {canStartTrial && (
+        <div className="mb-5">
+          <button
+            type="button"
+            onClick={handleTrial}
+            disabled={loading}
+            className={`${BLUEBUTTONCLASSNAMES} w-full justify-center disabled:opacity-50`}
+          >
+            <SparklesIcon className="mr-2 h-5 w-5" />
+            Start {PRO_NEW_USER_TRIAL_DAYS}-day free trial
+          </button>
+          <p className="mt-2 text-center text-xs font-medium text-zinc-600">
+            No payment now. We&apos;ll remind you to pay for your{" "}
+            {term === "yearly" ? "yearly" : "monthly"} plan once the trial ends.
+          </p>
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-px flex-1 bg-black/15" />
+            <span className="text-xs font-bold tracking-wide text-zinc-500 uppercase">
+              or pay now
+            </span>
+            <div className="h-px flex-1 bg-black/15" />
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleCard}
+          disabled={loading}
+          className={`${
+            canStartTrial ? BLACKBUTTONCLASSNAMES : BLUEBUTTONCLASSNAMES
+          } w-full justify-center disabled:opacity-50`}
+        >
+          <CreditCardIcon className="mr-2 h-5 w-5" />
+          Pay with card
+        </button>
+        <button
+          type="button"
+          onClick={() => handleManual("bitcoin")}
+          disabled={loading}
+          className={`${BLACKBUTTONCLASSNAMES} w-full justify-center disabled:opacity-50`}
+        >
+          <BoltIcon className="mr-2 h-5 w-5" />
+          Pay with Bitcoin (Lightning)
+        </button>
+        <button
+          type="button"
+          onClick={() => handleManual("fiat")}
+          disabled={loading}
+          className="shadow-neo flex w-full items-center justify-center rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+        >
+          <BanknotesIcon className="mr-2 h-5 w-5" />
+          Request a manual invoice
+        </button>
+      </div>
+
+      {loading && (
+        <div className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-zinc-600">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-black" />
+          Setting up checkout…
+        </div>
+      )}
+    </div>
+  );
+}

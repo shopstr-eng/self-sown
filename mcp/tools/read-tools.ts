@@ -14,6 +14,7 @@ import {
   parseShippingFromTags,
 } from "@/utils/parsers/product-tag-helpers";
 import { NostrEvent } from "@/utils/types/types";
+import { getMembershipView } from "@/utils/pro/membership";
 import { registerTool } from "./register-tool";
 import { ToolContext } from "../audit-log";
 
@@ -1008,6 +1009,80 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
                   _meta: {
                     responseTimeMs: Date.now() - startTime,
                     dataSource: "cached_db",
+                    resultCount: 1,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return dbError(error, startTime);
+      }
+    }
+  );
+
+  reg(
+    "get_membership_status",
+    "Get the membership (Herd / Wrangler) status for the API key owner, including whether the seller has an active paid membership, whether it is a lifetime Wrangler membership, and the next renewal/expiry date. Read-only; reports only on the authenticated key owner's own membership.",
+    {},
+    async () => {
+      const startTime = Date.now();
+      const pubkey = context?.pubkey;
+      if (!pubkey) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  error: "No pubkey associated with this API key",
+                  _meta: {
+                    responseTimeMs: Date.now() - startTime,
+                    dataSource: "live",
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          isError: true,
+        };
+      }
+      try {
+        const view = await withTimeout(
+          getMembershipView(pubkey),
+          DB_TIMEOUT_MS,
+          "getMembershipView"
+        );
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  pubkey: view.pubkey,
+                  status: view.status,
+                  isMember: view.isPro,
+                  isLifetime: view.isLifetime,
+                  isTrialing: view.isTrialing,
+                  isReadOnly: view.isReadOnly,
+                  isHidden: view.isHidden,
+                  isPubliclyVisible: view.isPubliclyVisible,
+                  canEdit: view.canEdit,
+                  term: view.term,
+                  billingMethod: view.billingMethod,
+                  cancelAtPeriodEnd: view.cancelAtPeriodEnd,
+                  trialEnd: view.trialEnd,
+                  renewalDate: view.isLifetime ? null : view.currentPeriodEnd,
+                  graceUntil: view.graceUntil,
+                  readonlyUntil: view.readonlyUntil,
+                  _meta: {
+                    responseTimeMs: Date.now() - startTime,
+                    dataSource: "live",
                     resultCount: 1,
                   },
                 },

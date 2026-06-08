@@ -1,0 +1,18 @@
+/* TEAM */
+Project: Milk Market
+Site: https://milk.market
+Contact: freemilk@milk.market
+Nostr: https://njump.me/milkmarket
+X: https://x.com/milkmarketmedia
+Source: https://github.com/shopstr-eng/milk-market
+
+/* WHAT */
+A permissionless, Bitcoin-native marketplace for local food and decentralized
+food systems, built on the Nostr protocol.
+
+/* TECH */
+Next.js, React, TypeScript, HeroUI, Tailwind CSS, PostgreSQL, Nostr, Blossom,
+Lightning Network, Cashu, Stripe.
+
+/* THANKS */
+Built on open protocols and the work of the Nostr and Bitcoin communities.
