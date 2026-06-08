@@ -772,3 +772,26 @@ export async function listExistingStallPubkeys(): Promise<string[]> {
     if (client) client.release();
   }
 }
+
+// Sellers who set up a "custom stall": claimed a custom storefront URL slug
+// (shop_slugs) or a mapped custom domain (custom_domains). Narrower than
+// listExistingStallPubkeys (which counts anyone with a product or shop profile).
+// Used by the one-time lifetime grandfather backfill and its operator CLI so the
+// population is defined in exactly one place.
+export async function listCustomStallPubkeys(): Promise<string[]> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT DISTINCT pubkey FROM (
+         SELECT pubkey FROM shop_slugs
+         UNION
+         SELECT pubkey FROM custom_domains
+       ) AS custom_stalls
+       WHERE pubkey IS NOT NULL AND pubkey <> ''`
+    );
+    return result.rows.map((r: { pubkey: string }) => r.pubkey);
+  } finally {
+    if (client) client.release();
+  }
+}

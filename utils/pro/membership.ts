@@ -22,6 +22,7 @@ import {
   getProMembershipBySubscription,
   grantLifetimeMembership,
   grantProTrialIfMissing,
+  listCustomStallPubkeys,
   listExistingStallPubkeys,
   listPaidProManualInvoices,
   listSettledManualInvoicesMissingCoverage,
@@ -809,4 +810,47 @@ export async function backfillManualCoverageOnce(): Promise<{
 
   await setProSetting(COVERAGE_BACKFILL_FLAG, new Date().toISOString());
   return { ran: true, filled };
+}
+
+const CUSTOM_STALL_LIFETIME_FLAG = "custom_stall_lifetime_grandfather_v1";
+
+/**
+ * One-time grandfather of existing custom-stall sellers into a free, never-
+ * expiring lifetime (Wrangler) membership — instead of the standard recurring
+ * membership. Target population is the narrower "custom stall" set: sellers who
+ * claimed a custom storefront URL slug or a custom domain
+ * (`listCustomStallPubkeys`).
+ *
+ * Runs automatically on the next lifecycle cron tick after deploy and never
+ * again: a one-shot `pro_settings` flag short-circuits subsequent runs (same
+ * pattern as `backfillProTrialsOnce`). The same logic is exposed as an operator
+ * CLI (`scripts/grandfather-custom-stall-lifetime.ts`) for manual/dry runs.
+ *
+ * Idempotent: already-lifetime sellers are skipped, and `grantLifetimeMembership`
+ * upserts on pubkey. For each non-lifetime seller it cancels any live recurring
+ * Stripe subscription first (so they're never charged again — the grant only
+ * nulls the local sub id, it doesn't stop the live Stripe charge), then grants
+ * lifetime with `billing_method = 'manual'` (a free grant, not a paid sale).
+ */
+export async function grandfatherCustomStallLifetimeOnce(): Promise<{
+  ran: boolean;
+  granted: number;
+}> {
+  const done = await getProSetting(CUSTOM_STALL_LIFETIME_FLAG);
+  if (done) return { ran: false, granted: 0 };
+
+  const pubkeys = await listCustomStallPubkeys();
+
+  let granted = 0;
+  for (const pubkey of pubkeys) {
+    const existing = await getProMembership(pubkey);
+    if (existing?.lifetime) continue;
+    // Stop any live recurring charge first (best-effort), then grant lifetime.
+    await cancelExistingProSubscription(pubkey);
+    await grantLifetimeMembership({ pubkey, billingMethod: "manual" });
+    granted += 1;
+  }
+
+  await setProSetting(CUSTOM_STALL_LIFETIME_FLAG, new Date().toISOString());
+  return { ran: true, granted };
 }

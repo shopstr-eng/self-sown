@@ -3,6 +3,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import {
   backfillProTrialsOnce,
   backfillManualCoverageOnce,
+  grandfatherCustomStallLifetimeOnce,
 } from "@/utils/pro/membership";
 import { runProLifecycle } from "@/utils/pro/lifecycle";
 import { expirePastDueManualInvoices } from "@/utils/db/pro-membership";
@@ -35,6 +36,7 @@ export default async function handler(
   try {
     const backfill = await backfillProTrialsOnce();
     const coverageBackfill = await backfillManualCoverageOnce();
+    const customStallLifetime = await grandfatherCustomStallLifetimeOnce();
     const expiredInvoices = await expirePastDueManualInvoices();
     const lifecycle = await runProLifecycle();
 
@@ -42,6 +44,7 @@ export default async function handler(
       ok: true,
       backfill,
       coverageBackfill,
+      customStallLifetime,
       expiredInvoices,
       lifecycle,
     });

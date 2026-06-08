@@ -23,6 +23,7 @@ import { getDbPool } from "@/utils/db/db-service";
 import {
   getProMembership,
   grantLifetimeMembership,
+  listCustomStallPubkeys,
 } from "@/utils/db/pro-membership";
 import { cancelExistingProSubscription } from "@/utils/pro/membership";
 
@@ -40,20 +41,10 @@ function describeMembership(
 async function main() {
   const apply = process.argv.includes("--apply");
   const pool = getDbPool();
-  const client = await pool.connect();
-  let pubkeys: string[];
-  try {
-    // Union of slug owners and custom-domain owners = sellers with a custom stall.
-    const result = await client.query<{ pubkey: string }>(
-      `SELECT pubkey FROM shop_slugs
-       UNION
-       SELECT pubkey FROM custom_domains
-       ORDER BY pubkey`
-    );
-    pubkeys = result.rows.map((r) => r.pubkey).filter(Boolean);
-  } finally {
-    client.release();
-  }
+  // Slug owners ∪ custom-domain owners = sellers with a custom stall. Shared with
+  // the automatic one-time backfill (grandfatherCustomStallLifetimeOnce) so the
+  // population is defined in exactly one place.
+  const pubkeys = (await listCustomStallPubkeys()).sort();
 
   console.log(
     `\n=== Custom-stall sellers (${pubkeys.length}) ===` +
