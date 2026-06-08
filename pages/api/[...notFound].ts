@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { sendAgentError } from "@/utils/api/agent-error";
 
 // Catch-all for unknown /api/* routes so agents and clients receive a
 // structured JSON 404 (with discovery hints) instead of Next.js's default
@@ -13,19 +14,13 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       : [];
   const path = `/api/${segments.join("/")}`;
 
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
-  res.status(404).json({
+  sendAgentError(res, {
+    status: 404,
     error: "Not found",
     code: "not_found",
-    status: 404,
     message: `No API endpoint matches ${path}.`,
     path,
     method: req.method,
-    documentation: {
-      openapi: "https://milk.market/openapi.json",
-      mcp: "https://milk.market/.well-known/mcp.json",
-      agents: "https://milk.market/agents.txt",
-    },
   });
 }

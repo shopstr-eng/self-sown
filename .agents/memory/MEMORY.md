@@ -31,3 +31,4 @@
 - [Landing mobile "overflow"](landing-mobile-overflow.md) — globals force body overflow-x:hidden, so overflow complaints = fixed-width clipping; cap carousel cards at w-[min(20rem,calc(100vw-Xrem))] like the storefront social section.
 - [Jest cold compile vs tool window](jest-cold-compile-tool-window.md) — next/jest cold start can't finish in one 120s bash call (even tiny tests); DB testcontainer tests are agent-unrunnable, validate via tsc/eslint/prettier instead.
 - [Machine-readable tier/pricing surfaces](machine-readable-tier-surfaces.md) — only page-content.ts + llms-full.txt enumerate tiers (edit on pricing change); discovery/transport files must NOT; internal "Pro" identifiers stay.
+- [Web Bot Auth signature directory](web-bot-auth-directory.md) — publish Ed25519 JWKS at /.well-known/http-message-signatures-directory (top of proxy = both hosts); key rotates per-process unless env set; use res.send not res.json for the media type.

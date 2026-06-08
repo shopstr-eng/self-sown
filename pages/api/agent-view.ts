@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getPageContent } from "@/utils/geo/page-content";
+import { applyRateLimit } from "@/utils/rate-limit";
+import { sendAgentError } from "@/utils/api/agent-error";
+
+const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
 // Backing endpoint for content negotiation. `proxy.ts` rewrites requests for
 // content pages here (preserving the original URL) when the client asks for a
@@ -18,6 +22,13 @@ function markdownToPlainText(markdown: string): string {
 }
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  res.setHeader("Vary", "Accept, User-Agent");
+  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("X-Robots-Tag", "noindex");
+
+  if (!applyRateLimit(req, res, "agent-view", RATE_LIMIT)) return;
+
   const headerPath = req.headers["x-agent-view-path"];
   const queryPath = Array.isArray(req.query.path)
     ? req.query.path[0]
@@ -36,14 +47,9 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const path = rawPath || "/";
   const content = getPageContent(path);
 
-  res.setHeader("Vary", "Accept, User-Agent");
-  res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("X-Robots-Tag", "noindex");
-
   if (!content) {
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    return res.status(404).json({
+    return sendAgentError(res, {
+      status: 404,
       error: "Not found",
       code: "not_found",
       message: `No machine-readable representation for path "${path}".`,

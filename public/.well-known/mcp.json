@@ -34,5 +34,12 @@
   "capabilities": {
     "tools": true,
     "resources": true
+  },
+  "webBotAuth": {
+    "directory": "https://milk.market/.well-known/http-message-signatures-directory",
+    "algorithm": "ed25519",
+    "keyFormat": "jwk",
+    "keyIdScheme": "rfc7638-jwk-thumbprint",
+    "description": "HTTP Message Signatures (RFC 9421) public-key directory for verifiable agent identity (Web Bot Auth). Milk Market publishes its Ed25519 verification keys here; agents may advertise their own directory via the Signature-Agent header."
   }
 }

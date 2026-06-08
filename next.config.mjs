@@ -122,6 +122,10 @@ const nextConfig = {
           source: "/.well-known/agent.json",
           destination: "/api/.well-known/agent.json",
         },
+        {
+          source: "/.well-known/http-message-signatures-directory",
+          destination: "/api/.well-known/http-message-signatures-directory",
+        },
       ],
       fallback: [],
     };

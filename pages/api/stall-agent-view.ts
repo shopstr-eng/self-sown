@@ -10,6 +10,8 @@ import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
 import { getListingSlug } from "@/utils/url-slugs";
+import { applyRateLimit } from "@/utils/rate-limit";
+import { sendAgentError } from "@/utils/api/agent-error";
 import {
   buildStallMarkdown,
   buildStallJson,
@@ -30,6 +32,8 @@ import {
 // keep getting HTML.
 
 const PLATFORM = "https://milk.market";
+
+const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
 type Format = "md" | "json" | "txt" | "llms" | "robots" | "rss";
 
@@ -60,18 +64,25 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("X-Robots-Tag", "noindex");
 
+  if (!applyRateLimit(req, res, "stall-agent-view", RATE_LIMIT)) return;
+
   if (!slug) {
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    return res.status(400).json({ error: "Missing stall slug" });
+    return sendAgentError(res, {
+      status: 400,
+      error: "Missing stall slug",
+      code: "missing_slug",
+      message: "A stall slug is required to render machine-readable content.",
+    });
   }
 
   try {
     const pubkey = await fetchShopPubkeyBySlug(slug);
     if (!pubkey) {
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      return res.status(404).json({
+      return sendAgentError(res, {
+        status: 404,
         error: "Shop not found",
         code: "not_found",
+        message: `No shop matches the slug "${slug}".`,
         slug,
       });
     }
@@ -158,9 +169,11 @@ export default async function handler(
     }
   } catch (error) {
     console.error("stall-agent-view failed:", error);
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    return res.status(500).json({
+    return sendAgentError(res, {
+      status: 500,
       error: "Failed to render stall content",
+      code: "stall_render_error",
+      slug,
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }

@@ -186,6 +186,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
+  // Web Bot Auth signature directory. Handled here (after the www->apex redirect
+  // so it canonicalizes, but before any host-specific routing) so the same
+  // canonical key directory is served on the platform host AND on every seller
+  // custom domain.
+  if (pathname === "/.well-known/http-message-signatures-directory") {
+    return NextResponse.rewrite(
+      new URL("/api/.well-known/http-message-signatures-directory", request.url)
+    );
+  }
+
   // Content negotiation for LLMs/agents on the main platform host only. Custom
   // domains fall through to their own storefront routing below.
   if (!isCustomDomain(hostname) && AGENT_VIEW_PATHS.has(pathname)) {

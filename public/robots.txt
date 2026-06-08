@@ -57,3 +57,4 @@ Sitemap: https://milk.market/sitemap.xml
 # /openapi.json
 # /.well-known/mcp.json
 # /.well-known/agent-card.json
+# /.well-known/http-message-signatures-directory  (Web Bot Auth public keys)

@@ -60,5 +60,13 @@
   ],
   "additionalInterfaces": [
     { "url": "https://milk.market/api/mcp", "transport": "JSONRPC" }
-  ]
+  ],
+  "signatures": {
+    "webBotAuth": {
+      "directory": "https://milk.market/.well-known/http-message-signatures-directory",
+      "algorithm": "ed25519",
+      "keyIdScheme": "rfc7638-jwk-thumbprint",
+      "description": "HTTP Message Signatures (RFC 9421) public-key directory for verifiable agent identity (Web Bot Auth)."
+    }
+  }
 }
