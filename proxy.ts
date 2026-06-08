@@ -170,7 +170,37 @@ function isCustomDomain(rawHost: string): boolean {
   return true;
 }
 
+// Endpoints that set their OWN accurate, per-request RateLimit headers (via
+// applyRateLimit) carry this marker so the advisory wrapper below doesn't add a
+// second, duplicate set. The marker is stripped before the response is returned.
+const RL_SKIP_HEADER = "x-mm-rl-skip";
+
+// Advisory RateLimit headers for agents/scanners. Real per-IP enforcement lives
+// in the API handlers (utils/rate-limit.ts); these inform automated clients of
+// the documented budget on EVERY navigation/storefront response (both the
+// platform host and seller custom domains) so the limit is observable up front.
+function withAdvisoryRateLimitHeaders(res: NextResponse): NextResponse {
+  if (res.headers.get(RL_SKIP_HEADER)) {
+    res.headers.delete(RL_SKIP_HEADER);
+    return res;
+  }
+  if (!res.headers.has("RateLimit-Limit")) {
+    res.headers.set("RateLimit-Limit", "600");
+    res.headers.set("RateLimit-Remaining", "600");
+    res.headers.set("RateLimit-Reset", "60");
+    res.headers.set("RateLimit-Policy", '"agent";q=600;w=60');
+    res.headers.set("X-RateLimit-Limit", "600");
+    res.headers.set("X-RateLimit-Remaining", "600");
+    res.headers.set("X-RateLimit-Reset", "60");
+  }
+  return res;
+}
+
 export async function proxy(request: NextRequest) {
+  return withAdvisoryRateLimitHeaders(await routeRequest(request));
+}
+
+async function routeRequest(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hostname = (request.headers.get("host") || "").toLowerCase();
 
@@ -191,9 +221,11 @@ export async function proxy(request: NextRequest) {
   // canonical key directory is served on the platform host AND on every seller
   // custom domain.
   if (pathname === "/.well-known/http-message-signatures-directory") {
-    return NextResponse.rewrite(
+    const res = NextResponse.rewrite(
       new URL("/api/.well-known/http-message-signatures-directory", request.url)
     );
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
   }
 
   // Content negotiation for LLMs/agents on the main platform host only. Custom
@@ -217,6 +249,7 @@ export async function proxy(request: NextRequest) {
         request: { headers: requestHeaders },
       });
       res.headers.set("Vary", "Accept, User-Agent");
+      res.headers.set(RL_SKIP_HEADER, "1");
       return res;
     }
   }
@@ -251,6 +284,7 @@ export async function proxy(request: NextRequest) {
             request: { headers: requestHeaders },
           });
           res.headers.set("Vary", "Accept, User-Agent");
+          res.headers.set(RL_SKIP_HEADER, "1");
           return res;
         }
       }
@@ -305,6 +339,7 @@ export async function proxy(request: NextRequest) {
       h.set("x-stall-format", format);
       const res = NextResponse.rewrite(url, { request: { headers: h } });
       res.headers.set("Vary", "Accept, User-Agent");
+      res.headers.set(RL_SKIP_HEADER, "1");
       return res;
     };
 

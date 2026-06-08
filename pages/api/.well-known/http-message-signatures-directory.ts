@@ -38,12 +38,24 @@ export default async function handler(
 
   try {
     const directory = await getSignatureDirectory();
-    // The IETF draft registers this media type for the directory document. Use
-    // res.send (not res.json) so the custom media type isn't overwritten with
-    // application/json.
+    // The IETF draft registers `application/http-message-signatures-directory`
+    // for this document, and spec-aware verifiers (Cloudflare et al.) request it
+    // via Accept or */*. But many generic agents/scanners only parse a body when
+    // the Content-Type literally contains `application/json` — the `+json`
+    // suffix alone isn't enough for them, so they fetch the directory, see an
+    // unrecognized type, and report the keys as "not discoverable". When the
+    // caller explicitly asks for application/json, answer in kind so the JWK Set
+    // is parseable everywhere; otherwise serve the registered media type.
+    const accept = (req.headers.accept || "").toLowerCase();
+    const wantsPlainJson =
+      accept.includes("application/json") &&
+      !accept.includes("application/http-message-signatures-directory");
+    // Use res.send (not res.json) so the chosen media type isn't overwritten.
     res.setHeader(
       "Content-Type",
-      "application/http-message-signatures-directory+json; charset=utf-8"
+      wantsPlainJson
+        ? "application/json; charset=utf-8"
+        : "application/http-message-signatures-directory+json; charset=utf-8"
     );
     return res.status(200).send(JSON.stringify(directory));
   } catch (error) {
