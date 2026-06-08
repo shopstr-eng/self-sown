@@ -70,6 +70,13 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/cashu/",
   "/api/stripe/",
   "/api/email/",
+  // Public, read-only Pro entitlement check. The storefront render layer
+  // (StorefrontLayout / StorefrontThemeWrapper) calls this to decide whether to
+  // serve the seller's premium design (custom colors/fonts/sections). It fails
+  // closed, so without this gated in the proxy returns 403, the render layer
+  // reads that as "not Pro", and EVERY custom-domain stall reverts to the
+  // default Milk Market look even when the seller is fully entitled.
+  "/api/pro/status",
   "/api/og-preview",
   "/api/sitemap.xml",
   "/api/auth/",
