@@ -36,6 +36,21 @@ private key as a secret. Agent does not set this secret automatically (sensitive
 `application/http-message-signatures-directory+json` media type. Use
 `res.setHeader(...); res.send(JSON.stringify(directory))` instead.
 
+## Don't depend on `jose` (or any phantom dep) here
+
+The directory builder uses ONLY `node:crypto`: `keyObject.export({format:"jwk"})`
+for the JWK and a hand-rolled RFC 7638 thumbprint (SHA-256 of
+`{"crv","kty","x"}` in lexicographic order, base64url, no padding) for the `kid`.
+**Why:** an earlier version imported `calculateJwkThumbprint`/`exportJWK` from
+`jose`, which was only present transitively. Dev resolved it, but the deploy
+build (`scripts/deploy-build.sh` → `pnpm install --frozen-lockfile --filter`
+then `next build`) uses pnpm's strict layout where undeclared deps are invisible
+to our own code, so `next build` failed with "Module not found: Can't resolve
+'jose'". The manual thumbprint was verified to match jose's output exactly.
+**How to apply:** never import a package here (or anywhere in app code) that
+isn't a declared dependency in package.json — "works in dev" hides phantom deps
+that the production frozen install will reject.
+
 ## Two different algorithm identifiers
 
 The published JWK `alg` must be `EdDSA` (JOSE/RFC 8037 label for Ed25519 keys),

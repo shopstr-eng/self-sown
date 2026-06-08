@@ -2,9 +2,9 @@ import {
   generateKeyPairSync,
   createPrivateKey,
   createPublicKey,
+  createHash,
   type KeyObject,
 } from "node:crypto";
-import { calculateJwkThumbprint, exportJWK } from "jose";
 
 // --- Web Bot Auth: HTTP Message Signatures key directory ----------------------
 // Implements the publishing half of Web Bot Auth
@@ -94,18 +94,33 @@ export function getSignatureKeySource(): "env" | "generated" {
   return cachedSource ?? "generated";
 }
 
+function base64url(buf: Buffer): string {
+  return buf
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+// RFC 7638 JWK thumbprint for an Ed25519 (OKP) public key. The canonical form
+// includes only the required members in lexicographic order: crv, kty, x.
+function calculateOkpThumbprint(crv: string, x: string): string {
+  const canonical = JSON.stringify({ crv, kty: "OKP", x });
+  return base64url(createHash("sha256").update(canonical).digest());
+}
+
 // Builds the Web Bot Auth signature directory (a JWK Set of public verification
 // keys). `kid` is the RFC 7638 JWK thumbprint, which is what Web Bot Auth
 // verifiers use to bind a request's signature to a directory entry.
 export async function getSignatureDirectory(): Promise<SignatureDirectory> {
   const publicKey = loadPublicKey();
-  const jwk = await exportJWK(publicKey);
+  const jwk = publicKey.export({ format: "jwk" });
 
   if (jwk.kty !== "OKP" || jwk.crv !== "Ed25519" || !jwk.x) {
     throw new Error("Unexpected key type for Web Bot Auth signature directory");
   }
 
-  const kid = await calculateJwkThumbprint(jwk, "sha256");
+  const kid = calculateOkpThumbprint(jwk.crv, jwk.x);
 
   return {
     keys: [
