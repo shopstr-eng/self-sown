@@ -17,11 +17,13 @@ import {
 } from "@/utils/pro/constants";
 import { isProEntitled, membershipView } from "@/utils/pro/membership-status";
 import {
+  applyProManualState,
   applyProStripeState,
   getProMembership,
   getProMembershipBySubscription,
   grantLifetimeMembership,
   grantProTrialIfMissing,
+  revokeProMembership,
   listCustomStallPubkeys,
   listExistingStallPubkeys,
   listPaidProManualInvoices,
@@ -269,6 +271,22 @@ export async function applyStripeSubscriptionToMembership(
     return;
   }
 
+  // Admin-revoke guard: a subscription an admin revoked is permanently denied —
+  // its stale/in-flight or later-retried webhooks must never re-grant or
+  // re-link state. A genuine later re-subscribe uses a NEW subscription id (not
+  // on the deny-list), so this never blocks legitimate resubscription.
+  try {
+    const denied = await getProSetting(
+      adminRevokedSubscriptionKey(mapped.subscriptionId)
+    );
+    if (denied) return;
+  } catch (err) {
+    console.error(
+      "applyStripeSubscriptionToMembership: admin-revoke guard check failed",
+      err
+    );
+  }
+
   const grant =
     (mapped.baseStatus === "active" || mapped.baseStatus === "trialing") &&
     mapped.periodEnd !== null &&
@@ -356,6 +374,82 @@ export async function cancelExistingProSubscription(
       error: err,
     });
   }
+}
+
+/**
+ * Admin: manually grant a seller timed Pro (Herd) access for `months` months.
+ * Writes a manual-billing membership whose entitlement ends `months` out, with
+ * the normal grace → read-only → hidden lapse timeline appended after, so an
+ * admin-granted term lapses exactly like a paid manual term once it elapses.
+ * `applyProManualState` clears the lifetime flag, so this also downgrades a
+ * former Wrangler (lifetime) member to a fixed term. No invoice/receipt is
+ * created — this is an operator action, not a purchase.
+ */
+export async function adminGrantProMembership(
+  pubkey: string,
+  months: number
+): Promise<{ currentPeriodEnd: Date }> {
+  if (!Number.isInteger(months) || months < 1 || months > 120) {
+    throw new Error("months must be an integer between 1 and 120");
+  }
+  const now = new Date();
+  const currentPeriodEnd = new Date(now.getTime());
+  currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + months);
+  const { graceUntil, readonlyUntil } = computeLapseTimeline(
+    currentPeriodEnd,
+    PRO_MANUAL_GRACE_DAYS
+  );
+  const term: ProTerm = months >= 12 ? "yearly" : "monthly";
+  await applyProManualState({
+    pubkey,
+    term,
+    currentPeriodEnd,
+    graceUntil,
+    readonlyUntil,
+  });
+  return { currentPeriodEnd };
+}
+
+/**
+ * Admin: manually grant a seller Wrangler lifetime access. Cancels any live
+ * recurring Herd subscription at Stripe first (best-effort) so they're never
+ * charged again, then writes the never-expiring lifetime grant.
+ */
+export async function adminGrantLifetimeMembership(
+  pubkey: string
+): Promise<void> {
+  await cancelExistingProSubscription(pubkey);
+  await grantLifetimeMembership({ pubkey, billingMethod: "manual" });
+}
+
+// pro_settings deny-key for a Stripe subscription id that an admin revoke
+// cancelled. Stale, in-flight, or later-retried webhooks for that exact
+// subscription must NEVER re-grant or re-link state (cancelling at Stripe and
+// nulling the local id isn't enough — the webhook still resolves the pubkey
+// from subscription metadata). Keyed by subscription id and never cleared: a
+// genuine re-subscribe uses a NEW id that isn't on the list, so legitimate
+// resubscription is never blocked.
+function adminRevokedSubscriptionKey(subscriptionId: string): string {
+  return `admin_revoked_subscription:${subscriptionId}`;
+}
+
+/**
+ * Admin: revoke a seller's membership entirely, downgrading them to the free
+ * tier. Records the live Stripe subscription id on a permanent deny-list FIRST
+ * (so stale/retried webhooks for it can't resurrect access), then cancels that
+ * subscription at Stripe (best-effort) and clears the local row's lifetime flag
+ * and lapse timeline. The deny-list write happens before any state is cleared,
+ * so if it (or the lookup) fails the whole revoke aborts and the membership is
+ * left intact for the admin to retry — the revoke is never half-applied.
+ */
+export async function adminRevokeMembership(pubkey: string): Promise<void> {
+  const existing = await getProMembership(pubkey);
+  const subscriptionId = existing?.stripe_subscription_id ?? null;
+  if (subscriptionId) {
+    await setProSetting(adminRevokedSubscriptionKey(subscriptionId), "1");
+  }
+  await cancelExistingProSubscription(pubkey);
+  await revokeProMembership(pubkey);
 }
 
 /**

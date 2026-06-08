@@ -200,12 +200,13 @@ export async function applyProManualState(args: {
     client = await getDbPool().connect();
     await client.query(
       `INSERT INTO pro_memberships
-         (pubkey, billing_method, term, status, current_period_end,
+         (pubkey, billing_method, term, lifetime, status, current_period_end,
           grace_until, readonly_until, cancel_at_period_end, updated_at)
-       VALUES ($1, 'manual', $2, 'active', $3, $4, $5, FALSE, now())
+       VALUES ($1, 'manual', $2, FALSE, 'active', $3, $4, $5, FALSE, now())
        ON CONFLICT (pubkey) DO UPDATE SET
          billing_method = 'manual',
          term = EXCLUDED.term,
+         lifetime = FALSE,
          status = 'active',
          current_period_end = EXCLUDED.current_period_end,
          grace_until = EXCLUDED.grace_until,
@@ -500,6 +501,40 @@ export async function setProMembershipCancel(
            updated_at = now()
        WHERE pubkey = $1`,
       [pubkey, cancelAtPeriodEnd]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Admin hard-revoke: strip a seller's membership back to the free tier in one
+// write. Clears the Wrangler lifetime flag and the entire lapse timeline
+// (period/grace/readonly/trial) and nulls the Stripe subscription id, so the
+// pure resolver sees no entitlement and returns "free" (not the lapsed
+// "hidden" state). The caller is responsible for cancelling any live Stripe
+// subscription at Stripe FIRST (this only clears the local pointer).
+export async function revokeProMembership(pubkey: string): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `UPDATE pro_memberships
+         SET lifetime = FALSE,
+             status = 'canceled',
+             term = NULL,
+             stripe_subscription_id = NULL,
+             trial_end = NULL,
+             current_period_end = NULL,
+             grace_until = NULL,
+             readonly_until = NULL,
+             cancel_at_period_end = TRUE,
+             trial_reminder_sent_at = NULL,
+             due_reminder_sent_at = NULL,
+             readonly_notice_sent_at = NULL,
+             hidden_notice_sent_at = NULL,
+             updated_at = now()
+       WHERE pubkey = $1`,
+      [pubkey]
     );
   } finally {
     if (client) client.release();
