@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import Router, { useRouter } from "next/router";
 
 export default function PageLoadingBar() {
   const router = useRouter();
@@ -7,92 +7,98 @@ export default function PageLoadingBar() {
   const [visible, setVisible] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
 
+  // Timers/state held in refs so they survive re-renders and so the event
+  // subscription effect can stay mounted exactly once (see below).
+  const timeouts = useRef<number[]>([]);
+  const progressTimer = useRef<number | null>(null);
+  // Tracks whether a load is currently in progress. Guards `done()` so it can't
+  // double-fire and so the asPath watcher only completes an active bar.
+  const activeRef = useRef(false);
+
+  const clearAllTimers = useCallback(() => {
+    timeouts.current.forEach((t) => clearTimeout(t));
+    timeouts.current = [];
+    if (progressTimer.current) {
+      clearInterval(progressTimer.current);
+      progressTimer.current = null;
+    }
+  }, []);
+
+  const done = useCallback(() => {
+    if (!activeRef.current) return;
+    activeRef.current = false;
+    clearAllTimers();
+    setWidth(100);
+
+    const fade = window.setTimeout(() => {
+      setFadeOut(true);
+      const hide = window.setTimeout(() => {
+        setVisible(false);
+        setWidth(0);
+        setFadeOut(false);
+      }, 300);
+      timeouts.current.push(hide);
+    }, 150);
+    timeouts.current.push(fade);
+  }, [clearAllTimers]);
+
+  const start = useCallback(() => {
+    clearAllTimers();
+    activeRef.current = true;
+    setFadeOut(false);
+    setVisible(true);
+    setWidth(0);
+
+    // Quickly advance to ~15% then slowly crawl toward 85%
+    timeouts.current.push(window.setTimeout(() => setWidth(15), 50));
+    timeouts.current.push(window.setTimeout(() => setWidth(35), 200));
+    timeouts.current.push(window.setTimeout(() => setWidth(55), 500));
+
+    // Slowly inch toward 85% to signal "still loading"
+    let current = 55;
+    progressTimer.current = window.setInterval(() => {
+      if (current < 85) {
+        current += Math.random() * 3;
+        setWidth(Math.min(current, 85));
+      }
+    }, 400);
+
+    // Safety timeout: always clear the bar even if no completion signal ever
+    // reaches us (e.g. same-route navigation or App Router transitions).
+    timeouts.current.push(window.setTimeout(() => done(), 8000));
+  }, [clearAllTimers, done]);
+
+  // Subscribe to the Router SINGLETON exactly once. Using `useRouter()` here is
+  // a trap: its identity changes as `asPath` updates mid-navigation, which tears
+  // down and rebuilds this effect — dropping the in-flight safety timer and
+  // sometimes missing the `routeChangeComplete` event, leaving the bar stuck.
+  // The singleton's event emitter is stable for the life of the app.
   useEffect(() => {
-    let progressTimer: number | null = null;
-    let hideTimer: number | null = null;
-    let safetyTimer: number | null = null;
-
-    const clearAllTimers = () => {
-      if (progressTimer) {
-        clearInterval(progressTimer);
-        progressTimer = null;
-      }
-      if (hideTimer) {
-        clearTimeout(hideTimer);
-        hideTimer = null;
-      }
-      if (safetyTimer) {
-        clearTimeout(safetyTimer);
-        safetyTimer = null;
-      }
-    };
-
-    const start = () => {
-      clearAllTimers();
-      setFadeOut(false);
-      setVisible(true);
-      setWidth(0);
-
-      // Quickly advance to ~15% then slowly crawl toward 85%
-      setTimeout(() => setWidth(15), 50);
-      setTimeout(() => setWidth(35), 200);
-      setTimeout(() => setWidth(55), 500);
-
-      // Slowly inch toward 85% to signal "still loading"
-      let current = 55;
-      progressTimer = window.setInterval(() => {
-        if (current < 85) {
-          current += Math.random() * 3;
-          setWidth(Math.min(current, 85));
-        }
-      }, 400);
-
-      // Safety timeout: always clear the bar after 15s even if no
-      // routeChangeComplete fires (e.g. same-route navigation, hash change,
-      // or App Router transitions where the event may never reach us).
-      safetyTimer = window.setTimeout(() => {
-        done();
-      }, 15000);
-    };
-
-    const done = () => {
-      if (progressTimer) {
-        clearInterval(progressTimer);
-        progressTimer = null;
-      }
-      if (safetyTimer) {
-        clearTimeout(safetyTimer);
-        safetyTimer = null;
-      }
-      setWidth(100);
-
-      hideTimer = window.setTimeout(() => {
-        setFadeOut(true);
-        hideTimer = window.setTimeout(() => {
-          setVisible(false);
-          setWidth(0);
-          setFadeOut(false);
-        }, 300);
-      }, 150);
-    };
-
     const error = () => done();
 
-    router.events.on("routeChangeStart", start);
-    router.events.on("routeChangeComplete", done);
-    router.events.on("routeChangeError", error);
-    router.events.on("hashChangeStart", start);
-    router.events.on("hashChangeComplete", done);
+    Router.events.on("routeChangeStart", start);
+    Router.events.on("routeChangeComplete", done);
+    Router.events.on("routeChangeError", error);
+    Router.events.on("hashChangeStart", start);
+    Router.events.on("hashChangeComplete", done);
 
     return () => {
-      router.events.off("routeChangeStart", start);
-      router.events.off("routeChangeComplete", done);
-      router.events.off("routeChangeError", error);
-      router.events.off("hashChangeStart", start);
-      router.events.off("hashChangeComplete", done);
+      Router.events.off("routeChangeStart", start);
+      Router.events.off("routeChangeComplete", done);
+      Router.events.off("routeChangeError", error);
+      Router.events.off("hashChangeStart", start);
+      Router.events.off("hashChangeComplete", done);
       clearAllTimers();
     };
-  }, [router]);
+  }, [start, done, clearAllTimers]);
+
+  // Authoritative completion: when the committed URL actually changes, the
+  // navigation finished — force the bar closed even if the matching
+  // `routeChangeComplete` event was never delivered to us.
+  useEffect(() => {
+    if (activeRef.current) done();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.asPath]);
 
   if (!visible) return null;
 

@@ -225,7 +225,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const { nostr } = useContext(NostrContext);
   const [isUploadingShopProfile, setIsUploadingShopProfile] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [isFetchingShop, setIsFetchingShop] = useState(false);
+  // Start in the loading state so navigating to the stall settings shows a
+  // spinner immediately instead of a blank, unfilled form while the shop config
+  // (DB fast-path + relay slow-path) is still being fetched.
+  const [isFetchingShop, setIsFetchingShop] = useState(true);
   const [notificationEmail, setNotificationEmail] = useState("");
   const [freeShippingThreshold, setFreeShippingThreshold] =
     useState<string>("");
@@ -463,9 +466,23 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       });
   }, [userPubkey, applyShopConfig]);
 
+  // ── Safety valve: never leave the spinner up indefinitely ─────────────────
+  // If neither the DB fast-path nor the relay slow-path ever resolves (e.g. the
+  // pubkey never arrives, or relays are unreachable), fall back to showing the
+  // form so the seller isn't stuck staring at a spinner.
+  useEffect(() => {
+    if (!isFetchingShop) return;
+    const timeout = window.setTimeout(() => setIsFetchingShop(false), 12000);
+    return () => clearTimeout(timeout);
+  }, [isFetchingShop]);
+
   // ── Slow path: override with authoritative relay-context data when ready ───
   useEffect(() => {
     if (hasLoadedShopRef.current) return;
+    // Don't let the slow path resolve loading before auth is ready — otherwise
+    // an unrelated populated shopMap would clear the spinner and reveal a blank
+    // form while we still don't know the seller's pubkey.
+    if (!userPubkey) return;
     const shopMap = shopContext.shopData;
     const shop = shopMap.has(userPubkey!)
       ? shopMap.get(userPubkey!)
