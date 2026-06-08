@@ -59,7 +59,7 @@ export default async function handler(
       return res.status(200).json({
         success: true,
         skipped: true,
-        reason: "Seller does not have an active Pro membership",
+        reason: "Seller does not have an active Herd membership",
       });
     }
 

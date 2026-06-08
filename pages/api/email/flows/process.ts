@@ -132,7 +132,7 @@ export default async function handler(
         if (!(await isSellerEntitled(execution.seller_pubkey))) {
           await markExecutionFailed(
             execution.id,
-            "Skipped: seller does not have an active Pro membership"
+            "Skipped: seller does not have an active Herd membership"
           );
           results.push({ execution_id: execution.id, status: "skipped" });
           continue;

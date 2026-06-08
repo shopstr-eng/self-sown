@@ -14,6 +14,7 @@ import { DAY_MS } from "@/utils/pro/constants";
 import { getSellerNotificationEmail } from "@/utils/db/db-service";
 import { sendEmail } from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
+import { deactivateApiKeysForPubkey } from "@/utils/mcp/auth";
 
 const TRIAL_ENDING_WINDOW_MS = 7 * DAY_MS;
 
@@ -47,6 +48,21 @@ export interface ProLifecycleResult {
   dueNotices: number;
   readonlyNotices: number;
   hiddenNotices: number;
+  apiKeysRevoked: number;
+}
+
+// Revoke a lapsed seller's MCP API keys so their agents can no longer manage
+// the shop once they're off the paid tier. Best-effort and idempotent: failures
+// are logged, not thrown, so a DB hiccup never blocks the lifecycle notices.
+async function revokeMcpAccess(
+  pubkey: string,
+  result: ProLifecycleResult
+): Promise<void> {
+  try {
+    result.apiKeysRevoked += await deactivateApiKeysForPubkey(pubkey);
+  } catch (err) {
+    console.warn("Pro lifecycle: MCP API key revoke failed", err);
+  }
 }
 
 export async function runProLifecycle(
@@ -59,6 +75,7 @@ export async function runProLifecycle(
     dueNotices: 0,
     readonlyNotices: 0,
     hiddenNotices: 0,
+    apiKeysRevoked: 0,
   };
 
   for (const row of rows) {
@@ -91,8 +108,10 @@ export async function runProLifecycle(
       continue;
     }
 
-    // 3) Content just went read-only.
+    // 3) Content just went read-only — the first non-entitled state. Revoke the
+    // seller's MCP API keys here so agents can't keep managing the shop.
     if (status === "readonly" && !row.readonly_notice_sent_at) {
+      await revokeMcpAccess(row.pubkey, result);
       await notifySeller(row.pubkey, {
         column: "readonly_notice_sent_at",
         subject: "Your Milk Market Herd features are now read-only",
@@ -102,8 +121,11 @@ export async function runProLifecycle(
       continue;
     }
 
-    // 4) Content now hidden.
+    // 4) Content now hidden. Revoke again in case the cron never observed the
+    // read-only window (e.g. it skipped straight to hidden); idempotent no-op
+    // when keys were already deactivated above.
     if (status === "hidden" && !row.hidden_notice_sent_at) {
+      await revokeMcpAccess(row.pubkey, result);
       await notifySeller(row.pubkey, {
         column: "hidden_notice_sent_at",
         subject: "Your Milk Market Herd features are now hidden",

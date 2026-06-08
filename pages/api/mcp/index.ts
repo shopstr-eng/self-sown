@@ -120,7 +120,7 @@ function registerPurchaseTools(
 
   reg(
     "create_order",
-    "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. Requires read_write API key permission.",
+    "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. To start a recurring Subscribe & Save order, pass subscriptionFrequency (only for products that offer subscriptions) — recurring orders are billed via Stripe regardless of the chosen Bitcoin paymentMethod. Requires read_write API key permission.",
     {
       productId: z.string().describe("The product event ID to purchase"),
       quantity: z.number().optional().describe("Quantity to order (default 1)"),
@@ -161,6 +161,12 @@ function registerPurchaseTools(
         .optional()
         .describe("Shipping address for physical goods"),
       discountCode: z.string().optional().describe("Optional discount code"),
+      buyerEmail: z
+        .string()
+        .optional()
+        .describe(
+          "Buyer email for order confirmation. Required when starting a recurring subscription (subscriptionFrequency)."
+        ),
       paymentMethod: z
         .enum(["lightning", "cashu"])
         .optional()
@@ -177,6 +183,12 @@ function registerPurchaseTools(
         .string()
         .optional()
         .describe("Serialized Cashu token string for cashu payment method"),
+      subscriptionFrequency: z
+        .string()
+        .optional()
+        .describe(
+          "Start a recurring Subscribe & Save order at this frequency (e.g. 'weekly', 'every_2_weeks', 'monthly', 'every_2_months', 'quarterly'). Only valid for products that offer subscriptions and only one of the seller-defined frequencies. Recurring orders are billed via Stripe and return a Stripe clientSecret to confirm the first payment."
+        ),
     },
     async ({
       productId,
@@ -187,9 +199,11 @@ function registerPurchaseTools(
       selectedBulkUnits,
       shippingAddress,
       discountCode,
+      buyerEmail,
       paymentMethod,
       mintUrl,
       cashuToken,
+      subscriptionFrequency,
     }) => {
       const startTime = Date.now();
       if (
@@ -214,9 +228,13 @@ function registerPurchaseTools(
             selectedBulkUnits,
             shippingAddress,
             discountCode,
-            paymentMethod: paymentMethod || "lightning",
+            buyerEmail,
+            paymentMethod: subscriptionFrequency
+              ? "stripe"
+              : paymentMethod || "lightning",
             mintUrl,
             cashuToken,
+            subscriptionFrequency,
           }),
         });
         const data = await orderRes.json();
