@@ -1,5 +1,4 @@
 import { useRouter } from "next/router";
-import Head from "next/head";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 export default function Tos() {
@@ -74,42 +73,6 @@ export default function Tos() {
 
   return (
     <>
-      <Head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1"
-        />
-        <title>Terms of Service - Milk Market | User Agreement</title>
-        <meta
-          name="description"
-          content="Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace."
-        />
-        <link rel="apple-touch-icon" href="/milk-market.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
-        <meta property="og:type" content="website" />
-        <meta
-          property="og:title"
-          content="Terms of Service - Milk Market | User Agreement"
-        />
-        <meta
-          property="og:description"
-          content="Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace."
-        />
-        <meta property="og:image" content="/milk-market.png" />
-        <meta
-          name="twitter:title"
-          content="Terms of Service - Milk Market | User Agreement"
-        />
-        <meta
-          name="twitter:description"
-          content="Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace."
-        />
-        <meta name="twitter:image" content="/milk-market.png" />
-        <meta
-          name="keywords"
-          content="terms of service, milk market, user agreement, nostr marketplace, permissionless platform, bitcoin commerce, decentralized marketplace"
-        />
-      </Head>
       {/* Main container with new background pattern */}
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">
         {/* Centered content with a max-width for readability */}

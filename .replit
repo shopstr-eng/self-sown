@@ -52,3 +52,7 @@ integrations = ["sendgrid:1.0.0"]
 [userenv]
 
 [userenv.shared]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000

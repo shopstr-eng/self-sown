@@ -12,7 +12,6 @@ const CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES = [
   "/images/",
   "/favicon",
   "/robots.txt",
-  "/sitemap.xml",
   "/manifest",
   "/sw.js",
   "/service-worker.js",
@@ -123,6 +122,7 @@ const AGENT_VIEW_PATHS = new Set([
 const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
   "/llms.txt": "llms",
   "/robots.txt": "robots",
+  "/sitemap.xml": "sitemap",
   "/rss.xml": "rss",
   "/feed.xml": "rss",
 };
@@ -321,6 +321,12 @@ async function routeRequest(request: NextRequest) {
       const h = new Headers(request.headers);
       h.set("x-mm-custom-domain", "1");
       h.set("x-mm-custom-domain-host", hostname);
+      // Pass the original public pathname so SSR can emit correct canonical
+      // and og:url for this custom domain (the internal Next.js rewrite turns
+      // "/" into "/stall/<slug>", but the canonical must stay at the seller
+      // domain's public path, e.g. "https://farmer.com/" not
+      // "https://milk.market/stall/farmname").
+      h.set("x-mm-original-path", pathname || "/");
       if (slug) h.set("x-mm-shop-slug", slug);
       // Seed SSR with the seller pubkey so _app.tsx can mount the storefront
       // wrapper on first render. Without this, the page renders once bare,
@@ -433,7 +439,7 @@ async function routeRequest(request: NextRequest) {
     !pathname.startsWith("/marketplace/")
   ) {
     const url = new URL(`/marketplace${pathname}`, request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
 
   if (
@@ -441,7 +447,7 @@ async function routeRequest(request: NextRequest) {
     !pathname.startsWith("/listing/")
   ) {
     const url = new URL(`/listing${pathname}`, request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
 
   if (pathname.startsWith("/naddr") && !pathname.startsWith("/communities/")) {
@@ -449,7 +455,8 @@ async function routeRequest(request: NextRequest) {
       const decoded = nip19.decode(pathname.substring(1));
       if (decoded.type === "naddr" && decoded.data.kind === 34550) {
         return NextResponse.redirect(
-          new URL(`/communities${pathname}`, request.url)
+          new URL(`/communities${pathname}`, request.url),
+          308
         );
       }
     } catch {

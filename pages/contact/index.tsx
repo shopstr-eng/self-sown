@@ -23,31 +23,6 @@ export default function ContactPage() {
   return (
     <>
       <Head>
-        <title>Contact Milk Market - Get in Touch</title>
-        <meta
-          name="description"
-          content="Contact the Milk Market team for questions about our local food marketplace. Reach us by email, social media, or Nostr. We're here to help farmers and buyers connect."
-        />
-        <meta
-          property="og:title"
-          content="Contact Milk Market - Get in Touch"
-        />
-        <meta
-          property="og:description"
-          content="Contact the Milk Market team for questions about our local food marketplace."
-        />
-        <meta
-          property="og:image"
-          content="https://milk.market/milk-market.png"
-        />
-        <meta
-          name="twitter:title"
-          content="Contact Milk Market - Get in Touch"
-        />
-        <meta
-          name="twitter:description"
-          content="Get in touch with the Milk Market team. Questions about buying, selling, or our platform."
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -13,11 +13,13 @@ const HomeFeed = ({
   setFocusedPubkey,
   selectedSection,
   setSelectedSection,
+  ssrSellerName = "",
 }: {
   focusedPubkey: string;
   setFocusedPubkey: (value: string) => void;
   selectedSection: string;
   setSelectedSection: (value: string) => void;
+  ssrSellerName?: string;
 }) => {
   const router = useRouter();
 
@@ -61,6 +63,7 @@ const HomeFeed = ({
             setFocusedPubkey={setFocusedPubkey}
             selectedSection={selectedSection}
             setSelectedSection={setSelectedSection}
+            ssrSellerName={ssrSellerName}
           />
         </div>
       </div>

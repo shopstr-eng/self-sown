@@ -211,8 +211,42 @@ User-agent: Google-Extended
 Allow: /
 
 LLM: ${origin}/llms.txt
-Sitemap: ${PLATFORM}/sitemap.xml
+Sitemap: ${origin}/sitemap.xml
 `;
+}
+
+/** Tailored XML sitemap for a stall on its own custom domain. */
+export function buildStallSitemap(input: StallContentInput): string {
+  const origin = input.isCustomDomain
+    ? new URL(input.siteUrl).origin
+    : input.siteUrl;
+  const currentDate = new Date().toISOString().split("T")[0];
+
+  const urls: { loc: string; changefreq: string; priority: string }[] = [];
+
+  urls.push({ loc: `${origin}/`, changefreq: "daily", priority: "1.0" });
+
+  for (const product of input.products) {
+    urls.push({
+      loc: `${origin}/listing/${encodeURIComponent(product.slug)}`,
+      changefreq: "weekly",
+      priority: "0.8",
+    });
+  }
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (u) => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`
+  )
+  .join("\n")}
+</urlset>`;
 }
 
 /** Tailored RSS feed for a stall's products. */

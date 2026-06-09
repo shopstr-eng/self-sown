@@ -12,34 +12,6 @@ export default function AboutPage() {
   return (
     <>
       <Head>
-        <title>About Milk Market - Our Mission & Story</title>
-        <meta
-          name="description"
-          content="Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers."
-        />
-        <link rel="canonical" href="https://milk.market/about" />
-        <meta
-          property="og:title"
-          content="About Milk Market - Our Mission & Story"
-        />
-        <meta
-          property="og:description"
-          content="Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty."
-        />
-        <meta property="og:url" content="https://milk.market/about" />
-        <meta
-          property="og:image"
-          content="https://milk.market/milk-market.png"
-        />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta
-          name="twitter:title"
-          content="About Milk Market - Our Mission & Story"
-        />
-        <meta
-          name="twitter:description"
-          content="Decentralized marketplace connecting local food producers directly with consumers. Zero platform fees."
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

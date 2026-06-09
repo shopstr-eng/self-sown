@@ -900,14 +900,14 @@ export default function CheckoutCard({
 
                 {/* Product Title */}
                 <div className="mt-4 flex w-full items-start justify-between">
-                  <h2 className="text-left text-2xl font-bold text-black">
+                  <h1 className="text-left text-2xl font-bold text-black">
                     {productData.title}
                     {isExpired && (
                       <Chip color="warning" variant="flat" className="ml-2">
                         Outdated
                       </Chip>
                     )}
-                  </h2>
+                  </h1>
                   {rawEvent && (
                     <Dropdown>
                       <DropdownTrigger>

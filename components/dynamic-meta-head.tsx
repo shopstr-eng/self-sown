@@ -51,6 +51,26 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
       description:
         "Answers to common questions about Milk Market — the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
     },
+    "/communities": {
+      title: "Local Food Communities | Milk Market",
+      description:
+        "Discover and join local food buying clubs and producer communities on Milk Market. Connect with farms, dairies, and local food producers near you.",
+    },
+    "/privacy": {
+      title: "Privacy Policy - Milk Market | Data Protection & Privacy",
+      description:
+        "Learn how Milk Market handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected.",
+    },
+    "/terms": {
+      title: "Terms of Service - Milk Market | User Agreement",
+      description:
+        "Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace.",
+    },
+    "/producer-guide": {
+      title: "Producer Guide - Milk Market | Start Selling Local Food",
+      description:
+        "Learn how to become a producer on Milk Market. Step-by-step guide to selling local food — from raw milk and dairy to meat, eggs, produce, and baked goods — directly to customers.",
+    },
   };
 
 const getMetaTags = (
@@ -170,6 +190,8 @@ const DynamicHead = ({
   ssrOgMeta,
   isCustomDomain,
   customDomainShopPubkey,
+  customDomainHost,
+  customDomainOriginalPath,
 }: {
   productEvents: NostrEvent[];
   shopEvents: Map<string, ShopProfile>;
@@ -177,6 +199,8 @@ const DynamicHead = ({
   ssrOgMeta?: OgMetaProps | null;
   isCustomDomain?: boolean;
   customDomainShopPubkey?: string | null;
+  customDomainHost?: string | null;
+  customDomainOriginalPath?: string | null;
 }) => {
   const router = useRouter();
   const [origin, setOrigin] = useState("");
@@ -185,21 +209,38 @@ const DynamicHead = ({
     setOrigin(window.location.origin);
   }, []);
 
-  // Canonical/og:url should always point to the production domain
-  // (https://milk.market) regardless of which origin (replit.app preview,
-  // localhost, etc.) the page was actually served from. Lighthouse flags
-  // mismatched/cross-origin canonicals as conflicting otherwise.
-  const canonicalOrigin = BASE_URL;
+  // For seller custom domains the canonical origin is the seller's own domain,
+  // not milk.market. This ensures crawlers attribute the storefront to the
+  // seller's branded domain rather than the platform, and that og:url in social
+  // previews points back to the correct host.
+  //
+  // For all other pages (platform, Replit preview, localhost) we always
+  // canonicalize to milk.market so Lighthouse doesn't flag mismatched origins.
+  const canonicalOrigin =
+    isCustomDomain && customDomainHost
+      ? `https://${customDomainHost}`
+      : BASE_URL;
   // Display origin (used only for the twitter:domain meta) can fall back
   // to the live request origin when available.
-  const displayOrigin = origin || BASE_URL;
+  const displayOrigin = origin || canonicalOrigin;
+
+  // For custom-domain pages the public URL the visitor sees (e.g. "/") is
+  // different from the internal Next.js rewrite target ("/stall/<slug>"). Use
+  // the original path forwarded by the proxy as the canonical path so we emit
+  // "https://farmer.com/" rather than "https://farmer.com/stall/farmname".
+  const customDomainCanonicalUrl =
+    isCustomDomain && customDomainHost && customDomainOriginalPath
+      ? `${canonicalOrigin}${customDomainOriginalPath === "/" ? "" : customDomainOriginalPath}`
+      : null;
 
   const metaTags = ssrOgMeta
     ? {
         title: ssrOgMeta.title,
         description: ssrOgMeta.description,
         image: ensureAbsoluteUrl(ssrOgMeta.image, canonicalOrigin),
-        url: ensureAbsoluteUrl(ssrOgMeta.url, canonicalOrigin),
+        url: customDomainCanonicalUrl
+          ? customDomainCanonicalUrl
+          : ensureAbsoluteUrl(ssrOgMeta.url, canonicalOrigin),
       }
     : getMetaTags(
         canonicalOrigin,

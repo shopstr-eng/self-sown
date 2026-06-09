@@ -1,5 +1,4 @@
 import { useRouter } from "next/router";
-import Head from "next/head";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 export default function PrivacyPolicy() {
@@ -99,42 +98,6 @@ export default function PrivacyPolicy() {
 
   return (
     <>
-      <Head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1"
-        />
-        <title>Privacy Policy - Milk Market | Data Protection & Privacy</title>
-        <meta
-          name="description"
-          content="Learn how Milk Market handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected."
-        />
-        <link rel="apple-touch-icon" href="/milk-market.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
-        <meta property="og:type" content="website" />
-        <meta
-          property="og:title"
-          content="Privacy Policy - Milk Market | Data Protection & Privacy"
-        />
-        <meta
-          property="og:description"
-          content="Learn how Milk Market handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected."
-        />
-        <meta property="og:image" content="/milk-market.png" />
-        <meta
-          name="twitter:title"
-          content="Privacy Policy - Milk Market | Data Protection & Privacy"
-        />
-        <meta
-          name="twitter:description"
-          content="Learn how Milk Market handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected."
-        />
-        <meta name="twitter:image" content="/milk-market.png" />
-        <meta
-          name="keywords"
-          content="privacy policy, milk market, data protection, nostr privacy, permissionless platform, decentralized marketplace, user privacy"
-        />
-      </Head>
       {/* Main container with new background pattern */}
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">
         {/* Centered content with a max-width for readability */}

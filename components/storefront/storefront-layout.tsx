@@ -93,11 +93,15 @@ const GOOGLE_FONT_OPTIONS = [
 interface StorefrontLayoutProps {
   shopPubkey: string;
   currentPage?: string;
+  ssrShopName?: string;
+  ssrShopAbout?: string;
 }
 
 export default function StorefrontLayout({
   shopPubkey,
   currentPage,
+  ssrShopName,
+  ssrShopAbout,
 }: StorefrontLayoutProps) {
   const shopMapContext = useContext(ShopMapContext);
   const productContext = useContext(ProductContext);
@@ -506,6 +510,20 @@ export default function StorefrontLayout({
   `;
 
   if (!shopDataReady) {
+    if (ssrShopName) {
+      return (
+        <div className="min-h-screen bg-white pt-20">
+          <div className="mx-auto max-w-4xl px-4 py-8">
+            <h1 className="mb-4 text-3xl font-bold text-black">
+              {ssrShopName}
+            </h1>
+            {ssrShopAbout && (
+              <p className="mt-2 text-lg text-gray-700">{ssrShopAbout}</p>
+            )}
+          </div>
+        </div>
+      );
+    }
     return null;
   }
 
@@ -552,6 +570,44 @@ export default function StorefrontLayout({
             content={storefront.seoMeta?.ogImage || bannerUrl || pictureUrl}
           />
         )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(
+              (() => {
+                const storeUrl = shopSlug
+                  ? `https://milk.market/stall/${shopSlug}`
+                  : "https://milk.market";
+                const schema: Record<string, unknown> = {
+                  "@context": "https://schema.org",
+                  "@type": "Store",
+                  name: shopName,
+                  url: storeUrl,
+                };
+                if (shopAbout) schema.description = shopAbout;
+                const imageUrl =
+                  storefront.seoMeta?.ogImage || pictureUrl || bannerUrl;
+                if (imageUrl) schema.image = imageUrl;
+                if (pictureUrl) schema.logo = pictureUrl;
+                const hasLocation =
+                  storefront.seoMeta?.locationRegion ||
+                  storefront.seoMeta?.locationCity;
+                if (hasLocation) {
+                  const address: Record<string, string> = {
+                    "@type": "PostalAddress",
+                    addressCountry: "US",
+                  };
+                  if (storefront.seoMeta?.locationCity)
+                    address.addressLocality = storefront.seoMeta.locationCity;
+                  if (storefront.seoMeta?.locationRegion)
+                    address.addressRegion = storefront.seoMeta.locationRegion;
+                  schema.address = address;
+                }
+                return schema;
+              })()
+            ),
+          }}
+        />
         {googleFontsUrl && (
           <>
             <link rel="preconnect" href="https://fonts.googleapis.com" />

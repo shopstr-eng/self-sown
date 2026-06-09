@@ -167,40 +167,6 @@ export default function Faq() {
   return (
     <>
       <Head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1"
-        />
-        <title>FAQ - Milk Market | Frequently Asked Questions</title>
-        <meta
-          name="description"
-          content="Get answers to common questions about Milk Market, the permissionless marketplace for local food. Learn about payments, selling, account setup, and privacy features."
-        />
-        <link rel="apple-touch-icon" href="/milk-market.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
-        <meta property="og:type" content="website" />
-        <meta
-          property="og:title"
-          content="FAQ - Milk Market | Frequently Asked Questions"
-        />
-        <meta
-          property="og:description"
-          content="Get answers to common questions about Milk Market, the permissionless marketplace for local food. Learn about payments, selling, account setup, and privacy features."
-        />
-        <meta property="og:image" content="/milk-market.png" />
-        <meta
-          name="twitter:title"
-          content="FAQ - Milk Market | Frequently Asked Questions"
-        />
-        <meta
-          name="twitter:description"
-          content="Get answers to common questions about Milk Market, the permissionless marketplace for local food. Learn about payments, selling, account setup, and privacy features."
-        />
-        <meta name="twitter:image" content="/milk-market.png" />
-        <meta
-          name="keywords"
-          content="milk market, FAQ, local food, raw dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, decentralized food"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

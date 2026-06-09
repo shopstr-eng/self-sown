@@ -18,6 +18,7 @@ import {
   buildStallText,
   buildStallLlmsTxt,
   buildStallRobotsTxt,
+  buildStallSitemap,
   buildStallRss,
   type StallContentInput,
   type StallProductSummary,
@@ -35,7 +36,7 @@ const PLATFORM = "https://milk.market";
 
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
-type Format = "md" | "json" | "txt" | "llms" | "robots" | "rss";
+type Format = "md" | "json" | "txt" | "llms" | "robots" | "sitemap" | "rss";
 
 function headerStr(req: NextApiRequest, name: string): string | undefined {
   const v = req.headers[name];
@@ -159,6 +160,9 @@ export default async function handler(
       case "robots":
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
         return res.status(200).send(buildStallRobotsTxt(input));
+      case "sitemap":
+        res.setHeader("Content-Type", "application/xml; charset=utf-8");
+        return res.status(200).send(buildStallSitemap(input));
       case "rss":
         res.setHeader("Content-Type", "application/rss+xml; charset=utf-8");
         return res.status(200).send(buildStallRss(input));

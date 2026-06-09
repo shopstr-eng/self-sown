@@ -576,7 +576,9 @@ function MilkMarket({ props }: { props: AppProps }) {
     });
   };
 
-  const [focusedPubkey, setFocusedPubkey] = useState("");
+  const [focusedPubkey, setFocusedPubkey] = useState<string>(
+    props.pageProps?.initialFocusedPubkey ?? ""
+  );
   const [selectedSection, setSelectedSection] = useState("");
   const [fullLoadComplete, setFullLoadComplete] = useState(false);
   // Seed `storefrontLoadPubkey` from the SSR signal that middleware injects
@@ -670,6 +672,10 @@ function MilkMarket({ props }: { props: AppProps }) {
   const ssrIsCustomDomain = props.pageProps?.__isCustomDomainSsr === true;
   const ssrShopSlug: string | null =
     props.pageProps?.__customDomainShopSlug ?? null;
+  const ssrCustomDomainHost: string | null =
+    props.pageProps?.__customDomainHost ?? null;
+  const ssrCustomDomainOriginalPath: string | null =
+    props.pageProps?.__customDomainOriginalPath ?? null;
   const hasSsrCustomDomainSignal =
     props.pageProps?.__isCustomDomainSsr !== undefined;
   const [domainState, setDomainState] = useState<{
@@ -1583,6 +1589,10 @@ function MilkMarket({ props }: { props: AppProps }) {
         customDomainShopPubkey={
           isCustomDomainVisit ? storefrontLoadPubkey || ssrShopPubkey : null
         }
+        customDomainHost={isCustomDomainVisit ? ssrCustomDomainHost : null}
+        customDomainOriginalPath={
+          isCustomDomainVisit ? ssrCustomDomainOriginalPath : null
+        }
       />
       <StructuredData />
       <PageLoadingBar />
@@ -1735,6 +1745,10 @@ App.getInitialProps = async (appContext: AppContext) => {
   // synchronously on the first render and avoid a post-hydration remount
   // when the wrapper appears around <Component/>.
   const customDomainShopPubkey = headerVal("x-mm-shop-pubkey");
+  // Forward the seller's public hostname and the original request path so
+  // DynamicHead can emit the correct canonical / og:url for custom domains.
+  const customDomainHost = headerVal("x-mm-custom-domain-host");
+  const customDomainOriginalPath = headerVal("x-mm-original-path");
   return {
     ...appProps,
     pageProps: {
@@ -1742,6 +1756,8 @@ App.getInitialProps = async (appContext: AppContext) => {
       __isCustomDomainSsr: isCustomDomainSsr,
       __customDomainShopSlug: customDomainShopSlug,
       __customDomainShopPubkey: customDomainShopPubkey,
+      __customDomainHost: customDomainHost,
+      __customDomainOriginalPath: customDomainOriginalPath,
     },
   };
 };

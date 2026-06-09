@@ -78,11 +78,13 @@ function MarketplacePage({
   setFocusedPubkey,
   selectedSection,
   setSelectedSection,
+  ssrSellerName = "",
 }: {
   focusedPubkey: string;
   setFocusedPubkey: (value: string) => void;
   selectedSection: string;
   setSelectedSection: (value: string) => void;
+  ssrSellerName?: string;
 }) {
   const router = useRouter();
   const [selectedCategories, setSelectedCategories] = useState(
@@ -413,8 +415,17 @@ function MarketplacePage({
     );
   };
 
+  const sellerName = focusedPubkey
+    ? shopMapContext.shopData.get(focusedPubkey)?.content?.name ||
+      ssrSellerName ||
+      "Seller Stall"
+    : null;
+
   return (
     <div className="mx-auto w-full bg-white">
+      <h1 className="px-6 pt-6 pb-0 text-2xl font-bold text-black">
+        {sellerName ?? "Browse Local Food Listings on Milk Market"}
+      </h1>
       {/* Filter Bar Section */}
       <div className="flex max-w-[100%] flex-col bg-white px-6 py-6">
         {shopBannerURL != "" && focusedPubkey != "" && !isFetchingShop ? (

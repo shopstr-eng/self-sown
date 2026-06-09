@@ -18,6 +18,9 @@ import { getMembershipView } from "@/utils/pro/membership";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
+  shopPubkey: string;
+  ssrShopName: string;
+  ssrShopAbout: string;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
@@ -27,7 +30,14 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   const shopSlug = typeof slug === "string" ? slug : "";
 
   if (!shopSlug) {
-    return { props: { ogMeta: DEFAULT_OG } };
+    return {
+      props: {
+        ogMeta: DEFAULT_OG,
+        shopPubkey: "",
+        ssrShopName: "",
+        ssrShopAbout: "",
+      },
+    };
   }
 
   try {
@@ -42,6 +52,24 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         fetchShopProfileByPubkeyFromDb(pubkey),
         fetchProfileByPubkeyFromDb(pubkey),
       ]);
+
+      // Always extract shop name/about for SSR content (crawlers + bots)
+      let ssrShopName = "";
+      let ssrShopAbout = "";
+      if (shopEvent) {
+        try {
+          const c = JSON.parse(shopEvent.content);
+          ssrShopName = c.name || "";
+          ssrShopAbout = c.about || "";
+        } catch {}
+      }
+      if (!ssrShopName && profileEvent) {
+        try {
+          const c = JSON.parse(profileEvent.content);
+          ssrShopName = c.display_name || c.name || "";
+        } catch {}
+      }
+
       if (shopEvent && membership.isPro) {
         const content = JSON.parse(shopEvent.content);
         let profileContent: Record<string, unknown> | null = null;
@@ -66,9 +94,25 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
               url: `/stall/${shopSlug}`,
               keywordSeed: shopSlug,
             }),
+            shopPubkey: pubkey,
+            ssrShopName: branding.shopName || ssrShopName,
+            ssrShopAbout: branding.about || ssrShopAbout,
           },
         };
       }
+      return {
+        props: {
+          ogMeta: {
+            ...DEFAULT_OG,
+            title: "Milk Market Stall",
+            description: "Check out this shop on Milk Market!",
+            url: `/stall/${shopSlug}`,
+          },
+          shopPubkey: pubkey,
+          ssrShopName,
+          ssrShopAbout,
+        },
+      };
     }
   } catch (error) {
     console.error("SSR OG fetch error for shop:", error);
@@ -82,16 +126,23 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         description: "Check out this shop on Milk Market!",
         url: `/stall/${shopSlug}`,
       },
+      shopPubkey: "",
+      ssrShopName: "",
+      ssrShopAbout: "",
     },
   };
 };
 
-export default function ShopPage() {
+export default function ShopPage({
+  shopPubkey: ssrShopPubkey,
+  ssrShopName,
+  ssrShopAbout,
+}: ShopPageProps) {
   const router = useRouter();
   const { slug } = router.query;
   const shopMapContext = useContext(ShopMapContext);
-  const [shopPubkey, setShopPubkey] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [shopPubkey, setShopPubkey] = useState<string>(ssrShopPubkey || "");
+  const [isLoading, setIsLoading] = useState(!ssrShopPubkey);
   const [notFound, setNotFound] = useState(false);
   const apiLookupDone = useRef(false);
   const lastSlug = useRef<string>("");
@@ -205,5 +256,11 @@ export default function ShopPage() {
     );
   }
 
-  return <StorefrontLayout shopPubkey={shopPubkey} />;
+  return (
+    <StorefrontLayout
+      shopPubkey={shopPubkey}
+      ssrShopName={ssrShopName}
+      ssrShopAbout={ssrShopAbout}
+    />
+  );
 }
