@@ -22,6 +22,7 @@ import {
   StorefrontChromeProvider,
   useInsideStorefrontChrome,
 } from "@/utils/storefront/storefront-chrome-context";
+import { StorefrontBrandingProvider } from "@/utils/storefront/storefront-branding-context";
 import {
   applyCustomDomainHref,
   useIsCustomDomain,
@@ -359,6 +360,18 @@ function StorefrontThemeWrapperInner({
     body.sf-active [data-overlay-container] .border-primary-yellow { border-color: var(--sf-primary) !important; }
     body.sf-active [data-overlay-container] .font-heading { font-family: var(--font-heading, inherit); }
     body.sf-active [data-overlay-container] .font-body { font-family: var(--font-body, inherit); }
+    body.sf-active [data-overlay-container] .text-gray-400 { color: color-mix(in srgb, var(--sf-text) 40%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-gray-500 { color: color-mix(in srgb, var(--sf-text) 50%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-gray-600 { color: color-mix(in srgb, var(--sf-text) 60%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-gray-700 { color: color-mix(in srgb, var(--sf-text) 75%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-blue-600 { color: var(--sf-secondary) !important; }
+    body.sf-active [data-overlay-container] .hover\\:text-blue-600:hover { color: var(--sf-accent) !important; }
+    body.sf-active [data-overlay-container] .bg-gray-100 { background-color: color-mix(in srgb, var(--sf-text) 8%, var(--sf-bg)) !important; }
+    body.sf-active [data-overlay-container] .hover\\:bg-gray-100:hover { background-color: color-mix(in srgb, var(--sf-text) 8%, var(--sf-bg)) !important; }
+    body.sf-active [data-overlay-container] .bg-gray-200 { background-color: color-mix(in srgb, var(--sf-text) 15%, var(--sf-bg)) !important; }
+    body.sf-active [data-overlay-container] .active\\:bg-gray-200:active { background-color: color-mix(in srgb, var(--sf-text) 15%, var(--sf-bg)) !important; }
+    body.sf-active [data-overlay-container] .bg-blue-100 { background-color: color-mix(in srgb, var(--sf-accent) 15%, var(--sf-bg)) !important; }
+    body.sf-active [data-overlay-container] .hover\\:bg-blue-200:hover { background-color: color-mix(in srgb, var(--sf-accent) 25%, var(--sf-bg)) !important; }
 
     ${
       storefront?.neoShadows
@@ -389,187 +402,193 @@ function StorefrontThemeWrapperInner({
 
   return (
     <StorefrontChromeProvider>
-      <Head>
-        {googleFontsUrl && (
-          <>
-            <link rel="preconnect" href="https://fonts.googleapis.com" />
-            <link
-              rel="preconnect"
-              href="https://fonts.gstatic.com"
-              crossOrigin="anonymous"
-            />
-            <link href={googleFontsUrl} rel="stylesheet" />
-          </>
-        )}
-        {customFontFaceCss && <style>{customFontFaceCss}</style>}
-        <style>{themedCss}</style>
-      </Head>
-      <div
-        className={`storefront-themed min-h-screen ${storefront?.neoShadows ? "sf-neo" : ""}`}
-        style={{
-          ...cssVars,
-          ...fontStyles,
-          backgroundColor: "var(--sf-bg)",
-          color: "var(--sf-text)",
-        }}
-      >
-        <nav
-          className="fixed top-0 right-0 left-0 z-50 border-b"
+      <StorefrontBrandingProvider value={{ shopName, logoUrl: pictureUrl }}>
+        <Head>
+          {googleFontsUrl && (
+            <>
+              <link rel="preconnect" href="https://fonts.googleapis.com" />
+              <link
+                rel="preconnect"
+                href="https://fonts.gstatic.com"
+                crossOrigin="anonymous"
+              />
+              <link href={googleFontsUrl} rel="stylesheet" />
+            </>
+          )}
+          {customFontFaceCss && <style>{customFontFaceCss}</style>}
+          <style>{themedCss}</style>
+        </Head>
+        <div
+          className={`storefront-themed min-h-screen ${storefront?.neoShadows ? "sf-neo" : ""}`}
           style={{
-            backgroundColor: navBg,
-            borderColor: navAccent + "33",
+            ...cssVars,
+            ...fontStyles,
+            backgroundColor: "var(--sf-bg)",
+            color: "var(--sf-text)",
           }}
         >
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 md:px-6">
-            <a href={homeHref} className="flex items-center gap-2">
-              {pictureUrl && (
-                <img
-                  src={pictureUrl}
-                  alt={shopName}
-                  className="h-8 w-8 rounded-full object-cover"
-                  fetchPriority="high"
-                />
-              )}
-              <FormattedText
-                as="span"
-                className="font-heading text-lg font-bold"
-                style={{ color: navText }}
-                text={shopName}
-              />
-            </a>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => router.push("/cart")}
-                className="relative rounded-md p-2 transition-colors"
-                style={{ color: navText }}
-              >
-                <ShoppingCartIcon className="h-5 w-5" />
-                {cartQuantity > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
-                    style={{
-                      backgroundColor: navAccent,
-                      color: navBg,
-                    }}
-                  >
-                    {cartQuantity}
-                  </span>
-                )}
-              </button>
-
-              <div className="hidden md:flex">
-                {isLoggedIn && userPubkey ? (
-                  <ProfileWithDropdown
-                    pubkey={userPubkey}
-                    baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
-                    dropDownKeys={[
-                      "shop_profile",
-                      "user_profile",
-                      "settings",
-                      "logout",
-                    ]}
-                    nameClassname="lg:block text-white"
-                    bg="dark"
+          <nav
+            className="fixed top-0 right-0 left-0 z-50 border-b"
+            style={{
+              backgroundColor: navBg,
+              borderColor: navAccent + "33",
+            }}
+          >
+            <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 md:px-6">
+              <a href={homeHref} className="flex items-center gap-2">
+                {pictureUrl && (
+                  <img
+                    src={pictureUrl}
+                    alt={shopName}
+                    className="h-8 w-8 rounded-full object-cover"
+                    fetchPriority="high"
                   />
+                )}
+                <FormattedText
+                  as="span"
+                  className="font-heading text-lg font-bold"
+                  style={{ color: navText }}
+                  text={shopName}
+                />
+              </a>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => router.push("/cart")}
+                  className="relative rounded-md p-2 transition-colors"
+                  style={{ color: navText }}
+                >
+                  <ShoppingCartIcon className="h-5 w-5" />
+                  {cartQuantity > 0 && (
+                    <span
+                      className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
+                      style={{
+                        backgroundColor: navAccent,
+                        color: navBg,
+                      }}
+                    >
+                      {cartQuantity}
+                    </span>
+                  )}
+                </button>
+
+                <div className="hidden md:flex">
+                  {isLoggedIn && userPubkey ? (
+                    <ProfileWithDropdown
+                      pubkey={userPubkey}
+                      baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
+                      dropDownKeys={[
+                        "shop_profile",
+                        "user_profile",
+                        "settings",
+                        "logout",
+                      ]}
+                      nameClassname="lg:block text-white"
+                      bg="dark"
+                    />
+                  ) : (
+                    <button
+                      onClick={onOpen}
+                      className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+                      style={{
+                        backgroundColor: navAccent,
+                        color: navBg,
+                      }}
+                    >
+                      Sign In
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  className="flex h-8 w-8 items-center justify-center rounded md:hidden"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  style={{ color: navText }}
+                >
+                  {mobileMenuOpen ? (
+                    <XMarkIcon className="h-6 w-6" />
+                  ) : (
+                    <Bars3Icon className="h-6 w-6" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {mobileMenuOpen && (
+              <div
+                className="border-t md:hidden"
+                style={{
+                  backgroundColor: navBg,
+                  borderColor: navAccent + "22",
+                }}
+              >
+                {isLoggedIn && userPubkey ? (
+                  <div className="px-4 py-3">
+                    <ProfileWithDropdown
+                      pubkey={userPubkey}
+                      baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl"
+                      dropDownKeys={[
+                        "shop_profile",
+                        "user_profile",
+                        "settings",
+                        "logout",
+                      ]}
+                      nameClassname="text-white"
+                      bg="dark"
+                    />
+                  </div>
                 ) : (
                   <button
-                    onClick={onOpen}
-                    className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: navAccent,
-                      color: navBg,
+                    onClick={() => {
+                      onOpen();
+                      setMobileMenuOpen(false);
                     }}
+                    className="block w-full px-6 py-3 text-left text-sm font-medium"
+                    style={{ color: navText + "CC" }}
                   >
                     Sign In
                   </button>
                 )}
-              </div>
-
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded md:hidden"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                style={{ color: navText }}
-              >
-                {mobileMenuOpen ? (
-                  <XMarkIcon className="h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="h-6 w-6" />
+                {shopSlug && (
+                  <>
+                    <a
+                      href={homeHref}
+                      className="block px-6 py-3 text-sm font-medium"
+                      style={{ color: navText + "CC" }}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Back to Stall
+                    </a>
+                    <a
+                      href={ordersHref}
+                      className="block px-6 py-3 text-sm font-medium"
+                      style={{ color: navText + "CC" }}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Orders
+                    </a>
+                  </>
                 )}
-              </button>
-            </div>
-          </div>
+              </div>
+            )}
+          </nav>
 
-          {mobileMenuOpen && (
-            <div
-              className="border-t md:hidden"
-              style={{
-                backgroundColor: navBg,
-                borderColor: navAccent + "22",
-              }}
-            >
-              {isLoggedIn && userPubkey ? (
-                <div className="px-4 py-3">
-                  <ProfileWithDropdown
-                    pubkey={userPubkey}
-                    baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl"
-                    dropDownKeys={[
-                      "shop_profile",
-                      "user_profile",
-                      "settings",
-                      "logout",
-                    ]}
-                    nameClassname="text-white"
-                    bg="dark"
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => {
-                    onOpen();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full px-6 py-3 text-left text-sm font-medium"
-                  style={{ color: navText + "CC" }}
-                >
-                  Sign In
-                </button>
-              )}
-              {shopSlug && (
-                <>
-                  <a
-                    href={homeHref}
-                    className="block px-6 py-3 text-sm font-medium"
-                    style={{ color: navText + "CC" }}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Back to Stall
-                  </a>
-                  <a
-                    href={ordersHref}
-                    className="block px-6 py-3 text-sm font-medium"
-                    style={{ color: navText + "CC" }}
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Orders
-                  </a>
-                </>
-              )}
-            </div>
-          )}
-        </nav>
+          <div>{children}</div>
 
-        <div>{children}</div>
-
-        <StorefrontFooterComponent
-          footer={defaultFooter}
-          colors={colors}
-          footerColors={storefront?.footerColors}
-          shopName={shopName}
-          shopSlug={shopSlug}
+          <StorefrontFooterComponent
+            footer={defaultFooter}
+            colors={colors}
+            footerColors={storefront?.footerColors}
+            shopName={shopName}
+            shopSlug={shopSlug}
+          />
+        </div>
+        <SignInModal
+          isOpen={isOpen}
+          onClose={onClose}
+          sellerBranding={{ shopName, logoUrl: pictureUrl }}
         />
-      </div>
-      <SignInModal isOpen={isOpen} onClose={onClose} />
+      </StorefrontBrandingProvider>
     </StorefrontChromeProvider>
   );
 }

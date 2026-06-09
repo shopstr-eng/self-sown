@@ -26,6 +26,7 @@ import { useRouter } from "next/router";
 import NextLink from "next/link";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import SignInModal from "../../sign-in/SignInModal";
+import { useStorefrontBranding } from "@/utils/storefront/storefront-branding-context";
 import useReportEventFlow from "../use-report-event-flow";
 import { copyToClipboard } from "@/utils/clipboard";
 import { ProfileData } from "@/utils/types/types";
@@ -138,6 +139,7 @@ export const ProfileWithDropdown = ({
   const router = useRouter();
   const { isLoggedIn } = useContext(SignerContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const sellerBranding = useStorefrontBranding();
 
   const { openReportFlow, reportFlowUi } = useReportEventFlow({
     targetLabel: "Profile",
@@ -528,7 +530,11 @@ export const ProfileWithDropdown = ({
           </DropdownMenu>
         </Dropdown>
       </div>
-      <SignInModal isOpen={isOpen} onClose={onClose} />
+      <SignInModal
+        isOpen={isOpen}
+        onClose={onClose}
+        sellerBranding={sellerBranding ?? undefined}
+      />
       {reportFlowUi}
     </>
   );

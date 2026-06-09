@@ -13,6 +13,27 @@ import {
   applyCustomDomainHref,
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
+import { useStorefrontBranding } from "@/utils/storefront/storefront-branding-context";
+
+// Reads the seller branding from context (provided by StorefrontThemeWrapper)
+// so the sign-in modal matches the stall's theme. Must render inside the
+// wrapper's children, where StorefrontBrandingProvider is in scope.
+function BrandedStallSignInModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const sellerBranding = useStorefrontBranding();
+  return (
+    <SignInModal
+      isOpen={isOpen}
+      onClose={onClose}
+      sellerBranding={sellerBranding ?? undefined}
+    />
+  );
+}
 
 const ORDER_SUBJECTS = new Set([
   "order-payment",
@@ -188,11 +209,9 @@ export default function ThemedStallOrders({
   })();
 
   return (
-    <>
-      <StorefrontThemeWrapper sellerPubkey={sellerPubkey} renderChrome={true}>
-        {themedContent}
-      </StorefrontThemeWrapper>
-      <SignInModal isOpen={isOpen} onClose={onClose} />
-    </>
+    <StorefrontThemeWrapper sellerPubkey={sellerPubkey} renderChrome={true}>
+      {themedContent}
+      <BrandedStallSignInModal isOpen={isOpen} onClose={onClose} />
+    </StorefrontThemeWrapper>
   );
 }

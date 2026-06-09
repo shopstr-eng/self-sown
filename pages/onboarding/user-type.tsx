@@ -19,6 +19,26 @@ const UserTypeSelection = () => {
 
   useEffect(() => {
     if (!router.isReady) return;
+    // Sign-ups started on a seller's custom stall / domain are always buyers and
+    // skip the role step. The sign-in modal leaves a timestamped marker for the
+    // paths that can't route directly (Create New Account, OAuth) before landing
+    // here. Consume it once; ignore a stale marker from an abandoned/cancelled
+    // sign-up so it can't force an unrelated later visit into the buyer flow.
+    if (typeof window !== "undefined") {
+      const BUYER_ONLY_SIGNUP_TTL_MS = 30 * 60 * 1000; // 30 minutes
+      const marker = localStorage.getItem("buyerOnlySignup");
+      if (marker) {
+        localStorage.removeItem("buyerOnlySignup");
+        const markedAt = Number(marker);
+        if (
+          Number.isFinite(markedAt) &&
+          Date.now() - markedAt < BUYER_ONLY_SIGNUP_TTL_MS
+        ) {
+          router.replace("/onboarding/market-profile?type=buyer");
+          return;
+        }
+      }
+    }
     // Sellers coming through the Shopify migration funnel already have an
     // implicit role — skip this step entirely.
     if (migrate === "shopify") {

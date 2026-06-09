@@ -33,11 +33,51 @@ export default function SignInModal({
   isOpen,
   onClose,
   sellerFlow,
+  sellerBranding,
 }: {
   isOpen: boolean;
   onClose: () => void;
   sellerFlow?: boolean;
+  sellerBranding?: { shopName?: string | null; logoUrl?: string | null };
 }) {
+  // When the modal is shown on a seller's custom domain / stall, present the
+  // seller's shop name + logo instead of the Milk Market branding. Falls back
+  // to Milk Market on the main marketplace (no branding passed).
+  const brandName = sellerBranding?.shopName?.trim() || "Milk Market";
+  const brandLogo = sellerBranding?.logoUrl?.trim() || "/milk-market.png";
+
+  // On a seller's custom stall / domain (branding present), new accounts have no
+  // association to the marketplace and are always buyers — skip the role
+  // selection step and send them straight to the buyer profile step. On the main
+  // marketplace, keep the normal role selection (honoring sellerFlow).
+  const isCustomStall = !!sellerBranding;
+  const signUpRedirect = isCustomStall
+    ? "/onboarding/market-profile?type=buyer"
+    : sellerFlow
+      ? "/onboarding/user-type?preselect=seller"
+      : "/onboarding/user-type";
+
+  // The two sign-up paths that leave the modal before reaching a destination
+  // ("Create New Account" → /onboarding/new-account, and OAuth → external
+  // redirect) both funnel through /onboarding/user-type afterward. We can't
+  // route them directly, so we leave a short-lived marker that user-type reads
+  // to skip the role step and force a buyer. Only set on a custom stall.
+  const markBuyerOnlySignup = () => {
+    if (isCustomStall && typeof window !== "undefined") {
+      // Store the time so user-type can ignore a stale marker left behind by an
+      // abandoned or cancelled sign-up (see BUYER_ONLY_SIGNUP_TTL_MS there).
+      localStorage.setItem("buyerOnlySignup", String(Date.now()));
+    }
+  };
+
+  // Clear any stale marker whenever the modal opens off a custom stall, so a
+  // previously-abandoned custom-stall sign-up can't force a later main-site
+  // sign-up into the buyer flow.
+  useEffect(() => {
+    if (isOpen && !isCustomStall && typeof window !== "undefined") {
+      localStorage.removeItem("buyerOnlySignup");
+    }
+  }, [isOpen, isCustomStall]);
   const [bunkerToken, setBunkerToken] = useState("");
   const [validBunkerToken, setValidBunkerToken] =
     useState<InputProps["color"]>("default");
@@ -147,6 +187,7 @@ export default function SignInModal({
   };
 
   const startNewAccountCreation = () => {
+    markBuyerOnlySignup();
     router.push("/onboarding/new-account");
     onClose();
   };
@@ -157,11 +198,7 @@ export default function SignInModal({
       await signer.getPubKey();
       saveSigner(signer);
       onClose();
-      router.push(
-        sellerFlow
-          ? "/onboarding/user-type?preselect=seller"
-          : "/onboarding/user-type"
-      );
+      router.push(signUpRedirect);
     } catch (error) {
       setFailureText("Extension sign-up failed! " + error);
       setShowFailureModal(true);
@@ -177,11 +214,7 @@ export default function SignInModal({
       setIsBunkerConnecting(false);
       await signer.getPubKey();
       onClose();
-      router.push(
-        sellerFlow
-          ? "/onboarding/user-type?preselect=seller"
-          : "/onboarding/user-type"
-      );
+      router.push(signUpRedirect);
     } catch {
       setFailureText("Bunker sign-up failed!");
       setShowFailureModal(true);
@@ -234,11 +267,7 @@ export default function SignInModal({
         saveSigner(signer);
         onClose();
 
-        router.push(
-          sellerFlow
-            ? "/onboarding/user-type?preselect=seller"
-            : "/onboarding/user-type"
-        );
+        router.push(signUpRedirect);
       }
     } else {
       setFailureText(
@@ -295,13 +324,7 @@ export default function SignInModal({
       } else {
         saveSigner(signer);
         onClose();
-        router.push(
-          isEmailSignUp
-            ? sellerFlow
-              ? "/onboarding/user-type?preselect=seller"
-              : "/onboarding/user-type"
-            : "/marketplace"
-        );
+        router.push(isEmailSignUp ? signUpRedirect : "/marketplace");
       }
     } catch (error) {
       setFailureText("Email sign-in failed: " + error);
@@ -309,7 +332,13 @@ export default function SignInModal({
     }
   };
 
-  const handleOAuthSignIn = (provider: "google" | "apple") => {
+  const handleOAuthSignIn = (
+    provider: "google" | "apple",
+    isSignUp = false
+  ) => {
+    // A new OAuth account created from a custom stall must become a buyer and
+    // skip the role step, same as the other sign-up paths.
+    if (isSignUp) markBuyerOnlySignup();
     // Use window.location.href to get the full URL including port
     const currentUrl = new URL(window.location.href);
     const redirectUri = `${currentUrl.protocol}//${currentUrl.host}/api/auth/oauth-callback`;
@@ -437,14 +466,14 @@ export default function SignInModal({
               <div className="flex flex-col items-center justify-center space-y-6 py-8">
                 <div className="flex items-center justify-center">
                   <Image
-                    alt="Milk Market logo"
+                    alt={`${brandName} logo`}
                     height={80}
                     radius="sm"
-                    src="/milk-market.png"
+                    src={brandLogo}
                     width={80}
                   />
                   <h1 className="ml-3 text-4xl font-bold text-black">
-                    Milk Market
+                    {brandName}
                   </h1>
                 </div>
 
@@ -452,7 +481,7 @@ export default function SignInModal({
                 <div className="flex w-full max-w-md flex-col space-y-4">
                   <div className="text-center">
                     <p className="mb-2 text-lg font-bold text-black">
-                      New to Milk Market?
+                      New to {brandName}?
                     </p>
                     <p className="mb-4 text-sm text-black">
                       Sign up to get started!
@@ -488,10 +517,10 @@ export default function SignInModal({
                 <div className="space-y-3">
                   <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
-                      alt="Milk Market logo"
+                      alt={`${brandName} logo`}
                       height={50}
                       radius="sm"
-                      src="/milk-market.png"
+                      src={brandLogo}
                       width={50}
                     />
                     <div className="text-2xl font-bold text-black">Sign Up</div>
@@ -511,7 +540,7 @@ export default function SignInModal({
                   {/* OAuth Buttons */}
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} flex w-full items-center justify-center gap-2`}
-                    onClick={() => handleOAuthSignIn("google")}
+                    onClick={() => handleOAuthSignIn("google", true)}
                   >
                     <Image
                       src="/google-icon.png"
@@ -561,10 +590,10 @@ export default function SignInModal({
                 <div className="space-y-3">
                   <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
-                      alt="Milk Market logo"
+                      alt={`${brandName} logo`}
                       height={50}
                       radius="sm"
-                      src="/milk-market.png"
+                      src={brandLogo}
                       width={50}
                     />
                     <div className="text-2xl font-bold text-black">
@@ -806,14 +835,14 @@ export default function SignInModal({
                 <div className="space-y-3">
                   <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
-                      alt="Milk Market logo"
+                      alt={`${brandName} logo`}
                       height={50}
                       radius="sm"
-                      src="/milk-market.png"
+                      src={brandLogo}
                       width={50}
                     />
                     <div className="text-2xl font-bold text-black">
-                      Milk Market
+                      {brandName}
                     </div>
                   </div>
 
@@ -1060,10 +1089,10 @@ export default function SignInModal({
                 <div className="space-y-3">
                   <div className="mb-3 flex items-center justify-center gap-3">
                     <Image
-                      alt="Milk Market logo"
+                      alt={`${brandName} logo`}
                       height={50}
                       radius="sm"
-                      src="/milk-market.png"
+                      src={brandLogo}
                       width={50}
                     />
                     <div className="text-2xl font-bold text-black">
@@ -1200,11 +1229,7 @@ export default function SignInModal({
             setPendingSignUpSigner(null);
             setRecoveryKey("");
             onClose();
-            router.push(
-              sellerFlow
-                ? "/onboarding/user-type?preselect=seller"
-                : "/onboarding/user-type"
-            );
+            router.push(signUpRedirect);
           }
         }}
         recoveryKey={recoveryKey}

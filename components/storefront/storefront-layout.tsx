@@ -1088,7 +1088,11 @@ export default function StorefrontLayout({
           shopSlug={shopSlug}
         />
       </div>
-      <SignInModal isOpen={isOpen} onClose={onClose} />
+      <SignInModal
+        isOpen={isOpen}
+        onClose={onClose}
+        sellerBranding={{ shopName, logoUrl: pictureUrl }}
+      />
       {storefront.emailPopup?.enabled &&
         (storefront.emailPopup.discountPercentage > 0 ||
           (storefront.emailPopup.shippingDiscountType &&
