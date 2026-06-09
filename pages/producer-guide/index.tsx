@@ -53,7 +53,7 @@ const ProducerGuidePage = () => {
     },
     {
       id: "step-1",
-      label: "Step 1",
+      label: "Step 1: Account",
       threads: [
         { id: "step-1-1", label: "1.1 Sign In Modal" },
         { id: "step-1-2", label: "1.2 Keys Page" },
@@ -63,32 +63,52 @@ const ProducerGuidePage = () => {
     },
     {
       id: "step-2",
-      label: "Step 2",
-      threads: [
-        { id: "step-2-1", label: "2.1 Listing Password" },
-        { id: "step-2-2", label: "2.2 Product Details" },
-        { id: "step-2-3", label: "2.3 Pickup Details" },
-        { id: "step-2-4", label: "2.4 List Product" },
-      ],
+      label: "Step 2: Membership",
+      threads: [],
     },
     {
       id: "step-3",
-      label: "Step 3",
+      label: "Step 3: List Product",
       threads: [
-        { id: "step-3-1", label: "3.1 Fiat Order Chat" },
-        { id: "step-3-2", label: "3.2 Bitcoin Order Chat" },
-        { id: "step-3-3", label: "3.3 Payment Redemption" },
-        { id: "step-3-4", label: "3.4 Wallet Page" },
+        { id: "step-3-1", label: "3.1 Listing Password" },
+        { id: "step-3-2", label: "3.2 Product Details" },
+        { id: "step-3-3", label: "3.3 Pickup Details" },
+        { id: "step-3-4", label: "3.4 List Product" },
       ],
     },
     {
       id: "step-4",
-      label: "Step 4",
+      label: "Step 4: Orders",
       threads: [
-        { id: "step-4-1", label: "4.1 Update Listings" },
-        { id: "step-4-2", label: "4.2 Build Relationships" },
-        { id: "step-4-3", label: "4.3 Share Story" },
-        { id: "step-4-4", label: "4.4 Network Growth" },
+        { id: "step-4-1", label: "4.1 Fiat Order Chat" },
+        { id: "step-4-2", label: "4.2 Bitcoin Order Chat" },
+        { id: "step-4-3", label: "4.3 Payment Redemption" },
+        { id: "step-4-4", label: "4.4 Wallet Page" },
+      ],
+    },
+    {
+      id: "step-5",
+      label: "Step 5: Storefront",
+      threads: [],
+    },
+    {
+      id: "step-6",
+      label: "Step 6: Email Flows",
+      threads: [],
+    },
+    {
+      id: "step-7",
+      label: "Step 7: AI Agents (MCP)",
+      threads: [],
+    },
+    {
+      id: "step-8",
+      label: "Step 8: Grow",
+      threads: [
+        { id: "step-8-1", label: "8.1 Update Listings" },
+        { id: "step-8-2", label: "8.2 Build Relationships" },
+        { id: "step-8-3", label: "8.3 Share Story" },
+        { id: "step-8-4", label: "8.4 Network Growth" },
       ],
     },
   ];
@@ -138,9 +158,9 @@ const ProducerGuidePage = () => {
           and transactions and protects your wealth over time. Payment
           processors like Stripe, PayPal, etc. can freeze your funds, close your
           account, or even ban you for selling products they don&apos;t deem
-          acceptable (which raw milk and dairy can easily fall under). If
-          desired, you can exchange it for cash or other currencies at your own
-          pace using tools like{" "}
+          acceptable (which local food like raw milk and dairy can easily fall
+          under). If desired, you can exchange it for cash or other currencies
+          at your own pace using tools like{" "}
           <a
             href="https://cash.app/bitcoin"
             target="_blank"
@@ -226,49 +246,140 @@ const ProducerGuidePage = () => {
   return (
     <>
       <Head>
-        <meta
-          name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1"
-        />
-        <title>
-          Producer Guide - Milk Market | Start Selling Farm-Fresh Dairy Products
-        </title>
+        <title>Producer Guide — How to Sell on Milk Market</title>
         <meta
           name="description"
-          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling raw milk and dairy products directly to customers using the permissionless marketplace."
+          content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your storefront."
         />
-        <link rel="canonical" href="https://milk.market/producer-guide" />
-        <link rel="apple-touch-icon" href="/milk-market.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/milk-market.png" />
-        <meta property="og:url" content="https://milk.market/producer-guide" />
-        <meta property="og:type" content="website" />
-        <meta
-          property="og:title"
-          content="Producer Guide - Milk Market | Start Selling Farm-Fresh Dairy Products"
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "HowTo",
+              name: "How to Sell on Milk Market",
+              description:
+                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their storefront on Milk Market.",
+              url: "https://milk.market/producer-guide",
+              step: [
+                {
+                  "@type": "HowToStep",
+                  name: "Create Your Account",
+                  text: "Sign up for Milk Market using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
+                  url: "https://milk.market/producer-guide#step-1",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Choose Your Membership",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced storefront design, automated email flows, and AI agent access.",
+                  url: "https://milk.market/producer-guide#step-2",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "List Your Products",
+                  text: "Use the listing password to create product listings. Add details like name, description, price, photos, and pickup or delivery options.",
+                  url: "https://milk.market/producer-guide#step-3",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Manage Orders",
+                  text: "Receive and process orders through the orders dashboard. Accept Bitcoin payments via Lightning or Cashu, card payments via Stripe, or arrange cash transactions directly with customers.",
+                  url: "https://milk.market/producer-guide#step-4",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Customize Your Storefront",
+                  text: "Personalize your public storefront with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
+                  url: "https://milk.market/producer-guide#step-5",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Set Up Email Flows",
+                  text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop.",
+                  url: "https://milk.market/producer-guide#step-6",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Enable AI Agent (MCP) Access",
+                  text: "Activate the Model Context Protocol endpoint so AI agents and agentic shopping tools can discover and purchase from your storefront automatically.",
+                  url: "https://milk.market/producer-guide#step-7",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Grow Your Business",
+                  text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Milk Market community to expand your reach.",
+                  url: "https://milk.market/producer-guide#step-8",
+                },
+              ],
+            }),
+          }}
         />
-        <meta
-          property="og:description"
-          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling raw milk and dairy products directly to customers using the permissionless marketplace."
-        />
-        <meta property="og:image" content="/milk-market.png" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta property="twitter:domain" content="https://milk.market" />
-        <meta
-          property="twitter:url"
-          content="https://milk.market/producer-guide"
-        />
-        <meta
-          name="twitter:title"
-          content="Producer Guide - Milk Market | Start Selling Farm-Fresh Dairy Products"
-        />
-        <meta
-          name="twitter:description"
-          content="Learn how to become a producer on Milk Market. Step-by-step guide to selling raw milk and dairy products directly to customers using the permissionless marketplace."
-        />
-        <meta name="twitter:image" content="/milk-market.png" />
-        <meta
-          name="keywords"
-          content="milk market producer guide, sell raw dairy, sell farm-fresh dairy, bitcoin payments, nostr marketplace, dairy producer, farm to consumer, direct sales, raw milk sales"
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: [
+                {
+                  "@type": "Question",
+                  name: "What is a passphrase? What is it used for?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and shop information on Milk Market.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "What payment methods do customers use?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Milk Market supports Bitcoin payments through Lightning Network and Cashu tokens, as well as credit and debit card payments via Stripe. You can also arrange cash payments directly with customers during pickup or delivery and other payment options like Cash App, Venmo, PayPal, etc.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Why Bitcoin? How can I exchange it?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (which local food like raw milk can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "What is the listing passphrase? How do I get it?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "The listing passphrase is a password set by Milk Market to prevent spam and ensure that trusted producers can list products. You can get it by contacting Milk Market or other producers in the Milk Market community.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "How do I process payments?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "If accepting Bitcoin payments, you can redeem them through the orders dashboard and directly to the site wallet. With the wallet, you can save your payments or send money to another wallet like Cash App, Coinos, Minibits, etc. If accepting cash, you can arrange payment during pickup or delivery. With other online fiat options, payment should be delivered with the order to the specified account.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "How do I handle delivery and pickup?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "You set your own delivery options - whether you offer farm pickup, local delivery, or meet at farmers markets. Coordinate specific details on your product details page or through the encrypted messaging system with each customer.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Is my communication with customers private?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes, all messages are encrypted. Only you and your customers can see your conversations - no third parties have access to your private communications.",
+                  },
+                },
+              ],
+            }),
+          }}
         />
       </Head>
       <div className="min-h-screen bg-white">
@@ -350,8 +461,9 @@ const ProducerGuidePage = () => {
                   Producer Guide
                 </h1>
                 <p className="text-primary-blue mx-auto max-w-3xl text-lg">
-                  Learn how to start selling your raw dairy products and other
-                  goods on Milk Market.
+                  Learn how to start selling your local food and goods on Milk
+                  Market &mdash; from raw milk and dairy to meat, eggs, produce,
+                  baked goods, honey, and handmade goods.
                 </p>
               </div>
             </div>
@@ -457,7 +569,7 @@ const ProducerGuidePage = () => {
                     },
                     {
                       src: "/shop-page.png",
-                      alt: "Customizable farm shop page for displaying dairy products",
+                      alt: "Customizable shop page for displaying local food products",
                       step: "1.4",
                     },
                   ].map((image, idx) => (
@@ -484,24 +596,82 @@ const ProducerGuidePage = () => {
                 id="step-2"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
+                  <div className="flex items-start gap-4 lg:flex-1">
+                    <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                      2
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="mb-2 text-2xl font-bold text-white">
+                        Choose Your Membership
+                      </h3>
+                      <p className="mb-4 text-base text-white">
+                        Selling is free with unlimited listings and no mandatory
+                        transaction fees. Upgrade to Herd whenever you want a
+                        fully custom storefront and pro tools.
+                      </p>
+                      <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                        <li>
+                          Start free with unlimited listings, your seller
+                          profile, Stripe payouts, discount codes, and affiliate
+                          tools
+                        </li>
+                        <li>
+                          Go Herd for $21/month (or $168/year, saving 33%) to
+                          unlock advanced storefronts, custom domains, email
+                          flows, custom product pages, shipping labels (coming
+                          soon), and AI agent (MCP) access &mdash; or go
+                          Wrangler for one-time $1,050 lifetime access
+                        </li>
+                        <li>
+                          New sellers get a 30-day free trial of Herd with no
+                          payment required up front
+                        </li>
+                        <li>
+                          We&apos;ll remind you to pay for your selected plan
+                          before the trial ends &mdash; you can stay on free
+                          anytime
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center lg:w-1/2">
+                    <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
+                      <h3 className="mb-1 text-xl font-bold text-black">
+                        30-Day Free Trial
+                      </h3>
+                      <p className="text-sm text-zinc-700">
+                        Try every Herd feature free for 30 days &mdash; no
+                        payment required to start.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div
+                id="step-3"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                    2
+                    3
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
                       List Your First Product
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Create detailed product listings that showcase your dairy
+                      Create detailed product listings that showcase your
                       products and attract customers.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                      <li id="step-2-1">
+                      <li id="step-3-1">
                         Navigate to &ldquo;My Listings&rdquo; and click
                         &ldquo;Add Product&rdquo;
                       </li>
-                      <li id="step-2-2">
+                      <li id="step-3-2">
                         Enter the listing passphrase{" "}
                         <span className="inline-flex items-center">
                           if this is your first product{" "}
@@ -520,8 +690,8 @@ const ProducerGuidePage = () => {
                           />
                         </span>
                       </li>
-                      <li id="step-2-3">Upload clear product photos</li>
-                      <li id="step-2-4">
+                      <li id="step-3-3">Upload clear product photos</li>
+                      <li id="step-3-4">
                         Write detailed descriptions and set pricing and/or
                         volume pricing
                       </li>
@@ -536,23 +706,23 @@ const ProducerGuidePage = () => {
                   {[
                     {
                       src: "/listing-password-modal.png",
-                      alt: "Listing passphrase verification for trusted dairy producers",
-                      step: "2.1",
+                      alt: "Listing passphrase verification for trusted local food producers",
+                      step: "3.1",
                     },
                     {
                       src: "/product-details-form.png",
-                      alt: "Product listing form for raw milk, cheese, and dairy with pricing options",
-                      step: "2.2",
+                      alt: "Product listing form for local food with pricing options",
+                      step: "3.2",
                     },
                     {
                       src: "/pickup-and-volume-details.png",
-                      alt: "Pickup location and volume pricing configuration for farm products",
-                      step: "2.3",
+                      alt: "Pickup location and volume pricing configuration for local food products",
+                      step: "3.3",
                     },
                     {
                       src: "/list-product-with-passphrase.png",
-                      alt: "Publishing a new dairy product listing to the Milk Market marketplace",
-                      step: "2.4",
+                      alt: "Publishing a new product listing to the Milk Market marketplace",
+                      step: "3.4",
                     },
                   ].map((image, idx) => (
                     <div
@@ -573,14 +743,14 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 3 */}
+              {/* Step 4 */}
               <div
-                id="step-3"
+                id="step-4"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                    3
+                    4
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
@@ -591,15 +761,15 @@ const ProducerGuidePage = () => {
                       messaging system.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                      <li id="step-3-1">
+                      <li id="step-4-1">
                         Monitor the &ldquo;Orders&rdquo; section for new
                         messages
                       </li>
-                      <li id="step-3-2">
+                      <li id="step-4-2">
                         Respond promptly to customer inquiries
                       </li>
-                      <li id="step-3-3">Coordinate pickup/delivery details</li>
-                      <li id="step-3-4">
+                      <li id="step-4-3">Coordinate pickup/delivery details</li>
+                      <li id="step-4-4">
                         Process payments{" "}
                         <span className="inline-flex items-center">
                           according to your preferences{" "}
@@ -627,23 +797,23 @@ const ProducerGuidePage = () => {
                   {[
                     {
                       src: "/fiat-order-chat.png",
-                      alt: "Encrypted chat interface for processing fiat dairy orders",
-                      step: "3.1",
+                      alt: "Encrypted chat interface for processing fiat local food orders",
+                      step: "4.1",
                     },
                     {
                       src: "/bitcoin-order-chat.png",
-                      alt: "Bitcoin Lightning payment order chat with dairy customer",
-                      step: "3.2",
+                      alt: "Bitcoin Lightning payment order chat with a customer",
+                      step: "4.2",
                     },
                     {
                       src: "/bitcoin-payment-redemption-modal.png",
-                      alt: "Redeeming Bitcoin Cashu payment from dairy product sale",
-                      step: "3.3",
+                      alt: "Redeeming Bitcoin Cashu payment from a product sale",
+                      step: "4.3",
                     },
                     {
                       src: "/wallet-page.png",
-                      alt: "Milk Market wallet showing Bitcoin and Cashu balance for dairy sales",
-                      step: "3.4",
+                      alt: "Milk Market wallet showing Bitcoin and Cashu balance for sales",
+                      step: "4.4",
                     },
                   ].map((image, idx) => (
                     <div
@@ -664,15 +834,125 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 4 */}
+              {/* Step 5 */}
               <div
-                id="step-4"
+                id="step-5"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    5
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
+                      Customize Your Storefront
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Pro
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Make your stall your own with a fully branded storefront
+                      that you control.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>Pick your own colors, fonts, and theme</li>
+                      <li>
+                        Arrange your shop with the page builder and custom
+                        product pages
+                      </li>
+                      <li>Connect your own custom domain (self-serve)</li>
+                      <li>
+                        Set your SEO and social sharing (OpenGraph) previews
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 6 */}
+              <div
+                id="step-6"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    6
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
+                      Automate Your Email Flows
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Pro
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Stay in touch with buyers automatically so you never miss
+                      a follow-up.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>
+                        Send automated welcome, follow-up, and re-engagement
+                        emails
+                      </li>
+                      <li>
+                        Build multi-step flows that trigger on customer actions
+                      </li>
+                      <li>Customize the copy and timing for each message</li>
+                      <li>
+                        Unsubscribe handling is built in for every contact
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 7 */}
+              <div
+                id="step-7"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    7
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
+                      Connect AI Agents with MCP
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Pro
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Open your store to AI shopping agents through the Model
+                      Context Protocol (MCP) API.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>
+                        Create API keys with read, purchase, or write permission
+                        levels
+                      </li>
+                      <li>
+                        Let agents browse your listings and check live inventory
+                      </li>
+                      <li>
+                        Enable agentic checkout so AI buyers can purchase
+                        directly
+                      </li>
+                      <li>Manage and revoke access anytime from settings</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 8 */}
+              <div
+                id="step-8"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
                     <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                      4
+                      8
                     </div>
                     <div className="flex-1">
                       <h3 className="mb-2 text-2xl font-bold text-white">
@@ -683,16 +963,16 @@ const ProducerGuidePage = () => {
                         the Milk Market community.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                        <li id="step-4-1">
+                        <li id="step-8-1">
                           Regularly update your product listings
                         </li>
-                        <li id="step-4-2">
+                        <li id="step-8-2">
                           Engage with customers and build relationships
                         </li>
-                        <li id="step-4-3">
-                          Share your farm story and practices
+                        <li id="step-8-3">
+                          Share your story and growing practices
                         </li>
-                        <li id="step-4-4">Leverage the Milk Market network</li>
+                        <li id="step-8-4">Leverage the Milk Market network</li>
                       </ul>
                     </div>
                   </div>
@@ -732,13 +1012,15 @@ const ProducerGuidePage = () => {
                         }`}
                       />
                     </button>
-                    {openFaqIndex === index && (
-                      <div className="bg-white/10 px-4 pt-2 pb-4">
-                        <p className="text-sm leading-relaxed text-white/90">
-                          {item.answer}
-                        </p>
-                      </div>
-                    )}
+                    <div
+                      className={`bg-white/10 px-4 pt-2 pb-4 ${
+                        openFaqIndex === index ? "" : "hidden"
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed text-white/90">
+                        {item.answer}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -751,7 +1033,10 @@ const ProducerGuidePage = () => {
               </h2>
               <p className="mb-6 text-base text-white">
                 Join the growing community of producers providing fresh, local
-                dairy products directly to consumers.
+                food &mdash; from raw milk and dairy to meat, eggs, and produce
+                &mdash; directly to consumers. Selling is free with unlimited
+                listings, and new sellers get a 30-day free trial of Herd
+                &mdash; no payment required up front.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button

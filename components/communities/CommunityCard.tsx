@@ -1,26 +1,21 @@
 import React from "react";
-import { Card, CardHeader, CardBody, Image, Button } from "@heroui/react";
+import { Card, CardHeader, CardBody, Image } from "@heroui/react";
 import { Community } from "@/utils/types/types";
-import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import Link from "next/link";
 
 interface CommunityCardProps {
   community: Community;
 }
 
 const CommunityCard: React.FC<CommunityCardProps> = ({ community }) => {
-  const router = useRouter();
-
-  const handleVisit = () => {
-    const naddr = nip19.naddrEncode({
-      identifier: community.d,
-      pubkey: community.pubkey,
-      kind: 34550,
-    });
-    router.push(`/communities/${naddr}`);
-  };
+  const naddr = nip19.naddrEncode({
+    identifier: community.d,
+    pubkey: community.pubkey,
+    kind: 34550,
+  });
 
   return (
     <Card className="shadow-neo w-full max-w-sm rounded-lg border-4 border-black bg-white transition-transform hover:-translate-y-1">
@@ -43,12 +38,12 @@ const CommunityCard: React.FC<CommunityCardProps> = ({ community }) => {
         <p className="mb-4 line-clamp-2 text-sm text-gray-700">
           {community.description}
         </p>
-        <Button
-          onClick={handleVisit}
-          className={`${BLUEBUTTONCLASSNAMES} w-full`}
+        <Link
+          href={`/communities/${naddr}`}
+          className={`${BLUEBUTTONCLASSNAMES} block w-full text-center`}
         >
           Visit
-        </Button>
+        </Link>
       </CardBody>
     </Card>
   );

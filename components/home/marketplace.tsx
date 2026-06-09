@@ -78,16 +78,19 @@ function MarketplacePage({
   setFocusedPubkey,
   selectedSection,
   setSelectedSection,
+  ssrSellerName = "",
 }: {
   focusedPubkey: string;
   setFocusedPubkey: (value: string) => void;
   selectedSection: string;
   setSelectedSection: (value: string) => void;
+  ssrSellerName?: string;
 }) {
   const router = useRouter();
   const [selectedCategories, setSelectedCategories] = useState(
     new Set<string>([])
   );
+  const [categorySearch, setCategorySearch] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedSearch, setSelectedSearch] = useState("");
   const debouncedSearch = useDebounce(selectedSearch, 300);
@@ -123,6 +126,10 @@ function MarketplacePage({
     useContext(SignerContext);
 
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const hasTrustGraph =
+    Boolean(loggedIn) &&
+    !followsContext.isLoading &&
+    followsContext.firstDegreeFollowsLength > 0;
 
   useEffect(() => {
     const slug = normalizeNpub(router.query.npub);
@@ -233,11 +240,14 @@ function MarketplacePage({
   }, [focusedPubkey, shopMapContext]);
 
   useEffect(() => {
-    setIsFetchingFollows(true);
-    if (followsContext.followList.length && !followsContext.isLoading) {
-      setIsFetchingFollows(false);
+    setIsFetchingFollows(followsContext.isLoading);
+  }, [followsContext.isLoading]);
+
+  useEffect(() => {
+    if (!hasTrustGraph && wotFilter) {
+      setWotFilter(false);
     }
-  }, [followsContext]);
+  }, [hasTrustGraph, wotFilter]);
 
   const handleFilteredProductsChange = (products: ProductData[]) => {
     setFilteredProducts(products);
@@ -330,7 +340,12 @@ function MarketplacePage({
                           dropDownKeys={
                             reviewerPubkey === userPubkey
                               ? ["shop_profile"]
-                              : ["shop", "inquiry", "copy_npub"]
+                              : [
+                                  "shop",
+                                  "inquiry",
+                                  "copy_npub",
+                                  "report_profile",
+                                ]
                           }
                           bg="light"
                         />
@@ -400,8 +415,17 @@ function MarketplacePage({
     );
   };
 
+  const sellerName = focusedPubkey
+    ? shopMapContext.shopData.get(focusedPubkey)?.content?.name ||
+      ssrSellerName ||
+      "Seller Stall"
+    : null;
+
   return (
     <div className="mx-auto w-full bg-white">
+      <h1 className="px-6 pt-6 pb-0 text-2xl font-bold text-black">
+        {sellerName ?? "Browse Local Food Listings on Milk Market"}
+      </h1>
       {/* Filter Bar Section */}
       <div className="flex max-w-[100%] flex-col bg-white px-6 py-6">
         {shopBannerURL != "" && focusedPubkey != "" && !isFetchingShop ? (
@@ -563,10 +587,40 @@ function MarketplacePage({
                     label: "text-black font-semibold",
                     innerWrapper: "bg-white",
                     mainWrapper: "bg-white",
+                    listbox: "bg-white",
+                  }}
+                  listboxProps={{
+                    topContent: (
+                      <Input
+                        aria-label="Search categories"
+                        className="mb-1 px-1 py-1"
+                        value={categorySearch}
+                        onValueChange={setCategorySearch}
+                        placeholder="Search category..."
+                        type="text"
+                        startContent={
+                          <MagnifyingGlassIcon
+                            aria-hidden="true"
+                            className="h-4 w-4 text-gray-500"
+                          />
+                        }
+                        classNames={{
+                          input: "text-black placeholder:text-gray-400",
+                          inputWrapper:
+                            "border-2 border-black rounded-md bg-white data-[hover=true]:bg-white group-data-[focus=true]:bg-white",
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ),
                   }}
                 >
                   <SelectSection>
-                    {CATEGORIES.map((category) => (
+                    {CATEGORIES.filter((category) =>
+                      category
+                        .toLowerCase()
+                        .includes(categorySearch.toLowerCase())
+                    ).map((category) => (
                       <SelectItem
                         key={category}
                         classNames={{
@@ -587,7 +641,7 @@ function MarketplacePage({
                     setSelectedLocation(event.target.value);
                   }}
                 />
-                {!isFetchingFollows ? (
+                {!isFetchingFollows && hasTrustGraph ? (
                   <MilkMarketSwitch
                     wotFilter={wotFilter}
                     setWotFilter={setWotFilter}

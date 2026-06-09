@@ -173,7 +173,68 @@ export async function incrementFailedRelayPublishRetryForOwner(
   }
 }
 
-// Initialize the database connection pool
+// Sellers who entered the listing password before server-side tracking
+// existed. They have no row in authed_sellers, so seed them once on setup.
+const SEED_AUTHED_SELLER_PUBKEYS = [
+  "1be3f173f0b0ddcab5f5b98ca0cdd857c3454ce67dbdaf2dd694d4b4415d7361",
+  "76fcec0e0638351f1d0e0dc4ebaf6dd3d67404126d664547674070f3175273d9",
+];
+
+// Tracks which npubs have successfully entered the listing password. The
+// marketplace only displays products from pubkeys recorded here.
+export async function ensureAuthedSellersTable(
+  client: PoolClient
+): Promise<void> {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS authed_sellers (
+      pubkey TEXT PRIMARY KEY,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.query(
+    `INSERT INTO authed_sellers (pubkey)
+     SELECT UNNEST($1::text[])
+     ON CONFLICT (pubkey) DO NOTHING`,
+    [SEED_AUTHED_SELLER_PUBKEYS]
+  );
+}
+
+// Records that the given pubkey has entered the listing password. No-op for
+// missing or malformed (non hex-64) pubkeys.
+export async function recordAuthedSeller(pubkey: string): Promise<void> {
+  if (!pubkey || !/^[0-9a-f]{64}$/.test(pubkey)) return;
+
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await ensureAuthedSellersTable(client);
+    await client.query(
+      `INSERT INTO authed_sellers (pubkey)
+       VALUES ($1)
+       ON CONFLICT (pubkey) DO NOTHING`,
+      [pubkey]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Returns the list of pubkeys that have entered the listing password.
+export async function getAuthedSellerPubkeys(): Promise<string[]> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await ensureAuthedSellersTable(client);
+    const result = await client.query(`SELECT pubkey FROM authed_sellers`);
+    return result.rows.map((row) => row.pubkey as string);
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export function getDbPool(): Pool {
   if (!pool) {
     const databaseUrl = process.env.DATABASE_URL;
@@ -258,6 +319,23 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_review_events_pubkey ON review_events(pubkey);
       CREATE INDEX IF NOT EXISTS idx_review_events_tags ON review_events USING gin (tags jsonb_path_ops);
+
+      -- Reports table (kind 1984 - NIP-56)
+      CREATE TABLE IF NOT EXISTS report_events (
+          id TEXT PRIMARY KEY,
+          pubkey TEXT NOT NULL,
+          created_at BIGINT NOT NULL,
+          kind INTEGER NOT NULL,
+          tags JSONB NOT NULL,
+          content TEXT NOT NULL,
+          sig TEXT NOT NULL,
+          cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT report_events_kind_check CHECK (kind = 1984)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_report_events_pubkey ON report_events(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_report_events_created_at ON report_events(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_report_events_tags ON report_events USING gin (tags jsonb_path_ops);
 
       -- Comment/reply events table (kind 1111 - NIP-22)
       CREATE TABLE IF NOT EXISTS comment_events (
@@ -497,7 +575,7 @@ async function initializeTables(): Promise<void> {
           id SERIAL PRIMARY KEY,
           seller_pubkey TEXT NOT NULL,
           name TEXT NOT NULL,
-          flow_type TEXT NOT NULL CHECK (flow_type IN ('welcome_series', 'abandoned_cart', 'post_purchase', 'winback')),
+          flow_type TEXT NOT NULL CHECK (flow_type IN ('welcome_series', 'abandoned_cart', 'post_purchase', 'winback', 'one_time')),
           status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'paused')),
           from_name TEXT,
           reply_to TEXT,
@@ -954,6 +1032,30 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
+    // Allow the 'one_time' flow type on databases created before it existed.
+    // Drop any existing CHECK constraint on flow_type (regardless of its
+    // auto-generated name) before adding the canonical one, so this works even
+    // if the prior constraint was named differently.
+    await client.query(`
+      DO $$
+      DECLARE
+        c record;
+      BEGIN
+        FOR c IN
+          SELECT con.conname
+          FROM pg_constraint con
+          JOIN pg_class rel ON rel.oid = con.conrelid
+          WHERE rel.relname = 'email_flows'
+            AND con.contype = 'c'
+            AND pg_get_constraintdef(con.oid) ILIKE '%flow_type%'
+        LOOP
+          EXECUTE format('ALTER TABLE email_flows DROP CONSTRAINT %I', c.conname);
+        END LOOP;
+        ALTER TABLE email_flows ADD CONSTRAINT email_flows_flow_type_check
+          CHECK (flow_type IN ('welcome_series', 'abandoned_cart', 'post_purchase', 'winback', 'one_time'));
+      END $$;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS inventory (
         id SERIAL PRIMARY KEY,
@@ -1142,6 +1244,89 @@ async function initializeTables(): Promise<void> {
       $sub_migrate_inline$;
     `);
 
+    // -----------------------------------------------------------------
+    // Pro membership tier. Effective status is resolved in code from the
+    // forward-looking lapse timeline stored here. Mirrors db/schema.sql.
+    // -----------------------------------------------------------------
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pro_memberships (
+          id SERIAL PRIMARY KEY,
+          pubkey TEXT NOT NULL UNIQUE,
+          billing_method TEXT CHECK (billing_method IN ('stripe', 'manual')),
+          term TEXT CHECK (term IN ('monthly', 'yearly')),
+          status TEXT NOT NULL DEFAULT 'free',
+          stripe_customer_id TEXT,
+          stripe_subscription_id TEXT,
+          trial_end TIMESTAMP,
+          current_period_end TIMESTAMP,
+          grace_until TIMESTAMP,
+          readonly_until TIMESTAMP,
+          cancel_at_period_end BOOLEAN NOT NULL DEFAULT FALSE,
+          trial_reminder_sent_at TIMESTAMP,
+          due_reminder_sent_at TIMESTAMP,
+          readonly_notice_sent_at TIMESTAMP,
+          hidden_notice_sent_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE pro_memberships
+        ADD COLUMN IF NOT EXISTS lifetime BOOLEAN NOT NULL DEFAULT FALSE;
+
+      CREATE INDEX IF NOT EXISTS idx_pro_memberships_pubkey ON pro_memberships(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_pro_memberships_stripe_subscription_id ON pro_memberships(stripe_subscription_id);
+      CREATE INDEX IF NOT EXISTS idx_pro_memberships_stripe_customer_id ON pro_memberships(stripe_customer_id);
+
+      CREATE TABLE IF NOT EXISTS pro_manual_invoices (
+          id SERIAL PRIMARY KEY,
+          invoice_id TEXT NOT NULL UNIQUE,
+          pubkey TEXT NOT NULL,
+          term TEXT NOT NULL CHECK (term IN ('monthly', 'yearly')),
+          method TEXT NOT NULL CHECK (method IN ('bitcoin', 'fiat')),
+          amount_usd_cents INTEGER NOT NULL,
+          amount_sats INTEGER,
+          bolt11 TEXT,
+          verify_url TEXT,
+          payment_hash TEXT,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired', 'canceled')),
+          due_at TIMESTAMP NOT NULL,
+          paid_at TIMESTAMP,
+          membership_applied_at TIMESTAMP,
+          coverage_start TIMESTAMP,
+          coverage_end TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      ALTER TABLE pro_manual_invoices
+        ADD COLUMN IF NOT EXISTS membership_applied_at TIMESTAMP;
+
+      ALTER TABLE pro_manual_invoices
+        ADD COLUMN IF NOT EXISTS coverage_start TIMESTAMP;
+
+      ALTER TABLE pro_manual_invoices
+        ADD COLUMN IF NOT EXISTS coverage_end TIMESTAMP;
+
+      ALTER TABLE pro_manual_invoices
+        ADD COLUMN IF NOT EXISTS lifetime BOOLEAN NOT NULL DEFAULT FALSE;
+
+      -- Lifetime invoices carry a NULL term, so the original NOT NULL must go.
+      ALTER TABLE pro_manual_invoices
+        ALTER COLUMN term DROP NOT NULL;
+
+      CREATE INDEX IF NOT EXISTS idx_pro_manual_invoices_pubkey ON pro_manual_invoices(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_pro_manual_invoices_status ON pro_manual_invoices(status);
+      CREATE INDEX IF NOT EXISTS idx_pro_manual_invoices_invoice_id ON pro_manual_invoices(invoice_id);
+
+      CREATE TABLE IF NOT EXISTS pro_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await ensureAuthedSellersTable(client);
+
     tablesInitialized = true;
     initializingTables = false;
   } catch (error) {
@@ -1162,6 +1347,9 @@ export function getTableForKind(kind: number): string | null {
 
   // Reviews
   if (kind === 31555) return "review_events";
+
+  // Reports (NIP-56)
+  if (kind === 1984) return "report_events";
 
   // Comments/replies (NIP-22) — for kind 1111 without community context
   if (kind === 1111) return "comment_events";
@@ -1675,6 +1863,7 @@ export async function deleteCachedEventsByIds(
   // All tables that can store events
   const otherTables = [
     "review_events",
+    "report_events",
     "message_events",
     "profile_events",
     "wallet_events",
@@ -1827,9 +2016,9 @@ export async function fetchAllProductsFromDb(
          FROM product_events p,
          LATERAL (
            SELECT COALESCE(
-             (SELECT elem->>'1'
+             (SELECT elem->>1
               FROM jsonb_array_elements(p.tags) elem
-              WHERE elem->>'0' = 'd'
+              WHERE elem->>0 = 'd'
               LIMIT 1),
              p.id
            ) AS d_tag
@@ -2239,6 +2428,77 @@ export async function fetchCommentsByReviewIds(
 // Fetch all reviews from database
 export async function fetchAllReviewsFromDb(): Promise<NostrEvent[]> {
   return fetchCachedEvents(31555);
+}
+
+// Fetch NIP-56 report events (kind 1984) that reference any of the given
+// product event ids (#e) or profile pubkeys (#p), most recent first.
+export async function fetchRelevantReportsFromDb(
+  productIds: string[],
+  profilePubkeys: string[],
+  limit = 500
+): Promise<NostrEvent[]> {
+  if (productIds.length === 0 && profilePubkeys.length === 0) {
+    return [];
+  }
+
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const clauses: string[] = [];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (profilePubkeys.length > 0) {
+      clauses.push(`
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(tags) elem
+          WHERE elem->>0 = 'p' AND elem->>1 = ANY($${paramIndex++})
+        )
+      `);
+      params.push(profilePubkeys);
+    }
+
+    if (productIds.length > 0) {
+      clauses.push(`
+        EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(tags) elem
+          WHERE elem->>0 = 'e' AND elem->>1 = ANY($${paramIndex++})
+        )
+      `);
+      params.push(productIds);
+    }
+
+    const boundedLimit = Math.max(1, Math.min(limit, 500));
+    params.push(boundedLimit);
+
+    const result = await client.query(
+      `SELECT id, pubkey, created_at, kind, tags, content, sig
+       FROM report_events
+       WHERE ${clauses.join(" OR ")}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex}`,
+      params
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      pubkey: row.pubkey,
+      created_at: row.created_at,
+      kind: row.kind,
+      tags: row.tags,
+      content: row.content,
+      sig: row.sig,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch relevant reports from database:", error);
+    return [];
+  } finally {
+    if (client) client.release();
+  }
 }
 
 // Fetch all messages from database with read status

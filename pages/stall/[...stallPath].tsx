@@ -9,10 +9,19 @@ import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import {
   fetchShopPubkeyBySlug,
   fetchShopProfileByPubkeyFromDb,
+  fetchProfileByPubkeyFromDb,
 } from "@/utils/db/db-service";
+import {
+  resolveStallBranding,
+  buildStallOgMeta,
+} from "@/utils/storefront/stall-branding";
+import { getMembershipView } from "@/utils/pro/membership";
 
 type ShopSubPageProps = {
   ogMeta: OgMetaProps;
+  shopPubkey: string;
+  ssrShopName: string;
+  ssrShopAbout: string;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
@@ -23,7 +32,14 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
   const slug = pathParts[0] || "";
 
   if (!slug) {
-    return { props: { ogMeta: DEFAULT_OG } };
+    return {
+      props: {
+        ogMeta: DEFAULT_OG,
+        shopPubkey: "",
+        ssrShopName: "",
+        ssrShopAbout: "",
+      },
+    };
   }
 
   const subPage = pathParts[1] || "";
@@ -31,50 +47,81 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
   try {
     const pubkey = await fetchShopPubkeyBySlug(slug);
     if (pubkey) {
-      const shopEvent = await fetchShopProfileByPubkeyFromDb(pubkey);
+      // Custom storefront branding is a Pro feature, so only entitled sellers
+      // (active/trialing/grace) serve their custom OG meta on subpages. Lapsed
+      // sellers (read-only/hidden) fall back to the default meta — crawlers and
+      // social bots never see premium title/description/image without an active
+      // membership.
+      const membership = await getMembershipView(pubkey);
+      const [shopEvent, profileEvent] = await Promise.all([
+        fetchShopProfileByPubkeyFromDb(pubkey),
+        fetchProfileByPubkeyFromDb(pubkey),
+      ]);
+
+      // Always extract shop name/about for SSR content (crawlers + bots)
+      let ssrShopName = "";
+      let ssrShopAbout = "";
       if (shopEvent) {
+        try {
+          const c = JSON.parse(shopEvent.content);
+          ssrShopName = c.name || "";
+          ssrShopAbout = c.about || "";
+        } catch {}
+      }
+      if (!ssrShopName && profileEvent) {
+        try {
+          const c = JSON.parse(profileEvent.content);
+          ssrShopName = c.display_name || c.name || "";
+        } catch {}
+      }
+
+      if (shopEvent && membership.isPro) {
         const content = JSON.parse(shopEvent.content);
-        const seo = content.storefront?.seoMeta;
-        const shopName = content.name || "Stall";
-        const shopAbout = content.about || "";
+        let profileContent: Record<string, unknown> | null = null;
+        if (profileEvent) {
+          try {
+            profileContent = JSON.parse(profileEvent.content);
+          } catch {
+            profileContent = null;
+          }
+        }
+
+        const branding = resolveStallBranding(content, profileContent);
 
         const pageSuffix = subPage
           ? ` — ${subPage.charAt(0).toUpperCase() + subPage.slice(1)}`
           : "";
-        const autoTitle = `${shopName}${pageSuffix} | Milk Market`;
-        const autoDescription = shopAbout
-          ? shopAbout.length > 160
-            ? shopAbout.slice(0, 157) + "..."
-            : shopAbout
-          : `Shop farm-fresh products from ${shopName} on Milk Market. Direct from the producer to your door.`;
+        const title = branding.seo?.metaTitle
+          ? `${branding.seo.metaTitle}${pageSuffix}`
+          : `${branding.shopName}${pageSuffix} | Milk Market`;
 
         return {
           props: {
-            ogMeta: {
-              title: seo?.metaTitle
-                ? `${seo.metaTitle}${pageSuffix}`
-                : autoTitle,
-              description: seo?.metaDescription || autoDescription,
-              image:
-                seo?.ogImage ||
-                content.ui?.banner ||
-                content.ui?.picture ||
-                "/milk-market.png",
+            ogMeta: buildStallOgMeta({
+              branding,
+              title,
               url: `/stall/${pathParts.join("/")}`,
-              keywords:
-                seo?.keywords ||
-                `${shopName}, farm fresh, raw milk, dairy, local farm, ${slug}`,
-              locale: seo?.locale || "en_US",
-              ...(seo?.locationRegion
-                ? { locationRegion: seo.locationRegion }
-                : {}),
-              ...(seo?.locationCity ? { locationCity: seo.locationCity } : {}),
-              siteName: shopName,
-              type: "business.business",
-            },
+              keywordSeed: slug,
+            }),
+            shopPubkey: pubkey,
+            ssrShopName: branding.shopName || ssrShopName,
+            ssrShopAbout: branding.about || ssrShopAbout,
           },
         };
       }
+      return {
+        props: {
+          ogMeta: {
+            ...DEFAULT_OG,
+            title: "Milk Market Stall",
+            description: "Check out this shop on Milk Market!",
+            url: `/stall/${pathParts.join("/")}`,
+          },
+          shopPubkey: pubkey,
+          ssrShopName,
+          ssrShopAbout,
+        },
+      };
     }
   } catch (error) {
     console.error("SSR OG fetch error for shop sub-page:", error);
@@ -88,16 +135,23 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         description: "Check out this shop on Milk Market!",
         url: `/stall/${pathParts.join("/")}`,
       },
+      shopPubkey: "",
+      ssrShopName: "",
+      ssrShopAbout: "",
     },
   };
 };
 
-export default function ShopSubPage() {
+export default function ShopSubPage({
+  shopPubkey: ssrShopPubkey,
+  ssrShopName,
+  ssrShopAbout,
+}: ShopSubPageProps) {
   const router = useRouter();
   const { stallPath } = router.query;
   const shopMapContext = useContext(ShopMapContext);
-  const [shopPubkey, setShopPubkey] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [shopPubkey, setShopPubkey] = useState<string>(ssrShopPubkey || "");
+  const [isLoading, setIsLoading] = useState(!ssrShopPubkey);
   const [notFound, setNotFound] = useState(false);
   const apiLookupDone = useRef(false);
   const lastSlug = useRef<string>("");
@@ -225,5 +279,12 @@ export default function ShopSubPage() {
     );
   }
 
-  return <StorefrontLayout shopPubkey={shopPubkey} currentPage={subPage} />;
+  return (
+    <StorefrontLayout
+      shopPubkey={shopPubkey}
+      currentPage={subPage}
+      ssrShopName={ssrShopName}
+      ssrShopAbout={ssrShopAbout}
+    />
+  );
 }

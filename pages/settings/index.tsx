@@ -9,6 +9,7 @@ import {
   EnvelopeIcon,
   CreditCardIcon,
   TruckIcon,
+  MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
 import ProtectedRoute from "@/components/utility-components/protected-route";
@@ -66,6 +67,14 @@ const SettingsPage = () => {
       icon: TruckIcon,
       iconBg: "bg-slate-600",
       route: "/settings/shipping",
+    },
+    {
+      id: "addresses",
+      title: "Saved Addresses",
+      description: "Manage the shipping addresses you reuse during checkout",
+      icon: MapPinIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/addresses",
     },
     {
       id: "account",

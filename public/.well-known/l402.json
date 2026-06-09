@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "scheme": "L402",
+  "name": "Milk Market L402",
+  "description": "Milk Market supports the L402 standard for paying per-request with Bitcoin over the Lightning Network. Paid endpoints answer with HTTP 402 Payment Required and a WWW-Authenticate: L402 challenge containing a macaroon and a bolt11 invoice. This document is facilitator-agnostic: it does not depend on any specific L402 gateway (e.g. Aperture, Fewsats).",
+  "documentation": "https://docs.lightning.engineering/the-lightning-network/l402",
+  "homepage": "https://milk.market",
+  "authentication": {
+    "challengeHeader": "WWW-Authenticate",
+    "challengeFormat": "L402 macaroon=\"<base64-macaroon>\", invoice=\"<bolt11-invoice>\"",
+    "authorizationHeader": "Authorization",
+    "authorizationFormat": "L402 <base64-macaroon>:<payment-preimage>",
+    "tokenType": "macaroon"
+  },
+  "payment": {
+    "network": "lightning",
+    "currency": "sats",
+    "invoiceFormat": "bolt11",
+    "facilitator": null,
+    "facilitatorAgnostic": true
+  },
+  "settlement": {
+    "method": "mint-quote",
+    "description": "After paying the bolt11 invoice, confirm settlement by polling POST https://milk.market/api/mcp/verify-payment with { \"orderId\": \"<order-id>\" }. The order transitions to paid once the Lightning mint quote settles.",
+    "verifyEndpoint": "https://milk.market/api/mcp/verify-payment"
+  },
+  "protectedResources": [
+    {
+      "endpoint": "https://milk.market/api/mcp/create-order",
+      "method": "POST",
+      "description": "Create an order. When paymentMethod is 'lightning', responds with HTTP 402 and an L402 challenge (macaroon + bolt11 invoice).",
+      "paymentMethods": ["lightning", "cashu", "stripe", "fiat"]
+    }
+  ],
+  "alternativePaymentMethods": ["cashu", "stripe", "fiat"]
+}

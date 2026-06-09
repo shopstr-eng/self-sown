@@ -3,7 +3,6 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { Image } from "@heroui/react";
-import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import {
   BLACKBUTTONCLASSNAMES,
@@ -24,31 +23,6 @@ export default function ContactPage() {
   return (
     <>
       <Head>
-        <title>Contact Milk Market - Get in Touch</title>
-        <meta
-          name="description"
-          content="Contact the Milk Market team for questions about our farm-fresh dairy marketplace. Reach us by email, social media, or Nostr. We're here to help farmers and buyers connect."
-        />
-        <meta
-          property="og:title"
-          content="Contact Milk Market - Get in Touch"
-        />
-        <meta
-          property="og:description"
-          content="Contact the Milk Market team for questions about our farm-fresh dairy marketplace."
-        />
-        <meta
-          property="og:image"
-          content="https://milk.market/milk-market.png"
-        />
-        <meta
-          name="twitter:title"
-          content="Contact Milk Market - Get in Touch"
-        />
-        <meta
-          name="twitter:description"
-          content="Get in touch with the Milk Market team. Questions about buying, selling, or our platform."
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -81,7 +55,9 @@ export default function ContactPage() {
               onClick={() => router.back()}
               className={`${WHITEBUTTONCLASSNAMES} mb-8 flex items-center gap-2`}
             >
-              <ArrowLeftIcon className="h-4 w-4" />
+              <span aria-hidden="true" className="text-sm leading-none">
+                ⬅️
+              </span>
               Back
             </button>
           </div>
@@ -375,7 +351,7 @@ export default function ContactPage() {
                 </p>
               </div>
               <div>
-                <h3 className="font-bold">Want to browse local dairy?</h3>
+                <h3 className="font-bold">Want to browse local food?</h3>
                 <p className="text-sm text-zinc-600">
                   Head to the{" "}
                   <Link

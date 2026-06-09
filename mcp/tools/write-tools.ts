@@ -446,6 +446,87 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe("Google Font name for body text (e.g. 'Inter')"),
+      storefrontCustomFontHeadingUrl: z
+        .string()
+        .optional()
+        .describe(
+          "URL to a self-hosted/custom @font-face stylesheet or font file for headings (overrides the Google Font name)"
+        ),
+      storefrontCustomFontHeadingName: z
+        .string()
+        .optional()
+        .describe("CSS font-family name to apply for the custom heading font"),
+      storefrontCustomFontBodyUrl: z
+        .string()
+        .optional()
+        .describe(
+          "URL to a self-hosted/custom @font-face stylesheet or font file for body text (overrides the Google Font name)"
+        ),
+      storefrontCustomFontBodyName: z
+        .string()
+        .optional()
+        .describe("CSS font-family name to apply for the custom body font"),
+      storefrontNeoShadows: z
+        .boolean()
+        .optional()
+        .describe(
+          "Enable the neo-brutalist hard drop-shadow styling on storefront cards and buttons"
+        ),
+      storefrontNavColors: z
+        .object({
+          background: z.string().describe("Nav bar background color hex"),
+          text: z.string().describe("Nav bar text color hex"),
+          accent: z.string().describe("Nav bar accent/hover color hex"),
+        })
+        .optional()
+        .describe(
+          "Custom colors for the storefront top navigation bar (separate from the main color scheme)"
+        ),
+      storefrontFooterColors: z
+        .object({
+          background: z.string().describe("Footer background color hex"),
+          text: z.string().describe("Footer text color hex"),
+          accent: z.string().describe("Footer accent/link color hex"),
+        })
+        .optional()
+        .describe(
+          "Custom colors for the storefront footer (separate from the main color scheme)"
+        ),
+      storefrontSeoMeta: z
+        .object({
+          metaTitle: z
+            .string()
+            .optional()
+            .describe("Shop-wide SEO/browser title"),
+          metaDescription: z
+            .string()
+            .optional()
+            .describe("Shop-wide SEO meta description"),
+          ogImage: z
+            .string()
+            .optional()
+            .describe("Open Graph image URL for social sharing"),
+          keywords: z
+            .string()
+            .optional()
+            .describe("Comma-separated SEO keywords"),
+          locale: z.string().optional().describe("Locale (e.g. 'en_US')"),
+          locationRegion: z
+            .string()
+            .optional()
+            .describe("Region/state for local SEO"),
+          locationCity: z.string().optional().describe("City for local SEO"),
+          autoGenerate: z
+            .boolean()
+            .optional()
+            .describe(
+              "Let Milk Market auto-generate SEO/GEO metadata for the storefront"
+            ),
+        })
+        .optional()
+        .describe(
+          "Shop-wide SEO/Open Graph metadata for the storefront (kind 30019 storefront.seoMeta)"
+        ),
       storefrontSections: z
         .array(
           z.object({
@@ -694,6 +775,24 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.fontHeading = params.storefrontFontHeading;
         if (params.storefrontFontBody)
           storefront.fontBody = params.storefrontFontBody;
+        if (params.storefrontCustomFontHeadingUrl)
+          storefront.customFontHeadingUrl =
+            params.storefrontCustomFontHeadingUrl;
+        if (params.storefrontCustomFontHeadingName)
+          storefront.customFontHeadingName =
+            params.storefrontCustomFontHeadingName;
+        if (params.storefrontCustomFontBodyUrl)
+          storefront.customFontBodyUrl = params.storefrontCustomFontBodyUrl;
+        if (params.storefrontCustomFontBodyName)
+          storefront.customFontBodyName = params.storefrontCustomFontBodyName;
+        if (params.storefrontNeoShadows !== undefined)
+          storefront.neoShadows = params.storefrontNeoShadows;
+        if (params.storefrontNavColors)
+          storefront.navColors = params.storefrontNavColors;
+        if (params.storefrontFooterColors)
+          storefront.footerColors = params.storefrontFooterColors;
+        if (params.storefrontSeoMeta)
+          storefront.seoMeta = params.storefrontSeoMeta;
         if (params.storefrontSections)
           storefront.sections = params.storefrontSections;
         if (params.storefrontPages) storefront.pages = params.storefrontPages;

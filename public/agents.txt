@@ -1,0 +1,65 @@
+# agents.txt — AI agent access policy for Milk Market
+# https://milk.market
+# Last updated: 2026-06-08
+
+# Milk Market welcomes well-behaved autonomous agents. This file describes how
+# agents should access the site and its API. It complements /robots.txt and
+# /llms.txt.
+
+Contact: https://milk.market/contact
+Policy: https://milk.market/about
+Source: https://github.com/shopstr-eng/milk-market
+
+# --- Discovery ---------------------------------------------------------------
+LLMs: https://milk.market/llms.txt
+LLMs-Full: https://milk.market/llms-full.txt
+Skill: https://milk.market/skill.md
+OpenAPI: https://milk.market/openapi.json
+MCP: https://milk.market/.well-known/mcp.json
+Agent-Card: https://milk.market/.well-known/agent-card.json
+L402: https://milk.market/.well-known/l402.json
+Web-Bot-Auth: https://milk.market/.well-known/http-message-signatures-directory
+Feed: https://milk.market/rss.xml
+Sitemap: https://milk.market/sitemap.xml
+
+# --- Programmatic access (preferred) -----------------------------------------
+# Use the Model Context Protocol server for structured, reliable access instead
+# of scraping HTML.
+MCP-Endpoint: https://milk.market/api/mcp
+MCP-Transport: JSON-RPC 2.0 over Streamable HTTP
+Auth: Bearer API key (prefix "sk_"), three scopes: read, read_write, full_access
+
+# --- Allowed actions ---------------------------------------------------------
+Allow: browse and search product listings
+Allow: read seller profiles, reviews, and payment methods
+Allow: place orders and check order status (read_write key required)
+Allow: manage your own listings, profile, and shop (full_access key required)
+Allow: content negotiation via Accept: text/markdown | application/json | text/plain
+
+# --- Disallowed --------------------------------------------------------------
+Disallow: /api/        # except the documented MCP and discovery endpoints
+Disallow: /settings/
+Disallow: /onboarding/
+Disallow: /auth/
+Disallow: /wallet/
+Disallow: scraping encrypted order or message content (it is end-to-end encrypted)
+
+# --- Rate limits -------------------------------------------------------------
+# Limits are advisory and enforced per IP and per API key. Responses include
+# standard RateLimit-Limit, RateLimit-Remaining, and RateLimit-Reset headers.
+# Back off on HTTP 429 and respect the Retry-After header.
+Rate-Limit: 600 requests/minute per IP on /api/mcp
+Rate-Limit: 300 requests/minute per API key on /api/mcp
+
+# --- Identity ----------------------------------------------------------------
+# Identify your agent with a descriptive User-Agent. Decentralized identity is
+# available via Nostr NIP-05 at /.well-known/nostr.json.
+#
+# Web Bot Auth (verifiable agent identity): Milk Market publishes its HTTP
+# Message Signature public keys (Ed25519, JWK Set) at
+# /.well-known/http-message-signatures-directory. Keys are identified by their
+# RFC 7638 JWK thumbprint (kid). Agents that sign requests with HTTP Message
+# Signatures (RFC 9421) may advertise their own key directory via the
+# Signature-Agent header so we can verify them in return.
+Web-Bot-Auth-Directory: https://milk.market/.well-known/http-message-signatures-directory
+Signature-Algorithm: ed25519

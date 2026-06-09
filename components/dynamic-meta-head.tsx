@@ -7,6 +7,10 @@ import parseTags, {
 } from "@/utils/parsers/product-parser-functions";
 import { nip19 } from "nostr-tools";
 import {
+  eventMatchesListingIdentifier,
+  getListingRouteIdentifier,
+} from "@/utils/listing-identifiers";
+import {
   findProductBySlug,
   getListingSlug,
   isNpub,
@@ -47,6 +51,26 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
       description:
         "Answers to common questions about Milk Market — the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
     },
+    "/communities": {
+      title: "Local Food Communities | Milk Market",
+      description:
+        "Discover and join local food buying clubs and producer communities on Milk Market. Connect with farms, dairies, and local food producers near you.",
+    },
+    "/privacy": {
+      title: "Privacy Policy - Milk Market | Data Protection & Privacy",
+      description:
+        "Learn how Milk Market handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected.",
+    },
+    "/terms": {
+      title: "Terms of Service - Milk Market | User Agreement",
+      description:
+        "Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace.",
+    },
+    "/producer-guide": {
+      title: "Producer Guide - Milk Market | Start Selling Local Food",
+      description:
+        "Learn how to become a producer on Milk Market. Step-by-step guide to selling local food — from raw milk and dairy to meat, eggs, produce, and baked goods — directly to customers.",
+    },
   };
 
 const getMetaTags = (
@@ -81,7 +105,7 @@ const getMetaTags = (
   }
 
   if (pathname.startsWith("/listing/")) {
-    const productId = query.productId?.[0];
+    const productId = getListingRouteIdentifier(query.productId);
     if (!productId) return defaultTags;
 
     const allParsed = productEvents
@@ -94,26 +118,9 @@ const getMetaTags = (
     productData = findProductBySlug(productId, allParsed);
 
     if (!productData) {
-      const product = productEvents.find((event) => {
-        const naddrMatch = (() => {
-          try {
-            return (
-              nip19.naddrEncode({
-                identifier:
-                  event.tags.find((tag: string[]) => tag[0] === "d")?.[1] || "",
-                pubkey: event.pubkey,
-                kind: event.kind,
-              }) === productId
-            );
-          } catch {
-            return false;
-          }
-        })();
-        const dTagMatch =
-          event.tags.find((tag: string[]) => tag[0] === "d")?.[1] === productId;
-        const idMatch = event.id === productId;
-        return naddrMatch || dTagMatch || idMatch;
-      });
+      const product = productEvents.find((event) =>
+        eventMatchesListingIdentifier(event, productId)
+      );
       if (product) {
         productData = parseTags(product);
       }
@@ -183,6 +190,8 @@ const DynamicHead = ({
   ssrOgMeta,
   isCustomDomain,
   customDomainShopPubkey,
+  customDomainHost,
+  customDomainOriginalPath,
 }: {
   productEvents: NostrEvent[];
   shopEvents: Map<string, ShopProfile>;
@@ -190,6 +199,8 @@ const DynamicHead = ({
   ssrOgMeta?: OgMetaProps | null;
   isCustomDomain?: boolean;
   customDomainShopPubkey?: string | null;
+  customDomainHost?: string | null;
+  customDomainOriginalPath?: string | null;
 }) => {
   const router = useRouter();
   const [origin, setOrigin] = useState("");
@@ -198,21 +209,38 @@ const DynamicHead = ({
     setOrigin(window.location.origin);
   }, []);
 
-  // Canonical/og:url should always point to the production domain
-  // (https://milk.market) regardless of which origin (replit.app preview,
-  // localhost, etc.) the page was actually served from. Lighthouse flags
-  // mismatched/cross-origin canonicals as conflicting otherwise.
-  const canonicalOrigin = BASE_URL;
+  // For seller custom domains the canonical origin is the seller's own domain,
+  // not milk.market. This ensures crawlers attribute the storefront to the
+  // seller's branded domain rather than the platform, and that og:url in social
+  // previews points back to the correct host.
+  //
+  // For all other pages (platform, Replit preview, localhost) we always
+  // canonicalize to milk.market so Lighthouse doesn't flag mismatched origins.
+  const canonicalOrigin =
+    isCustomDomain && customDomainHost
+      ? `https://${customDomainHost}`
+      : BASE_URL;
   // Display origin (used only for the twitter:domain meta) can fall back
   // to the live request origin when available.
-  const displayOrigin = origin || BASE_URL;
+  const displayOrigin = origin || canonicalOrigin;
+
+  // For custom-domain pages the public URL the visitor sees (e.g. "/") is
+  // different from the internal Next.js rewrite target ("/stall/<slug>"). Use
+  // the original path forwarded by the proxy as the canonical path so we emit
+  // "https://farmer.com/" rather than "https://farmer.com/stall/farmname".
+  const customDomainCanonicalUrl =
+    isCustomDomain && customDomainHost && customDomainOriginalPath
+      ? `${canonicalOrigin}${customDomainOriginalPath === "/" ? "" : customDomainOriginalPath}`
+      : null;
 
   const metaTags = ssrOgMeta
     ? {
         title: ssrOgMeta.title,
         description: ssrOgMeta.description,
         image: ensureAbsoluteUrl(ssrOgMeta.image, canonicalOrigin),
-        url: ensureAbsoluteUrl(ssrOgMeta.url, canonicalOrigin),
+        url: customDomainCanonicalUrl
+          ? customDomainCanonicalUrl
+          : ensureAbsoluteUrl(ssrOgMeta.url, canonicalOrigin),
       }
     : getMetaTags(
         canonicalOrigin,
@@ -224,15 +252,45 @@ const DynamicHead = ({
         profileData
       );
 
-  // On a seller's custom domain, prefer the seller's storefront logo as the
-  // browser tab favicon (and apple-touch-icon) so the tab matches their
+  // For custom stalls and custom domains, prefer the seller's storefront logo
+  // as the browser tab favicon (and apple-touch-icon) so the tab matches their
   // brand instead of showing the Milk Market icon.
+  //
+  // The SSR favicon (from getServerSideProps' ogMeta) is used first so that
+  // search-engine crawlers and social-preview bots — which don't run the
+  // client-side Nostr fetches — see the seller's icon in the initial HTML.
+  // The client-side custom-domain logo is a fallback for routes without SSR
+  // ogMeta (e.g. rewritten /listing or /cart pages on a custom domain).
+  const ssrFavicon = ssrOgMeta?.favicon
+    ? ensureAbsoluteUrl(ssrOgMeta.favicon, canonicalOrigin)
+    : "";
   const customDomainShopLogo =
     isCustomDomain && customDomainShopPubkey
-      ? shopEvents.get(customDomainShopPubkey)?.content?.ui?.picture || ""
+      ? shopEvents.get(customDomainShopPubkey)?.content?.ui?.picture ||
+        profileData.get(customDomainShopPubkey)?.content?.picture ||
+        ""
       : "";
-  const faviconUrl = customDomainShopLogo || "/milk-market.ico";
-  const appleTouchIconUrl = customDomainShopLogo || "/milk-market.png";
+  const faviconUrl = ssrFavicon || customDomainShopLogo || "/milk-market.ico";
+  const appleTouchIconUrl =
+    ssrFavicon || customDomainShopLogo || "/milk-market.png";
+  // Only advertise the SVG favicon on the default (un-branded) Milk Market
+  // chrome. Custom stalls/domains set their own logo as the favicon, so we must
+  // not add an SVG icon that browsers might prefer over the seller's brand.
+  const useDefaultFavicon = !ssrFavicon && !customDomainShopLogo;
+
+  // OG/Twitter facets that describe the storefront itself. When SSR ogMeta is
+  // present (custom stalls + custom domains) these come from the seller's
+  // storefront settings so the social preview reflects the stall, not the
+  // platform defaults.
+  const ogType = ssrOgMeta?.type || "website";
+  const ogSiteName = ssrOgMeta?.siteName || "Milk Market";
+  const ogLocale = ssrOgMeta?.locale || "en_US";
+  const keywords =
+    ssrOgMeta?.keywords ||
+    "milk market, sell food online, local food marketplace, local artisans, food producers, farm to table, sustainable food, decentralized commerce, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, shopify alternative, barn2door alternative";
+  const geoRegion = ssrOgMeta?.locationRegion || "";
+  const geoCity = ssrOgMeta?.locationCity || "";
+  const geoPlaceName = [geoCity, geoRegion].filter(Boolean).join(", ");
 
   return (
     <Head>
@@ -243,6 +301,14 @@ const DynamicHead = ({
       <title>{metaTags.title}</title>
       <meta name="description" content={metaTags.description} />
       <link rel="canonical" href={metaTags.url} key="canonical" />
+      {useDefaultFavicon && (
+        <link
+          rel="icon"
+          type="image/svg+xml"
+          key="favicon-svg"
+          href="/favicon.svg"
+        />
+      )}
       <link rel="icon" key="favicon" href={faviconUrl} />
       <link
         rel="apple-touch-icon"
@@ -262,10 +328,16 @@ const DynamicHead = ({
         href={appleTouchIconUrl}
       />
       <meta property="og:url" content={metaTags.url} key="og:url" />
-      <meta property="og:type" content="website" />
-      <meta property="og:title" content={metaTags.title} />
-      <meta property="og:description" content={metaTags.description} />
-      <meta property="og:image" content={metaTags.image} />
+      <meta property="og:type" content={ogType} key="og:type" />
+      <meta property="og:title" content={metaTags.title} key="og:title" />
+      <meta
+        property="og:description"
+        content={metaTags.description}
+        key="og:description"
+      />
+      <meta property="og:image" content={metaTags.image} key="og:image" />
+      <meta property="og:site_name" content={ogSiteName} key="og:site_name" />
+      <meta property="og:locale" content={ogLocale} key="og:locale" />
       <meta name="twitter:card" content="summary_large_image" />
       <meta
         property="twitter:domain"
@@ -278,10 +350,16 @@ const DynamicHead = ({
       <meta name="twitter:title" content={metaTags.title} />
       <meta name="twitter:description" content={metaTags.description} />
       <meta name="twitter:image" content={metaTags.image} />
-      <meta
-        name="keywords"
-        content="milk market, raw dairy, farm-fresh dairy, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, local farmers, raw milk"
-      />
+      <meta name="keywords" content={keywords} key="keywords" />
+      {geoRegion && (
+        <meta name="geo.region" content={geoRegion} key="geo.region" />
+      )}
+      {geoCity && (
+        <meta name="geo.placename" content={geoCity} key="geo.placename" />
+      )}
+      {geoPlaceName && (
+        <meta property="og:locality" content={geoPlaceName} key="og:locality" />
+      )}
     </Head>
   );
 };

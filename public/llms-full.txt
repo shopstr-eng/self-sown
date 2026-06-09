@@ -1,0 +1,63 @@
+# Milk Market — Full Description for LLMs
+
+> Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers directly with buyers — raw milk and dairy are one example among many: meat, eggs, produce, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
+
+## What Milk Market is
+
+Milk Market is an open marketplace for local and decentralized food systems. Anyone can become a producer without asking permission. Sellers publish product listings as Nostr events (kind 30402); buyers browse them on the website or through AI agents. The platform is designed to be censorship-resistant: because data lives on Nostr relays, no single company can remove a producer from the network.
+
+Raw milk and dairy were the founding use case, but the marketplace is for local food broadly — meat, eggs, fresh produce, baked goods, honey, preserves, and handmade goods.
+
+## How buying works
+
+- Buyers can check out as a guest (just an email) or with their own Nostr keys.
+- Supported payments: Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
+- Carts can mix payment methods and currencies. Free-shipping thresholds and payment-method discounts are supported.
+- Orders are delivered as encrypted Nostr messages (NIP-17 gift wraps) to the seller, plus optional email confirmations.
+
+## How selling works
+
+Producers follow a guided onboarding (see the Producer Guide):
+
+1. Create an account with a Nostr identity (new or existing).
+2. Choose a membership — a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $1,050) for lifetime access to every Herd feature.
+3. List a product with title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
+4. Manage orders and communicate with buyers through encrypted chat.
+5. (Herd) Customize a storefront at /shop/[slug] — colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
+6. (Herd) Automate email flows — welcome series, order follow-ups, and re-engagement.
+7. (Herd) Connect AI agents through the Model Context Protocol (MCP) so autonomous agents can manage listings and orders.
+8. Grow — update listings, build relationships, share the producer's story, and expand reach.
+
+## Technology
+
+- Frontend: Next.js (App Router), React, TypeScript, HeroUI, Tailwind, PWA.
+- Backend: Next.js API routes with PostgreSQL caching for server-side rendering, search, and analytics.
+- Protocol: Nostr for events, Blossom for media, NIP-05 for DNS-based identity verification. Implements 15+ NIPs.
+- Payments: Lightning, Cashu mints, Stripe Connect, manual fiat.
+
+## For AI agents
+
+Milk Market exposes a Model Context Protocol (MCP) server so AI agents can participate as buyers and sellers.
+
+- Endpoint: POST https://milk.market/api/mcp (JSON-RPC 2.0, Streamable HTTP transport).
+- Authentication: bearer API keys prefixed with `sk_`, with three permission levels (read, read_write, full_access).
+- Read tools: search_products, get_product_details, list_companies, get_company_details, get_reviews, check_discount_code, get_payment_methods.
+- Purchase tools: create_order, get_order_status, list_orders, verify_payment.
+- Write tools (full_access): manage profiles, listings, reviews, community posts, messages, relays, media uploads, discount codes, and Cashu wallet operations.
+- Paid endpoints follow the L402 standard: a Lightning create_order responds with HTTP 402 and a `WWW-Authenticate: L402` challenge (macaroon + bolt11 invoice). See /.well-known/l402.json (facilitator-agnostic).
+- Discovery: /.well-known/mcp.json (JSON-RPC), /.well-known/agent-card.json (Google A2A), /.well-known/l402.json (L402 payments), /api/.well-known/agent.json (legacy open-agents schema), /openapi.json (OpenAPI), /agents.txt (policies), /skill.md (agent skill).
+
+Custom seller storefronts (a seller's own domain or /stall/<slug>) serve the same tailored treatment: agents requesting markdown/JSON/plain-text get shop-specific content, and each storefront exposes its own /llms.txt, /robots.txt, and /rss.xml.
+
+Agents that send `Accept: text/markdown`, `Accept: application/json`, or identify as a known LLM crawler receive non-HTML representations of key content pages.
+
+## Links
+
+- Website: https://milk.market
+- Marketplace: https://milk.market/marketplace
+- Producer Guide: https://milk.market/producer-guide
+- About: https://milk.market/about
+- FAQ: https://milk.market/faq
+- Contact: https://milk.market/contact
+- Source code: https://github.com/shopstr-eng/milk-market
+- Nostr: https://njump.me/milkmarket

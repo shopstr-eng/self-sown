@@ -159,7 +159,7 @@ const CommunityManagementPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ password: passwordInput.trim() }),
+        body: JSON.stringify({ password: passwordInput.trim(), pubkey }),
       });
 
       const data = await response.json();
@@ -177,6 +177,7 @@ const CommunityManagementPage = () => {
         setPasswordError("Incorrect password. Please try again.");
       }
     } catch (error) {
+      console.error("Error validating password:", error);
       setPasswordError("An error occurred. Please try again.");
     }
   };

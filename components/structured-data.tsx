@@ -74,18 +74,34 @@ const homepageFaqSchema = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "Is raw milk legal in my state?",
+      name: "What can I sell on Milk Market?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Raw milk laws vary by state. Some states allow retail sales, others permit farm sales only, and some restrict it entirely. Check your local regulations. Milk Market simply connects buyers with local farmers - you arrange the transaction directly.",
+        text: "Food producers and local artisans can sell almost anything they make - raw milk and dairy, meat and eggs, produce, baked goods, preserves, honey, herdshares, and handmade goods. You set your own prices, pickup, delivery, and payment methods.",
       },
     },
     {
       "@type": "Question",
-      name: "How do I pay the farmer?",
+      name: "How much does it cost to sell?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "You pay the farmer directly using whatever method you both agree on - Bitcoin, cash, or other digital payment methods. There are no mandatory platform fees. Farmers may choose to set an optional donation rate to help support the site, but that's entirely up to them.",
+        text: "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Do I own my customers and store?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Milk Market is built on Nostr, an open and decentralized network. Your storefront and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How do payments work?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Buyers can pay with a card, Bitcoin (Lightning and Cashu ecash), or cash for local pickup. Sellers connect their own payout method and get paid directly - there's no middleman holding your money.",
       },
     },
     {
@@ -93,23 +109,15 @@ const homepageFaqSchema = {
       name: "Is my information private?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. All your data is encrypted and private. We never share user data with third parties or regulators. Our platform is built on Nostr, a decentralized protocol that prioritizes privacy.",
+        text: "Yes. All your data is encrypted and private. We never sell user data or share it with third parties. The platform is built on Nostr, a decentralized protocol designed for privacy and ownership.",
       },
     },
     {
       "@type": "Question",
-      name: "How fresh is the dairy?",
+      name: "I'm already on Shopify or Barn2Door. Can I switch?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "That depends on the farmer you choose. Most farms offer dairy that's just days old - far fresher than the weeks-old products you'd find at a grocery store. You can ask your farmer directly about their freshness and handling practices.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "I'm a farmer. How do I list my products?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "It's free and takes just a few minutes. Click 'Sell Your Dairy' in the navigation, create your profile, and start adding products. You set your own prices, delivery options, and payment methods.",
+        text: "Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your storefront in minutes.",
       },
     },
   ],

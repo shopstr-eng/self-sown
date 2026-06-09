@@ -150,6 +150,24 @@ export function getRequestIp(req: NextApiRequest): string {
  * safety net to keep one bad client from monopolising the DB pool — not a
  * cryptographically strict ceiling. See `replit.md` for deployment notes.
  */
+export function setRateLimitHeaders(
+  res: NextApiResponse,
+  rate: RateLimitResult
+): void {
+  const resetSeconds = Math.max(
+    0,
+    Math.ceil((rate.resetAt - Date.now()) / 1000)
+  );
+  // IETF draft "RateLimit Fields for HTTP" header set, plus the widely-used
+  // X-RateLimit-* aliases so older agent clients also see the budget.
+  res.setHeader("RateLimit-Limit", String(rate.limit));
+  res.setHeader("RateLimit-Remaining", String(Math.max(0, rate.remaining)));
+  res.setHeader("RateLimit-Reset", String(resetSeconds));
+  res.setHeader("X-RateLimit-Limit", String(rate.limit));
+  res.setHeader("X-RateLimit-Remaining", String(Math.max(0, rate.remaining)));
+  res.setHeader("X-RateLimit-Reset", String(Math.floor(rate.resetAt / 1000)));
+}
+
 export function applyRateLimit(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -158,12 +176,20 @@ export function applyRateLimit(
   key?: string
 ): boolean {
   const rate = checkRateLimit(bucketName, key ?? getRequestIp(req), options);
+  setRateLimitHeaders(res, rate);
   if (!rate.ok) {
     res.setHeader(
       "Retry-After",
       Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000))
     );
-    res.status(429).json({ error: "Too many requests" });
+    res.status(429).json({
+      error: "Too many requests",
+      code: "rate_limited",
+      retryAfterSeconds: Math.max(
+        1,
+        Math.ceil((rate.resetAt - Date.now()) / 1000)
+      ),
+    });
     return false;
   }
   return true;

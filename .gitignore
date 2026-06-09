@@ -48,3 +48,6 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local skill files
+.local/skills/

@@ -1,0 +1,32 @@
+# Milk Market
+
+> Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. Producers sell raw milk and dairy, meat, eggs, produce, baked goods, honey, and other local goods directly to buyers — with no platform gatekeeping. Payments work over Bitcoin (Lightning, Cashu ecash), Stripe, and manual fiat. AI agents can browse and buy through a Model Context Protocol (MCP) server.
+
+## About
+
+- [About Milk Market](https://milk.market/about): Mission, how the decentralized marketplace works, and why it was built.
+- [FAQ](https://milk.market/faq): Common questions about payments, selling, privacy, and Nostr.
+- [Producer Guide](https://milk.market/producer-guide): Step-by-step guide for producers — account, membership, listing products, managing orders, custom storefronts, email flows, and connecting AI agents.
+- [Contact](https://milk.market/contact): Reach the team via Nostr, GitHub, X, or email.
+
+## Marketplace
+
+- [Marketplace](https://milk.market/marketplace): Browse all live product listings from local producers.
+- [Cart](https://milk.market/cart): Guest or Nostr-key checkout with multi-payment support.
+
+## For AI Agents
+
+- [Agent policies](https://milk.market/agents.txt): Allowed actions, rate limits, and access rules for autonomous agents.
+- [Agent skill](https://milk.market/skill.md): How an agent should use Milk Market, with YAML frontmatter.
+- [MCP discovery](https://milk.market/.well-known/mcp.json): JSON-RPC 2.0 Model Context Protocol endpoint description.
+- [A2A agent card](https://milk.market/.well-known/agent-card.json): Google A2A agent card describing capabilities.
+- [L402 discovery](https://milk.market/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.
+- [Web Bot Auth directory](https://milk.market/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
+- [OpenAPI spec](https://milk.market/openapi.json): Machine-readable description of public endpoints.
+
+## Optional
+
+- [Full text for LLMs](https://milk.market/llms-full.txt): Expanded plain-text description of the whole platform.
+- [Product feed (RSS)](https://milk.market/rss.xml): Recent product listings as an RSS feed.
+- [Security policy](https://milk.market/.well-known/security.txt): How to report security issues (RFC 9116).
+- [Sitemap](https://milk.market/sitemap.xml): XML sitemap of primary pages.

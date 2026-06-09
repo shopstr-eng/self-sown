@@ -9,6 +9,8 @@ import {
 
 type MarketplacePageProps = {
   ogMeta: OgMetaProps;
+  initialFocusedPubkey: string;
+  ssrSellerName: string;
   focusedPubkey: string;
   setFocusedPubkey: (value: string) => void;
   selectedSection: string;
@@ -42,7 +44,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const identifier = Array.isArray(npub) ? npub[0] : npub;
 
   if (!identifier) {
-    return { props: { ogMeta: DEFAULT_OG } };
+    return {
+      props: {
+        ogMeta: {
+          title: "Milk Market — Browse Local Food Producers",
+          description:
+            "Discover farms, dairies, and local food producers on Milk Market. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
+          image: "/milk-market.png",
+          url: "/marketplace",
+        } as OgMetaProps,
+        initialFocusedPubkey: "",
+        ssrSellerName: "",
+      },
+    };
   }
 
   const urlPath = `/marketplace/${identifier}`;
@@ -64,8 +78,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     if (pubkey) {
       const shopEvent = await fetchShopProfileByPubkeyFromDb(pubkey);
       if (shopEvent) {
-        return { props: { ogMeta: shopEventToOgMeta(shopEvent, urlPath) } };
+        let ssrSellerName = "";
+        try {
+          const c = JSON.parse(shopEvent.content);
+          ssrSellerName = c.name || "";
+        } catch {}
+        return {
+          props: {
+            ogMeta: shopEventToOgMeta(shopEvent, urlPath),
+            initialFocusedPubkey: pubkey,
+            ssrSellerName,
+          },
+        };
       }
+      return {
+        props: {
+          ogMeta: {
+            ...DEFAULT_OG,
+            title: "Milk Market Stall",
+            description: "Check out this shop on Milk Market!",
+            url: urlPath,
+          },
+          initialFocusedPubkey: pubkey,
+          ssrSellerName: "",
+        },
+      };
     }
   } catch (error) {
     console.error("SSR OG fetch error for marketplace:", error);
@@ -79,6 +116,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         description: "Check out this shop on Milk Market!",
         url: urlPath,
       },
+      initialFocusedPubkey: "",
+      ssrSellerName: "",
     },
   };
 };
@@ -88,6 +127,7 @@ export default function SellerView({
   setFocusedPubkey,
   selectedSection,
   setSelectedSection,
+  ssrSellerName = "",
 }: MarketplacePageProps) {
   return (
     <>
@@ -111,6 +151,7 @@ export default function SellerView({
           setFocusedPubkey={setFocusedPubkey}
           selectedSection={selectedSection}
           setSelectedSection={setSelectedSection}
+          ssrSellerName={ssrSellerName}
         />
       </div>
     </>

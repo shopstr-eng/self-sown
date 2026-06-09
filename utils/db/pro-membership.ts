@@ -1,0 +1,832 @@
+// Database access layer for the Pro membership tier. Mirrors the structure of
+// `utils/db/affiliates.ts`: table DDL lives in `db/schema.sql` and the inline
+// `initializeTables()` migration in `utils/db/db-service.ts`; this module only
+// holds query helpers and imports the shared pool.
+
+import { getDbPool } from "@/utils/db/db-service";
+import {
+  PRO_MANUAL_GRACE_DAYS,
+  PRO_READONLY_DAYS,
+  type ProBillingMethod,
+  type ProManualMethod,
+  type ProMembershipRow,
+  type ProTerm,
+} from "@/utils/pro/constants";
+
+// ---------------------------------------------------------------------------
+// Memberships
+// ---------------------------------------------------------------------------
+
+export async function getProMembership(
+  pubkey: string
+): Promise<ProMembershipRow | null> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT * FROM pro_memberships WHERE pubkey = $1`,
+      [pubkey]
+    );
+    return result.rows[0] ?? null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function getProMembershipBySubscription(
+  subscriptionId: string
+): Promise<ProMembershipRow | null> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT * FROM pro_memberships WHERE stripe_subscription_id = $1`,
+      [subscriptionId]
+    );
+    return result.rows[0] ?? null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Grant a 3-month trial to a seller iff they have no membership row yet.
+ * Used by the one-time backfill; ON CONFLICT keeps it idempotent.
+ */
+export async function grantProTrialIfMissing(args: {
+  pubkey: string;
+  trialEnd: Date;
+  graceUntil: Date;
+  readonlyUntil: Date;
+  /** The plan the seller picked for their trial, so we know what to charge at
+   * trial end. Optional — the grandfather backfill leaves it null. */
+  term?: ProTerm | null;
+}): Promise<boolean> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `INSERT INTO pro_memberships
+         (pubkey, status, term, trial_end, grace_until, readonly_until)
+       VALUES ($1, 'trialing', $2, $3, $4, $5)
+       ON CONFLICT (pubkey) DO NOTHING`,
+      [
+        args.pubkey,
+        args.term ?? null,
+        args.trialEnd,
+        args.graceUntil,
+        args.readonlyUntil,
+      ]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Full Stripe state write — grants/renews entitlement by setting the period and
+ * its lapse timeline. Used when a subscription is active/trialing and paid.
+ */
+export async function applyProStripeState(args: {
+  pubkey: string;
+  customerId: string;
+  subscriptionId: string;
+  baseStatus: string;
+  term: ProTerm;
+  currentPeriodEnd: Date;
+  graceUntil: Date;
+  readonlyUntil: Date;
+  cancelAtPeriodEnd: boolean;
+}): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `INSERT INTO pro_memberships
+         (pubkey, billing_method, term, status, stripe_customer_id,
+          stripe_subscription_id, current_period_end, grace_until,
+          readonly_until, cancel_at_period_end, updated_at)
+       VALUES ($1, 'stripe', $2, $3, $4, $5, $6, $7, $8, $9, now())
+       ON CONFLICT (pubkey) DO UPDATE SET
+         billing_method = 'stripe',
+         term = EXCLUDED.term,
+         status = EXCLUDED.status,
+         stripe_customer_id = EXCLUDED.stripe_customer_id,
+         stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+         current_period_end = EXCLUDED.current_period_end,
+         grace_until = EXCLUDED.grace_until,
+         readonly_until = EXCLUDED.readonly_until,
+         cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+         -- A fresh paid period resets reminder bookkeeping.
+         trial_reminder_sent_at = NULL,
+         due_reminder_sent_at = NULL,
+         readonly_notice_sent_at = NULL,
+         hidden_notice_sent_at = NULL,
+         updated_at = now()`,
+      [
+        args.pubkey,
+        args.term,
+        args.baseStatus,
+        args.customerId,
+        args.subscriptionId,
+        args.currentPeriodEnd,
+        args.graceUntil,
+        args.readonlyUntil,
+        args.cancelAtPeriodEnd,
+      ]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Partial Stripe sync — updates customer/subscription ids, base status, term
+ * and cancel flag WITHOUT touching the entitlement timeline. Used for
+ * incomplete/canceled/past-due states so we don't accidentally grant or revoke
+ * access.
+ */
+export async function syncProStripeMeta(args: {
+  pubkey: string;
+  customerId: string;
+  subscriptionId: string;
+  baseStatus: string;
+  term: ProTerm;
+  cancelAtPeriodEnd: boolean;
+}): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `INSERT INTO pro_memberships
+         (pubkey, billing_method, term, status, stripe_customer_id,
+          stripe_subscription_id, cancel_at_period_end, updated_at)
+       VALUES ($1, 'stripe', $2, $3, $4, $5, $6, now())
+       ON CONFLICT (pubkey) DO UPDATE SET
+         billing_method = 'stripe',
+         term = EXCLUDED.term,
+         status = EXCLUDED.status,
+         stripe_customer_id = EXCLUDED.stripe_customer_id,
+         stripe_subscription_id = EXCLUDED.stripe_subscription_id,
+         cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+         updated_at = now()`,
+      [
+        args.pubkey,
+        args.term,
+        args.baseStatus,
+        args.customerId,
+        args.subscriptionId,
+        args.cancelAtPeriodEnd,
+      ]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Extend (or start) a membership period from a confirmed manual payment.
+ */
+export async function applyProManualState(args: {
+  pubkey: string;
+  term: ProTerm;
+  currentPeriodEnd: Date;
+  graceUntil: Date;
+  readonlyUntil: Date;
+}): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `INSERT INTO pro_memberships
+         (pubkey, billing_method, term, lifetime, status, current_period_end,
+          grace_until, readonly_until, cancel_at_period_end, updated_at)
+       VALUES ($1, 'manual', $2, FALSE, 'active', $3, $4, $5, FALSE, now())
+       ON CONFLICT (pubkey) DO UPDATE SET
+         billing_method = 'manual',
+         term = EXCLUDED.term,
+         lifetime = FALSE,
+         status = 'active',
+         current_period_end = EXCLUDED.current_period_end,
+         grace_until = EXCLUDED.grace_until,
+         readonly_until = EXCLUDED.readonly_until,
+         cancel_at_period_end = FALSE,
+         trial_reminder_sent_at = NULL,
+         due_reminder_sent_at = NULL,
+         readonly_notice_sent_at = NULL,
+         hidden_notice_sent_at = NULL,
+         updated_at = now()`,
+      [
+        args.pubkey,
+        args.term,
+        args.currentPeriodEnd,
+        args.graceUntil,
+        args.readonlyUntil,
+      ]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Grant (or upgrade to) a Wrangler lifetime membership in one atomic upsert.
+// Sets `lifetime = TRUE` and status 'active', clears the term and all reminder
+// bookkeeping, and preserves an existing Stripe customer id when the new grant
+// doesn't carry one (e.g. a manual lifetime layered over a prior card sub).
+// Used by both the Stripe one-time webhook and (inline, see settle) the manual
+// rail. Lifetime never lapses, so no period/grace/readonly timeline is written.
+const LIFETIME_GRANT_SQL = `
+  INSERT INTO pro_memberships
+    (pubkey, billing_method, term, lifetime, status, stripe_customer_id,
+     cancel_at_period_end, updated_at)
+  VALUES ($1, $2, NULL, TRUE, 'active', $3, FALSE, now())
+  ON CONFLICT (pubkey) DO UPDATE SET
+    billing_method = EXCLUDED.billing_method,
+    term = NULL,
+    lifetime = TRUE,
+    status = 'active',
+    stripe_customer_id =
+      COALESCE(EXCLUDED.stripe_customer_id, pro_memberships.stripe_customer_id),
+    stripe_subscription_id = NULL,
+    current_period_end = NULL,
+    grace_until = NULL,
+    readonly_until = NULL,
+    cancel_at_period_end = FALSE,
+    trial_reminder_sent_at = NULL,
+    due_reminder_sent_at = NULL,
+    readonly_notice_sent_at = NULL,
+    hidden_notice_sent_at = NULL,
+    updated_at = now()`;
+
+// Supersede any still-open (pending) manual invoices for a seller once a
+// lifetime (Wrangler) grant takes effect. Cancelling them stops further
+// polling/settlement (so a stale Herd invoice can't stack a paid term on top of
+// lifetime), the past-due expiry sweep, and any invoice-driven reminders. Only
+// touches 'pending' rows, so historical paid/expired/canceled rows are left
+// untouched. Callers must run this BEFORE locking the pro_memberships row so the
+// membership lock is always acquired last (see lock-ordering note below).
+const CANCEL_PENDING_MANUAL_INVOICES_SQL = `
+  UPDATE pro_manual_invoices
+     SET status = 'canceled', updated_at = now()
+   WHERE pubkey = $1 AND status = 'pending'`;
+
+export async function grantLifetimeMembership(args: {
+  pubkey: string;
+  billingMethod: ProBillingMethod;
+  customerId?: string | null;
+}): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    // Grant lifetime and cancel any in-flight Herd invoices in one transaction
+    // so we never end up granted-but-still-billable (or vice versa).
+    // Lock ordering: cancel the invoice rows FIRST, then upsert the membership
+    // row LAST. The non-lifetime settle path also locks the invoice row before
+    // the membership row, so keeping membership last across every path avoids a
+    // lock-order cycle (and Postgres deadlock) under concurrent settle/grant.
+    await client.query("BEGIN");
+    await client.query(CANCEL_PENDING_MANUAL_INVOICES_SQL, [args.pubkey]);
+    await client.query(LIFETIME_GRANT_SQL, [
+      args.pubkey,
+      args.billingMethod,
+      args.customerId ?? null,
+    ]);
+    await client.query("COMMIT");
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        // ignore rollback failure; original error is rethrown below
+      }
+    }
+    throw err;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Atomically extend a manual membership in a single statement. The new period
+ * stacks from GREATEST(now, current_period_end, trial_end) so two invoices
+ * settling concurrently can't both read the same prior end and clobber each
+ * other (read-modify-write race). All lapse math is computed in SQL from that
+ * base. `termInterval` is a Postgres interval literal ('1 month' | '1 year');
+ * `graceDays`/`readonlyDays` mirror the JS lapse timeline.
+ */
+// Shared manual-extension statement. Params: $1 pubkey, $2 term, $3 term
+// interval ('1 month' | '1 year'), $4 grace days, $5 read-only days. The new
+// period stacks from GREATEST(now, current_period_end, trial_end) so early
+// renewals extend rather than truncate. Designed to run inside a transaction
+// alongside the invoice settle so the two commit/rollback together. Returns the
+// new current_period_end so the caller can persist the exact coverage window
+// (coverage_end = new period end; coverage_start = that minus one term) on the
+// settling invoice without re-deriving it from a separate base.
+const MANUAL_EXTEND_SQL = `
+  INSERT INTO pro_memberships
+    (pubkey, billing_method, term, status, current_period_end,
+     grace_until, readonly_until, cancel_at_period_end, updated_at)
+  VALUES (
+    $1, 'manual', $2, 'active',
+    now() + $3::interval,
+    now() + $3::interval + make_interval(days => $4),
+    now() + $3::interval + make_interval(days => $4) + make_interval(days => $5),
+    FALSE, now()
+  )
+  ON CONFLICT (pubkey) DO UPDATE SET
+    billing_method = 'manual',
+    term = EXCLUDED.term,
+    status = 'active',
+    current_period_end =
+      GREATEST(now(), pro_memberships.current_period_end, pro_memberships.trial_end)
+      + $3::interval,
+    grace_until =
+      GREATEST(now(), pro_memberships.current_period_end, pro_memberships.trial_end)
+      + $3::interval + make_interval(days => $4),
+    readonly_until =
+      GREATEST(now(), pro_memberships.current_period_end, pro_memberships.trial_end)
+      + $3::interval + make_interval(days => $4) + make_interval(days => $5),
+    cancel_at_period_end = FALSE,
+    trial_reminder_sent_at = NULL,
+    due_reminder_sent_at = NULL,
+    readonly_notice_sent_at = NULL,
+    hidden_notice_sent_at = NULL,
+    updated_at = now()
+  RETURNING current_period_end`;
+
+export type ProSettleOutcome =
+  | "settled"
+  | "already_settled"
+  | "not_found"
+  | "not_settleable";
+
+/**
+ * Atomically + idempotently settle a manual invoice: flip it paid, stamp
+ * `membership_applied_at`, and extend the membership — all in ONE transaction
+ * with a row lock on the invoice. Either everything commits or nothing does,
+ * so a partial failure (extension throws after the paid flip) rolls back and a
+ * retry re-runs cleanly. The `membership_applied_at` guard ensures the
+ * extension is applied exactly once even if called repeatedly (verify polling +
+ * operator confirm), so paid time is never lost or double-counted.
+ */
+export async function settleProManualInvoiceAtomic(args: {
+  invoiceId: string;
+  graceDays?: number;
+  readonlyDays?: number;
+}): Promise<{
+  outcome: ProSettleOutcome;
+  invoice: ProManualInvoiceRow | null;
+}> {
+  const graceDays = args.graceDays ?? PRO_MANUAL_GRACE_DAYS;
+  const readonlyDays = args.readonlyDays ?? PRO_READONLY_DAYS;
+
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query("BEGIN");
+
+    const sel = await client.query(
+      `SELECT * FROM pro_manual_invoices WHERE invoice_id = $1 FOR UPDATE`,
+      [args.invoiceId]
+    );
+    const invoice = sel.rows[0] as ProManualInvoiceRow | undefined;
+
+    if (!invoice) {
+      await client.query("ROLLBACK");
+      return { outcome: "not_found", invoice: null };
+    }
+
+    // Already fully settled — extension was applied, so do nothing (idempotent).
+    if (invoice.membership_applied_at) {
+      await client.query("COMMIT");
+      return { outcome: "already_settled", invoice };
+    }
+
+    // Only settle invoices that are still open or paid-but-not-yet-applied
+    // (recovery from a prior partial failure). Never resurrect an `expired` or
+    // `canceled` invoice into a paid membership.
+    if (invoice.status !== "pending" && invoice.status !== "paid") {
+      await client.query("ROLLBACK");
+      return { outcome: "not_settleable", invoice };
+    }
+
+    // Wrangler lifetime invoice: grant lifetime access (no term to stack) and
+    // stamp the invoice paid with no coverage window — all in this transaction.
+    if (invoice.lifetime) {
+      // Lock ordering (see grantLifetimeMembership): touch the invoice rows
+      // first, grant the membership LAST, so the pro_memberships lock is always
+      // acquired after invoice locks and can't form a deadlock cycle with a
+      // concurrent settle. Cancel OTHER still-open invoices for this seller
+      // (exclude the one we're settling — it's still 'pending' at this point and
+      // about to become 'paid' below).
+      await client.query(
+        `UPDATE pro_manual_invoices
+            SET status = 'canceled', updated_at = now()
+          WHERE pubkey = $1 AND status = 'pending' AND invoice_id <> $2`,
+        [invoice.pubkey, args.invoiceId]
+      );
+      await client.query(
+        `UPDATE pro_manual_invoices
+           SET status = 'paid',
+               paid_at = COALESCE(paid_at, now()),
+               membership_applied_at = now(),
+               coverage_start = NULL,
+               coverage_end = NULL,
+               updated_at = now()
+         WHERE invoice_id = $1`,
+        [args.invoiceId]
+      );
+      await client.query(LIFETIME_GRANT_SQL, [invoice.pubkey, "manual", null]);
+      await client.query("COMMIT");
+      return { outcome: "settled", invoice };
+    }
+
+    const termInterval = invoice.term === "yearly" ? "1 year" : "1 month";
+
+    // Extend the membership first so we learn the exact new period end this
+    // charge bought, then stamp that window onto the invoice. coverage_end is
+    // the new current_period_end; coverage_start is one term earlier (the base
+    // the stacking started from). Both are persisted in the same transaction so
+    // the billing history can read the real window instead of replaying the
+    // stacking heuristic.
+    const ext = await client.query(MANUAL_EXTEND_SQL, [
+      invoice.pubkey,
+      invoice.term,
+      termInterval,
+      graceDays,
+      readonlyDays,
+    ]);
+    const coverageEnd = ext.rows[0]?.current_period_end ?? null;
+
+    await client.query(
+      `UPDATE pro_manual_invoices
+         SET status = 'paid',
+             paid_at = COALESCE(paid_at, now()),
+             membership_applied_at = now(),
+             coverage_start = $2::timestamp - $3::interval,
+             coverage_end = $2::timestamp,
+             updated_at = now()
+       WHERE invoice_id = $1`,
+      [args.invoiceId, coverageEnd, termInterval]
+    );
+
+    await client.query("COMMIT");
+    return { outcome: "settled", invoice };
+  } catch (err) {
+    if (client) {
+      try {
+        await client.query("ROLLBACK");
+      } catch {
+        // ignore rollback failure; original error is rethrown below
+      }
+    }
+    throw err;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function setProMembershipCancel(
+  pubkey: string,
+  cancelAtPeriodEnd: boolean
+): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `UPDATE pro_memberships
+       SET cancel_at_period_end = $2,
+           status = CASE WHEN $2 THEN 'canceled' ELSE status END,
+           updated_at = now()
+       WHERE pubkey = $1`,
+      [pubkey, cancelAtPeriodEnd]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Admin hard-revoke: strip a seller's membership back to the free tier in one
+// write. Clears the Wrangler lifetime flag and the entire lapse timeline
+// (period/grace/readonly/trial) and nulls the Stripe subscription id, so the
+// pure resolver sees no entitlement and returns "free" (not the lapsed
+// "hidden" state). The caller is responsible for cancelling any live Stripe
+// subscription at Stripe FIRST (this only clears the local pointer).
+export async function revokeProMembership(pubkey: string): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `UPDATE pro_memberships
+         SET lifetime = FALSE,
+             status = 'canceled',
+             term = NULL,
+             stripe_subscription_id = NULL,
+             trial_end = NULL,
+             current_period_end = NULL,
+             grace_until = NULL,
+             readonly_until = NULL,
+             cancel_at_period_end = TRUE,
+             trial_reminder_sent_at = NULL,
+             due_reminder_sent_at = NULL,
+             readonly_notice_sent_at = NULL,
+             hidden_notice_sent_at = NULL,
+             updated_at = now()
+       WHERE pubkey = $1`,
+      [pubkey]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function listAllProMemberships(): Promise<ProMembershipRow[]> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(`SELECT * FROM pro_memberships`);
+    return result.rows;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export type ProReminderColumn =
+  | "trial_reminder_sent_at"
+  | "due_reminder_sent_at"
+  | "readonly_notice_sent_at"
+  | "hidden_notice_sent_at";
+
+export async function markProReminderSent(
+  pubkey: string,
+  column: ProReminderColumn
+): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    // Column name is from a fixed allow-listed union, never user input.
+    await client.query(
+      `UPDATE pro_memberships SET ${column} = now(), updated_at = now() WHERE pubkey = $1`,
+      [pubkey]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Manual invoices
+// ---------------------------------------------------------------------------
+
+export interface ProManualInvoiceRow {
+  id: number;
+  invoice_id: string;
+  pubkey: string;
+  // Null for a Wrangler lifetime invoice (see `lifetime`).
+  term: ProTerm | null;
+  // One-time lifetime purchase rather than a renewable term.
+  lifetime: boolean;
+  method: ProManualMethod;
+  amount_usd_cents: number;
+  amount_sats: number | null;
+  bolt11: string | null;
+  verify_url: string | null;
+  payment_hash: string | null;
+  status: "pending" | "paid" | "expired" | "canceled";
+  due_at: string | Date;
+  paid_at: string | Date | null;
+  membership_applied_at: string | Date | null;
+  // Exact entitlement window this charge paid for, stamped at settle time.
+  // Null for invoices settled before this was persisted (falls back to the
+  // reconstruction in `computeManualCoverage`).
+  coverage_start: string | Date | null;
+  coverage_end: string | Date | null;
+  created_at: string | Date;
+  updated_at: string | Date;
+}
+
+export async function createProManualInvoice(args: {
+  invoiceId: string;
+  pubkey: string;
+  // Null when `lifetime` is true (one-time Wrangler purchase).
+  term: ProTerm | null;
+  lifetime?: boolean;
+  method: ProManualMethod;
+  amountUsdCents: number;
+  amountSats?: number | null;
+  bolt11?: string | null;
+  verifyUrl?: string | null;
+  paymentHash?: string | null;
+  dueAt: Date;
+}): Promise<ProManualInvoiceRow> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `INSERT INTO pro_manual_invoices
+         (invoice_id, pubkey, term, lifetime, method, amount_usd_cents,
+          amount_sats, bolt11, verify_url, payment_hash, status, due_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11)
+       RETURNING *`,
+      [
+        args.invoiceId,
+        args.pubkey,
+        args.term,
+        args.lifetime ?? false,
+        args.method,
+        args.amountUsdCents,
+        args.amountSats ?? null,
+        args.bolt11 ?? null,
+        args.verifyUrl ?? null,
+        args.paymentHash ?? null,
+        args.dueAt,
+      ]
+    );
+    return result.rows[0];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function getProManualInvoice(
+  invoiceId: string
+): Promise<ProManualInvoiceRow | null> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT * FROM pro_manual_invoices WHERE invoice_id = $1`,
+      [invoiceId]
+    );
+    return result.rows[0] ?? null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * All settled (paid) manual invoices for a seller, newest first. Powers the
+ * billing-history view alongside Stripe invoices.
+ */
+export async function listPaidProManualInvoices(
+  pubkey: string
+): Promise<ProManualInvoiceRow[]> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT * FROM pro_manual_invoices
+       WHERE pubkey = $1 AND status = 'paid'
+       ORDER BY paid_at DESC NULLS LAST, created_at DESC`,
+      [pubkey]
+    );
+    return result.rows;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function expirePastDueManualInvoices(): Promise<number> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `UPDATE pro_manual_invoices
+       SET status = 'expired', updated_at = now()
+       WHERE status = 'pending' AND due_at < now()`
+    );
+    return result.rowCount ?? 0;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// One-time settings / flags
+// ---------------------------------------------------------------------------
+
+/**
+ * Settled manual invoices that never had their coverage window stamped (settled
+ * before the coverage_start/end columns existed). Returned oldest-first per
+ * seller so a per-pubkey stacking reconstruction can backfill them.
+ */
+export async function listSettledManualInvoicesMissingCoverage(): Promise<
+  ProManualInvoiceRow[]
+> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT * FROM pro_manual_invoices
+        WHERE status = 'paid'
+          AND membership_applied_at IS NOT NULL
+          AND (coverage_start IS NULL OR coverage_end IS NULL)
+        ORDER BY pubkey, paid_at, created_at, id`
+    );
+    return result.rows;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Persist a reconstructed coverage window onto a manual invoice. Only fills a
+ * still-empty window so a concurrent live settle (which stamps the exact window)
+ * always wins and the backfill never overwrites real data.
+ */
+export async function setProManualInvoiceCoverage(
+  invoiceId: string,
+  coverageStart: Date,
+  coverageEnd: Date
+): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `UPDATE pro_manual_invoices
+          SET coverage_start = $2,
+              coverage_end = $3,
+              updated_at = now()
+        WHERE invoice_id = $1
+          AND (coverage_start IS NULL OR coverage_end IS NULL)`,
+      [invoiceId, coverageStart, coverageEnd]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function getProSetting(key: string): Promise<string | null> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT value FROM pro_settings WHERE key = $1`,
+      [key]
+    );
+    return result.rows[0]?.value ?? null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function setProSetting(key: string, value: string): Promise<void> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    await client.query(
+      `INSERT INTO pro_settings (key, value, updated_at)
+       VALUES ($1, $2, now())
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+      [key, value]
+    );
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Distinct seller pubkeys that already run a stall — sellers with at least one
+ * product listing or a shop profile. Used by the one-time trial backfill.
+ */
+export async function listExistingStallPubkeys(): Promise<string[]> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT DISTINCT pubkey FROM (
+         SELECT pubkey FROM product_events
+         UNION
+         SELECT pubkey FROM profile_events WHERE kind = 30019
+       ) AS stalls
+       WHERE pubkey IS NOT NULL AND pubkey <> ''`
+    );
+    return result.rows.map((r: { pubkey: string }) => r.pubkey);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Sellers who set up a "custom stall": claimed a custom storefront URL slug
+// (shop_slugs) or a mapped custom domain (custom_domains). Narrower than
+// listExistingStallPubkeys (which counts anyone with a product or shop profile).
+// Used by the one-time lifetime grandfather backfill and its operator CLI so the
+// population is defined in exactly one place.
+export async function listCustomStallPubkeys(): Promise<string[]> {
+  let client;
+  try {
+    client = await getDbPool().connect();
+    const result = await client.query(
+      `SELECT DISTINCT pubkey FROM (
+         SELECT pubkey FROM shop_slugs
+         UNION
+         SELECT pubkey FROM custom_domains
+       ) AS custom_stalls
+       WHERE pubkey IS NOT NULL AND pubkey <> ''`
+    );
+    return result.rows.map((r: { pubkey: string }) => r.pubkey);
+  } finally {
+    if (client) client.release();
+  }
+}

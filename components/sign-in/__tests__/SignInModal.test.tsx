@@ -1,6 +1,9 @@
 import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SignInModal from "../SignInModal";
+import ProtectedRoute from "@/components/utility-components/protected-route";
+import { StorefrontBrandingProvider } from "@/utils/storefront/storefront-branding-context";
+import { useAuthGuard } from "@/components/hooks/use-auth-guard";
 import { useRouter } from "next/router";
 import { RelaysContext } from "../../../utils/context/context";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
@@ -8,6 +11,27 @@ import * as nostrHelpers from "@/utils/nostr/nostr-helper-functions";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 
 jest.mock("next/router", () => ({ useRouter: jest.fn() }));
+jest.mock("@/components/hooks/use-auth-guard", () => ({
+  useAuthGuard: jest.fn(),
+}));
+// uuid v14 / @scure/base ship ESM-only and are pulled in transitively via the
+// real nostr-manager / nsec signer import chain; mock them so Jest doesn't try
+// to parse the untransformed ESM modules. Not exercised by these tests.
+jest.mock("uuid", () => ({ v4: () => "mock-uuid-1234" }));
+jest.mock("nostr-tools/nip49", () => ({
+  decrypt: jest.fn(),
+  encrypt: jest.fn(),
+}));
+// The real nostr-tools pulls in @noble/curves (ESM-only) which Jest can't parse
+// here; the tested flows use a mocked newSigner / spied getEncryptedNSEC and
+// never call real nostr-tools functions, so a lightweight mock is sufficient.
+jest.mock("nostr-tools", () => ({
+  getPublicKey: jest.fn(),
+  generateSecretKey: jest.fn(),
+  finalizeEvent: jest.fn(),
+  nip19: {},
+  nip44: {},
+}));
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   validateNSecKey: jest.fn(),
   parseBunkerToken: jest.fn(),
@@ -80,6 +104,13 @@ describe("SignInModal", () => {
     const { user, push } = renderModal();
     const btn = screen.getAllByRole("button", { name: /sign up/i })[0]!;
     await user.click(btn);
+    // Downstream nests "Create New Account" under the Nostr sign-up sub-view.
+    await user.click(
+      screen.getByRole("button", { name: /sign up with nostr/i })
+    );
+    await user.click(
+      screen.getByRole("button", { name: /sign up with nostr/i })
+    );
     await user.click(
       screen.getByRole("button", { name: /create new account/i })
     );
@@ -99,7 +130,14 @@ describe("SignInModal", () => {
         screen.getByRole("button", { name: /extension sign-in/i })
       );
       await waitFor(() => {
+        expect(mockNewSigner).toHaveBeenCalledWith("nip07", {});
         expect(signer.getPubKey).toHaveBeenCalled();
+        expect(helpers.setLocalStorageDataOnSignIn).toHaveBeenCalledWith({
+          signer,
+          relays: mockRelays.relayList,
+          readRelays: mockRelays.readRelayList,
+          writeRelays: mockRelays.writeRelayList,
+        });
         expect(push).toHaveBeenCalledWith("/marketplace");
       });
     });
@@ -150,7 +188,20 @@ describe("SignInModal", () => {
       await user.type(input, "bunker://valid-token");
 
       await user.click(screen.getByTestId("bunker-submit-btn"));
-      await waitFor(() => expect(push).toHaveBeenCalledWith("/marketplace"));
+      await waitFor(() => {
+        expect(mockNewSigner).toHaveBeenCalledWith("nip46", {
+          bunker: "bunker://valid-token",
+        });
+        expect(signer.connect).toHaveBeenCalled();
+        expect(signer.getPubKey).toHaveBeenCalled();
+        expect(helpers.setLocalStorageDataOnSignIn).toHaveBeenCalledWith({
+          signer,
+          relays: mockRelays.relayList,
+          readRelays: mockRelays.readRelayList,
+          writeRelays: mockRelays.writeRelayList,
+        });
+        expect(push).toHaveBeenCalledWith("/marketplace");
+      });
     });
 
     it("shows a failure modal on connection error", async () => {
@@ -209,7 +260,20 @@ describe("SignInModal", () => {
 
       act(() => jest.runAllTimers());
 
-      await waitFor(() => expect(push).toHaveBeenCalledWith("/marketplace"));
+      await waitFor(() => {
+        expect(mockNewSigner).toHaveBeenCalledWith("nsec", {
+          encryptedPrivKey: "encrypted-key",
+          pubkey: "test-pubkey",
+        });
+        expect(signer.getPubKey).toHaveBeenCalled();
+        expect(helpers.setLocalStorageDataOnSignIn).toHaveBeenCalledWith({
+          signer,
+          relays: mockRelays.relayList,
+          readRelays: mockRelays.readRelayList,
+          writeRelays: mockRelays.writeRelayList,
+        });
+        expect(push).toHaveBeenCalledWith("/marketplace");
+      });
     });
 
     it("shows a failure modal if passphrase is empty", async () => {
@@ -227,6 +291,116 @@ describe("SignInModal", () => {
       expect(
         await screen.findByText(/No passphrase provided!/i)
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("seller branding", () => {
+    function renderModalWithBranding(sellerBranding?: {
+      shopName?: string | null;
+      logoUrl?: string | null;
+    }) {
+      (useRouter as jest.Mock).mockReturnValue({ push: jest.fn() });
+      render(
+        <RelaysContext.Provider value={mockRelays}>
+          <SignerContext.Provider value={mockSignerCtx}>
+            <SignInModal
+              isOpen={true}
+              onClose={jest.fn()}
+              sellerBranding={sellerBranding}
+            />
+          </SignerContext.Provider>
+        </RelaysContext.Provider>
+      );
+    }
+
+    it("shows the seller's shop name + logo when branding is provided", () => {
+      renderModalWithBranding({
+        shopName: "Happy Cow Dairy",
+        logoUrl: "https://example.com/happy-cow.png",
+      });
+
+      expect(
+        screen.getByRole("heading", { name: "Happy Cow Dairy" })
+      ).toBeInTheDocument();
+      expect(screen.getByText(/New to Happy Cow Dairy\?/i)).toBeInTheDocument();
+
+      const logo = screen.getByAltText("Happy Cow Dairy logo");
+      expect(logo).toHaveAttribute("src", "https://example.com/happy-cow.png");
+
+      expect(screen.queryByText("Milk Market")).toBeNull();
+    });
+
+    it("falls back to Milk Market name + logo when no branding is provided", () => {
+      renderModalWithBranding();
+
+      expect(
+        screen.getByRole("heading", { name: "Milk Market" })
+      ).toBeInTheDocument();
+
+      const logo = screen.getByAltText("Milk Market logo");
+      expect(logo).toHaveAttribute("src", "/milk-market.png");
+    });
+
+    it("falls back to Milk Market when branding fields are blank", () => {
+      renderModalWithBranding({ shopName: "   ", logoUrl: "" });
+
+      expect(
+        screen.getByRole("heading", { name: "Milk Market" })
+      ).toBeInTheDocument();
+
+      const logo = screen.getByAltText("Milk Market logo");
+      expect(logo).toHaveAttribute("src", "/milk-market.png");
+    });
+  });
+
+  describe("ProtectedRoute branding pass-through", () => {
+    beforeEach(() => {
+      (useAuthGuard as jest.Mock).mockReturnValue({
+        isAuthResolved: true,
+        isGuarded: true,
+        isOpen: true,
+        handleClose: jest.fn(),
+      });
+      (useRouter as jest.Mock).mockReturnValue({ push: jest.fn() });
+    });
+
+    it("passes seller branding through to the modal when wrapped in StorefrontBrandingProvider", () => {
+      render(
+        <StorefrontBrandingProvider
+          value={{
+            shopName: "Happy Cow Dairy",
+            logoUrl: "https://example.com/happy-cow.png",
+          }}
+        >
+          <ProtectedRoute>
+            <div>protected content</div>
+          </ProtectedRoute>
+        </StorefrontBrandingProvider>
+      );
+
+      expect(
+        screen.getByRole("heading", { name: "Happy Cow Dairy" })
+      ).toBeInTheDocument();
+      expect(screen.getByAltText("Happy Cow Dairy logo")).toHaveAttribute(
+        "src",
+        "https://example.com/happy-cow.png"
+      );
+    });
+
+    it("falls back to Milk Market branding when not wrapped in a provider", () => {
+      render(
+        <ProtectedRoute>
+          <div>protected content</div>
+        </ProtectedRoute>
+      );
+
+      expect(
+        screen.getByRole("heading", { name: "Milk Market" })
+      ).toBeInTheDocument();
+      expect(screen.getByAltText("Milk Market logo")).toHaveAttribute(
+        "src",
+        "/milk-market.png"
+      );
     });
   });
 });

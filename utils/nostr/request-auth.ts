@@ -599,3 +599,120 @@ export function buildClearFailedRelayPublishProof({
     fields: incrementRetry ? { eventId, incrementRetry: "true" } : { eventId },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Pro membership tier
+// ---------------------------------------------------------------------------
+
+export function buildProCreateSubscriptionProof({
+  pubkey,
+  term,
+}: {
+  pubkey: string;
+  term: "monthly" | "yearly";
+}): SignedHttpRequestProof {
+  return {
+    action: "create_pro_subscription",
+    method: "POST",
+    path: "/api/pro/create-subscription",
+    pubkey,
+    fields: { term },
+  };
+}
+
+export function buildProStartTrialProof({
+  pubkey,
+  term,
+}: {
+  pubkey: string;
+  term: "monthly" | "yearly";
+}): SignedHttpRequestProof {
+  return {
+    action: "start_pro_trial",
+    method: "POST",
+    path: "/api/pro/start-trial",
+    pubkey,
+    fields: { term },
+  };
+}
+
+export function buildProSyncProof(pubkey: string): SignedHttpRequestProof {
+  return {
+    action: "sync_pro_subscription",
+    method: "POST",
+    path: "/api/pro/sync",
+    pubkey,
+  };
+}
+
+export function buildProCancelProof(pubkey: string): SignedHttpRequestProof {
+  return {
+    action: "cancel_pro_subscription",
+    method: "POST",
+    path: "/api/pro/cancel",
+    pubkey,
+  };
+}
+
+export function buildProManualInvoiceProof({
+  pubkey,
+  term,
+  method,
+  lifetime,
+}: {
+  pubkey: string;
+  // Omitted for a lifetime (Wrangler) invoice.
+  term?: "monthly" | "yearly";
+  method: "bitcoin" | "fiat";
+  // Set true for a one-time lifetime invoice. Undefined fields are omitted from
+  // the proof, so existing monthly/yearly requests sign identically (no break).
+  lifetime?: boolean;
+}): SignedHttpRequestProof {
+  return {
+    action: "create_pro_invoice",
+    method: "POST",
+    path: "/api/pro/manual-invoice",
+    pubkey,
+    fields: {
+      ...(term ? { term } : {}),
+      method,
+      ...(lifetime ? { lifetime: "true" } : {}),
+    },
+  };
+}
+
+export function buildProCreateLifetimeProof(
+  pubkey: string
+): SignedHttpRequestProof {
+  return {
+    action: "create_pro_lifetime",
+    method: "POST",
+    path: "/api/pro/create-lifetime",
+    pubkey,
+  };
+}
+
+export function buildProHistoryProof(pubkey: string): SignedHttpRequestProof {
+  return {
+    action: "list_pro_history",
+    method: "GET",
+    path: "/api/pro/history",
+    pubkey,
+  };
+}
+
+export function buildProVerifyInvoiceProof({
+  pubkey,
+  invoiceId,
+}: {
+  pubkey: string;
+  invoiceId: string;
+}): SignedHttpRequestProof {
+  return {
+    action: "verify_pro_invoice",
+    method: "POST",
+    path: "/api/pro/verify-invoice",
+    pubkey,
+    fields: { invoiceId },
+  };
+}

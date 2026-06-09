@@ -13,6 +13,7 @@ import { parseCommunityEvent } from "@/utils/parsers/community-parser-functions"
 
 type CommunityPageProps = {
   ogMeta: OgMetaProps;
+  community: Community | null;
 };
 
 export const getServerSideProps: GetServerSideProps<
@@ -22,7 +23,7 @@ export const getServerSideProps: GetServerSideProps<
   const naddrStr = typeof naddr === "string" ? naddr : "";
 
   if (!naddrStr) {
-    return { props: { ogMeta: DEFAULT_OG } };
+    return { props: { ogMeta: DEFAULT_OG, community: null } };
   }
 
   try {
@@ -46,6 +47,7 @@ export const getServerSideProps: GetServerSideProps<
                 image: community.image || "/milk-market.png",
                 url: `/communities/${naddrStr}`,
               },
+              community,
             },
           };
         }
@@ -63,16 +65,21 @@ export const getServerSideProps: GetServerSideProps<
         description: "Check out this community on Milk Market!",
         url: `/communities/${naddrStr}`,
       },
+      community: null,
     },
   };
 };
 
-const SingleCommunityPage = () => {
+const SingleCommunityPage = ({
+  community: ssrCommunity,
+}: CommunityPageProps) => {
   const router = useRouter();
   const { naddr } = router.query;
   const { communities } = useContext(CommunityContext);
-  const [community, setCommunity] = useState<Community | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [community, setCommunity] = useState<Community | null>(
+    ssrCommunity ?? null
+  );
+  const [isLoading, setIsLoading] = useState(ssrCommunity === null);
 
   useEffect(() => {
     if (naddr && typeof naddr === "string" && communities.size > 0) {

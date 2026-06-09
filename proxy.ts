@@ -12,7 +12,6 @@ const CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES = [
   "/images/",
   "/favicon",
   "/robots.txt",
-  "/sitemap.xml",
   "/manifest",
   "/sw.js",
   "/service-worker.js",
@@ -70,6 +69,13 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/cashu/",
   "/api/stripe/",
   "/api/email/",
+  // Public, read-only Pro entitlement check. The storefront render layer
+  // (StorefrontLayout / StorefrontThemeWrapper) calls this to decide whether to
+  // serve the seller's premium design (custom colors/fonts/sections). It fails
+  // closed, so without this gated in the proxy returns 403, the render layer
+  // reads that as "not Pro", and EVERY custom-domain stall reverts to the
+  // default Milk Market look even when the seller is fully entitled.
+  "/api/pro/status",
   "/api/og-preview",
   "/api/sitemap.xml",
   "/api/auth/",
@@ -94,6 +100,62 @@ const PLATFORM_HOST_SUFFIXES = [
 
 const PLATFORM_HOST_EXACT = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 
+// --- Content negotiation for LLMs / AI agents --------------------------------
+// On the main platform host, the content pages below can be served as
+// markdown/JSON/plain-text (via /api/agent-view) when the client asks for a
+// non-HTML representation by Accept header or identifies as a known LLM
+// crawler. Browsers and SEO/social unfurlers keep getting HTML so OpenGraph
+// and SSR behaviour is preserved.
+const AGENT_VIEW_PATHS = new Set([
+  "/",
+  "/about",
+  "/faq",
+  "/contact",
+  "/producer-guide",
+  "/terms",
+  "/privacy",
+]);
+
+// Per-stall GEO/agent files served dynamically (tailored to the seller) on a
+// custom domain instead of falling through to the platform's static /public
+// copies. Maps the request path to the stall-agent-view `format` it produces.
+const STALL_GEO_DYNAMIC_FORMAT: Record<string, string> = {
+  "/llms.txt": "llms",
+  "/robots.txt": "robots",
+  "/sitemap.xml": "sitemap",
+  "/rss.xml": "rss",
+  "/feed.xml": "rss",
+};
+
+const LLM_AGENT_UA =
+  /(GPTBot|ChatGPT-User|OAI-SearchBot|ClaudeBot|Claude-Web|anthropic-ai|PerplexityBot|Perplexity|Google-Extended|Applebot-Extended|CCBot|cohere-ai|Bytespider|Amazonbot|Diffbot|YouBot|Meta-ExternalAgent)/i;
+
+const HTML_ONLY_UA =
+  /(Googlebot|bingbot|DuckDuckBot|Slurp|Baiduspider|YandexBot|facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|WhatsApp|Pinterest|redditbot|Embedly|SkypeUriPreview)/i;
+
+function negotiateAgentFormat(
+  accept: string,
+  userAgent: string
+): "md" | "json" | "txt" | null {
+  if (HTML_ONLY_UA.test(userAgent)) return null;
+
+  const a = accept.toLowerCase();
+
+  // High-signal explicit machine formats win even when text/html is also
+  // present (e.g. "text/markdown, text/html;q=0.9" from agent SDKs). Browsers
+  // and social/SEO bots never request markdown or json explicitly, so this is
+  // safe for normal navigation and link unfurling.
+  if (a.includes("application/json")) return "json";
+  if (a.includes("text/markdown") || a.includes("text/x-markdown")) return "md";
+
+  // text/plain is lower-signal, so only honor it when html isn't requested.
+  if (!a.includes("text/html") && a.includes("text/plain")) return "txt";
+
+  if (LLM_AGENT_UA.test(userAgent)) return "md";
+
+  return null;
+}
+
 function hostStripPort(host: string): string {
   return host.split(":")[0]?.toLowerCase() ?? "";
 }
@@ -108,7 +170,37 @@ function isCustomDomain(rawHost: string): boolean {
   return true;
 }
 
+// Endpoints that set their OWN accurate, per-request RateLimit headers (via
+// applyRateLimit) carry this marker so the advisory wrapper below doesn't add a
+// second, duplicate set. The marker is stripped before the response is returned.
+const RL_SKIP_HEADER = "x-mm-rl-skip";
+
+// Advisory RateLimit headers for agents/scanners. Real per-IP enforcement lives
+// in the API handlers (utils/rate-limit.ts); these inform automated clients of
+// the documented budget on EVERY navigation/storefront response (both the
+// platform host and seller custom domains) so the limit is observable up front.
+function withAdvisoryRateLimitHeaders(res: NextResponse): NextResponse {
+  if (res.headers.get(RL_SKIP_HEADER)) {
+    res.headers.delete(RL_SKIP_HEADER);
+    return res;
+  }
+  if (!res.headers.has("RateLimit-Limit")) {
+    res.headers.set("RateLimit-Limit", "600");
+    res.headers.set("RateLimit-Remaining", "600");
+    res.headers.set("RateLimit-Reset", "60");
+    res.headers.set("RateLimit-Policy", '"agent";q=600;w=60');
+    res.headers.set("X-RateLimit-Limit", "600");
+    res.headers.set("X-RateLimit-Remaining", "600");
+    res.headers.set("X-RateLimit-Reset", "60");
+  }
+  return res;
+}
+
 export async function proxy(request: NextRequest) {
+  return withAdvisoryRateLimitHeaders(await routeRequest(request));
+}
+
+async function routeRequest(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hostname = (request.headers.get("host") || "").toLowerCase();
 
@@ -124,11 +216,90 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 301);
   }
 
+  // Web Bot Auth signature directory. Handled here (after the www->apex redirect
+  // so it canonicalizes, but before any host-specific routing) so the same
+  // canonical key directory is served on the platform host AND on every seller
+  // custom domain.
+  if (pathname === "/.well-known/http-message-signatures-directory") {
+    const res = NextResponse.rewrite(
+      new URL("/api/.well-known/http-message-signatures-directory", request.url)
+    );
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
+  }
+
+  // Content negotiation for LLMs/agents on the main platform host only. Custom
+  // domains fall through to their own storefront routing below.
+  if (!isCustomDomain(hostname) && AGENT_VIEW_PATHS.has(pathname)) {
+    const format = negotiateAgentFormat(
+      request.headers.get("accept") || "",
+      request.headers.get("user-agent") || ""
+    );
+    if (format) {
+      const url = new URL("/api/agent-view", request.url);
+      url.searchParams.set("path", pathname);
+      url.searchParams.set("format", format);
+      // Forward path/format via request headers too: NextResponse.rewrite can
+      // override the destination query string with the original request's, so
+      // headers are the reliable channel for the API route to read.
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.set("x-agent-view-path", pathname);
+      requestHeaders.set("x-agent-view-format", format);
+      const res = NextResponse.rewrite(url, {
+        request: { headers: requestHeaders },
+      });
+      res.headers.set("Vary", "Accept, User-Agent");
+      res.headers.set(RL_SKIP_HEADER, "1");
+      return res;
+    }
+  }
+
+  // Per-stall content negotiation on the platform host: /stall/<slug> can be
+  // served as tailored markdown/JSON/plain-text for agents. Custom domains are
+  // handled separately inside their own block below.
+  if (!isCustomDomain(hostname)) {
+    const stallMatch = pathname.match(/^\/stall\/([^/]+)\/?$/);
+    if (stallMatch && stallMatch[1]) {
+      let stallSlug = "";
+      try {
+        stallSlug = decodeURIComponent(stallMatch[1]);
+      } catch {
+        // Malformed percent-encoding — leave blank so we skip negotiation and
+        // let the normal route handle (and 404) it instead of throwing.
+        stallSlug = "";
+      }
+      if (stallSlug && stallSlug !== "_custom-domain") {
+        const format = negotiateAgentFormat(
+          request.headers.get("accept") || "",
+          request.headers.get("user-agent") || ""
+        );
+        if (format) {
+          const url = new URL("/api/stall-agent-view", request.url);
+          url.searchParams.set("slug", stallSlug);
+          url.searchParams.set("format", format);
+          const requestHeaders = new Headers(request.headers);
+          requestHeaders.set("x-stall-slug", stallSlug);
+          requestHeaders.set("x-stall-format", format);
+          const res = NextResponse.rewrite(url, {
+            request: { headers: requestHeaders },
+          });
+          res.headers.set("Vary", "Accept, User-Agent");
+          res.headers.set(RL_SKIP_HEADER, "1");
+          return res;
+        }
+      }
+    }
+  }
+
   if (isCustomDomain(hostname)) {
-    // Static assets and Next internals always pass through.
+    // GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml) are served
+    // dynamically + tailored to the seller below, so they must NOT be caught by
+    // the static-asset passthrough. Everything else static still passes through.
+    const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
     if (
-      CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
-      STATIC_ASSET_EXT_RE.test(pathname)
+      !isStallGeoDynamic &&
+      (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
+        STATIC_ASSET_EXT_RE.test(pathname))
     ) {
       return NextResponse.next();
     }
@@ -150,6 +321,12 @@ export async function proxy(request: NextRequest) {
       const h = new Headers(request.headers);
       h.set("x-mm-custom-domain", "1");
       h.set("x-mm-custom-domain-host", hostname);
+      // Pass the original public pathname so SSR can emit correct canonical
+      // and og:url for this custom domain (the internal Next.js rewrite turns
+      // "/" into "/stall/<slug>", but the canonical must stay at the seller
+      // domain's public path, e.g. "https://farmer.com/" not
+      // "https://milk.market/stall/farmname").
+      h.set("x-mm-original-path", pathname || "/");
       if (slug) h.set("x-mm-shop-slug", slug);
       // Seed SSR with the seller pubkey so _app.tsx can mount the storefront
       // wrapper on first render. Without this, the page renders once bare,
@@ -158,6 +335,39 @@ export async function proxy(request: NextRequest) {
       if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
       return h;
     };
+
+    const rewriteToStallAgentView = (format: string) => {
+      const url = new URL("/api/stall-agent-view", request.url);
+      url.searchParams.set("slug", slug as string);
+      url.searchParams.set("format", format);
+      const h = buildHeaders();
+      h.set("x-stall-slug", slug as string);
+      h.set("x-stall-format", format);
+      const res = NextResponse.rewrite(url, { request: { headers: h } });
+      res.headers.set("Vary", "Accept, User-Agent");
+      res.headers.set(RL_SKIP_HEADER, "1");
+      return res;
+    };
+
+    // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml),
+    // tailored to this seller. If the domain has no resolved slug, fall through
+    // to the platform's static /public copies.
+    const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
+    if (geoFormat) {
+      if (!slug) return NextResponse.next();
+      return rewriteToStallAgentView(geoFormat);
+    }
+
+    // Content negotiation for the stall homepage: when an LLM/agent asks for a
+    // non-HTML representation, serve tailored markdown/JSON/plain-text. Browsers
+    // and SEO/social bots keep getting the HTML storefront.
+    if (slug && (pathname === "/" || pathname === "")) {
+      const format = negotiateAgentFormat(
+        request.headers.get("accept") || "",
+        request.headers.get("user-agent") || ""
+      );
+      if (format) return rewriteToStallAgentView(format);
+    }
 
     // Shared platform routes (listing, cart, checkout, auth, etc.) render
     // their own standalone pages instead of being rewritten under /stall/<slug>/.
@@ -229,7 +439,7 @@ export async function proxy(request: NextRequest) {
     !pathname.startsWith("/marketplace/")
   ) {
     const url = new URL(`/marketplace${pathname}`, request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
 
   if (
@@ -237,7 +447,7 @@ export async function proxy(request: NextRequest) {
     !pathname.startsWith("/listing/")
   ) {
     const url = new URL(`/listing${pathname}`, request.url);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
 
   if (pathname.startsWith("/naddr") && !pathname.startsWith("/communities/")) {
@@ -245,7 +455,8 @@ export async function proxy(request: NextRequest) {
       const decoded = nip19.decode(pathname.substring(1));
       if (decoded.type === "naddr" && decoded.data.kind === 34550) {
         return NextResponse.redirect(
-          new URL(`/communities${pathname}`, request.url)
+          new URL(`/communities${pathname}`, request.url),
+          308
         );
       }
     } catch {

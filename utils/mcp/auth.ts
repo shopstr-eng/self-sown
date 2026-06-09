@@ -3,6 +3,22 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { PoolClient } from "pg";
 import { getDbPool } from "@/utils/db/db-service";
 import { verifyEvent } from "nostr-tools";
+import { isPubkeyProEntitled } from "@/utils/pro/membership";
+
+// Shared "Pro required" message for MCP authentication failures so REST and
+// JSON-RPC entry points surface identical copy.
+export const MCP_PRO_REQUIRED_MESSAGE =
+  "This API key's owner does not have an active Herd membership. MCP access requires Herd.";
+
+/**
+ * True when the API key's owning seller is currently Pro-entitled. Used by the
+ * MCP auth chokepoints so existing keys stop working once a seller lapses.
+ */
+export async function isApiKeyOwnerProEntitled(
+  apiKey: ApiKeyRecord
+): Promise<boolean> {
+  return isPubkeyProEntitled(apiKey.pubkey);
+}
 
 export type ApiKeyPermission = "read" | "read_write" | "full_access";
 
@@ -310,6 +326,31 @@ export async function revokeApiKey(
   }
 }
 
+/**
+ * Deactivate ALL of a seller's MCP API keys at once. Called when a seller drops
+ * off the paid (Herd/Wrangler) tier so their agents can no longer manage the
+ * shop via MCP on a free plan. Deactivation (not hard delete) keeps the rows so
+ * the `api_key_id` foreign key on MCP orders stays intact, while `validateApiKey`
+ * — which only matches `is_active = TRUE` keys — immediately rejects them.
+ * Idempotent: only flips currently-active keys and returns how many it revoked.
+ */
+export async function deactivateApiKeysForPubkey(
+  pubkey: string
+): Promise<number> {
+  const pool = getDbPool();
+  let client: PoolClient | undefined;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `UPDATE mcp_api_keys SET is_active = FALSE WHERE pubkey = $1 AND is_active = TRUE`,
+      [pubkey]
+    );
+    return result.rowCount ?? 0;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export function extractBearerToken(req: NextApiRequest): string | null {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
@@ -332,6 +373,13 @@ export async function authenticateRequest(
   const apiKey = await validateApiKey(token);
   if (!apiKey) {
     res.status(401).json({ error: "Invalid or revoked API key" });
+    return null;
+  }
+
+  // Reject keys whose owner is no longer Pro, so access tracks the membership
+  // lifecycle even for keys created while the seller was entitled.
+  if (!(await isApiKeyOwnerProEntitled(apiKey))) {
+    res.status(403).json({ error: MCP_PRO_REQUIRED_MESSAGE });
     return null;
   }
 

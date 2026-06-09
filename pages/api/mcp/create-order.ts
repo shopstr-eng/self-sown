@@ -21,6 +21,7 @@ import {
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { issueMacaroon, setL402Challenge, buildL402Body } from "@/utils/l402";
 
 // MCP create-order is on the payment critical path; the per-IP cap is
 // generous so a buyer cannot accidentally lock themselves out across
@@ -30,6 +31,11 @@ const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 const PER_KEY_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
 const DEFAULT_MINT_URL = "https://mint.minibits.cash/Bitcoin";
+
+// Server-controlled allowlist of Cashu mints the backend will trust for both
+// Lightning invoice creation and Cashu token redemption. Buyer-supplied mint
+// URLs that are not in this set are rejected before any network call is made.
+const ALLOWED_MINT_URLS: ReadonlySet<string> = new Set([DEFAULT_MINT_URL]);
 
 const pendingLightningPayments = new Map<
   string,
@@ -152,6 +158,7 @@ async function handleCreateOrder(
     mintUrl,
     cashuToken,
     fiatMethod,
+    subscriptionFrequency,
   } = req.body as CreateOrderInput & {
     selectedSize?: string;
     selectedVolume?: string;
@@ -162,6 +169,7 @@ async function handleCreateOrder(
     mintUrl?: string;
     cashuToken?: string;
     fiatMethod?: string;
+    subscriptionFrequency?: string;
   };
 
   if (!productId) {
@@ -287,6 +295,52 @@ async function handleCreateOrder(
       }
       selectedSpecs.weight = selectedWeight;
       selectedSpecs.weightPrice = unitPrice;
+    }
+
+    if (subscriptionFrequency) {
+      if (paymentMethod !== "stripe") {
+        return res.status(400).json({
+          error:
+            "Recurring Subscribe & Save orders are billed via Stripe. Omit the Bitcoin/fiat paymentMethod (it is set to stripe automatically) to start a subscription.",
+        });
+      }
+      if (!product.subscriptionEnabled) {
+        return res
+          .status(400)
+          .json({ error: "This product does not offer subscriptions." });
+      }
+      const allowedFrequencies = Array.isArray(product.subscriptionFrequency)
+        ? product.subscriptionFrequency
+        : [];
+      if (!allowedFrequencies.includes(subscriptionFrequency)) {
+        return res.status(400).json({
+          error: `Invalid subscriptionFrequency "${subscriptionFrequency}" for this product.`,
+          availableFrequencies: allowedFrequencies,
+        });
+      }
+      if (selectedBulkUnits) {
+        return res.status(400).json({
+          error: "Bulk/bundle pricing cannot be combined with a subscription.",
+        });
+      }
+      if (!buyerEmail) {
+        return res.status(400).json({
+          error: "buyerEmail is required to start a subscription.",
+        });
+      }
+      return handleStripeSubscription(
+        res,
+        buyerPubkey,
+        product,
+        productId,
+        unitPrice,
+        currency,
+        quantity,
+        subscriptionFrequency,
+        buyerEmail,
+        shippingAddress || null,
+        selectedSpecs
+      );
     }
 
     let effectiveQuantity = quantity;
@@ -508,6 +562,103 @@ async function handleCreateOrder(
   }
 }
 
+async function handleStripeSubscription(
+  res: NextApiResponse,
+  buyerPubkey: string,
+  product: any,
+  productId: string,
+  unitPrice: number,
+  currency: string,
+  quantity: number,
+  frequency: string,
+  buyerEmail: string,
+  shippingAddress: Record<string, string> | null,
+  selectedSpecs: Record<string, any>
+) {
+  try {
+    // Reuse the battle-tested web subscription endpoint (Stripe Connect,
+    // donation fee, affiliate, idempotency, and the subscriptions-table insert
+    // all live there) instead of duplicating that logic on the MCP path. The
+    // self-call mirrors how the MCP order tool already reaches create-order.
+    const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
+    const productEventId = product.d
+      ? `30402:${product.pubkey}:${product.d}`
+      : productId;
+    const variantInfo =
+      Object.keys(selectedSpecs).length > 0 ? selectedSpecs : null;
+    const discountPercent = product.subscriptionDiscount || 0;
+
+    const subRes = await fetch(`${baseUrl}/api/stripe/create-subscription`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerEmail: buyerEmail,
+        productTitle: product.title,
+        amount: unitPrice,
+        currency,
+        frequency,
+        discountPercent,
+        sellerPubkey: product.pubkey,
+        buyerPubkey,
+        productEventId,
+        quantity,
+        variantInfo,
+        shippingAddress,
+      }),
+    });
+
+    const data = await subRes.json();
+    if (!subRes.ok || !data.success) {
+      return res.status(subRes.status >= 400 ? subRes.status : 502).json({
+        error: "Failed to create subscription",
+        details: data.error || data.details || "Unknown error",
+      });
+    }
+
+    const recurringAmount =
+      Math.round(unitPrice * (1 - discountPercent / 100) * quantity * 100) /
+      100;
+
+    return res.status(402).json({
+      status: "payment_required",
+      message:
+        "Subscription created. Confirm the first payment to activate the recurring order.",
+      paymentMethod: "stripe",
+      subscription: {
+        subscriptionId: data.subscriptionId,
+        frequency,
+        status: data.status,
+        currentPeriodEnd: data.currentPeriodEnd,
+        recurringAmount,
+        currency,
+        quantity,
+        discountPercent: discountPercent || undefined,
+      },
+      payment: {
+        clientSecret: data.clientSecret,
+        customerId: data.customerId,
+        connectedAccountId: data.connectedAccountId || undefined,
+        instructions: {
+          step1:
+            "Use the clientSecret with Stripe.js or Stripe SDK to confirm the first subscription payment",
+          step2:
+            "Call stripe.confirmPayment({ clientSecret }) with a valid payment method",
+          step3:
+            "Once confirmed, the subscription becomes active and renews automatically at the chosen frequency",
+          documentationUrl:
+            "https://docs.stripe.com/billing/subscriptions/build-subscriptions",
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Failed to create MCP subscription:", error);
+    return res.status(500).json({
+      error: "Failed to create subscription",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+}
+
 async function handleLightningPayment(
   res: NextApiResponse,
   orderId: string,
@@ -526,7 +677,15 @@ async function handleLightningPayment(
   emailOptions?: Record<string, any>,
   discountCode?: string | null
 ) {
-  const mint = mintUrl || DEFAULT_MINT_URL;
+  // Ignore any caller-supplied mintUrl entirely: the buyer must not be able to
+  // choose which mint the server trusts for Lightning invoice settlement.
+  if (mintUrl && !ALLOWED_MINT_URLS.has(mintUrl)) {
+    return res.status(400).json({
+      error:
+        "The requested mint is not supported. Omit mintUrl to use the default mint.",
+    });
+  }
+  const mint = DEFAULT_MINT_URL;
 
   let amountInSats: number;
   if (currency.toLowerCase() === "sats" || currency.toLowerCase() === "sat") {
@@ -581,6 +740,14 @@ async function handleLightningPayment(
       emailOptions
     );
 
+    // L402: attach the standard WWW-Authenticate challenge so agents that
+    // speak the L402 protocol can discover how to pay this 402. The macaroon
+    // binds the challenge to this order; settlement is confirmed via the mint
+    // quote in verify-payment. See /.well-known/l402.json.
+    const macaroon = issueMacaroon(orderId, amountInSats);
+    const l402 = { macaroon, invoice: mintQuote.request };
+    setL402Challenge(res, l402);
+
     return res.status(402).json({
       status: "payment_required",
       message:
@@ -601,6 +768,7 @@ async function handleLightningPayment(
             "Once the invoice is paid, the order status will update to confirmed",
         },
       },
+      l402: buildL402Body(l402),
       pricing: pricingBlock,
     });
   } catch (error) {
@@ -673,29 +841,38 @@ async function handleCashuPayment(
     }
 
     const tokenMintUrl = decoded.mint;
-    if (tokenMintUrl) {
-      try {
-        const cashuMint = new CashuMint(tokenMintUrl);
-        const wallet = new CashuWallet(cashuMint);
-        await wallet.loadMint();
-        const { withMintRetry } =
-          await import("@/utils/cashu/mint-retry-service");
-        await withMintRetry(() => wallet.receive(cashuToken), {
-          maxAttempts: 4,
-          perAttemptTimeoutMs: 20000,
-          totalTimeoutMs: 90000,
-        });
-      } catch (redeemError) {
-        console.error("Cashu token redemption failed:", redeemError);
-        return res.status(400).json({
-          error:
-            "Failed to redeem Cashu token. It may be invalid or already spent.",
-          details:
-            redeemError instanceof Error
-              ? redeemError.message
-              : "Unknown error",
-        });
-      }
+
+    // The token's embedded mint URL must be on the server-controlled allowlist.
+    // Accepting a buyer-chosen mint would let an attacker point the server at a
+    // fake mint that always reports redemption success, creating fraudulent paid
+    // orders and opening SSRF to arbitrary internal endpoints.
+    if (!tokenMintUrl || !ALLOWED_MINT_URLS.has(tokenMintUrl)) {
+      return res.status(400).json({
+        error:
+          "Cashu token issuer is not a supported mint. Only tokens from trusted mints are accepted.",
+        supportedMints: Array.from(ALLOWED_MINT_URLS),
+      });
+    }
+
+    try {
+      const cashuMint = new CashuMint(tokenMintUrl);
+      const wallet = new CashuWallet(cashuMint);
+      await wallet.loadMint();
+      const { withMintRetry } =
+        await import("@/utils/cashu/mint-retry-service");
+      await withMintRetry(() => wallet.receive(cashuToken), {
+        maxAttempts: 4,
+        perAttemptTimeoutMs: 20000,
+        totalTimeoutMs: 90000,
+      });
+    } catch (redeemError) {
+      console.error("Cashu token redemption failed:", redeemError);
+      return res.status(400).json({
+        error:
+          "Failed to redeem Cashu token. It may be invalid or already spent.",
+        details:
+          redeemError instanceof Error ? redeemError.message : "Unknown error",
+      });
     }
 
     const order = await createMcpOrder(
