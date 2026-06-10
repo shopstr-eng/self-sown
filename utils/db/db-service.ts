@@ -477,6 +477,28 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_stripe_connect_pubkey ON stripe_connect_accounts(pubkey);
       CREATE INDEX IF NOT EXISTS idx_stripe_connect_account_id ON stripe_connect_accounts(stripe_account_id);
 
+      -- Sales tax via Stripe Tax is ON by default for connected accounts; sellers
+      -- can turn it off in settings. No tax is actually charged until the seller
+      -- adds the US states they're registered in (Stripe returns zero without nexus).
+      ALTER TABLE stripe_connect_accounts ADD COLUMN IF NOT EXISTS tax_enabled BOOLEAN DEFAULT TRUE;
+
+      -- One-time migration to flip the feature from opt-in to on-by-default: while
+      -- the column still carries the old FALSE default, enable existing accounts and
+      -- switch the default to TRUE. Guarded by the current default so app restarts
+      -- never re-enable a seller who has deliberately turned tax off.
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'stripe_connect_accounts'
+            AND column_name = 'tax_enabled'
+            AND column_default = 'false'
+        ) THEN
+          UPDATE stripe_connect_accounts SET tax_enabled = TRUE WHERE tax_enabled = FALSE;
+          ALTER TABLE stripe_connect_accounts ALTER COLUMN tax_enabled SET DEFAULT TRUE;
+        END IF;
+      END $$;
+
       -- Notification emails table for buyers and sellers
       CREATE TABLE IF NOT EXISTS notification_emails (
           id SERIAL PRIMARY KEY,
@@ -3260,6 +3282,7 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   onboarding_complete: boolean;
   charges_enabled: boolean;
   payouts_enabled: boolean;
+  tax_enabled: boolean;
 } | null> {
   const dbPool = getDbPool();
   let client;
@@ -3267,7 +3290,7 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   try {
     client = await dbPool.connect();
     const result = await client.query(
-      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled FROM stripe_connect_accounts WHERE pubkey = $1`,
+      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, COALESCE(tax_enabled, TRUE) AS tax_enabled FROM stripe_connect_accounts WHERE pubkey = $1`,
       [pubkey]
     );
     if (result.rows.length === 0) return null;
@@ -3275,6 +3298,28 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   } catch (error) {
     console.error("Failed to get Stripe Connect account:", error);
     return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Toggle whether a seller collects sales tax (Stripe Tax) at checkout.
+export async function setStripeTaxEnabled(
+  pubkey: string,
+  taxEnabled: boolean
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `UPDATE stripe_connect_accounts SET tax_enabled = $2, updated_at = CURRENT_TIMESTAMP WHERE pubkey = $1`,
+      [pubkey, taxEnabled]
+    );
+  } catch (error) {
+    console.error("Failed to set Stripe tax_enabled:", error);
+    throw error;
   } finally {
     if (client) client.release();
   }

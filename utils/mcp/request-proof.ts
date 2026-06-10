@@ -217,6 +217,15 @@ export function buildStripeAccountStatusProof(pubkey: string): McpRequestProof {
   };
 }
 
+export function buildStripeTaxSettingsProof(pubkey: string): McpRequestProof {
+  return {
+    action: "stripe_tax_settings",
+    method: "POST",
+    path: "/api/stripe/connect/tax-settings",
+    pubkey,
+  };
+}
+
 export function buildShippingBuyLabelProof({
   pubkey,
   shipmentId,

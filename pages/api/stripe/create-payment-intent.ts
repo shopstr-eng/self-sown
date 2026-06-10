@@ -89,7 +89,7 @@ export default async function handler(
       }
     }
 
-    const taxAddSmallest =
+    const requestedTaxSmallest =
       typeof salesTaxSmallest === "number" && salesTaxSmallest > 0
         ? Math.ceil(salesTaxSmallest)
         : 0;
@@ -109,6 +109,29 @@ export default async function handler(
 
     const isMultiMerchant =
       sellerSplits && Array.isArray(sellerSplits) && sellerSplits.length > 1;
+
+    // Resolve the effective sales tax server-side. Tax is opt-in per seller and
+    // only honored on single-seller direct charges; multi-merchant carts never
+    // add tax in v1. Never trust the client-sent amount without confirming the
+    // seller actually has tax collection enabled.
+    let taxAddSmallest = 0;
+    if (!isMultiMerchant && requestedTaxSmallest > 0) {
+      const taxSellerPubkey = metadata?.sellerPubkey;
+      if (
+        taxSellerPubkey &&
+        taxSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
+      ) {
+        const taxConnectAccount =
+          await getStripeConnectAccount(taxSellerPubkey);
+        if (
+          taxConnectAccount &&
+          taxConnectAccount.charges_enabled &&
+          taxConnectAccount.tax_enabled
+        ) {
+          taxAddSmallest = requestedTaxSmallest;
+        }
+      }
+    }
 
     let transferGroup = "";
     const splitDetails: {
@@ -236,9 +259,10 @@ export default async function handler(
           ...(taxAddSmallest > 0 && {
             salesTaxSmallest: taxAddSmallest.toString(),
           }),
-          ...(taxCalculationId && {
-            taxCalculationId: String(taxCalculationId),
-          }),
+          ...(taxAddSmallest > 0 &&
+            taxCalculationId && {
+              taxCalculationId: String(taxCalculationId),
+            }),
           sellerSplits: JSON.stringify(
             splitDetails.map((s) => ({
               pubkey: s.pubkey,
@@ -363,7 +387,10 @@ export default async function handler(
         ...(taxAddSmallest > 0 && {
           salesTaxSmallest: taxAddSmallest.toString(),
         }),
-        ...(taxCalculationId && { taxCalculationId: String(taxCalculationId) }),
+        ...(taxAddSmallest > 0 &&
+          taxCalculationId && {
+            taxCalculationId: String(taxCalculationId),
+          }),
       },
       payment_method_types: ["card"],
       ...(singleDonationCut > 0 && {

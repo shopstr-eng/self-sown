@@ -55,6 +55,7 @@ export default async function handler(
     quantity,
     donationAmount,
     donationPercentage,
+    salesTax,
   } = req.body;
 
   if (!orderId || !productTitle) {
@@ -85,6 +86,7 @@ export default async function handler(
       typeof donationAmount === "number" ? donationAmount : undefined,
     donationPercentage:
       typeof donationPercentage === "number" ? donationPercentage : undefined,
+    salesTax: typeof salesTax === "number" ? salesTax : undefined,
   };
 
   const results: { buyerEmailSent: boolean; sellerEmailSent: boolean } = {

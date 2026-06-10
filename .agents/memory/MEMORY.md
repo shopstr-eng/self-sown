@@ -36,3 +36,4 @@
 - [Agent-readiness scanner gaps](agent-readiness-scanner.md) — site-wide JSON 404 via root catch-all page; advisory rate-limit headers in proxy wrapper (x-mm-rl-skip on endpoints with real headers); WBA dir must serve literal application/json when Accept asks (the +json suffix alone fails naive parsers).
 - [Web Bot Auth signature directory](web-bot-auth-directory.md) — publish Ed25519 JWKS at /.well-known/http-message-signatures-directory (top of proxy = both hosts); key rotates per-process unless env set; use res.send not res.json for the media type.
 - [Monorepo package tsconfig @types](monorepo-package-tsconfig-types.md) — each packages/\* tsconfig must set `types: ["jest","node"]`; TS6+pnpm skips auto-@types; @types/node has fetch/Headers but not BodyInit.
+- [Sales tax is card-only](sales-tax-card-only.md) — Stripe tax (on by default) is a separate add-on on the card button only (LN/Cashu/fiat untaxed), never folded into order totals.

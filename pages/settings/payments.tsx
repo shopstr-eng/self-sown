@@ -1,12 +1,15 @@
 import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Button, useDisclosure } from "@heroui/react";
+import { Button, Input, Switch, useDisclosure } from "@heroui/react";
 import {
   CreditCardIcon,
   ArrowTopRightOnSquareIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   PencilSquareIcon,
+  ReceiptPercentIcon,
+  PlusIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import {
   BLUEBUTTONCLASSNAMES,
@@ -19,6 +22,7 @@ import {
   buildMcpRequestProofTemplate,
   buildStripeAccountStatusProof,
   buildStripeManageLinkProof,
+  buildStripeTaxSettingsProof,
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
@@ -30,6 +34,29 @@ interface AccountStatus {
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
 }
+
+interface TaxRegistration {
+  id: string;
+  state: string | null;
+  country: string;
+  status: string;
+  activeFrom: number | null;
+  expiresAt: number | null;
+}
+
+interface TaxStatus {
+  taxEnabled: boolean;
+  settingsStatus: string | null;
+  settingsStatusDetail: string | null;
+  registrations: TaxRegistration[];
+}
+
+type TaxAction =
+  | "status"
+  | "enable"
+  | "disable"
+  | "add_registration"
+  | "remove_registration";
 
 const PaymentsSettingsPage = () => {
   const router = useRouter();
@@ -43,6 +70,13 @@ const PaymentsSettingsPage = () => {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const [taxStatus, setTaxStatus] = useState<TaxStatus | null>(null);
+  const [taxLoading, setTaxLoading] = useState(false);
+  const [taxBusy, setTaxBusy] = useState<string | null>(null);
+  const [newState, setNewState] = useState("");
+  const [taxError, setTaxError] = useState<string | null>(null);
+  const [taxInfo, setTaxInfo] = useState<string | null>(null);
 
   const loadStatus = async () => {
     if (!pubkey || !signer?.sign) return;
@@ -83,6 +117,14 @@ const PaymentsSettingsPage = () => {
       setInfo("Stripe link expired. Please try again.");
     }
   }, [router.query.stripe]);
+
+  // Only sellers who can take card payments can collect sales tax.
+  useEffect(() => {
+    if (status?.hasAccount && status.chargesEnabled) {
+      loadTaxStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.hasAccount, status?.chargesEnabled]);
 
   const openManageLink = async (mode: "dashboard" | "update") => {
     if (!pubkey || !signer?.sign || !status?.accountId) return;
@@ -127,6 +169,108 @@ const PaymentsSettingsPage = () => {
       setError(e instanceof Error ? e.message : "Failed to open Stripe");
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  // Shared POST to the tax-settings endpoint. Every action returns the latest
+  // combined status, so we always refresh local state from the response.
+  const postTaxSettings = async (
+    action: TaxAction,
+    extra?: { state?: string; registrationId?: string }
+  ) => {
+    if (!pubkey || !signer?.sign) return;
+    const signedEvent = await signer.sign(
+      buildMcpRequestProofTemplate(buildStripeTaxSettingsProof(pubkey))
+    );
+    const res = await fetch("/api/stripe/connect/tax-settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pubkey, action, signedEvent, ...extra }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error || "Failed to update sales tax settings");
+    }
+    setTaxStatus({
+      taxEnabled: !!data.taxEnabled,
+      settingsStatus: data.settingsStatus ?? null,
+      settingsStatusDetail: data.settingsStatusDetail ?? null,
+      registrations: Array.isArray(data.registrations)
+        ? data.registrations
+        : [],
+    });
+  };
+
+  const loadTaxStatus = async () => {
+    if (!pubkey || !signer?.sign) return;
+    setTaxLoading(true);
+    setTaxError(null);
+    try {
+      await postTaxSettings("status");
+    } catch (e) {
+      setTaxError(
+        e instanceof Error ? e.message : "Failed to load sales tax settings"
+      );
+    } finally {
+      setTaxLoading(false);
+    }
+  };
+
+  const handleToggleTax = async (enabled: boolean) => {
+    setTaxBusy("toggle");
+    setTaxError(null);
+    setTaxInfo(null);
+    try {
+      await postTaxSettings(enabled ? "enable" : "disable");
+      setTaxInfo(
+        enabled
+          ? "Sales tax collection turned on."
+          : "Sales tax collection turned off."
+      );
+    } catch (e) {
+      setTaxError(
+        e instanceof Error ? e.message : "Failed to update sales tax setting"
+      );
+    } finally {
+      setTaxBusy(null);
+    }
+  };
+
+  const handleAddRegistration = async () => {
+    const st = newState.trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(st)) {
+      setTaxError("Enter a valid 2-letter US state code (e.g. CA).");
+      return;
+    }
+    setTaxBusy("add");
+    setTaxError(null);
+    setTaxInfo(null);
+    try {
+      await postTaxSettings("add_registration", { state: st });
+      setNewState("");
+      setTaxInfo(`Registered to collect tax in ${st}.`);
+    } catch (e) {
+      setTaxError(
+        e instanceof Error ? e.message : "Failed to add state registration"
+      );
+    } finally {
+      setTaxBusy(null);
+    }
+  };
+
+  const handleRemoveRegistration = async (registrationId: string) => {
+    setTaxBusy(registrationId);
+    setTaxError(null);
+    setTaxInfo(null);
+    try {
+      await postTaxSettings("remove_registration", { registrationId });
+      setTaxInfo("State registration removed.");
+    } catch (e) {
+      setTaxError(
+        e instanceof Error ? e.message : "Failed to remove state registration"
+      );
+    } finally {
+      setTaxBusy(null);
     }
   };
 
@@ -240,6 +384,139 @@ const PaymentsSettingsPage = () => {
                       </Button>
                     </div>
                   </div>
+
+                  {status.chargesEnabled && (
+                    <div className="space-y-3 border-t-2 border-black pt-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-2">
+                          <ReceiptPercentIcon className="text-primary-blue mt-0.5 h-6 w-6 flex-shrink-0" />
+                          <div>
+                            <p className="font-bold text-black">Sales Tax</p>
+                            <p className="text-sm text-gray-700">
+                              Automatically calculate and collect US sales tax
+                              at checkout, based on your buyer&apos;s shipping
+                              address. Only applies to single-seller card
+                              (Stripe) checkouts.
+                            </p>
+                          </div>
+                        </div>
+                        <Switch
+                          size="lg"
+                          isSelected={!!taxStatus?.taxEnabled}
+                          isDisabled={taxBusy !== null || taxLoading}
+                          onValueChange={handleToggleTax}
+                          classNames={{
+                            wrapper:
+                              "bg-gray-300 group-data-[selected=true]:bg-primary-yellow",
+                            thumb:
+                              "bg-white border-2 border-black group-data-[selected=true]:border-black shadow-neo",
+                          }}
+                        />
+                      </div>
+
+                      {taxLoading ? (
+                        <MilkMarketSpinner />
+                      ) : (
+                        taxStatus?.taxEnabled && (
+                          <div className="space-y-3">
+                            <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-xs text-black">
+                              Only collect tax in states where you&apos;re
+                              registered with the tax authority. You are
+                              responsible for filing and remitting the tax you
+                              collect. Add each state where you&apos;re
+                              registered below.
+                            </div>
+
+                            <div>
+                              <p className="mb-2 text-sm font-bold text-black">
+                                Registered states
+                              </p>
+                              {taxStatus.registrations.length === 0 ? (
+                                <p className="text-sm text-gray-600">
+                                  No states added yet. Tax won&apos;t be charged
+                                  until you add at least one state.
+                                </p>
+                              ) : (
+                                <ul className="space-y-2">
+                                  {taxStatus.registrations.map((reg) => (
+                                    <li
+                                      key={reg.id}
+                                      className="flex items-center justify-between rounded-md border-2 border-black bg-white px-3 py-2"
+                                    >
+                                      <span className="text-sm font-bold text-black">
+                                        {reg.state || reg.country}
+                                      </span>
+                                      <Button
+                                        size="sm"
+                                        className={WHITEBUTTONCLASSNAMES}
+                                        startContent={
+                                          <TrashIcon className="h-4 w-4" />
+                                        }
+                                        isLoading={taxBusy === reg.id}
+                                        onClick={() =>
+                                          handleRemoveRegistration(reg.id)
+                                        }
+                                      >
+                                        Remove
+                                      </Button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+
+                            <div className="flex items-end gap-2">
+                              <Input
+                                label="Add state"
+                                placeholder="e.g. CA"
+                                value={newState}
+                                onValueChange={(v) =>
+                                  setNewState(v.toUpperCase().slice(0, 2))
+                                }
+                                className="max-w-[140px]"
+                                classNames={{
+                                  inputWrapper:
+                                    "border-2 border-black rounded-md",
+                                }}
+                              />
+                              <Button
+                                className={BLUEBUTTONCLASSNAMES}
+                                startContent={<PlusIcon className="h-4 w-4" />}
+                                isLoading={taxBusy === "add"}
+                                onClick={handleAddRegistration}
+                              >
+                                Add
+                              </Button>
+                            </div>
+
+                            {taxStatus.registrations.length > 0 &&
+                              taxStatus.settingsStatus &&
+                              taxStatus.settingsStatus !== "active" && (
+                                <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-xs text-black">
+                                  Stripe Tax status: {taxStatus.settingsStatus}
+                                  {taxStatus.settingsStatusDetail
+                                    ? ` — ${taxStatus.settingsStatusDetail}`
+                                    : ""}
+                                  . Tax may not calculate until this is resolved
+                                  in your Stripe dashboard.
+                                </div>
+                              )}
+                          </div>
+                        )
+                      )}
+
+                      {taxInfo && (
+                        <p className="text-sm font-medium text-green-700">
+                          {taxInfo}
+                        </p>
+                      )}
+                      {taxError && (
+                        <p className="text-sm font-medium text-red-600">
+                          {taxError}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <p className="text-xs text-gray-500">
                     Account ID:{" "}

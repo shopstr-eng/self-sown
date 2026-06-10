@@ -117,6 +117,8 @@ interface OrderData {
   currency?: string;
   donationAmount?: number;
   donationPercentage?: number;
+  salesTax?: number;
+  salesTaxCurrency?: string;
   unsignedHerdshareUrl?: string;
   signedHerdshareUrl?: string;
   sellerPubkey?: string;
@@ -479,6 +481,16 @@ const OrdersDashboard = ({
                 ? parseFloat(donationTagArray[2])
                 : undefined;
 
+            const taxTagArray = messageEvent.tags.find(
+              (tag) => tag[0] === "tax"
+            );
+            const salesTax =
+              taxTagArray && taxTagArray[1]
+                ? parseFloat(taxTagArray[1])
+                : undefined;
+            const salesTaxCurrency =
+              taxTagArray && taxTagArray[2] ? taxTagArray[2] : undefined;
+
             const paymentTagArray = messageEvent.tags.find(
               (tag) => tag[0] === "payment"
             );
@@ -577,6 +589,8 @@ const OrdersDashboard = ({
               currency: resolvedCurrency,
               donationAmount,
               donationPercentage,
+              salesTax,
+              salesTaxCurrency,
               sellerPubkey: merchantPubkey || undefined,
               isSubscription: !!isSubscription,
               subscriptionFrequency,
@@ -773,6 +787,9 @@ const OrdersDashboard = ({
             donationAmount: order.donationAmount ?? existing.donationAmount,
             donationPercentage:
               order.donationPercentage ?? existing.donationPercentage,
+            salesTax: order.salesTax ?? existing.salesTax,
+            salesTaxCurrency:
+              order.salesTaxCurrency ?? existing.salesTaxCurrency,
             isSubscription: order.isSubscription || existing.isSubscription,
             subscriptionFrequency:
               order.subscriptionFrequency || existing.subscriptionFrequency,
@@ -1985,6 +2002,9 @@ const OrdersDashboard = ({
                     Donation Amount
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-black uppercase">
+                    Sales Tax
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-black uppercase">
                     Subscription
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-black uppercase">
@@ -1996,7 +2016,7 @@ const OrdersDashboard = ({
                 {orders.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={14}
+                      colSpan={15}
                       className="px-6 py-4 text-center text-black"
                     >
                       No orders yet
@@ -2268,6 +2288,26 @@ const OrdersDashboard = ({
                                     ? ` (${order.donationPercentage}%)`
                                     : ""
                                 }`
+                            : "N/A"}
+                        </td>
+                        <td className="px-4 py-4 text-sm whitespace-nowrap text-black">
+                          {order.salesTax !== undefined && order.salesTax > 0
+                            ? displayCurrency === "sats"
+                              ? `${getConvertedAmount(
+                                  order.salesTax,
+                                  order.salesTaxCurrency ||
+                                    order.currency ||
+                                    "sats"
+                                ).toLocaleString()} sats`
+                              : `$${getConvertedAmount(
+                                  order.salesTax,
+                                  order.salesTaxCurrency ||
+                                    order.currency ||
+                                    "sats"
+                                ).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
                             : "N/A"}
                         </td>
                         <td className="px-4 py-4 text-sm whitespace-nowrap">

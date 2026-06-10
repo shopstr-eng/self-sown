@@ -204,6 +204,7 @@ export default function ProductInvoiceCard({
     quantity?: number;
     donationAmount?: number;
     donationPercentage?: number;
+    salesTax?: number;
   } | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -275,6 +276,7 @@ export default function ProductInvoiceCard({
     selectedBulkOption?: string;
     productId?: string;
     quantity?: number;
+    salesTax?: number;
   }) => {
     try {
       const res = await fetch("/api/email/send-order-email", {
@@ -303,6 +305,7 @@ export default function ProductInvoiceCard({
           selectedBulkOption: params.selectedBulkOption,
           productId: params.productId,
           quantity: params.quantity,
+          salesTax: params.salesTax,
         }),
       });
       if (!res.ok) {
@@ -853,7 +856,9 @@ export default function ProductInvoiceCard({
     // event. Callers paying with Cashu/Lightning must pass "sats" so the
     // orders dashboard doesn't render a sats amount as the product's
     // listed fiat currency (~1500x). Defaults to productData.currency.
-    orderCurrencyOverride?: string
+    orderCurrencyOverride?: string,
+    salesTaxValue?: number,
+    salesTaxCurrencyValue?: string
   ): Promise<boolean> => {
     // Guard: a recipient pubkey is required. Guest checkouts have no
     // userPubkey, so receipt-to-self calls would otherwise pass `undefined`
@@ -922,6 +927,8 @@ export default function ProductInvoiceCard({
         donationAmount: donationAmountValue,
         donationPercentage: donationPercentageValue,
         subscriptionInfo: subscriptionInfoParam,
+        salesTax: salesTaxValue,
+        salesTaxCurrency: salesTaxCurrencyValue,
       };
     } else if (isReceipt) {
       messageSubject = "order-receipt";
@@ -3677,8 +3684,30 @@ export default function ProductInvoiceCard({
       pendingOrderEmailRef.current.orderId = orderId;
     }
 
+    // Attach collected sales tax as its own order email line (Stripe only).
+    if (pendingOrderEmailRef.current && salesTaxNative > 0) {
+      pendingOrderEmailRef.current.salesTax = salesTaxNative;
+    }
+
     flushPendingOrderEmail();
     setStripePaymentConfirmed(true);
+
+    // Record the Stripe Tax transaction so it shows in the seller's Stripe Tax
+    // reports. Best-effort, never blocks the order.
+    if (stripeConnectedAccountForForm && salesTaxSmallest > 0) {
+      try {
+        await fetch("/api/stripe/record-tax-transaction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentIntentId,
+            connectedAccountId: stripeConnectedAccountForForm,
+          }),
+        });
+      } catch (e) {
+        console.warn("Failed to record tax transaction:", e);
+      }
+    }
 
     let productDetails = "";
     if (selectedSize) {
@@ -3776,7 +3805,12 @@ export default function ProductInvoiceCard({
       stripeDonationAmount,
       stripeDonationPercentage,
       3,
-      subInfo
+      subInfo,
+      undefined,
+      salesTaxNative > 0 ? salesTaxNative : undefined,
+      salesTaxNative > 0
+        ? salesTaxCurrency || productData.currency || undefined
+        : undefined
     );
 
     if (data.additionalInfo) {
@@ -4406,8 +4440,10 @@ export default function ProductInvoiceCard({
     "lightning"
   );
 
+  // Sales tax is only charged on the Stripe (card) payment, so it's added to
+  // the card button amount — never to Lightning/Cashu/manual-fiat buttons.
   const formattedCardCost = formatMethodCost(
-    stripeTotal,
+    stripeTotal + (isSatsCurrency ? 0 : salesTaxNative),
     stripeSatsEstimate,
     stripeUsdEstimate,
     "card",
@@ -4968,7 +5004,7 @@ export default function ProductInvoiceCard({
                   </div>
                   {(salesTaxNative > 0 || isCalculatingTax) && (
                     <div className="mt-2 flex justify-between border-t pt-2 text-sm">
-                      <span className="ml-2">Sales tax:</span>
+                      <span className="ml-2">Sales tax (card payments):</span>
                       <span>
                         {isCalculatingTax && salesTaxNative === 0
                           ? "Calculating..."
@@ -5285,7 +5321,7 @@ export default function ProductInvoiceCard({
                 </div>
                 {(salesTaxNative > 0 || isCalculatingTax) && (
                   <div className="mt-2 flex justify-between border-t pt-2 text-sm">
-                    <span className="ml-2">Sales tax:</span>
+                    <span className="ml-2">Sales tax (card payments):</span>
                     <span>
                       {isCalculatingTax && salesTaxNative === 0
                         ? "Calculating..."

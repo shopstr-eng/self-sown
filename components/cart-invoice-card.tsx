@@ -414,6 +414,7 @@ export default function CartInvoiceCard({
     selectedBulkOption?: string;
     donationAmount?: number;
     donationPercentage?: number;
+    salesTax?: number;
   }> | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -488,6 +489,7 @@ export default function CartInvoiceCard({
     quantity?: number;
     donationAmount?: number;
     donationPercentage?: number;
+    salesTax?: number;
   }) => {
     try {
       const shouldIncludeBuyer = params.includeBuyerEmail !== false;
@@ -520,6 +522,7 @@ export default function CartInvoiceCard({
           quantity: params.quantity,
           donationAmount: params.donationAmount,
           donationPercentage: params.donationPercentage,
+          salesTax: params.salesTax,
         }),
       });
       if (!res.ok) {
@@ -1816,7 +1819,9 @@ export default function CartInvoiceCard({
       frequency: string;
       stripeSubscriptionId: string;
     },
-    orderCurrency?: string
+    orderCurrency?: string,
+    salesTaxValue?: number,
+    salesTaxCurrencyValue?: string
   ): Promise<boolean> => {
     if (!pubkeyToReceiveMessage) {
       return false;
@@ -1851,7 +1856,9 @@ export default function CartInvoiceCard({
           donationAmountValue,
           donationPercentageValue,
           subscriptionInfo,
-          orderCurrency
+          orderCurrency,
+          salesTaxValue,
+          salesTaxCurrencyValue
         );
         // If we get here, the message was sent successfully
         return true;
@@ -1908,7 +1915,9 @@ export default function CartInvoiceCard({
       frequency: string;
       stripeSubscriptionId: string;
     },
-    orderCurrency?: string
+    orderCurrency?: string,
+    salesTaxValue?: number,
+    salesTaxCurrencyValue?: string
   ) => {
     if (!pubkeyToReceiveMessage) {
       return;
@@ -1969,6 +1978,8 @@ export default function CartInvoiceCard({
         variantLabel: product.variantLabel,
         selectedBulkOption: product.selectedBulkOption,
         subscriptionInfo,
+        salesTax: salesTaxValue,
+        salesTaxCurrency: salesTaxCurrencyValue,
       };
     } else if (isReceipt) {
       messageSubject = "order-receipt";
@@ -2961,10 +2972,41 @@ export default function CartInvoiceCard({
       pendingOrderEmailRef.current.forEach((entry) => {
         if (!entry.orderId) entry.orderId = orderId;
       });
+      // Sales tax is order-level; attribute it to the first email entry only so
+      // multi-product carts don't repeat the line. Single-seller Stripe only.
+      if (
+        !multiMerchantSellerSplits &&
+        salesTaxNative > 0 &&
+        pendingOrderEmailRef.current[0]
+      ) {
+        pendingOrderEmailRef.current[0].salesTax = salesTaxNative;
+      }
     }
 
     flushPendingOrderEmails();
     setStripePaymentConfirmed(true);
+
+    // Record the Stripe Tax transaction so it shows in the seller's Stripe Tax
+    // reports. Single-seller direct charges only; best-effort, never blocks the
+    // order.
+    if (
+      !multiMerchantSellerSplits &&
+      stripeConnectedAccountForForm &&
+      salesTaxSmallest > 0
+    ) {
+      try {
+        await fetch("/api/stripe/record-tax-transaction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentIntentId,
+            connectedAccountId: stripeConnectedAccountForForm,
+          }),
+        });
+      } catch (e) {
+        console.warn("Failed to record tax transaction:", e);
+      }
+    }
 
     const productTitles = products
       .map((p: any) => p.title || p.productName)
@@ -3025,6 +3067,10 @@ export default function CartInvoiceCard({
       }
       sellerGroupedProducts[product.pubkey]!.push(product);
     }
+
+    // Sales tax is order-level; attach it to the very first order DM line only
+    // (single-seller Stripe orders) so it isn't repeated per product/seller.
+    let taxAttributedToDm = false;
 
     for (const [sellerPk, sellerProducts] of Object.entries(
       sellerGroupedProducts
@@ -3096,6 +3142,16 @@ export default function CartInvoiceCard({
             ? Math.ceil((productAmount * stripeDonationPercentage) / 100)
             : 0;
 
+        const taxForDmLine =
+          !multiMerchantSellerSplits && !taxAttributedToDm && salesTaxNative > 0
+            ? salesTaxNative
+            : 0;
+        if (taxForDmLine > 0) taxAttributedToDm = true;
+        const taxCurrencyForDmLine =
+          taxForDmLine > 0
+            ? salesTaxCurrency || cartCurrency || "USD"
+            : undefined;
+
         await sendPaymentAndContactMessage(
           sellerPk,
           paymentMessage,
@@ -3117,7 +3173,9 @@ export default function CartInvoiceCard({
           stripeDonationPercentage,
           undefined,
           subInfo,
-          productCurrency
+          productCurrency,
+          taxForDmLine || undefined,
+          taxCurrencyForDmLine
         );
       }
     }
@@ -5490,9 +5548,10 @@ export default function CartInvoiceCard({
   // the API on every keystroke. Resets to zero when shipping form isn't
   // active or when the cart isn't Stripe-eligible.
   useEffect(() => {
-    const stripeAvailable =
-      (isSingleSeller && isStripeMerchant) ||
-      (!isSingleSeller && allSellersHaveStripe);
+    // Sales tax is single-seller only in v1 — multi-merchant carts can't honor
+    // each seller's separate tax registrations, so only request a calculation
+    // for a single Stripe seller.
+    const stripeAvailable = isSingleSeller && isStripeMerchant;
     const isShippingForm = formType === "shipping" || formType === "combined";
 
     if (!stripeAvailable || !isShippingForm) {
@@ -5940,8 +5999,12 @@ export default function CartInvoiceCard({
     "lightning"
   );
 
+  // Sales tax is only charged on the Stripe (card) payment, so it's added to
+  // the card button amount — never to Lightning/Cashu/manual-fiat buttons.
   const formattedCardCost = formatCartMethodCost(
-    stripeCosts.nativeTotal,
+    stripeCosts.nativeTotal !== null
+      ? stripeCosts.nativeTotal + salesTaxNative
+      : stripeCosts.nativeTotal,
     stripeCosts.satsTotal,
     "card",
     { stripeFloor: true }
@@ -6873,7 +6936,7 @@ export default function CartInvoiceCard({
                     })()}
                   {(salesTaxNative > 0 || isCalculatingTax) && (
                     <div className="mt-2 flex justify-between border-t pt-2 text-sm">
-                      <span className="ml-2">Sales tax:</span>
+                      <span className="ml-2">Sales tax (card payments):</span>
                       <span>
                         {isCalculatingTax && salesTaxNative === 0
                           ? "Calculating..."
@@ -7325,7 +7388,7 @@ export default function CartInvoiceCard({
                   })()}
                 {(salesTaxNative > 0 || isCalculatingTax) && (
                   <div className="mt-2 flex justify-between border-t pt-2 text-sm">
-                    <span className="ml-2">Sales tax:</span>
+                    <span className="ml-2">Sales tax (card payments):</span>
                     <span>
                       {isCalculatingTax && salesTaxNative === 0
                         ? "Calculating..."

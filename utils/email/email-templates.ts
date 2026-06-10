@@ -231,6 +231,7 @@ export interface OrderEmailParams {
   subscriptionFrequency?: string;
   donationAmount?: number;
   donationPercentage?: number;
+  salesTax?: number;
 }
 
 function formatDonationPercent(pct: number): string {
@@ -248,6 +249,21 @@ function buildDonationSection(params: OrderEmailParams): string {
           <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Platform Donation (${formatDonationPercent(
             pct
           )})</p>
+          <p style="margin:0;color:#111827;font-size:15px;">${esc(
+            String(amt)
+          )} ${esc(params.currency)}</p>
+        </td>
+      </tr>`;
+}
+
+// Sales tax line — only rendered when tax was actually collected. Kept as its
+// own row so the order amount stays items + shipping.
+function buildTaxSection(params: OrderEmailParams): string {
+  const amt = params.salesTax ?? 0;
+  if (!amt || amt <= 0) return "";
+  return `<tr>
+        <td style="padding:16px 0;border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Sales Tax</p>
           <p style="margin:0;color:#111827;font-size:15px;">${esc(
             String(amt)
           )} ${esc(params.currency)}</p>
@@ -330,6 +346,7 @@ export function orderConfirmationEmail(
           )}</p>
         </td>
       </tr>
+      ${buildTaxSection(params)}
       ${buildDonationSection(params)}
       ${subscriptionSection}
       ${deliverySection}
@@ -429,6 +446,7 @@ export function sellerNewOrderEmail(
           )}</p>
         </td>
       </tr>
+      ${buildTaxSection(params)}
       ${buildDonationSection(params)}
       ${subscriptionSection}
       ${deliverySection}
