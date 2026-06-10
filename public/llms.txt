@@ -6,7 +6,7 @@
 
 - [About Milk Market](https://milk.market/about): Mission, how the decentralized marketplace works, and why it was built.
 - [FAQ](https://milk.market/faq): Common questions about payments, selling, privacy, and Nostr.
-- [Producer Guide](https://milk.market/producer-guide): Step-by-step guide for producers — account, membership, listing products, managing orders, custom storefronts, email flows, and connecting AI agents.
+- [Producer Guide](https://milk.market/producer-guide): Step-by-step guide for producers — account, membership, listing products, managing orders, custom storefronts, email flows, Shippo shipping labels, and connecting AI agents.
 - [Contact](https://milk.market/contact): Reach the team via Nostr, GitHub, X, or email.
 
 ## Marketplace

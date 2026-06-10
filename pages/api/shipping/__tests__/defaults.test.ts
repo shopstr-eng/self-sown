@@ -21,6 +21,7 @@ const parseSignedEventHeaderMock = jest.fn();
 const verifyEventMock = jest.fn();
 const getShippingDefaultsForPubkeyMock = jest.fn();
 const upsertShippingDefaultsMock = jest.fn();
+const isPubkeyProEntitledMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -44,6 +45,10 @@ jest.mock("@/utils/db/shipping-service", () => ({
     getShippingDefaultsForPubkeyMock(...args),
   upsertShippingDefaults: (...args: unknown[]) =>
     upsertShippingDefaultsMock(...args),
+}));
+
+jest.mock("@/utils/pro/membership", () => ({
+  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 import handler from "@/pages/api/shipping/defaults";
@@ -91,6 +96,7 @@ beforeEach(() => {
   });
   getShippingDefaultsForPubkeyMock.mockResolvedValue({ fromZip: "10001" });
   upsertShippingDefaultsMock.mockResolvedValue({ fromZip: "10001" });
+  isPubkeyProEntitledMock.mockResolvedValue(true);
 });
 
 describe("/api/shipping/defaults signed-event (cryptographic proof) guards", () => {
@@ -216,5 +222,58 @@ describe("/api/shipping/defaults signed-event (cryptographic proof) guards", () 
       error: "Signed event does not match request",
     });
     expectNoDb();
+  });
+});
+
+describe("/api/shipping/defaults Herd (Pro) entitlement gate", () => {
+  // Writing (POST) ship-from defaults is a Herd feature; reading (GET) stays
+  // open so lapsed sellers can still see their saved values.
+  it("rejects a non-entitled seller's POST with 403 and never writes", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest("POST", { fromZip: "10001" }), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+    expect(upsertShippingDefaultsMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 on a POST when membership cannot be resolved and never writes", async () => {
+    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest("POST", { fromZip: "10001" }), res as any);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.jsonBody).toEqual({
+      error: "Could not verify membership. Please try again.",
+    });
+    expect(upsertShippingDefaultsMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps GET (read) open for a non-entitled seller", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+    parseSignedEventHeaderMock.mockReturnValue({
+      kind: MCP_REQUEST_PROOF_KIND,
+      pubkey: SELLER_PUBKEY,
+      tags: [
+        ["path", "/api/shipping/defaults"],
+        ["method", "GET"],
+      ],
+    });
+
+    const res = createResponse();
+    await handler(makeRequest("GET"), res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonBody).toMatchObject({ success: true });
+    expect(getShippingDefaultsForPubkeyMock).toHaveBeenCalledWith(
+      SELLER_PUBKEY
+    );
+    // The Pro gate is never consulted on the read path.
+    expect(isPubkeyProEntitledMock).not.toHaveBeenCalled();
   });
 });

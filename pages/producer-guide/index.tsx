@@ -619,9 +619,9 @@ const ProducerGuidePage = () => {
                         <li>
                           Go Herd for $21/month (or $168/year, saving 33%) to
                           unlock advanced storefronts, custom domains, email
-                          flows, custom product pages, shipping labels (coming
-                          soon), and AI agent (MCP) access &mdash; or go
-                          Wrangler for one-time $1,050 lifetime access
+                          flows, custom product pages, shipping labels, and AI
+                          agent (MCP) access &mdash; or go Wrangler for one-time
+                          $1,050 lifetime access
                         </li>
                         <li>
                           New sellers get a 30-day free trial of Herd with no

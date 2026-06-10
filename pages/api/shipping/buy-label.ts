@@ -4,6 +4,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { buyLabel } from "@/utils/shipping/shippo";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isListedSeller } from "@/utils/shipping/shipment-owners";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 import {
   MCP_REQUEST_PROOF_KIND,
   MCP_SIGNED_EVENT_HEADER,
@@ -101,6 +102,10 @@ export default async function handler(
         error: "Only registered sellers may purchase shipping labels",
       });
     }
+
+    // Pro gate: buying labels is a Herd feature. Enforce membership server-side
+    // after the signed-event + listed-seller checks, before any Shippo charge.
+    if (!(await requireProEntitlement(event.pubkey, res))) return;
 
     // Ownership check: the shipment must have been quoted by /api/shipping/rates
     // with a signed-event header from this same pubkey. This prevents callers

@@ -13,6 +13,8 @@ import {
   buildShippingBuyLabelProof,
 } from "@/utils/mcp/request-proof";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import { useProMembership } from "@/components/utility-components/pro-membership-context";
+import UpgradeBanner from "@/components/pro/upgrade-banner";
 import {
   SUPPORTED_CARRIERS,
   ShippoConnectionStatus,
@@ -85,6 +87,7 @@ export default function BuyShippingLabelModal({
   onPurchased,
 }: BuyShippingLabelModalProps) {
   const { signer, pubkey } = useContext(SignerContext);
+  const { membership } = useProMembership();
   const [loadingRates, setLoadingRates] = useState(false);
   const [rates, setRates] = useState<RateOption[]>([]);
   const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
@@ -125,6 +128,13 @@ export default function BuyShippingLabelModal({
         "Sign in with your Nostr key to buy shipping labels (needed to authorize the purchase)."
       );
       setRates([]);
+      return;
+    }
+    if (!membership.isPro) {
+      // Shipping labels are a Herd feature; don't fire the (server-gated) rate
+      // lookup for non-members. The in-modal banner explains the upgrade.
+      setRates([]);
+      setError(null);
       return;
     }
 
@@ -213,6 +223,7 @@ export default function BuyShippingLabelModal({
     signer,
     pubkey,
     isReturn,
+    membership.isPro,
   ]);
 
   const toggleCarrier = (id: string) => {
@@ -352,159 +363,166 @@ export default function BuyShippingLabelModal({
           {isReturn ? "Buy Return Label" : "Buy Shipping Label"}
         </ModalHeader>
         <ModalBody>
-          {notConnected && (
-            <div className="mb-2 rounded-md border-2 border-black bg-yellow-50 p-3 text-sm">
-              Connect your own Shippo account in{" "}
-              <strong>Settings → Shipping</strong> before buying labels. Shippo
-              bills your account directly.
-            </div>
-          )}
-
-          {purchased ? (
-            <div className="space-y-3">
-              <p className="font-semibold text-green-700">
-                Label purchased successfully
-              </p>
-              <p className="text-sm">
-                {purchased.carrier} {purchased.service} — $
-                {purchased.rate.toFixed(2)} {purchased.currency}
-              </p>
-              {purchased.trackingCode && (
-                <p className="text-sm">
-                  Tracking:{" "}
-                  {purchased.trackingUrl ? (
-                    <a
-                      href={purchased.trackingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline"
-                    >
-                      {purchased.trackingCode}
-                    </a>
-                  ) : (
-                    purchased.trackingCode
-                  )}
-                </p>
-              )}
-              <a
-                href={purchased.labelUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-primary-yellow inline-block rounded-md border-2 border-black px-4 py-2 font-semibold hover:bg-yellow-300"
-              >
-                Download label ({purchased.labelFormat})
-              </a>
-            </div>
+          {!membership.isPro ? (
+            <UpgradeBanner feature="Shippo shipping labels" />
           ) : (
-            <div className="space-y-3">
-              <div className="text-sm text-gray-700">
-                {isReturn ? (
-                  <>
-                    <div>
-                      <strong>Return from:</strong> {toAddress.street1},{" "}
-                      {toAddress.city}, {toAddress.state} {toAddress.zip}
-                    </div>
-                    <div>
-                      <strong>Return to:</strong>{" "}
-                      {sellerHasReturnAddress
-                        ? `${defaults?.fromStreet1}, ${defaults?.fromCity}, ${defaults?.fromState} ${defaults?.fromZip}`
-                        : "Set a default ship-from address in Settings → Shipping"}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div>
-                      <strong>From ZIP:</strong> {fromZip}
-                    </div>
-                    <div>
-                      <strong>To:</strong> {toAddress.street1},{" "}
-                      {toAddress.street2 ? toAddress.street2 + ", " : ""}
-                      {toAddress.city}, {toAddress.state} {toAddress.zip}
-                    </div>
-                  </>
-                )}
-                <div>
-                  <strong>Weight:</strong> {parcel.weightOz} oz
-                  {parcel.lengthIn && parcel.widthIn && parcel.heightIn
-                    ? ` • ${parcel.lengthIn}×${parcel.widthIn}×${parcel.heightIn} in`
-                    : ""}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-1 text-xs font-semibold text-black">
-                  Carriers
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {SUPPORTED_CARRIERS.map((c) => {
-                    const active = carriers.includes(c.id);
-                    return (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => toggleCarrier(c.id)}
-                        className={`rounded-md border-2 border-black px-2.5 py-1 text-xs font-semibold ${
-                          active
-                            ? "bg-primary-yellow text-black"
-                            : "bg-white text-black hover:bg-gray-100"
-                        }`}
-                      >
-                        {c.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {!isReturn && loadingRates && <p>Loading rates…</p>}
-              {error && <p className="text-red-700">{error}</p>}
-
-              {!isReturn && !loadingRates && rates.length > 0 && (
-                <div className="space-y-2">
-                  {rates.map((r) => (
-                    <label
-                      key={r.id}
-                      className={`flex cursor-pointer items-center justify-between rounded-md border-2 p-3 ${
-                        selectedRateId === r.id
-                          ? "border-black bg-yellow-50"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="shipping-rate"
-                          checked={selectedRateId === r.id}
-                          onChange={() => setSelectedRateId(r.id)}
-                        />
-                        <span>
-                          <strong>
-                            {r.carrier} {r.service}
-                          </strong>
-                          {r.deliveryDays
-                            ? ` • ~${r.deliveryDays} day${r.deliveryDays === 1 ? "" : "s"}`
-                            : ""}
-                        </span>
-                      </span>
-                      <span className="font-semibold">
-                        ${r.rate.toFixed(2)} {r.currency}
-                      </span>
-                    </label>
-                  ))}
+            <>
+              {notConnected && (
+                <div className="mb-2 rounded-md border-2 border-black bg-yellow-50 p-3 text-sm">
+                  Connect your own Shippo account in{" "}
+                  <strong>Settings → Shipping</strong> before buying labels.
+                  Shippo bills your account directly.
                 </div>
               )}
 
-              {!isReturn && !loadingRates && rates.length === 0 && !error && (
-                <p>No rates available for this shipment.</p>
-              )}
+              {purchased ? (
+                <div className="space-y-3">
+                  <p className="font-semibold text-green-700">
+                    Label purchased successfully
+                  </p>
+                  <p className="text-sm">
+                    {purchased.carrier} {purchased.service} — $
+                    {purchased.rate.toFixed(2)} {purchased.currency}
+                  </p>
+                  {purchased.trackingCode && (
+                    <p className="text-sm">
+                      Tracking:{" "}
+                      {purchased.trackingUrl ? (
+                        <a
+                          href={purchased.trackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 underline"
+                        >
+                          {purchased.trackingCode}
+                        </a>
+                      ) : (
+                        purchased.trackingCode
+                      )}
+                    </p>
+                  )}
+                  <a
+                    href={purchased.labelUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-primary-yellow inline-block rounded-md border-2 border-black px-4 py-2 font-semibold hover:bg-yellow-300"
+                  >
+                    Download label ({purchased.labelFormat})
+                  </a>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-700">
+                    {isReturn ? (
+                      <>
+                        <div>
+                          <strong>Return from:</strong> {toAddress.street1},{" "}
+                          {toAddress.city}, {toAddress.state} {toAddress.zip}
+                        </div>
+                        <div>
+                          <strong>Return to:</strong>{" "}
+                          {sellerHasReturnAddress
+                            ? `${defaults?.fromStreet1}, ${defaults?.fromCity}, ${defaults?.fromState} ${defaults?.fromZip}`
+                            : "Set a default ship-from address in Settings → Shipping"}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <strong>From ZIP:</strong> {fromZip}
+                        </div>
+                        <div>
+                          <strong>To:</strong> {toAddress.street1},{" "}
+                          {toAddress.street2 ? toAddress.street2 + ", " : ""}
+                          {toAddress.city}, {toAddress.state} {toAddress.zip}
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <strong>Weight:</strong> {parcel.weightOz} oz
+                      {parcel.lengthIn && parcel.widthIn && parcel.heightIn
+                        ? ` • ${parcel.lengthIn}×${parcel.widthIn}×${parcel.heightIn} in`
+                        : ""}
+                    </div>
+                  </div>
 
-              {isReturn && (
-                <p className="text-xs text-gray-600">
-                  We&apos;ll buy the cheapest available rate from the selected
-                  carriers and send you a return label PDF.
-                </p>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold text-black">
+                      Carriers
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUPPORTED_CARRIERS.map((c) => {
+                        const active = carriers.includes(c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => toggleCarrier(c.id)}
+                            className={`rounded-md border-2 border-black px-2.5 py-1 text-xs font-semibold ${
+                              active
+                                ? "bg-primary-yellow text-black"
+                                : "bg-white text-black hover:bg-gray-100"
+                            }`}
+                          >
+                            {c.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {!isReturn && loadingRates && <p>Loading rates…</p>}
+                  {error && <p className="text-red-700">{error}</p>}
+
+                  {!isReturn && !loadingRates && rates.length > 0 && (
+                    <div className="space-y-2">
+                      {rates.map((r) => (
+                        <label
+                          key={r.id}
+                          className={`flex cursor-pointer items-center justify-between rounded-md border-2 p-3 ${
+                            selectedRateId === r.id
+                              ? "border-black bg-yellow-50"
+                              : "border-gray-300 bg-white"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="shipping-rate"
+                              checked={selectedRateId === r.id}
+                              onChange={() => setSelectedRateId(r.id)}
+                            />
+                            <span>
+                              <strong>
+                                {r.carrier} {r.service}
+                              </strong>
+                              {r.deliveryDays
+                                ? ` • ~${r.deliveryDays} day${r.deliveryDays === 1 ? "" : "s"}`
+                                : ""}
+                            </span>
+                          </span>
+                          <span className="font-semibold">
+                            ${r.rate.toFixed(2)} {r.currency}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {!isReturn &&
+                    !loadingRates &&
+                    rates.length === 0 &&
+                    !error && <p>No rates available for this shipment.</p>}
+
+                  {isReturn && (
+                    <p className="text-xs text-gray-600">
+                      We&apos;ll buy the cheapest available rate from the
+                      selected carriers and send you a return label PDF.
+                    </p>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
         </ModalBody>
         <ModalFooter>
@@ -516,6 +534,7 @@ export default function BuyShippingLabelModal({
               className="bg-primary-yellow font-semibold text-black"
               onPress={handleBuy}
               isDisabled={
+                !membership.isPro ||
                 buying ||
                 loadingRates ||
                 (isReturn ? !sellerHasReturnAddress : !selectedRateId) ||

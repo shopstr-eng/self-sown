@@ -58,7 +58,7 @@ export default function Faq() {
         {
           title: "How much does it cost to sell?",
           content:
-            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
         },
         {
           title: "Is there a free trial of Herd?",
@@ -73,7 +73,7 @@ export default function Faq() {
         {
           title: "How does shipping work?",
           content:
-            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Herd feature coming soon.",
+            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Herd feature.",
         },
       ],
     },

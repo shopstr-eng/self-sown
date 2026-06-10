@@ -27,6 +27,7 @@ const parseSignedEventHeaderMock = jest.fn();
 const matchesMcpRequestProofMock = jest.fn();
 const buildShippingBuyLabelProofMock = jest.fn();
 const verifyEventMock = jest.fn();
+const isPubkeyProEntitledMock = jest.fn();
 
 const claimShipmentForPurchaseMock = jest.fn();
 const releaseShipmentClaimMock = jest.fn();
@@ -49,6 +50,10 @@ jest.mock("@/utils/shipping/shippo-oauth", () => ({
 
 jest.mock("@/utils/shipping/shipment-owners", () => ({
   isListedSeller: (...args: unknown[]) => isListedSellerMock(...args),
+}));
+
+jest.mock("@/utils/pro/membership", () => ({
+  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 jest.mock("nostr-tools", () => ({
@@ -161,6 +166,7 @@ beforeEach(() => {
   });
 
   isListedSellerMock.mockResolvedValue(true);
+  isPubkeyProEntitledMock.mockResolvedValue(true);
   getShipmentOwnerMock.mockResolvedValue(SELLER_PUBKEY);
   getShippoAccessTokenMock.mockResolvedValue("oauth.seller-token");
   insertShippingLabelMock.mockResolvedValue({ id: 42 });
@@ -332,6 +338,51 @@ describe("/api/shipping/buy-label authorization & entitlement", () => {
     expect(store.rows.get(SHIPMENT_ID)).toBe("owned");
 
     // No charge happened.
+    expect(buyLabelMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("/api/shipping/buy-label Herd (Pro) entitlement gate", () => {
+  // The Pro gate runs AFTER the signed-event + listed-seller checks but BEFORE
+  // any shipment ownership lookup, claim, or Shippo charge — so a seller without
+  // an active Herd membership can never buy (and be charged for) a label.
+  it("rejects a non-entitled (free/lapsed) seller with 403 and never claims or charges", async () => {
+    const store = makeClaimStore();
+    claimShipmentForPurchaseMock.mockImplementation(store.claim);
+    releaseShipmentClaimMock.mockImplementation(store.release);
+
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+
+    // Bailed before touching the shipment registry or Shippo.
+    expect(getShipmentOwnerMock).not.toHaveBeenCalled();
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+    expect(buyLabelMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 (and never charges) when membership cannot be resolved", async () => {
+    const store = makeClaimStore();
+    claimShipmentForPurchaseMock.mockImplementation(store.claim);
+    releaseShipmentClaimMock.mockImplementation(store.release);
+
+    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.jsonBody).toEqual({
+      error: "Could not verify membership. Please try again.",
+    });
+    expect(getShipmentOwnerMock).not.toHaveBeenCalled();
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
     expect(buyLabelMock).not.toHaveBeenCalled();
   });
 });

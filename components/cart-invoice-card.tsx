@@ -1531,13 +1531,13 @@ export default function CartInvoiceCard({
   }, []);
 
   const applySavedAddress = (address: SavedAddress) => {
-    setValue("Name", address.name);
-    setValue("Address", address.address);
-    setValue("Unit", address.unit || "");
-    setValue("City", address.city);
-    setValue("Postal Code", address.zip);
-    setValue("State/Province", address.state);
-    setValue("Country", address.country);
+    formSetValue("Name", address.name);
+    formSetValue("Address", address.address);
+    formSetValue("Unit", address.unit || "");
+    formSetValue("City", address.city);
+    formSetValue("Postal Code", address.zip);
+    formSetValue("State/Province", address.state);
+    formSetValue("Country", address.country);
     setSelectedSavedAddressId(address.id);
   };
 

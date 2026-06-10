@@ -212,8 +212,8 @@ const ProMembershipSection = () => {
               </p>
               <p className="text-sm text-gray-600">
                 Upgrade to Herd for advanced storefronts, custom domains, email
-                flows, custom product pages, shipping (coming soon), and the MCP
-                API. Start with a 30-day free trial, no payment required — or go
+                flows, custom product pages, shipping labels, and the MCP API.
+                Start with a 30-day free trial, no payment required — or go
                 Wrangler for one-time lifetime access.
               </p>
             </div>

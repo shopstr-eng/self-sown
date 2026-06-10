@@ -5,6 +5,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { buyReturnLabel } from "@/utils/shipping/shippo";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isListedSeller } from "@/utils/shipping/shipment-owners";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 import {
   MCP_REQUEST_PROOF_KIND,
   MCP_SIGNED_EVENT_HEADER,
@@ -107,6 +108,10 @@ export default async function handler(
       .status(403)
       .json({ error: "Only registered sellers may purchase return labels" });
   }
+
+  // Pro gate: issuing return labels is a Herd feature. Enforce membership
+  // server-side before any Shippo charge.
+  if (!(await requireProEntitlement(event.pubkey, res))) return;
 
   // Authorization: the return label's destination is locked to the seller's
   // saved ship-from defaults. This prevents an authenticated seller from

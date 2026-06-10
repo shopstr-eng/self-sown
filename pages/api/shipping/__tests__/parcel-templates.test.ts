@@ -22,6 +22,7 @@ const verifyEventMock = jest.fn();
 const listParcelTemplatesForPubkeyMock = jest.fn();
 const upsertParcelTemplateMock = jest.fn();
 const deleteParcelTemplateMock = jest.fn();
+const isPubkeyProEntitledMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -47,6 +48,10 @@ jest.mock("@/utils/db/shipping-service", () => ({
     upsertParcelTemplateMock(...args),
   deleteParcelTemplate: (...args: unknown[]) =>
     deleteParcelTemplateMock(...args),
+}));
+
+jest.mock("@/utils/pro/membership", () => ({
+  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 import handler from "@/pages/api/shipping/parcel-templates";
@@ -99,6 +104,7 @@ beforeEach(() => {
   listParcelTemplatesForPubkeyMock.mockResolvedValue([{ id: 1 }]);
   upsertParcelTemplateMock.mockResolvedValue({ id: 1 });
   deleteParcelTemplateMock.mockResolvedValue(true);
+  isPubkeyProEntitledMock.mockResolvedValue(true);
 });
 
 describe("/api/shipping/parcel-templates signed-event (cryptographic proof) guards", () => {
@@ -230,5 +236,78 @@ describe("/api/shipping/parcel-templates signed-event (cryptographic proof) guar
       error: "Signed event does not match request",
     });
     expectNoDb();
+  });
+});
+
+describe("/api/shipping/parcel-templates Herd (Pro) entitlement gate", () => {
+  // Creating (POST) / deleting (DELETE) templates is a Herd write; listing
+  // (GET) stays open so lapsed sellers can still read their saved templates.
+  it("rejects a non-entitled seller's POST with 403 and never writes", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+    expect(upsertParcelTemplateMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-entitled seller's DELETE with 403 and never deletes", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+    parseSignedEventHeaderMock.mockReturnValue({
+      kind: MCP_REQUEST_PROOF_KIND,
+      pubkey: SELLER_PUBKEY,
+      tags: [
+        ["path", "/api/shipping/parcel-templates"],
+        ["method", "DELETE"],
+      ],
+    });
+
+    const res = createResponse();
+    await handler(makeRequest("DELETE", { id: 5 }), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+    expect(deleteParcelTemplateMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 on a POST when membership cannot be resolved and never writes", async () => {
+    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest(), res as any);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.jsonBody).toEqual({
+      error: "Could not verify membership. Please try again.",
+    });
+    expect(upsertParcelTemplateMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps GET (list) open for a non-entitled seller", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+    parseSignedEventHeaderMock.mockReturnValue({
+      kind: MCP_REQUEST_PROOF_KIND,
+      pubkey: SELLER_PUBKEY,
+      tags: [
+        ["path", "/api/shipping/parcel-templates"],
+        ["method", "GET"],
+      ],
+    });
+
+    const res = createResponse();
+    await handler(makeRequest("GET"), res as any);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonBody).toMatchObject({ success: true });
+    expect(listParcelTemplatesForPubkeyMock).toHaveBeenCalledWith(
+      SELLER_PUBKEY
+    );
+    expect(isPubkeyProEntitledMock).not.toHaveBeenCalled();
   });
 });

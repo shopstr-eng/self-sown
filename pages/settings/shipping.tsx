@@ -7,6 +7,8 @@ import {
 } from "@heroicons/react/24/outline";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import { useProMembership } from "@/components/utility-components/pro-membership-context";
+import UpgradeBanner from "@/components/pro/upgrade-banner";
 import {
   SUPPORTED_CARRIERS,
   ShippoConnectionStatus,
@@ -56,6 +58,7 @@ const EMPTY_TEMPLATE = {
 
 const ShippingSettingsPage = () => {
   const { signer, pubkey } = useContext(SignerContext);
+  const { membership } = useProMembership();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -233,351 +236,368 @@ const ShippingSettingsPage = () => {
 
           {!loading && signerReady && (
             <div className="space-y-6">
-              {/* Shippo account connection */}
-              <section className={sectionCls}>
-                <h2 className="mb-1 text-xl font-bold text-black">
-                  Shippo Account
-                </h2>
-                <p className="mb-4 text-sm text-gray-600">
-                  Connect your own Shippo account to buy shipping labels. Shippo
-                  bills your account directly — the marketplace never charges
-                  you for shipping.
-                </p>
-                {connection && !connection.configured ? (
-                  <div className="rounded-md border-2 border-black bg-yellow-50 p-3 text-sm text-black">
-                    Shipping is not configured on this marketplace yet. Check
-                    back later.
-                  </div>
-                ) : connection?.connected ? (
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-semibold text-green-700">
-                        Connected to Shippo
-                      </p>
-                      {connection.accountId && (
-                        <p className="text-xs text-gray-600">
-                          Account: {connection.accountId}
-                        </p>
-                      )}
-                      {connection.connectedAt && (
-                        <p className="text-xs text-gray-600">
-                          Connected{" "}
-                          {new Date(
-                            connection.connectedAt
-                          ).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      className="border-2 border-black bg-white font-semibold text-black"
-                      onPress={handleDisconnect}
-                      isLoading={disconnecting}
-                      isDisabled={disconnecting}
-                    >
-                      Disconnect
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    className="bg-primary-yellow border-2 border-black font-semibold text-black"
-                    onPress={handleConnect}
-                    isLoading={connecting}
-                    isDisabled={connecting}
-                  >
-                    Connect Shippo account
-                  </Button>
-                )}
-              </section>
-
-              {/* Default ship-from address */}
-              <section className={sectionCls}>
-                <h2 className="mb-1 text-xl font-bold text-black">
-                  Default Ship-From Address
-                </h2>
-                <p className="mb-4 text-sm text-gray-600">
-                  Pre-fills new listings and is used as the origin for return
-                  labels.
-                </p>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <Input
-                    classNames={inputCls}
-                    label="Name"
-                    labelPlacement="outside"
-                    placeholder="Your name"
-                    value={defaults.fromName || ""}
-                    onChange={(e) =>
-                      setDefaults({ ...defaults, fromName: e.target.value })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="Company (optional)"
-                    labelPlacement="outside"
-                    placeholder=""
-                    value={defaults.fromCompany || ""}
-                    onChange={(e) =>
-                      setDefaults({
-                        ...defaults,
-                        fromCompany: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="Street"
-                    labelPlacement="outside"
-                    placeholder="123 Main St"
-                    value={defaults.fromStreet1 || ""}
-                    onChange={(e) =>
-                      setDefaults({
-                        ...defaults,
-                        fromStreet1: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="Apt/Suite (optional)"
-                    labelPlacement="outside"
-                    placeholder=""
-                    value={defaults.fromStreet2 || ""}
-                    onChange={(e) =>
-                      setDefaults({
-                        ...defaults,
-                        fromStreet2: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="City"
-                    labelPlacement="outside"
-                    placeholder=""
-                    value={defaults.fromCity || ""}
-                    onChange={(e) =>
-                      setDefaults({ ...defaults, fromCity: e.target.value })
-                    }
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      classNames={inputCls}
-                      label="State"
-                      labelPlacement="outside"
-                      placeholder="CA"
-                      value={defaults.fromState || ""}
-                      onChange={(e) =>
-                        setDefaults({
-                          ...defaults,
-                          fromState: e.target.value,
-                        })
-                      }
-                    />
-                    <Input
-                      classNames={inputCls}
-                      label="ZIP"
-                      labelPlacement="outside"
-                      placeholder="90210"
-                      value={defaults.fromZip || ""}
-                      onChange={(e) =>
-                        setDefaults({ ...defaults, fromZip: e.target.value })
-                      }
-                    />
-                  </div>
-                  <Input
-                    classNames={inputCls}
-                    label="Country"
-                    labelPlacement="outside"
-                    placeholder="US"
-                    value={defaults.fromCountry || "US"}
-                    onChange={(e) =>
-                      setDefaults({
-                        ...defaults,
-                        fromCountry: e.target.value.toUpperCase(),
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="Phone (optional)"
-                    labelPlacement="outside"
-                    placeholder=""
-                    value={defaults.fromPhone || ""}
-                    onChange={(e) =>
-                      setDefaults({
-                        ...defaults,
-                        fromPhone: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <p className="mb-2 text-sm font-semibold text-black">
-                    Preferred Carriers
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {SUPPORTED_CARRIERS.map((c) => {
-                      const active = (
-                        defaults.preferredCarriers || []
-                      ).includes(c.id);
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => toggleCarrier(c.id)}
-                          className={`rounded-md border-2 border-black px-3 py-1.5 text-sm font-semibold ${
-                            active
-                              ? "bg-primary-yellow text-black"
-                              : "bg-white text-black hover:bg-gray-100"
-                          }`}
-                        >
-                          {c.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="mt-5 flex items-center gap-3">
-                  <Button
-                    className="bg-primary-yellow font-semibold text-black"
-                    onPress={handleSaveDefaults}
-                    isLoading={savingDefaults}
-                  >
-                    Save defaults
-                  </Button>
-                  {defaultsToast && (
-                    <span className="text-sm text-gray-700">
-                      {defaultsToast}
-                    </span>
-                  )}
-                </div>
-              </section>
-
-              {/* Parcel templates */}
-              <section className={sectionCls}>
-                <h2 className="mb-1 text-xl font-bold text-black">
-                  Parcel Templates
-                </h2>
-                <p className="mb-4 text-sm text-gray-600">
-                  Save package sizes you ship often so you can reuse them on
-                  listings without re-entering dimensions.
-                </p>
-
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-6">
-                  <Input
-                    classNames={inputCls}
-                    label="Name"
-                    labelPlacement="outside"
-                    placeholder="Small box"
-                    className="sm:col-span-2"
-                    value={newTemplate.name}
-                    onChange={(e) =>
-                      setNewTemplate({ ...newTemplate, name: e.target.value })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="Weight oz"
-                    labelPlacement="outside"
-                    type="number"
-                    placeholder="16"
-                    value={String(newTemplate.weightOz)}
-                    onChange={(e) =>
-                      setNewTemplate({
-                        ...newTemplate,
-                        weightOz: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="L (in)"
-                    labelPlacement="outside"
-                    type="number"
-                    placeholder=""
-                    value={String(newTemplate.lengthIn)}
-                    onChange={(e) =>
-                      setNewTemplate({
-                        ...newTemplate,
-                        lengthIn: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="W (in)"
-                    labelPlacement="outside"
-                    type="number"
-                    placeholder=""
-                    value={String(newTemplate.widthIn)}
-                    onChange={(e) =>
-                      setNewTemplate({
-                        ...newTemplate,
-                        widthIn: e.target.value,
-                      })
-                    }
-                  />
-                  <Input
-                    classNames={inputCls}
-                    label="H (in)"
-                    labelPlacement="outside"
-                    type="number"
-                    placeholder=""
-                    value={String(newTemplate.heightIn)}
-                    onChange={(e) =>
-                      setNewTemplate({
-                        ...newTemplate,
-                        heightIn: e.target.value,
-                      })
-                    }
-                  />
-                </div>
-                <div className="mt-3">
-                  <Button
-                    className="bg-primary-yellow font-semibold text-black"
-                    startContent={<PlusIcon className="h-4 w-4" />}
-                    onPress={handleAddTemplate}
-                    isLoading={savingTemplate}
-                    isDisabled={
-                      !newTemplate.name.trim() || !Number(newTemplate.weightOz)
-                    }
-                  >
-                    Save template
-                  </Button>
-                </div>
-
-                {templates.length > 0 && (
-                  <div className="mt-5 divide-y-2 divide-black overflow-hidden rounded-md border-2 border-black">
-                    {templates.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex items-center justify-between bg-white p-3"
-                      >
+              {!membership.isPro && (
+                <UpgradeBanner
+                  className="mb-2"
+                  feature="Shippo shipping labels"
+                />
+              )}
+              {membership.isPro && (
+                <>
+                  {/* Shippo account connection */}
+                  <section className={sectionCls}>
+                    <h2 className="mb-1 text-xl font-bold text-black">
+                      Shippo Account
+                    </h2>
+                    <p className="mb-4 text-sm text-gray-600">
+                      Connect your own Shippo account to buy shipping labels.
+                      Shippo bills your account directly — the marketplace never
+                      charges you for shipping.
+                    </p>
+                    {connection && !connection.configured ? (
+                      <div className="rounded-md border-2 border-black bg-yellow-50 p-3 text-sm text-black">
+                        Shipping is not configured on this marketplace yet.
+                        Check back later.
+                      </div>
+                    ) : connection?.connected ? (
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <div className="font-semibold text-black">
-                            {t.name}
-                          </div>
-                          <div className="text-sm text-gray-600">
-                            {t.weightOz} oz
-                            {t.lengthIn && t.widthIn && t.heightIn
-                              ? ` • ${t.lengthIn}×${t.widthIn}×${t.heightIn} in`
-                              : ""}
-                          </div>
+                          <p className="font-semibold text-green-700">
+                            Connected to Shippo
+                          </p>
+                          {connection.accountId && (
+                            <p className="text-xs text-gray-600">
+                              Account: {connection.accountId}
+                            </p>
+                          )}
+                          {connection.connectedAt && (
+                            <p className="text-xs text-gray-600">
+                              Connected{" "}
+                              {new Date(
+                                connection.connectedAt
+                              ).toLocaleDateString()}
+                            </p>
+                          )}
                         </div>
                         <Button
-                          variant="light"
-                          isIconOnly
-                          aria-label="Delete template"
-                          onPress={() => handleDeleteTemplate(t.id)}
+                          className="border-2 border-black bg-white font-semibold text-black"
+                          onPress={handleDisconnect}
+                          isLoading={disconnecting}
+                          isDisabled={disconnecting}
                         >
-                          <TrashIcon className="h-5 w-5 text-red-600" />
+                          Disconnect
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+                    ) : (
+                      <Button
+                        className="bg-primary-yellow border-2 border-black font-semibold text-black"
+                        onPress={handleConnect}
+                        isLoading={connecting}
+                        isDisabled={connecting}
+                      >
+                        Connect Shippo account
+                      </Button>
+                    )}
+                  </section>
+
+                  {/* Default ship-from address */}
+                  <section className={sectionCls}>
+                    <h2 className="mb-1 text-xl font-bold text-black">
+                      Default Ship-From Address
+                    </h2>
+                    <p className="mb-4 text-sm text-gray-600">
+                      Pre-fills new listings and is used as the origin for
+                      return labels.
+                    </p>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Input
+                        classNames={inputCls}
+                        label="Name"
+                        labelPlacement="outside"
+                        placeholder="Your name"
+                        value={defaults.fromName || ""}
+                        onChange={(e) =>
+                          setDefaults({ ...defaults, fromName: e.target.value })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="Company (optional)"
+                        labelPlacement="outside"
+                        placeholder=""
+                        value={defaults.fromCompany || ""}
+                        onChange={(e) =>
+                          setDefaults({
+                            ...defaults,
+                            fromCompany: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="Street"
+                        labelPlacement="outside"
+                        placeholder="123 Main St"
+                        value={defaults.fromStreet1 || ""}
+                        onChange={(e) =>
+                          setDefaults({
+                            ...defaults,
+                            fromStreet1: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="Apt/Suite (optional)"
+                        labelPlacement="outside"
+                        placeholder=""
+                        value={defaults.fromStreet2 || ""}
+                        onChange={(e) =>
+                          setDefaults({
+                            ...defaults,
+                            fromStreet2: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="City"
+                        labelPlacement="outside"
+                        placeholder=""
+                        value={defaults.fromCity || ""}
+                        onChange={(e) =>
+                          setDefaults({ ...defaults, fromCity: e.target.value })
+                        }
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input
+                          classNames={inputCls}
+                          label="State"
+                          labelPlacement="outside"
+                          placeholder="CA"
+                          value={defaults.fromState || ""}
+                          onChange={(e) =>
+                            setDefaults({
+                              ...defaults,
+                              fromState: e.target.value,
+                            })
+                          }
+                        />
+                        <Input
+                          classNames={inputCls}
+                          label="ZIP"
+                          labelPlacement="outside"
+                          placeholder="90210"
+                          value={defaults.fromZip || ""}
+                          onChange={(e) =>
+                            setDefaults({
+                              ...defaults,
+                              fromZip: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                      <Input
+                        classNames={inputCls}
+                        label="Country"
+                        labelPlacement="outside"
+                        placeholder="US"
+                        value={defaults.fromCountry || "US"}
+                        onChange={(e) =>
+                          setDefaults({
+                            ...defaults,
+                            fromCountry: e.target.value.toUpperCase(),
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="Phone (optional)"
+                        labelPlacement="outside"
+                        placeholder=""
+                        value={defaults.fromPhone || ""}
+                        onChange={(e) =>
+                          setDefaults({
+                            ...defaults,
+                            fromPhone: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="mt-4">
+                      <p className="mb-2 text-sm font-semibold text-black">
+                        Preferred Carriers
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {SUPPORTED_CARRIERS.map((c) => {
+                          const active = (
+                            defaults.preferredCarriers || []
+                          ).includes(c.id);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => toggleCarrier(c.id)}
+                              className={`rounded-md border-2 border-black px-3 py-1.5 text-sm font-semibold ${
+                                active
+                                  ? "bg-primary-yellow text-black"
+                                  : "bg-white text-black hover:bg-gray-100"
+                              }`}
+                            >
+                              {c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center gap-3">
+                      <Button
+                        className="bg-primary-yellow font-semibold text-black"
+                        onPress={handleSaveDefaults}
+                        isLoading={savingDefaults}
+                      >
+                        Save defaults
+                      </Button>
+                      {defaultsToast && (
+                        <span className="text-sm text-gray-700">
+                          {defaultsToast}
+                        </span>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* Parcel templates */}
+                  <section className={sectionCls}>
+                    <h2 className="mb-1 text-xl font-bold text-black">
+                      Parcel Templates
+                    </h2>
+                    <p className="mb-4 text-sm text-gray-600">
+                      Save package sizes you ship often so you can reuse them on
+                      listings without re-entering dimensions.
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-6">
+                      <Input
+                        classNames={inputCls}
+                        label="Name"
+                        labelPlacement="outside"
+                        placeholder="Small box"
+                        className="sm:col-span-2"
+                        value={newTemplate.name}
+                        onChange={(e) =>
+                          setNewTemplate({
+                            ...newTemplate,
+                            name: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="Weight oz"
+                        labelPlacement="outside"
+                        type="number"
+                        placeholder="16"
+                        value={String(newTemplate.weightOz)}
+                        onChange={(e) =>
+                          setNewTemplate({
+                            ...newTemplate,
+                            weightOz: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="L (in)"
+                        labelPlacement="outside"
+                        type="number"
+                        placeholder=""
+                        value={String(newTemplate.lengthIn)}
+                        onChange={(e) =>
+                          setNewTemplate({
+                            ...newTemplate,
+                            lengthIn: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="W (in)"
+                        labelPlacement="outside"
+                        type="number"
+                        placeholder=""
+                        value={String(newTemplate.widthIn)}
+                        onChange={(e) =>
+                          setNewTemplate({
+                            ...newTemplate,
+                            widthIn: e.target.value,
+                          })
+                        }
+                      />
+                      <Input
+                        classNames={inputCls}
+                        label="H (in)"
+                        labelPlacement="outside"
+                        type="number"
+                        placeholder=""
+                        value={String(newTemplate.heightIn)}
+                        onChange={(e) =>
+                          setNewTemplate({
+                            ...newTemplate,
+                            heightIn: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="mt-3">
+                      <Button
+                        className="bg-primary-yellow font-semibold text-black"
+                        startContent={<PlusIcon className="h-4 w-4" />}
+                        onPress={handleAddTemplate}
+                        isLoading={savingTemplate}
+                        isDisabled={
+                          !newTemplate.name.trim() ||
+                          !Number(newTemplate.weightOz)
+                        }
+                      >
+                        Save template
+                      </Button>
+                    </div>
+
+                    {templates.length > 0 && (
+                      <div className="mt-5 divide-y-2 divide-black overflow-hidden rounded-md border-2 border-black">
+                        {templates.map((t) => (
+                          <div
+                            key={t.id}
+                            className="flex items-center justify-between bg-white p-3"
+                          >
+                            <div>
+                              <div className="font-semibold text-black">
+                                {t.name}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {t.weightOz} oz
+                                {t.lengthIn && t.widthIn && t.heightIn
+                                  ? ` • ${t.lengthIn}×${t.widthIn}×${t.heightIn} in`
+                                  : ""}
+                              </div>
+                            </div>
+                            <Button
+                              variant="light"
+                              isIconOnly
+                              aria-label="Delete template"
+                              onPress={() => handleDeleteTemplate(t.id)}
+                            >
+                              <TrashIcon className="h-5 w-5 text-red-600" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )}
 
               {/* Label history */}
               <section className={sectionCls}>

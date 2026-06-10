@@ -8,6 +8,7 @@ import {
   rememberShipmentOwner,
 } from "@/utils/db/shipping-service";
 import { isListedSeller } from "@/utils/shipping/shipment-owners";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 import {
   MCP_REQUEST_PROOF_KIND,
   MCP_SIGNED_EVENT_HEADER,
@@ -117,6 +118,13 @@ export default async function handler(
       } catch {
         // Non-fatal: fall through to sellerPubkey resolution.
       }
+    }
+    // Pro gate: a seller quoting their own rates via a signed event must hold an
+    // active Herd membership (this branch also registers shipment ownership for
+    // label purchase). The buyer-side path (explicit sellerPubkey, unsigned)
+    // stays open so guest checkout can always display live rates.
+    if (ownerPubkey && !(await requireProEntitlement(ownerPubkey, res))) {
+      return;
     }
     const resolvedSeller = ownerPubkey || sellerPubkey || null;
     if (!resolvedSeller) {

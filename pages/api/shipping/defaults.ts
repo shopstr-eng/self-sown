@@ -11,6 +11,7 @@ import {
   getShippingDefaultsForPubkey,
   upsertShippingDefaults,
 } from "@/utils/db/shipping-service";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
@@ -72,6 +73,10 @@ export default async function handler(
       const defaults = await getShippingDefaultsForPubkey(event.pubkey);
       return res.status(200).json({ success: true, defaults });
     }
+
+    // Pro gate: saving shipping defaults is a Herd write. GET stays open so
+    // lapsed sellers can still read their saved values.
+    if (!(await requireProEntitlement(event.pubkey, res))) return;
 
     const body = (req.body || {}) as Partial<DefaultsBody>;
     const carriers = (body.preferredCarriers || [])

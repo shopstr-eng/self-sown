@@ -12,6 +12,7 @@ import {
   isShippoOAuthConfigured,
 } from "@/utils/shipping/shippo-oauth";
 import { createShippoOAuthState } from "@/utils/db/shipping-service";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
@@ -58,6 +59,10 @@ export default async function handler(
         .status(verification.status)
         .json({ error: verification.error });
     }
+
+    // Pro gate: connecting a Shippo account is the entry point to the Herd
+    // shipping-labels feature. Enforce membership before issuing OAuth state.
+    if (!(await requireProEntitlement(pubkey, res))) return;
 
     const state = randomBytes(24).toString("hex");
     await createShippoOAuthState(pubkey, state);

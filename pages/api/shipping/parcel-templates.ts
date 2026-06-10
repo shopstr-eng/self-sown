@@ -12,6 +12,7 @@ import {
   listParcelTemplatesForPubkey,
   upsertParcelTemplate,
 } from "@/utils/db/shipping-service";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
@@ -64,6 +65,10 @@ export default async function handler(
       const templates = await listParcelTemplatesForPubkey(event.pubkey);
       return res.status(200).json({ success: true, templates });
     }
+
+    // Pro gate: creating/deleting parcel templates is a Herd write. GET stays
+    // open so lapsed sellers can still read their saved templates.
+    if (!(await requireProEntitlement(event.pubkey, res))) return;
 
     if (req.method === "POST") {
       const body = (req.body || {}) as Partial<TemplateBody>;

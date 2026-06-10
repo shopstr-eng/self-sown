@@ -23,6 +23,7 @@ const createShippoOAuthStateMock = jest.fn();
 const verifyAndConsumeSignedRequestProofMock = jest.fn();
 const parseSignedEventHeaderMock = jest.fn();
 const buildShippingOAuthStartProofMock = jest.fn();
+const isPubkeyProEntitledMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -43,6 +44,10 @@ jest.mock("@/utils/db/shipping-service", () => ({
 jest.mock("@/utils/mcp/request-proof-server", () => ({
   verifyAndConsumeSignedRequestProof: (...args: unknown[]) =>
     verifyAndConsumeSignedRequestProofMock(...args),
+}));
+
+jest.mock("@/utils/pro/membership", () => ({
+  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 jest.mock("@/utils/mcp/request-proof", () => ({
@@ -102,6 +107,7 @@ beforeEach(() => {
     ok: true,
     status: 200,
   });
+  isPubkeyProEntitledMock.mockResolvedValue(true);
 });
 
 describe("/api/shipping/oauth/start signed-event (cryptographic proof) guards", () => {
@@ -211,6 +217,38 @@ describe("/api/shipping/oauth/start signed-event (cryptographic proof) guards", 
     expect(buildShippingOAuthStartProofMock).toHaveBeenCalledWith(
       SELLER_PUBKEY
     );
+    expect(createShippoOAuthStateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("/api/shipping/oauth/start Herd (Pro) entitlement gate", () => {
+  // Connecting a Shippo account is the entry point to the Herd shipping-labels
+  // feature, so a verified-but-non-entitled seller must be blocked before any
+  // OAuth state row is written.
+  it("rejects a non-entitled seller with 403 and writes no state", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+    expect(createShippoOAuthStateMock).not.toHaveBeenCalled();
+    expect(buildShippoAuthorizeUrlMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 (and writes no state) when membership cannot be resolved", async () => {
+    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest(), res as any);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.jsonBody).toEqual({
+      error: "Could not verify membership. Please try again.",
+    });
     expect(createShippoOAuthStateMock).not.toHaveBeenCalled();
   });
 });

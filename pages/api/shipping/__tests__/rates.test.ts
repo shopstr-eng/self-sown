@@ -30,6 +30,7 @@ const isListedSellerMock = jest.fn();
 const isMcpRequestProofFreshMock = jest.fn();
 const parseSignedEventHeaderMock = jest.fn();
 const verifyEventMock = jest.fn();
+const isPubkeyProEntitledMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -46,6 +47,10 @@ jest.mock("@/utils/shipping/shippo-oauth", () => ({
 
 jest.mock("@/utils/shipping/shipment-owners", () => ({
   isListedSeller: (...args: unknown[]) => isListedSellerMock(...args),
+}));
+
+jest.mock("@/utils/pro/membership", () => ({
+  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 jest.mock("nostr-tools", () => ({
@@ -129,6 +134,7 @@ beforeEach(() => {
   verifyEventMock.mockReturnValue(true);
   isMcpRequestProofFreshMock.mockReturnValue(true);
   isListedSellerMock.mockResolvedValue(true);
+  isPubkeyProEntitledMock.mockResolvedValue(true);
   parseSignedEventHeaderMock.mockReturnValue({
     kind: MCP_REQUEST_PROOF_KIND,
     pubkey: SELLER_PUBKEY,
@@ -268,6 +274,68 @@ describe("/api/shipping/rates rejects bad signatures (never grants seller identi
     );
     expect(getRatesMock).toHaveBeenCalledTimes(1);
     // Crucially, no ownership was recorded off the back of the forged event.
+    expect(rememberShipmentOwnerMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("/api/shipping/rates Herd (Pro) entitlement gate", () => {
+  // A *seller* quoting their own rates via a valid signed event must hold an
+  // active Herd membership. Crucially, the *buyer* checkout path (explicit
+  // sellerPubkey, no honored signature) must stay open regardless of the
+  // seller's membership so guest checkout can always display live rates.
+  it("rejects a signed-in non-entitled seller with 403 and never quotes or records ownership", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+    expect(getShippoAccessTokenMock).not.toHaveBeenCalled();
+    expect(getRatesMock).not.toHaveBeenCalled();
+    expect(rememberShipmentOwnerMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 (and never quotes) when the seller's membership cannot be resolved", async () => {
+    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.jsonBody).toEqual({
+      error: "Could not verify membership. Please try again.",
+    });
+    expect(getRatesMock).not.toHaveBeenCalled();
+    expect(rememberShipmentOwnerMock).not.toHaveBeenCalled();
+  });
+
+  it("still quotes the buyer-checkout path even when the seller is not Pro-entitled", async () => {
+    // Buyer checkout: no honored signature (forged event), explicit sellerPubkey
+    // in the body. The Pro gate only applies to the signed-seller branch, so a
+    // non-entitled membership must NOT block guest live-rate quotes.
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+    verifyEventMock.mockReturnValue(false);
+
+    const res = createResponse();
+    await handler(
+      makeRequest(validBody({ sellerPubkey: "buyer-chosen-seller" })),
+      res as any
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonBody).toMatchObject({
+      success: true,
+      shipmentId: "shp_rate_1",
+    });
+    expect(getShippoAccessTokenMock).toHaveBeenCalledWith(
+      "buyer-chosen-seller"
+    );
+    expect(getRatesMock).toHaveBeenCalledTimes(1);
+    // The Pro gate was never consulted for the buyer path.
+    expect(isPubkeyProEntitledMock).not.toHaveBeenCalled();
     expect(rememberShipmentOwnerMock).not.toHaveBeenCalled();
   });
 });

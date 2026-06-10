@@ -34,6 +34,7 @@ const releaseShipmentClaimMock = jest.fn();
 const getShippoAccessTokenMock = jest.fn();
 const getShippingDefaultsForPubkeyMock = jest.fn();
 const insertShippingLabelMock = jest.fn();
+const isPubkeyProEntitledMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -50,6 +51,10 @@ jest.mock("@/utils/shipping/shippo-oauth", () => ({
 
 jest.mock("@/utils/shipping/shipment-owners", () => ({
   isListedSeller: (...args: unknown[]) => isListedSellerMock(...args),
+}));
+
+jest.mock("@/utils/pro/membership", () => ({
+  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 jest.mock("nostr-tools", () => ({
@@ -156,6 +161,7 @@ beforeEach(() => {
   });
 
   isListedSellerMock.mockResolvedValue(true);
+  isPubkeyProEntitledMock.mockResolvedValue(true);
   getShippingDefaultsForPubkeyMock.mockResolvedValue({
     fromName: "Seller Shop",
     fromCompany: null,
@@ -320,6 +326,51 @@ describe("/api/shipping/return-label canonical idempotency key", () => {
       parcel: { weightOz: 10 },
     });
     expect(b).not.toBe(a);
+  });
+});
+
+describe("/api/shipping/return-label Herd (Pro) entitlement gate", () => {
+  // The Pro gate runs after the signed-event + listed-seller checks but before
+  // reading the seller's ship-from defaults, claiming the idempotency key, or
+  // charging Shippo — so a non-member can never issue (and be charged for) a
+  // return label.
+  it("rejects a non-entitled (free/lapsed) seller with 403 and never claims or charges", async () => {
+    const store = makeClaimStore();
+    claimShipmentForPurchaseMock.mockImplementation(store.claim);
+    releaseShipmentClaimMock.mockImplementation(store.release);
+
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "This feature requires an active Herd membership.",
+    });
+
+    expect(getShippingDefaultsForPubkeyMock).not.toHaveBeenCalled();
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 (and never charges) when membership cannot be resolved", async () => {
+    const store = makeClaimStore();
+    claimShipmentForPurchaseMock.mockImplementation(store.claim);
+    releaseShipmentClaimMock.mockImplementation(store.release);
+
+    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(503);
+    expect(res.jsonBody).toEqual({
+      error: "Could not verify membership. Please try again.",
+    });
+    expect(getShippingDefaultsForPubkeyMock).not.toHaveBeenCalled();
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
   });
 });
 
