@@ -3325,6 +3325,31 @@ export async function setStripeTaxEnabled(
   }
 }
 
+// Remove a seller's Stripe Connect link from Milk Market. This only unlinks the
+// account in our database (so the seller can connect a different one); it does
+// NOT delete or close the account at Stripe, which may still hold a balance or
+// pending payouts. Returns whether a row was actually removed.
+export async function disconnectStripeConnectAccount(
+  pubkey: string
+): Promise<boolean> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `DELETE FROM stripe_connect_accounts WHERE pubkey = $1`,
+      [pubkey]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    console.error("Failed to disconnect Stripe Connect account:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 // Create or update Stripe Connect account
 export async function upsertStripeConnectAccount(
   pubkey: string,

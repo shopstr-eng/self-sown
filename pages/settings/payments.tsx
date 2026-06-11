@@ -1,6 +1,16 @@
 import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { Button, Input, Switch, useDisclosure } from "@heroui/react";
+import {
+  Button,
+  Input,
+  Switch,
+  useDisclosure,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from "@heroui/react";
 import {
   CreditCardIcon,
   ArrowTopRightOnSquareIcon,
@@ -10,10 +20,12 @@ import {
   ReceiptPercentIcon,
   PlusIcon,
   TrashIcon,
+  LinkSlashIcon,
 } from "@heroicons/react/24/outline";
 import {
   BLUEBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  DANGERBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
@@ -23,6 +35,7 @@ import {
   buildStripeAccountStatusProof,
   buildStripeManageLinkProof,
   buildStripeTaxSettingsProof,
+  buildStripeDisconnectProof,
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
@@ -62,11 +75,16 @@ const PaymentsSettingsPage = () => {
   const router = useRouter();
   const { pubkey, signer } = useContext(SignerContext);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isDisconnectOpen,
+    onOpen: onDisconnectOpen,
+    onClose: onDisconnectClose,
+  } = useDisclosure();
 
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<
-    "dashboard" | "update" | null
+    "dashboard" | "update" | "disconnect" | null
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -167,6 +185,41 @@ const PaymentsSettingsPage = () => {
       window.open(data.url, "_blank", "noopener");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to open Stripe");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Unlink the seller's Stripe account from Milk Market so they can connect a
+  // different one. Leaves the account untouched at Stripe; only removes our link.
+  const handleDisconnect = async () => {
+    if (!pubkey || !signer?.sign) return;
+    setActionLoading("disconnect");
+    setError(null);
+    setInfo(null);
+    try {
+      const signedEvent = await signer.sign(
+        buildMcpRequestProofTemplate(buildStripeDisconnectProof(pubkey))
+      );
+      const res = await fetch("/api/stripe/connect/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pubkey, signedEvent }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to disconnect Stripe account");
+      }
+      onDisconnectClose();
+      setTaxStatus(null);
+      setInfo(
+        "Stripe account disconnected. You can connect a different account below."
+      );
+      await loadStatus();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to disconnect Stripe account"
+      );
     } finally {
       setActionLoading(null);
     }
@@ -518,6 +571,26 @@ const PaymentsSettingsPage = () => {
                     </div>
                   )}
 
+                  <div className="space-y-2 border-t-2 border-black pt-4">
+                    <p className="font-bold text-black">Disconnect Stripe</p>
+                    <p className="text-sm text-gray-700">
+                      Remove this Stripe account from Milk Market — for example
+                      if you need to switch to a different account or fix a
+                      broken connection. Card payments will stop until you
+                      connect an account again. Your Stripe account itself
+                      isn&apos;t deleted; you can still manage or close it from
+                      Stripe.
+                    </p>
+                    <Button
+                      className={`${DANGERBUTTONCLASSNAMES} mt-1`}
+                      startContent={<LinkSlashIcon className="h-4 w-4" />}
+                      isLoading={actionLoading === "disconnect"}
+                      onClick={onDisconnectOpen}
+                    >
+                      Disconnect Stripe
+                    </Button>
+                  </div>
+
                   <p className="text-xs text-gray-500">
                     Account ID:{" "}
                     <span className="font-mono">{status.accountId}</span>
@@ -546,6 +619,67 @@ const PaymentsSettingsPage = () => {
               refreshPath="/settings/payments?stripe=refresh"
             />
           )}
+
+          <Modal
+            backdrop="blur"
+            isOpen={isDisconnectOpen}
+            onClose={onDisconnectClose}
+            classNames={{
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white",
+              footer: "border-t-2 border-black bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
+            }}
+            isDismissable={actionLoading !== "disconnect"}
+            placement="center"
+            size="lg"
+          >
+            <ModalContent>
+              <ModalHeader className="flex items-center gap-2 text-black">
+                <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
+                <span>Disconnect Stripe?</span>
+              </ModalHeader>
+              <ModalBody className="text-black">
+                <p className="text-sm">
+                  This removes your Stripe account from Milk Market. You
+                  won&apos;t be able to accept card payments until you connect
+                  an account again, and you&apos;ll need to re-enter any sales
+                  tax settings on the new account.
+                </p>
+                <p className="text-sm">
+                  Your Stripe account itself isn&apos;t deleted — any balance or
+                  payouts stay with Stripe, where you can still manage or close
+                  the account.
+                </p>
+              </ModalBody>
+              <ModalFooter className="flex gap-2">
+                <Button
+                  className={WHITEBUTTONCLASSNAMES}
+                  onClick={onDisconnectClose}
+                  isDisabled={actionLoading === "disconnect"}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className={DANGERBUTTONCLASSNAMES}
+                  onClick={handleDisconnect}
+                  isLoading={actionLoading === "disconnect"}
+                  startContent={
+                    actionLoading !== "disconnect" ? (
+                      <LinkSlashIcon className="h-4 w-4" />
+                    ) : undefined
+                  }
+                >
+                  Disconnect
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
         </div>
       </div>
     </ProtectedRoute>
