@@ -2581,9 +2581,11 @@ export default function CartInvoiceCard({
           const shippingCostInSats = await convertShippingToSats(
             eff.syntheticProduct
           );
-          const quantity = quantities[sellerProducts[0]!.id] || 1;
+          // eff.syntheticProduct.shippingCost already encodes quantity (static
+          // path multiplies by qty; live rates are per-shipment), so do NOT
+          // multiply by quantity again here or shipping is charged qty².
           const discountedShip = Math.ceil(
-            applyShippingDiscount(shippingCostInSats * quantity, sellerPubkey)
+            applyShippingDiscount(shippingCostInSats, sellerPubkey)
           );
           shippingTotal += discountedShip;
           shipPerSeller[sellerPubkey] = discountedShip;

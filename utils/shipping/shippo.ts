@@ -29,6 +29,8 @@ async function shippoFetch<T>(
   path: string,
   init?: { method?: string; body?: unknown }
 ): Promise<T> {
+  // Cap every Shippo call so a hung upstream can't tie up a request handler —
+  // these run on the buyer checkout hot path (rates / address verification).
   const res = await fetch(`${SHIPPO_BASE}${path}`, {
     method: init?.method || "GET",
     headers: {
@@ -36,6 +38,7 @@ async function shippoFetch<T>(
       "Content-Type": "application/json",
     },
     body: init?.body ? JSON.stringify(init.body) : undefined,
+    signal: AbortSignal.timeout(10_000),
   });
 
   const text = await res.text();

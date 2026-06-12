@@ -362,9 +362,13 @@ export default async function handler(
 
     // Single-merchant donation cut: only applied for direct charges on a
     // connected account (otherwise the funds are already on the platform).
+    // Compute it on the PRE-TAX base (items + shipping): sales tax is collected
+    // on the seller's behalf to remit, so the platform donation fee must never
+    // skim it.
+    const donationBaseSmallest = amountInSmallestUnit - taxAddSmallest;
     const { percent: singleDonationPercent, cutSmallest: singleDonationCut } =
       connectedAccountId
-        ? await resolveDonationCut(sellerPubkey, amountInSmallestUnit)
+        ? await resolveDonationCut(sellerPubkey, donationBaseSmallest)
         : { percent: 0, cutSmallest: 0 };
 
     const description = `${productTitle}${
