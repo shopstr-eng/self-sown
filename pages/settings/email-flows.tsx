@@ -18,6 +18,7 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import UpgradeBanner from "@/components/pro/upgrade-banner";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import { FlowStepEditor } from "@/components/settings/flow-step-editor";
+import EmailSenderDomainSection from "@/components/settings/email-sender-domain-section";
 import { ShopMapContext, ProfileMapContext } from "@/utils/context/context";
 import { FlowEmailStorefrontStyle } from "@/utils/email/flow-email-templates";
 import {
@@ -29,6 +30,7 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 import {
   PlusIcon,
+  ChartBarIcon,
   TrashIcon,
   PlayIcon,
   PauseIcon,
@@ -126,6 +128,9 @@ const EmailFlowsPage = () => {
       };
     }, [pubkey, shopMapContext.shopData]);
   const [flows, setFlows] = useState<EmailFlow[]>([]);
+  const [clickStats, setClickStats] = useState<
+    Record<number, { total: number; lastClicked: string | null }>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -175,12 +180,36 @@ const EmailFlowsPage = () => {
       if (data.flows) {
         setFlows(data.flows);
       }
+      // Engagement/click stats are a paid Herd feature: only fetch for Pro
+      // sellers, and authenticate so only the owner reads their own data.
+      if (membership.isPro && signer) {
+        try {
+          const statsUrl = `${window.location.origin}/api/email/flows/click-stats`;
+          const authHeader = await createNip98AuthorizationHeader(
+            signer,
+            statsUrl,
+            "GET"
+          );
+          const statsRes = await fetch("/api/email/flows/click-stats", {
+            method: "GET",
+            headers: { Authorization: authHeader },
+          });
+          const statsData = await statsRes.json();
+          if (statsData.stats) {
+            setClickStats(statsData.stats);
+          }
+        } catch {
+          // Click stats are non-essential; ignore failures here.
+        }
+      } else {
+        setClickStats({});
+      }
     } catch {
       setError("Failed to load email flows.");
     } finally {
       setIsLoading(false);
     }
-  }, [pubkey]);
+  }, [pubkey, membership.isPro, signer]);
 
   useEffect(() => {
     if (pubkey) {
@@ -732,7 +761,15 @@ const EmailFlowsPage = () => {
                 </code>{" "}
                 <code className="rounded bg-blue-100 px-1">
                   {"{{shop_url}}"}
+                </code>{" "}
+                <code className="rounded bg-blue-100 px-1">
+                  {"{{review_link}}"}
                 </code>
+              </p>
+              <p className="mt-1">
+                Use the ★ button in the editor toolbar to drop in a “Leave a
+                review” button — it links each buyer straight to their order so
+                they can leave a review in one click.
               </p>
             </div>
           </div>
@@ -962,17 +999,32 @@ const EmailFlowsPage = () => {
           <UpgradeBanner className="mb-6" feature="Email flows" />
         )}
 
+        {membership.isPro && (
+          <div className="mb-8">
+            <EmailSenderDomainSection />
+          </div>
+        )}
+
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-black">Your Flows</h2>
             {membership.isPro && (
-              <Button
-                className={BLACKBUTTONCLASSNAMES}
-                onClick={() => setShowCreateForm(!showCreateForm)}
-              >
-                <PlusIcon className="h-4 w-4" />
-                New Flow
-              </Button>
+              <div className="flex gap-2">
+                <a
+                  href="/orders?tab=email-stats"
+                  className={`${WHITEBUTTONCLASSNAMES} inline-flex items-center gap-1`}
+                >
+                  <ChartBarIcon className="h-4 w-4" />
+                  View email stats
+                </a>
+                <Button
+                  className={BLACKBUTTONCLASSNAMES}
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  New Flow
+                </Button>
+              </div>
             )}
           </div>
 
@@ -1084,6 +1136,29 @@ const EmailFlowsPage = () => {
                         >
                           {flow.status}
                         </span>
+                        {(() => {
+                          const stat = clickStats[flow.id];
+                          if (!stat || !stat.total) return null;
+                          return (
+                            <Tooltip
+                              content={
+                                stat.lastClicked
+                                  ? `Last click ${new Date(
+                                      stat.lastClicked
+                                    ).toLocaleDateString(undefined, {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}`
+                                  : "Total link clicks in this flow's emails"
+                              }
+                            >
+                              <span className="rounded-md border border-blue-300 bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">
+                                {stat.total} click{stat.total === 1 ? "" : "s"}
+                              </span>
+                            </Tooltip>
+                          );
+                        })()}
                       </div>
                       <p className="mt-1 text-xs text-gray-500">
                         Created{" "}

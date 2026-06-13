@@ -9,12 +9,14 @@ import {
   fetchShopPubkeyBySlug,
   fetchShopProfileByPubkeyFromDb,
   fetchProfileByPubkeyFromDb,
+  fetchProductByDTagAndPubkey,
 } from "@/utils/db/db-service";
 import {
   resolveStallBranding,
   buildStallOgMeta,
 } from "@/utils/storefront/stall-branding";
 import { getMembershipView } from "@/utils/pro/membership";
+import { eventToProductOgMeta } from "@/utils/og/product-og";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -78,6 +80,38 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
             profileContent = JSON.parse(profileEvent.content);
           } catch {
             profileContent = null;
+          }
+        }
+
+        // When this Pro seller serves a single product at their storefront
+        // root, emit that product's OG meta so social/crawler previews show
+        // the product (not the generic stall). The URL stays at the stall root.
+        const sf = content?.storefront;
+        if (
+          sf?.landingPageMode === "product" &&
+          typeof sf?.landingProductDTag === "string" &&
+          sf.landingProductDTag
+        ) {
+          try {
+            const productEvent = await fetchProductByDTagAndPubkey(
+              sf.landingProductDTag,
+              pubkey
+            );
+            if (productEvent) {
+              return {
+                props: {
+                  ogMeta: eventToProductOgMeta(
+                    productEvent,
+                    `/stall/${shopSlug}`
+                  ),
+                  shopPubkey: pubkey,
+                  ssrShopName,
+                  ssrShopAbout,
+                },
+              };
+            }
+          } catch (err) {
+            console.error("SSR product OG fetch error for stall root:", err);
           }
         }
 

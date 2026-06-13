@@ -12,11 +12,13 @@ import {
   scheduleStepExecutions,
   getFlowEnrollments,
   getDbPool,
+  recordEmailFlowConversion,
 } from "@/utils/db/db-service";
 import { deductStock } from "@/utils/db/inventory-service";
 import { resolveExplicitPaymentMethod } from "@/utils/messages/order-message-utils";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
+import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
@@ -52,6 +54,7 @@ export default async function handler(
     selectedBulkOption,
     subscriptionFrequency,
     productId,
+    productAddress,
     quantity,
     donationAmount,
     donationPercentage,
@@ -97,6 +100,14 @@ export default async function handler(
   try {
     const branding = await loadStorefrontBranding(sellerPubkey);
 
+    // Resolve the seller's own authenticated sending domain once (if any). This
+    // is fail-closed: it returns null unless the domain is SendGrid-validated
+    // and the from-address is set, so order emails fall back to the global
+    // verified sender and delivery is never broken.
+    const sellerFromEmail = sellerPubkey
+      ? await resolveSellerSenderEmail(sellerPubkey)
+      : null;
+
     // Resolve the seller's notification email first so we can route a buyer's
     // reply to the order confirmation straight to the seller (Reply-To). Guard
     // this lookup so a transient failure can't block the buyer confirmation.
@@ -128,7 +139,8 @@ export default async function handler(
         buyerEmail,
         { ...emailParams, sellerContact: sellerEmail || undefined },
         branding,
-        sellerEmail || undefined
+        sellerEmail || undefined,
+        sellerFromEmail || undefined
       );
     }
 
@@ -137,7 +149,8 @@ export default async function handler(
         sellerEmail,
         emailParams,
         branding,
-        buyerReplyEmail
+        buyerReplyEmail,
+        sellerFromEmail || undefined
       );
     }
 
@@ -149,12 +162,29 @@ export default async function handler(
           sellerPubkey,
           orderId,
           productTitle,
+          productAddress,
           amount,
           currency,
           buyerName,
         });
       } catch (enrollError) {
         console.error("Error auto-enrolling in email flows:", enrollError);
+      }
+
+      // Last-touch attribution: credit this order to the buyer's most recent
+      // flow email click (30d) or send (7d) for this seller, if any. The
+      // just-created enrollment above can't self-attribute (its executions are
+      // still pending, not sent). Best-effort — never blocks the order.
+      try {
+        await recordEmailFlowConversion({
+          sellerPubkey,
+          buyerEmail,
+          orderId,
+          amount,
+          currency,
+        });
+      } catch (convError) {
+        console.error("Error recording email flow conversion:", convError);
       }
     }
 
@@ -186,6 +216,7 @@ async function autoEnrollInFlows(params: {
   sellerPubkey: string;
   orderId: string;
   productTitle: string;
+  productAddress?: string;
   amount?: string;
   currency?: string;
   buyerName?: string;
@@ -196,6 +227,7 @@ async function autoEnrollInFlows(params: {
     sellerPubkey,
     orderId,
     productTitle,
+    productAddress,
     amount,
     currency,
     buyerName,
@@ -210,6 +242,10 @@ async function autoEnrollInFlows(params: {
     amount: amount || "N/A",
     currency: currency || "sats",
     shop_url: `${baseUrl}/${sellerPubkey}`,
+    // Scopes {{review_link}} to the exact product when known (single-product
+    // checkout). Omitted for multi-seller carts; the link then matches on
+    // order_id alone.
+    ...(productAddress ? { product_address: productAddress } : {}),
   };
 
   const postPurchaseFlow = flows.find(

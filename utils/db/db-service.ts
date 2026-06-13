@@ -549,6 +549,27 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE custom_domains ADD COLUMN IF NOT EXISTS admin_notified_at TIMESTAMP;
       CREATE INDEX IF NOT EXISTS idx_custom_domains_tls_status ON custom_domains(tls_status);
 
+      -- Seller-owned authenticated email sending domains (SendGrid Domain
+      -- Authentication). Lets Herd sellers send order + flow emails from their
+      -- own domain. The custom from-address is only used once SendGrid reports
+      -- the domain valid; otherwise the platform's global verified sender is used.
+      CREATE TABLE IF NOT EXISTS email_sender_domains (
+          id SERIAL PRIMARY KEY,
+          pubkey TEXT NOT NULL UNIQUE,
+          domain TEXT NOT NULL UNIQUE,
+          sendgrid_domain_id BIGINT UNIQUE,
+          subdomain TEXT,
+          dns_records JSONB,
+          valid BOOLEAN DEFAULT FALSE,
+          from_email TEXT,
+          last_validation_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_email_sender_domains_pubkey ON email_sender_domains(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_email_sender_domains_domain ON email_sender_domains(domain);
+
       -- Subscriptions table for recurring product subscriptions
       CREATE TABLE IF NOT EXISTS subscriptions (
           id SERIAL PRIMARY KEY,
@@ -654,6 +675,56 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_email_flow_executions_step_id ON email_flow_executions(step_id);
       CREATE INDEX IF NOT EXISTS idx_email_flow_executions_status ON email_flow_executions(status);
       CREATE INDEX IF NOT EXISTS idx_email_flow_executions_scheduled_for ON email_flow_executions(scheduled_for);
+
+      -- Tracks clicks on tracked links inside flow emails
+      CREATE TABLE IF NOT EXISTS email_flow_clicks (
+          id SERIAL PRIMARY KEY,
+          flow_id INTEGER NOT NULL REFERENCES email_flows(id) ON DELETE CASCADE,
+          step_id INTEGER REFERENCES email_flow_steps(id) ON DELETE SET NULL,
+          enrollment_id INTEGER REFERENCES email_flow_enrollments(id) ON DELETE SET NULL,
+          execution_id INTEGER REFERENCES email_flow_executions(id) ON DELETE SET NULL,
+          seller_pubkey TEXT NOT NULL,
+          destination_url TEXT NOT NULL,
+          clicked_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_email_flow_clicks_seller ON email_flow_clicks(seller_pubkey, clicked_at);
+      CREATE INDEX IF NOT EXISTS idx_email_flow_clicks_flow_step ON email_flow_clicks(flow_id, step_id);
+      CREATE INDEX IF NOT EXISTS idx_email_flow_clicks_enrollment ON email_flow_clicks(enrollment_id);
+
+      -- Tracks opens (tracking-pixel hits) on flow emails
+      CREATE TABLE IF NOT EXISTS email_flow_opens (
+          id SERIAL PRIMARY KEY,
+          flow_id INTEGER NOT NULL REFERENCES email_flows(id) ON DELETE CASCADE,
+          step_id INTEGER REFERENCES email_flow_steps(id) ON DELETE SET NULL,
+          enrollment_id INTEGER REFERENCES email_flow_enrollments(id) ON DELETE SET NULL,
+          execution_id INTEGER REFERENCES email_flow_executions(id) ON DELETE SET NULL,
+          seller_pubkey TEXT NOT NULL,
+          opened_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_email_flow_opens_seller ON email_flow_opens(seller_pubkey, opened_at);
+      CREATE INDEX IF NOT EXISTS idx_email_flow_opens_flow_step ON email_flow_opens(flow_id, step_id);
+      CREATE INDEX IF NOT EXISTS idx_email_flow_opens_execution ON email_flow_opens(execution_id);
+
+      -- Attributes orders back to the flow email that drove them (last-touch)
+      CREATE TABLE IF NOT EXISTS email_flow_conversions (
+          id SERIAL PRIMARY KEY,
+          seller_pubkey TEXT NOT NULL,
+          flow_id INTEGER NOT NULL REFERENCES email_flows(id) ON DELETE CASCADE,
+          step_id INTEGER REFERENCES email_flow_steps(id) ON DELETE SET NULL,
+          enrollment_id INTEGER REFERENCES email_flow_enrollments(id) ON DELETE SET NULL,
+          execution_id INTEGER REFERENCES email_flow_executions(id) ON DELETE SET NULL,
+          order_id TEXT NOT NULL,
+          amount TEXT,
+          currency TEXT,
+          attributed_event TEXT NOT NULL CHECK (attributed_event IN ('click', 'sent')),
+          converted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          UNIQUE(order_id, seller_pubkey)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_email_flow_conversions_seller ON email_flow_conversions(seller_pubkey, converted_at);
+      CREATE INDEX IF NOT EXISTS idx_email_flow_conversions_flow_step ON email_flow_conversions(flow_id, step_id);
 
       -- Cart activity reports for abandoned cart flow triggers
       CREATE TABLE IF NOT EXISTS cart_reports (
@@ -4454,6 +4525,473 @@ export async function markExecutionFailed(
     );
   } catch (error) {
     console.error("Failed to mark execution failed:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function recordFlowClick(params: {
+  flowId: number;
+  stepId: number | null;
+  enrollmentId: number | null;
+  executionId: number | null;
+  sellerPubkey: string;
+  destinationUrl: string;
+}): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `INSERT INTO email_flow_clicks
+         (flow_id, step_id, enrollment_id, execution_id, seller_pubkey, destination_url)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        params.flowId,
+        params.stepId,
+        params.enrollmentId,
+        params.executionId,
+        params.sellerPubkey,
+        params.destinationUrl.slice(0, 2048),
+      ]
+    );
+  } catch (error) {
+    console.error("Failed to record flow click:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function getFlowClickStats(sellerPubkey: string): Promise<
+  Array<{
+    flow_id: number;
+    step_id: number | null;
+    clicks: number;
+    last_clicked: string | null;
+  }>
+> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT flow_id, step_id, COUNT(*)::int AS clicks, MAX(clicked_at) AS last_clicked
+       FROM email_flow_clicks
+       WHERE seller_pubkey = $1
+       GROUP BY flow_id, step_id
+       ORDER BY flow_id, step_id`,
+      [sellerPubkey]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("Failed to get flow click stats:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export async function recordFlowOpen(params: {
+  flowId: number;
+  stepId: number | null;
+  enrollmentId: number | null;
+  executionId: number | null;
+  sellerPubkey: string;
+}): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `INSERT INTO email_flow_opens
+         (flow_id, step_id, enrollment_id, execution_id, seller_pubkey)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        params.flowId,
+        params.stepId,
+        params.enrollmentId,
+        params.executionId,
+        params.sellerPubkey,
+      ]
+    );
+  } catch (error) {
+    console.error("Failed to record flow open:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Attribute an order back to the flow email that most likely drove it
+ * (last-touch). Prefers the buyer's most recent CLICK for this seller within 30
+ * days; otherwise the most recent SENT email within 7 days. If the buyer had no
+ * recent email activity with this seller, the order isn't attributed to any
+ * email and nothing is recorded. Best-effort: never throws, so it can't break
+ * the checkout/order path.
+ */
+export async function recordEmailFlowConversion(params: {
+  sellerPubkey: string;
+  buyerEmail: string;
+  orderId: string;
+  amount?: string | null;
+  currency?: string | null;
+}): Promise<void> {
+  if (!params.sellerPubkey || !params.buyerEmail || !params.orderId) return;
+
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+
+    let attribution: {
+      flowId: number;
+      stepId: number | null;
+      enrollmentId: number | null;
+      executionId: number | null;
+      attributedEvent: "click" | "sent";
+    } | null = null;
+
+    const clickRes = await client.query(
+      `SELECT c.flow_id, c.step_id, c.enrollment_id, c.execution_id
+         FROM email_flow_clicks c
+         JOIN email_flow_enrollments en ON c.enrollment_id = en.id
+        WHERE c.seller_pubkey = $1
+          AND lower(en.recipient_email) = lower($2)
+          AND c.clicked_at > NOW() - INTERVAL '30 days'
+        ORDER BY c.clicked_at DESC
+        LIMIT 1`,
+      [params.sellerPubkey, params.buyerEmail]
+    );
+
+    if (clickRes.rows.length > 0) {
+      const r = clickRes.rows[0];
+      attribution = {
+        flowId: r.flow_id,
+        stepId: r.step_id,
+        enrollmentId: r.enrollment_id,
+        executionId: r.execution_id,
+        attributedEvent: "click",
+      };
+    } else {
+      const sentRes = await client.query(
+        `SELECT en.flow_id, e.step_id, e.enrollment_id, e.id AS execution_id
+           FROM email_flow_executions e
+           JOIN email_flow_enrollments en ON e.enrollment_id = en.id
+           JOIN email_flows f ON en.flow_id = f.id
+          WHERE f.seller_pubkey = $1
+            AND lower(en.recipient_email) = lower($2)
+            AND e.status = 'sent'
+            AND e.sent_at > NOW() - INTERVAL '7 days'
+          ORDER BY e.sent_at DESC
+          LIMIT 1`,
+        [params.sellerPubkey, params.buyerEmail]
+      );
+      if (sentRes.rows.length > 0) {
+        const r = sentRes.rows[0];
+        attribution = {
+          flowId: r.flow_id,
+          stepId: r.step_id,
+          enrollmentId: r.enrollment_id,
+          executionId: r.execution_id,
+          attributedEvent: "sent",
+        };
+      }
+    }
+
+    if (!attribution) return;
+
+    await client.query(
+      `INSERT INTO email_flow_conversions
+         (seller_pubkey, flow_id, step_id, enrollment_id, execution_id, order_id, amount, currency, attributed_event)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       ON CONFLICT (order_id, seller_pubkey) DO NOTHING`,
+      [
+        params.sellerPubkey,
+        attribution.flowId,
+        attribution.stepId,
+        attribution.enrollmentId,
+        attribution.executionId,
+        params.orderId,
+        params.amount ?? null,
+        params.currency ?? null,
+        attribution.attributedEvent,
+      ]
+    );
+  } catch (error) {
+    console.error("Failed to record email flow conversion:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export interface EmailFlowStepStats {
+  step_id: number;
+  step_order: number;
+  subject: string;
+  sent: number;
+  opens: number;
+  unique_opens: number;
+  clicks: number;
+  unique_clicks: number;
+  conversions: number;
+  open_rate: number;
+  click_rate: number;
+  conversion_rate: number;
+  top_links: Array<{ url: string; clicks: number }>;
+}
+
+export interface EmailFlowStats {
+  flow_id: number;
+  name: string;
+  flow_type: string;
+  status: string;
+  sent: number;
+  opens: number;
+  unique_opens: number;
+  clicks: number;
+  unique_clicks: number;
+  conversions: number;
+  open_rate: number;
+  click_rate: number;
+  conversion_rate: number;
+  steps: EmailFlowStepStats[];
+}
+
+function rate(numerator: number, denominator: number): number {
+  if (!denominator || denominator <= 0) return 0;
+  return Math.round((numerator / denominator) * 10000) / 10000;
+}
+
+/**
+ * Per-flow and per-step email analytics for a seller: sent counts, opens
+ * (total + unique by recipient send), clicks (total + unique), conversions, the
+ * derived rates, and the most-clicked links per email. One-time emails are
+ * included automatically because they are just flows of type `one_time`.
+ */
+export async function getEmailFlowStatsForSeller(
+  sellerPubkey: string
+): Promise<EmailFlowStats[]> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+
+    const flowsRes = await client.query(
+      `SELECT id, name, flow_type, status
+         FROM email_flows
+        WHERE seller_pubkey = $1
+        ORDER BY created_at DESC, id DESC`,
+      [sellerPubkey]
+    );
+    if (flowsRes.rows.length === 0) return [];
+
+    const stepsRes = await client.query(
+      `SELECT id, flow_id, step_order, subject
+         FROM email_flow_steps
+        WHERE flow_id IN (SELECT id FROM email_flows WHERE seller_pubkey = $1)
+        ORDER BY flow_id, step_order`,
+      [sellerPubkey]
+    );
+
+    const [
+      sentFlow,
+      opensFlow,
+      clicksFlow,
+      convFlow,
+      sentStep,
+      opensStep,
+      clicksStep,
+      convStep,
+      topLinks,
+    ] = await Promise.all([
+      client.query(
+        `SELECT en.flow_id, COUNT(*)::int AS sent
+           FROM email_flow_executions e
+           JOIN email_flow_enrollments en ON e.enrollment_id = en.id
+          WHERE en.flow_id IN (SELECT id FROM email_flows WHERE seller_pubkey = $1)
+            AND e.status = 'sent'
+          GROUP BY en.flow_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT flow_id, COUNT(*)::int AS opens,
+                COUNT(DISTINCT execution_id)::int AS unique_opens
+           FROM email_flow_opens
+          WHERE seller_pubkey = $1
+          GROUP BY flow_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT flow_id, COUNT(*)::int AS clicks,
+                COUNT(DISTINCT execution_id)::int AS unique_clicks
+           FROM email_flow_clicks
+          WHERE seller_pubkey = $1
+          GROUP BY flow_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT flow_id, COUNT(*)::int AS conversions
+           FROM email_flow_conversions
+          WHERE seller_pubkey = $1
+          GROUP BY flow_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT e.step_id, COUNT(*)::int AS sent
+           FROM email_flow_executions e
+           JOIN email_flow_enrollments en ON e.enrollment_id = en.id
+          WHERE en.flow_id IN (SELECT id FROM email_flows WHERE seller_pubkey = $1)
+            AND e.status = 'sent'
+          GROUP BY e.step_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT step_id, COUNT(*)::int AS opens,
+                COUNT(DISTINCT execution_id)::int AS unique_opens
+           FROM email_flow_opens
+          WHERE seller_pubkey = $1 AND step_id IS NOT NULL
+          GROUP BY step_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT step_id, COUNT(*)::int AS clicks,
+                COUNT(DISTINCT execution_id)::int AS unique_clicks
+           FROM email_flow_clicks
+          WHERE seller_pubkey = $1 AND step_id IS NOT NULL
+          GROUP BY step_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT step_id, COUNT(*)::int AS conversions
+           FROM email_flow_conversions
+          WHERE seller_pubkey = $1 AND step_id IS NOT NULL
+          GROUP BY step_id`,
+        [sellerPubkey]
+      ),
+      client.query(
+        `SELECT step_id, destination_url, COUNT(*)::int AS clicks
+           FROM email_flow_clicks
+          WHERE seller_pubkey = $1 AND step_id IS NOT NULL
+          GROUP BY step_id, destination_url
+          ORDER BY step_id, clicks DESC`,
+        [sellerPubkey]
+      ),
+    ]);
+
+    const num = (v: unknown): number => {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+
+    const sentByFlow = new Map<number, number>();
+    for (const r of sentFlow.rows) sentByFlow.set(num(r.flow_id), num(r.sent));
+    const opensByFlow = new Map<number, { opens: number; unique: number }>();
+    for (const r of opensFlow.rows)
+      opensByFlow.set(num(r.flow_id), {
+        opens: num(r.opens),
+        unique: num(r.unique_opens),
+      });
+    const clicksByFlow = new Map<number, { clicks: number; unique: number }>();
+    for (const r of clicksFlow.rows)
+      clicksByFlow.set(num(r.flow_id), {
+        clicks: num(r.clicks),
+        unique: num(r.unique_clicks),
+      });
+    const convByFlow = new Map<number, number>();
+    for (const r of convFlow.rows)
+      convByFlow.set(num(r.flow_id), num(r.conversions));
+
+    const sentByStep = new Map<number, number>();
+    for (const r of sentStep.rows) sentByStep.set(num(r.step_id), num(r.sent));
+    const opensByStep = new Map<number, { opens: number; unique: number }>();
+    for (const r of opensStep.rows)
+      opensByStep.set(num(r.step_id), {
+        opens: num(r.opens),
+        unique: num(r.unique_opens),
+      });
+    const clicksByStep = new Map<number, { clicks: number; unique: number }>();
+    for (const r of clicksStep.rows)
+      clicksByStep.set(num(r.step_id), {
+        clicks: num(r.clicks),
+        unique: num(r.unique_clicks),
+      });
+    const convByStep = new Map<number, number>();
+    for (const r of convStep.rows)
+      convByStep.set(num(r.step_id), num(r.conversions));
+
+    const topLinksByStep = new Map<
+      number,
+      Array<{ url: string; clicks: number }>
+    >();
+    for (const r of topLinks.rows) {
+      const sid = num(r.step_id);
+      const list = topLinksByStep.get(sid) || [];
+      if (list.length < 5) {
+        list.push({ url: String(r.destination_url), clicks: num(r.clicks) });
+        topLinksByStep.set(sid, list);
+      }
+    }
+
+    const stepsByFlow = new Map<number, EmailFlowStepStats[]>();
+    for (const s of stepsRes.rows) {
+      const flowId = num(s.flow_id);
+      const stepId = num(s.id);
+      const sent = sentByStep.get(stepId) || 0;
+      const o = opensByStep.get(stepId) || { opens: 0, unique: 0 };
+      const c = clicksByStep.get(stepId) || { clicks: 0, unique: 0 };
+      const conversions = convByStep.get(stepId) || 0;
+      const list = stepsByFlow.get(flowId) || [];
+      list.push({
+        step_id: stepId,
+        step_order: num(s.step_order),
+        subject: String(s.subject || ""),
+        sent,
+        opens: o.opens,
+        unique_opens: o.unique,
+        clicks: c.clicks,
+        unique_clicks: c.unique,
+        conversions,
+        open_rate: rate(o.unique, sent),
+        click_rate: rate(c.unique, sent),
+        conversion_rate: rate(conversions, sent),
+        top_links: topLinksByStep.get(stepId) || [],
+      });
+      stepsByFlow.set(flowId, list);
+    }
+
+    return flowsRes.rows.map((f: Record<string, unknown>) => {
+      const flowId = num(f.id);
+      const sent = sentByFlow.get(flowId) || 0;
+      const o = opensByFlow.get(flowId) || { opens: 0, unique: 0 };
+      const c = clicksByFlow.get(flowId) || { clicks: 0, unique: 0 };
+      const conversions = convByFlow.get(flowId) || 0;
+      return {
+        flow_id: flowId,
+        name: String(f.name || ""),
+        flow_type: String(f.flow_type || ""),
+        status: String(f.status || ""),
+        sent,
+        opens: o.opens,
+        unique_opens: o.unique,
+        clicks: c.clicks,
+        unique_clicks: c.unique,
+        conversions,
+        open_rate: rate(o.unique, sent),
+        click_rate: rate(c.unique, sent),
+        conversion_rate: rate(conversions, sent),
+        steps: stepsByFlow.get(flowId) || [],
+      };
+    });
+  } catch (error) {
+    console.error("Failed to get email flow stats:", error);
     throw error;
   } finally {
     if (client) client.release();

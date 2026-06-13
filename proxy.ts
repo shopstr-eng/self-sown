@@ -40,6 +40,10 @@ const CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH = [
   "/auth/",
   "/auth",
   "/onboarding",
+  // Buyer orders dashboard — reachable on a seller's custom domain so
+  // {{review_link}} deep-links from flow emails open the review modal there.
+  "/orders/",
+  "/orders",
   "/settings/",
   "/settings",
 ];

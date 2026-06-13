@@ -304,6 +304,10 @@ export default function ProductInvoiceCard({
           variantLabel: params.variantLabel,
           selectedBulkOption: params.selectedBulkOption,
           productId: params.productId,
+          productAddress:
+            productData?.pubkey && productData?.d
+              ? `30402:${productData.pubkey}:${productData.d}`
+              : undefined,
           quantity: params.quantity,
           salesTax: params.salesTax,
         }),

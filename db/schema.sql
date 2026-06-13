@@ -344,6 +344,56 @@ CREATE INDEX IF NOT EXISTS idx_email_flow_executions_step_id ON email_flow_execu
 CREATE INDEX IF NOT EXISTS idx_email_flow_executions_status ON email_flow_executions(status);
 CREATE INDEX IF NOT EXISTS idx_email_flow_executions_scheduled_for ON email_flow_executions(scheduled_for);
 
+-- Tracks clicks on tracked links inside flow emails
+CREATE TABLE IF NOT EXISTS email_flow_clicks (
+    id SERIAL PRIMARY KEY,
+    flow_id INTEGER NOT NULL REFERENCES email_flows(id) ON DELETE CASCADE,
+    step_id INTEGER REFERENCES email_flow_steps(id) ON DELETE SET NULL,
+    enrollment_id INTEGER REFERENCES email_flow_enrollments(id) ON DELETE SET NULL,
+    execution_id INTEGER REFERENCES email_flow_executions(id) ON DELETE SET NULL,
+    seller_pubkey TEXT NOT NULL,
+    destination_url TEXT NOT NULL,
+    clicked_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_flow_clicks_seller ON email_flow_clicks(seller_pubkey, clicked_at);
+CREATE INDEX IF NOT EXISTS idx_email_flow_clicks_flow_step ON email_flow_clicks(flow_id, step_id);
+CREATE INDEX IF NOT EXISTS idx_email_flow_clicks_enrollment ON email_flow_clicks(enrollment_id);
+
+-- Tracks opens (tracking-pixel hits) on flow emails
+CREATE TABLE IF NOT EXISTS email_flow_opens (
+    id SERIAL PRIMARY KEY,
+    flow_id INTEGER NOT NULL REFERENCES email_flows(id) ON DELETE CASCADE,
+    step_id INTEGER REFERENCES email_flow_steps(id) ON DELETE SET NULL,
+    enrollment_id INTEGER REFERENCES email_flow_enrollments(id) ON DELETE SET NULL,
+    execution_id INTEGER REFERENCES email_flow_executions(id) ON DELETE SET NULL,
+    seller_pubkey TEXT NOT NULL,
+    opened_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_flow_opens_seller ON email_flow_opens(seller_pubkey, opened_at);
+CREATE INDEX IF NOT EXISTS idx_email_flow_opens_flow_step ON email_flow_opens(flow_id, step_id);
+CREATE INDEX IF NOT EXISTS idx_email_flow_opens_execution ON email_flow_opens(execution_id);
+
+-- Attributes orders back to the flow email that drove them (last-touch)
+CREATE TABLE IF NOT EXISTS email_flow_conversions (
+    id SERIAL PRIMARY KEY,
+    seller_pubkey TEXT NOT NULL,
+    flow_id INTEGER NOT NULL REFERENCES email_flows(id) ON DELETE CASCADE,
+    step_id INTEGER REFERENCES email_flow_steps(id) ON DELETE SET NULL,
+    enrollment_id INTEGER REFERENCES email_flow_enrollments(id) ON DELETE SET NULL,
+    execution_id INTEGER REFERENCES email_flow_executions(id) ON DELETE SET NULL,
+    order_id TEXT NOT NULL,
+    amount TEXT,
+    currency TEXT,
+    attributed_event TEXT NOT NULL CHECK (attributed_event IN ('click', 'sent')),
+    converted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    UNIQUE(order_id, seller_pubkey)
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_flow_conversions_seller ON email_flow_conversions(seller_pubkey, converted_at);
+CREATE INDEX IF NOT EXISTS idx_email_flow_conversions_flow_step ON email_flow_conversions(flow_id, step_id);
+
 -- Cart activity reports for abandoned cart flow triggers
 CREATE TABLE IF NOT EXISTS cart_reports (
     id SERIAL PRIMARY KEY,
@@ -390,6 +440,27 @@ CREATE TABLE IF NOT EXISTS custom_domains (
 CREATE INDEX IF NOT EXISTS idx_custom_domains_domain ON custom_domains(domain);
 CREATE INDEX IF NOT EXISTS idx_custom_domains_pubkey ON custom_domains(pubkey);
 CREATE INDEX IF NOT EXISTS idx_custom_domains_tls_status ON custom_domains(tls_status);
+
+-- Seller-owned authenticated email sending domains (SendGrid Domain Authentication).
+-- Lets Herd sellers send order + flow emails from their own domain. The custom
+-- from-address is only used once SendGrid reports the domain valid; otherwise
+-- the platform's global verified sender is used.
+CREATE TABLE IF NOT EXISTS email_sender_domains (
+    id SERIAL PRIMARY KEY,
+    pubkey TEXT NOT NULL UNIQUE,
+    domain TEXT NOT NULL UNIQUE,
+    sendgrid_domain_id BIGINT UNIQUE,
+    subdomain TEXT,
+    dns_records JSONB,
+    valid BOOLEAN DEFAULT FALSE,
+    from_email TEXT,
+    last_validation_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_sender_domains_pubkey ON email_sender_domains(pubkey);
+CREATE INDEX IF NOT EXISTS idx_email_sender_domains_domain ON email_sender_domains(domain);
 
 -- Email popup captures for storefront discount popups
 CREATE TABLE IF NOT EXISTS popup_email_captures (

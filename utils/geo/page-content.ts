@@ -92,7 +92,7 @@ How to start selling local food and goods on Milk Market.
 3. **List your first product** — title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
 4. **Manage orders & communication** through encrypted buyer chat.
 5. **Customize your storefront** (Herd) — colors, fonts, page builder, SEO/OG meta, and a custom domain.
-6. **Automate your email flows** (Herd) — welcome series, order follow-ups, re-engagement.
+6. **Automate your email flows** (Herd) — welcome series, order follow-ups, re-engagement, with open, click, and conversion analytics for every flow and one-time send. You can also send these emails — plus order confirmations — from your own SendGrid-authenticated domain; if your domain isn't verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no other seller can see them and the platform does not access an individual seller's raw email analytics.
 7. **Buy shipping labels** (Herd) — connect your own Shippo account, quote live rates, buy labels, and issue returns from the orders dashboard.
 8. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders.
 9. **Grow your business** — update listings, build relationships, share your story, and expand reach.

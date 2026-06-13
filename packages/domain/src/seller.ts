@@ -104,6 +104,7 @@ const RESERVED_MARKETPLACE_TAGS = new Set([
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STOREFRONT_PRODUCT_LAYOUTS = new Set(["grid", "list", "featured"]);
 const STOREFRONT_LANDING_PAGE_STYLES = new Set(["classic", "hero", "minimal"]);
+const STOREFRONT_LANDING_PAGE_MODES = new Set(["default", "product"]);
 const STOREFRONT_IMAGE_POSITIONS = new Set(["left", "right"]);
 const STOREFRONT_SECTION_TYPES = new Set([
   "hero",
@@ -461,6 +462,16 @@ function normalizeStorefrontConfig(
             | "hero"
             | "minimal",
         }
+      : {}),
+    ...(typeof value.landingPageMode === "string" &&
+    STOREFRONT_LANDING_PAGE_MODES.has(value.landingPageMode)
+      ? {
+          landingPageMode: value.landingPageMode as "default" | "product",
+        }
+      : {}),
+    ...(typeof value.landingProductDTag === "string" &&
+    value.landingProductDTag.length > 0
+      ? { landingProductDTag: value.landingProductDTag }
       : {}),
     ...(typeof value.shopSlug === "string" ? { shopSlug: value.shopSlug } : {}),
     ...(typeof value.customDomain === "string"
