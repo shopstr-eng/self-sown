@@ -184,13 +184,21 @@ export default function DashboardScreen() {
     setStripeActionMessage("");
 
     try {
-      const createAccountSignedEvent =
-        createSignedStripeConnectAuthEvent(session);
+      const createAccountSignedEvent = createSignedStripeConnectAuthEvent(
+        session,
+        { method: "POST", path: "/api/stripe/connect/create-account" }
+      );
       const account = await mobileApiClient.createStripeConnectAccount({
         pubkey: session.pubkey,
         signedEvent: createAccountSignedEvent,
       });
-      const createLinkSignedEvent = createSignedStripeConnectAuthEvent(session);
+      const createLinkSignedEvent = createSignedStripeConnectAuthEvent(
+        session,
+        {
+          method: "POST",
+          path: "/api/stripe/connect/create-account-link",
+        }
+      );
       const redirectBaseUrl = createStripeConnectRedirectBaseUrl();
       const link = await mobileApiClient.createStripeConnectAccountLink({
         accountId: account.accountId,

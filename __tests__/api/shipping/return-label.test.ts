@@ -35,6 +35,7 @@ const getShippoAccessTokenMock = jest.fn();
 const getShippingDefaultsForPubkeyMock = jest.fn();
 const insertShippingLabelMock = jest.fn();
 const isPubkeyProEntitledMock = jest.fn();
+const consumeSignedRequestProofMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -68,6 +69,11 @@ jest.mock("@/utils/mcp/request-proof", () => ({
     isMcpRequestProofFreshMock(...args),
   parseSignedEventHeader: (...args: unknown[]) =>
     parseSignedEventHeaderMock(...args),
+}));
+
+jest.mock("@/utils/mcp/request-proof-server", () => ({
+  consumeSignedRequestProof: (...args: unknown[]) =>
+    consumeSignedRequestProofMock(...args),
 }));
 
 jest.mock("@/utils/db/shipping-service", () => ({
@@ -152,6 +158,7 @@ beforeEach(() => {
 
   applyRateLimitMock.mockReturnValue(true);
   isShippoOAuthConfiguredMock.mockReturnValue(true);
+  consumeSignedRequestProofMock.mockResolvedValue(true);
   verifyEventMock.mockReturnValue(true);
   isMcpRequestProofFreshMock.mockReturnValue(true);
   parseSignedEventHeaderMock.mockReturnValue({

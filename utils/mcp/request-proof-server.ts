@@ -116,3 +116,17 @@ export async function verifyAndConsumeSignedRequestProof(
 
   return { ok: true, status: 200 };
 }
+
+/**
+ * Single-use guard for endpoints that already verify the signed event inline
+ * (signature, freshness, and proof-tag match) and resolve the acting pubkey
+ * from the event itself. Records the event id so a captured proof cannot be
+ * replayed within its freshness window. Returns `false` if this proof has
+ * already been consumed.
+ */
+export async function consumeSignedRequestProof(
+  event: Event,
+  action: string
+): Promise<boolean> {
+  return consumeRequestProof(event.id, event.pubkey, action);
+}

@@ -12,6 +12,7 @@ import {
   upsertShippingDefaults,
 } from "@/utils/db/shipping-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { consumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
@@ -77,6 +78,14 @@ export default async function handler(
     // Pro gate: saving shipping defaults is a Herd write. GET stays open so
     // lapsed sellers can still read their saved values.
     if (!(await requireProEntitlement(event.pubkey, res))) return;
+
+    // Single-use: this is a write; burn the proof so it can't be replayed
+    // within its freshness window.
+    if (!(await consumeSignedRequestProof(event, "shipping_defaults"))) {
+      return res
+        .status(401)
+        .json({ error: "Signed event has already been used." });
+    }
 
     const body = (req.body || {}) as Partial<DefaultsBody>;
     const carriers = (body.preferredCarriers || [])

@@ -110,27 +110,30 @@ export default async function handler(
     const isMultiMerchant =
       sellerSplits && Array.isArray(sellerSplits) && sellerSplits.length > 1;
 
+    // Resolve the single-seller's connected Stripe account once. Both the
+    // server-side tax gate and the direct-charge routing below need it; it
+    // never applies to multi-merchant carts or the platform account.
+    const singleSellerPubkey = metadata?.sellerPubkey;
+    const singleSellerConnect =
+      !isMultiMerchant &&
+      singleSellerPubkey &&
+      singleSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
+        ? await getStripeConnectAccount(singleSellerPubkey)
+        : null;
+
     // Resolve the effective sales tax server-side. Tax is opt-in per seller and
     // only honored on single-seller direct charges; multi-merchant carts never
     // add tax in v1. Never trust the client-sent amount without confirming the
     // seller actually has tax collection enabled.
     let taxAddSmallest = 0;
-    if (!isMultiMerchant && requestedTaxSmallest > 0) {
-      const taxSellerPubkey = metadata?.sellerPubkey;
-      if (
-        taxSellerPubkey &&
-        taxSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
-      ) {
-        const taxConnectAccount =
-          await getStripeConnectAccount(taxSellerPubkey);
-        if (
-          taxConnectAccount &&
-          taxConnectAccount.charges_enabled &&
-          taxConnectAccount.tax_enabled
-        ) {
-          taxAddSmallest = requestedTaxSmallest;
-        }
-      }
+    if (
+      !isMultiMerchant &&
+      requestedTaxSmallest > 0 &&
+      singleSellerConnect &&
+      singleSellerConnect.charges_enabled &&
+      singleSellerConnect.tax_enabled
+    ) {
+      taxAddSmallest = requestedTaxSmallest;
     }
 
     let transferGroup = "";
@@ -344,16 +347,10 @@ export default async function handler(
     const sellerPubkey = metadata?.sellerPubkey;
     let connectedAccountId: string | null = null;
 
-    if (sellerPubkey) {
-      const isPlatformAccount =
-        sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-
-      if (!isPlatformAccount) {
-        const connectAccount = await getStripeConnectAccount(sellerPubkey);
-        if (connectAccount && connectAccount.charges_enabled) {
-          connectedAccountId = connectAccount.stripe_account_id;
-        }
-      }
+    // Reuse the single-seller account resolved above instead of a second DB
+    // lookup for the same pubkey.
+    if (singleSellerConnect && singleSellerConnect.charges_enabled) {
+      connectedAccountId = singleSellerConnect.stripe_account_id;
     }
 
     const stripeOptions = connectedAccountId

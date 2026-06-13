@@ -48,7 +48,8 @@ export default async function handler(
       const authResult = verifyNostrAuth(
         signedEvent,
         normalizedPubkey,
-        "stripe-connect"
+        "stripe-connect",
+        { method: "POST", path: "/api/stripe/connect/create-account" }
       );
       if (!authResult.valid) {
         return res.status(proofResult.status).json({

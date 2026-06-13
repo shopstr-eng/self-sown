@@ -19,6 +19,7 @@ import {
   insertShippingLabel,
   releaseShipmentClaim,
 } from "@/utils/db/shipping-service";
+import { consumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 import type { ParcelInput, ShippingAddressInput } from "@/utils/shipping/types";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60_000 };
@@ -193,6 +194,15 @@ export default async function handler(
           )
         )
         .digest("hex");
+
+    // Single-use: burn this signed proof before any charge so a captured event
+    // cannot be replayed to issue another return label within its freshness
+    // window.
+    if (!(await consumeSignedRequestProof(event, "shipping_return_label"))) {
+      return res
+        .status(401)
+        .json({ error: "Signed event has already been used." });
+    }
 
     if (!(await claimShipmentForPurchase(idempotencyKey, event.pubkey))) {
       return res.status(409).json({

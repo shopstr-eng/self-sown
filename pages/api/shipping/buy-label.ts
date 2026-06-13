@@ -20,6 +20,7 @@ import {
   insertShippingLabel,
   releaseShipmentClaim,
 } from "@/utils/db/shipping-service";
+import { consumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
@@ -121,6 +122,14 @@ export default async function handler(
       return res
         .status(403)
         .json({ error: "Shipment is owned by a different pubkey" });
+    }
+
+    // Single-use: burn this signed proof before any charge so a captured event
+    // cannot be replayed to buy another label within its freshness window.
+    if (!(await consumeSignedRequestProof(event, "shipping_buy_label"))) {
+      return res
+        .status(401)
+        .json({ error: "Signed event has already been used." });
     }
 
     // Atomically claim this shipment in the shared registry so two concurrent

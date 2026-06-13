@@ -13,6 +13,7 @@ import {
   upsertParcelTemplate,
 } from "@/utils/db/shipping-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { consumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
@@ -69,6 +70,16 @@ export default async function handler(
     // Pro gate: creating/deleting parcel templates is a Herd write. GET stays
     // open so lapsed sellers can still read their saved templates.
     if (!(await requireProEntitlement(event.pubkey, res))) return;
+
+    // Single-use: POST/DELETE are writes; burn the proof so it can't be
+    // replayed within its freshness window.
+    if (
+      !(await consumeSignedRequestProof(event, "shipping_parcel_templates"))
+    ) {
+      return res
+        .status(401)
+        .json({ error: "Signed event has already been used." });
+    }
 
     if (req.method === "POST") {
       const body = (req.body || {}) as Partial<TemplateBody>;

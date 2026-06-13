@@ -145,7 +145,8 @@ export default async function handler(
       const authResult = verifyNostrAuth(
         signedEvent,
         normalizedPubkey,
-        "stripe-connect"
+        "stripe-connect",
+        { method: "POST", path: "/api/stripe/connect/tax-settings" }
       );
       if (!authResult.valid) {
         return res.status(proofResult.status).json({

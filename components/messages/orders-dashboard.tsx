@@ -867,7 +867,9 @@ const OrdersDashboard = ({
             const body = JSON.stringify({
               orderId: order.orderId,
               status: order.status,
-              messageId: order.messageEvent?.id,
+              // The server caches the kind-1059 gift wrap, so it can only match
+              // by the gift-wrap id (wrappedEventId), not the decrypted rumor id.
+              messageId: order.messageEvent?.wrappedEventId,
             });
             createNip98AuthorizationHeader(
               signer!,
@@ -1204,6 +1206,9 @@ const OrdersDashboard = ({
         const body = JSON.stringify({
           orderId: selectedOrder.orderId,
           status: "shipped",
+          // Match the cached gift wrap by its wrap id so the server can stamp
+          // order_id and actually persist the "shipped" status.
+          messageId: selectedOrder.messageEvent?.wrappedEventId,
         });
         const authHeader = await createNip98AuthorizationHeader(
           signer,

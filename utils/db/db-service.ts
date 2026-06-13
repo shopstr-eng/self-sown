@@ -2679,25 +2679,46 @@ export async function getOrderParticipants(orderId: string): Promise<{
   }
 }
 
-// Update order status in database
+// Update order status in database.
+//
+// Order messages are cached as encrypted kind-1059 gift wraps, so the server can
+// never read the order tag out of their content — which is why `order_id` is
+// never populated at cache time. The CLIENT is the only party that knows which
+// cached gift wrap belongs to which order, so it sends `messageId` (the
+// gift-wrap event id, i.e. message_events.id). We locate that row by id, stamp
+// `order_id` onto it, and set the status in one shot. Once a row carries an
+// `order_id`, getOrderStatuses can read the status back by lookup key.
+//
+// Ownership: the gift-wrap `pubkey` is a throwaway ephemeral key, so the real
+// authority is the `p` tag — only a recipient of the gift wrap (the seller for
+// an incoming order) can write its status.
+//
+// Returns the number of rows updated so callers can tell whether anything
+// actually persisted.
 export async function updateOrderStatus(
   orderId: string,
   status: string,
   pubkey: string,
   messageId?: string
-): Promise<void> {
+): Promise<number> {
   const dbPool = getDbPool();
   let client;
+  let rowsAffected = 0;
 
   try {
     client = await dbPool.connect();
 
     if (messageId) {
-      await client.query(
+      // Locate the cached gift wrap by its event id, verify ownership via the
+      // `p` tag, and stamp order_id while setting the status. Only (re)stamp
+      // order_id when it is still NULL or already equals this order, so a
+      // recipient can't repoint someone else's already-tagged row.
+      const byId = await client.query(
         `UPDATE message_events
-         SET order_status = $1
+         SET order_status = $1,
+             order_id = $3
          WHERE id = $2
-         AND order_id = $3
+         AND (order_id IS NULL OR order_id = $3)
          AND (
            pubkey = $4
            OR EXISTS (
@@ -2708,9 +2729,12 @@ export async function updateOrderStatus(
          )`,
         [status, messageId, orderId, pubkey]
       );
+      rowsAffected += byId.rowCount ?? 0;
     }
 
-    await client.query(
+    // Propagate the status to any sibling rows already tagged with this order_id
+    // (multi-message orders). Harmless on the first write when nothing is tagged.
+    const byOrderId = await client.query(
       `UPDATE message_events
        SET order_status = $1
        WHERE order_id = $2
@@ -2724,8 +2748,12 @@ export async function updateOrderStatus(
        )`,
       [status, orderId, pubkey]
     );
+    rowsAffected += byOrderId.rowCount ?? 0;
+
+    return rowsAffected;
   } catch (error) {
     console.error("Failed to update order status:", error);
+    throw error;
   } finally {
     if (client) {
       client.release();
