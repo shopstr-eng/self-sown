@@ -21,7 +21,7 @@ Raw milk and dairy were the founding use case, but the marketplace is for local 
 Producers follow a guided onboarding (see the Producer Guide):
 
 1. Create an account with a Nostr identity (new or existing).
-2. Choose a membership — a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $1,050) for lifetime access to every Herd feature.
+2. Choose a membership — a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature.
 3. List a product with title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
 4. Manage orders and communicate with buyers through encrypted chat.
 5. (Herd) Customize a storefront at /shop/[slug] — colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.

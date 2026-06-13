@@ -91,8 +91,8 @@ function lifetimePI(overrides: Partial<Stripe.PaymentIntent> = {}) {
   return {
     id: "pi_lifetime",
     customer: "cus_wrangler",
-    amount_received: 105000,
-    amount: 105000,
+    amount_received: 210000,
+    amount: 210000,
     currency: "usd",
     created: CREATED_UNIX,
     metadata: { proLifetime: "true", mmProPubkey: "seller-pubkey" },
@@ -123,7 +123,7 @@ describe("applyStripeLifetimePayment — Wrangler lifetime receipt content", () 
     expect(sendProReceiptMock).toHaveBeenCalledWith(
       "seller@example.com",
       expect.objectContaining({
-        amountCents: 105000,
+        amountCents: 210000,
         currency: "usd",
         term: null,
         method: "stripe",
@@ -141,15 +141,15 @@ describe("applyStripeLifetimePayment — Wrangler lifetime receipt content", () 
     expect(sendServerSideNostrDMMock).toHaveBeenCalledTimes(1);
     const [pubkey, body, subject] = sendServerSideNostrDMMock.mock.calls[0];
     expect(pubkey).toBe("seller-pubkey");
-    // $1050.00 = 105000 cents in USD; lifetime → Wrangler plan; stripe → card.
-    expect(body).toContain("$1050.00");
+    // $2100.00 = 210000 cents in USD; lifetime → Wrangler plan; stripe → card.
+    expect(body).toContain("$2100.00");
     expect(body).toContain("Plan: Wrangler (Lifetime)");
     expect(body).toContain("Payment method: Card (Stripe)");
     expect(body).toContain("never expires");
     expect(body).toContain(`Date: ${PAID_AT_DISPLAY}`);
     // A lifetime purchase carries no recurring term, so no Herd plan line leaks.
     expect(body).not.toContain("Herd");
-    expect(subject).toBe("Milk Market — payment receipt ($1050.00)");
+    expect(subject).toBe("Milk Market — payment receipt ($2100.00)");
   });
 
   it("DMs the receipt even when no notification email is on file (Nostr-first seller)", async () => {

@@ -95,7 +95,7 @@ function lifetimeInvoice(
     term: null,
     lifetime: true,
     method: "bitcoin",
-    amount_usd_cents: 105000,
+    amount_usd_cents: 210000,
     amount_sats: 1_500_000,
     bolt11: null,
     verify_url: null,
@@ -128,7 +128,7 @@ describe("sendProManualReceiptEmail — manual lifetime receipt content", () => 
     expect(sendProReceiptMock).toHaveBeenCalledWith(
       "seller@example.com",
       expect.objectContaining({
-        amountCents: 105000,
+        amountCents: 210000,
         currency: "usd",
         term: null,
         method: "bitcoin",
@@ -146,15 +146,15 @@ describe("sendProManualReceiptEmail — manual lifetime receipt content", () => 
     expect(sendServerSideNostrDMMock).toHaveBeenCalledTimes(1);
     const [pubkey, body, subject] = sendServerSideNostrDMMock.mock.calls[0];
     expect(pubkey).toBe("seller-pubkey");
-    // $1050.00 = 105000 cents in USD; lifetime → Wrangler plan; bitcoin method.
-    expect(body).toContain("$1050.00");
+    // $2100.00 = 210000 cents in USD; lifetime → Wrangler plan; bitcoin method.
+    expect(body).toContain("$2100.00");
     expect(body).toContain("Plan: Wrangler (Lifetime)");
     expect(body).toContain("Payment method: Bitcoin");
     expect(body).toContain("never expires");
     expect(body).toContain(`Date: ${PAID_AT_DISPLAY}`);
     // A lifetime purchase carries no recurring term, so no Herd plan line leaks.
     expect(body).not.toContain("Herd");
-    expect(subject).toBe("Milk Market — payment receipt ($1050.00)");
+    expect(subject).toBe("Milk Market — payment receipt ($2100.00)");
   });
 
   it("DMs the receipt even when no notification email is on file (Nostr-first seller)", async () => {
@@ -196,7 +196,7 @@ describe("sendProManualReceiptEmail — manual lifetime receipt content", () => 
     expect(paidMs).toBeLessThanOrEqual(after);
     // The DM carries the same now()-derived receipt.
     const [, body] = sendServerSideNostrDMMock.mock.calls[0];
-    expect(body).toContain("$1050.00");
+    expect(body).toContain("$2100.00");
     expect(body).toContain("Plan: Wrangler (Lifetime)");
   });
 });

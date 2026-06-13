@@ -22,7 +22,7 @@ export const PRO_MONTHLY_PRICE_CENTS = 2100; // $21.00 / month
 export const PRO_ANNUAL_PRICE_CENTS = 16800; // $168.00 / year
 // "Wrangler" lifetime tier: a one-time charge that grants the Herd (Pro)
 // feature set forever. Internally still part of the "pro" entitlement.
-export const WRANGLER_LIFETIME_PRICE_CENTS = 105000; // $1,050.00 one-time
+export const WRANGLER_LIFETIME_PRICE_CENTS = 210000; // $2,100.00 one-time
 export const WRANGLER_LIFETIME_PRICE_USD = WRANGLER_LIFETIME_PRICE_CENTS / 100;
 
 export const PRO_TRIAL_DAYS = 90; // 3-month grandfathered trial (pre-existing accounts)
@@ -35,7 +35,7 @@ export const PRO_READONLY_DAYS = 30; // read-only month before hiding
 export const PRO_MONTHLY_LOOKUP_KEY = "milkmarket_pro_monthly_v1";
 export const PRO_ANNUAL_LOOKUP_KEY = "milkmarket_pro_annual_v1";
 // One-time price for the Wrangler lifetime tier (non-recurring).
-export const WRANGLER_LIFETIME_LOOKUP_KEY = "milkmarket_wrangler_lifetime_v1";
+export const WRANGLER_LIFETIME_LOOKUP_KEY = "milkmarket_wrangler_lifetime_v2";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 

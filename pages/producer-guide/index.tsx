@@ -635,7 +635,7 @@ const ProducerGuidePage = () => {
                           unlock advanced storefronts, custom domains, email
                           flows, custom product pages, shipping labels, and AI
                           agent (MCP) access &mdash; or go Wrangler for one-time
-                          $1,050 lifetime access
+                          $2,100 lifetime access
                         </li>
                         <li>
                           New sellers get a 30-day free trial of Herd with no

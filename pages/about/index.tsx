@@ -146,7 +146,7 @@ export default function AboutPage() {
               free with unlimited listings, and an optional Herd plan ($21/month
               or $168/year, with a 30-day free trial for new sellers) unlocks
               advanced tools like custom domains and automated email. Prefer to
-              pay once? Wrangler gives lifetime access for a one-time $1,050. No
+              pay once? Wrangler gives lifetime access for a one-time $2,100. No
               gatekeepers. No middlemen.
             </p>
           </section>

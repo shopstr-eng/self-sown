@@ -92,7 +92,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
 
 /**
  * Find-or-create the one-time "Wrangler" lifetime Price on the platform
- * account. Non-recurring, $1,050. Keyed by a stable `lookup_key` and attached
+ * account. Non-recurring, $2,100. Keyed by a stable `lookup_key` and attached
  * to the same "Milk Market Pro" product so it shows up alongside the recurring
  * Herd prices. Mirrors `ensureProPrice` minus the `recurring` field.
  */

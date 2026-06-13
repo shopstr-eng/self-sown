@@ -126,7 +126,7 @@ describe("settleProManualInvoiceAtomic — lifetime branch (real Postgres)", () 
           term: null,
           lifetime: true,
           method: "bitcoin",
-          amountUsdCents: 105000,
+          amountUsdCents: 210000,
           amountSats: 1500000,
           dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });
@@ -204,7 +204,7 @@ describe("settleProManualInvoiceAtomic — lifetime branch (real Postgres)", () 
           term: null,
           lifetime: true,
           method: "bitcoin",
-          amountUsdCents: 105000,
+          amountUsdCents: 210000,
           amountSats: 1500000,
           dueAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         });

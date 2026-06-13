@@ -78,8 +78,12 @@ export default async function handler(
           },
         },
         {
+          // Key on the amount too, so a price change produces a fresh
+          // idempotency key instead of reusing a cached old-price PaymentIntent
+          // during Stripe's idempotency window.
           idempotencyKey: stableIdempotencyKey("pro-lifetime-create", {
             pubkey,
+            amount: WRANGLER_LIFETIME_PRICE_CENTS,
           }),
         }
       )

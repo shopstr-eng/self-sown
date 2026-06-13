@@ -167,7 +167,7 @@ describe("/api/pro/stripe-webhook — card lifetime checkout drives grantLifetim
         object: {
           id: "pi_lifetime",
           customer: "cus_wrangler",
-          amount_received: 105000,
+          amount_received: 210000,
           currency: "usd",
           created: 1_700_000_000,
           metadata: { proLifetime: "true", mmProPubkey: "seller-pubkey" },
@@ -200,7 +200,7 @@ describe("/api/pro/stripe-webhook — card lifetime checkout drives grantLifetim
         object: {
           id: "pi_lifetime",
           customer: null,
-          amount_received: 105000,
+          amount_received: 210000,
           currency: "usd",
           metadata: { proLifetime: "true", mmProPubkey: "seller-pubkey" },
         },
