@@ -71,6 +71,15 @@ export default async function handler(
       .json({ error: "Missing required fields: orderId, status" });
   }
 
+  // Bound the key length so a caller can't stamp an oversized order_id; matches
+  // the cap enforced on the read side (get-order-statuses).
+  if (typeof orderId !== "string" || orderId.length > 128) {
+    return res.status(400).json({ error: "Invalid orderId" });
+  }
+  if (messageId !== undefined && typeof messageId !== "string") {
+    return res.status(400).json({ error: "Invalid messageId" });
+  }
+
   const validStatuses = [
     "pending",
     "confirmed",
@@ -85,15 +94,27 @@ export default async function handler(
   }
 
   try {
-    const { buyerPubkey, sellerPubkey } = await getOrderParticipants(orderId);
-
-    if (!buyerPubkey || !sellerPubkey) {
-      return res.status(404).json({
-        error: "Could not resolve order participants for this order.",
-      });
+    // Order messages are encrypted gift wraps, so the server usually CANNOT
+    // resolve the buyer/seller pubkeys from the cached rows (the `b`/`item`
+    // tags live inside the encrypted content). Resolve best-effort: only when
+    // BOTH participants are known do we apply role-based status authority.
+    // Otherwise the per-row ownership check inside updateOrderStatus (the
+    // authenticated pubkey must be the row author or a `p`-tag recipient) is
+    // the authority. See memory: order-participants-not-server-readable.
+    let buyerPubkey: string | null = null;
+    let sellerPubkey: string | null = null;
+    try {
+      ({ buyerPubkey, sellerPubkey } = await getOrderParticipants(orderId));
+    } catch (participantsError) {
+      console.error(
+        "update-order-status: failed to resolve order participants:",
+        participantsError
+      );
     }
 
     if (
+      buyerPubkey &&
+      sellerPubkey &&
       !canActorUpdateOrderStatus(
         authResult.pubkey,
         buyerPubkey,
@@ -107,8 +128,15 @@ export default async function handler(
       });
     }
 
-    await updateOrderStatus(orderId, status, authResult.pubkey, messageId);
-    return res.status(200).json({ success: true, orderId, status });
+    const persistedRows = await updateOrderStatus(
+      orderId,
+      status,
+      authResult.pubkey,
+      messageId
+    );
+    return res
+      .status(200)
+      .json({ success: true, orderId, status, persisted: persistedRows > 0 });
   } catch (error) {
     console.error("Failed to update order status:", error);
     return res.status(500).json({ error: "Failed to update order status" });

@@ -89,7 +89,7 @@ export default async function handler(
       }
     }
 
-    const taxAddSmallest =
+    const requestedTaxSmallest =
       typeof salesTaxSmallest === "number" && salesTaxSmallest > 0
         ? Math.ceil(salesTaxSmallest)
         : 0;
@@ -109,6 +109,32 @@ export default async function handler(
 
     const isMultiMerchant =
       sellerSplits && Array.isArray(sellerSplits) && sellerSplits.length > 1;
+
+    // Resolve the single-seller's connected Stripe account once. Both the
+    // server-side tax gate and the direct-charge routing below need it; it
+    // never applies to multi-merchant carts or the platform account.
+    const singleSellerPubkey = metadata?.sellerPubkey;
+    const singleSellerConnect =
+      !isMultiMerchant &&
+      singleSellerPubkey &&
+      singleSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
+        ? await getStripeConnectAccount(singleSellerPubkey)
+        : null;
+
+    // Resolve the effective sales tax server-side. Tax is opt-in per seller and
+    // only honored on single-seller direct charges; multi-merchant carts never
+    // add tax in v1. Never trust the client-sent amount without confirming the
+    // seller actually has tax collection enabled.
+    let taxAddSmallest = 0;
+    if (
+      !isMultiMerchant &&
+      requestedTaxSmallest > 0 &&
+      singleSellerConnect &&
+      singleSellerConnect.charges_enabled &&
+      singleSellerConnect.tax_enabled
+    ) {
+      taxAddSmallest = requestedTaxSmallest;
+    }
 
     let transferGroup = "";
     const splitDetails: {
@@ -236,9 +262,10 @@ export default async function handler(
           ...(taxAddSmallest > 0 && {
             salesTaxSmallest: taxAddSmallest.toString(),
           }),
-          ...(taxCalculationId && {
-            taxCalculationId: String(taxCalculationId),
-          }),
+          ...(taxAddSmallest > 0 &&
+            taxCalculationId && {
+              taxCalculationId: String(taxCalculationId),
+            }),
           sellerSplits: JSON.stringify(
             splitDetails.map((s) => ({
               pubkey: s.pubkey,
@@ -320,16 +347,10 @@ export default async function handler(
     const sellerPubkey = metadata?.sellerPubkey;
     let connectedAccountId: string | null = null;
 
-    if (sellerPubkey) {
-      const isPlatformAccount =
-        sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-
-      if (!isPlatformAccount) {
-        const connectAccount = await getStripeConnectAccount(sellerPubkey);
-        if (connectAccount && connectAccount.charges_enabled) {
-          connectedAccountId = connectAccount.stripe_account_id;
-        }
-      }
+    // Reuse the single-seller account resolved above instead of a second DB
+    // lookup for the same pubkey.
+    if (singleSellerConnect && singleSellerConnect.charges_enabled) {
+      connectedAccountId = singleSellerConnect.stripe_account_id;
     }
 
     const stripeOptions = connectedAccountId
@@ -338,9 +359,13 @@ export default async function handler(
 
     // Single-merchant donation cut: only applied for direct charges on a
     // connected account (otherwise the funds are already on the platform).
+    // Compute it on the PRE-TAX base (items + shipping): sales tax is collected
+    // on the seller's behalf to remit, so the platform donation fee must never
+    // skim it.
+    const donationBaseSmallest = amountInSmallestUnit - taxAddSmallest;
     const { percent: singleDonationPercent, cutSmallest: singleDonationCut } =
       connectedAccountId
-        ? await resolveDonationCut(sellerPubkey, amountInSmallestUnit)
+        ? await resolveDonationCut(sellerPubkey, donationBaseSmallest)
         : { percent: 0, cutSmallest: 0 };
 
     const description = `${productTitle}${
@@ -363,7 +388,10 @@ export default async function handler(
         ...(taxAddSmallest > 0 && {
           salesTaxSmallest: taxAddSmallest.toString(),
         }),
-        ...(taxCalculationId && { taxCalculationId: String(taxCalculationId) }),
+        ...(taxAddSmallest > 0 &&
+          taxCalculationId && {
+            taxCalculationId: String(taxCalculationId),
+          }),
       },
       payment_method_types: ["card"],
       ...(singleDonationCut > 0 && {

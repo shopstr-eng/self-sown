@@ -263,18 +263,20 @@ export function createStripeConnectAuthEventTemplate(
 
 export function createSignedSellerActionAuthEvent(
   session: SellerSession,
-  action: SellerActionAuthTag
+  action: SellerActionAuthTag,
+  binding?: SellerActionAuthBinding
 ): Event {
   return signEventTemplate(
     session,
-    createSellerActionAuthEventTemplate(session.pubkey, action)
+    createSellerActionAuthEventTemplate(session.pubkey, action, binding)
   );
 }
 
 export function createSignedStripeConnectAuthEvent(
-  session: SellerSession
+  session: SellerSession,
+  binding?: SellerActionAuthBinding
 ): Event {
-  return createSignedSellerActionAuthEvent(session, "stripe-connect");
+  return createSignedSellerActionAuthEvent(session, "stripe-connect", binding);
 }
 
 export function createSellerShopProfileEventTemplate(

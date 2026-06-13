@@ -182,6 +182,7 @@ export default function StandaloneLanding() {
         });
       }
     } catch (error) {
+      console.error("Error submitting form:", error);
       setSubmitMessage({
         type: "error",
         text: "Network error! Please check your connection and try again.",
@@ -998,7 +999,7 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels (coming soon), and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
               question="Do I own my customers and store?"

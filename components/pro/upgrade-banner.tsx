@@ -27,8 +27,8 @@ export default function UpgradeBanner({
     membership.isReadOnly || membership.isHidden
       ? "Your Herd plan has lapsed. Re-subscribe to restore your Herd features."
       : membership.status === "free"
-        ? "Try Herd free for 30 days, no payment required, or go Wrangler for one-time lifetime access. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API."
-        : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API.";
+        ? "Try Herd free for 30 days, no payment required, or go Wrangler for one-time lifetime access. Unlock advanced storefronts, custom domains, email flows, custom product pages, shipping labels, and the MCP API."
+        : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping labels, and the MCP API.";
 
   return (
     <Card className={className} shadow="sm">

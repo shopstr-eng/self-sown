@@ -109,7 +109,7 @@ export function createMilkMarketApiClient(
     init: RequestInitWithJson = {}
   ): Promise<T> {
     const headers = new Headers(init.headers ?? {});
-    let body: BodyInit | undefined;
+    let body: string | undefined;
 
     if (typeof init.body !== "undefined") {
       headers.set("Content-Type", "application/json");

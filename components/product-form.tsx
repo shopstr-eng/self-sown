@@ -60,6 +60,11 @@ import {
   buildMcpRequestProofTemplate,
   buildStripeAccountStatusProof,
 } from "@/utils/mcp/request-proof";
+import {
+  ShippoParcelTemplate,
+  fetchShippoDefaults,
+  listShippoParcelTemplates,
+} from "@/utils/shipping/client-api";
 
 interface ProductFormProps {
   handleModalToggle: () => void;
@@ -103,6 +108,12 @@ export default function ProductForm({
   const [hasStripeAccount, setHasStripeAccount] = useState<boolean | null>(
     null
   );
+  const [parcelTemplates, setParcelTemplates] = useState<
+    ShippoParcelTemplate[]
+  >([]);
+  const [selectedParcelTemplateId, setSelectedParcelTemplateId] = useState<
+    string | null
+  >(null);
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
   const {
@@ -112,7 +123,7 @@ export default function ProductForm({
   } = useContext(SignerContext);
   const { nostr } = useContext(NostrContext);
 
-  const { handleSubmit, control, reset, watch } = useForm({
+  const { handleSubmit, control, reset, watch, setValue } = useForm({
     defaultValues: oldValues
       ? {
           "Product Name": oldValues.title,
@@ -175,12 +186,27 @@ export default function ProductForm({
           Expiration: oldValues.expiration
             ? formatUnixTimestampAsDateTimeLocalValue(oldValues.expiration)
             : "",
+          "Ship From Zip": oldValues.shipFromZip || "",
+          "Ship From Country": oldValues.shipFromCountry || "US",
+          "Package Weight Oz": oldValues.packageWeightOz
+            ? String(oldValues.packageWeightOz)
+            : "",
+          "Package Length In": oldValues.packageLengthIn
+            ? String(oldValues.packageLengthIn)
+            : "",
+          "Package Width In": oldValues.packageWidthIn
+            ? String(oldValues.packageWidthIn)
+            : "",
+          "Package Height In": oldValues.packageHeightIn
+            ? String(oldValues.packageHeightIn)
+            : "",
         }
       : {
           Currency: "USD",
           "Shipping Option": "Pickup",
           Status: "active",
           "Pickup Locations": [""],
+          "Ship From Country": "US",
         },
   });
 
@@ -191,6 +217,39 @@ export default function ProductForm({
       setRelayHint(relays[0] as string);
     }
   }, [signerPubKey]);
+
+  // Load seller's saved parcel templates + shipping defaults so the form
+  // can offer one-click parcel fills and pre-fill ship-from on new listings.
+  useEffect(() => {
+    if (!signer?.sign || !signerPubKey) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [templates, defaults] = await Promise.all([
+          listShippoParcelTemplates(signer, signerPubKey).catch(() => []),
+          fetchShippoDefaults(signer, signerPubKey).catch(() => null),
+        ]);
+        if (cancelled) return;
+        setParcelTemplates(templates);
+        // Only pre-fill ship-from on brand-new listings, never overwrite
+        // values the user already entered or values from oldValues.
+        if (!oldValues && defaults?.fromZip) {
+          setValue("Ship From Zip", defaults.fromZip, { shouldDirty: false });
+          if (defaults.fromCountry) {
+            setValue("Ship From Country", defaults.fromCountry, {
+              shouldDirty: false,
+            });
+          }
+        }
+      } catch {
+        // non-fatal
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signer, signerPubKey]);
 
   useEffect(() => {
     setImages(oldValues?.images || []);
@@ -341,6 +400,41 @@ export default function ProductForm({
         String(data["Currency"] ?? ""),
       ],
     ];
+
+    const shipFromZip = (data["Ship From Zip"] as string | undefined)?.trim();
+    const shipFromCountry =
+      (data["Ship From Country"] as string | undefined)?.trim().toUpperCase() ||
+      "";
+    if (shipFromZip) {
+      tags.push(["ship_from_zip", shipFromZip, shipFromCountry || "US"]);
+    }
+
+    const pkgWeight = data["Package Weight Oz"]
+      ? Number(data["Package Weight Oz"])
+      : NaN;
+    if (Number.isFinite(pkgWeight) && pkgWeight > 0) {
+      const pkgLen = data["Package Length In"]
+        ? Number(data["Package Length In"])
+        : NaN;
+      const pkgWid = data["Package Width In"]
+        ? Number(data["Package Width In"])
+        : NaN;
+      const pkgHei = data["Package Height In"]
+        ? Number(data["Package Height In"])
+        : NaN;
+      const parcelTag: string[] = ["parcel", String(pkgWeight)];
+      if (Number.isFinite(pkgLen) && pkgLen > 0) parcelTag.push(String(pkgLen));
+      else parcelTag.push("");
+      if (Number.isFinite(pkgWid) && pkgWid > 0) parcelTag.push(String(pkgWid));
+      else parcelTag.push("");
+      if (Number.isFinite(pkgHei) && pkgHei > 0) parcelTag.push(String(pkgHei));
+      else parcelTag.push("");
+      // Trim trailing empty values so we don't emit zero-padded dims.
+      while (parcelTag.length > 2 && parcelTag[parcelTag.length - 1] === "") {
+        parcelTag.pop();
+      }
+      tags.push(parcelTag as [string, ...string[]]);
+    }
 
     images.forEach((image) => {
       tags.push(["image", image]);
@@ -1193,6 +1287,197 @@ export default function ProductForm({
                   );
                 }}
               />
+
+              {(watchShippingOption === "Added Cost" ||
+                watchShippingOption === "Added Cost/Pickup" ||
+                watchShippingOption === "Free") && (
+                <div className="mb-4 rounded-md border-2 border-black bg-yellow-50 p-3 text-sm text-black">
+                  <p className="font-semibold">
+                    USPS live shipping rates (optional)
+                  </p>
+                  <p className="mt-1 text-gray-700">
+                    Fill in the &quot;Ship From&quot; ZIP <em>and</em> package
+                    weight below to enable live USPS rate calculations at
+                    checkout — buyers pay the exact USPS price based on their
+                    address. If left blank, your static shipping cost above is
+                    used instead. Dimensions improve accuracy for larger
+                    parcels.
+                  </p>
+                  {parcelTemplates.length > 0 && (
+                    <div className="mt-3">
+                      <label className="mb-1 block text-sm font-semibold text-black">
+                        Parcel template
+                      </label>
+                      <select
+                        className="h-10 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black"
+                        value={selectedParcelTemplateId || ""}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedParcelTemplateId(id || null);
+                          if (!id) return;
+                          const tpl = parcelTemplates.find(
+                            (t) => String(t.id) === id
+                          );
+                          if (!tpl) return;
+                          setValue("Package Weight Oz", String(tpl.weightOz), {
+                            shouldDirty: true,
+                          });
+                          setValue(
+                            "Package Length In",
+                            tpl.lengthIn ? String(tpl.lengthIn) : "",
+                            { shouldDirty: true }
+                          );
+                          setValue(
+                            "Package Width In",
+                            tpl.widthIn ? String(tpl.widthIn) : "",
+                            { shouldDirty: true }
+                          );
+                          setValue(
+                            "Package Height In",
+                            tpl.heightIn ? String(tpl.heightIn) : "",
+                            { shouldDirty: true }
+                          );
+                        }}
+                      >
+                        <option value="">
+                          — Pick a saved template (optional) —
+                        </option>
+                        {parcelTemplates.map((t) => (
+                          <option key={t.id} value={String(t.id)}>
+                            {t.name} ({t.weightOz} oz
+                            {t.lengthIn && t.widthIn && t.heightIn
+                              ? `, ${t.lengthIn}×${t.widthIn}×${t.heightIn} in`
+                              : ""}
+                            )
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-xs text-gray-600">
+                        Manage templates in Settings → Shipping.
+                      </p>
+                    </div>
+                  )}
+                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <Controller
+                      name="Ship From Zip"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          aria-label="Ship From Zip"
+                          label="Ship From ZIP"
+                          labelPlacement="outside"
+                          placeholder="e.g. 90210"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Weight Oz"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Package Weight (oz)"
+                          label="Package Weight (oz)"
+                          labelPlacement="outside"
+                          placeholder="e.g. 16"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Length In"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Length (in)"
+                          label="Length (in)"
+                          labelPlacement="outside"
+                          placeholder="optional"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Width In"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Width (in)"
+                          label="Width (in)"
+                          labelPlacement="outside"
+                          placeholder="optional"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Package Height In"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Height (in)"
+                          label="Height (in)"
+                          labelPlacement="outside"
+                          placeholder="optional"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
 
               {(watchShippingOption === "Added Cost" ||
                 watchShippingOption === "Added Cost/Pickup") && (

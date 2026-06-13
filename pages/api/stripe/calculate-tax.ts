@@ -76,17 +76,35 @@ export default async function handler(
       stripeCurrency = currency.toLowerCase();
     }
 
-    let stripeOptions: Stripe.RequestOptions | undefined;
-    if (!isMultiMerchant && sellerPubkey) {
-      const isPlatformAccount =
-        sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-      if (!isPlatformAccount) {
-        const connectAccount = await getStripeConnectAccount(sellerPubkey);
-        if (connectAccount && connectAccount.charges_enabled) {
-          stripeOptions = { stripeAccount: connectAccount.stripe_account_id };
-        }
-      }
+    // Sales tax is opt-in per seller and only supported on single-seller
+    // (direct-charge) checkouts in v1. Multi-merchant carts skip tax entirely:
+    // a single platform-level calculation can't honor each seller's separate
+    // nexus/registrations, and the tax couldn't be attributed per transfer.
+    const skipResponse = {
+      success: true,
+      taxAmountSmallest: 0,
+      totalSmallest: amountInSmallestUnit,
+      currency: stripeCurrency,
+      skipped: true,
+    };
+
+    if (isMultiMerchant || !sellerPubkey) {
+      return res.status(200).json(skipResponse);
     }
+
+    const connectAccount = await getStripeConnectAccount(sellerPubkey);
+    if (
+      !connectAccount ||
+      !connectAccount.charges_enabled ||
+      !connectAccount.tax_enabled
+    ) {
+      // Seller hasn't connected Stripe, finished onboarding, or turned on tax.
+      return res.status(200).json(skipResponse);
+    }
+
+    const stripeOptions: Stripe.RequestOptions = {
+      stripeAccount: connectAccount.stripe_account_id,
+    };
 
     let calculation: Stripe.Tax.Calculation;
     try {

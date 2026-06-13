@@ -477,6 +477,28 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_stripe_connect_pubkey ON stripe_connect_accounts(pubkey);
       CREATE INDEX IF NOT EXISTS idx_stripe_connect_account_id ON stripe_connect_accounts(stripe_account_id);
 
+      -- Sales tax via Stripe Tax is ON by default for connected accounts; sellers
+      -- can turn it off in settings. No tax is actually charged until the seller
+      -- adds the US states they're registered in (Stripe returns zero without nexus).
+      ALTER TABLE stripe_connect_accounts ADD COLUMN IF NOT EXISTS tax_enabled BOOLEAN DEFAULT TRUE;
+
+      -- One-time migration to flip the feature from opt-in to on-by-default: while
+      -- the column still carries the old FALSE default, enable existing accounts and
+      -- switch the default to TRUE. Guarded by the current default so app restarts
+      -- never re-enable a seller who has deliberately turned tax off.
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'stripe_connect_accounts'
+            AND column_name = 'tax_enabled'
+            AND column_default = 'false'
+        ) THEN
+          UPDATE stripe_connect_accounts SET tax_enabled = TRUE WHERE tax_enabled = FALSE;
+          ALTER TABLE stripe_connect_accounts ALTER COLUMN tax_enabled SET DEFAULT TRUE;
+        END IF;
+      END $$;
+
       -- Notification emails table for buyers and sellers
       CREATE TABLE IF NOT EXISTS notification_emails (
           id SERIAL PRIMARY KEY,
@@ -791,6 +813,111 @@ async function initializeTables(): Promise<void> {
         ip_address VARCHAR(45),
         visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Shippo: purchased shipping labels (label history per seller)
+      CREATE TABLE IF NOT EXISTS shipping_labels (
+        id SERIAL PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        shipment_id TEXT NOT NULL,
+        order_id TEXT,
+        tracking_code TEXT,
+        tracking_url TEXT,
+        label_url TEXT NOT NULL,
+        label_format TEXT,
+        rate_usd NUMERIC(10, 2) NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'USD',
+        carrier TEXT,
+        service TEXT,
+        is_return BOOLEAN NOT NULL DEFAULT FALSE,
+        from_summary TEXT,
+        to_summary TEXT,
+        parcel_summary TEXT,
+        purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      -- Drop the legacy UNIQUE(shipment_id, is_return) constraint if it
+      -- exists from an earlier deploy. Label rows are append-only so the
+      -- table is a complete history of every purchased label.
+      ALTER TABLE shipping_labels
+        DROP CONSTRAINT IF EXISTS shipping_labels_shipment_id_is_return_key;
+      CREATE INDEX IF NOT EXISTS idx_shipping_labels_pubkey
+        ON shipping_labels(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_shipping_labels_purchased_at
+        ON shipping_labels(purchased_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_shipping_labels_pubkey_purchased_at
+        ON shipping_labels(pubkey, purchased_at DESC);
+
+      -- Shippo: per-seller saved parcel templates
+      CREATE TABLE IF NOT EXISTS shipping_parcel_templates (
+        id SERIAL PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        name TEXT NOT NULL,
+        weight_oz NUMERIC(8, 2) NOT NULL,
+        length_in NUMERIC(8, 2),
+        width_in NUMERIC(8, 2),
+        height_in NUMERIC(8, 2),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(pubkey, name)
+      );
+      CREATE INDEX IF NOT EXISTS idx_parcel_templates_pubkey
+        ON shipping_parcel_templates(pubkey);
+
+      -- Shippo: per-seller shipping defaults (ship-from + preferred carriers)
+      CREATE TABLE IF NOT EXISTS shipping_defaults (
+        pubkey TEXT PRIMARY KEY,
+        from_name TEXT,
+        from_company TEXT,
+        from_street1 TEXT,
+        from_street2 TEXT,
+        from_city TEXT,
+        from_state TEXT,
+        from_zip TEXT,
+        from_country TEXT DEFAULT 'US',
+        from_phone TEXT,
+        from_email TEXT,
+        preferred_carriers TEXT NOT NULL DEFAULT 'USPS',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Shippo OAuth: per-seller connected Shippo accounts (gray-label).
+      -- Sellers connect their own Shippo account; the access token never
+      -- expires (no refresh flow) and Shippo bills the seller directly.
+      CREATE TABLE IF NOT EXISTS shipping_oauth_connections (
+        pubkey TEXT PRIMARY KEY,
+        access_token TEXT NOT NULL,
+        account_id TEXT,
+        scope TEXT,
+        status TEXT NOT NULL DEFAULT 'connected',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Shippo OAuth: short-lived state→pubkey binding for the OAuth callback
+      -- (CSRF protection; the browser redirect carries no signed event).
+      CREATE TABLE IF NOT EXISTS shipping_oauth_states (
+        state TEXT PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_oauth_states_created_at
+        ON shipping_oauth_states(created_at);
+
+      -- Shippo: cross-instance shipment registry used for (a) shipment
+      -- ownership (which seller quoted a shipment, authorizing its purchase)
+      -- and (b) the atomic duplicate-purchase guard. Replaces the old
+      -- in-memory maps so the guard holds across multiple server instances.
+      -- Rows are transient: pruned automatically (owned rows after ~1h,
+      -- purchased rows after ~7d). The permanent record of a purchased label
+      -- lives in shipping_labels.
+      CREATE TABLE IF NOT EXISTS shipping_shipment_claims (
+        shipment_id TEXT PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'owned',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_shipment_claims_created_at
+        ON shipping_shipment_claims(created_at);
     `);
 
     await client.query(`
@@ -2552,25 +2679,46 @@ export async function getOrderParticipants(orderId: string): Promise<{
   }
 }
 
-// Update order status in database
+// Update order status in database.
+//
+// Order messages are cached as encrypted kind-1059 gift wraps, so the server can
+// never read the order tag out of their content — which is why `order_id` is
+// never populated at cache time. The CLIENT is the only party that knows which
+// cached gift wrap belongs to which order, so it sends `messageId` (the
+// gift-wrap event id, i.e. message_events.id). We locate that row by id, stamp
+// `order_id` onto it, and set the status in one shot. Once a row carries an
+// `order_id`, getOrderStatuses can read the status back by lookup key.
+//
+// Ownership: the gift-wrap `pubkey` is a throwaway ephemeral key, so the real
+// authority is the `p` tag — only a recipient of the gift wrap (the seller for
+// an incoming order) can write its status.
+//
+// Returns the number of rows updated so callers can tell whether anything
+// actually persisted.
 export async function updateOrderStatus(
   orderId: string,
   status: string,
   pubkey: string,
   messageId?: string
-): Promise<void> {
+): Promise<number> {
   const dbPool = getDbPool();
   let client;
+  let rowsAffected = 0;
 
   try {
     client = await dbPool.connect();
 
     if (messageId) {
-      await client.query(
+      // Locate the cached gift wrap by its event id, verify ownership via the
+      // `p` tag, and stamp order_id while setting the status. Only (re)stamp
+      // order_id when it is still NULL or already equals this order, so a
+      // recipient can't repoint someone else's already-tagged row.
+      const byId = await client.query(
         `UPDATE message_events
-         SET order_status = $1
+         SET order_status = $1,
+             order_id = $3
          WHERE id = $2
-         AND order_id = $3
+         AND (order_id IS NULL OR order_id = $3)
          AND (
            pubkey = $4
            OR EXISTS (
@@ -2581,9 +2729,12 @@ export async function updateOrderStatus(
          )`,
         [status, messageId, orderId, pubkey]
       );
+      rowsAffected += byId.rowCount ?? 0;
     }
 
-    await client.query(
+    // Propagate the status to any sibling rows already tagged with this order_id
+    // (multi-message orders). Harmless on the first write when nothing is tagged.
+    const byOrderId = await client.query(
       `UPDATE message_events
        SET order_status = $1
        WHERE order_id = $2
@@ -2597,8 +2748,12 @@ export async function updateOrderStatus(
        )`,
       [status, orderId, pubkey]
     );
+    rowsAffected += byOrderId.rowCount ?? 0;
+
+    return rowsAffected;
   } catch (error) {
     console.error("Failed to update order status:", error);
+    throw error;
   } finally {
     if (client) {
       client.release();
@@ -3155,6 +3310,7 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   onboarding_complete: boolean;
   charges_enabled: boolean;
   payouts_enabled: boolean;
+  tax_enabled: boolean;
 } | null> {
   const dbPool = getDbPool();
   let client;
@@ -3162,7 +3318,7 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   try {
     client = await dbPool.connect();
     const result = await client.query(
-      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled FROM stripe_connect_accounts WHERE pubkey = $1`,
+      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, COALESCE(tax_enabled, TRUE) AS tax_enabled FROM stripe_connect_accounts WHERE pubkey = $1`,
       [pubkey]
     );
     if (result.rows.length === 0) return null;
@@ -3170,6 +3326,53 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   } catch (error) {
     console.error("Failed to get Stripe Connect account:", error);
     return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Toggle whether a seller collects sales tax (Stripe Tax) at checkout.
+export async function setStripeTaxEnabled(
+  pubkey: string,
+  taxEnabled: boolean
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `UPDATE stripe_connect_accounts SET tax_enabled = $2, updated_at = CURRENT_TIMESTAMP WHERE pubkey = $1`,
+      [pubkey, taxEnabled]
+    );
+  } catch (error) {
+    console.error("Failed to set Stripe tax_enabled:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Remove a seller's Stripe Connect link from Milk Market. This only unlinks the
+// account in our database (so the seller can connect a different one); it does
+// NOT delete or close the account at Stripe, which may still hold a balance or
+// pending payouts. Returns whether a row was actually removed.
+export async function disconnectStripeConnectAccount(
+  pubkey: string
+): Promise<boolean> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `DELETE FROM stripe_connect_accounts WHERE pubkey = $1`,
+      [pubkey]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    console.error("Failed to disconnect Stripe Connect account:", error);
+    throw error;
   } finally {
     if (client) client.release();
   }

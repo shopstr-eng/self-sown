@@ -331,6 +331,8 @@ export async function constructGiftWrappedEvent(
     isGuest?: boolean;
     donationAmount?: number;
     donationPercentage?: number;
+    salesTax?: number;
+    salesTaxCurrency?: string;
     selectedSize?: string;
     selectedVolume?: string;
     selectedWeight?: string;
@@ -370,6 +372,8 @@ export async function constructGiftWrappedEvent(
     isGuest,
     donationAmount,
     donationPercentage,
+    salesTax,
+    salesTaxCurrency,
     selectedSize,
     selectedVolume,
     selectedWeight,
@@ -428,6 +432,11 @@ export async function constructGiftWrappedEvent(
         donationAmount.toString(),
         donationPercentage.toString(),
       ]);
+    }
+    // Sales tax collected on the order (display-only line, kept separate from
+    // the `amount` tag which stays items + discounted shipping).
+    if (salesTax && salesTax > 0) {
+      tags.push(["tax", salesTax.toString(), salesTaxCurrency || ""]);
     }
     if (subscriptionInfo && subscriptionInfo.enabled) {
       tags.push([

@@ -9,7 +9,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
       title: "Milk Market API",
       version: "2.0.0",
       description:
-        "Public and agent-facing endpoints for Milk Market, a permissionless Bitcoin-native marketplace for local food built on Nostr. Programmatic marketplace participation (search, ordering, shop management) is provided by the Model Context Protocol (MCP) server at /api/mcp using JSON-RPC 2.0; the endpoints below cover discovery, feeds, and the MCP entry point.",
+        "Public and agent-facing endpoints for Milk Market, a permissionless Bitcoin-native marketplace for local food built on Nostr. Programmatic marketplace participation (search, ordering, stall management) is provided by the Model Context Protocol (MCP) server at /api/mcp using JSON-RPC 2.0; the endpoints below cover discovery, feeds, and the MCP entry point.",
       contact: { name: "Milk Market", url: `${BASE_URL}/contact` },
       license: {
         name: "MIT",
@@ -23,7 +23,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           operationId: "mcpRpc",
           summary: "Model Context Protocol JSON-RPC 2.0 endpoint",
           description:
-            "Streamable HTTP MCP endpoint. Send JSON-RPC 2.0 requests to list and call tools (search_products, get_product_details, create_order, etc.). Some read tools are public; purchasing requires a read_write key and account/shop management requires a full_access key.",
+            "Streamable HTTP MCP endpoint. Send JSON-RPC 2.0 requests to list and call tools (search_products, get_product_details, create_order, etc.). Some read tools are public; purchasing requires a read_write key and account/stall management requires a full_access key.",
           security: [{ bearerAuth: [] }, {}],
           requestBody: {
             required: true,

@@ -13,6 +13,7 @@ Raw milk and dairy were the founding use case, but the marketplace is for local 
 - Buyers can check out as a guest (just an email) or with their own Nostr keys.
 - Supported payments: Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
 - Carts can mix payment methods and currencies. Free-shipping thresholds and payment-method discounts are supported.
+- On card (Stripe) checkouts, sales tax is automatically calculated from the buyer's shipping address and shown at checkout when the seller has turned it on.
 - Orders are delivered as encrypted Nostr messages (NIP-17 gift wraps) to the seller, plus optional email confirmations.
 
 ## How selling works
@@ -25,8 +26,11 @@ Producers follow a guided onboarding (see the Producer Guide):
 4. Manage orders and communicate with buyers through encrypted chat.
 5. (Herd) Customize a storefront at /shop/[slug] — colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
 6. (Herd) Automate email flows — welcome series, order follow-ups, and re-engagement.
-7. (Herd) Connect AI agents through the Model Context Protocol (MCP) so autonomous agents can manage listings and orders.
-8. Grow — update listings, build relationships, share the producer's story, and expand reach.
+7. (Herd) Buy shipping labels through Shippo — connect your own Shippo account (Shippo bills you directly), then quote live rates, buy labels, and issue return labels from the orders dashboard.
+8. (Herd) Connect AI agents through the Model Context Protocol (MCP) so autonomous agents can manage listings and orders.
+9. Grow — update listings, build relationships, share the producer's story, and expand reach.
+
+Sellers who connect a Stripe account can also turn on automatic US sales tax (free, not part of Herd): once enabled with their registered states, Stripe calculates tax from the buyer's shipping address and collects it at checkout on card orders.
 
 ## Technology
 

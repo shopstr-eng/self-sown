@@ -217,6 +217,128 @@ export function buildStripeAccountStatusProof(pubkey: string): McpRequestProof {
   };
 }
 
+export function buildStripeDisconnectProof(pubkey: string): McpRequestProof {
+  return {
+    action: "stripe_disconnect",
+    method: "POST",
+    path: "/api/stripe/connect/disconnect",
+    pubkey,
+  };
+}
+
+export function buildStripeTaxSettingsProof(pubkey: string): McpRequestProof {
+  return {
+    action: "stripe_tax_settings",
+    method: "POST",
+    path: "/api/stripe/connect/tax-settings",
+    pubkey,
+  };
+}
+
+export function buildShippingBuyLabelProof({
+  pubkey,
+  shipmentId,
+  rateId,
+}: {
+  pubkey: string;
+  shipmentId: string;
+  rateId: string;
+}): McpRequestProof {
+  return {
+    action: "shipping_buy_label",
+    method: "POST",
+    path: "/api/shipping/buy-label",
+    pubkey,
+    fields: {
+      shipmentId,
+      rateId,
+    },
+  };
+}
+
+export function buildShippingListLabelsProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_list_labels",
+    method: "GET",
+    path: "/api/shipping/labels",
+    pubkey,
+  };
+}
+
+export function buildShippingOAuthStartProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_oauth_start",
+    method: "POST",
+    path: "/api/shipping/oauth/start",
+    pubkey,
+  };
+}
+
+export function buildShippingOAuthStatusProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_oauth_status",
+    method: "GET",
+    path: "/api/shipping/oauth/status",
+    pubkey,
+  };
+}
+
+export function buildShippingOAuthDisconnectProof(
+  pubkey: string
+): McpRequestProof {
+  return {
+    action: "shipping_oauth_disconnect",
+    method: "POST",
+    path: "/api/shipping/oauth/disconnect",
+    pubkey,
+  };
+}
+
+export function buildShippingDefaultsProof({
+  pubkey,
+  method,
+}: {
+  pubkey: string;
+  method: "GET" | "POST";
+}): McpRequestProof {
+  return {
+    action:
+      method === "GET" ? "shipping_defaults_get" : "shipping_defaults_set",
+    method,
+    path: "/api/shipping/defaults",
+    pubkey,
+  };
+}
+
+export function buildShippingParcelTemplatesProof({
+  pubkey,
+  method,
+}: {
+  pubkey: string;
+  method: "GET" | "POST" | "DELETE";
+}): McpRequestProof {
+  return {
+    action:
+      method === "GET"
+        ? "shipping_parcel_templates_list"
+        : method === "POST"
+          ? "shipping_parcel_templates_upsert"
+          : "shipping_parcel_templates_delete",
+    method,
+    path: "/api/shipping/parcel-templates",
+    pubkey,
+  };
+}
+
+export function buildShippingReturnLabelProof(pubkey: string): McpRequestProof {
+  return {
+    action: "shipping_return_label",
+    method: "POST",
+    path: "/api/shipping/return-label",
+    pubkey,
+  };
+}
+
 export function buildStripeManageLinkProof({
   pubkey,
   accountId,

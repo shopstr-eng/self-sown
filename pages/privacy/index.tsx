@@ -32,7 +32,7 @@ export default function PrivacyPolicy() {
     {
       title: "Card Payments & Stripe",
       content:
-        "When you pay by card — for a Pro subscription, or for orders placed through our checkout and AI agent (MCP) flows — payment is processed by Stripe under its own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as Stripe customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information).",
+        "When you pay by card — for a Pro subscription, or for orders placed through our checkout and AI agent (MCP) flows — payment is processed by Stripe under its own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as Stripe customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information). If a seller has enabled sales tax, Stripe also uses your shipping address to calculate the applicable US sales tax shown at checkout.",
     },
     {
       title: "Email & Notifications (SendGrid)",
@@ -42,7 +42,7 @@ export default function PrivacyPolicy() {
     {
       title: "Order & Shipping Information",
       content:
-        "Order coordination conducted over Nostr direct messages is end-to-end encrypted and unreadable by us. However, to fulfill orders, certain details are stored on our servers in plaintext: when you check out as a guest, place an order via an AI agent, or pay by card, your buyer email and shipping address are stored so the seller can fulfill the order and so we can route notifications. Sellers receive the information needed to ship your order and are responsible for handling it.",
+        "Order coordination conducted over Nostr direct messages is end-to-end encrypted and unreadable by us. However, to fulfill orders, certain details are stored on our servers in plaintext: when you check out as a guest, place an order via an AI agent, or pay by card, your buyer email and shipping address are stored so the seller can fulfill the order and so we can route notifications. Sellers receive the information needed to ship your order and are responsible for handling it. If a seller uses our integrated shipping-label tools, your shipping address is also shared with Shippo — through the seller's own connected Shippo account — to verify the address, quote shipping rates, and create shipping or return labels.",
     },
     {
       title: "Analytics & Marketing Attribution",
@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
     {
       title: "Third-Party Services",
       content:
-        "Depending on how you use Milk Market, your data may be handled by third parties with their own privacy practices, including Stripe (card payments and payouts), SendGrid (email delivery), Nostr relays you select, Bitcoin/Lightning nodes, Cashu mints, Blossom media hosts, and DNS providers (for custom domains and NIP-05 verification). We recommend reviewing the privacy policies of any third-party services you rely on.",
+        "Depending on how you use Milk Market, your data may be handled by third parties with their own privacy practices, including Stripe (card payments, payouts, and sales-tax calculation), SendGrid (email delivery), Shippo (shipping address verification, rate quotes, and labels when a seller uses our shipping-label tools), Nostr relays you select, Bitcoin/Lightning nodes, Cashu mints, Blossom media hosts, and DNS providers (for custom domains and NIP-05 verification). We recommend reviewing the privacy policies of any third-party services you rely on.",
     },
     {
       title: "Data Retention",
@@ -120,7 +120,7 @@ export default function PrivacyPolicy() {
               How Milk Market protects your privacy
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
-              Last updated: 2026-06-06
+              Last updated: 2026-06-13
             </p>
           </div>
 

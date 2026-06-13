@@ -54,7 +54,13 @@ function createSignedEvent() {
   const pubkey = getPublicKey(secretKey);
   return {
     pubkey,
-    signedEvent: finalizeEvent(createAuthEventTemplate(pubkey), secretKey),
+    signedEvent: finalizeEvent(
+      createAuthEventTemplate(pubkey, "stripe-connect", {
+        method: "POST",
+        path: "/api/stripe/connect/create-account-link",
+      }),
+      secretKey
+    ),
   };
 }
 

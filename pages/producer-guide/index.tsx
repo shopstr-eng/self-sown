@@ -118,7 +118,7 @@ const ProducerGuidePage = () => {
       id: "passphrase-faq",
       question: "What is a passphrase? What is it used for?",
       answer:
-        "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and shop information on Milk Market.",
+        "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Milk Market.",
     },
     {
       id: "payment-methods-faq",
@@ -230,6 +230,12 @@ const ProducerGuidePage = () => {
       ),
     },
     {
+      id: "sales-tax-faq",
+      question: "Can I collect sales tax on card orders?",
+      answer:
+        "Yes. If you've connected a Stripe account, you can turn on automatic sales tax from Settings → Payments. Once enabled and you've added the US states where you're registered, Stripe calculates the correct sales tax from each buyer's shipping address and shows it at checkout on card orders. It's free to use and available to every Stripe-connected seller.",
+    },
+    {
       id: "delivery-faq",
       question: "How do I handle delivery and pickup?",
       answer:
@@ -301,7 +307,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
-                  text: "Activate the Model Context Protocol endpoint so AI agents and agentic shopping tools can discover and purchase from your storefront automatically.",
+                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall — creating and updating listings, tracking inventory, and handling orders — and so agentic shopping tools can discover and purchase from your storefront automatically.",
                   url: "https://milk.market/producer-guide#step-7",
                 },
                 {
@@ -326,7 +332,7 @@ const ProducerGuidePage = () => {
                   name: "What is a passphrase? What is it used for?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and shop information on Milk Market.",
+                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Milk Market.",
                   },
                 },
                 {
@@ -359,6 +365,14 @@ const ProducerGuidePage = () => {
                   acceptedAnswer: {
                     "@type": "Answer",
                     text: "If accepting Bitcoin payments, you can redeem them through the orders dashboard and directly to the site wallet. With the wallet, you can save your payments or send money to another wallet like Cash App, Coinos, Minibits, etc. If accepting cash, you can arrange payment during pickup or delivery. With other online fiat options, payment should be delivered with the order to the specified account.",
+                  },
+                },
+                {
+                  "@type": "Question",
+                  name: "Can I collect sales tax on card orders?",
+                  acceptedAnswer: {
+                    "@type": "Answer",
+                    text: "Yes. If you've connected a Stripe account, you can turn on automatic sales tax from Settings → Payments. Once enabled and you've added the US states where you're registered, Stripe calculates the correct sales tax from each buyer's shipping address and shows it at checkout on card orders. It's free to use and available to every Stripe-connected seller.",
                   },
                 },
                 {
@@ -619,9 +633,9 @@ const ProducerGuidePage = () => {
                         <li>
                           Go Herd for $21/month (or $168/year, saving 33%) to
                           unlock advanced storefronts, custom domains, email
-                          flows, custom product pages, shipping labels (coming
-                          soon), and AI agent (MCP) access &mdash; or go
-                          Wrangler for one-time $1,050 lifetime access
+                          flows, custom product pages, shipping labels, and AI
+                          agent (MCP) access &mdash; or go Wrangler for one-time
+                          $1,050 lifetime access
                         </li>
                         <li>
                           New sellers get a 30-day free trial of Herd with no
@@ -923,8 +937,9 @@ const ProducerGuidePage = () => {
                       </span>
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Open your store to AI shopping agents through the Model
-                      Context Protocol (MCP) API.
+                      Connect AI agents to your stall through the Model Context
+                      Protocol (MCP) API — run your stall with AI, and open it
+                      up to AI shopping agents.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                       <li>
@@ -932,7 +947,12 @@ const ProducerGuidePage = () => {
                         levels
                       </li>
                       <li>
-                        Let agents browse your listings and check live inventory
+                        Manage your stall with AI — create and update listings,
+                        track inventory, and handle orders
+                      </li>
+                      <li>
+                        Let shopping agents browse your listings and check live
+                        inventory
                       </li>
                       <li>
                         Enable agentic checkout so AI buyers can purchase
@@ -979,7 +999,8 @@ const ProducerGuidePage = () => {
                   <div className="flex items-center justify-center lg:w-1/2">
                     <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
                       <h3 className="text-xl font-bold text-black">
-                        More community and marketing tools coming soon!
+                        There's no better form of marketing than happy,
+                        recurring customers!
                       </h3>
                     </div>
                   </div>

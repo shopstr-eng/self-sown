@@ -414,6 +414,7 @@ export default function CartInvoiceCard({
     selectedBulkOption?: string;
     donationAmount?: number;
     donationPercentage?: number;
+    salesTax?: number;
   }> | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -428,6 +429,42 @@ export default function CartInvoiceCard({
   const [salesTaxCurrency, setSalesTaxCurrency] = useState<string>("");
   const [taxCalculationId, setTaxCalculationId] = useState<string | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
+
+  // Live USPS shipping rates fetched from Shippo, keyed by seller pubkey.
+  // When present, overrides the seller's static shipping cost in cart math.
+  interface LiveShippingEntry {
+    amountUsd: number;
+    shipmentId: string;
+    rateId: string;
+    service: string;
+    carrier: string;
+  }
+  const [liveShippingBySeller, setLiveShippingBySeller] = useState<
+    Map<string, LiveShippingEntry>
+  >(new Map());
+  const [isFetchingLiveRates, setIsFetchingLiveRates] = useState(false);
+
+  // Shippo address verification result for the buyer's shipping address.
+  type AddressVerificationStatus =
+    | "idle"
+    | "checking"
+    | "verified"
+    | "issues"
+    | "error";
+  interface AddressVerificationState {
+    status: AddressVerificationStatus;
+    suggestion?: {
+      street1: string;
+      street2?: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+    };
+    messages: string[];
+  }
+  const [addressVerification, setAddressVerification] =
+    useState<AddressVerificationState>({ status: "idle", messages: [] });
 
   const triggerOrderEmail = async (params: {
     orderId: string;
@@ -452,6 +489,7 @@ export default function CartInvoiceCard({
     quantity?: number;
     donationAmount?: number;
     donationPercentage?: number;
+    salesTax?: number;
   }) => {
     try {
       const shouldIncludeBuyer = params.includeBuyerEmail !== false;
@@ -484,6 +522,7 @@ export default function CartInvoiceCard({
           quantity: params.quantity,
           donationAmount: params.donationAmount,
           donationPercentage: params.donationPercentage,
+          salesTax: params.salesTax,
         }),
       });
       if (!res.ok) {
@@ -886,7 +925,7 @@ export default function CartInvoiceCard({
     handleSubmit: handleFormSubmit,
     control: formControl,
     watch,
-    setValue,
+    setValue: formSetValue,
   } = useForm();
 
   // Watch form values to validate completion
@@ -1043,20 +1082,21 @@ export default function CartInvoiceCard({
             discountBadge: buildBadge(curr),
           });
         }
-      } else if (product.shippingCost && product.shippingCost > 0) {
-        const rawCost = product.shippingCost * (quantities[product.id] || 1);
-        const discounted = applyShippingDiscount(rawCost, product.pubkey);
-        const curr = product.shippingCurrency || product.currency;
-        lines.push({
-          pubkey: product.pubkey,
-          name:
-            shopProfiles?.get(product.pubkey)?.content?.name ||
-            product.pubkey.substring(0, 8),
-          cost: discounted,
-          originalCost: rawCost,
-          currency: curr,
-          discountBadge: buildBadge(curr),
-        });
+      } else {
+        const eff = getEffectiveSingleProductShipping(product);
+        if (eff.cost > 0) {
+          const discounted = applyShippingDiscount(eff.cost, product.pubkey);
+          lines.push({
+            pubkey: product.pubkey,
+            name:
+              shopProfiles?.get(product.pubkey)?.content?.name ||
+              product.pubkey.substring(0, 8),
+            cost: discounted,
+            originalCost: eff.cost,
+            currency: eff.currency,
+            discountBadge: buildBadge(eff.currency),
+          });
+        }
       }
     });
     return lines;
@@ -1122,6 +1162,21 @@ export default function CartInvoiceCard({
     highestShippingCost: number;
   } => {
     const sellerProducts = products.filter((p) => p.pubkey === sellerPubkey);
+    // Live USPS rate overrides static shipping when present. We synthesize
+    // a product carrying the live USD cost so downstream code (currency
+    // FX, label display) uses the live amount in USD.
+    const live = liveShippingBySeller.get(sellerPubkey);
+    if (live && sellerProducts.length > 0) {
+      const base = sellerProducts[0]!;
+      return {
+        highestShippingProduct: {
+          ...base,
+          shippingCost: live.amountUsd,
+          shippingCurrency: "USD",
+        },
+        highestShippingCost: live.amountUsd,
+      };
+    }
     let highestShippingCost = 0;
     let highestShippingProduct: ProductData | null = null;
     sellerProducts.forEach((product) => {
@@ -1132,6 +1187,40 @@ export default function CartInvoiceCard({
       }
     });
     return { highestShippingProduct, highestShippingCost };
+  };
+
+  // Returns the effective shipping cost + currency for a single-product
+  // seller, preferring live USPS rate over the static (qty-multiplied)
+  // value. Used to keep all single-product code paths consistent.
+  const getEffectiveSingleProductShipping = (
+    product: ProductData
+  ): {
+    cost: number;
+    currency: string;
+    syntheticProduct: ProductData;
+    isLive: boolean;
+  } => {
+    const live = liveShippingBySeller.get(product.pubkey);
+    if (live) {
+      return {
+        cost: live.amountUsd,
+        currency: "USD",
+        syntheticProduct: {
+          ...product,
+          shippingCost: live.amountUsd,
+          shippingCurrency: "USD",
+        },
+        isLive: true,
+      };
+    }
+    const qty = quantities[product.id] || 1;
+    const cost = (product.shippingCost || 0) * qty;
+    return {
+      cost,
+      currency: product.shippingCurrency || product.currency,
+      syntheticProduct: { ...product, shippingCost: cost },
+      isLive: false,
+    };
   };
 
   const [nativeTotalCost, setNativeTotalCost] = useState<number | null>(null);
@@ -1246,10 +1335,9 @@ export default function CartInvoiceCard({
             shippingProductCurrency =
               hsp?.shippingCurrency || hsp?.currency || product.currency;
           } else {
-            shippingForSeller =
-              (product.shippingCost || 0) * (quantities[product.id] || 1);
-            shippingProductCurrency =
-              product.shippingCurrency || product.currency;
+            const eff = getEffectiveSingleProductShipping(product);
+            shippingForSeller = eff.cost;
+            shippingProductCurrency = eff.currency;
           }
           // Apply any per-seller shipping discount carried by the redeemed
           // discount code, in the seller's shipping-currency units. For
@@ -1323,6 +1411,7 @@ export default function CartInvoiceCard({
     formType,
     shippingPickupPreference,
     sellerFreeShippingStatus,
+    liveShippingBySeller,
   ]);
 
   const isSatsCart =
@@ -1445,13 +1534,13 @@ export default function CartInvoiceCard({
   }, []);
 
   const applySavedAddress = (address: SavedAddress) => {
-    setValue("Name", address.name);
-    setValue("Address", address.address);
-    setValue("Unit", address.unit || "");
-    setValue("City", address.city);
-    setValue("Postal Code", address.zip);
-    setValue("State/Province", address.state);
-    setValue("Country", address.country);
+    formSetValue("Name", address.name);
+    formSetValue("Address", address.address);
+    formSetValue("Unit", address.unit || "");
+    formSetValue("City", address.city);
+    formSetValue("Postal Code", address.zip);
+    formSetValue("State/Province", address.state);
+    formSetValue("Country", address.country);
     setSelectedSavedAddressId(address.id);
   };
 
@@ -1730,7 +1819,9 @@ export default function CartInvoiceCard({
       frequency: string;
       stripeSubscriptionId: string;
     },
-    orderCurrency?: string
+    orderCurrency?: string,
+    salesTaxValue?: number,
+    salesTaxCurrencyValue?: string
   ): Promise<boolean> => {
     if (!pubkeyToReceiveMessage) {
       return false;
@@ -1765,7 +1856,9 @@ export default function CartInvoiceCard({
           donationAmountValue,
           donationPercentageValue,
           subscriptionInfo,
-          orderCurrency
+          orderCurrency,
+          salesTaxValue,
+          salesTaxCurrencyValue
         );
         // If we get here, the message was sent successfully
         return true;
@@ -1822,7 +1915,9 @@ export default function CartInvoiceCard({
       frequency: string;
       stripeSubscriptionId: string;
     },
-    orderCurrency?: string
+    orderCurrency?: string,
+    salesTaxValue?: number,
+    salesTaxCurrencyValue?: string
   ) => {
     if (!pubkeyToReceiveMessage) {
       return;
@@ -1883,6 +1978,8 @@ export default function CartInvoiceCard({
         variantLabel: product.variantLabel,
         selectedBulkOption: product.selectedBulkOption,
         subscriptionInfo,
+        salesTax: salesTaxValue,
+        salesTaxCurrency: salesTaxCurrencyValue,
       };
     } else if (isReceipt) {
       messageSubject = "order-receipt";
@@ -2341,10 +2438,12 @@ export default function CartInvoiceCard({
               updatedTotalCostsInSats[sp.id] = totalCostsInSats[sp.id] || 0;
             });
           } else {
-            const shippingCostInSats = await convertShippingToSats(product);
-            const quantity = quantities[product.id] || 1;
+            const eff = getEffectiveSingleProductShipping(product);
+            const shippingCostInSats = await convertShippingToSats(
+              eff.syntheticProduct
+            );
             const productShippingCost = Math.ceil(
-              applyShippingDiscount(shippingCostInSats * quantity, sellerPubkey)
+              applyShippingDiscount(shippingCostInSats, sellerPubkey)
             );
             shippingTotal += productShippingCost;
             updatedTotalCostsInSats[product.id] =
@@ -2404,13 +2503,12 @@ export default function CartInvoiceCard({
                   updatedTotalCostsInSats[sp.id] = totalCostsInSats[sp.id] || 0;
                 });
               } else {
-                const shippingCostInSats = await convertShippingToSats(product);
-                const quantity = quantities[product.id] || 1;
+                const eff = getEffectiveSingleProductShipping(product);
+                const shippingCostInSats = await convertShippingToSats(
+                  eff.syntheticProduct
+                );
                 const productShippingCost = Math.ceil(
-                  applyShippingDiscount(
-                    shippingCostInSats * quantity,
-                    sellerPubkey
-                  )
+                  applyShippingDiscount(shippingCostInSats, sellerPubkey)
                 );
                 shippingTotal += productShippingCost;
                 updatedTotalCostsInSats[product.id] =
@@ -2479,12 +2577,15 @@ export default function CartInvoiceCard({
             shipPerSeller[sellerPubkey] = discountedShip;
           }
         } else if (sellerProducts.length === 1) {
+          const eff = getEffectiveSingleProductShipping(sellerProducts[0]!);
           const shippingCostInSats = await convertShippingToSats(
-            sellerProducts[0]!
+            eff.syntheticProduct
           );
-          const quantity = quantities[sellerProducts[0]!.id] || 1;
+          // eff.syntheticProduct.shippingCost already encodes quantity (static
+          // path multiplies by qty; live rates are per-shipment), so do NOT
+          // multiply by quantity again here or shipping is charged qty².
           const discountedShip = Math.ceil(
-            applyShippingDiscount(shippingCostInSats * quantity, sellerPubkey)
+            applyShippingDiscount(shippingCostInSats, sellerPubkey)
           );
           shippingTotal += discountedShip;
           shipPerSeller[sellerPubkey] = discountedShip;
@@ -2509,6 +2610,7 @@ export default function CartInvoiceCard({
     quantities,
     shippingTypes,
     sellerFreeShippingStatus,
+    liveShippingBySeller,
   ]);
 
   const handleNWCError = (error: any) => {
@@ -2872,10 +2974,41 @@ export default function CartInvoiceCard({
       pendingOrderEmailRef.current.forEach((entry) => {
         if (!entry.orderId) entry.orderId = orderId;
       });
+      // Sales tax is order-level; attribute it to the first email entry only so
+      // multi-product carts don't repeat the line. Single-seller Stripe only.
+      if (
+        !multiMerchantSellerSplits &&
+        salesTaxNative > 0 &&
+        pendingOrderEmailRef.current[0]
+      ) {
+        pendingOrderEmailRef.current[0].salesTax = salesTaxNative;
+      }
     }
 
     flushPendingOrderEmails();
     setStripePaymentConfirmed(true);
+
+    // Record the Stripe Tax transaction so it shows in the seller's Stripe Tax
+    // reports. Single-seller direct charges only; best-effort, never blocks the
+    // order.
+    if (
+      !multiMerchantSellerSplits &&
+      stripeConnectedAccountForForm &&
+      salesTaxSmallest > 0
+    ) {
+      try {
+        await fetch("/api/stripe/record-tax-transaction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentIntentId,
+            connectedAccountId: stripeConnectedAccountForForm,
+          }),
+        });
+      } catch (e) {
+        console.warn("Failed to record tax transaction:", e);
+      }
+    }
 
     const productTitles = products
       .map((p: any) => p.title || p.productName)
@@ -2936,6 +3069,10 @@ export default function CartInvoiceCard({
       }
       sellerGroupedProducts[product.pubkey]!.push(product);
     }
+
+    // Sales tax is order-level; attach it to the very first order DM line only
+    // (single-seller Stripe orders) so it isn't repeated per product/seller.
+    let taxAttributedToDm = false;
 
     for (const [sellerPk, sellerProducts] of Object.entries(
       sellerGroupedProducts
@@ -3007,6 +3144,16 @@ export default function CartInvoiceCard({
             ? Math.ceil((productAmount * stripeDonationPercentage) / 100)
             : 0;
 
+        const taxForDmLine =
+          !multiMerchantSellerSplits && !taxAttributedToDm && salesTaxNative > 0
+            ? salesTaxNative
+            : 0;
+        if (taxForDmLine > 0) taxAttributedToDm = true;
+        const taxCurrencyForDmLine =
+          taxForDmLine > 0
+            ? salesTaxCurrency || cartCurrency || "USD"
+            : undefined;
+
         await sendPaymentAndContactMessage(
           sellerPk,
           paymentMessage,
@@ -3028,7 +3175,9 @@ export default function CartInvoiceCard({
           stripeDonationPercentage,
           undefined,
           subInfo,
-          productCurrency
+          productCurrency,
+          taxForDmLine || undefined,
+          taxCurrencyForDmLine
         );
       }
     }
@@ -3988,6 +4137,25 @@ export default function CartInvoiceCard({
       // clear the countdown so stale deadline state can't bleed into a later
       // session if the component is reused.
       setPollDeadlineMs(null);
+    }
+
+    // Safety net: if the while loop exited naturally (e.g. retryCount hit
+    // maxRetries on the UNPAID branch with no exception ever thrown), the
+    // QR card would otherwise stay on screen forever with no success or
+    // failure surfaced. Mirror the in-catch maxRetries handler so the
+    // buyer always sees an outcome and any settled LN payment can be
+    // recovered on next sign-in via MintRecoveryBoot. Skip if an in-loop
+    // terminal branch already opened a modal so we don't double-fire.
+    if (!handledTerminalOutcome && retryCount >= maxRetries) {
+      setShowInvoiceCard(false);
+      setInvoice("");
+      setQrCodeUrl(null);
+      setWalletRecovery({
+        isOpen: true,
+        amountSats: convertedPrice,
+        mintUrl: mints[0],
+        pendingRecovery: true,
+      });
     }
   }
 
@@ -5348,8 +5516,7 @@ export default function CartInvoiceCard({
             );
             sellerShipping = highestShippingCost;
           } else {
-            sellerShipping =
-              (product.shippingCost || 0) * (quantities[product.id] || 1);
+            sellerShipping = getEffectiveSingleProductShipping(product).cost;
           }
           nativeShipping += applyShippingDiscount(
             sellerShipping,
@@ -5383,9 +5550,10 @@ export default function CartInvoiceCard({
   // the API on every keystroke. Resets to zero when shipping form isn't
   // active or when the cart isn't Stripe-eligible.
   useEffect(() => {
-    const stripeAvailable =
-      (isSingleSeller && isStripeMerchant) ||
-      (!isSingleSeller && allSellersHaveStripe);
+    // Sales tax is single-seller only in v1 — multi-merchant carts can't honor
+    // each seller's separate tax registrations, so only request a calculation
+    // for a single Stripe seller.
+    const stripeAvailable = isSingleSeller && isStripeMerchant;
     const isShippingForm = formType === "shipping" || formType === "combined";
 
     if (!stripeAvailable || !isShippingForm) {
@@ -5500,6 +5668,281 @@ export default function CartInvoiceCard({
     singleSellerPubkey,
   ]);
 
+  // Address verification (Shippo) — debounced, US only, non-blocking.
+  useEffect(() => {
+    const isShippingForm = formType === "shipping" || formType === "combined";
+    if (!isShippingForm) {
+      if (addressVerification.status !== "idle") {
+        setAddressVerification({ status: "idle", messages: [] });
+      }
+      return;
+    }
+    const country = (watchedValues?.Country || "").toString().trim();
+    const postal = (watchedValues?.["Postal Code"] || "").toString().trim();
+    const city = (watchedValues?.City || "").toString().trim();
+    const state = (watchedValues?.["State/Province"] || "").toString().trim();
+    const line1 = (watchedValues?.Address || "").toString().trim();
+    const line2 = (watchedValues?.Unit || "").toString().trim();
+
+    if (country.toUpperCase() !== "US" && country.toUpperCase() !== "USA") {
+      if (addressVerification.status !== "idle") {
+        setAddressVerification({ status: "idle", messages: [] });
+      }
+      return;
+    }
+    if (!postal || !line1 || !city || !state) return;
+
+    let cancelled = false;
+    setAddressVerification((prev) =>
+      prev.status === "checking" ? prev : { ...prev, status: "checking" }
+    );
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/shipping/verify-address", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            street1: line1,
+            street2: line2 || undefined,
+            city,
+            state,
+            zip: postal,
+            country: "US",
+            sellerPubkey: products[0]?.pubkey,
+          }),
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        if (!data || data.success === false) {
+          setAddressVerification({
+            status: "issues",
+            messages: (data?.messages || []).map(
+              (m: { text?: string }) => m.text || "Unknown issue"
+            ),
+          });
+          return;
+        }
+        if (data.valid) {
+          // Compare suggested vs entered; show "use suggested" if different
+          const changed =
+            (data.street1 || "").toUpperCase() !== line1.toUpperCase() ||
+            (data.city || "").toUpperCase() !== city.toUpperCase() ||
+            (data.state || "").toUpperCase() !== state.toUpperCase() ||
+            (data.zip || "").split("-")[0] !== postal.split("-")[0];
+          if (changed) {
+            setAddressVerification({
+              status: "issues",
+              messages: ["USPS suggests a corrected address."],
+              suggestion: {
+                street1: data.street1,
+                street2: data.street2,
+                city: data.city,
+                state: data.state,
+                zip: data.zip,
+                country: data.country || "US",
+              },
+            });
+          } else {
+            setAddressVerification({ status: "verified", messages: [] });
+          }
+        } else {
+          setAddressVerification({
+            status: "issues",
+            messages:
+              (data.messages || []).map(
+                (m: { text?: string }) => m.text || "Unknown issue"
+              ) || [],
+          });
+        }
+      } catch {
+        if (!cancelled)
+          setAddressVerification({ status: "idle", messages: [] });
+      }
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    watchedValues?.Country,
+    watchedValues?.["Postal Code"],
+    watchedValues?.["State/Province"],
+    watchedValues?.City,
+    watchedValues?.Address,
+    watchedValues?.Unit,
+    formType,
+  ]);
+
+  // Live USPS shipping rates (Shippo) — debounced, per seller.
+  // For each seller whose products all carry ship_from_zip + parcel.weightOz
+  // we ask Shippo for the cheapest USPS rate to the buyer's address.
+  useEffect(() => {
+    const isShippingForm = formType === "shipping" || formType === "combined";
+    if (!isShippingForm) {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+    const country = (watchedValues?.Country || "").toString().trim();
+    const postal = (watchedValues?.["Postal Code"] || "").toString().trim();
+    const city = (watchedValues?.City || "").toString().trim();
+    const state = (watchedValues?.["State/Province"] || "").toString().trim();
+    const line1 = (watchedValues?.Address || "").toString().trim();
+
+    if (country.toUpperCase() !== "US" && country.toUpperCase() !== "USA") {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+    if (!postal || !line1 || !city || !state) {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+
+    // Bucket products by seller and identify which sellers are eligible.
+    const productsBySeller = new Map<string, ProductData[]>();
+    for (const p of products) {
+      if (!productsBySeller.has(p.pubkey)) productsBySeller.set(p.pubkey, []);
+      productsBySeller.get(p.pubkey)!.push(p);
+    }
+
+    const eligibleSellers: Array<{
+      pubkey: string;
+      fromZip: string;
+      fromCountry: string;
+      totalWeightOz: number;
+      maxLengthIn?: number;
+      maxWidthIn?: number;
+      maxHeightIn?: number;
+    }> = [];
+
+    for (const [pubkey, sellerProducts] of productsBySeller) {
+      // Free-shipping threshold or non-shipping form types: skip live rates.
+      if (sellerFreeShippingStatus[pubkey]?.qualifies) continue;
+      // Require every product to carry origin zip + parcel weight.
+      const allHaveData = sellerProducts.every(
+        (p) =>
+          p.shipFromZip &&
+          (p.shipFromCountry || "US").toUpperCase() === "US" &&
+          p.packageWeightOz &&
+          p.packageWeightOz > 0
+      );
+      if (!allHaveData) continue;
+      // All sellerProducts must share the same origin zip (different origins
+      // would mean separate shipments; we treat as ineligible for v1).
+      const fromZip = sellerProducts[0]!.shipFromZip!;
+      if (!sellerProducts.every((p) => p.shipFromZip === fromZip)) continue;
+      let totalWeight = 0;
+      let maxL: number | undefined;
+      let maxW: number | undefined;
+      let maxH: number | undefined;
+      for (const p of sellerProducts) {
+        const qty = quantities[p.id] || 1;
+        totalWeight += (p.packageWeightOz || 0) * qty;
+        if (p.packageLengthIn && (!maxL || p.packageLengthIn > maxL))
+          maxL = p.packageLengthIn;
+        if (p.packageWidthIn && (!maxW || p.packageWidthIn > maxW))
+          maxW = p.packageWidthIn;
+        if (p.packageHeightIn && (!maxH || p.packageHeightIn > maxH))
+          maxH = p.packageHeightIn;
+      }
+      // USPS max ~1120 oz (70 lb). Cap to avoid 4xx; users with bigger
+      // shipments stay on static cost.
+      if (totalWeight > 1120) continue;
+      eligibleSellers.push({
+        pubkey,
+        fromZip,
+        fromCountry: "US",
+        totalWeightOz: totalWeight,
+        maxLengthIn: maxL,
+        maxWidthIn: maxW,
+        maxHeightIn: maxH,
+      });
+    }
+
+    if (eligibleSellers.length === 0) {
+      if (liveShippingBySeller.size > 0) setLiveShippingBySeller(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetchingLiveRates(true);
+    const t = setTimeout(async () => {
+      try {
+        const next = new Map<string, LiveShippingEntry>();
+        await Promise.all(
+          eligibleSellers.map(async (seller) => {
+            try {
+              const res = await fetch("/api/shipping/rates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  from: {
+                    street1: "Unknown",
+                    city: "Unknown",
+                    state: "",
+                    zip: seller.fromZip,
+                    country: seller.fromCountry,
+                  },
+                  to: {
+                    street1: line1,
+                    city,
+                    state,
+                    zip: postal,
+                    country: "US",
+                  },
+                  parcel: {
+                    weightOz: seller.totalWeightOz,
+                    lengthIn: seller.maxLengthIn,
+                    widthIn: seller.maxWidthIn,
+                    heightIn: seller.maxHeightIn,
+                  },
+                  carriers: ["USPS"],
+                  sellerPubkey: seller.pubkey,
+                }),
+              });
+              const data = await res.json();
+              if (
+                data?.success &&
+                data.cheapest &&
+                typeof data.cheapest.rate === "number"
+              ) {
+                next.set(seller.pubkey, {
+                  amountUsd: data.cheapest.rate,
+                  shipmentId: data.shipmentId,
+                  rateId: data.cheapest.id,
+                  service: data.cheapest.service,
+                  carrier: data.cheapest.carrier,
+                });
+              }
+            } catch {
+              // Per-seller failure — fall back to static for that seller.
+            }
+          })
+        );
+        if (cancelled) return;
+        setLiveShippingBySeller(next);
+      } finally {
+        if (!cancelled) setIsFetchingLiveRates(false);
+      }
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      setIsFetchingLiveRates(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    watchedValues?.Country,
+    watchedValues?.["Postal Code"],
+    watchedValues?.["State/Province"],
+    watchedValues?.City,
+    watchedValues?.Address,
+    formType,
+    products,
+    quantities,
+    sellerFreeShippingStatus,
+  ]);
+
   const bitcoinDiscountPct = pmDiscounts["bitcoin"] || 0;
   const stripeDiscountPct = pmDiscounts["stripe"] || 0;
 
@@ -5558,8 +6001,12 @@ export default function CartInvoiceCard({
     "lightning"
   );
 
+  // Sales tax is only charged on the Stripe (card) payment, so it's added to
+  // the card button amount — never to Lightning/Cashu/manual-fiat buttons.
   const formattedCardCost = formatCartMethodCost(
-    stripeCosts.nativeTotal,
+    stripeCosts.nativeTotal !== null
+      ? stripeCosts.nativeTotal + salesTaxNative
+      : stripeCosts.nativeTotal,
     stripeCosts.satsTotal,
     "card",
     { stripeFloor: true }
@@ -5993,6 +6440,89 @@ export default function CartInvoiceCard({
               />
             </div>
 
+            {/* Address verification banner (US only, Shippo) */}
+            {(addressVerification.status === "checking" ||
+              addressVerification.status === "verified" ||
+              addressVerification.status === "issues") && (
+              <div
+                className={`mt-3 rounded-md border-2 p-3 text-sm ${
+                  addressVerification.status === "verified"
+                    ? "border-green-700 bg-green-50 text-green-900"
+                    : addressVerification.status === "issues"
+                      ? "border-yellow-700 bg-yellow-50 text-yellow-900"
+                      : "border-black bg-white text-black"
+                }`}
+              >
+                {addressVerification.status === "checking" && (
+                  <span>Verifying address…</span>
+                )}
+                {addressVerification.status === "verified" && (
+                  <span>Address verified by USPS.</span>
+                )}
+                {addressVerification.status === "issues" && (
+                  <div>
+                    <p className="font-semibold">
+                      We couldn&apos;t fully verify your address.
+                    </p>
+                    {addressVerification.messages.length > 0 && (
+                      <ul className="mt-1 ml-4 list-disc">
+                        {addressVerification.messages.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {addressVerification.suggestion && (
+                      <button
+                        type="button"
+                        className="mt-2 rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-semibold hover:bg-yellow-50"
+                        onClick={() => {
+                          const s = addressVerification.suggestion!;
+                          formSetValue("Address", s.street1, {
+                            shouldValidate: true,
+                          });
+                          if (s.street2)
+                            formSetValue("Unit", s.street2, {
+                              shouldValidate: true,
+                            });
+                          formSetValue("City", s.city, {
+                            shouldValidate: true,
+                          });
+                          formSetValue("State/Province", s.state, {
+                            shouldValidate: true,
+                          });
+                          formSetValue("Postal Code", s.zip, {
+                            shouldValidate: true,
+                          });
+                          setAddressVerification({
+                            status: "verified",
+                            messages: [],
+                          });
+                        }}
+                      >
+                        Use suggested address
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Live USPS rate status indicator */}
+            {(isFetchingLiveRates || liveShippingBySeller.size > 0) && (
+              <div className="mt-2 rounded-md border-2 border-black bg-yellow-50 p-2 text-xs text-black">
+                {isFetchingLiveRates ? (
+                  <span>Calculating live USPS shipping rates…</span>
+                ) : (
+                  <span>
+                    Live USPS shipping rates applied
+                    {liveShippingBySeller.size > 1
+                      ? ` for ${liveShippingBySeller.size} sellers`
+                      : ""}
+                    .
+                  </span>
+                )}
+              </div>
+            )}
             <div className="space-y-3">
               <Checkbox
                 isSelected={saveDetails}
@@ -6408,7 +6938,7 @@ export default function CartInvoiceCard({
                     })()}
                   {(salesTaxNative > 0 || isCalculatingTax) && (
                     <div className="mt-2 flex justify-between border-t pt-2 text-sm">
-                      <span className="ml-2">Sales tax:</span>
+                      <span className="ml-2">Sales tax (card payments):</span>
                       <span>
                         {isCalculatingTax && salesTaxNative === 0
                           ? "Calculating..."
@@ -6860,7 +7390,7 @@ export default function CartInvoiceCard({
                   })()}
                 {(salesTaxNative > 0 || isCalculatingTax) && (
                   <div className="mt-2 flex justify-between border-t pt-2 text-sm">
-                    <span className="ml-2">Sales tax:</span>
+                    <span className="ml-2">Sales tax (card payments):</span>
                     <span>
                       {isCalculatingTax && salesTaxNative === 0
                         ? "Calculating..."
@@ -7032,12 +7562,13 @@ export default function CartInvoiceCard({
                               );
                             }
                           } else {
+                            const eff =
+                              getEffectiveSingleProductShipping(product);
                             const shippingCostInSats =
-                              await convertShippingToSats(product);
-                            const quantity = quantities[product.id] || 1;
+                              await convertShippingToSats(eff.syntheticProduct);
                             shippingTotal += Math.ceil(
                               applyShippingDiscount(
-                                shippingCostInSats * quantity,
+                                shippingCostInSats,
                                 sellerPubkey
                               )
                             );
@@ -7099,12 +7630,13 @@ export default function CartInvoiceCard({
                               );
                             }
                           } else {
+                            const eff =
+                              getEffectiveSingleProductShipping(product);
                             const shippingCostInSats =
-                              await convertShippingToSats(product);
-                            const quantity = quantities[product.id] || 1;
+                              await convertShippingToSats(eff.syntheticProduct);
                             shippingTotal += Math.ceil(
                               applyShippingDiscount(
-                                shippingCostInSats * quantity,
+                                shippingCostInSats,
                                 sellerPubkey
                               )
                             );

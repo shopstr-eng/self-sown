@@ -110,6 +110,7 @@ const StallFeed = () => {
         setPasswordError("Incorrect password. Please try again.");
       }
     } catch (error) {
+      console.error("Error validating password:", error);
       setPasswordError("An error occurred. Please try again.");
     }
   };

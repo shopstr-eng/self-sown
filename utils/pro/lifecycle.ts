@@ -90,7 +90,7 @@ export async function runProLifecycle(
         await notifySeller(row.pubkey, {
           column: "trial_reminder_sent_at",
           subject: "Your Milk Market Herd trial is ending soon",
-          body: "Your free Milk Market Herd trial ends soon. Subscribe to keep your Herd features (custom storefront, custom domains, email flows, custom product pages, shipping (coming soon), and the MCP API) active.",
+          body: "Your free Milk Market Herd trial ends soon. Subscribe to keep your Herd features (custom storefront, custom domains, email flows, custom product pages, shipping labels, and the MCP API) active.",
         });
         result.trialEndingNotices += 1;
       }

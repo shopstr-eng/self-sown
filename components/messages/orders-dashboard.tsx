@@ -47,6 +47,7 @@ import { encryptFileWithNip44 } from "@/utils/encryption/file-encryption";
 import PDFAnnotator from "@/components/utility-components/pdf-annotator";
 import FailureModal from "@/components/utility-components/failure-modal";
 import AddressChangeModal from "@/components/utility-components/address-change-modal";
+import BuyShippingLabelModal from "@/components/shipping/buy-shipping-label-modal";
 import {
   NostrContext,
   SignerContext,
@@ -116,6 +117,8 @@ interface OrderData {
   currency?: string;
   donationAmount?: number;
   donationPercentage?: number;
+  salesTax?: number;
+  salesTaxCurrency?: string;
   unsignedHerdshareUrl?: string;
   signedHerdshareUrl?: string;
   sellerPubkey?: string;
@@ -151,6 +154,53 @@ const OrdersDashboard = ({
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [isSendingShipping, setIsSendingShipping] = useState(false);
   const [deliveryMode, setDeliveryMode] = useState<"days" | "date">("days");
+
+  const [showBuyLabelModal, setShowBuyLabelModal] = useState(false);
+  const [buyLabelOrder, setBuyLabelOrder] = useState<OrderData | null>(null);
+  const [buyLabelMode, setBuyLabelMode] = useState<"outbound" | "return">(
+    "outbound"
+  );
+
+  const findProductDataForOrder = (order: OrderData) => {
+    if (!order.productAddress || !productContext?.productEvents) return null;
+    const productEvent = productContext.productEvents.find((event: any) => {
+      const eventAddress = `30402:${event.pubkey}:${
+        event.tags.find((tag: any) => tag[0] === "d")?.[1]
+      }`;
+      return order.productAddress.includes(eventAddress);
+    });
+    if (!productEvent) return null;
+    return parseTags(productEvent);
+  };
+
+  const parseOrderAddress = (addressStr?: string) => {
+    if (!addressStr) return null;
+    const parts = addressStr.split(",").map((p) => p.trim());
+    // 6 parts: Name, Address, City, State, Postal, Country
+    // 7 parts: Name, Address, Unit, City, State, Postal, Country
+    if (parts.length === 6) {
+      const [name, street1, city, state, zip, country] = parts;
+      return { name, street1, street2: undefined, city, state, zip, country };
+    }
+    if (parts.length === 7) {
+      const [name, street1, street2, city, state, zip, country] = parts;
+      return { name, street1, street2, city, state, zip, country };
+    }
+    return null;
+  };
+
+  const canBuyLabelForOrder = (order: OrderData) => {
+    const parsed = parseOrderAddress(order.address);
+    if (!parsed) return false;
+    const country = (parsed.country || "").trim().toUpperCase();
+    if (country !== "US" && country !== "USA") return false;
+    const productData = findProductDataForOrder(order);
+    if (!productData) return false;
+    if (!productData.shipFromZip) return false;
+    if (!productData.packageWeightOz || productData.packageWeightOz <= 0)
+      return false;
+    return true;
+  };
 
   const [randomNpubForSender, setRandomNpubForSender] = useState<string>("");
   const [randomNsecForSender, setRandomNsecForSender] = useState<string>("");
@@ -431,6 +481,16 @@ const OrdersDashboard = ({
                 ? parseFloat(donationTagArray[2])
                 : undefined;
 
+            const taxTagArray = messageEvent.tags.find(
+              (tag) => tag[0] === "tax"
+            );
+            const salesTax =
+              taxTagArray && taxTagArray[1]
+                ? parseFloat(taxTagArray[1])
+                : undefined;
+            const salesTaxCurrency =
+              taxTagArray && taxTagArray[2] ? taxTagArray[2] : undefined;
+
             const paymentTagArray = messageEvent.tags.find(
               (tag) => tag[0] === "payment"
             );
@@ -529,6 +589,8 @@ const OrdersDashboard = ({
               currency: resolvedCurrency,
               donationAmount,
               donationPercentage,
+              salesTax,
+              salesTaxCurrency,
               sellerPubkey: merchantPubkey || undefined,
               isSubscription: !!isSubscription,
               subscriptionFrequency,
@@ -725,6 +787,9 @@ const OrdersDashboard = ({
             donationAmount: order.donationAmount ?? existing.donationAmount,
             donationPercentage:
               order.donationPercentage ?? existing.donationPercentage,
+            salesTax: order.salesTax ?? existing.salesTax,
+            salesTaxCurrency:
+              order.salesTaxCurrency ?? existing.salesTaxCurrency,
             isSubscription: order.isSubscription || existing.isSubscription,
             subscriptionFrequency:
               order.subscriptionFrequency || existing.subscriptionFrequency,
@@ -802,7 +867,9 @@ const OrdersDashboard = ({
             const body = JSON.stringify({
               orderId: order.orderId,
               status: order.status,
-              messageId: order.messageEvent?.id,
+              // The server caches the kind-1059 gift wrap, so it can only match
+              // by the gift-wrap id (wrappedEventId), not the decrypted rumor id.
+              messageId: order.messageEvent?.wrappedEventId,
             });
             createNip98AuthorizationHeader(
               signer!,
@@ -1139,6 +1206,9 @@ const OrdersDashboard = ({
         const body = JSON.stringify({
           orderId: selectedOrder.orderId,
           status: "shipped",
+          // Match the cached gift wrap by its wrap id so the server can stamp
+          // order_id and actually persist the "shipped" status.
+          messageId: selectedOrder.messageEvent?.wrappedEventId,
         });
         const authHeader = await createNip98AuthorizationHeader(
           signer,
@@ -1937,6 +2007,9 @@ const OrdersDashboard = ({
                     Donation Amount
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-black uppercase">
+                    Sales Tax
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-black uppercase">
                     Subscription
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-bold tracking-wider text-black uppercase">
@@ -1948,7 +2021,7 @@ const OrdersDashboard = ({
                 {orders.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={14}
+                      colSpan={15}
                       className="px-6 py-4 text-center text-black"
                     >
                       No orders yet
@@ -2085,6 +2158,36 @@ const OrdersDashboard = ({
                                 Send Shipping Update
                               </button>
                             )}
+                            {order.isSale &&
+                              order.status === "pending" &&
+                              canBuyLabelForOrder(order) && (
+                                <button
+                                  onClick={() => {
+                                    setBuyLabelMode("outbound");
+                                    setBuyLabelOrder(order);
+                                    setShowBuyLabelModal(true);
+                                  }}
+                                  className="cursor-pointer text-left text-xs text-blue-600 underline hover:text-blue-800"
+                                >
+                                  Buy Shipping Label
+                                </button>
+                              )}
+                            {order.isSale &&
+                              (order.status === "shipped" ||
+                                order.status === "completed" ||
+                                order.hasReturnRequest) &&
+                              canBuyLabelForOrder(order) && (
+                                <button
+                                  onClick={() => {
+                                    setBuyLabelMode("return");
+                                    setBuyLabelOrder(order);
+                                    setShowBuyLabelModal(true);
+                                  }}
+                                  className="cursor-pointer text-left text-xs text-orange-700 underline hover:text-orange-900"
+                                >
+                                  Buy Return Label
+                                </button>
+                              )}
                             {order.hasReturnRequest && order.isSale && (
                               <span className="inline-flex items-center gap-1 rounded-md border border-orange-300 bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
                                 {(order.returnRequestType || "return")
@@ -2190,6 +2293,26 @@ const OrdersDashboard = ({
                                     ? ` (${order.donationPercentage}%)`
                                     : ""
                                 }`
+                            : "N/A"}
+                        </td>
+                        <td className="px-4 py-4 text-sm whitespace-nowrap text-black">
+                          {order.salesTax !== undefined && order.salesTax > 0
+                            ? displayCurrency === "sats"
+                              ? `${getConvertedAmount(
+                                  order.salesTax,
+                                  order.salesTaxCurrency ||
+                                    order.currency ||
+                                    "sats"
+                                ).toLocaleString()} sats`
+                              : `$${getConvertedAmount(
+                                  order.salesTax,
+                                  order.salesTaxCurrency ||
+                                    order.currency ||
+                                    "sats"
+                                ).toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}`
                             : "N/A"}
                         </td>
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
@@ -2810,6 +2933,42 @@ const OrdersDashboard = ({
         subscriptionId={addressChangeOrder?.subscriptionId}
       />
 
+      {buyLabelOrder &&
+        (() => {
+          const parsed = parseOrderAddress(buyLabelOrder.address);
+          const productData = findProductDataForOrder(buyLabelOrder);
+          if (!parsed || !productData || !productData.shipFromZip) return null;
+          if (!parsed.street1 || !parsed.city || !parsed.state || !parsed.zip)
+            return null;
+          return (
+            <BuyShippingLabelModal
+              isOpen={showBuyLabelModal}
+              onClose={() => {
+                setShowBuyLabelModal(false);
+                setBuyLabelOrder(null);
+              }}
+              mode={buyLabelMode}
+              orderId={buyLabelOrder.orderId}
+              fromZip={productData.shipFromZip}
+              fromCountry={productData.shipFromCountry || "US"}
+              toAddress={{
+                name: parsed.name || undefined,
+                street1: parsed.street1 as string,
+                street2: parsed.street2,
+                city: parsed.city as string,
+                state: parsed.state as string,
+                zip: parsed.zip as string,
+                country: "US",
+              }}
+              parcel={{
+                weightOz: productData.packageWeightOz || 0,
+                lengthIn: productData.packageLengthIn,
+                widthIn: productData.packageWidthIn,
+                heightIn: productData.packageHeightIn,
+              }}
+            />
+          );
+        })()}
       <FailureModal
         bodyText={failureText}
         isOpen={showFailureModal}

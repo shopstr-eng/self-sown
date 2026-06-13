@@ -1,6 +1,6 @@
 ---
 name: milk-market
-description: Browse and buy local food, and manage a producer shop, on Milk Market — a permissionless Bitcoin-native Nostr marketplace — via its Model Context Protocol (MCP) server.
+description: Browse and buy local food, and manage a producer stall, on Milk Market — a permissionless Bitcoin-native Nostr marketplace — via its Model Context Protocol (MCP) server.
 homepage: https://milk.market
 mcp_endpoint: https://milk.market/api/mcp
 auth: Bearer API key (prefix "sk_") with scopes read, read_write, full_access
@@ -21,7 +21,7 @@ seller through the Model Context Protocol (MCP).
 - Scopes:
   - `read` — search and read public data (no key needed for some reads)
   - `read_write` — place and track orders
-  - `full_access` — manage your own listings, shop, profile, and wallet
+  - `full_access` — manage your own listings, stall, profile, and wallet
 
 Get an API key from the Milk Market app (Settings → API keys) or via the
 onboarding endpoint.
@@ -40,7 +40,7 @@ Track it with `get_order_status` and confirm Lightning payments with
 `verify_payment`.
 
 ### Sell
-Use `set_shop_profile` and `create_product_listing` to open a shop and list
+Use `set_shop_profile` and `create_product_listing` to open a stall and list
 products. Update with `update_product_listing`, remove with `delete_listing`,
 and manage discounts with `create_discount_code` / `list_discount_codes`.
 

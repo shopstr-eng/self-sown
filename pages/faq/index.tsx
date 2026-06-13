@@ -31,6 +31,11 @@ export default function Faq() {
             "Milk Market supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe and other fiat options such as Cash App, Venmo, and PayPal. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
         },
         {
+          title: "Will I be charged sales tax?",
+          content:
+            "Only if the seller has turned it on for card checkout. When they have, Stripe automatically calculates the correct US sales tax from your shipping address and adds it at checkout, so you'll see the exact amount before you pay. If a seller hasn't enabled it — or you pay with Bitcoin (Lightning or Cashu) — no sales tax is added through the platform.",
+        },
+        {
           title: "How do I claim a Cashu payment?",
           content:
             "You can instantly claim a received Cashu token to the Lightning address set on your Nostr profile by clicking the claim button then the redeem button when on the orders page. You can also receive the token directly into the integrated Cashu wallet and pay out to an external Lightning wallet at any time, or copy and paste the token into an external Cashu wallet (like Minibits, Coinos, cashu.me, etc.). Setting your profile payment preference to Lightning also automatically handles the claiming of tokens for you.",
@@ -58,7 +63,7 @@ export default function Faq() {
         {
           title: "How much does it cost to sell?",
           content:
-            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels (coming soon), and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $1,050 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
         },
         {
           title: "Is there a free trial of Herd?",
@@ -73,7 +78,12 @@ export default function Faq() {
         {
           title: "How does shipping work?",
           content:
-            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Herd feature coming soon.",
+            "Vendors can offer different fulfillment options including free shipping, local pickup, or an added shipping cost, all handled directly by the merchant. The shipping method and any restrictions should be clearly specified in each listing. Automated shipping labels (via Shippo) are a Herd feature.",
+        },
+        {
+          title: "Can I collect sales tax?",
+          content:
+            "Yes. If you've connected a Stripe account, you can turn on automatic sales tax under 'Settings' -> 'Payments'. Once you add the US states where you're registered, Stripe calculates the correct sales tax from each buyer's shipping address and shows it at checkout on card orders. It's free to use and available to every Stripe-connected seller — it isn't part of Herd.",
         },
       ],
     },

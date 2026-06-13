@@ -55,6 +55,12 @@ export type ProductData = {
   subscriptionDiscount?: number;
   subscriptionFrequency?: string[];
   pageConfig?: StorefrontProductPageConfig;
+  shipFromZip?: string;
+  shipFromCountry?: string;
+  packageWeightOz?: number;
+  packageLengthIn?: number;
+  packageWidthIn?: number;
+  packageHeightIn?: number;
   rawEvent?: NostrEvent;
 };
 
@@ -257,6 +263,28 @@ export const parseTags = (productEvent: NostrEvent) => {
         break;
       case "subscription_frequency":
         parsedData.subscriptionFrequency = values;
+        break;
+      case "ship_from_zip":
+        if (values[0]) {
+          parsedData.shipFromZip = values[0].trim();
+          if (values[1]) {
+            parsedData.shipFromCountry = values[1].trim().toUpperCase();
+          }
+        }
+        break;
+      case "parcel":
+        // ["parcel", weight_oz, length_in?, width_in?, height_in?]
+        const pw = values[0] ? Number(values[0]) : NaN;
+        if (Number.isFinite(pw) && pw > 0) {
+          parsedData.packageWeightOz = pw;
+          const pl = values[1] ? Number(values[1]) : NaN;
+          const pwidth = values[2] ? Number(values[2]) : NaN;
+          const ph = values[3] ? Number(values[3]) : NaN;
+          if (Number.isFinite(pl) && pl > 0) parsedData.packageLengthIn = pl;
+          if (Number.isFinite(pwidth) && pwidth > 0)
+            parsedData.packageWidthIn = pwidth;
+          if (Number.isFinite(ph) && ph > 0) parsedData.packageHeightIn = ph;
+        }
         break;
       case "page_config":
         if (values[0]) {

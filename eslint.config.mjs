@@ -13,6 +13,7 @@ export default [
       "public/**",
       "**/dist/**",
       "**/*.js",
+      ".local/skills/",
     ],
   },
   {

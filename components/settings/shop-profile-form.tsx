@@ -994,7 +994,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             signedEvent,
           }),
         });
-      } catch (e) {}
+      } catch (e) {
+        console.error("Failed to save notification email:", e);
+      }
     }
 
     setIsUploadingShopProfile(false);

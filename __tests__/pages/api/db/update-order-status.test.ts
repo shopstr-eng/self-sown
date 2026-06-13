@@ -66,4 +66,75 @@ describe("/api/db/update-order-status", () => {
         "You are not allowed to set this order status for the current order role.",
     });
   });
+
+  it("persists the status when participants can't be resolved (encrypted gift wraps)", async () => {
+    // Order messages are gift wraps, so getOrderParticipants normally returns
+    // nulls. The endpoint must NOT 404 — it delegates to updateOrderStatus,
+    // whose per-row ownership check (author/p-tag) is the real authority.
+    verifyNip98RequestMock.mockResolvedValue({
+      ok: true,
+      pubkey: "seller-pubkey",
+    });
+    getOrderParticipantsMock.mockResolvedValue({
+      buyerPubkey: null,
+      sellerPubkey: null,
+    });
+    updateOrderStatusMock.mockResolvedValue(1);
+
+    const req = {
+      method: "POST",
+      body: {
+        orderId: "order-123",
+        status: "shipped",
+        messageId: "wrap-event-id",
+      },
+    } as any;
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(updateOrderStatusMock).toHaveBeenCalledWith(
+      "order-123",
+      "shipped",
+      "seller-pubkey",
+      "wrap-event-id"
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonBody).toEqual({
+      success: true,
+      orderId: "order-123",
+      status: "shipped",
+      persisted: true,
+    });
+  });
+
+  it("still persists even if resolving participants throws", async () => {
+    verifyNip98RequestMock.mockResolvedValue({
+      ok: true,
+      pubkey: "seller-pubkey",
+    });
+    getOrderParticipantsMock.mockRejectedValue(new Error("db down"));
+    updateOrderStatusMock.mockResolvedValue(0);
+
+    const req = {
+      method: "POST",
+      body: {
+        orderId: "order-123",
+        status: "shipped",
+        messageId: "wrap-event-id",
+      },
+    } as any;
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(updateOrderStatusMock).toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(res.jsonBody).toEqual({
+      success: true,
+      orderId: "order-123",
+      status: "shipped",
+      persisted: false,
+    });
+  });
 });

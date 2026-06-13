@@ -16,6 +16,7 @@ Model Context Protocol server lets AI agents participate as buyers and sellers â
 - **Read** (any key): product/company search & details, reviews, discount-code check, payment methods. Responses include subscription info, variant options, herdshare agreements, pickup locations, required customer info, payment method discounts, free shipping.
 - **Purchase** (`read_write`+): `create_order` (stripe/lightning/cashu/fiat), `verify_payment`, `get_order_status`, `list_orders`, full subscription CRUD, `list_seller_orders`, `get_notifications`.
 - **Write** (`full_access` + stored nsec): profile/shop kinds (0/30019), product CRUD (30402), reviews (31555 + NIP-22 replies via 1111), community posts, NIP-17 DMs, relay/blossom config (10002/10063), media upload (24242), discount codes, Cashu wallet ops (7375/17375), order/shipping/address updates, message read state, email-flow management.
+- **Not exposed via MCP**: Shippo shipping-label purchase and return-label generation are seller-dashboard actions (Herd-gated, billed to the seller's own connected Shippo account) and are intentionally **not** agent tools. Agents can still read and update order shipping status/addresses through the write tools above. See `docs/architecture/features.md` â†’ "Shipping Labels (Shippo, Herd-gated)".
 
 ## Payment methods
 
