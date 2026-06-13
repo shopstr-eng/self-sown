@@ -24,7 +24,8 @@ export type SellerActionAuthTag =
   | "notification-email-read"
   | "notification-email-write"
   | "storefront-slug-write"
-  | "custom-domain-write";
+  | "custom-domain-write"
+  | "email-sender-domain-write";
 
 type EventTemplateWithPubkey = EventTemplate & {
   pubkey: string;
@@ -191,6 +192,8 @@ function getSellerActionAuthContent(action: SellerActionAuthTag): string {
       return "Authorize storefront slug updates";
     case "custom-domain-write":
       return "Authorize storefront custom domain updates";
+    case "email-sender-domain-write":
+      return "Authorize email sending domain updates";
     case "stripe-connect":
     default:
       return "Authorize Stripe Connect account management";

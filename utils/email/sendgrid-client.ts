@@ -52,3 +52,13 @@ export async function getUncachableSendGridClient() {
     fromEmail: email,
   };
 }
+
+/**
+ * Returns the SendGrid API key for direct REST calls (e.g. the Domain
+ * Authentication endpoints under /v3/whitelabel/domains, which the
+ * `@sendgrid/mail` client does not cover). Never log the returned value.
+ */
+export async function getSendGridApiKey(): Promise<string> {
+  const { apiKey } = await getCredentials();
+  return apiKey;
+}

@@ -721,6 +721,61 @@ function registerPurchaseTools(
       }
     }
   );
+
+  reg(
+    "get_email_analytics",
+    "Get performance analytics for all of your email flows (a Herd/Pro feature), including one-time sends. Returns per-flow and per-email totals: emails sent, unique opens and open rate, unique clicks and click-through rate, the most-clicked links, and conversion rate (orders attributed to the email). Seller-scoped — only your own flows are returned. Requires a read_write API key permission.",
+    {},
+    async () => {
+      const startTime = Date.now();
+      if (
+        apiKey.permissions !== "read_write" &&
+        apiKey.permissions !== "full_access"
+      )
+        return permissionError();
+
+      try {
+        const { getEmailFlowStatsForSeller } =
+          await import("@/utils/db/db-service");
+        const flows = await getEmailFlowStatsForSeller(apiKey.pubkey);
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  flows,
+                  total: flows.length,
+                  _meta: {
+                    responseTimeMs: Date.now() - startTime,
+                    dataSource: "cached_db",
+                    resultCount: flows.length,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: "Failed to load email analytics",
+                details:
+                  error instanceof Error ? error.message : "Unknown error",
+                _meta: { responseTimeMs: Date.now() - startTime },
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
 }
 
 export default async function handler(

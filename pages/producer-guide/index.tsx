@@ -277,7 +277,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced storefront design, automated email flows, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced storefront design, automated email flows with open/click/conversion analytics, and AI agent access.",
                   url: "https://milk.market/producer-guide#step-2",
                 },
                 {
@@ -301,7 +301,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Set Up Email Flows",
-                  text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop.",
+                  text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop. Track opens, clicks, and conversions for every flow and one-time send.",
                   url: "https://milk.market/producer-guide#step-6",
                 },
                 {
@@ -633,9 +633,9 @@ const ProducerGuidePage = () => {
                         <li>
                           Go Herd for $21/month (or $168/year, saving 33%) to
                           unlock advanced storefronts, custom domains, email
-                          flows, custom product pages, shipping labels, and AI
-                          agent (MCP) access &mdash; or go Wrangler for one-time
-                          $2,100 lifetime access
+                          flows with open/click analytics, custom product pages,
+                          shipping labels, and AI agent (MCP) access &mdash; or
+                          go Wrangler for one-time $2,100 lifetime access
                         </li>
                         <li>
                           New sellers get a 30-day free trial of Herd with no
@@ -912,6 +912,15 @@ const ProducerGuidePage = () => {
                         Build multi-step flows that trigger on customer actions
                       </li>
                       <li>Customize the copy and timing for each message</li>
+                      <li>
+                        Track opens, clicks, top links, and conversions in the
+                        Email Stats dashboard
+                      </li>
+                      <li>
+                        Your analytics are private to your account — every
+                        request is scoped to you, so no other seller (and not
+                        the platform) can see them
+                      </li>
                       <li>
                         Unsubscribe handling is built in for every contact
                       </li>

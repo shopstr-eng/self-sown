@@ -309,6 +309,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const [landingPageStyle, setLandingPageStyle] = useState<
     "classic" | "hero" | "minimal"
   >("hero");
+  const [landingPageMode, setLandingPageMode] = useState<"default" | "product">(
+    "default"
+  );
+  const [landingProductDTag, setLandingProductDTag] = useState("");
   const [fontHeading, setFontHeading] = useState("");
   const [fontBody, setFontBody] = useState("");
   const [customFontHeadingUrl, setCustomFontHeadingUrl] = useState("");
@@ -425,6 +429,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         }
         if (sf.productLayout) setProductLayout(sf.productLayout);
         if (sf.landingPageStyle) setLandingPageStyle(sf.landingPageStyle);
+        if (sf.landingPageMode) setLandingPageMode(sf.landingPageMode);
+        if (sf.landingProductDTag) setLandingProductDTag(sf.landingProductDTag);
         if (sf.fontHeading) setFontHeading(sf.fontHeading);
         if (sf.fontBody) setFontBody(sf.fontBody);
         if (sf.customFontHeadingUrl)
@@ -535,6 +541,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       }
       if (sf.productLayout) setProductLayout(sf.productLayout);
       if (sf.landingPageStyle) setLandingPageStyle(sf.landingPageStyle);
+      if (sf.landingPageMode) setLandingPageMode(sf.landingPageMode);
+      if (sf.landingProductDTag) setLandingProductDTag(sf.landingProductDTag);
       if (sf.fontHeading) setFontHeading(sf.fontHeading);
       if (sf.fontBody) setFontBody(sf.fontBody);
       if (sf.customFontHeadingUrl)
@@ -811,6 +819,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         isCustomColorScheme,
         productLayout,
         landingPageStyle,
+        landingPageMode,
+        landingProductDTag,
         fontHeading,
         fontBody,
         customFontHeadingUrl,
@@ -924,6 +934,14 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         colorScheme,
         productLayout,
         landingPageStyle,
+        landingPageMode:
+          landingPageMode === "product" && landingProductDTag
+            ? "product"
+            : undefined,
+        landingProductDTag:
+          landingPageMode === "product" && landingProductDTag
+            ? landingProductDTag
+            : undefined,
         shopSlug,
         fontHeading: customFontHeadingUrl
           ? undefined
@@ -1755,6 +1773,79 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                               </button>
                             ))}
                           </div>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="mb-2 block text-base font-bold text-black">
+                            Storefront Home Page
+                          </label>
+                          <p className="mb-3 text-xs text-gray-500">
+                            Choose what visitors see at your storefront root.
+                            &quot;Landing page&quot; shows your normal shop
+                            landing. &quot;Single product&quot; serves one
+                            product&apos;s page directly at the root.
+                          </p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              {
+                                value: "default" as const,
+                                label: "Landing page",
+                                desc: "Your normal shop landing",
+                              },
+                              {
+                                value: "product" as const,
+                                label: "Single product",
+                                desc: "Feature one product at the root",
+                              },
+                            ].map((mode) => (
+                              <button
+                                key={mode.value}
+                                type="button"
+                                onClick={() => setLandingPageMode(mode.value)}
+                                className={`rounded-lg border-2 p-3 text-center transition-all ${
+                                  landingPageMode === mode.value
+                                    ? "shadow-neo border-black"
+                                    : "border-gray-300 hover:border-black"
+                                }`}
+                              >
+                                <span className="block text-sm font-bold text-black">
+                                  {mode.label}
+                                </span>
+                                <span className="block text-[10px] leading-tight text-gray-500">
+                                  {mode.desc}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          {landingPageMode === "product" && (
+                            <div className="mt-3">
+                              <label className="mb-1 block text-sm font-bold text-black">
+                                Product to feature
+                              </label>
+                              <select
+                                value={landingProductDTag}
+                                onChange={(e) =>
+                                  setLandingProductDTag(e.target.value)
+                                }
+                                className="w-full rounded-lg border-2 border-black bg-white p-2 text-sm text-black"
+                              >
+                                <option value="">Select a product…</option>
+                                {sellerProducts
+                                  .filter((p) => p.d)
+                                  .map((p) => (
+                                    <option key={p.d} value={p.d as string}>
+                                      {p.title || p.d}
+                                    </option>
+                                  ))}
+                              </select>
+                              {!landingProductDTag && (
+                                <p className="mt-1 text-xs text-amber-600">
+                                  Select a product, or your storefront falls
+                                  back to the normal landing page.
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="mb-6">

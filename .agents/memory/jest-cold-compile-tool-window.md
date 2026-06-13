@@ -20,3 +20,17 @@ from the agent here. Validate DB-test changes structurally instead: `tsc --noEmi
 (clean), `eslint <file>`, `prettier --check <file>`, and mirror the assertion
 patterns of the existing proven testcontainer cases in the same file. Mark the
 jest run as environment-blocked rather than burning many attempts on it.
+
+**tsc is also often unrunnable, and don't try to kill the dev server to free CPU.**
+A cold `pnpm run typecheck:web` (`tsc --noEmit --incremental false`, TS6) can run
+10+ min and exceed even multi-window polling, especially while the Next dev
+workflow recompiles and competes for CPU. Two traps that waste turns:
+
+- `kill`-ing the Next dev process (by PID _or_ `pkill -f`) cascades SIGTERM to the
+  agent's own bash tool process (exit 143) **and reaps `setsid`-detached jobs**, so
+  you cannot free CPU that way; the workflow supervisor also auto-restarts dev. Use
+  `restart_workflow`, never manual kills.
+- When tsc genuinely won't finish, fall back to: `eslint <changed files>` (uses the
+  TS parser, catches most real errors) **plus** reading the exact signatures of
+  every imported symbol you call and confirming arg/return types by hand. That
+  targeted check covers the actual risk surface of small, pattern-following edits.

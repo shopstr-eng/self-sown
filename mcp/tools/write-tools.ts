@@ -432,6 +432,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Landing page style for the storefront: classic, hero, or minimal"
         ),
+      storefrontLandingPageMode: z
+        .enum(["default", "product"])
+        .optional()
+        .describe(
+          "What the storefront root serves: 'default' (normal landing page) or 'product' (a single product's page at the root). When 'product', set storefrontLandingProductDTag. Pro feature."
+        ),
+      storefrontLandingProductDTag: z
+        .string()
+        .optional()
+        .describe(
+          "The 'd' tag of the product to feature at the storefront root when storefrontLandingPageMode is 'product'. Must be a product owned by this seller."
+        ),
       shopSlug: z
         .string()
         .optional()
@@ -770,6 +782,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.productLayout = params.storefrontProductLayout;
         if (params.storefrontLandingPageStyle)
           storefront.landingPageStyle = params.storefrontLandingPageStyle;
+        if (params.storefrontLandingPageMode)
+          storefront.landingPageMode = params.storefrontLandingPageMode;
+        if (params.storefrontLandingProductDTag)
+          storefront.landingProductDTag = params.storefrontLandingProductDTag;
         if (params.shopSlug) storefront.shopSlug = params.shopSlug;
         if (params.storefrontFontHeading)
           storefront.fontHeading = params.storefrontFontHeading;

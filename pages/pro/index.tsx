@@ -110,8 +110,9 @@ const ProUpgradePage = () => {
                         : "Upgrade to unlock everything"}
                     </h2>
                     <p className="font-medium text-black">
-                      Advanced storefronts, custom domains, email flows, custom
-                      product pages, Shippo shipping labels, and the MCP API.
+                      Advanced storefronts, custom domains, email flows with
+                      open &amp; click analytics, custom product pages, Shippo
+                      shipping labels, and the MCP API.
                     </p>
                     {membership.status === "free" && (
                       <p className="bg-primary-yellow mt-3 inline-block rounded-md border-2 border-black px-3 py-1 text-sm font-bold text-black">

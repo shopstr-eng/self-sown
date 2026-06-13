@@ -30,10 +30,12 @@ export async function sendEmail(
   html: string,
   replyTo?: string,
   headers?: Record<string, string>,
-  fromName?: string
+  fromName?: string,
+  fromEmail?: string
 ): Promise<boolean> {
   try {
-    const { client, fromEmail } = await getUncachableSendGridClient();
+    const { client, fromEmail: defaultFromEmail } =
+      await getUncachableSendGridClient();
     // Sanitize the display name to keep SendGrid happy: strip control chars
     // and newlines, cap length. Fall back to bare email if nothing usable.
     const safeFromName = fromName
@@ -42,33 +44,76 @@ export async function sendEmail(
           .slice(0, 78)
           .trim()
       : "";
-    const msg: any = {
-      to,
-      from: safeFromName ? { email: fromEmail, name: safeFromName } : fromEmail,
-      subject,
-      html,
+    // A seller's custom from-address is only ever passed here once it has been
+    // SendGrid-validated (see resolveSellerSenderEmail). We still guard the
+    // send below so an unexpected rejection can never drop the email.
+    const customFromEmail =
+      fromEmail && fromEmail.includes("@") ? fromEmail : null;
+    const senderEmail = customFromEmail || defaultFromEmail;
+
+    const buildMsg = (sender: string) => {
+      const msg: any = {
+        to,
+        from: safeFromName ? { email: sender, name: safeFromName } : sender,
+        subject,
+        html,
+      };
+      if (replyTo) {
+        msg.replyTo = replyTo;
+      }
+      if (headers && Object.keys(headers).length > 0) {
+        // SendGrid honors RFC headers passed via the `headers` field. Required
+        // for List-Unsubscribe / RFC 8058 one-click compliance on Gmail/Yahoo.
+        msg.headers = headers;
+      }
+      return msg;
     };
-    if (replyTo) {
-      msg.replyTo = replyTo;
+
+    try {
+      await client.send(buildMsg(senderEmail));
+      return true;
+    } catch (sendError) {
+      // Never let a seller's custom from-address break delivery: if SendGrid
+      // rejects it as an unverified sender, retry once with the global sender.
+      if (customFromEmail && isVerifiedSenderError(sendError)) {
+        console.error(
+          "Custom sender rejected by SendGrid; retrying with default sender:",
+          customFromEmail
+        );
+        await client.send(buildMsg(defaultFromEmail));
+        return true;
+      }
+      throw sendError;
     }
-    if (headers && Object.keys(headers).length > 0) {
-      // SendGrid honors RFC headers passed via the `headers` field. Required
-      // for List-Unsubscribe / RFC 8058 one-click compliance on Gmail/Yahoo.
-      msg.headers = headers;
-    }
-    await client.send(msg);
-    return true;
   } catch (error) {
     console.error("Failed to send email:", error);
     return false;
   }
 }
 
+/**
+ * Detect SendGrid "from address is not a verified sender / authenticated
+ * domain" rejections (HTTP 403 + sender-identity message) so callers can fall
+ * back to the platform's global verified sender instead of dropping the email.
+ */
+export function isVerifiedSenderError(error: any): boolean {
+  const status =
+    error?.code ?? error?.response?.statusCode ?? error?.statusCode;
+  if (status === 403) return true;
+  const body = error?.response?.body;
+  const text =
+    typeof body === "string" ? body : body ? JSON.stringify(body) : "";
+  return /verif|from address|sender identity|does not match/i.test(
+    `${text} ${error?.message || ""}`
+  );
+}
+
 export async function sendOrderConfirmationToBuyer(
   buyerEmail: string,
   params: OrderEmailParams,
   branding?: StorefrontBranding | null,
-  replyTo?: string
+  replyTo?: string,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = orderConfirmationEmail(params, branding);
   return sendEmail(
@@ -77,7 +122,8 @@ export async function sendOrderConfirmationToBuyer(
     html,
     replyTo,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
@@ -85,7 +131,8 @@ export async function sendNewOrderToSeller(
   sellerEmail: string,
   params: OrderEmailParams,
   branding?: StorefrontBranding | null,
-  replyTo?: string
+  replyTo?: string,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = sellerNewOrderEmail(params, branding);
   return sendEmail(
@@ -94,7 +141,8 @@ export async function sendNewOrderToSeller(
     html,
     replyTo,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 

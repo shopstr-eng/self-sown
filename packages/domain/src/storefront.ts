@@ -247,6 +247,12 @@ export interface StorefrontConfig {
   colorScheme?: StorefrontColorScheme;
   productLayout?: "grid" | "list" | "featured";
   landingPageStyle?: "classic" | "hero" | "minimal";
+  // When set to "product", the stall/custom-domain root serves a single
+  // product's page (CheckoutCard + ProductPageRenderer) instead of the normal
+  // landing page. `landingProductDTag` references the product by its replaceable
+  // 'd' tag (stable across edits, unlike slugs/event ids).
+  landingPageMode?: "default" | "product";
+  landingProductDTag?: string;
   shopSlug?: string;
   customDomain?: string;
   fontHeading?: string;

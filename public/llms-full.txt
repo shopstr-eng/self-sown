@@ -25,7 +25,7 @@ Producers follow a guided onboarding (see the Producer Guide):
 3. List a product with title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
 4. Manage orders and communicate with buyers through encrypted chat.
 5. (Herd) Customize a storefront at /shop/[slug] — colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
-6. (Herd) Automate email flows — welcome series, order follow-ups, and re-engagement.
+6. (Herd) Automate email flows — welcome series, order follow-ups, and re-engagement — with open, click, and conversion analytics for every flow and one-time send, viewable in the orders dashboard or via the MCP get_email_analytics tool. Herd sellers can send these flow emails and order confirmations from their own authenticated email domain; if the domain is not verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no seller can see another seller's analytics, and the platform does not access or use an individual seller's raw email analytics (the platform runs its own storefront as an ordinary seller account with no special access).
 7. (Herd) Buy shipping labels through Shippo — connect your own Shippo account (Shippo bills you directly), then quote live rates, buy labels, and issue return labels from the orders dashboard.
 8. (Herd) Connect AI agents through the Model Context Protocol (MCP) so autonomous agents can manage listings and orders.
 9. Grow — update listings, build relationships, share the producer's story, and expand reach.

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
+import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
 import { nip19 } from "nostr-tools";
 import {
@@ -259,6 +260,7 @@ const OrdersDashboard = ({
   } = useContext(SignerContext);
   const { nostr } = useContext(NostrContext);
   const reviewsContext = useContext(ReviewsContext);
+  const router = useRouter();
 
   const {
     handleSubmit: handleShippingSubmit,
@@ -1356,6 +1358,98 @@ const OrdersDashboard = ({
       order.subject === "order-receipt"
     );
   };
+
+  // Auto-open the review modal when a buyer arrives via a {{review_link}}
+  // deep-link from a flow email. Best-effort: verify the signed token, match it
+  // to one of the buyer's decrypted orders, then open the existing review modal
+  // exactly once. Posting a review still requires the buyer's own Nostr
+  // signature (guests are gated to sign in by ProtectedRoute on this page).
+  // The verified token payload is cached so we hit the API only once, then
+  // re-attempt matching as the buyer's orders finish decrypting.
+  const reviewAutoOpenedRef = useRef(false);
+  const reviewTokenFetchedRef = useRef(false);
+  const reviewTokenDataRef = useRef<{
+    orderId: string;
+    productAddress: string | null;
+    sellerPubkey: string;
+    buyerPubkey: string | null;
+  } | null>(null);
+  useEffect(() => {
+    if (isLoading || reviewAutoOpenedRef.current) return;
+    const reviewToken =
+      typeof router.query.review === "string" ? router.query.review : "";
+    if (!reviewToken || !signer || !userPubkey) return;
+
+    const tryMatchAndOpen = (data: {
+      orderId: string;
+      productAddress: string | null;
+      sellerPubkey: string;
+      buyerPubkey: string | null;
+    }) => {
+      // If the token names a specific buyer, only auto-open for that signed-in
+      // buyer — never pre-fill a stranger's review UI.
+      if (data.buyerPubkey && data.buyerPubkey !== userPubkey) {
+        reviewAutoOpenedRef.current = true;
+        return;
+      }
+      const match = orders.find((o) => {
+        // Bind the matched order to the token's seller so an order-id collision
+        // across sellers can't open the review modal for the wrong order.
+        const orderSeller =
+          o.sellerPubkey || o.productAddress.split(":")[1] || "";
+        return (
+          o.orderId === data.orderId &&
+          orderSeller === data.sellerPubkey &&
+          (!data.productAddress || o.productAddress === data.productAddress) &&
+          canShowReviewButton(o)
+        );
+      });
+      if (match) {
+        reviewAutoOpenedRef.current = true;
+        handleOpenReviewModal(match);
+      }
+    };
+
+    // Already verified — just retry the match against newly loaded orders.
+    if (reviewTokenDataRef.current) {
+      tryMatchAndOpen(reviewTokenDataRef.current);
+      return;
+    }
+    if (reviewTokenFetchedRef.current) return;
+    reviewTokenFetchedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/email/flows/review-link?t=${encodeURIComponent(reviewToken)}`
+        );
+        if (!res.ok) {
+          reviewAutoOpenedRef.current = true; // conclusive: bad token
+          return;
+        }
+        const data = await res.json();
+        if (cancelled) return;
+        if (!data?.ok) {
+          reviewAutoOpenedRef.current = true;
+          return;
+        }
+        reviewTokenDataRef.current = {
+          orderId: data.orderId,
+          productAddress: data.productAddress ?? null,
+          sellerPubkey: data.sellerPubkey,
+          buyerPubkey: data.buyerPubkey ?? null,
+        };
+        tryMatchAndOpen(reviewTokenDataRef.current);
+      } catch {
+        // Network error — allow a later retry as deps change.
+        reviewTokenFetchedRef.current = false;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, orders, router.query.review, signer, userPubkey]);
 
   const canShowReturnButton = (order: OrderData) => {
     if (order.isSale) return false;

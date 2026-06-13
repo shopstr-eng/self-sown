@@ -14,6 +14,7 @@ import {
   ArrowUpTrayIcon,
   LinkIcon,
   MinusIcon,
+  StarIcon,
   EyeIcon,
   CodeBracketIcon,
   ArrowUturnLeftIcon,
@@ -44,6 +45,7 @@ const PREVIEW_SAMPLE_DATA: MergeTagData = {
   order_id: "ord_8f2a1c",
   product_image: "",
   shop_url: "https://milk.market",
+  review_link: "https://milk.market/orders",
 };
 
 interface InsertModalState {
@@ -200,6 +202,19 @@ export const FlowStepEditor = ({
     insertAtCursor(
       `<hr style="border:none;border-top:2px solid #e5e7eb;margin:24px 0;" />`
     );
+  };
+
+  // Inserts a "Leave a review" button wired to the {{review_link}} merge tag.
+  // At send time that tag becomes a per-buyer link to their order on the
+  // seller's orders dashboard, which auto-opens the review modal.
+  const handleInsertReviewButton = () => {
+    insertAtCursor(`<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td style="background-color:#000000;border-radius:6px;padding:12px 24px;">
+      <a href="{{review_link}}" style="color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;">Leave a review</a>
+    </td>
+  </tr>
+</table>`);
   };
 
   const handleInsertHeading = () => {
@@ -359,6 +374,14 @@ export const FlowStepEditor = ({
         <Button className={TOOLBAR_BTN} size="sm" onClick={handleInsertDivider}>
           <MinusIcon className="h-4 w-4" />
         </Button>
+        <Button
+          className={TOOLBAR_BTN}
+          size="sm"
+          onClick={handleInsertReviewButton}
+          title="Insert a “Leave a review” button"
+        >
+          <StarIcon className="h-4 w-4" />
+        </Button>
 
         <div className="mx-1 h-6 w-px bg-gray-300" />
 
@@ -416,6 +439,10 @@ export const FlowStepEditor = ({
         <div className="border-2 border-t-0 border-b-0 border-black bg-blue-50 px-3 py-3">
           <p className="mb-2 text-xs font-bold text-gray-700">
             {insertModal.type === "button" ? "Insert Button" : "Insert Link"}
+          </p>
+          <p className="mb-2 text-[11px] text-gray-500">
+            Links in sent emails are tracked so you can see how many clicks each
+            flow gets.
           </p>
           <div className="flex items-end gap-2">
             <div className="flex-1">
@@ -503,6 +530,7 @@ export const FlowStepEditor = ({
           "{{product_title}}",
           "{{order_id}}",
           "{{shop_url}}",
+          "{{review_link}}",
         ].map((tag) => (
           <button
             key={tag}

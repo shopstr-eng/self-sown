@@ -29,6 +29,9 @@ import { ProductData } from "@/utils/parsers/product-parser-functions";
 import parseTags from "@/utils/parsers/product-parser-functions";
 import Link from "next/link";
 import StorefrontProductGrid from "./storefront-product-grid";
+import ProductListingView from "@/components/listing/product-listing-view";
+import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import { NostrEvent } from "@/utils/types/types";
 import SectionRenderer from "./section-renderer";
 import FormattedText from "./formatted-text";
 import StorefrontFooterComponent from "./storefront-footer";
@@ -319,6 +322,40 @@ export default function StorefrontLayout({
 
   const layout = storefront.productLayout || "grid";
   const landingStyle = storefront.landingPageStyle || "hero";
+
+  // Pro sellers can serve a single product's page as the storefront root
+  // instead of the normal landing page. Gated on entitlement (basicStorefront()
+  // strips these fields for non-Pro sellers, so this fails closed). The product
+  // is referenced by its replaceable 'd' tag and must belong to this seller.
+  const landingProductActive =
+    proEntitled === true &&
+    storefront.landingPageMode === "product" &&
+    !!storefront.landingProductDTag;
+
+  const landingProductMatch = useMemo(() => {
+    if (!landingProductActive || !storefront.landingProductDTag) return null;
+    const dTag = storefront.landingProductDTag;
+    const matchEvent = productContext.productEvents.find(
+      (event: NostrEvent) =>
+        event.kind !== 1 &&
+        event.pubkey === shopPubkey &&
+        parseTags(event)?.d === dTag
+    );
+    if (!matchEvent) return null;
+    const matchData = parseTags(matchEvent);
+    if (!matchData) return null;
+    return { productData: matchData, rawEvent: matchEvent };
+  }, [
+    landingProductActive,
+    storefront.landingProductDTag,
+    productContext.productEvents,
+    shopPubkey,
+  ]);
+
+  // While the product feed is still loading we can't tell "missing" from
+  // "not synced yet", so show a spinner instead of flashing the normal landing.
+  const landingProductResolving =
+    landingProductActive && productContext.isLoading && !landingProductMatch;
 
   const merchantReviewData = reviewsContext.merchantReviewsData.get(shopPubkey);
   const reviewCount = merchantReviewData
@@ -1012,6 +1049,21 @@ export default function StorefrontLayout({
           <div className="pt-14">
             <StorefrontPolicyPage policy={policyPageData} colors={colors} />
           </div>
+        ) : !currentPage &&
+          landingProductActive &&
+          (landingProductMatch || landingProductResolving) ? (
+          landingProductMatch ? (
+            <ProductListingView
+              productData={landingProductMatch.productData}
+              rawEvent={landingProductMatch.rawEvent}
+              isZapsnag={false}
+              topPaddingClass="pt-14"
+            />
+          ) : (
+            <div className="flex min-h-[60vh] items-center justify-center pt-14">
+              <MilkMarketSpinner />
+            </div>
+          )
         ) : (
           <>
             {!currentPage && landingStyle !== "hero" && (
