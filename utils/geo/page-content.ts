@@ -97,6 +97,8 @@ How to start selling local food and goods on Milk Market.
 8. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders.
 9. **Grow your business** — update listings, build relationships, share your story, and expand reach.
 
+If you connect a Stripe account, you can also turn on automatic US sales tax (free) — Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.
+
 Start at the [marketplace](${SITE}/marketplace) or read the [FAQ](${SITE}/faq).`,
   },
   "/terms": {

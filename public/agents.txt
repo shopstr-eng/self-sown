@@ -33,7 +33,7 @@ Auth: Bearer API key (prefix "sk_"), three scopes: read, read_write, full_access
 Allow: browse and search product listings
 Allow: read seller profiles, reviews, and payment methods
 Allow: place orders and check order status (read_write key required)
-Allow: manage your own listings, profile, and shop (full_access key required)
+Allow: manage your own listings, profile, and stall (full_access key required)
 Allow: content negotiation via Accept: text/markdown | application/json | text/plain
 
 # --- Disallowed --------------------------------------------------------------
