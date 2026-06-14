@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { sendInquiryNotification } from "@/utils/email/email-service";
+import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import {
   getSellerNotificationEmail,
   getUserAuthEmail,
@@ -56,6 +57,10 @@ export default async function handler(
       // Inquiries land in the seller's inbox — brand with their stall so the
       // email matches the storefront the buyer engaged with.
       const branding = await loadStorefrontBranding(recipientPubkey);
+      // Inquiries land in the seller's inbox; send from their own authenticated
+      // domain when valid (fail-closed null otherwise) so it matches the
+      // storefront. sendEmail falls back to the global verified sender.
+      const sellerFromEmail = await resolveSellerSenderEmail(recipientPubkey);
       const sent = await sendInquiryNotification(
         recipientEmail,
         {
@@ -64,7 +69,8 @@ export default async function handler(
           senderHasEmail: !!senderEmail,
           senderEmail: senderEmail || undefined,
         },
-        branding
+        branding,
+        sellerFromEmail || undefined
       );
       if (sent) emailsSent++;
     }

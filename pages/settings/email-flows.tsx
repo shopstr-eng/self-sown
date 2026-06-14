@@ -561,6 +561,10 @@ const EmailFlowsPage = () => {
 
   const handleSendTest = async (step: FlowStep, stepKey: string) => {
     if (!editingFlow) return;
+    if (!signer) {
+      setError("Please sign in to send a test email.");
+      return;
+    }
     const targetEmail = (testEmailByStep[stepKey] || "").trim();
     if (!targetEmail) {
       setError("Enter an email address to send the test to.");
@@ -573,17 +577,31 @@ const EmailFlowsPage = () => {
     setSendingTestForStep(stepKey);
     setError(null);
     try {
+      const url = `${window.location.origin}/api/email/flows/${editingFlow.id}/send-test`;
+      // Serialize the body once and sign that exact string as the NIP-98 payload,
+      // then send the same string — the server hashes req.body and requires the
+      // payload tag to match (mirrors handleSendToContacts).
+      const body = JSON.stringify({
+        seller_pubkey: pubkey,
+        target_email: targetEmail,
+        subject: step.subject,
+        body_html: step.body_html,
+        shop_name: editFromName.trim() || previewShopName,
+        storefront_style: previewStorefrontStyle,
+      });
+      const authHeader = await createNip98AuthorizationHeader(
+        signer,
+        url,
+        "POST",
+        body
+      );
       const res = await fetch(`/api/email/flows/${editingFlow.id}/send-test`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          seller_pubkey: pubkey,
-          target_email: targetEmail,
-          subject: step.subject,
-          body_html: step.body_html,
-          shop_name: editFromName.trim() || previewShopName,
-          storefront_style: previewStorefrontStyle,
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body,
       });
       const data = await res.json();
       if (res.ok && data.success) {

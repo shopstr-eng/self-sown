@@ -7,8 +7,13 @@ import {
 } from "@/utils/email/email-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
+import { getSubscriptionByStripeId } from "@/utils/db/db-service";
+import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60 * 1000 };
+
+const normalizeEmail = (value: unknown): string =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,6 +33,42 @@ export default async function handler(
 
   try {
     const branding = await loadStorefrontBranding(sellerPubkey);
+
+    // Resolve the seller's custom DKIM-authenticated from-address ONLY when this
+    // request is provably tied to a genuine subscription owned by that seller.
+    // This endpoint is unauthenticated with buyer-initiated callers, and the
+    // recipient is supplied in the request body — so we cannot trust the body
+    // sellerPubkey/recipient alone. Subscriptions are server-authoritative
+    // records (created by the verified Stripe flow), so we look the subscription
+    // up by its Stripe id and require BOTH the seller pubkey AND the recipient
+    // email to match the stored record. A forged sellerPubkey or an
+    // attacker-chosen recipient fails this check and falls back to the global
+    // verified sender, so a seller's domain can never be spoofed. Delivery is
+    // unaffected either way (sendEmail also retries the global sender on a 403).
+    let sellerFromEmail: string | undefined;
+    try {
+      const subscriptionId =
+        typeof params.subscriptionId === "string" ? params.subscriptionId : "";
+      if (subscriptionId && sellerPubkey) {
+        const subscription = await getSubscriptionByStripeId(subscriptionId);
+        if (
+          subscription &&
+          subscription.seller_pubkey === sellerPubkey &&
+          normalizeEmail(subscription.buyer_email) ===
+            normalizeEmail(buyerEmail)
+        ) {
+          sellerFromEmail =
+            (await resolveSellerSenderEmail(sellerPubkey)) || undefined;
+        }
+      }
+    } catch (err) {
+      console.error(
+        "Failed to resolve seller sender email for subscription; using global sender:",
+        err
+      );
+      sellerFromEmail = undefined;
+    }
+
     let emailSent = false;
 
     switch (type) {
@@ -53,7 +94,8 @@ export default async function handler(
             orderId: params.orderId,
             subscriptionId: params.subscriptionId,
           },
-          branding
+          branding,
+          sellerFromEmail
         );
         break;
 
@@ -78,7 +120,8 @@ export default async function handler(
             shippingAddress: params.shippingAddress,
             subscriptionId: params.subscriptionId,
           },
-          branding
+          branding,
+          sellerFromEmail
         );
         break;
 
@@ -97,7 +140,8 @@ export default async function handler(
             buyerName: params.buyerName,
             subscriptionId: params.subscriptionId,
           },
-          branding
+          branding,
+          sellerFromEmail
         );
         break;
 
@@ -116,7 +160,8 @@ export default async function handler(
             endDate: params.endDate,
             subscriptionId: params.subscriptionId,
           },
-          branding
+          branding,
+          sellerFromEmail
         );
         break;
 

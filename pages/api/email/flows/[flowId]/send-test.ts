@@ -6,6 +6,8 @@ import {
   MergeTagData,
 } from "@/utils/email/flow-email-templates";
 import { sendEmail } from "@/utils/email/email-service";
+import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 const RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
@@ -30,8 +32,17 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid flow ID" });
   }
 
+  // Require a NIP-98 proof from the seller. This test sends from the seller's
+  // OWN SendGrid-authenticated domain (DKIM-aligned) to a caller-supplied
+  // address, so without proof of seller ownership an unauthenticated caller
+  // could emit spoofed mail from that domain to anyone. Mirrors the sibling
+  // send-to-contacts endpoint, which is NIP-98 authed for the same reason.
+  const authResult = await verifyNip98Request(req, "POST");
+  if (!authResult.ok) {
+    return res.status(401).json({ error: authResult.error });
+  }
+
   const {
-    seller_pubkey,
     target_email,
     subject,
     body_html,
@@ -39,7 +50,6 @@ export default async function handler(
     shop_url,
     storefront_style,
   } = req.body as {
-    seller_pubkey?: string;
     target_email?: string;
     subject?: string;
     body_html?: string;
@@ -48,9 +58,6 @@ export default async function handler(
     storefront_style?: FlowEmailStorefrontStyle | null;
   };
 
-  if (!seller_pubkey) {
-    return res.status(400).json({ error: "seller_pubkey is required" });
-  }
   if (!target_email || !isValidEmail(target_email)) {
     return res.status(400).json({ error: "A valid target_email is required" });
   }
@@ -65,7 +72,7 @@ export default async function handler(
     if (!flow) {
       return res.status(404).json({ error: "Flow not found" });
     }
-    if (flow.seller_pubkey !== seller_pubkey) {
+    if (flow.seller_pubkey !== authResult.pubkey) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
@@ -89,7 +96,22 @@ export default async function handler(
     const testSubject = `[TEST] ${rendered_subject}`;
     const replyTo = flow.reply_to || undefined;
 
-    const ok = await sendEmail(target_email, testSubject, html, replyTo);
+    // The seller is now authenticated and proven to own this flow, so it is safe
+    // to send the test from their own authenticated domain when valid — the
+    // preview then matches what real recipients will see. resolveSellerSenderEmail
+    // is fail-closed (null unless valid) and sendEmail falls back to the global
+    // verified sender, so the test can never fail to send.
+    const sellerFromEmail = await resolveSellerSenderEmail(authResult.pubkey);
+
+    const ok = await sendEmail(
+      target_email,
+      testSubject,
+      html,
+      replyTo,
+      undefined,
+      undefined,
+      sellerFromEmail || undefined
+    );
     if (!ok) {
       return res
         .status(500)

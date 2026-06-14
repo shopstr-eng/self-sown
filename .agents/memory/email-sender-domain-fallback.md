@@ -31,10 +31,24 @@ transactional/flow mail.
 
 **How to apply:**
 
-- Only order-confirmation/new-order + flow emails (`send-order-email.ts`,
-  `flows/process.ts`) thread the custom from-address. Recovery/admin/affiliate/pro/
-  order-update/subscription emails intentionally stay on the global sender — do not add the
-  custom sender to them without re-checking the fallback path.
+- **Spoofing rule (the durable one): only attach a custom seller from-address when EITHER the
+  request is authenticated as that seller (resolve from the authed pubkey, NEVER a body field)
+  OR the recipient is the seller's own server-resolved address. Otherwise use the global
+  sender.** A seller's domain is DKIM-authenticated, so sending from it on a public /
+  body-supplied-recipient path lets anyone emit domain-aligned spoofed mail to arbitrary
+  addresses — a phishing escalation, not just an open relay.
+- Custom-from IS used on: order-confirmation/new-order (`send-order-email.ts`), flow emails +
+  one-time sends (`flows/process.ts`), flow test sends (`flows/[flowId]/send-test.ts`,
+  NIP-98-authed → resolve from authed pubkey) and order/shipping updates
+  (`send-update-email.ts`, NIP-98-authed → authed pubkey); plus product inquiries
+  (`send-inquiry-email.ts`) and return/refund requests (`send-return-request-email.ts`) whose
+  recipient is the seller's OWN notification email (can't be redirected to a third party).
+- Custom-from is DELIBERATELY NOT used on subscription lifecycle (`send-subscription-email.ts`,
+  unauthenticated + has buyer-initiated callers + body recipient) or the storefront popup
+  welcome (`storefront/popup-capture.ts`, public buyer-facing + body recipient) — they stay on
+  the global sender. Platform→user emails (recovery/admin/affiliate/pro-receipt/contact-form,
+  systemic Stripe payment-failure in `stripe/webhook.ts`) also stay global. Don't add custom-from
+  to any of these without first satisfying the spoofing rule above.
 - Any NEW caller that passes a custom from-address MUST go through `sendEmail()`'s
   retry-on-403 path; never call the raw SendGrid send with a seller address and no global
   fallback.

@@ -157,7 +157,8 @@ export async function sendOrderUpdateToBuyer(
     carrier?: string;
     estimatedDelivery?: string;
   },
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = orderUpdateEmail(params, branding);
   return sendEmail(
@@ -166,14 +167,16 @@ export async function sendOrderUpdateToBuyer(
     html,
     undefined,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
 export async function sendSubscriptionConfirmation(
   buyerEmail: string,
   params: SubscriptionEmailParams,
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = subscriptionConfirmationEmail(params, branding);
   return sendEmail(
@@ -182,14 +185,16 @@ export async function sendSubscriptionConfirmation(
     html,
     undefined,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
 export async function sendRenewalReminder(
   buyerEmail: string,
   params: SubscriptionEmailParams,
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = renewalReminderEmail(params, branding);
   return sendEmail(
@@ -198,7 +203,8 @@ export async function sendRenewalReminder(
     html,
     undefined,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
@@ -210,7 +216,8 @@ export async function sendAddressChangeConfirmation(
     buyerName?: string;
     subscriptionId?: string;
   },
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = addressChangeConfirmationEmail(params, branding);
   return sendEmail(
@@ -219,7 +226,8 @@ export async function sendAddressChangeConfirmation(
     html,
     undefined,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
@@ -231,7 +239,8 @@ export async function sendSubscriptionCancellation(
     endDate: string;
     subscriptionId?: string;
   },
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = subscriptionCancellationEmail(params, branding);
   return sendEmail(
@@ -240,7 +249,8 @@ export async function sendSubscriptionCancellation(
     html,
     undefined,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
@@ -252,7 +262,8 @@ export async function sendInquiryNotification(
     senderHasEmail: boolean;
     senderEmail?: string;
   },
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = inquiryNotificationEmail(
     {
@@ -268,7 +279,8 @@ export async function sendInquiryNotification(
     html,
     params.senderEmail,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 
@@ -289,7 +301,8 @@ export async function sendReturnRequestToSeller(
     message: string;
     buyerName?: string;
   },
-  branding?: StorefrontBranding | null
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
 ): Promise<boolean> {
   const { subject, html } = returnRequestEmail(params, branding);
   return sendEmail(
@@ -298,7 +311,8 @@ export async function sendReturnRequestToSeller(
     html,
     undefined,
     undefined,
-    branding?.shopName
+    branding?.shopName,
+    fromEmail
   );
 }
 

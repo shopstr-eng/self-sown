@@ -5,7 +5,7 @@ import {
   getPopupEmailCapture,
   getPopupEmailCaptureByPhone,
 } from "@/utils/db/db-service";
-import { getUncachableSendGridClient } from "@/utils/email/sendgrid-client";
+import { sendEmail } from "@/utils/email/email-service";
 import { popupDiscountEmail } from "@/utils/email/email-templates";
 import { applyRateLimit } from "@/utils/rate-limit";
 
@@ -124,7 +124,11 @@ export default async function handler(
     );
 
     try {
-      const { client, fromEmail } = await getUncachableSendGridClient();
+      // The welcome offer is sent from the platform's global verified sender,
+      // NOT the seller's custom domain. This endpoint is public and buyer-driven
+      // (no seller proof) with a caller-supplied recipient, so sending from a
+      // seller's DKIM-authenticated domain here would let anyone emit spoofed
+      // mail from that domain to arbitrary addresses.
       const { subject, html } = popupDiscountEmail({
         discountCode,
         discountPercentage: pct,
@@ -132,12 +136,7 @@ export default async function handler(
         shippingDiscountType: shipType,
         shippingDiscountValue: shipType === "free" ? 0 : shipVal,
       });
-      await client.send({
-        to: email,
-        from: fromEmail,
-        subject,
-        html,
-      });
+      await sendEmail(email, subject, html);
     } catch (emailErr) {
       console.error("Failed to send popup discount email:", emailErr);
     }

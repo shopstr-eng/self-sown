@@ -13,12 +13,18 @@ import {
   getFlowEnrollments,
   getDbPool,
   recordEmailFlowConversion,
+  getStripeConnectAccount,
 } from "@/utils/db/db-service";
 import { deductStock } from "@/utils/db/inventory-service";
 import { resolveExplicitPaymentMethod } from "@/utils/messages/order-message-utils";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2025-09-30.clover",
+});
 
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
@@ -59,6 +65,7 @@ export default async function handler(
     donationAmount,
     donationPercentage,
     salesTax,
+    paymentIntentId,
   } = req.body;
 
   if (!orderId || !productTitle) {
@@ -135,12 +142,30 @@ export default async function handler(
         buyerPubkey || undefined,
         orderId
       );
+
+      // The buyer confirmation goes to a caller-supplied address, so it may only
+      // use the seller's own authenticated domain when a real CARD payment to
+      // this seller is verified with Stripe (and pinned to this recipient).
+      // Lightning/Cashu/manual orders carry no such server-side proof and always
+      // fall back to the global verified sender, so delivery is never broken.
+      let buyerConfirmationFromEmail: string | undefined;
+      if (sellerFromEmail) {
+        const cardPaymentVerified = await verifyCardPaymentForSeller({
+          paymentIntentId,
+          sellerPubkey,
+          buyerEmail,
+        });
+        if (cardPaymentVerified) {
+          buyerConfirmationFromEmail = sellerFromEmail;
+        }
+      }
+
       results.buyerEmailSent = await sendOrderConfirmationToBuyer(
         buyerEmail,
         { ...emailParams, sellerContact: sellerEmail || undefined },
         branding,
         sellerEmail || undefined,
-        sellerFromEmail || undefined
+        buyerConfirmationFromEmail
       );
     }
 
@@ -324,5 +349,81 @@ async function checkIsFirstOrderFromSeller(
     return true;
   } finally {
     if (client) client.release();
+  }
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+// Verify that `paymentIntentId` is a real, succeeded Stripe card payment that
+// genuinely belongs to `sellerPubkey` and was charged to `buyerEmail`. This is
+// the gate that lets a buyer's order confirmation send from the seller's own
+// authenticated domain without being spoofable: a single-seller order is a
+// direct charge that only resolves on the seller's connected account, and a
+// multi-merchant cart names the seller in its server-built `sellerSplits`
+// metadata — neither can be forged by a caller. The recipient is pinned to the
+// address Stripe holds on the charge so a genuine payment can't be replayed to
+// send a seller-branded email to someone else. Fail-closed: any uncertainty
+// returns false and the confirmation falls back to the global verified sender.
+async function verifyCardPaymentForSeller(params: {
+  paymentIntentId?: string;
+  sellerPubkey?: string;
+  buyerEmail?: string;
+}): Promise<boolean> {
+  const { paymentIntentId, sellerPubkey, buyerEmail } = params;
+  if (!paymentIntentId || !sellerPubkey || !buyerEmail) return false;
+  if (!process.env.STRIPE_SECRET_KEY) return false;
+
+  try {
+    let paymentIntent: Stripe.PaymentIntent | null = null;
+
+    // Strongest proof: single-seller orders are direct charges on the seller's
+    // OWN connected account, so the PaymentIntent only resolves there.
+    const connect = await getStripeConnectAccount(sellerPubkey);
+    if (connect?.stripe_account_id) {
+      try {
+        paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+          stripeAccount: connect.stripe_account_id,
+        });
+      } catch {
+        paymentIntent = null;
+      }
+    }
+
+    // Multi-merchant cart: the PaymentIntent lives on the platform account and
+    // names each participating seller (with a server-resolved connected
+    // account) in `sellerSplits`. The seller must be listed there.
+    if (!paymentIntent) {
+      const platformPi = await stripe.paymentIntents.retrieve(paymentIntentId);
+      const splitsRaw = platformPi.metadata?.sellerSplits;
+      if (splitsRaw) {
+        try {
+          const splits = JSON.parse(splitsRaw);
+          if (
+            Array.isArray(splits) &&
+            splits.some((s: { pubkey?: string }) => s?.pubkey === sellerPubkey)
+          ) {
+            paymentIntent = platformPi;
+          }
+        } catch {
+          // Malformed metadata -> treat as unverified.
+        }
+      }
+    }
+
+    if (!paymentIntent) return false;
+    if (paymentIntent.status !== "succeeded") return false;
+
+    const receiptEmail = paymentIntent.receipt_email;
+    if (!receiptEmail) return false;
+    if (normalizeEmail(receiptEmail) !== normalizeEmail(buyerEmail)) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Card payment verification failed:", error);
+    return false;
   }
 }

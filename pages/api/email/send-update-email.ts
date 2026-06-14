@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { sendOrderUpdateToBuyer } from "@/utils/email/email-service";
+import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import {
   getBuyerNotificationEmail,
   getOrderParticipants,
@@ -123,6 +124,9 @@ export default async function handler(
     // trust a body-supplied sellerPubkey here, or a caller could send mail
     // wearing another seller's branding.
     const branding = await loadStorefrontBranding(authResult.pubkey);
+    // Use the seller's own authenticated sending domain when valid (fail-closed
+    // null otherwise); sendEmail falls back to the global verified sender.
+    const sellerFromEmail = await resolveSellerSenderEmail(authResult.pubkey);
     const emailSent = await sendOrderUpdateToBuyer(
       buyerEmail,
       {
@@ -134,7 +138,8 @@ export default async function handler(
         carrier,
         estimatedDelivery,
       },
-      branding
+      branding,
+      sellerFromEmail || undefined
     );
 
     console.info("[send-update-email] send result emailSent=", emailSent);

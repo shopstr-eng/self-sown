@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { sendReturnRequestToSeller } from "@/utils/email/email-service";
+import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import {
   getSellerNotificationEmail,
   getUserAuthEmail,
@@ -50,6 +51,9 @@ export default async function handler(
     }
 
     const branding = await loadStorefrontBranding(sellerPubkey);
+    // Send from the seller's own authenticated domain when valid (fail-closed
+    // null otherwise); sendEmail falls back to the global verified sender.
+    const sellerFromEmail = await resolveSellerSenderEmail(sellerPubkey);
     const emailSent = await sendReturnRequestToSeller(
       sellerEmail,
       {
@@ -59,7 +63,8 @@ export default async function handler(
         message,
         buyerName,
       },
-      branding
+      branding,
+      sellerFromEmail || undefined
     );
 
     return res.status(200).json({ success: true, emailSent });

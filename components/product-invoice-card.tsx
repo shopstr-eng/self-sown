@@ -205,6 +205,7 @@ export default function ProductInvoiceCard({
     donationAmount?: number;
     donationPercentage?: number;
     salesTax?: number;
+    paymentIntentId?: string;
   } | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -277,6 +278,7 @@ export default function ProductInvoiceCard({
     productId?: string;
     quantity?: number;
     salesTax?: number;
+    paymentIntentId?: string;
   }) => {
     try {
       const res = await fetch("/api/email/send-order-email", {
@@ -310,6 +312,7 @@ export default function ProductInvoiceCard({
               : undefined,
           quantity: params.quantity,
           salesTax: params.salesTax,
+          paymentIntentId: params.paymentIntentId,
         }),
       });
       if (!res.ok) {
@@ -3691,6 +3694,13 @@ export default function ProductInvoiceCard({
     // Attach collected sales tax as its own order email line (Stripe only).
     if (pendingOrderEmailRef.current && salesTaxNative > 0) {
       pendingOrderEmailRef.current.salesTax = salesTaxNative;
+    }
+
+    // Pin the verified Stripe payment to the order email so the buyer
+    // confirmation can use the seller's authenticated domain (card-only; the
+    // server re-verifies this payment before trusting it).
+    if (pendingOrderEmailRef.current) {
+      pendingOrderEmailRef.current.paymentIntentId = paymentIntentId;
     }
 
     flushPendingOrderEmail();

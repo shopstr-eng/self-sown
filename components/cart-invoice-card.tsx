@@ -415,6 +415,7 @@ export default function CartInvoiceCard({
     donationAmount?: number;
     donationPercentage?: number;
     salesTax?: number;
+    paymentIntentId?: string;
   }> | null>(null);
 
   const [buyerEmail, setBuyerEmail] = useState("");
@@ -490,6 +491,7 @@ export default function CartInvoiceCard({
     donationAmount?: number;
     donationPercentage?: number;
     salesTax?: number;
+    paymentIntentId?: string;
   }) => {
     try {
       const shouldIncludeBuyer = params.includeBuyerEmail !== false;
@@ -523,6 +525,7 @@ export default function CartInvoiceCard({
           donationAmount: params.donationAmount,
           donationPercentage: params.donationPercentage,
           salesTax: params.salesTax,
+          paymentIntentId: params.paymentIntentId,
         }),
       });
       if (!res.ok) {
@@ -2973,6 +2976,9 @@ export default function CartInvoiceCard({
     if (pendingOrderEmailRef.current) {
       pendingOrderEmailRef.current.forEach((entry) => {
         if (!entry.orderId) entry.orderId = orderId;
+        // Pin the verified Stripe payment so the buyer confirmation can use the
+        // seller's authenticated domain (card-only; the server re-verifies it).
+        entry.paymentIntentId = paymentIntentId;
       });
       // Sales tax is order-level; attribute it to the first email entry only so
       // multi-product carts don't repeat the line. Single-seller Stripe only.
