@@ -6,6 +6,7 @@ import {
   MergeTagData,
 } from "@/utils/email/flow-email-templates";
 import { sendEmail } from "@/utils/email/email-service";
+import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
@@ -86,11 +87,22 @@ export default async function handler(
       shop_url: shop_url || `${baseUrl}/${flow.seller_pubkey}`,
     };
 
+    // Apply the seller's stall styling by default so the test matches what real
+    // recipients receive (which process.ts styles from the saved storefront).
+    // The dashboard may pass a live preview style reflecting unsaved color edits;
+    // honor that when present, otherwise fall back to the seller's saved branding.
+    let effectiveStyle: FlowEmailStorefrontStyle | undefined =
+      storefront_style || undefined;
+    if (!effectiveStyle) {
+      const branding = await loadStorefrontBranding(authResult.pubkey);
+      effectiveStyle = branding?.style;
+    }
+
     const { subject: rendered_subject, html } = renderFlowEmail(
       subject,
       body_html,
       mergeData,
-      storefront_style || undefined
+      effectiveStyle
     );
 
     const testSubject = `[TEST] ${rendered_subject}`;

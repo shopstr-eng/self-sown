@@ -48,3 +48,4 @@
 - [Trackable email-flow CTA links](trackable-email-flow-links.md) — rewrite links AFTER render (decode/re-escape entities) only on real send path; redirect 302s only to the HMAC-signed dest, never query input.
 - [Storefront product-as-landing reuse](storefront-product-landing.md) — serving a product at the stall/domain root must reuse ProductListingView + eventToProductOgMeta (no second copy); gate is render-layer fail-closed via basicStorefront().
 - [Stripe receipt_email ≠ recipient ownership](stripe-receipt-email-not-ownership.md) — card-verified custom-from order confirmations block free spoofing but a paying attacker can still target one chosen recipient per charge; receipt_email is caller-supplied.
+- [Flow email render entry points](flow-email-render-entry-points.md) — flow + one-time emails render in process.ts (styled by default); test sends render separately in send-test.ts, so any flow-email change must touch BOTH paths.
