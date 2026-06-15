@@ -146,6 +146,9 @@ export interface StorefrontSection {
   ctaText?: string;
   ctaLink?: string;
   overlayOpacity?: number;
+  headingColor?: string;
+  subheadingColor?: string;
+  textOutlineColor?: string;
   items?: StorefrontFaqItem[];
   testimonials?: StorefrontTestimonial[];
   ingredientItems?: StorefrontIngredientItem[];

@@ -3018,6 +3018,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                   }}
                                   variant="bordered"
                                   fullWidth
+                                  className="flex-1"
                                   placeholder="Defaults to your banner/profile image"
                                   value={seoMeta.ogImage || ""}
                                   onChange={(e) =>
@@ -3027,6 +3028,16 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     })
                                   }
                                 />
+                                <FileUploaderButton
+                                  className="rounded-lg border-3 border-black bg-white px-3 py-2 text-xs font-bold text-black"
+                                  imgCallbackOnUpload={(url) => {
+                                    if (url && url.length > 0) {
+                                      setSeoMeta({ ...seoMeta, ogImage: url });
+                                    }
+                                  }}
+                                >
+                                  Upload
+                                </FileUploaderButton>
                               </div>
                               <p className="mt-1 text-xs text-gray-400">
                                 The image shown when your shop is shared on

@@ -791,6 +791,27 @@ export default function ProductForm({
     });
   };
 
+  // Replace the image at a specific carousel position. Returns a callback for
+  // FileUploaderButton; the first uploaded URL swaps the targeted slot and any
+  // extra files (multi-select) are appended after it.
+  const replaceImage = (index: number) => {
+    let replaced = false;
+    return (imgUrl: string) => {
+      if (!imgUrl || imgUrl.length === 0) return;
+      setImageError(null);
+      setImages((prevValues) => {
+        const updatedImages = [...prevValues];
+        if (!replaced && index >= 0 && index < updatedImages.length) {
+          updatedImages[index] = imgUrl;
+          replaced = true;
+        } else {
+          updatedImages.push(imgUrl);
+        }
+        return updatedImages;
+      });
+    };
+  };
+
   const currencyOptions = Object.keys(currencySelection).map((code) => ({
     value: code,
   }));
@@ -938,7 +959,19 @@ export default function ProductForm({
                         className="relative flex h-full w-full items-center justify-center p-4"
                         onClick={(e) => e.preventDefault()}
                       >
-                        <div className="absolute top-4 right-4 z-20">
+                        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+                          <Tooltip
+                            content="Replace this image"
+                            placement="bottom"
+                          >
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <FileUploaderButton
+                                isIconOnly
+                                imgCallbackOnUpload={replaceImage(index)}
+                                className="!h-10 !w-10 !min-w-10 !rounded-full !p-0"
+                              />
+                            </div>
+                          </Tooltip>
                           <ConfirmActionDropdown
                             helpText="Are you sure you want to delete this image?"
                             buttonLabel="Delete Image"

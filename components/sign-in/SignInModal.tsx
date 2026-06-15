@@ -34,11 +34,15 @@ export default function SignInModal({
   onClose,
   sellerFlow,
   sellerBranding,
+  sellerFontHeading,
+  sellerFontBody,
 }: {
   isOpen: boolean;
   onClose: () => void;
   sellerFlow?: boolean;
   sellerBranding?: { shopName?: string | null; logoUrl?: string | null };
+  sellerFontHeading?: string;
+  sellerFontBody?: string;
 }) {
   // When the modal is shown on a seller's custom domain / stall, present the
   // seller's shop name + logo instead of the Milk Market branding. Falls back
@@ -51,6 +55,16 @@ export default function SignInModal({
   // selection step and send them straight to the buyer profile step. On the main
   // marketplace, keep the normal role selection (honoring sellerFlow).
   const isCustomStall = !!sellerBranding;
+  // On a custom stall, mirror the storefront's typography (like the contact
+  // capture popup) so the sign-in / sign-up steps feel native to the shop.
+  const bodyFontStyle =
+    isCustomStall && sellerFontBody
+      ? { fontFamily: sellerFontBody }
+      : undefined;
+  const headingFontStyle =
+    isCustomStall && sellerFontHeading
+      ? { fontFamily: sellerFontHeading }
+      : undefined;
   const signUpRedirect = isCustomStall
     ? "/onboarding/market-profile?type=buyer"
     : sellerFlow
@@ -460,7 +474,10 @@ export default function SignInModal({
         size="2xl"
       >
         <ModalContent>
-          <ModalBody className="flex flex-col overflow-hidden text-black">
+          <ModalBody
+            className="flex flex-col overflow-hidden text-black"
+            style={bodyFontStyle}
+          >
             {!showSignInOptions && !showSignUpOptions ? (
               // Initial landing view - Your neobrutalist styled version
               <div className="flex flex-col items-center justify-center space-y-6 py-8">
@@ -472,7 +489,10 @@ export default function SignInModal({
                     src={brandLogo}
                     width={80}
                   />
-                  <h1 className="ml-3 text-4xl font-bold text-black">
+                  <h1
+                    className="ml-3 text-4xl font-bold text-black"
+                    style={headingFontStyle}
+                  >
                     {brandName}
                   </h1>
                 </div>
@@ -523,7 +543,12 @@ export default function SignInModal({
                       src={brandLogo}
                       width={50}
                     />
-                    <div className="text-2xl font-bold text-black">Sign Up</div>
+                    <div
+                      className="text-2xl font-bold text-black"
+                      style={headingFontStyle}
+                    >
+                      Sign Up
+                    </div>
                   </div>
 
                   {/* Email Sign-up */}
@@ -841,7 +866,10 @@ export default function SignInModal({
                       src={brandLogo}
                       width={50}
                     />
-                    <div className="text-2xl font-bold text-black">
+                    <div
+                      className="text-2xl font-bold text-black"
+                      style={headingFontStyle}
+                    >
                       {brandName}
                     </div>
                   </div>
@@ -1095,7 +1123,10 @@ export default function SignInModal({
                       src={brandLogo}
                       width={50}
                     />
-                    <div className="text-2xl font-bold text-black">
+                    <div
+                      className="text-2xl font-bold text-black"
+                      style={headingFontStyle}
+                    >
                       {isEmailSignUp ? "Sign Up" : "Sign In"} with Email
                     </div>
                   </div>

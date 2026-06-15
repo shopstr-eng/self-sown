@@ -363,6 +363,15 @@ function normalizeStorefrontConfig(
           ...(typeof section.overlayOpacity === "number"
             ? { overlayOpacity: section.overlayOpacity }
             : {}),
+          ...(typeof section.headingColor === "string"
+            ? { headingColor: section.headingColor }
+            : {}),
+          ...(typeof section.subheadingColor === "string"
+            ? { subheadingColor: section.subheadingColor }
+            : {}),
+          ...(typeof section.textOutlineColor === "string"
+            ? { textOutlineColor: section.textOutlineColor }
+            : {}),
           ...(Array.isArray(section.items) ? { items: section.items } : {}),
           ...(Array.isArray(section.testimonials)
             ? { testimonials: section.testimonials }

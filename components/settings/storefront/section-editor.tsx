@@ -323,6 +323,106 @@ export default function SectionEditor({
                   className="w-full"
                 />
               </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Heading Text Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Heading text color"
+                    value={section.headingColor || "#ffffff"}
+                    onChange={(e) => update({ headingColor: e.target.value })}
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.headingColor || ""}
+                    onChange={(e) =>
+                      update({ headingColor: e.target.value || undefined })
+                    }
+                    placeholder="Default (theme background)"
+                  />
+                  {section.headingColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ headingColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Subheading Text Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Subheading text color"
+                    value={section.subheadingColor || "#ffffff"}
+                    onChange={(e) =>
+                      update({ subheadingColor: e.target.value })
+                    }
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.subheadingColor || ""}
+                    onChange={(e) =>
+                      update({ subheadingColor: e.target.value || undefined })
+                    }
+                    placeholder="Default (theme background)"
+                  />
+                  {section.subheadingColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ subheadingColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Text Outline Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Text outline color"
+                    value={section.textOutlineColor || "#000000"}
+                    onChange={(e) =>
+                      update({ textOutlineColor: e.target.value })
+                    }
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.textOutlineColor || ""}
+                    onChange={(e) =>
+                      update({ textOutlineColor: e.target.value || undefined })
+                    }
+                    placeholder="None (no outline)"
+                  />
+                  {section.textOutlineColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ textOutlineColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
             </>
           )}
 

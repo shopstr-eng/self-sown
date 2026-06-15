@@ -587,6 +587,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               .number()
               .optional()
               .describe("Hero overlay opacity 0-1"),
+            headingColor: z
+              .string()
+              .optional()
+              .describe("Hero overlay heading text color (hex)"),
+            subheadingColor: z
+              .string()
+              .optional()
+              .describe("Hero overlay subheading text color (hex)"),
+            textOutlineColor: z
+              .string()
+              .optional()
+              .describe("Hero overlay text outline color (hex)"),
             items: z
               .array(z.object({ question: z.string(), answer: z.string() }))
               .optional()

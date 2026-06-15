@@ -10,6 +10,18 @@ interface SectionHeroProps {
   shopPicture?: string;
 }
 
+// Only let recognizable CSS color tokens (hex / rgb(a) / hsl(a) / named) flow
+// into inline styles. Seller-supplied colors come from a native color picker but
+// the field also accepts free text and MCP input, so a malformed value falls
+// back to the theme default instead of producing broken CSS.
+const CSS_COLOR_RE =
+  /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/]+\)|[a-z]+)$/i;
+
+const safeColor = (value?: string): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed && CSS_COLOR_RE.test(trimmed) ? trimmed : undefined;
+};
+
 export default function SectionHero({
   section,
   colors,
@@ -17,6 +29,20 @@ export default function SectionHero({
   shopPicture,
 }: SectionHeroProps) {
   const overlayOpacity = section.overlayOpacity ?? 0.6;
+  const headingColor = safeColor(section.headingColor) || colors.background;
+  const subheadingColor =
+    safeColor(section.subheadingColor) || colors.background + "CC";
+  const outlineColor = safeColor(section.textOutlineColor);
+  const headingOutlineStyle = outlineColor
+    ? {
+        textShadow: `-2px -2px 0 ${outlineColor}, 2px -2px 0 ${outlineColor}, -2px 2px 0 ${outlineColor}, 2px 2px 0 ${outlineColor}, 0 0 3px ${outlineColor}`,
+      }
+    : {};
+  const subheadingOutlineStyle = outlineColor
+    ? {
+        textShadow: `-1px -1px 0 ${outlineColor}, 1px -1px 0 ${outlineColor}, -1px 1px 0 ${outlineColor}, 1px 1px 0 ${outlineColor}`,
+      }
+    : {};
 
   return (
     <div
@@ -31,6 +57,8 @@ export default function SectionHero({
             className="h-full w-full object-cover"
             style={{ opacity: 1 - overlayOpacity }}
             fetchPriority="high"
+            loading="eager"
+            decoding="async"
           />
           <div
             className="absolute inset-0"
@@ -60,7 +88,7 @@ export default function SectionHero({
           text={section.heading || shopName}
           as="h1"
           className="font-heading text-4xl font-bold md:text-5xl"
-          style={{ color: colors.background }}
+          style={{ color: headingColor, ...headingOutlineStyle }}
         />
 
         {section.subheading && (
@@ -68,7 +96,7 @@ export default function SectionHero({
             text={section.subheading}
             as="p"
             className="font-body mt-4 max-w-xl text-lg"
-            style={{ color: colors.background + "CC" }}
+            style={{ color: subheadingColor, ...subheadingOutlineStyle }}
           />
         )}
 

@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState, useMemo } from "react";
 import Head from "next/head";
+import { sanitizeUrl } from "@braintree/sanitize-url";
 import { useRouter } from "next/router";
 import { useDisclosure } from "@heroui/react";
 import {
@@ -221,6 +222,18 @@ function StorefrontThemeWrapperInner({
     return `https://fonts.googleapis.com/css2?${families}&display=swap`;
   }, [fontHeading, fontBody, customFontHeadingUrl, customFontBodyUrl]);
 
+  // Preload the hero banner image as soon as the storefront config is known so
+  // it paints together with the rest of the hero instead of popping in late
+  // under the overlay.
+  const heroImageUrl = useMemo(() => {
+    const heroSection = (storefront?.sections || []).find(
+      (s) => s.type === "hero" && s.enabled !== false && s.image
+    );
+    if (!heroSection?.image) return "";
+    const safe = sanitizeUrl(heroSection.image);
+    return safe && safe !== "about:blank" ? safe : "";
+  }, [storefront]);
+
   const getFontFormat = (url: string): string => {
     if (url.includes(".woff2")) return "woff2";
     if (url.includes(".woff")) return "woff";
@@ -404,6 +417,14 @@ function StorefrontThemeWrapperInner({
     <StorefrontChromeProvider>
       <StorefrontBrandingProvider value={{ shopName, logoUrl: pictureUrl }}>
         <Head>
+          {heroImageUrl && (
+            <link
+              rel="preload"
+              as="image"
+              href={heroImageUrl}
+              fetchPriority="high"
+            />
+          )}
           {googleFontsUrl && (
             <>
               <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -587,6 +608,8 @@ function StorefrontThemeWrapperInner({
           isOpen={isOpen}
           onClose={onClose}
           sellerBranding={{ shopName, logoUrl: pictureUrl }}
+          sellerFontHeading={resolvedHeadingFont}
+          sellerFontBody={resolvedBodyFont}
         />
       </StorefrontBrandingProvider>
     </StorefrontChromeProvider>
