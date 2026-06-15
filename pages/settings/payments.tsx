@@ -16,7 +16,6 @@ import {
   ArrowTopRightOnSquareIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  PencilSquareIcon,
   ReceiptPercentIcon,
   PlusIcon,
   TrashIcon,
@@ -175,7 +174,7 @@ const PaymentsSettingsPage = () => {
         if (data?.fallback === "update" && mode === "dashboard") {
           setError(
             data.error ||
-              "Stripe dashboard isn't available yet. Use 'Update Account Info' to finish onboarding."
+              "Stripe dashboard isn't available yet. Please finish onboarding first."
           );
         } else {
           throw new Error(data?.error || "Failed to open Stripe");
@@ -387,55 +386,58 @@ const PaymentsSettingsPage = () => {
                   {!status.onboardingComplete && (
                     <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-sm text-black">
                       Your Stripe onboarding isn&apos;t finished yet. Use
-                      &quot;Update Account Info&quot; below to complete the
+                      &quot;Finish Stripe Setup&quot; below to complete the
                       remaining steps. Once onboarding is complete, you&apos;ll
                       be able to open the full Stripe Express dashboard.
                     </div>
                   )}
 
                   <div className="space-y-3">
-                    <div>
-                      <p className="font-bold text-black">
-                        Stripe Express Dashboard
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        Manage payouts, connected bank accounts, accepted
-                        payment methods, business profile, tax forms, and view
-                        your transaction history on Stripe.
-                      </p>
-                      <Button
-                        className={`${BLUEBUTTONCLASSNAMES} mt-2`}
-                        startContent={
-                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                        }
-                        isLoading={actionLoading === "dashboard"}
-                        isDisabled={!status.chargesEnabled}
-                        onClick={() => openManageLink("dashboard")}
-                      >
-                        Open Stripe Dashboard
-                      </Button>
-                    </div>
-
-                    <div>
-                      <p className="font-bold text-black">
-                        Update Account Info
-                      </p>
-                      <p className="text-sm text-gray-700">
-                        Update verification details, business owners, address,
-                        or any information Stripe is requesting. Use this if
-                        Stripe has flagged your account for additional
-                        information or you need to fix the data you originally
-                        submitted.
-                      </p>
-                      <Button
-                        className={`${WHITEBUTTONCLASSNAMES} mt-2`}
-                        startContent={<PencilSquareIcon className="h-4 w-4" />}
-                        isLoading={actionLoading === "update"}
-                        onClick={() => openManageLink("update")}
-                      >
-                        Update Account Info
-                      </Button>
-                    </div>
+                    {status.onboardingComplete ? (
+                      <div>
+                        <p className="font-bold text-black">
+                          Stripe Express Dashboard
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Manage payouts, connected bank accounts, accepted
+                          payment methods, business profile, tax forms, and view
+                          your transaction history on Stripe.
+                        </p>
+                        <Button
+                          className={`${BLUEBUTTONCLASSNAMES} mt-2`}
+                          startContent={
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                          }
+                          isLoading={actionLoading === "dashboard"}
+                          isDisabled={!status.chargesEnabled}
+                          onClick={() => openManageLink("dashboard")}
+                        >
+                          Open Stripe Dashboard
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-bold text-black">
+                          Finish Stripe Setup
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          Finish setting up your Stripe account to start
+                          accepting card payments. You can complete verification
+                          details, business owners, address, and any other
+                          information Stripe still needs.
+                        </p>
+                        <Button
+                          className={`${BLUEBUTTONCLASSNAMES} mt-2`}
+                          startContent={
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                          }
+                          isLoading={actionLoading === "update"}
+                          onClick={() => openManageLink("update")}
+                        >
+                          Finish Stripe Setup
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {status.chargesEnabled && (
