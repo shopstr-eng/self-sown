@@ -93,22 +93,27 @@ const ProducerGuidePage = () => {
     },
     {
       id: "step-6",
-      label: "Step 6: Email Flows",
+      label: "Step 6: Self-Host",
       threads: [],
     },
     {
       id: "step-7",
-      label: "Step 7: AI Agents (MCP)",
+      label: "Step 7: Email Flows",
       threads: [],
     },
     {
       id: "step-8",
-      label: "Step 8: Grow",
+      label: "Step 8: AI Agents (MCP)",
+      threads: [],
+    },
+    {
+      id: "step-9",
+      label: "Step 9: Grow",
       threads: [
-        { id: "step-8-1", label: "8.1 Update Listings" },
-        { id: "step-8-2", label: "8.2 Build Relationships" },
-        { id: "step-8-3", label: "8.3 Share Story" },
-        { id: "step-8-4", label: "8.4 Network Growth" },
+        { id: "step-9-1", label: "9.1 Update Listings" },
+        { id: "step-9-2", label: "9.2 Build Relationships" },
+        { id: "step-9-3", label: "9.3 Share Story" },
+        { id: "step-9-4", label: "9.4 Network Growth" },
       ],
     },
   ];
@@ -300,21 +305,27 @@ const ProducerGuidePage = () => {
                 },
                 {
                   "@type": "HowToStep",
+                  name: "Self-Host Your Store",
+                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server — with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
+                  url: "https://milk.market/producer-guide#step-6",
+                },
+                {
+                  "@type": "HowToStep",
                   name: "Set Up Email Flows",
                   text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop. Track opens, clicks, and conversions for every flow and one-time send.",
-                  url: "https://milk.market/producer-guide#step-6",
+                  url: "https://milk.market/producer-guide#step-7",
                 },
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
                   text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall — creating and updating listings, tracking inventory, and handling orders — and so agentic shopping tools can discover and purchase from your storefront automatically.",
-                  url: "https://milk.market/producer-guide#step-7",
+                  url: "https://milk.market/producer-guide#step-8",
                 },
                 {
                   "@type": "HowToStep",
                   name: "Grow Your Business",
                   text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Milk Market community to expand your reach.",
-                  url: "https://milk.market/producer-guide#step-8",
+                  url: "https://milk.market/producer-guide#step-9",
                 },
               ],
             }),
@@ -894,6 +905,45 @@ const ProducerGuidePage = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
+                      Self-Host Your Store
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Wrangler
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Want full control? On the Wrangler lifetime plan you can
+                      run your own copy of Milk Market on your own server.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>Run a single-vendor store that&apos;s just yours</li>
+                      <li>
+                        Take card payments through your own Stripe account, with
+                        no platform fees
+                      </li>
+                      <li>
+                        Drop the marketplace chrome so buyers only ever see your
+                        brand
+                      </li>
+                      <li>
+                        Export a ready-to-deploy setup bundle and host it
+                        yourself
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 7 */}
+              <div
+                id="step-7"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    7
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
                       Automate Your Email Flows
                       <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
                         Pro
@@ -929,14 +979,14 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 7 */}
+              {/* Step 8 */}
               <div
-                id="step-7"
+                id="step-8"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                    7
+                    8
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
@@ -973,15 +1023,15 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 8 */}
+              {/* Step 9 */}
               <div
-                id="step-8"
+                id="step-9"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
                     <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                      8
+                      9
                     </div>
                     <div className="flex-1">
                       <h3 className="mb-2 text-2xl font-bold text-white">
@@ -992,16 +1042,16 @@ const ProducerGuidePage = () => {
                         the Milk Market community.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                        <li id="step-8-1">
+                        <li id="step-9-1">
                           Regularly update your product listings
                         </li>
-                        <li id="step-8-2">
+                        <li id="step-9-2">
                           Engage with customers and build relationships
                         </li>
-                        <li id="step-8-3">
+                        <li id="step-9-3">
                           Share your story and growing practices
                         </li>
-                        <li id="step-8-4">Leverage the Milk Market network</li>
+                        <li id="step-9-4">Leverage the Milk Market network</li>
                       </ul>
                     </div>
                   </div>

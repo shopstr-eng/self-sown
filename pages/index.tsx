@@ -792,6 +792,12 @@ export default function StandaloneLanding() {
                     barn: false,
                   },
                   {
+                    feature: "Self-host your own store",
+                    mm: "Wrangler",
+                    shopify: false,
+                    barn: false,
+                  },
+                  {
                     feature: "Accepts Bitcoin, Lightning & cash natively",
                     mm: true,
                     shopify: false,
