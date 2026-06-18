@@ -104,12 +104,21 @@ function coerceStringList(value: unknown): string[] {
 // malformed file is treated as "no file config" rather than throwing, so a
 // typo can never crash the whole app on boot.
 function readFileConfig(): FileConfig {
+  // Only a self-host instance ships the optional milk-market.config.json. On the
+  // hosted platform MM_SELF_HOST is unset, so skip the disk read entirely — this
+  // matches the existing behavior (buildSelfHostConfig ignores the file when
+  // self-host is off) and means the hosted runtime never touches the filesystem.
+  if (!truthyEnv(process.env.MM_SELF_HOST)) return {};
   const candidate =
     process.env.MM_SELF_HOST_CONFIG_PATH?.trim() ||
     path.join(process.cwd(), "milk-market.config.json");
   try {
-    if (!fs.existsSync(candidate)) return {};
-    const raw = fs.readFileSync(candidate, "utf8");
+    // The `turbopackIgnore` hints stop Turbopack's Node File Tracer from
+    // conservatively bundling the WHOLE project into every API route that
+    // transitively imports this module (e.g. the Stripe payment route). The
+    // path is dynamic and resolved only at runtime on the seller's own server.
+    if (!fs.existsSync(/* turbopackIgnore: true */ candidate)) return {};
+    const raw = fs.readFileSync(/* turbopackIgnore: true */ candidate, "utf8");
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object") return parsed as FileConfig;
     return {};

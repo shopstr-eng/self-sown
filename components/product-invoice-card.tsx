@@ -44,6 +44,7 @@ import {
   STRIPE_MINIMUM_CHARGE_USD,
   ZERO_DECIMAL_CURRENCIES,
   isExchangeRateError,
+  ExchangeRateError,
   EXCHANGE_RATE_BUYER_MESSAGE,
   getSatoshiValueResilient,
   getFiatValueResilient,
@@ -260,6 +261,11 @@ export default function ProductInvoiceCard({
 
   const [formType, setFormType] = useState<"shipping" | "contact" | null>(null);
   const [convertedShippingCost, setConvertedShippingCost] = useState<number>(0);
+  // True when converting the seller's shipping cost into the product currency
+  // required an FX lookup that the rate feed could not provide, so
+  // `convertedShippingCost` fell back to 0. Fine for DISPLAY, but a card CHARGE
+  // must not silently drop shipping — see the guard in handleStripePayment.
+  const [shippingFxFailed, setShippingFxFailed] = useState<boolean>(false);
   const [showOrderTypeSelection, setShowOrderTypeSelection] = useState(true);
 
   const triggerOrderEmail = async (params: {
@@ -3478,6 +3484,14 @@ export default function ProductInvoiceCard({
         validatePaymentData(convertedPrice);
       }
 
+      // Fail closed: when shipping needs an FX conversion that the rate feed
+      // can't provide, `convertedShippingCost` falls back to 0. That's fine for
+      // display, but charging a card with shipping silently dropped would
+      // under-charge the seller — block and tell the buyer to retry instead.
+      if (formType === "shipping" && shippingFxFailed) {
+        throw new ExchangeRateError();
+      }
+
       const orderId = uuidv4();
 
       if (
@@ -4128,11 +4142,13 @@ export default function ProductInvoiceCard({
   useEffect(() => {
     if (formType !== "shipping") {
       if (convertedShippingCost !== 0) setConvertedShippingCost(0);
+      setShippingFxFailed(false);
       return;
     }
     const rawShipping = productData.shippingCost ?? 0;
     if (rawShipping === 0) {
       if (convertedShippingCost !== 0) setConvertedShippingCost(0);
+      setShippingFxFailed(false);
       return;
     }
     const productCur = (productData.currency || "").toUpperCase();
@@ -4145,9 +4161,15 @@ export default function ProductInvoiceCard({
       if (convertedShippingCost !== rawShipping) {
         setConvertedShippingCost(rawShipping);
       }
+      setShippingFxFailed(false);
       return;
     }
+    // Fail closed: a conversion is required here, so mark it "not ready" until
+    // the async FX resolves. A card submit during the pending window (e.g. a
+    // rate-feed outage that just started) is blocked instead of charging with
+    // shipping silently dropped to 0.
     let cancelled = false;
+    setShippingFxFailed(true);
     (async () => {
       try {
         let inProductCurrency: number | null;
@@ -4185,9 +4207,11 @@ export default function ProductInvoiceCard({
         }
         if (!cancelled) {
           // A persistent FX outage leaves the cost null; fall back to 0 rather
-          // than misrepresenting the total in the wrong unit.
+          // than misrepresenting the total in the wrong unit. Flag it so a CARD
+          // charge can be blocked (display tolerates the dropped shipping).
           const next = inProductCurrency ?? 0;
           setConvertedShippingCost((prev) => (prev === next ? prev : next));
+          setShippingFxFailed(inProductCurrency == null);
         }
       } catch (err) {
         console.error("Error converting product shipping cost:", err);
@@ -4195,6 +4219,7 @@ export default function ProductInvoiceCard({
         // unit.
         if (!cancelled) {
           setConvertedShippingCost((prev) => (prev === 0 ? prev : 0));
+          setShippingFxFailed(true);
         }
       }
     })();

@@ -92,6 +92,7 @@ import {
   STRIPE_MINIMUM_CHARGE_USD,
   ZERO_DECIMAL_CURRENCIES,
   isExchangeRateError,
+  ExchangeRateError,
   EXCHANGE_RATE_BUYER_MESSAGE,
   getSatoshiValueResilient,
   getFiatValueResilient,
@@ -1231,6 +1232,14 @@ export default function CartInvoiceCard({
   };
 
   const [nativeTotalCost, setNativeTotalCost] = useState<number | null>(null);
+  // True when computing `nativeTotalCost` required an FX conversion that the
+  // exchange-rate feed could not provide (persistent outage), so the displayed
+  // total fell back to a raw/0 amount. The fallback is fine for DISPLAY, but a
+  // card CHARGE must never be derived from it — see the guard in
+  // handleStripePayment which blocks single-seller card checkout when this is
+  // set. Multi-merchant charges are summed per-seller in native currency (no
+  // cross-FX) so they are unaffected.
+  const [chargeFxFailed, setChargeFxFailed] = useState<boolean>(false);
   // Per-seller shipping total expressed in the cart's display currency.
   // Computed alongside `nativeTotalCost` (which needs the same FX work) so
   // downstream consumers like `getMethodDiscountedCosts` can add shipping in
@@ -1258,10 +1267,16 @@ export default function CartInvoiceCard({
       setNativeTotalCost(null);
       setNativeShippingTotal(0);
       setNativeShippingPerSeller({});
+      // Sats carts charge natively (no FX), so a charge can never be blocked
+      // by an FX outage here.
+      setChargeFxFailed(false);
       return;
     }
     let cancelled = false;
     const compute = async () => {
+      // Tracks whether any charge-contributing FX conversion below fell back to
+      // a raw/0 amount because the rate feed was unavailable.
+      let fxFailed = false;
       const cartCurrencyUpper = cartCurrency.toUpperCase();
       const cartIsZeroDecimal =
         isSatsCurrency(cartCurrencyUpper) ||
@@ -1312,8 +1327,11 @@ export default function CartInvoiceCard({
                   });
             // On a persistent FX outage fall back to the raw amount rather than
             // dropping the line; retries + a fresh cache cover brief hiccups.
+            // Flag it so a CARD charge can be blocked (display tolerates it).
+            if (fiatVal == null) fxFailed = true;
             lineInCartCurrency = fiatVal ?? discountedPrice * qty;
           } catch {
+            fxFailed = true;
             lineInCartCurrency = discountedPrice * qty;
           }
         }
@@ -1396,11 +1414,14 @@ export default function CartInvoiceCard({
                       currency: cartCurrencyUpper,
                     });
               // If FX lookup persistently fails, fall back to 0 rather than
-              // misrepresenting the total in the wrong unit.
+              // misrepresenting the total in the wrong unit. Flag it so a CARD
+              // charge can be blocked (display tolerates the dropped shipping).
+              if (fiatVal == null) fxFailed = true;
               shippingInCartCurrency = fiatVal ?? 0;
             } catch {
               // If FX lookup fails, fall back to 0 rather than misrepresenting
               // the total in the wrong unit.
+              fxFailed = true;
               shippingInCartCurrency = 0;
             }
           }
@@ -1427,8 +1448,16 @@ export default function CartInvoiceCard({
             : Math.round(v * 100) / 100;
         }
         setNativeShippingPerSeller(roundedNativeShipPerSeller);
+        setChargeFxFailed(fxFailed);
       }
     };
+    // Fail closed: mark the FX result "not ready" before the async conversion
+    // runs. A same-currency cart hits no `await`, so `compute()` synchronously
+    // resets this to false in the same render batch (no false positive); a
+    // cross-currency cart keeps it true through the await window, so a card
+    // submit during a rate-feed outage is blocked instead of charging a stale or
+    // unconfirmed total.
+    setChargeFxFailed(true);
     compute();
     return () => {
       cancelled = true;
@@ -2759,6 +2788,16 @@ export default function CartInvoiceCard({
           : "sats";
 
       const isMultiMerchant = !isSingleSeller && allSellersHaveStripe;
+
+      // Fail closed: a single-seller card charge is derived from the
+      // FX-converted `nativeTotalCost`. If that conversion fell back to a raw/0
+      // amount during a rate-feed outage, block the charge rather than silently
+      // under/over-charging — the buyer is told to retry or use another method.
+      // Multi-merchant charges below are summed per-seller in each seller's own
+      // native currency (no cross-FX), so they are intentionally exempt.
+      if (!isMultiMerchant && !isSatsCart && cartCurrency && chargeFxFailed) {
+        throw new ExchangeRateError();
+      }
 
       if (hasActiveSubscription) {
         const shippingAddressObj =
