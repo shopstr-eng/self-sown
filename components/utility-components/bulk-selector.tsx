@@ -90,7 +90,7 @@ export default function BulkSelector({
                       {perUnit} {currency}/unit
                       {savings > 0 && (
                         <span className="ml-1 font-semibold text-green-600">
-                          — Save {savings}%
+                          (Save {savings}%)
                         </span>
                       )}
                     </span>

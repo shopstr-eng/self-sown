@@ -56,7 +56,7 @@ const STATUS_COPY: Record<
     tone: "bg-amber-100 text-amber-800",
   },
   dns_verified: {
-    label: "DNS verified — provisioning",
+    label: "DNS verified, provisioning",
     tone: "bg-blue-100 text-blue-800",
   },
   attached: { label: "Issuing certificate", tone: "bg-blue-100 text-blue-800" },
@@ -253,13 +253,13 @@ export default function CustomDomainSection() {
       <div className="space-y-4">
         <div>
           <h4 className="mb-2 text-sm font-semibold text-gray-900">
-            Step 1 — Verify ownership (TXT record)
+            Step 1: Verify ownership (TXT record)
           </h4>
           <DnsRow instruction={ins.txt} />
         </div>
         <div>
           <h4 className="mb-2 text-sm font-semibold text-gray-900">
-            Step 2 — Point your domain (
+            Step 2: Point your domain (
             {ins.recommended === "apex"
               ? "A record for root domain"
               : "CNAME for subdomain"}
@@ -287,7 +287,7 @@ export default function CustomDomainSection() {
         {ins.replitVerify && (
           <div>
             <h4 className="mb-2 text-sm font-semibold text-gray-900">
-              Step 3 — Replit deployment verification (TXT record)
+              Step 3: Replit deployment verification (TXT record)
             </h4>
             <DnsRow instruction={ins.replitVerify} />
           </div>

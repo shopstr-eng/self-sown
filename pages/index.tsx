@@ -3,15 +3,20 @@ import type React from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { Image } from "@heroui/react";
+import { Carousel } from "react-responsive-carousel";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 import {
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import {
   BLACKBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  PREVNEXTBUTTONSTYLES,
 } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import SignInModal from "@/components/sign-in/SignInModal";
@@ -128,6 +133,175 @@ function YouTubeCarousel() {
           </a>
         ))}
       </div>
+    </div>
+  );
+}
+
+type ShowcaseStall = {
+  name: string;
+  url: string;
+  href: string;
+  alt: string;
+  image?: string;
+  placeholder?: boolean;
+};
+
+const SHOWCASE_STALLS: ShowcaseStall[] = [
+  {
+    name: "Free Milk",
+    url: "milk.market/stall/freemilk",
+    href: "/stall/freemilk",
+    image: "/stall-freemilk.png",
+    alt: "Free Milk stall on Milk Market showing real products: raw goat milk and cheddar cheese with prices",
+  },
+  {
+    name: "Naughty Goat Co.",
+    url: "naughtygoat.co",
+    href: "https://naughtygoat.co",
+    image: "/stall-naughtygoatco.png",
+    alt: "Naughty Goat Co. storefront showing their featured Honey Cajeta goat milk caramel",
+  },
+  {
+    name: "Your Farm",
+    url: "milk.market/stall/your-farm",
+    href: "/onboarding/new-account",
+    placeholder: true,
+    alt: "Open your own customizable stall on Milk Market in minutes",
+  },
+];
+
+function YourStallSlide() {
+  return (
+    <div className="bg-grid-pattern relative flex aspect-video w-full flex-col items-center justify-center gap-3 bg-white px-6 text-center md:gap-4">
+      <span className="text-4xl md:text-5xl" aria-hidden="true">
+        🥛
+      </span>
+      <span className="shadow-neo bg-primary-yellow inline-block rounded-full border-2 border-black px-3 py-1 text-[10px] font-bold tracking-wide uppercase md:text-xs">
+        Your turn
+      </span>
+      <h3 className="text-xl font-black md:text-4xl">Your farm. Your stall.</h3>
+      <p className="max-w-md text-xs text-zinc-600 md:text-base">
+        Picture your own shop right here, with your products, your prices, and
+        your branding. Open one in minutes.
+      </p>
+      <span className="shadow-neo bg-primary-yellow inline-block rounded-lg border-2 border-black px-5 py-2 text-sm font-bold md:text-base">
+        Start selling free →
+      </span>
+    </div>
+  );
+}
+
+function StallShowcaseCarousel() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const hasMultiple = SHOWCASE_STALLS.length > 1;
+  const activeStall = SHOWCASE_STALLS[activeIndex] ?? SHOWCASE_STALLS[0];
+
+  return (
+    <div className="shadow-neo mx-auto max-w-4xl overflow-hidden rounded-xl border-3 border-black bg-white">
+      {/* Browser chrome */}
+      <div className="flex items-center gap-2 border-b-2 border-black bg-zinc-100 px-4 py-3">
+        <span className="h-3 w-3 rounded-full border-2 border-black bg-red-400"></span>
+        <span className="h-3 w-3 rounded-full border-2 border-black bg-yellow-400"></span>
+        <span className="h-3 w-3 rounded-full border-2 border-black bg-green-400"></span>
+        <span className="ml-3 hidden truncate rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-bold text-zinc-700 sm:inline-block">
+          {activeStall?.url}
+        </span>
+      </div>
+
+      {/* Stall screenshots */}
+      <Carousel
+        showArrows={hasMultiple}
+        showStatus={false}
+        showIndicators={hasMultiple}
+        showThumbs={false}
+        infiniteLoop
+        swipeable
+        emulateTouch
+        preventMovementUntilSwipeScrollTolerance
+        swipeScrollTolerance={50}
+        onChange={(index) => setActiveIndex(index)}
+        renderArrowPrev={(onClickHandler, hasPrev, label) =>
+          hasPrev && (
+            <button
+              className={`carousel-control left-4 ${PREVNEXTBUTTONSTYLES}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickHandler();
+              }}
+              title={label}
+            >
+              <ChevronLeftIcon className="h-6 w-6 text-black" />
+            </button>
+          )
+        }
+        renderArrowNext={(onClickHandler, hasNext, label) =>
+          hasNext && (
+            <button
+              className={`carousel-control right-4 ${PREVNEXTBUTTONSTYLES}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickHandler();
+              }}
+              title={label}
+            >
+              <ChevronRightIcon className="h-6 w-6 text-black" />
+            </button>
+          )
+        }
+        renderIndicator={(onClickHandler, isSelected, index, label) => {
+          const base =
+            "inline-block w-3 h-3 rounded-full mx-1 cursor-pointer border-2 border-black";
+          return (
+            <li
+              key={index}
+              className={
+                isSelected
+                  ? `${base} bg-primary-yellow`
+                  : `${base} bg-gray-300 hover:bg-gray-400`
+              }
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickHandler(e);
+              }}
+              title={`${label} ${index + 1}`}
+              role="button"
+              tabIndex={0}
+            />
+          );
+        }}
+      >
+        {SHOWCASE_STALLS.map((stall) => {
+          const content = stall.placeholder ? (
+            <YourStallSlide />
+          ) : (
+            <img src={stall.image} alt={stall.alt} className="block w-full" />
+          );
+          return stall.href.startsWith("http") ? (
+            <a
+              key={stall.href}
+              href={stall.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block cursor-pointer"
+              aria-label={`Visit the ${stall.name} stall (opens in a new tab)`}
+            >
+              {content}
+            </a>
+          ) : (
+            <Link
+              key={stall.href}
+              href={stall.href}
+              className="block cursor-pointer"
+              aria-label={`Visit the ${stall.name} stall`}
+            >
+              {content}
+            </Link>
+          );
+        })}
+      </Carousel>
     </div>
   );
 }
@@ -439,27 +613,12 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-600">
               Every seller gets a customizable stall with their own products,
-              prices, and branding. Here&apos;s a live shop on Milk Market.
+              prices, and branding. Here are real, live shops on Milk Market.
             </p>
           </div>
 
-          {/* Browser-frame mockup */}
-          <div className="shadow-neo mx-auto max-w-4xl overflow-hidden rounded-xl border-3 border-black bg-white">
-            <div className="flex items-center gap-2 border-b-2 border-black bg-zinc-100 px-4 py-3">
-              <span className="h-3 w-3 rounded-full border-2 border-black bg-red-400"></span>
-              <span className="h-3 w-3 rounded-full border-2 border-black bg-yellow-400"></span>
-              <span className="h-3 w-3 rounded-full border-2 border-black bg-green-400"></span>
-              <span className="ml-3 hidden truncate rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-bold text-zinc-700 sm:inline-block">
-                milk.market/stall/your-farm
-              </span>
-            </div>
-            <Image
-              removeWrapper
-              src="/storefront-preview.png"
-              alt="A live Milk Market stall showing real products: raw goat milk and cheddar cheese with prices"
-              className="block w-full"
-            />
-          </div>
+          {/* Browser-frame mockup with stall carousel */}
+          <StallShowcaseCarousel />
 
           <div className="mt-8 text-center">
             <Link href="/marketplace">

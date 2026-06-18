@@ -77,7 +77,7 @@ describe("buildSelfHostConfig", () => {
 
   it("falls back to the config file when env is absent", () => {
     const cfg = buildSelfHostConfig(
-      { MM_SELF_HOST: "on" } as NodeJS.ProcessEnv,
+      { MM_SELF_HOST: "on" },
       {
         pubkey: HEX_B,
         slug: "file-slug",

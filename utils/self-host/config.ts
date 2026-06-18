@@ -134,7 +134,7 @@ function readFileConfig(): FileConfig {
 // Pure builder: compute the config from explicit env + file inputs. Exposed so
 // tests can exercise parsing/precedence without touching process.env or disk.
 export function buildSelfHostConfig(
-  env: NodeJS.ProcessEnv,
+  env: Record<string, string | undefined>,
   file: FileConfig = {}
 ): SelfHostConfig {
   const upstreamRepo =

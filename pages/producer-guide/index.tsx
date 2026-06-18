@@ -257,7 +257,7 @@ const ProducerGuidePage = () => {
   return (
     <>
       <Head>
-        <title>Producer Guide — How to Sell on Milk Market</title>
+        <title>Producer Guide: How to Sell on Milk Market</title>
         <meta
           name="description"
           content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall."
@@ -306,7 +306,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Self-Host Your Store",
-                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server — with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
+                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
                   url: "https://milk.market/producer-guide#step-6",
                 },
                 {
@@ -318,7 +318,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
-                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall — creating and updating listings, tracking inventory, and handling orders — and so agentic shopping tools can discover and purchase from your stall automatically.",
+                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically.",
                   url: "https://milk.market/producer-guide#step-8",
                 },
                 {
@@ -780,7 +780,7 @@ const ProducerGuidePage = () => {
                       run your own copy of Milk Market on your own server.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                      <li>Run a single-vendor store that&apos;s just yours</li>
+                      <li>Run a single-tenant store that&apos;s just yours</li>
                       <li>
                         Take card payments through your own Stripe account, with
                         no platform fees
@@ -832,7 +832,7 @@ const ProducerGuidePage = () => {
                         Email Stats dashboard
                       </li>
                       <li>
-                        Your analytics are private to your account — every
+                        Your analytics are private to your account. Every
                         request is scoped to you, so no other seller (and not
                         the platform) can see them
                       </li>
@@ -862,7 +862,7 @@ const ProducerGuidePage = () => {
                     </h3>
                     <p className="mb-4 text-base text-white">
                       Connect AI agents to your stall through the Model Context
-                      Protocol (MCP) API — run your stall with AI, and open it
+                      Protocol (MCP) API to run your stall with AI, and open it
                       up to AI shopping agents.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
@@ -871,7 +871,7 @@ const ProducerGuidePage = () => {
                         levels
                       </li>
                       <li>
-                        Manage your stall with AI — create and update listings,
+                        Manage your stall with AI to create and update listings,
                         track inventory, and handle orders
                       </li>
                       <li>

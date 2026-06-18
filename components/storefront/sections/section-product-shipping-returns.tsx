@@ -18,7 +18,7 @@ export default function SectionProductShippingReturns({
     (product.shippingType
       ? `${product.shippingType}${
           product.shippingCost
-            ? ` — ${product.shippingCost} ${product.currency}`
+            ? `: ${product.shippingCost} ${product.currency}`
             : ""
         }`
       : "");

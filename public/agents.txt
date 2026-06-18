@@ -1,4 +1,4 @@
-# agents.txt — AI agent access policy for Milk Market
+# agents.txt: AI agent access policy for Milk Market
 # https://milk.market
 # Last updated: 2026-06-08
 

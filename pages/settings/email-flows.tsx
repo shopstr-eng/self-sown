@@ -84,7 +84,7 @@ const FLOW_TYPE_DESCRIPTIONS: Record<string, string> = {
     "Follow up after a purchase with tips, thank yous, and review requests",
   winback: "Re-engage customers who haven't purchased in a while",
   one_time:
-    "Write a one-time email and send it to your contacts manually whenever you want — no automatic trigger",
+    "Write a one-time email and send it to your contacts manually whenever you want, with no automatic trigger",
 };
 
 function formatDelayHours(hours: number): string {
@@ -786,7 +786,7 @@ const EmailFlowsPage = () => {
               </p>
               <p className="mt-1">
                 Use the ★ button in the editor toolbar to drop in a “Leave a
-                review” button — it links each buyer straight to their order so
+                review” button. It links each buyer straight to their order so
                 they can leave a review in one click.
               </p>
             </div>

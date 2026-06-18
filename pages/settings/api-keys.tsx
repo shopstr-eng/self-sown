@@ -265,7 +265,7 @@ const ApiKeysPage = () => {
           {createdKey && (
             <div className="shadow-neo mb-6 rounded-md border-2 border-black bg-green-50 p-4">
               <p className="mb-2 text-sm font-bold text-green-800">
-                API key created! Copy it now — it won&apos;t be shown again.{" "}
+                API key created! Copy it now, it won&apos;t be shown again.{" "}
                 <button
                   className="font-bold text-black underline hover:text-green-700"
                   onClick={() => setShowCreatedKey((prev) => !prev)}
@@ -326,10 +326,10 @@ const ApiKeysPage = () => {
                   }}
                 >
                   <SelectItem key="read">
-                    Read Only — Browse products, profiles, reviews
+                    Read Only: Browse products, profiles, reviews
                   </SelectItem>
                   <SelectItem key="read_write">
-                    Read + Write — Browse and place orders
+                    Read + Write: Browse and place orders
                   </SelectItem>
                 </Select>
                 <Button

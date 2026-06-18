@@ -19,11 +19,11 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 
 const BUNDLE_CONTENTS = [
-  "milk-market.config.json — your store config (pubkey, slug, relays, Blossom servers, branding). No secrets.",
-  ".env.example — environment template with placeholders only. Copy to .env and fill in.",
-  "setup.sh — clones the public code and drops your config in place.",
-  "README.md & SETUP.md — step-by-step instructions to get running.",
-  "manifest.json — bundle details.",
+  "milk-market.config.json: your store config (pubkey, slug, relays, Blossom servers, branding). No secrets.",
+  ".env.example: environment template with placeholders only. Copy to .env and fill in.",
+  "setup.sh: clones the public code and drops your config in place.",
+  "README.md & SETUP.md: step-by-step instructions to get running.",
+  "manifest.json: bundle details.",
 ];
 
 const SelfHostPage = () => {
@@ -92,9 +92,9 @@ const SelfHostPage = () => {
               <p className="mb-4 text-sm text-gray-700">
                 Self-hosting your store is a Wrangler (lifetime) feature. With
                 Wrangler you can download a ready-to-run copy of your store that
-                you host yourself — your marketplace stays private, and you take
-                card payments through your own Stripe account with no platform
-                fees.
+                you host yourself, so your marketplace stays private, and you
+                take card payments through your own Stripe account with no
+                platform fees.
               </p>
               <Button
                 className={PRIMARYBUTTONCLASSNAMES}
@@ -117,7 +117,7 @@ const SelfHostPage = () => {
                 <p className="text-sm text-gray-700">
                   Download a personalized setup bundle to run your own private
                   copy of your store. The marketplace and other sellers are
-                  hidden — only your shop is served. You stay wired to the
+                  hidden, and only your shop is served. You stay wired to the
                   public code so you can pull updates with{" "}
                   <code className="rounded bg-gray-100 px-1">git pull</code>.
                 </p>
@@ -140,7 +140,7 @@ const SelfHostPage = () => {
                 </ul>
                 <p className="mt-4 text-xs text-gray-500">
                   Your bundle never includes secrets, API keys, or any other
-                  seller&apos;s data — only your own public store settings.
+                  seller&apos;s data, only your own public store settings.
                 </p>
               </div>
 
@@ -176,7 +176,7 @@ const SelfHostPage = () => {
                   </li>
                 </ol>
                 <p className="mt-3 text-xs text-gray-500">
-                  Your copy shows only your storefront — the marketplace and the
+                  Your copy shows only your storefront. The marketplace and the
                   platform&apos;s info, terms, and privacy pages are all hidden,
                   and even your settings use your storefront theme. Publish your
                   own terms, privacy, and return policy as storefront pages

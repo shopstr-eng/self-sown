@@ -108,7 +108,7 @@ const Messages = ({
             const productUrl = router.query.productUrl as string | undefined;
             if (productTitle) {
               const draftText = productUrl
-                ? `Re: "${productTitle}" — ${productUrl}\n\n`
+                ? `Re: "${productTitle}" (${productUrl})\n\n`
                 : `Re: "${productTitle}"\n\n`;
               setInitialMessage(draftText);
             }

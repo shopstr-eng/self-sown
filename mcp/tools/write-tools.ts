@@ -317,7 +317,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .record(z.string(), z.string())
         .optional()
         .describe(
-          "Fiat payment handles — object mapping method names (venmo, cashapp, zelle, etc.) to usernames/handles"
+          "Fiat payment handles: object mapping method names (venmo, cashapp, zelle, etc.) to usernames/handles"
         ),
       payment_preference: z
         .enum(["ecash", "lightning", "fiat"])
@@ -408,7 +408,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .record(z.string(), z.number())
         .optional()
         .describe(
-          "Per-method discount percentages — object mapping method keys (bitcoin, stripe, venmo, cash, etc.) to discount percentages"
+          "Per-method discount percentages: object mapping method keys (bitcoin, stripe, venmo, cash, etc.) to discount percentages"
         ),
       storefrontColorScheme: z
         .object({
@@ -2471,7 +2471,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe(
-          "Buyer's pubkey (hex format) — required to send a notification DM"
+          "Buyer's pubkey (hex format), required to send a notification DM"
         ),
       message: z
         .string()
@@ -4354,7 +4354,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
   registerTool(
     server,
     "set_storefront_policies",
-    "Set or update storefront policies (return & refund, terms of service, privacy, cancellation). Each policy can be enabled/disabled and has markdown content. This merges with your existing shop profile — only specified policies are changed.",
+    "Set or update storefront policies (return & refund, terms of service, privacy, cancellation). Each policy can be enabled/disabled and has markdown content. This merges with your existing shop profile; only specified policies are changed.",
     {
       returnPolicy: z
         .object({

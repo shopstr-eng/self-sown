@@ -120,7 +120,7 @@ function registerPurchaseTools(
 
   reg(
     "create_order",
-    "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. To start a recurring Subscribe & Save order, pass subscriptionFrequency (only for products that offer subscriptions) — recurring orders are billed via Stripe regardless of the chosen Bitcoin paymentMethod. Requires read_write API key permission.",
+    "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. To start a recurring Subscribe & Save order, pass subscriptionFrequency (only for products that offer subscriptions); recurring orders are billed via Stripe regardless of the chosen Bitcoin paymentMethod. Requires read_write API key permission.",
     {
       productId: z.string().describe("The product event ID to purchase"),
       quantity: z.number().optional().describe("Quantity to order (default 1)"),
@@ -724,7 +724,7 @@ function registerPurchaseTools(
 
   reg(
     "get_email_analytics",
-    "Get performance analytics for all of your email flows (a Herd/Pro feature), including one-time sends. Returns per-flow and per-email totals: emails sent, unique opens and open rate, unique clicks and click-through rate, the most-clicked links, and conversion rate (orders attributed to the email). Seller-scoped — only your own flows are returned. Requires a read_write API key permission.",
+    "Get performance analytics for all of your email flows (a Herd/Pro feature), including one-time sends. Returns per-flow and per-email totals: emails sent, unique opens and open rate, unique clicks and click-through rate, the most-clicked links, and conversion rate (orders attributed to the email). Seller-scoped: only your own flows are returned. Requires a read_write API key permission.",
     {},
     async () => {
       const startTime = Date.now();

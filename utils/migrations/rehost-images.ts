@@ -73,7 +73,7 @@ export async function rehostListingImages(
       console.error("Failed to rehost image", url, err);
       const reason = err instanceof Error ? err.message : "unknown error";
       warnings.push(
-        `"${productTitle}": couldn't re-upload ${shortUrl(url)} (${reason}). Kept the original Shopify link — replace it manually if Shopify becomes unavailable.`
+        `"${productTitle}": couldn't re-upload ${shortUrl(url)} (${reason}). Kept the original Shopify link; replace it manually if Shopify becomes unavailable.`
       );
     }
 

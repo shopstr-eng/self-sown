@@ -225,7 +225,7 @@ const ABANDONED_CART_DEFAULTS: FlowStepTemplate[] = [
     step_order: 1,
     subject: "You left something behind at {{shop_name}}",
     body_html: `<h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Hi {{buyer_name}},</h2>
-<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">It looks like you were interested in <strong>{{product_title}}</strong> but didn't complete your purchase. No worries — your item is still waiting for you!</p>
+<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">It looks like you were interested in <strong>{{product_title}}</strong> but didn't complete your purchase. No worries, your item is still waiting for you!</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>
     <td style="background-color:#000000;border-radius:6px;padding:12px 24px;">
@@ -237,10 +237,10 @@ const ABANDONED_CART_DEFAULTS: FlowStepTemplate[] = [
   },
   {
     step_order: 2,
-    subject: "Last chance — {{product_title}} is selling fast!",
+    subject: "Last chance: {{product_title}} is selling fast!",
     body_html: `<h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Hi {{buyer_name}},</h2>
 <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">Just a friendly reminder that <strong>{{product_title}}</strong> is still in your cart. These items are popular and tend to sell out quickly.</p>
-<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">Don't miss out — grab yours before it's gone!</p>
+<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">Don't miss out, grab yours before it's gone!</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>
     <td style="background-color:#000000;border-radius:6px;padding:12px 24px;">
@@ -290,7 +290,7 @@ const WINBACK_DEFAULTS: FlowStepTemplate[] = [
     subject: "We miss you at {{shop_name}}!",
     body_html: `<h2 style="margin:0 0 16px;color:#111827;font-size:20px;">Hi {{buyer_name}},</h2>
 <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">It's been a while since your last visit to {{shop_name}}, and we wanted to let you know we've been adding some great new products.</p>
-<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">Come back and see what's new — we think you'll find something you love!</p>
+<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">Come back and see what's new, we think you'll find something you love!</p>
 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
   <tr>
     <td style="background-color:#000000;border-radius:6px;padding:12px 24px;">

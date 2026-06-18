@@ -757,7 +757,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
     if (seoMeta.autoGenerate !== false) {
       const autoTitle = name
-        ? `${name} — Farm-Fresh Products | Milk Market`
+        ? `${name}: Farm-Fresh Products | Milk Market`
         : undefined;
       const autoDescription = about
         ? about.length > 160
@@ -1087,7 +1087,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             />
           </div>
           <p className="mt-2 text-[11px] text-gray-500">
-            Stall logo — recommended: 400 × 400 px (square)
+            Stall logo, recommended: 400 × 400 px (square)
           </p>
         </div>
       </div>
@@ -2159,7 +2159,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                           </label>
                           <p className="ml-7 text-sm text-gray-500">
                             Adds a hard offset shadow to bordered cards across
-                            your stall — the same look used on the main Milk
+                            your stall, the same look used on the main Milk
                             Market marketplace.
                           </p>
                         </div>
@@ -2961,7 +2961,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 placeholder={
                                   seoMeta.autoGenerate !== false
                                     ? "Auto-generated from shop name"
-                                    : "e.g. Green Valley Farm — Fresh Raw Milk"
+                                    : "e.g. Green Valley Farm: Fresh Raw Milk"
                                 }
                                 value={seoMeta.metaTitle || ""}
                                 onChange={(e) =>
@@ -4360,7 +4360,7 @@ function PopupFlowEditor({
       </button>
       {steps.length === 0 && (
         <p className="text-xs text-gray-400 italic">
-          No flow steps — the popup will show the email capture directly.
+          No flow steps. The popup will show the email capture directly.
         </p>
       )}
     </div>

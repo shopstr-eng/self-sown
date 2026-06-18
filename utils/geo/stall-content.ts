@@ -60,7 +60,7 @@ function listingUrl(input: StallContentInput, slug: string): string {
 
 function priceLabel(p: StallProductSummary): string {
   if (p.price == null) return "";
-  return ` — ${p.price}${p.currency ? " " + p.currency : ""}`;
+  return ` · ${p.price}${p.currency ? " " + p.currency : ""}`;
 }
 
 function description(input: StallContentInput): string {
@@ -84,7 +84,7 @@ export function buildStallMarkdown(input: StallContentInput): string {
     lines.push("## Products");
     for (const p of input.products) {
       const url = listingUrl(input, p.slug);
-      const summary = p.summary ? ` — ${p.summary}` : "";
+      const summary = p.summary ? ` · ${p.summary}` : "";
       lines.push(`- [${p.title}](${url})${priceLabel(p)}${summary}`);
     }
     lines.push("");
@@ -97,7 +97,7 @@ export function buildStallMarkdown(input: StallContentInput): string {
   lines.push("");
   lines.push("## For AI agents");
   lines.push(
-    `This shop is part of Milk Market. Browse and buy programmatically via the Model Context Protocol server at \`${PLATFORM}/api/mcp\`. Paid endpoints support the L402 standard — see ${PLATFORM}/.well-known/l402.json.`
+    `This shop is part of Milk Market. Browse and buy programmatically via the Model Context Protocol server at \`${PLATFORM}/api/mcp\`. Paid endpoints support the L402 standard. See ${PLATFORM}/.well-known/l402.json.`
   );
   lines.push("");
   lines.push(
@@ -190,7 +190,7 @@ export function buildStallRobotsTxt(input: StallContentInput): string {
   const origin = input.isCustomDomain
     ? new URL(input.siteUrl).origin
     : input.siteUrl;
-  return `# ${input.shopName} — powered by Milk Market
+  return `# ${input.shopName} (powered by Milk Market)
 User-agent: *
 Allow: /
 
@@ -278,7 +278,7 @@ export function buildStallRss(input: StallContentInput): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(input.shopName)} — Products</title>
+    <title>${escapeXml(input.shopName)} Products</title>
     <link>${escapeXml(input.siteUrl)}</link>
     <atom:link href="${escapeXml(input.siteUrl)}/rss.xml" rel="self" type="application/rss+xml" />
     <description>${escapeXml(description(input))}</description>

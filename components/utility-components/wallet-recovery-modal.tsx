@@ -114,7 +114,7 @@ export default function WalletRecoveryModal({
               <>
                 <p>
                   We couldn&apos;t deliver your payment to the seller, but your{" "}
-                  <strong>{amountSats.toLocaleString()} sats</strong> are safe —
+                  <strong>{amountSats.toLocaleString()} sats</strong> are safe:
                   the eCash tokens have been stored in this browser&apos;s local
                   wallet
                   {mintUrl ? (
@@ -135,7 +135,7 @@ export default function WalletRecoveryModal({
                   </p>
                 ) : (
                   <p>
-                    To access them, create an account (or sign in) — your wallet
+                    To access them, create an account (or sign in). Your wallet
                     lives in this browser, but an account is required to open
                     the wallet UI and back the tokens up to your nostr relays so
                     they aren&apos;t lost if you clear your browser.

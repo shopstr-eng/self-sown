@@ -156,7 +156,7 @@ const EmailStatsDashboard = () => {
         <p className="mb-1 font-bold text-gray-600">No email stats yet</p>
         <p className="text-sm text-gray-500">
           Once your email flows start sending, you&apos;ll see how they perform
-          here — opens, clicks, and how many orders they drove.
+          here: opens, clicks, and how many orders they drove.
         </p>
       </div>
     );
@@ -168,8 +168,8 @@ const EmailStatsDashboard = () => {
         <div>
           <h2 className="text-xl font-black text-black">Email stats</h2>
           <p className="text-sm text-gray-500">
-            How your email flows are performing. Opens are estimates — many
-            inbox apps hide or pre-load images. Clicks and orders are exact.
+            How your email flows are performing. Opens are estimates; many inbox
+            apps hide or pre-load images. Clicks and orders are exact.
           </p>
         </div>
         <Button

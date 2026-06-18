@@ -133,9 +133,9 @@ export function buildSelfHostConfigJson(
 function envExampleTemplate(config: SelfHostConfigJson): string {
   const relays = config.relays.join(",");
   const blossom = config.blossomServers.join(",");
-  return `# Milk Market — self-host (single-tenant) environment.
+  return `# Milk Market self-host (single-tenant) environment.
 # Copy this file to ".env" and fill in the values. NEVER commit your real .env.
-# This template ships with NO secrets — every value below is a placeholder.
+# This template ships with NO secrets; every value below is a placeholder.
 #
 # Legend:
 #   [required]  the store will not run without it
@@ -164,7 +164,7 @@ NEXT_PUBLIC_BASE_URL=https://yourstore.example
 
 # === File & image uploads (recommended) =====================================
 # [generate] A dedicated Nostr private key (starts with "nsec") used to encrypt
-# uploaded images/files and to send server-side messages. Generate a NEW key —
+# uploaded images/files and to send server-side messages. Generate a NEW key,
 # do NOT reuse your personal nsec. Any Nostr key generator works. Without it,
 # uploads that rely on encryption will fail.
 ENCRYPTION_NSEC=
@@ -199,22 +199,22 @@ MCP_ENCRYPTION_KEY=
 }
 
 function readmeMarkdown(config: SelfHostConfigJson): string {
-  return `# Milk Market — Your Self-Hosted Store
+  return `# Milk Market: Your Self-Hosted Store
 
 This bundle wires a self-hosted, single-tenant copy of Milk Market to YOUR
-storefront. The marketplace and other sellers are hidden — this instance serves
+storefront. The marketplace and other sellers are hidden; this instance serves
 only your shop.
 
 ## What's in here
 
-- \`milk-market.config.json\` — your public store config (pubkey, slug, relays,
+- \`milk-market.config.json\`: your public store config (pubkey, slug, relays,
   Blossom servers${
     config.branding ? ", branding snapshot" : ""
   }). **No secrets.**
-- \`.env.example\` — environment template (placeholders only). Copy to \`.env\`.
-- \`setup.sh\` — clones the public code repo and drops your config in place.
-- \`SETUP.md\` — full step-by-step setup guide.
-- \`manifest.json\` — bundle metadata.
+- \`.env.example\`: environment template (placeholders only). Copy to \`.env\`.
+- \`setup.sh\`: clones the public code repo and drops your config in place.
+- \`SETUP.md\`: full step-by-step setup guide.
+- \`manifest.json\`: bundle metadata.
 
 ## Quick start
 
@@ -290,18 +290,18 @@ cp ../.env.example .env
 
 Edit \`.env\` (it has inline notes and a [required]/[generate]/[optional] legend):
 
-- \`DATABASE_URL\` — **[required]** your PostgreSQL connection string.
-- \`NEXT_PUBLIC_BASE_URL\` — **[required]** the public URL your store is served
+- \`DATABASE_URL\`: **[required]** your PostgreSQL connection string.
+- \`NEXT_PUBLIC_BASE_URL\`: **[required]** the public URL your store is served
   from, with NO trailing slash. Used for links, emails, and social/SEO tags.
-- \`MM_SELF_HOST*\` — pre-filled from your export; adjust relays if needed.
-- \`ENCRYPTION_NSEC\` — **[generate]** a NEW Nostr private key (\`nsec...\`) used to
+- \`MM_SELF_HOST*\`: pre-filled from your export; adjust relays if needed.
+- \`ENCRYPTION_NSEC\`: **[generate]** a NEW Nostr private key (\`nsec...\`) used to
   encrypt uploaded images/files and to send server-side messages. Do NOT reuse
   your personal key. Without it, uploads that rely on encryption will fail.
 - **Card payments (optional).** To accept cards on YOUR own Stripe account, set
   all three: \`STRIPE_SECRET_KEY\`, \`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY\`, and
   \`STRIPE_WEBHOOK_SECRET\` (add a Stripe webhook pointing at
   \`/api/stripe/webhook\` and paste its signing secret). Then set
-  \`MM_SELF_HOST_OWN_STRIPE=1\`. Charges run directly on your account — no
+  \`MM_SELF_HOST_OWN_STRIPE=1\`. Charges run directly on your account, with no
   Connect, no platform fees.
 - **Email (optional).** \`SENDGRID_API_KEY\` for transactional email. If you use
   automated email flows, also **[generate]** \`EMAIL_FLOW_CLICK_SECRET\` and
@@ -320,7 +320,7 @@ pnpm start
 \`\`\`
 
 The site serves your storefront at the root URL. Everything visitors see is
-your branded storefront — the marketplace, discovery, platform info pages
+your branded storefront; the marketplace, discovery, platform info pages
 (About, FAQ, Producer Guide, Contact), the platform Terms/Privacy pages, and
 platform billing are all hidden. Even your Settings pages use your storefront
 theme.
@@ -387,7 +387,7 @@ function manifestJson(config: SelfHostConfigJson, generatedAt: string): string {
         "SETUP.md",
         "manifest.json",
       ],
-      note: "Config only — no secrets or other sellers' data are included.",
+      note: "Config only; no secrets or other sellers' data are included.",
     },
     null,
     2

@@ -15,7 +15,7 @@ const SITE = "https://milk.market";
 
 export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
-    title: "Milk Market — Permissionless marketplace for local food",
+    title: "Milk Market: Permissionless marketplace for local food",
     description:
       "A Bitcoin-native, Nostr-based marketplace for local food and decentralized food systems. Buy and sell raw milk, dairy, meat, eggs, produce, and more.",
     markdown: `# Milk Market
@@ -47,17 +47,17 @@ Milk Market connects local food producers directly with buyers through a permiss
 Anyone can become a producer without asking permission. Listings live on Nostr relays, so no single company can remove a producer from the network. Raw milk and dairy were the founding use case, but the marketplace serves local food broadly: meat, eggs, produce, baked goods, honey, and handmade goods.
 
 ## Why it exists
-To rebuild local and decentralized food supply chains — giving producers a direct, sovereign channel to their customers and giving buyers transparent access to local food, paid for with open money (Bitcoin) or familiar methods (cards, fiat).
+To rebuild local and decentralized food supply chains, giving producers a direct, sovereign channel to their customers and giving buyers transparent access to local food, paid for with open money (Bitcoin) or familiar methods (cards, fiat).
 
 Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-guide) · [FAQ](${SITE}/faq) · [Contact](${SITE}/contact)`,
   },
   "/faq": {
     title: "Milk Market FAQ",
     description:
-      "Answers to common questions about Milk Market — payments, selling, privacy, Nostr, and AI-agent access.",
+      "Answers to common questions about Milk Market: payments, selling, privacy, Nostr, and AI-agent access.",
     markdown: `# Milk Market FAQ
 
-**What can I sell?** Local food and goods of all kinds — raw milk and dairy are one example, alongside meat, eggs, produce, baked goods, honey, and handmade goods.
+**What can I sell?** Local food and goods of all kinds. Raw milk and dairy are one example, alongside meat, eggs, produce, baked goods, honey, and handmade goods.
 
 **How do payments work?** Bitcoin (Lightning, Cashu ecash), Stripe cards, and manual fiat. Buyers can check out as a guest with just an email, or with their own Nostr keys.
 
@@ -65,7 +65,7 @@ Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-g
 
 **How is my data handled?** Orders and messages are end-to-end encrypted (NIP-17). The platform caches public listings in PostgreSQL for search and fast page loads.
 
-**Can AI agents use Milk Market?** Yes — via the Model Context Protocol server at \`${SITE}/api/mcp\`. See [/llms.txt](${SITE}/llms.txt) and [/skill.md](${SITE}/skill.md).`,
+**Can AI agents use Milk Market?** Yes, via the Model Context Protocol server at \`${SITE}/api/mcp\`. See [/llms.txt](${SITE}/llms.txt) and [/skill.md](${SITE}/skill.md).`,
   },
   "/contact": {
     title: "Contact Milk Market",
@@ -88,16 +88,16 @@ Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,
 How to start selling local food and goods on Milk Market.
 
 1. **Create your account** with a Nostr identity (new or existing).
-2. **Choose your membership** — a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) with a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature, plus the option to self-host a private, single-tenant copy of your store on your own server.
-3. **List your first product** — title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
+2. **Choose your membership**: a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) with a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature, plus the option to self-host a private, single-tenant copy of your store on your own server.
+3. **List your first product**: title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
 4. **Manage orders & communication** through encrypted buyer chat.
-5. **Customize your storefront** (Herd) — colors, fonts, page builder, SEO/OG meta, and a custom domain.
-6. **Automate your email flows** (Herd) — welcome series, order follow-ups, re-engagement, with open, click, and conversion analytics for every flow and one-time send. You can also send these emails — plus order confirmations — from your own SendGrid-authenticated domain; if your domain isn't verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no other seller can see them and the platform does not access an individual seller's raw email analytics.
-7. **Buy shipping labels** (Herd) — connect your own Shippo account, quote live rates, buy labels, and issue returns from the orders dashboard.
+5. **Customize your storefront** (Herd): colors, fonts, page builder, SEO/OG meta, and a custom domain.
+6. **Automate your email flows** (Herd): welcome series, order follow-ups, re-engagement, with open, click, and conversion analytics for every flow and one-time send. You can also send these emails (plus order confirmations) from your own SendGrid-authenticated domain; if your domain isn't verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no other seller can see them and the platform does not access an individual seller's raw email analytics.
+7. **Buy shipping labels** (Herd): connect your own Shippo account, quote live rates, buy labels, and issue returns from the orders dashboard.
 8. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders.
-9. **Grow your business** — update listings, build relationships, share your story, and expand reach.
+9. **Grow your business**: update listings, build relationships, share your story, and expand reach.
 
-If you connect a Stripe account, you can also turn on automatic US sales tax (free) — Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.
+If you connect a Stripe account, you can also turn on automatic US sales tax (free). Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.
 
 Start at the [marketplace](${SITE}/marketplace) or read the [FAQ](${SITE}/faq).`,
   },

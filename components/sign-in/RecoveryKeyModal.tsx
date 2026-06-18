@@ -46,7 +46,7 @@ export default function RecoveryKeyModal({
 
   const handleDownload = () => {
     const content = [
-      "MILK MARKET — ACCOUNT RECOVERY KEY",
+      "MILK MARKET: ACCOUNT RECOVERY KEY",
       "===================================",
       "",
       `Email: ${email}`,
@@ -103,8 +103,8 @@ export default function RecoveryKeyModal({
 
             <p className="text-light-text text-center text-sm opacity-70">
               This key is the <strong>only way</strong> to recover your account
-              if you forget your password or passphrase. Save it somewhere safe
-              — it will not be shown again.
+              if you forget your password or passphrase. Save it somewhere safe;
+              it will not be shown again.
             </p>
 
             <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 p-4">
