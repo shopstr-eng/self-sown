@@ -1,41 +1,22 @@
-import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import StorefrontLayout from "@/components/storefront/storefront-layout";
+import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 
 export default function CustomDomainPage() {
   const router = useRouter();
   const { domain } = router.query;
-  const [shopPubkey, setShopPubkey] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const domainStr = typeof domain === "string" ? domain : "";
 
-  useEffect(() => {
-    if (!domain || typeof domain !== "string") return;
+  const { state, retry } = useStorefrontLookup({
+    kind: "domain",
+    value: domainStr,
+    ready: router.isReady,
+  });
 
-    const lookupDomain = async () => {
-      try {
-        const res = await fetch(
-          `/api/storefront/lookup?domain=${encodeURIComponent(domain)}`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          if (data.pubkey) {
-            setShopPubkey(data.pubkey);
-            setIsLoading(false);
-            return;
-          }
-        }
-      } catch {}
-      setNotFound(true);
-      setIsLoading(false);
-    };
-
-    lookupDomain();
-  }, [domain]);
-
-  if (isLoading) {
+  if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <MilkMarketSpinner />
@@ -43,7 +24,11 @@ export default function CustomDomainPage() {
     );
   }
 
-  if (notFound || !shopPubkey) {
+  if (state.phase === "error") {
+    return <StorefrontLoadError onRetry={retry} label="shop" />;
+  }
+
+  if (state.phase === "not_found") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center">
         <h1 className="text-3xl font-bold">Domain Not Configured</h1>
@@ -60,5 +45,5 @@ export default function CustomDomainPage() {
     );
   }
 
-  return <StorefrontLayout shopPubkey={shopPubkey} />;
+  return <StorefrontLayout shopPubkey={state.pubkey} />;
 }
