@@ -716,3 +716,17 @@ export function buildProVerifyInvoiceProof({
     fields: { invoiceId },
   };
 }
+
+// Self-host export bundle download. Gated on the caller proving ownership of
+// `pubkey`; the endpoint additionally requires that pubkey be a lifetime
+// (Wrangler) member before producing the bundle.
+export function buildProExportStoreProof(
+  pubkey: string
+): SignedHttpRequestProof {
+  return {
+    action: "export_self_host_store",
+    method: "POST",
+    path: "/api/pro/export-store",
+    pubkey,
+  };
+}

@@ -8,6 +8,8 @@ import {
   ZERO_DECIMAL_CURRENCIES,
   isCrypto as isCryptoCurrency,
   convertToSmallestUnit,
+  isExchangeRateError,
+  EXCHANGE_RATE_ERROR_CODE,
 } from "@/utils/stripe/currency";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
@@ -375,8 +377,10 @@ export default async function handler(
     });
   } catch (error) {
     console.error("Stripe cart subscription creation error:", error);
-    return res.status(500).json({
+    const rateError = isExchangeRateError(error);
+    return res.status(rateError ? 503 : 500).json({
       error: "Failed to create cart subscription",
+      ...(rateError && { code: EXCHANGE_RATE_ERROR_CODE }),
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }

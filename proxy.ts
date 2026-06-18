@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { nip19 } from "nostr-tools";
 import { lookupByHost } from "@/utils/storefront/host-cache";
+import {
+  isSelfHostBlockedPage,
+  isSelfHostBlockedApi,
+  selfHostStallRewritePath,
+} from "@/utils/self-host/routing";
 
 // Routes that should NOT be rewritten under /stall/<slug>/ on a custom
 // domain — they live at the root of the seller's site (or fall through to
@@ -230,6 +235,35 @@ async function routeRequest(request: NextRequest) {
     );
     res.headers.set(RL_SKIP_HEADER, "1");
     return res;
+  }
+
+  // Single-tenant self-host mode. When MM_SELF_HOST is on, this whole instance
+  // serves exactly one seller's storefront regardless of host: the marketplace,
+  // Nostr discovery, and platform Pro-billing surfaces are hidden, and every
+  // other path is served under the owner's /stall/<slug>. We take this branch
+  // before any host-based routing so it applies on localhost, *.replit.app, and
+  // the seller's own domain alike. The slug/pubkey come from the environment —
+  // no per-host DB lookup. If self-host is enabled but the slug is missing we
+  // FAIL CLOSED with a clear misconfiguration error rather than falling back to
+  // the full multi-tenant platform (which would expose the marketplace,
+  // discovery, and every other seller on what is meant to be a private,
+  // single-tenant instance).
+  const selfHostEnabled = /^(1|true|yes|on)$/i.test(
+    (process.env.MM_SELF_HOST || "").trim()
+  );
+  const selfHostSlug = (process.env.MM_SELF_HOST_SLUG || "").trim();
+  if (selfHostEnabled) {
+    if (!selfHostSlug) {
+      return new NextResponse(
+        "Self-host mode is enabled (MM_SELF_HOST) but MM_SELF_HOST_SLUG is " +
+          "not set. Configure your storefront slug to start serving your store.",
+        {
+          status: 503,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        }
+      );
+    }
+    return routeSelfHost(request, selfHostSlug);
   }
 
   // Content negotiation for LLMs/agents on the main platform host only. Custom
@@ -469,4 +503,135 @@ async function routeRequest(request: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+// Resolve the configured self-host owner pubkey to lowercase hex. Accepts an
+// npub or 64-char hex; returns null for anything else (the header is simply
+// omitted, so a malformed value can never seed SSR with a bogus pubkey).
+function selfHostPubkeyHex(): string | null {
+  const raw = (process.env.MM_SELF_HOST_PUBKEY || "").trim();
+  if (!raw) return null;
+  if (raw.startsWith("npub1")) {
+    try {
+      const decoded = nip19.decode(raw);
+      if (decoded.type === "npub" && typeof decoded.data === "string") {
+        return decoded.data.toLowerCase();
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+  if (/^[0-9a-f]{64}$/i.test(raw)) return raw.toLowerCase();
+  return null;
+}
+
+// Route a request on a single-tenant self-host instance. Mirrors the custom-
+// domain block above (static passthrough, GEO/agent files, platform pages,
+// stall rewrite) but sources the slug/pubkey from the environment and adds the
+// self-host hiding rules (marketplace/discovery/Pro-billing pages → home;
+// billing/Connect APIs → 404).
+function routeSelfHost(request: NextRequest, slug: string) {
+  const { pathname, search } = request.nextUrl;
+  const hostname = (request.headers.get("host") || "").toLowerCase();
+  const pubkey = selfHostPubkeyHex();
+
+  const buildHeaders = () => {
+    const h = new Headers(request.headers);
+    // Reuse the custom-domain SSR signals so _app.tsx wraps every page in the
+    // storefront chrome and suppresses the platform TopNav on the first render.
+    h.set("x-mm-custom-domain", "1");
+    h.set("x-mm-self-host", "1");
+    h.set("x-mm-custom-domain-host", hostname);
+    h.set("x-mm-original-path", pathname || "/");
+    h.set("x-mm-shop-slug", slug);
+    if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
+    return h;
+  };
+
+  // GEO/agent files are served dynamically + tailored below, so they must NOT
+  // be caught by the static-asset passthrough. Everything else static passes.
+  const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
+  if (
+    !isStallGeoDynamic &&
+    (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
+      STATIC_ASSET_EXT_RE.test(pathname))
+  ) {
+    return NextResponse.next();
+  }
+
+  // Hidden surfaces (marketplace, Nostr discovery, Pro-billing pages) redirect
+  // back to the storefront home, which then renders the owner's stall.
+  if (isSelfHostBlockedPage(pathname)) {
+    return NextResponse.redirect(new URL("/", request.url), 307);
+  }
+
+  // API routing: refuse the platform billing + Stripe Connect endpoints that
+  // have no meaning on a single-tenant instance; pass everything else through
+  // (storefront, payments, MCP, email, etc.) with the self-host headers.
+  if (pathname.startsWith("/api/")) {
+    if (isSelfHostBlockedApi(pathname)) {
+      return NextResponse.json(
+        { error: "Not available on this instance" },
+        { status: 404 }
+      );
+    }
+    return NextResponse.next({ request: { headers: buildHeaders() } });
+  }
+
+  const rewriteToStallAgentView = (format: string) => {
+    const url = new URL("/api/stall-agent-view", request.url);
+    url.searchParams.set("slug", slug);
+    url.searchParams.set("format", format);
+    const h = buildHeaders();
+    h.set("x-stall-slug", slug);
+    h.set("x-stall-format", format);
+    const res = NextResponse.rewrite(url, { request: { headers: h } });
+    res.headers.set("Vary", "Accept, User-Agent");
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
+  };
+
+  // Per-stall GEO/agent files (llms.txt, robots.txt, rss.xml, feed.xml).
+  const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
+  if (geoFormat) {
+    return rewriteToStallAgentView(geoFormat);
+  }
+
+  // Content negotiation for the stall homepage: agents asking for a non-HTML
+  // representation get tailored markdown/JSON/plain-text; browsers + social
+  // bots keep getting the HTML storefront.
+  if (pathname === "/" || pathname === "") {
+    const format = negotiateAgentFormat(
+      request.headers.get("accept") || "",
+      request.headers.get("user-agent") || ""
+    );
+    if (format) return rewriteToStallAgentView(format);
+  }
+
+  // Shared platform pages (listing, cart, checkout, auth, orders, settings)
+  // render their own standalone chrome rather than being nested in the stall.
+  if (
+    CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH.some(
+      (p) =>
+        pathname === p ||
+        pathname === p.replace(/\/$/, "") ||
+        pathname.startsWith(p.endsWith("/") ? p : p + "/")
+    )
+  ) {
+    return NextResponse.next({ request: { headers: buildHeaders() } });
+  }
+
+  // Idempotent: already under /stall/<slug>.
+  const stallPrefix = `/stall/${slug}`;
+  if (pathname === stallPrefix || pathname.startsWith(`${stallPrefix}/`)) {
+    return NextResponse.next({ request: { headers: buildHeaders() } });
+  }
+
+  // Root → stall homepage; everything else nested under the stall so the
+  // existing dynamic routes handle SSR.
+  const rewritePath = selfHostStallRewritePath(pathname, slug);
+  return NextResponse.rewrite(new URL(`${rewritePath}${search}`, request.url), {
+    request: { headers: buildHeaders() },
+  });
 }

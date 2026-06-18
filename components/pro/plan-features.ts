@@ -21,3 +21,10 @@ export const PRO_FEATURES: string[] = [
   "Shippo shipping labels",
   "MCP API access for AI agents",
 ];
+
+// Wrangler (lifetime) includes everything in Herd PLUS the ability to run your
+// OWN private, single-tenant copy of the store (self-host). Listed separately so
+// the lifetime card can show the extra perk without implying it's in Herd.
+export const WRANGLER_EXTRA_FEATURES: string[] = [
+  "Self-host your own private copy of your store",
+];

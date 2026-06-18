@@ -1,7 +1,14 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { getStripeConnectAccount } from "@/utils/db/db-service";
-import { isCrypto, toSmallestUnit, satsToUSD } from "@/utils/stripe/currency";
+import {
+  isCrypto,
+  toSmallestUnit,
+  satsToUSD,
+  isExchangeRateError,
+  EXCHANGE_RATE_ERROR_CODE,
+} from "@/utils/stripe/currency";
+import { getSelfHostConfig, isSelfHostTenant } from "@/utils/self-host/config";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -110,11 +117,49 @@ export default async function handler(
     const isMultiMerchant =
       sellerSplits && Array.isArray(sellerSplits) && sellerSplits.length > 1;
 
+    // Self-host: this instance belongs to ONE seller and card charges run
+    // directly on their OWN standard Stripe account (the module client above is
+    // built from that key) — no Connect, no application fee, no transfers. A
+    // multi-seller cart can't be settled here, so refuse it up-front.
+    const selfHostCfg = getSelfHostConfig();
+    const selfHost = selfHostCfg.enabled;
+    if (selfHost && isMultiMerchant) {
+      return res.status(400).json({
+        error: "This store only supports single-seller checkout",
+      });
+    }
+
+    // Self-host: card charges require the OWNER to have explicitly turned on
+    // their own standard Stripe account AND configured a secret key. Enforce it
+    // server-side — hiding the card button in seller-status is presentation, not
+    // authorization, so a direct API caller must be refused here too.
+    if (
+      selfHost &&
+      (!selfHostCfg.ownStripe || !process.env.STRIPE_SECRET_KEY)
+    ) {
+      return res.status(400).json({
+        error: "Card payments are not enabled on this store",
+      });
+    }
+
+    // Self-host: card charges land directly on the OWNER's own Stripe account,
+    // so the only seller that may be checked out here is the configured tenant.
+    // Refuse a charge for any other seller's item (fail closed) so the owner's
+    // account is never billed for a listing that isn't theirs.
+    if (selfHost && !isSelfHostTenant(metadata?.sellerPubkey)) {
+      return res.status(400).json({
+        error: "This store only sells its own products",
+      });
+    }
+
     // Resolve the single-seller's connected Stripe account once. Both the
     // server-side tax gate and the direct-charge routing below need it; it
-    // never applies to multi-merchant carts or the platform account.
+    // never applies to multi-merchant carts or the platform account. In
+    // self-host we force it null so the charge lands directly on the owner's own
+    // account (no Connect routing, application fee, or platform donation cut).
     const singleSellerPubkey = metadata?.sellerPubkey;
     const singleSellerConnect =
+      !selfHost &&
       !isMultiMerchant &&
       singleSellerPubkey &&
       singleSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
@@ -445,8 +490,10 @@ export default async function handler(
     });
   } catch (error) {
     console.error("Stripe PaymentIntent creation error:", error);
-    return res.status(500).json({
+    const rateError = isExchangeRateError(error);
+    return res.status(rateError ? 503 : 500).json({
       error: "Failed to create payment intent",
+      ...(rateError && { code: EXCHANGE_RATE_ERROR_CODE }),
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }

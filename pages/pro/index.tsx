@@ -10,7 +10,11 @@ import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import ProCheckout from "@/components/pro/pro-checkout";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
-import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
+import {
+  FREE_FEATURES,
+  PRO_FEATURES,
+  WRANGLER_EXTRA_FEATURES,
+} from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
 
 const ProUpgradePage = () => {
@@ -141,6 +145,7 @@ const ProUpgradePage = () => {
                       cadence="one-time · lifetime"
                       features={[
                         "Everything in Herd",
+                        ...WRANGLER_EXTRA_FEATURES,
                         "Pay once, never expires",
                         "No renewals or subscriptions",
                       ]}

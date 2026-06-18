@@ -10,12 +10,15 @@ import {
   CreditCardIcon,
   TruckIcon,
   MapPinIcon,
+  ServerStackIcon,
 } from "@heroicons/react/24/outline";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
 import ProtectedRoute from "@/components/utility-components/protected-route";
+import { useProMembership } from "@/components/utility-components/pro-membership-context";
 
 const SettingsPage = () => {
   const router = useRouter();
+  const { membership } = useProMembership();
 
   const settingsItems = [
     {
@@ -93,6 +96,20 @@ const SettingsPage = () => {
       iconBg: "bg-slate-600",
       route: "/settings/api-keys",
     },
+    // Wrangler (lifetime) only: download a self-hostable copy of your store.
+    ...(membership.isLifetime
+      ? [
+          {
+            id: "self-host",
+            title: "Self-Host Your Store",
+            description:
+              "Download a setup bundle to run your own private copy of your store",
+            icon: ServerStackIcon,
+            iconBg: "bg-slate-600",
+            route: "/settings/self-host",
+          },
+        ]
+      : []),
   ];
 
   return (

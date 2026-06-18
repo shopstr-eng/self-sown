@@ -15,7 +15,11 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import SignInModal from "@/components/sign-in/SignInModal";
-import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
+import {
+  FREE_FEATURES,
+  PRO_FEATURES,
+  WRANGLER_EXTRA_FEATURES,
+} from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
@@ -960,6 +964,12 @@ export default function StandaloneLanding() {
                   <span className="text-green-600">&#10003;</span>
                   Everything in Herd
                 </li>
+                {WRANGLER_EXTRA_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="text-green-600">&#10003;</span>
+                    {f}
+                  </li>
+                ))}
                 <li className="flex items-start gap-2">
                   <span className="text-green-600">&#10003;</span>
                   Pay once, keep it for life

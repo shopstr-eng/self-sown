@@ -62,6 +62,7 @@ import {
 import { Proof } from "@cashu/cashu-ts";
 import TopNav from "@/components/nav-top";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
+import { selfHostHeaderTrusted } from "@/utils/self-host/routing";
 import { CustomDomainProvider } from "@/utils/storefront/custom-domain-context";
 import PageLoadingBar from "@/components/page-loading-bar";
 import DynamicHead from "../components/dynamic-meta-head";
@@ -670,6 +671,11 @@ function MilkMarket({ props }: { props: AppProps }) {
   // The follow-up useEffect only runs if the SSR signal disagreed with the
   // client's hostname (e.g. middleware missing in dev) and corrects it once.
   const ssrIsCustomDomain = props.pageProps?.__isCustomDomainSsr === true;
+  // Self-host (Wrangler single-tenant) signal from proxy.ts (x-mm-self-host).
+  // On self-host the whole instance is the owner's storefront, so we force the
+  // storefront chrome on every served page and stop the client hostname
+  // re-detection below from ever dropping the lockdown (e.g. on localhost/IP).
+  const ssrIsSelfHost = props.pageProps?.__isSelfHostSsr === true;
   const ssrShopSlug: string | null =
     props.pageProps?.__customDomainShopSlug ?? null;
   const ssrCustomDomainHost: string | null =
@@ -688,6 +694,10 @@ function MilkMarket({ props }: { props: AppProps }) {
   const { isCustomDomain: isCustomDomainVisit } = domainState;
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // Self-host: the proxy is authoritative (every page is the owner's stall,
+    // even via localhost or a bare IP where hostname detection would wrongly
+    // say "not a custom domain"). Trust the SSR signal; never flip it off.
+    if (ssrIsSelfHost) return;
     const host = window.location.hostname.toLowerCase();
     if (!host) return;
     const PLATFORM_EXACT = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
@@ -710,7 +720,7 @@ function MilkMarket({ props }: { props: AppProps }) {
       if (prev.isCustomDomain === detected && prev.isResolved) return prev;
       return { isCustomDomain: detected, isResolved: true };
     });
-  }, []);
+  }, [ssrIsSelfHost]);
 
   // Stall-scoped routes can be served either by /pages/stall/** directly or
   // by Next.js rewrites (e.g. /stall/<slug>/listing/<id> -> /listing/<id>,
@@ -1659,6 +1669,9 @@ function MilkMarket({ props }: { props: AppProps }) {
                                         domainState.isCustomDomain &&
                                         !router.pathname.startsWith("/stall/")
                                       }
+                                      // Self-host only: paint the owner's chrome
+                                      // immediately (no Pro-status round trip).
+                                      forceSelfHostChrome={ssrIsSelfHost}
                                     >
                                       {/* Stable key on both branches so if
                                                   the wrapper ever flips in/out
@@ -1740,6 +1753,17 @@ App.getInitialProps = async (appContext: AppContext) => {
     return typeof v === "string" ? v : null;
   };
   const isCustomDomainSsr = headerVal("x-mm-custom-domain") === "1";
+  // Self-host (Wrangler single-tenant) signal — see routeSelfHost in proxy.ts.
+  // Fail closed: the spoofable x-mm-self-host header is honored ONLY when THIS
+  // server process is itself in self-host mode (MM_SELF_HOST env). On the hosted
+  // platform MM_SELF_HOST is unset, so a spoofed header is ignored and
+  // `forceSelfHostChrome` can never bypass the Pro render gate. The trust rule is
+  // a pure helper (utils/self-host/routing.ts) so it stays in lockstep with the
+  // proxy and tests; config.ts is server-only and must not be bundled here.
+  const isSelfHostSsr = selfHostHeaderTrusted(
+    process.env.MM_SELF_HOST,
+    headerVal("x-mm-self-host")
+  );
   const customDomainShopSlug = headerVal("x-mm-shop-slug");
   // Also forward the pubkey so the client can seed `storefrontLoadPubkey`
   // synchronously on the first render and avoid a post-hydration remount
@@ -1754,6 +1778,7 @@ App.getInitialProps = async (appContext: AppContext) => {
     pageProps: {
       ...(appProps as { pageProps?: Record<string, unknown> }).pageProps,
       __isCustomDomainSsr: isCustomDomainSsr,
+      __isSelfHostSsr: isSelfHostSsr,
       __customDomainShopSlug: customDomainShopSlug,
       __customDomainShopPubkey: customDomainShopPubkey,
       __customDomainHost: customDomainHost,
