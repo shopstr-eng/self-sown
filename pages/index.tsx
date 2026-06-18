@@ -418,10 +418,56 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-3xl px-4 text-center">
           <p className="text-lg text-zinc-600 md:text-xl">
             Milk Market is the permissionless marketplace for food producers and
-            local artisans. Open a storefront in minutes, set your own prices,
-            and reach shoppers who want transparent, sustainable food from real
+            local artisans. Open a stall in minutes, set your own prices, and
+            reach shoppers who want transparent, sustainable food from real
             people nearby.
           </p>
+        </div>
+      </section>
+
+      {/* Product Showcase - real storefront screenshot */}
+      <section className="bg-grid-pattern relative z-10 overflow-hidden border-b-2 border-black py-16">
+        <PlusPattern />
+
+        <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 text-center">
+            <span className="shadow-neo mb-4 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold tracking-wide uppercase">
+              See it in action
+            </span>
+            <h2 className="mb-4 text-3xl font-black md:text-4xl">
+              Real stalls. Real food.
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-zinc-600">
+              Every seller gets a customizable stall with their own products,
+              prices, and branding. Here&apos;s a live shop on Milk Market.
+            </p>
+          </div>
+
+          {/* Browser-frame mockup */}
+          <div className="shadow-neo mx-auto max-w-4xl overflow-hidden rounded-xl border-3 border-black bg-white">
+            <div className="flex items-center gap-2 border-b-2 border-black bg-zinc-100 px-4 py-3">
+              <span className="h-3 w-3 rounded-full border-2 border-black bg-red-400"></span>
+              <span className="h-3 w-3 rounded-full border-2 border-black bg-yellow-400"></span>
+              <span className="h-3 w-3 rounded-full border-2 border-black bg-green-400"></span>
+              <span className="ml-3 hidden truncate rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-bold text-zinc-700 sm:inline-block">
+                milk.market/stall/your-farm
+              </span>
+            </div>
+            <Image
+              removeWrapper
+              src="/storefront-preview.png"
+              alt="A live Milk Market stall showing real products: raw goat milk and cheddar cheese with prices"
+              className="block w-full"
+            />
+          </div>
+
+          <div className="mt-8 text-center">
+            <Link href="/marketplace">
+              <button className={PRIMARYBUTTONCLASSNAMES}>
+                Discover products
+              </button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -438,7 +484,7 @@ export default function StandaloneLanding() {
           </div>
           <div>
             <span className="block text-2xl font-black">Minutes</span>
-            <span className="text-sm text-zinc-600">To Open a Storefront</span>
+            <span className="text-sm text-zinc-600">To Open a Stall</span>
           </div>
           <div>
             <span className="block text-2xl font-black">Open</span>
@@ -489,7 +535,7 @@ export default function StandaloneLanding() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  You own your customers and storefront on an open network
+                  You own your customers and stall on an open network
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
@@ -558,9 +604,7 @@ export default function StandaloneLanding() {
                     1
                   </div>
                   <div>
-                    <h3 className="mb-1 text-lg font-bold">
-                      Open your storefront
-                    </h3>
+                    <h3 className="mb-1 text-lg font-bold">Open your stall</h3>
                     <p className="text-zinc-600">Sign up in minutes.</p>
                   </div>
                 </div>
@@ -702,8 +746,7 @@ export default function StandaloneLanding() {
               <h3 className="mb-2 text-xl font-bold">Own Your Store</h3>
               <p className="text-zinc-600">
                 Built on Nostr, an open and decentralized network. Your
-                customers and storefront are yours, and no one can deplatform
-                you.
+                customers and stall are yours, and no one can deplatform you.
               </p>
             </div>
             <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-center">
@@ -810,7 +853,7 @@ export default function StandaloneLanding() {
                     barn: false,
                   },
                   {
-                    feature: "Custom domain & storefront",
+                    feature: "Custom domain & stall",
                     mm: "Herd",
                     shopify: true,
                     barn: true,
@@ -894,8 +937,8 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-600">
               Start selling for free. Upgrade to Herd when you want a fully
-              custom storefront and pro tools, or go Wrangler for one-time
-              lifetime access. No mandatory transaction fees, ever.
+              custom stall and pro tools, or go Wrangler for one-time lifetime
+              access. No mandatory transaction fees, ever.
             </p>
           </div>
 
@@ -1015,11 +1058,11 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
               question="Do I own my customers and store?"
-              answer="Yes. Milk Market is built on Nostr, an open and decentralized network. Your storefront and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you."
+              answer="Yes. Milk Market is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you."
             />
             <FAQItem
               question="How do payments work?"
@@ -1031,7 +1074,7 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="I'm already on Shopify or Barn2Door. Can I switch?"
-              answer="Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your storefront in minutes."
+              answer="Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your stall in minutes."
             />
           </div>
         </div>

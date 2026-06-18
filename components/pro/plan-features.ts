@@ -12,7 +12,7 @@ export const FREE_FEATURES: string[] = [
 
 export const PRO_FEATURES: string[] = [
   "Everything in Free",
-  "Advanced storefront customization",
+  "Advanced stall customization",
   "Self-serve custom domains",
   "Automated email flows",
   "Email analytics & engagement stats",

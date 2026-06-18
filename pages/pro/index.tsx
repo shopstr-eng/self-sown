@@ -114,8 +114,8 @@ const ProUpgradePage = () => {
                         : "Upgrade to unlock everything"}
                     </h2>
                     <p className="font-medium text-black">
-                      Advanced storefronts, custom domains, email flows with
-                      open &amp; click analytics, custom product pages, Shippo
+                      Advanced stalls, custom domains, email flows with open
+                      &amp; click analytics, custom product pages, Shippo
                       shipping labels, and the MCP API.
                     </p>
                     {membership.status === "free" && (

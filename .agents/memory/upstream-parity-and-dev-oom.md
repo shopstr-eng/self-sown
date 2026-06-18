@@ -26,3 +26,11 @@ To preview without the dev OOM, the `dev` script does a memory-bumped production
 **Why:** `next.config` sets `output: "standalone"`. `next start` with standalone prints a warning and doesn't serve the bundle's static/public assets (you get asset 404s). The standalone server (`node .next/standalone/server.js`) reads `PORT`/`HOSTNAME` env (not `-p`/`-H` flags) and needs `.next/static` + `public` folded in first — same steps as `scripts/deploy-build.sh`. A prod build runs comfortably at `--max-old-space-size=2048`.
 
 **How to apply:** trade hot-reload for stability — after code changes, restart the workflow to rebuild (~50–65s). Unrelated pre-existing 404s remain in this preview: `/sw.js`, `/workbox*` (PWA service worker, not emitted by this config) and `/favicon.ico`; they don't affect rendering, don't chase them as part of preview work.
+
+# Prod-build Turbopack panic = OOM under IDE memory contention
+
+`restart_workflow` can hard-FAIL (TASK_FAILED, not timeout) with a Turbopack panic on `[project]/styles/globals.css ... evaluate_webpack_loader ... failed to receive message / reading packet length / unexpected end of file`. That string is a Turbopack worker subprocess getting OOM-killed mid-CSS-parse — NOT a CSS/PostCSS/Tailwind code error, and NOT caused by unrelated JSX/asset edits.
+
+**Why:** the 2GB-heap prod build competes for RAM with the IDE's TypeScript language servers (`node .../typescript/lib/tsserver.js`), which can hold ~2GB+ combined. With only ~2.5GB free the native worker dies; it fails deterministically while memory stays starved (looks like a code bug but isn't).
+
+**How to apply:** check `free -h`. If available RAM is low and tsserver is large, `pkill -f "typescript/lib/tsserver.js"` (IDE respawns them lazily, no code/data impact) frees ~2GB, then restart the workflow — it builds cleanly.

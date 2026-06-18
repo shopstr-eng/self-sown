@@ -80,15 +80,16 @@ const ProducerGuidePage = () => {
       id: "step-4",
       label: "Step 4: Orders",
       threads: [
-        { id: "step-4-1", label: "4.1 Fiat Order Chat" },
-        { id: "step-4-2", label: "4.2 Bitcoin Order Chat" },
-        { id: "step-4-3", label: "4.3 Payment Redemption" },
-        { id: "step-4-4", label: "4.4 Wallet Page" },
+        { id: "step-4-1", label: "4.1 Orders Dashboard" },
+        { id: "step-4-2", label: "4.2 Fiat Order Chat" },
+        { id: "step-4-3", label: "4.3 Bitcoin Order Chat" },
+        { id: "step-4-4", label: "4.4 Payment Redemption" },
+        { id: "step-4-5", label: "4.5 Wallet Page" },
       ],
     },
     {
       id: "step-5",
-      label: "Step 5: Storefront",
+      label: "Step 5: Stall",
       threads: [],
     },
     {
@@ -260,7 +261,7 @@ const ProducerGuidePage = () => {
         <title>Producer Guide — How to Sell on Milk Market</title>
         <meta
           name="description"
-          content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your storefront."
+          content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall."
         />
         <script
           type="application/ld+json"
@@ -270,7 +271,7 @@ const ProducerGuidePage = () => {
               "@type": "HowTo",
               name: "How to Sell on Milk Market",
               description:
-                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their storefront on Milk Market.",
+                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Milk Market.",
               url: "https://milk.market/producer-guide",
               step: [
                 {
@@ -282,7 +283,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced storefront design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
                   url: "https://milk.market/producer-guide#step-2",
                 },
                 {
@@ -299,8 +300,8 @@ const ProducerGuidePage = () => {
                 },
                 {
                   "@type": "HowToStep",
-                  name: "Customize Your Storefront",
-                  text: "Personalize your public storefront with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
+                  name: "Customize Your Stall",
+                  text: "Personalize your public stall with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
                   url: "https://milk.market/producer-guide#step-5",
                 },
                 {
@@ -318,7 +319,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
-                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall — creating and updating listings, tracking inventory, and handling orders — and so agentic shopping tools can discover and purchase from your storefront automatically.",
+                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall — creating and updating listings, tracking inventory, and handling orders — and so agentic shopping tools can discover and purchase from your stall automatically.",
                   url: "https://milk.market/producer-guide#step-8",
                 },
                 {
@@ -633,7 +634,7 @@ const ProducerGuidePage = () => {
                       <p className="mb-4 text-base text-white">
                         Selling is free with unlimited listings and no mandatory
                         transaction fees. Upgrade to Herd whenever you want a
-                        fully custom storefront and pro tools.
+                        fully custom stall and pro tools.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                         <li>
@@ -643,8 +644,8 @@ const ProducerGuidePage = () => {
                         </li>
                         <li>
                           Go Herd for $21/month (or $168/year, saving 33%) to
-                          unlock advanced storefronts, custom domains, email
-                          flows with open/click analytics, custom product pages,
+                          unlock advanced stalls, custom domains, email flows
+                          with open/click analytics, custom product pages,
                           shipping labels, and AI agent (MCP) access &mdash; or
                           go Wrangler for one-time $2,100 lifetime access
                         </li>
@@ -821,24 +822,29 @@ const ProducerGuidePage = () => {
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                   {[
                     {
+                      src: "/orders-dashboard.png",
+                      alt: "Producer orders dashboard listing incoming local food orders",
+                      step: "4.1",
+                    },
+                    {
                       src: "/fiat-order-chat.png",
                       alt: "Encrypted chat interface for processing fiat local food orders",
-                      step: "4.1",
+                      step: "4.2",
                     },
                     {
                       src: "/bitcoin-order-chat.png",
                       alt: "Bitcoin Lightning payment order chat with a customer",
-                      step: "4.2",
+                      step: "4.3",
                     },
                     {
                       src: "/bitcoin-payment-redemption-modal.png",
                       alt: "Redeeming Bitcoin Cashu payment from a product sale",
-                      step: "4.3",
+                      step: "4.4",
                     },
                     {
                       src: "/wallet-page.png",
                       alt: "Milk Market wallet showing Bitcoin and Cashu balance for sales",
-                      step: "4.4",
+                      step: "4.5",
                     },
                   ].map((image, idx) => (
                     <div
@@ -870,14 +876,14 @@ const ProducerGuidePage = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
-                      Customize Your Storefront
+                      Customize Your Stall
                       <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
                         Pro
                       </span>
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Make your stall your own with a fully branded storefront
-                      that you control.
+                      Make your stall your own with a fully branded design that
+                      you control.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                       <li>Pick your own colors, fonts, and theme</li>
