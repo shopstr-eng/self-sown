@@ -1,36 +1,35 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { Button, Image, Modal, ModalContent, ModalBody } from "@heroui/react";
+import { Button } from "@heroui/react";
 import {
   ArrowLeftIcon,
-  XMarkIcon,
   InformationCircleIcon,
   Bars3Icon,
   PlusIcon,
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import {
   WHITEBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 
+const VideoPlaceholder = () => (
+  <div className="relative aspect-video w-full overflow-hidden rounded-lg border-3 border-black bg-gray-700">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-white">
+      <div className="shadow-neo flex h-16 w-16 items-center justify-center rounded-full border-3 border-black bg-white">
+        <VideoCameraIcon className="h-8 w-8 text-black" />
+      </div>
+      <span className="text-sm font-bold">Video coming soon</span>
+    </div>
+  </div>
+);
+
 const ProducerGuidePage = () => {
   const router = useRouter();
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("introduction");
-
-  const handleImageClick = (imageSrc: string) => {
-    setExpandedImage(imageSrc);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setExpandedImage(null);
-    setIsModalOpen(false);
-  };
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -494,19 +493,6 @@ const ProducerGuidePage = () => {
               </div>
             </div>
 
-            {/* Video Section */}
-            <div className="bg-primary-blue shadow-neo mb-16 rounded-lg border-4 border-black p-6">
-              <h2 className="mb-4 text-center text-2xl font-bold text-white">
-                Getting Started Video Guide
-              </h2>
-              <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-lg border-2 border-black">
-                <video controls className="w-full bg-black">
-                  <source src="/producer-demo.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
-
             {/* Step-by-Step Guide */}
             <div className="space-y-8">
               {/* Step 1 */}
@@ -575,46 +561,8 @@ const ProducerGuidePage = () => {
                   </div>
                 </div>
 
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    {
-                      src: "/sign-in-modal.png",
-                      alt: "Milk Market sign-in modal for new producer account creation",
-                      step: "1.1",
-                    },
-                    {
-                      src: "/keys-page.png",
-                      alt: "Nostr key management page for secure producer authentication",
-                      step: "1.2",
-                    },
-                    {
-                      src: "/profile-page.png",
-                      alt: "Producer profile setup page with farm details and payment preferences",
-                      step: "1.3",
-                    },
-                    {
-                      src: "/shop-page.png",
-                      alt: "Customizable shop page for displaying local food products",
-                      step: "1.4",
-                    },
-                  ].map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="shadow-neo relative cursor-pointer overflow-hidden rounded-lg border-3 border-black bg-gray-700 transition-transform hover:-translate-y-1"
-                      onClick={() => handleImageClick(image.src)}
-                    >
-                      <div className="shadow-neo absolute top-2 left-2 z-10 rounded border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black">
-                        Step {image.step}
-                      </div>
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {/* Video Placeholder */}
+                <VideoPlaceholder />
               </div>
 
               {/* Step 2 */}
@@ -662,15 +610,7 @@ const ProducerGuidePage = () => {
                     </div>
                   </div>
                   <div className="flex items-center justify-center lg:w-1/2">
-                    <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
-                      <h3 className="mb-1 text-xl font-bold text-black">
-                        30-Day Free Trial
-                      </h3>
-                      <p className="text-sm text-zinc-700">
-                        Try every Herd feature free for 30 days &mdash; no
-                        payment required to start.
-                      </p>
-                    </div>
+                    <VideoPlaceholder />
                   </div>
                 </div>
               </div>
@@ -727,46 +667,8 @@ const ProducerGuidePage = () => {
                   </div>
                 </div>
 
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    {
-                      src: "/listing-password-modal.png",
-                      alt: "Listing passphrase verification for trusted local food producers",
-                      step: "3.1",
-                    },
-                    {
-                      src: "/product-details-form.png",
-                      alt: "Product listing form for local food with pricing options",
-                      step: "3.2",
-                    },
-                    {
-                      src: "/pickup-and-volume-details.png",
-                      alt: "Pickup location and volume pricing configuration for local food products",
-                      step: "3.3",
-                    },
-                    {
-                      src: "/list-product-with-passphrase.png",
-                      alt: "Publishing a new product listing to the Milk Market marketplace",
-                      step: "3.4",
-                    },
-                  ].map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="shadow-neo relative cursor-pointer overflow-hidden rounded-lg border-3 border-black bg-gray-700 transition-transform hover:-translate-y-1"
-                      onClick={() => handleImageClick(image.src)}
-                    >
-                      <div className="shadow-neo absolute top-2 left-2 z-10 rounded border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black">
-                        Step {image.step}
-                      </div>
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {/* Video Placeholder */}
+                <VideoPlaceholder />
               </div>
 
               {/* Step 4 */}
@@ -818,51 +720,8 @@ const ProducerGuidePage = () => {
                   </div>
                 </div>
 
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    {
-                      src: "/orders-dashboard.png",
-                      alt: "Producer orders dashboard listing incoming local food orders",
-                      step: "4.1",
-                    },
-                    {
-                      src: "/fiat-order-chat.png",
-                      alt: "Encrypted chat interface for processing fiat local food orders",
-                      step: "4.2",
-                    },
-                    {
-                      src: "/bitcoin-order-chat.png",
-                      alt: "Bitcoin Lightning payment order chat with a customer",
-                      step: "4.3",
-                    },
-                    {
-                      src: "/bitcoin-payment-redemption-modal.png",
-                      alt: "Redeeming Bitcoin Cashu payment from a product sale",
-                      step: "4.4",
-                    },
-                    {
-                      src: "/wallet-page.png",
-                      alt: "Milk Market wallet showing Bitcoin and Cashu balance for sales",
-                      step: "4.5",
-                    },
-                  ].map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="shadow-neo relative cursor-pointer overflow-hidden rounded-lg border-3 border-black bg-gray-700 transition-transform hover:-translate-y-1"
-                      onClick={() => handleImageClick(image.src)}
-                    >
-                      <div className="shadow-neo absolute top-2 left-2 z-10 rounded border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black">
-                        Step {image.step}
-                      </div>
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {/* Video Placeholder */}
+                <VideoPlaceholder />
               </div>
 
               {/* Step 5 */}
@@ -1062,12 +921,7 @@ const ProducerGuidePage = () => {
                     </div>
                   </div>
                   <div className="flex items-center justify-center lg:w-1/2">
-                    <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
-                      <h3 className="text-xl font-bold text-black">
-                        There's no better form of marketing than happy,
-                        recurring customers!
-                      </h3>
-                    </div>
+                    <VideoPlaceholder />
                   </div>
                 </div>
               </div>
@@ -1141,37 +995,6 @@ const ProducerGuidePage = () => {
             </div>
           </div>
         </div>
-
-        {/* Image Expansion Modal */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          size="4xl"
-          classNames={{
-            base: "bg-transparent shadow-none",
-            backdrop: "bg-black/80",
-          }}
-        >
-          <ModalContent>
-            <ModalBody className="relative p-0">
-              <button
-                onClick={closeModal}
-                className="shadow-neo absolute top-4 right-4 z-10 rounded-full border-2 border-black bg-white p-2 text-black transition-colors hover:bg-gray-100"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-              {expandedImage && (
-                <div className="overflow-hidden rounded-xl border-4 border-black">
-                  <Image
-                    src={expandedImage}
-                    alt="Expanded view"
-                    className="h-auto max-h-[90vh] w-full object-contain"
-                  />
-                </div>
-              )}
-            </ModalBody>
-          </ModalContent>
-        </Modal>
       </div>
     </>
   );
