@@ -19,6 +19,14 @@ The fork (milk-market) is heavily diverged from `upstream/main`; we hand-port up
 
 **How to apply:** don't chase it as a code bug after a dep bump. The bash tool also kills any backgrounded `next dev` at call timeout, so you can't warm the cache outside the workflow — and leaked `next dev` processes from such attempts eat RAM and make everything else OOM (kill them with `pkill -9 -f "next dev"`). Verify health via typecheck + clean boot; treat heavy cold compiles as slow/environmental.
 
+## The OOM can disguise itself as a Turbopack `parse_css` crash on globals.css
+
+A cold `next build` can fail with `TurbopackInternalError: [project]/styles/globals.css [client] (css)` → `parse_css` / `PostCssTransformedAsset::process` / `evaluate_webpack_loader` → "failed to receive message / reading packet length / unexpected end of file". This is **not** a CSS/Tailwind/PostCSS regression — it's the native PostCSS worker subprocess being OOM-killed mid-IPC. It reproduces deterministically on the same module (globals.css) when RAM is tight, which makes it look like a code bug. Confirm scope with `git status` (if nothing under `styles/`, tailwind/postcss config, or `next.config` changed, it's not your edit).
+
+**Why:** under the 7.7GB container ceiling the biggest competitor for RAM is the IDE's own LSP — two `tsserver.js` processes can hold ~2.5GB combined. Add the 2GB build + system and the PostCSS worker gets squeezed and killed.
+
+**How to apply:** before restarting the workflow for a cold rebuild, free LSP RAM with `pkill -9 -f "tsserver.js"` (and `pkill -9 -f "typescript-language-server"`) — they respawn on demand. With ~4–5GB free the same 2GB build compiles fine (~85s). Also: NEVER `kill -9` a manual `next build` mid-flight — it corrupts `.next` (truncated cache → the same "unexpected end of file") AND leaks build workers that keep eating RAM; if you started one in the background, let it finish or `rm -rf .next` afterward.
+
 # Memory-free preview = build + run the standalone server (not next dev, not next start)
 
 To preview without the dev OOM, the `dev` script does a memory-bumped production build then serves it: `next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && PORT=5000 HOSTNAME=0.0.0.0 node .next/standalone/server.js`. The old hot-reload dev is preserved as `dev:hot`.

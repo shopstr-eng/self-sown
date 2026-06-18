@@ -84,14 +84,21 @@ export async function lookupByHost(
 ): Promise<HostResolution> {
   const cached = getCached(host);
   if (cached !== undefined) return cached;
+  const empty: HostResolution = { slug: null, pubkey: null };
   try {
     const r = await fetch(
       `${PLATFORM_LOOKUP_ORIGIN}/api/storefront/lookup?domain=${encodeURIComponent(host)}`,
-      { headers: { "x-internal-lookup": "1" } }
+      { headers: { "x-internal-lookup": "1" }, cache: "no-store" }
     );
     if (!r.ok) {
-      const empty: HostResolution = { slug: null, pubkey: null };
-      setCached(host, empty);
+      // Only a genuine 404 is a DEFINITIVE negative we may cache: the domain
+      // isn't configured/verified, or it belongs to a lapsed (hidden) Pro
+      // seller whose custom domain has stopped resolving. Every other failure
+      // (500/502/503 from a DB blip, 408/429, or an edge fetch hiccup) is
+      // TRANSIENT and must NOT be cached — otherwise a single blip pins every
+      // visitor to the "_custom-domain" placeholder for the whole negative-TTL
+      // window even though the stall is perfectly fine.
+      if (r.status === 404) setCached(host, empty);
       return empty;
     }
     // The lookup API has shipped two response shapes across branches:
@@ -109,8 +116,9 @@ export async function lookupByHost(
     setCached(host, resolution);
     return resolution;
   } catch {
-    const empty: HostResolution = { slug: null, pubkey: null };
-    setCached(host, empty);
+    // Network/TLS error reaching the lookup API — transient. Return empty for
+    // THIS request (proxy falls back to the client-side placeholder, which now
+    // retries) but do not cache it, so the very next request tries again.
     return empty;
   }
 }
