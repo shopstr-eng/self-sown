@@ -2554,6 +2554,43 @@ export const fetchStorefrontData = async (
   });
 
   const communityPromise = (async () => {
+    // Resolve the DB cache FIRST, in its own try/catch, then seed the context
+    // before touching relays. This mirrors fetchAllCommunities (the marketplace
+    // path) so a transient relay failure can never wipe a community that the
+    // marketplace — reading the same cached events — still shows. Previously the
+    // relay fetch ran first inside the outer try; if it threw, control jumped to
+    // the catch and reset the community to an empty map before the DB fallback
+    // ever ran, so the seller's stall reported "no community" while the
+    // marketplace listed it. This caused the intermittent, device-dependent
+    // blank community tab on custom stalls/domains.
+    const communityMap = new Map<string, Community>();
+
+    try {
+      const response = await fetch("/api/db/fetch-communities");
+      if (response.ok) {
+        const communitiesFromDb = await response.json();
+        for (const event of communitiesFromDb) {
+          if (event.pubkey === shopPubkey) {
+            const community = parseCommunityEvent(event);
+            if (community) communityMap.set(community.id, community);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Failed to fetch storefront communities from database:",
+        error
+      );
+    }
+
+    // Publish the DB seed immediately so the seller's community renders without
+    // waiting on relays — but only when the DB actually had a match. If the DB
+    // came back empty, stay in the loading state so we don't flash a misleading
+    // "no community" for a community that lives only on relays.
+    if (communityMap.size > 0) {
+      editCommunityContext(new Map(communityMap), false);
+    }
+
     try {
       const communityFilter: Filter = {
         kinds: [34550],
@@ -2565,20 +2602,6 @@ export const fetchStorefrontData = async (
         {},
         relays
       );
-      const communityMap = new Map<string, Community>();
-
-      try {
-        const response = await fetch("/api/db/fetch-communities");
-        if (response.ok) {
-          const communitiesFromDb = await response.json();
-          for (const event of communitiesFromDb) {
-            if (event.pubkey === shopPubkey) {
-              const community = parseCommunityEvent(event);
-              if (community) communityMap.set(community.id, community);
-            }
-          }
-        }
-      } catch {}
 
       for (const event of fetchedCommunities) {
         const community = parseCommunityEvent(event);
@@ -2590,7 +2613,7 @@ export const fetchStorefrontData = async (
         }
       }
 
-      editCommunityContext(communityMap, false);
+      editCommunityContext(new Map(communityMap), false);
 
       const validCommunities = fetchedCommunities.filter(
         (e) => e.id && e.sig && e.pubkey && e.kind === 34550
@@ -2604,8 +2627,13 @@ export const fetchStorefrontData = async (
         );
       }
     } catch (error) {
-      console.error("Error fetching storefront communities:", error);
-      editCommunityContext(new Map(), false);
+      console.error(
+        "Error fetching storefront communities from relays:",
+        error
+      );
+      // Keep whatever the DB seed produced (possibly empty) — never clobber it
+      // to empty on a transient relay failure.
+      editCommunityContext(new Map(communityMap), false);
     }
   })();
 
