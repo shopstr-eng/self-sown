@@ -1,7 +1,22 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import {
+  NostrContext,
+  SignerContext,
+} from "@/components/utility-components/nostr-context-provider";
+import { ProfileMapContext } from "@/utils/context/context";
+import {
+  createNostrProfileEvent,
+  getLocalUserProfileKey,
+} from "@/utils/nostr/nostr-helper-functions";
 import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
 
 type DnsInstruction = {
@@ -110,6 +125,8 @@ function DnsRow({ instruction }: { instruction: DnsInstruction }) {
 
 export default function CustomDomainSection() {
   const { signer, pubkey: userPubkey } = useContext(SignerContext);
+  const { nostr } = useContext(NostrContext);
+  const profileContext = useContext(ProfileMapContext);
 
   const [loaded, setLoaded] = useState(false);
   const [domain, setDomain] = useState<StoredDomain | null>(null);
@@ -117,6 +134,14 @@ export default function CustomDomainSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [nip05Notice, setNip05Notice] = useState<{
+    tone: "success" | "warn";
+    text: string;
+  } | null>(null);
+  // Tracks the NIP-05 value we've already attempted to publish this session so
+  // a re-render (or the profile-context update we trigger ourselves) can't loop
+  // us into republishing the kind:0 event over and over.
+  const syncedNip05Ref = useRef<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!userPubkey) return;
@@ -136,6 +161,101 @@ export default function CustomDomainSection() {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // Once a seller's custom domain is verified, automatically point their
+  // NIP-05 (Nostr address) at it — `<username>@<their-domain>` — by updating
+  // their kind:0 profile event. The custom-domain `/.well-known/nostr.json`
+  // already resolves that local-part to the seller's pubkey, so this makes the
+  // address verifiable everywhere without the seller editing their profile by
+  // hand. Mirrors the local-fallback write + profile-context update the profile
+  // settings form does, so the settings form shows the new value too.
+  useEffect(() => {
+    if (!domain?.verified) return;
+    if (!userPubkey || !signer?.sign || !nostr) return;
+    // Wait until the seller's existing profile has loaded so we merge into it
+    // rather than clobbering other fields.
+    if (profileContext.isLoading) return;
+
+    const verifiedDomain = domain.domain.toLowerCase().trim();
+
+    const existingProfile = profileContext.profileData.get(userPubkey);
+    const content = (existingProfile?.content ?? {}) as Record<string, unknown>;
+    const username =
+      typeof content.name === "string" ? content.name.trim() : "";
+    const currentNip05 =
+      typeof content.nip05 === "string" ? content.nip05.trim() : "";
+    const currentHost = currentNip05.includes("@")
+      ? (currentNip05.split("@")[1] || "").toLowerCase().trim()
+      : "";
+
+    // Already advertising an address on this verified domain — leave the
+    // seller's chosen local-part alone.
+    if (currentHost === verifiedDomain) {
+      syncedNip05Ref.current = currentNip05;
+      return;
+    }
+
+    // Without a username we can't form a verifiable NIP-05 local-part. Nudge
+    // the seller to set one instead of publishing something that won't resolve.
+    if (!username) {
+      setNip05Notice({
+        tone: "warn",
+        text: "Add a username to your profile to get a verified Nostr address (NIP-05) on your custom domain.",
+      });
+      return;
+    }
+
+    const desiredNip05 = `${username}@${verifiedDomain}`;
+    // Don't re-attempt the same publish (e.g. after our own context update
+    // re-runs this effect).
+    if (syncedNip05Ref.current === desiredNip05) return;
+    syncedNip05Ref.current = desiredNip05;
+
+    (async () => {
+      try {
+        const updatedContent = { ...content, nip05: desiredNip05 };
+        const updatedAt = Math.floor(Date.now() / 1000);
+
+        // Publish FIRST. Only persist the local fallback + update the in-memory
+        // profile after the kind:0 event is actually signed + cached, so a
+        // rejected signer prompt or relay error never leaves the settings form
+        // showing a NIP-05 that was never published.
+        await createNostrProfileEvent(
+          nostr,
+          signer,
+          JSON.stringify(updatedContent)
+        );
+
+        try {
+          localStorage.setItem(
+            getLocalUserProfileKey(userPubkey),
+            JSON.stringify({ content: updatedContent, updatedAt })
+          );
+        } catch (err) {
+          console.error("Failed to persist profile fallback locally:", err);
+        }
+
+        profileContext.updateProfileData({
+          pubkey: userPubkey,
+          content: updatedContent,
+          created_at: updatedAt,
+        });
+
+        setNip05Notice({
+          tone: "success",
+          text: `Your Nostr address (NIP-05) is now ${desiredNip05}.`,
+        });
+      } catch (err) {
+        // Allow a later retry (e.g. after the seller approves a signer prompt).
+        syncedNip05Ref.current = null;
+        console.error("Failed to auto-set NIP-05 for custom domain:", err);
+        setNip05Notice({
+          tone: "warn",
+          text: "Couldn't set your Nostr address automatically. Open your profile settings and save to set it manually.",
+        });
+      }
+    })();
+  }, [domain, userPubkey, signer, nostr, profileContext]);
 
   const status = domain?.tlsStatus ? STATUS_COPY[domain.tlsStatus] : null;
 
@@ -239,6 +359,8 @@ export default function CustomDomainSection() {
       }
       setDomain(null);
       setVerifyResult(null);
+      setNip05Notice(null);
+      syncedNip05Ref.current = null;
     } catch (err: any) {
       setError(err?.message || "Failed to disconnect");
     } finally {
@@ -429,6 +551,18 @@ export default function CustomDomainSection() {
               >
                 Visit your storefront →
               </a>
+            </div>
+          )}
+
+          {nip05Notice && (
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                nip05Notice.tone === "success"
+                  ? "bg-green-50 text-green-900"
+                  : "bg-amber-50 text-amber-900"
+              }`}
+            >
+              {nip05Notice.text}
             </div>
           )}
 
