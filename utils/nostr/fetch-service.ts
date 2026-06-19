@@ -2259,7 +2259,8 @@ export const fetchCommunityPosts = async (
       const approvalEvents = await nostr.fetch(
         [approvalFilter],
         {},
-        approvalRelays
+        approvalRelays,
+        { resolveOnTimeout: true, timeout: 10000 }
       );
 
       for (const ap of approvalEvents) {
@@ -2294,7 +2295,8 @@ export const fetchCommunityPosts = async (
           const batchEvents = await nostr.fetch(
             [postsFilter],
             {},
-            requestRelays
+            requestRelays,
+            { resolveOnTimeout: true, timeout: 10000 }
           );
           postEvents.push(...batchEvents);
         }
@@ -2366,7 +2368,8 @@ export const fetchPendingPosts = async (
       const allPostRequests = await nostr.fetch(
         [postRequestFilter],
         {},
-        requestRelays
+        requestRelays,
+        { resolveOnTimeout: true, timeout: 10000 }
       );
 
       const validPostsToCache = allPostRequests.filter(

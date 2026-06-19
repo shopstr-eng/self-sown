@@ -171,50 +171,81 @@ export class NostrManager {
   public async fetch(
     filters: NostrFilter[],
     params?: SubscribeManyParams,
-    relayUrls?: string[]
+    relayUrls?: string[],
+    options?: { timeout?: number; resolveOnTimeout?: boolean }
   ): Promise<NostrEvent[]> {
-    return await newPromiseWithTimeout(async (resolve, _reject) => {
-      if (!params) {
-        params = {};
+    // Hoisted above the timeout promise so the catch can surface whatever
+    // arrived before the timeout instead of discarding it.
+    const fetchedEvents: Array<NostrEvent> = [];
+    let sub: NostrSub | undefined;
+    let didCloseSub = false;
+
+    const closeSubIfNeeded = async () => {
+      if (!sub || didCloseSub) return;
+      didCloseSub = true;
+      await sub.close();
+    };
+
+    try {
+      return await newPromiseWithTimeout<NostrEvent[]>(
+        async (resolve, _reject, abortSignal) => {
+          if (!params) {
+            params = {};
+          }
+
+          if (!params.onevent) {
+            params.onevent = () => {};
+          }
+
+          if (!params.oneose) {
+            params.oneose = () => {};
+          }
+
+          const onEvent = params.onevent;
+          const onEose = params.oneose;
+          let didResolve = false;
+
+          params.onevent = (event: NostrEvent) => {
+            fetchedEvents.push(event);
+            return onEvent!(event);
+          };
+
+          params.oneose = () => {
+            closeSubIfNeeded().catch(console.error);
+            if (!didResolve) {
+              didResolve = true;
+              resolve(fetchedEvents);
+            }
+            return onEose!();
+          };
+
+          sub = await this.subscribe(filters, params, relayUrls);
+          // If the timeout already fired while we were establishing the
+          // subscription, close it immediately so a late-resolving subscribe
+          // can't leak a live sub after the promise has settled.
+          if (abortSignal.aborted) {
+            closeSubIfNeeded().catch(console.error);
+          }
+        },
+        options?.timeout ? { timeout: options.timeout } : undefined
+      );
+    } catch (err) {
+      // nostr-tools only fires `oneose` after EVERY relay in the request set
+      // has sent EOSE, so a single connected-but-silent relay (common on a cold
+      // pool — e.g. a storefront's first visit before the marketplace warms the
+      // connections) blocks it until the timeout fires and rejects. Default
+      // behavior still rejects (callers may want to fall back to a cache), but
+      // when `resolveOnTimeout` is set we surface the events that DID arrive on
+      // the responsive relays instead of throwing them away — otherwise a feed
+      // looks empty even though the posts exist. Only the timeout is swallowed;
+      // genuine subscribe failures (e.g. "not readable") still propagate.
+      await closeSubIfNeeded().catch(() => {});
+      const isTimeout = err instanceof Error && err.message === "Timeout";
+      if (options?.resolveOnTimeout && isTimeout) {
+        return fetchedEvents;
       }
-
-      if (!params.onevent) {
-        params.onevent = () => {};
-      }
-
-      if (!params.oneose) {
-        params.oneose = () => {};
-      }
-
-      const onEvent = params.onevent;
-      const onEose = params.oneose;
-      const fetchedEvents: Array<NostrEvent> = [];
-      let sub: NostrSub | undefined;
-      let didCloseSub = false;
-      let didResolve = false;
-
-      const closeSubIfNeeded = async () => {
-        if (!sub || didCloseSub) return;
-        didCloseSub = true;
-        await sub.close();
-      };
-
-      params.onevent = (event: NostrEvent) => {
-        fetchedEvents.push(event);
-        return onEvent!(event);
-      };
-
-      params.oneose = () => {
-        closeSubIfNeeded().catch(console.error);
-        if (!didResolve) {
-          didResolve = true;
-          resolve(fetchedEvents);
-        }
-        return onEose!();
-      };
-
-      sub = await this.subscribe(filters, params, relayUrls);
-    });
+      throw err;
+    }
   }
 
   public async publish(event: NostrEvent, relayUrls?: string[]): Promise<void> {

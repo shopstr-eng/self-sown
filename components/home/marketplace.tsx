@@ -423,9 +423,6 @@ function MarketplacePage({
 
   return (
     <div className="mx-auto w-full bg-white">
-      <h1 className="px-6 pt-6 pb-0 text-2xl font-bold text-black">
-        {sellerName ?? "Browse Local Food Listings on Milk Market"}
-      </h1>
       {/* Filter Bar Section */}
       <div className="flex max-w-[100%] flex-col bg-white px-6 py-6">
         {shopBannerURL != "" && focusedPubkey != "" && !isFetchingShop ? (

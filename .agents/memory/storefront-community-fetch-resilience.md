@@ -56,6 +56,30 @@ as a backstop (also covers the moderator `fetchPendingPosts` path).
 fetch's rejection throw away cache data already in hand, and its loading flag
 must clear in `finally`. `nostr.fetch` rejecting on a 60s timeout is the trap.
 
+## Root cause of "slow then empty despite posts existing"
+
+The DB-first/`finally`-clears-spinner fixes above stopped the _permanent_
+spinner, but stalls still showed "No posts" after a long wait even when approved
+posts existed. Root cause is one layer deeper, in `NostrManager.fetch`:
+`nostr-tools`' `oneose` only fires after **EVERY** relay in the request set has
+sent EOSE. A single connected-but-silent relay (common on a **cold** pool — a
+storefront's first visit, before the marketplace has warmed the connections)
+never EOSEs, so `oneose` never fires, the 60s `newPromiseWithTimeout` fires, and
+it **rejects — discarding every event already received** on the responsive
+relays. `fetchCommunityPosts` then lands in its catch with an empty DB cache and
+resolves empty → "No posts have been made yet." The marketplace masks it because
+its pool is already warm, so EOSE returns fast.
+
+**Fix:** `fetch` takes `options?: {timeout?, resolveOnTimeout?}`. Default still
+rejects (callers may prefer a cache fallback). With `resolveOnTimeout:true` it
+returns the events that DID arrive instead of throwing them away. Community post
+fetches (approvals, post batches, pending) pass `{resolveOnTimeout:true,
+timeout:10000}` — faster than 60s and never empties a feed that has data.
+
+**How to apply:** any feed reading relays through `nostr.fetch` on a path that
+can hit a cold pool should use `resolveOnTimeout` so a silent relay can't both
+hang the call to the full timeout AND discard the events from the good relays.
+
 **Display gate (unchanged, intentional):** `storefront-layout.tsx` shows
 `sellerCommunity = first c where c.pubkey === shopPubkey` from the global
 `CommunityContext`, and the storefront relay filter uses `authors:[shopPubkey]`.
