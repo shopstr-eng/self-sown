@@ -334,8 +334,12 @@ async function routeRequest(request: NextRequest) {
     // dynamically + tailored to the seller below, so they must NOT be caught by
     // the static-asset passthrough. Everything else static still passes through.
     const isStallGeoDynamic = pathname in STALL_GEO_DYNAMIC_FORMAT;
+    // NIP-05: served dynamically per-seller below, so it must NOT be swallowed by
+    // the static-asset passthrough (".json" matches STATIC_ASSET_EXT_RE).
+    const isCustomDomainNostrJson = pathname === "/.well-known/nostr.json";
     if (
       !isStallGeoDynamic &&
+      !isCustomDomainNostrJson &&
       (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
         STATIC_ASSET_EXT_RE.test(pathname))
     ) {
@@ -394,6 +398,21 @@ async function routeRequest(request: NextRequest) {
     if (geoFormat) {
       if (!slug) return NextResponse.next();
       return rewriteToStallAgentView(geoFormat);
+    }
+
+    // NIP-05: serve a per-seller /.well-known/nostr.json so this custom domain
+    // advertises a `<username>@<domain>` Nostr address resolving to the seller's
+    // own pubkey. The seller pubkey is already resolved (and membership-gated)
+    // above, so pass it through via header. If the domain has no resolved seller
+    // (unconfigured/hidden), fall through to the platform's static /public copy.
+    if (isCustomDomainNostrJson) {
+      if (!pubkey) return NextResponse.next();
+      const url = new URL("/api/storefront/nostr-json", request.url);
+      const res = NextResponse.rewrite(url, {
+        request: { headers: buildHeaders() },
+      });
+      res.headers.set(RL_SKIP_HEADER, "1");
+      return res;
     }
 
     // Content negotiation for the stall homepage: when an LLM/agent asks for a
