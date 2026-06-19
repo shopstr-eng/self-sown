@@ -15,6 +15,7 @@ LLMs: https://milk.market/llms.txt
 LLMs-Full: https://milk.market/llms-full.txt
 Skill: https://milk.market/skill.md
 OpenAPI: https://milk.market/openapi.json
+UCP: https://milk.market/.well-known/ucp
 MCP: https://milk.market/.well-known/mcp.json
 Agent-Card: https://milk.market/.well-known/agent-card.json
 L402: https://milk.market/.well-known/l402.json
@@ -28,6 +29,17 @@ Sitemap: https://milk.market/sitemap.xml
 MCP-Endpoint: https://milk.market/api/mcp
 MCP-Transport: JSON-RPC 2.0 over Streamable HTTP
 Auth: Bearer API key (prefix "sk_"), three scopes: read, read_write, full_access
+
+# --- Universal Commerce Protocol (UCP) --------------------------------------
+# A REST surface for AI shopping agents (the UCP standard backed by Google and
+# Shopify), layered over the same catalog and order pipeline as MCP. The
+# discovery profile advertises a catalog capability and a checkout capability,
+# each with its JSON Schema. Catalog reads are open; creating a checkout session
+# requires a read_write API key (same "sk_" keys as MCP).
+UCP-Discovery: https://milk.market/.well-known/ucp
+UCP-Catalog-Search: https://milk.market/api/ucp/catalog/search
+UCP-Catalog-Lookup: https://milk.market/api/ucp/catalog/lookup
+UCP-Checkout-Sessions: https://milk.market/api/ucp/checkout/sessions
 
 # --- Allowed actions ---------------------------------------------------------
 Allow: browse and search product listings

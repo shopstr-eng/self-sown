@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useContext } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import Head from "next/head";
 import {
   Modal,
   ModalContent,
@@ -17,7 +16,6 @@ import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import CheckoutCard from "@/components/utility-components/checkout-card";
 import ZapsnagButton from "@/components/ZapsnagButton";
-import { ShopMapContext } from "@/utils/context/context";
 import {
   RawEventModal,
   EventIdModal,
@@ -26,48 +24,6 @@ import ProductPageRenderer from "@/components/storefront/product-page-renderer";
 import FormattedText from "@/components/storefront/formatted-text";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 import { NostrEvent } from "@/utils/types/types";
-
-function buildProductJsonLd(
-  product: ProductData,
-  shopName?: string
-): Record<string, unknown> | null {
-  if (!product?.title) return null;
-  const cfg = product.pageConfig;
-  const galleryImages =
-    cfg?.sections?.find(
-      (s) => s.type === "product_gallery" && s.galleryImages?.length
-    )?.galleryImages || [];
-  const images = [...(product.images || []), ...galleryImages].filter(Boolean);
-  const description = cfg?.metaDescription || product.summary || product.title;
-  const availability =
-    product.status && product.status !== "active"
-      ? "https://schema.org/OutOfStock"
-      : "https://schema.org/InStock";
-  const price =
-    product.totalCost && product.totalCost > 0
-      ? product.totalCost
-      : product.price;
-  const ld: Record<string, unknown> = {
-    "@context": "https://schema.org/",
-    "@type": "Product",
-    name: cfg?.metaTitle || product.title,
-    description,
-  };
-  if (images.length > 0) ld.image = images;
-  if (product.d) ld.sku = product.d;
-  if (shopName) {
-    ld.brand = { "@type": "Brand", name: shopName };
-  }
-  if (price && product.currency) {
-    ld.offers = {
-      "@type": "Offer",
-      priceCurrency: product.currency,
-      price: String(price),
-      availability,
-    };
-  }
-  return ld;
-}
 
 interface ProductListingViewProps {
   productData: ProductData | undefined;
@@ -92,7 +48,6 @@ export default function ProductListingView({
   topPaddingClass = "pt-20",
 }: ProductListingViewProps) {
   const router = useRouter();
-  const shopMapContext = useContext(ShopMapContext);
 
   const [showRawEventModal, setShowRawEventModal] = useState(false);
   const [showEventIdModal, setShowEventIdModal] = useState(false);
@@ -133,24 +88,8 @@ export default function ProductListingView({
 
   const sellerPubkey = productData?.pubkey || "";
 
-  const productJsonLd = useMemo(() => {
-    if (!productData || isZapsnag) return null;
-    const shopName = shopMapContext?.shopData?.get(sellerPubkey)?.content?.name;
-    return buildProductJsonLd(productData, shopName);
-  }, [productData, isZapsnag, shopMapContext?.shopData, sellerPubkey]);
-
   return (
     <>
-      {productJsonLd && (
-        <Head>
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify(productJsonLd),
-            }}
-          />
-        </Head>
-      )}
       <div
         className={`flex h-full min-h-screen flex-col bg-white ${topPaddingClass}`}
       >

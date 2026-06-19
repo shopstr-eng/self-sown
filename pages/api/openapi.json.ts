@@ -132,6 +132,161 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           },
         },
       },
+      "/.well-known/ucp": {
+        get: {
+          operationId: "ucpDiscovery",
+          summary:
+            "Universal Commerce Protocol (UCP) discovery profile (catalog + checkout capabilities)",
+          description:
+            "Aggregate marketplace profile on the platform host; a single-seller profile on a seller's custom domain or self-host instance.",
+          responses: {
+            "200": {
+              description: "UCP discovery JSON",
+              content: { "application/json": {} },
+            },
+          },
+        },
+      },
+      "/api/ucp/catalog/search": {
+        get: {
+          operationId: "ucpCatalogSearch",
+          summary: "UCP catalog search",
+          description:
+            "Search products (host-scoped to one seller on a seller domain). Supports q, category, availability, location, limit, offset.",
+          responses: {
+            "200": {
+              description: "Matching UCP products + context",
+              content: { "application/json": {} },
+            },
+          },
+        },
+      },
+      "/api/ucp/catalog/lookup": {
+        get: {
+          operationId: "ucpCatalogLookup",
+          summary: "UCP product lookup",
+          description:
+            "Look up a single product by id, d-tag, or slug, with live inventory + accepted payment methods.",
+          responses: {
+            "200": {
+              description: "A single UCP product",
+              content: { "application/json": {} },
+            },
+            "404": { description: "Product not found" },
+          },
+        },
+      },
+      "/api/ucp/checkout/sessions": {
+        post: {
+          operationId: "ucpCreateCheckoutSession",
+          summary: "Create a UCP checkout session",
+          description:
+            "Creates AND initializes a checkout session in one call by placing an order through Milk Market's existing order pipeline. Requires a read_write API key. Recoverable problems (e.g. no exchange rate to price a fiat order in sats) return HTTP 200 with a session whose status is 'requires_escalation' rather than an error status.",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            "200": {
+              description:
+                "Checkout session in a 'requires_escalation' state (a recoverable problem the buyer/seller must resolve out of band)",
+              content: { "application/json": {} },
+            },
+            "201": {
+              description: "Checkout session created",
+              content: { "application/json": {} },
+            },
+            "401": { description: "Missing or invalid API key" },
+            "403": { description: "Product not sold on this storefront" },
+            "404": { description: "Product not found" },
+            "429": { description: "Rate limited" },
+          },
+        },
+        get: {
+          operationId: "ucpListCheckoutSessions",
+          summary: "List the authenticated key's checkout sessions",
+          security: [{ bearerAuth: [] }],
+          responses: {
+            "200": {
+              description: "Checkout sessions",
+              content: { "application/json": {} },
+            },
+            "401": { description: "Missing or invalid API key" },
+          },
+        },
+      },
+      "/api/ucp/checkout/sessions/{id}": {
+        get: {
+          operationId: "ucpGetCheckoutSession",
+          summary: "Read one checkout session (owner-only)",
+          description:
+            "Returns the session with its status reconciled against the canonical order payment status.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Checkout session",
+              content: { "application/json": {} },
+            },
+            "401": { description: "Missing or invalid API key" },
+            "404": { description: "Checkout session not found" },
+          },
+        },
+      },
+      "/api/ucp/checkout/sessions/{id}/complete": {
+        post: {
+          operationId: "ucpCompleteCheckoutSession",
+          summary: "Complete a checkout session (owner-only)",
+          description:
+            "Explicitly completes a session: reconciles it against the canonical order payment status (paid→completed, processing/pending→complete_in_progress, failed→requires_escalation, refunded→canceled). Idempotent. Requires a read_write API key.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Checkout session after completion reconcile",
+              content: { "application/json": {} },
+            },
+            "401": { description: "Missing or invalid API key" },
+            "404": { description: "Checkout session not found" },
+            "429": { description: "Rate limited" },
+          },
+        },
+      },
+      "/api/ucp/schemas/product.json": {
+        get: {
+          operationId: "ucpProductSchema",
+          summary: "JSON Schema for the UCP product shape",
+          responses: {
+            "200": {
+              description: "JSON Schema (draft 2020-12)",
+              content: { "application/json": {} },
+            },
+          },
+        },
+      },
+      "/api/ucp/schemas/checkout-session.json": {
+        get: {
+          operationId: "ucpCheckoutSessionSchema",
+          summary: "JSON Schema for the UCP checkout session shape",
+          responses: {
+            "200": {
+              description: "JSON Schema (draft 2020-12)",
+              content: { "application/json": {} },
+            },
+          },
+        },
+      },
     },
     components: {
       securitySchemes: {

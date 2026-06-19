@@ -13,6 +13,7 @@ import {
   fetchShopProfileByPubkeyFromDb,
   fetchProfileByPubkeyFromDb,
   fetchProductByDTagAndPubkey,
+  fetchProductsByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import {
   resolveStallBranding,
@@ -20,6 +21,8 @@ import {
 } from "@/utils/storefront/stall-branding";
 import { getMembershipView } from "@/utils/pro/membership";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
+import { buildUcpCatalog } from "@/utils/ucp/catalog";
+import { buildItemListJsonLd } from "@/utils/geo/product-jsonld";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -33,6 +36,25 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
 ) => {
   const { slug } = context.query;
   const shopSlug = typeof slug === "string" ? slug : "";
+
+  // Resolve the origin + canonical path this stall page actually settles on so
+  // structured-data links match the page's canonical link tag. When the request
+  // arrives via a seller custom domain the proxy forwards the original host +
+  // public path (e.g. "https://farmer.com/"); otherwise it's the platform stall
+  // URL. Mirrors the canonical logic in DynamicHead.
+  const rawHost = context.req.headers["x-mm-custom-domain-host"];
+  const customHost = (typeof rawHost === "string" ? rawHost : "")
+    .toLowerCase()
+    .trim()
+    .replace(/:\d+$/, "");
+  const rawOriginalPath = context.req.headers["x-mm-original-path"];
+  const originalPath =
+    typeof rawOriginalPath === "string" ? rawOriginalPath : "";
+  const stallOrigin = customHost
+    ? `https://${customHost}`
+    : "https://milk.market";
+  const stallPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
+  const canonicalStallUrl = `${stallOrigin}${stallPath === "/" ? "" : stallPath}`;
 
   if (!shopSlug) {
     return {
@@ -103,9 +125,12 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
             if (productEvent) {
               return {
                 props: {
+                  // The product is served AT the stall root, so its canonical
+                  // (and thus JSON-LD) URL is the stall URL, not /listing/...
                   ogMeta: eventToProductOgMeta(
                     productEvent,
-                    `/stall/${shopSlug}`
+                    `/stall/${shopSlug}`,
+                    canonicalStallUrl
                   ),
                   shopPubkey: pubkey,
                   ssrShopName,
@@ -123,14 +148,42 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           ? branding.seo.metaTitle
           : `${branding.shopName}: Farm-Fresh Products | Milk Market`;
 
+        // schema.org ItemList of the storefront's products so crawlers + AI
+        // shopping agents can discover the stall's catalog from the SSR HTML.
+        // Bounded fetch (no full feed); failure never breaks the stall OG meta.
+        let jsonLd: Record<string, unknown>[] | undefined;
+        try {
+          const productEvents = await fetchProductsByPubkeyFromDb(pubkey, 50);
+          if (productEvents.length > 0) {
+            // On a custom domain the catalog's product links must stay on the
+            // seller's own origin (where /listing/... is served) so each item
+            // URL matches the canonical product page.
+            const products = buildUcpCatalog(
+              productEvents,
+              customHost ? { sellerOrigin: stallOrigin } : {}
+            );
+            jsonLd = [
+              buildItemListJsonLd(products, {
+                url: canonicalStallUrl,
+                name: title,
+              }),
+            ];
+          }
+        } catch (err) {
+          console.error("SSR ItemList build error for stall:", err);
+        }
+
         return {
           props: {
-            ogMeta: buildStallOgMeta({
-              branding,
-              title,
-              url: `/stall/${shopSlug}`,
-              keywordSeed: shopSlug,
-            }),
+            ogMeta: {
+              ...buildStallOgMeta({
+                branding,
+                title,
+                url: `/stall/${shopSlug}`,
+                keywordSeed: shopSlug,
+              }),
+              ...(jsonLd ? { jsonLd } : {}),
+            },
             shopPubkey: pubkey,
             ssrShopName: branding.shopName || ssrShopName,
             ssrShopAbout: branding.about || ssrShopAbout,

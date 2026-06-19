@@ -4,7 +4,7 @@ description: Browse and buy local food, and manage a producer stall, on Milk Mar
 homepage: https://milk.market
 mcp_endpoint: https://milk.market/api/mcp
 auth: Bearer API key (prefix "sk_") with scopes read, read_write, full_access
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Milk Market Skill
@@ -47,10 +47,27 @@ and manage discounts with `create_discount_code` / `list_discount_codes`.
 ### Communicate
 Use `send_direct_message` for encrypted (NIP-17) messages to buyers or sellers.
 
+## Universal Commerce Protocol (UCP)
+
+If you prefer plain REST over MCP's JSON-RPC, Milk Market also speaks the
+Universal Commerce Protocol (the standard backed by Google and Shopify). It runs
+on the same catalog and order pipeline as MCP, so the two never drift.
+
+- Discovery: `GET https://milk.market/.well-known/ucp` advertises a catalog
+  capability and a checkout capability, each with a JSON Schema.
+- Browse: `GET /api/ucp/catalog/search` (filters + pagination) and
+  `GET /api/ucp/catalog/lookup` (single product, live inventory). No key needed.
+- Buy: `POST /api/ucp/checkout/sessions` creates a checkout session that places a
+  Milk Market order; `GET /api/ucp/checkout/sessions/{id}` tracks its status.
+  These require a `read_write` API key (the same `sk_` keys as MCP).
+- Schemas: `/api/ucp/schemas/product.json` and
+  `/api/ucp/schemas/checkout-session.json`; everything is also in `/openapi.json`.
+
 ## Discovery
 
 - `https://milk.market/llms.txt`: site overview for LLMs
 - `https://milk.market/.well-known/mcp.json`: MCP discovery document
+- `https://milk.market/.well-known/ucp`: Universal Commerce Protocol profile
 - `https://milk.market/.well-known/agent-card.json`: Google A2A agent card
 - `https://milk.market/openapi.json`: OpenAPI description
 - `https://milk.market/agents.txt`: access policy and rate limits

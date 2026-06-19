@@ -23,6 +23,7 @@
 - [L402 discovery](https://milk.market/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.
 - [Web Bot Auth directory](https://milk.market/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
 - [OpenAPI spec](https://milk.market/openapi.json): Machine-readable description of public endpoints.
+- [UCP discovery](https://milk.market/.well-known/ucp): Universal Commerce Protocol profile (REST catalog search/lookup and checkout sessions) for AI shopping agents, layered over the same catalog and order pipeline as MCP.
 
 ## Optional
 

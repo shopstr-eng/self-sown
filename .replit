@@ -33,6 +33,10 @@ author = "agent"
 task = "workflow.run"
 args = "Next.js Dev Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test-ucp-geo"
+
 [[workflows.workflow]]
 name = "Next.js Dev Server"
 author = "agent"
@@ -44,6 +48,17 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "test-ucp-geo"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx jest __tests__/utils/ucp __tests__/utils/geo --no-coverage"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 expertMode = true

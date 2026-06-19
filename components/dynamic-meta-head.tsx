@@ -18,6 +18,7 @@ import {
   getProfileSlug,
 } from "@/utils/url-slugs";
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
+import { safeJsonLdString } from "@/utils/safe-json-ld";
 
 type MetaTagsType = {
   title: string;
@@ -360,6 +361,13 @@ const DynamicHead = ({
       {geoPlaceName && (
         <meta property="og:locality" content={geoPlaceName} key="og:locality" />
       )}
+      {ssrOgMeta?.jsonLd?.map((node, i) => (
+        <script
+          type="application/ld+json"
+          key={`jsonld-${i}`}
+          dangerouslySetInnerHTML={{ __html: safeJsonLdString(node) }}
+        />
+      ))}
     </Head>
   );
 };

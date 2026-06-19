@@ -12,6 +12,13 @@ export type OgMetaProps = {
   siteName?: string;
   type?: string;
   favicon?: string;
+  /**
+   * schema.org JSON-LD nodes (Product/Offer/ItemList) built server-side from the
+   * canonical UCP product mapper. Rendered as <script type="application/ld+json">
+   * by DynamicHead so crawlers/AI shopping agents see structured data in the
+   * initial HTML. See utils/geo/product-jsonld.ts.
+   */
+  jsonLd?: Record<string, unknown>[];
 };
 
 const BASE_URL = "https://milk.market";

@@ -239,6 +239,34 @@ CREATE INDEX IF NOT EXISTS idx_mcp_orders_buyer_pubkey ON mcp_orders(buyer_pubke
 CREATE INDEX IF NOT EXISTS idx_mcp_orders_seller_pubkey ON mcp_orders(seller_pubkey);
 CREATE INDEX IF NOT EXISTS idx_mcp_orders_api_key_id ON mcp_orders(api_key_id);
 
+-- UCP (Universal Commerce Protocol) checkout sessions: a thin, agent-facing
+-- wrapper around a real order created by the shared order engine. Holds the
+-- resulting payment descriptor + a messages[] timeline; live status is
+-- reconciled against mcp_orders.payment_status on read (no parallel state machine).
+CREATE TABLE IF NOT EXISTS ucp_checkout_sessions (
+    id TEXT PRIMARY KEY,
+    api_key_id INTEGER REFERENCES mcp_api_keys(id),
+    buyer_pubkey TEXT NOT NULL,
+    seller_pubkey TEXT NOT NULL,
+    product_id TEXT NOT NULL,
+    mcp_order_id TEXT UNIQUE,
+    status TEXT NOT NULL DEFAULT 'incomplete' CHECK (status IN ('incomplete','ready_for_complete','complete_in_progress','completed','requires_escalation','canceled')),
+    payment_method TEXT NOT NULL,
+    amount_total NUMERIC(12,2) NOT NULL DEFAULT 0,
+    currency TEXT NOT NULL DEFAULT 'usd',
+    request JSONB,
+    quote JSONB,
+    payment JSONB,
+    messages JSONB NOT NULL DEFAULT '[]'::jsonb,
+    error TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_buyer ON ucp_checkout_sessions(buyer_pubkey);
+CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_order ON ucp_checkout_sessions(mcp_order_id);
+CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
+
 -- Subscriptions table for recurring product subscriptions
 CREATE TABLE IF NOT EXISTS subscriptions (
     id SERIAL PRIMARY KEY,

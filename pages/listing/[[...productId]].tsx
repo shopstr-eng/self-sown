@@ -6,7 +6,11 @@ import parseTags, {
 import { parseZapsnagNote } from "@/utils/parsers/zapsnag-parser";
 import { ProductContext } from "../../utils/context/context";
 import { nip19 } from "nostr-tools";
-import { findProductBySlug, getListingSlug } from "@/utils/url-slugs";
+import {
+  findProductBySlug,
+  getListingSlug,
+  type ListingSlugCandidate,
+} from "@/utils/url-slugs";
 import {
   eventMatchesListingIdentifier,
   getListingRouteIdentifier,
@@ -19,6 +23,7 @@ import {
   fetchProductByIdFromDb,
   fetchProductByDTagAndPubkey,
   fetchProductByListingSlug,
+  fetchProductsByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { NostrEvent } from "@/utils/types/types";
@@ -73,6 +78,60 @@ const LISTING_FALLBACK: OgMetaProps = {
   description: "Check out this listing on Milk Market!",
 };
 
+const PLATFORM_ORIGIN = "https://milk.market";
+
+// Resolve the exact canonical URL this listing page settles on so the JSON-LD
+// Product/Offer link matches the page's canonical link tag. That means the
+// friendly title slug (the client redirects raw id/dTag/naddr routes to it) on
+// the correct origin (the seller's custom domain when the request arrives via
+// one, forwarded by proxy.ts as `x-mm-custom-domain-host`, else the platform).
+async function resolveListingCanonicalUrl(
+  event: NostrEvent,
+  headers: { [key: string]: string | string[] | undefined }
+): Promise<string> {
+  const rawHost = headers["x-mm-custom-domain-host"];
+  const customHost = (typeof rawHost === "string" ? rawHost : "")
+    .toLowerCase()
+    .trim()
+    .replace(/:\d+$/, "");
+  const origin = customHost ? `https://${customHost}` : PLATFORM_ORIGIN;
+  const title = event.tags?.find((t) => t[0] === "title")?.[1] || "";
+  const candidate: ListingSlugCandidate = {
+    id: event.id,
+    title,
+    pubkey: event.pubkey,
+  };
+
+  // Disambiguate against the seller's other products (same set the stall page
+  // uses) so the JSON-LD link matches the suffixed slug the client redirects
+  // to when two of the seller's products slug to the same title. On the common
+  // no-collision path the suffix isn't added, so this only affects the rare
+  // duplicate-title case. Any DB hiccup falls back to the lone candidate (base
+  // slug), which is already correct whenever there's no collision.
+  let candidates: ListingSlugCandidate[] = [candidate];
+  try {
+    const siblings = await fetchProductsByPubkeyFromDb(event.pubkey);
+    if (siblings.length > 0) {
+      const mapped: ListingSlugCandidate[] = siblings.map((sibling) => ({
+        id: sibling.id,
+        title: sibling.tags?.find((t) => t[0] === "title")?.[1] || "",
+        pubkey: sibling.pubkey,
+      }));
+      candidates = mapped.some((c) => c.id === candidate.id)
+        ? mapped
+        : [...mapped, candidate];
+    }
+  } catch (error) {
+    console.error(
+      "Failed to load seller products for listing canonical URL:",
+      error
+    );
+  }
+
+  const slug = getListingSlug(candidate, candidates);
+  return `${origin}/listing/${slug}`;
+}
+
 export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
   context
 ) => {
@@ -97,7 +156,11 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
           if (event) {
             return {
               props: {
-                ogMeta: eventToProductOgMeta(event, urlPath),
+                ogMeta: eventToProductOgMeta(
+                  event,
+                  urlPath,
+                  await resolveListingCanonicalUrl(event, context.req.headers)
+                ),
                 initialProductEvent: event,
               },
             };
@@ -116,7 +179,11 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
     if (eventById) {
       return {
         props: {
-          ogMeta: eventToProductOgMeta(eventById, urlPath),
+          ogMeta: eventToProductOgMeta(
+            eventById,
+            urlPath,
+            await resolveListingCanonicalUrl(eventById, context.req.headers)
+          ),
           initialProductEvent: eventById,
         },
       };
@@ -126,7 +193,11 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
     if (eventBySlug) {
       return {
         props: {
-          ogMeta: eventToProductOgMeta(eventBySlug, urlPath),
+          ogMeta: eventToProductOgMeta(
+            eventBySlug,
+            urlPath,
+            await resolveListingCanonicalUrl(eventBySlug, context.req.headers)
+          ),
           initialProductEvent: eventBySlug,
         },
       };

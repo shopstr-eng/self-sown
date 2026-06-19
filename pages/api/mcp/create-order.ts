@@ -1,27 +1,22 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { randomBytes } from "crypto";
-import Stripe from "stripe";
-import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
 import { authenticateRequest, initializeApiKeysTable } from "@/utils/mcp/auth";
-import {
-  fetchAllProductsFromDb,
-  fetchAllProfilesFromDb,
-  getStripeConnectAccount,
-  validateDiscountCode,
-  markDiscountCodeUsed,
-} from "@/utils/db/db-service";
 import { recordRequest } from "@/utils/mcp/metrics";
 import {
-  createMcpOrder,
   getMcpOrder,
   listMcpOrders,
   formatOrderForResponse,
   CreateOrderInput,
 } from "@/mcp/tools/purchase-tools";
-import { parseTags } from "@/utils/parsers/product-parser-functions";
-import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { issueMacaroon, setL402Challenge, buildL402Body } from "@/utils/l402";
+import {
+  createOrderFlow,
+  OrderServiceError,
+  pendingLightningPayments,
+  type CreateOrderFlowInput,
+  type OrderFlowResult,
+  type PaymentMethod,
+} from "@/utils/ucp/order-service";
 
 // MCP create-order is on the payment critical path; the per-IP cap is
 // generous so a buyer cannot accidentally lock themselves out across
@@ -30,56 +25,12 @@ import { issueMacaroon, setL402Challenge, buildL402Body } from "@/utils/l402";
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 const PER_KEY_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
-const DEFAULT_MINT_URL = "https://mint.minibits.cash/Bitcoin";
-
-// Server-controlled allowlist of Cashu mints the backend will trust for both
-// Lightning invoice creation and Cashu token redemption. Buyer-supplied mint
-// URLs that are not in this set are rejected before any network call is made.
-const ALLOWED_MINT_URLS: ReadonlySet<string> = new Set([DEFAULT_MINT_URL]);
-
-const pendingLightningPayments = new Map<
-  string,
-  {
-    quote: string;
-    mintUrl: string;
-    amount: number;
-    orderId: string;
-    productId: string;
-    quantity: number;
-    inventoryVariantKey: string;
-    // Captured at order-create time so we can mark the discount code used
-    // ONLY when the Lightning invoice is actually settled (see verify-payment).
-    // If the buyer abandons before paying, the code stays available.
-    discountCode?: string;
-    sellerPubkey?: string;
-  }
->();
-
 let tablesReady = false;
 
 async function ensureTables() {
   if (!tablesReady) {
     await initializeApiKeysTable();
     tablesReady = true;
-  }
-}
-
-function generateOrderId(): string {
-  return `mcp_${Date.now()}_${randomBytes(4).toString("hex")}`;
-}
-
-type PaymentMethod = "stripe" | "lightning" | "cashu" | "fiat";
-
-async function getSellerProfile(sellerPubkey: string) {
-  const profiles = await fetchAllProfilesFromDb();
-  const profile = profiles.find(
-    (p) => p.pubkey === sellerPubkey && (p.kind === 0 || p.kind === 30019)
-  );
-  if (!profile) return null;
-  try {
-    return JSON.parse(profile.content);
-  } catch {
-    return null;
   }
 }
 
@@ -172,472 +123,156 @@ async function handleCreateOrder(
     subscriptionFrequency?: string;
   };
 
-  if (!productId) {
-    return res.status(400).json({ error: "productId is required" });
-  }
+  const input: CreateOrderFlowInput = {
+    productId,
+    quantity,
+    buyerEmail,
+    shippingAddress: shippingAddress || null,
+    selectedSize,
+    selectedVolume,
+    selectedWeight,
+    selectedBulkUnits,
+    discountCode,
+    paymentMethod,
+    mintUrl,
+    cashuToken,
+    fiatMethod,
+    subscriptionFrequency,
+    apiKeyId,
+    buyerPubkey,
+  };
 
-  if (quantity < 1 || !Number.isInteger(quantity)) {
-    return res
-      .status(400)
-      .json({ error: "quantity must be a positive integer" });
-  }
-
-  const validMethods: PaymentMethod[] = [
-    "stripe",
-    "lightning",
-    "cashu",
-    "fiat",
-  ];
-  if (!validMethods.includes(paymentMethod)) {
-    return res.status(400).json({
-      error: `Invalid paymentMethod. Must be one of: ${validMethods.join(
-        ", "
-      )}`,
-    });
-  }
-
+  let result: OrderFlowResult;
   try {
-    const allProducts = await fetchAllProductsFromDb();
-    const productEvent = allProducts.find((p) => p.id === productId);
-
-    if (!productEvent) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    const product = parseTags(productEvent);
-    if (!product) {
-      return res.status(500).json({ error: "Failed to parse product data" });
-    }
-
-    const selectedSpecs: Record<string, any> = {};
-
-    if (selectedSize) {
-      if (!product.sizes || !product.sizes.includes(selectedSize)) {
-        return res.status(400).json({
-          error: `Invalid size selection: "${selectedSize}"`,
-          availableSizes: product.sizes || [],
-        });
-      }
-      const inventoryCheck = await checkAvailability(
-        productId,
-        quantity,
-        selectedSize
-      );
-      if (inventoryCheck.tracked) {
-        if (!inventoryCheck.available) {
-          return res.status(400).json({
-            error: `Insufficient stock for size "${selectedSize}"`,
-            available: inventoryCheck.stock,
-            requested: quantity,
-          });
-        }
-      } else {
-        const sizeStock = product.sizeQuantities?.get(selectedSize);
-        if (sizeStock !== undefined && sizeStock < quantity) {
-          return res.status(400).json({
-            error: `Insufficient stock for size "${selectedSize}"`,
-            available: sizeStock,
-            requested: quantity,
-          });
-        }
-      }
-      selectedSpecs.size = selectedSize;
-    } else {
-      const inventoryCheck = await checkAvailability(productId, quantity);
-      if (inventoryCheck.tracked) {
-        if (!inventoryCheck.available) {
-          return res.status(400).json({
-            error: "Insufficient stock",
-            available: inventoryCheck.stock,
-            requested: quantity,
-          });
-        }
-      } else if (
-        product.quantity !== undefined &&
-        product.quantity < quantity
-      ) {
-        return res.status(400).json({
-          error: "Insufficient stock",
-          available: product.quantity,
-          requested: quantity,
-        });
-      }
-    }
-
-    let unitPrice = product.price;
-    const currency = product.currency || "sats";
-
-    if (selectedVolume) {
-      if (!product.volumes || !product.volumes.includes(selectedVolume)) {
-        return res.status(400).json({
-          error: `Invalid volume selection: "${selectedVolume}"`,
-          availableVolumes: product.volumes || [],
-        });
-      }
-      const volumePrice = product.volumePrices?.get(selectedVolume);
-      if (volumePrice !== undefined) {
-        unitPrice = volumePrice;
-      }
-      selectedSpecs.volume = selectedVolume;
-      selectedSpecs.volumePrice = unitPrice;
-    }
-
-    if (selectedWeight) {
-      if (!product.weights || !product.weights.includes(selectedWeight)) {
-        return res.status(400).json({
-          error: `Invalid weight selection: "${selectedWeight}"`,
-          availableWeights: product.weights || [],
-        });
-      }
-      const weightPrice = product.weightPrices?.get(selectedWeight);
-      if (weightPrice !== undefined) {
-        unitPrice = weightPrice;
-      }
-      selectedSpecs.weight = selectedWeight;
-      selectedSpecs.weightPrice = unitPrice;
-    }
-
-    if (subscriptionFrequency) {
-      if (paymentMethod !== "stripe") {
-        return res.status(400).json({
-          error:
-            "Recurring Subscribe & Save orders are billed via Stripe. Omit the Bitcoin/fiat paymentMethod (it is set to stripe automatically) to start a subscription.",
-        });
-      }
-      if (!product.subscriptionEnabled) {
-        return res
-          .status(400)
-          .json({ error: "This product does not offer subscriptions." });
-      }
-      const allowedFrequencies = Array.isArray(product.subscriptionFrequency)
-        ? product.subscriptionFrequency
-        : [];
-      if (!allowedFrequencies.includes(subscriptionFrequency)) {
-        return res.status(400).json({
-          error: `Invalid subscriptionFrequency "${subscriptionFrequency}" for this product.`,
-          availableFrequencies: allowedFrequencies,
-        });
-      }
-      if (selectedBulkUnits) {
-        return res.status(400).json({
-          error: "Bulk/bundle pricing cannot be combined with a subscription.",
-        });
-      }
-      if (!buyerEmail) {
-        return res.status(400).json({
-          error: "buyerEmail is required to start a subscription.",
-        });
-      }
-      return handleStripeSubscription(
-        res,
-        buyerPubkey,
-        product,
-        productId,
-        unitPrice,
-        currency,
-        quantity,
-        subscriptionFrequency,
-        buyerEmail,
-        shippingAddress || null,
-        selectedSpecs
-      );
-    }
-
-    let effectiveQuantity = quantity;
-    let subtotal: number;
-
-    if (selectedBulkUnits) {
-      const selectedVariant = selectedVolume || selectedWeight || null;
-      let resolvedBulkPrices: Map<number, number> | undefined;
-      if (selectedVariant && product.variantBulkPrices) {
-        resolvedBulkPrices = product.variantBulkPrices.get(selectedVariant);
-      }
-      if (!resolvedBulkPrices && product.bulkPrices) {
-        resolvedBulkPrices = product.bulkPrices;
-      }
-      if (!resolvedBulkPrices || !resolvedBulkPrices.has(selectedBulkUnits)) {
-        return res.status(400).json({
-          error: `Invalid bulk tier: ${selectedBulkUnits} units`,
-          availableBulkTiers: resolvedBulkPrices
-            ? Array.from(resolvedBulkPrices.entries()).map(
-                ([units, price]) => ({
-                  units,
-                  totalPrice: price,
-                })
-              )
-            : [],
-        });
-      }
-      const bulkTotalPrice = resolvedBulkPrices.get(selectedBulkUnits)!;
-      subtotal = bulkTotalPrice * quantity;
-      effectiveQuantity = selectedBulkUnits * quantity;
-      selectedSpecs.bulk = {
-        units: selectedBulkUnits,
-        totalPrice: bulkTotalPrice,
-        bundles: quantity,
-      };
-    } else {
-      subtotal = unitPrice * quantity;
-    }
-
-    let shippingCost = product.shippingCost || 0;
-
-    if (
-      product.shippingType === "Free" ||
-      product.shippingType === "Free/Pickup" ||
-      product.shippingType === "Pickup" ||
-      product.shippingType === "N/A"
-    ) {
-      shippingCost = 0;
-    }
-
-    let discountPercentage = 0;
-    let validatedDiscountCode: string | null = null;
-
-    if (discountCode) {
-      const discountResult = await validateDiscountCode(
-        discountCode,
-        product.pubkey
-      );
-      if (discountResult.valid && discountResult.discount_percentage) {
-        discountPercentage = discountResult.discount_percentage;
-        subtotal = subtotal * (1 - discountPercentage / 100);
-        // NOTE: We do NOT call markDiscountCodeUsed here. A discount code is
-        // only consumed when the payment actually succeeds — otherwise a buyer
-        // who validates a code but abandons checkout would burn a use against
-        // a code's max_uses limit. The code is plumbed through to each
-        // payment path and marked used at the moment the order transitions
-        // to "paid" (verify-payment for Lightning, post-redeem for Cashu).
-        // Stripe/fiat MCP paths have no automatic confirmation today, so the
-        // code stays unconsumed until those flows gain a confirmation hook.
-        validatedDiscountCode = discountCode;
-      }
-    }
-
-    const sellerProfile = await getSellerProfile(product.pubkey);
-    if (
-      sellerProfile?.paymentMethodDiscounts &&
-      typeof sellerProfile.paymentMethodDiscounts === "object"
-    ) {
-      const discountKey =
-        paymentMethod === "lightning" || paymentMethod === "cashu"
-          ? "bitcoin"
-          : paymentMethod === "fiat" && fiatMethod
-            ? fiatMethod.toLowerCase()
-            : paymentMethod;
-      const methodDiscount = sellerProfile.paymentMethodDiscounts[discountKey];
-      if (typeof methodDiscount === "number" && methodDiscount > 0) {
-        subtotal = subtotal * (1 - methodDiscount / 100);
-      }
-    }
-
-    const totalAmount = subtotal + shippingCost;
-    const orderId = generateOrderId();
-
-    const pricingBlock: Record<string, any> = {
-      unitPrice,
-      quantity: effectiveQuantity,
-      subtotal: selectedBulkUnits
-        ? (() => {
-            const sv = selectedVolume || selectedWeight || null;
-            let bp =
-              sv && product.variantBulkPrices
-                ? product.variantBulkPrices.get(sv)
-                : undefined;
-            if (!bp) bp = product.bulkPrices;
-            return (bp?.get(selectedBulkUnits) ?? unitPrice) * quantity;
-          })()
-        : unitPrice * quantity,
-      discountPercentage: discountPercentage || undefined,
-      discountedSubtotal: discountPercentage ? subtotal : undefined,
-      shippingCost,
-      total: totalAmount,
-      currency,
-    };
-
-    if (Object.keys(selectedSpecs).length > 0) {
-      pricingBlock.selectedSpecs = selectedSpecs;
-    }
-
-    const inventoryVariantKey = selectedSize
-      ? `size:${selectedSize}`
-      : "_default";
-
-    const emailOptions = {
-      shippingAddress: shippingAddress
-        ? Object.values(shippingAddress).filter(Boolean).join(", ")
-        : null,
-      selectedSize,
-      selectedVolume,
-      selectedWeight,
-      selectedBulkUnits,
-      quantity: effectiveQuantity,
-    };
-
-    if (paymentMethod === "lightning") {
-      return handleLightningPayment(
-        res,
-        orderId,
-        apiKeyId,
-        buyerPubkey,
-        product,
-        productId,
-        effectiveQuantity,
-        totalAmount,
-        currency,
-        buyerEmail || null,
-        shippingAddress || null,
-        pricingBlock,
-        mintUrl,
-        inventoryVariantKey,
-        emailOptions,
-        validatedDiscountCode
-      );
-    }
-
-    if (paymentMethod === "cashu") {
-      return handleCashuPayment(
-        res,
-        orderId,
-        apiKeyId,
-        buyerPubkey,
-        product,
-        productId,
-        effectiveQuantity,
-        totalAmount,
-        currency,
-        buyerEmail || null,
-        shippingAddress || null,
-        pricingBlock,
-        cashuToken,
-        inventoryVariantKey,
-        emailOptions,
-        validatedDiscountCode
-      );
-    }
-
-    if (paymentMethod === "fiat") {
-      return handleFiatPayment(
-        res,
-        orderId,
-        apiKeyId,
-        buyerPubkey,
-        product,
-        productId,
-        effectiveQuantity,
-        totalAmount,
-        currency,
-        buyerEmail || null,
-        shippingAddress || null,
-        pricingBlock,
-        sellerProfile,
-        fiatMethod,
-        inventoryVariantKey,
-        emailOptions
-      );
-    }
-
-    return handleStripePayment(
-      res,
-      orderId,
-      apiKeyId,
-      buyerPubkey,
-      product,
-      productId,
-      effectiveQuantity,
-      totalAmount,
-      currency,
-      buyerEmail || null,
-      shippingAddress || null,
-      pricingBlock,
-      inventoryVariantKey,
-      emailOptions
-    );
+    result = await createOrderFlow(input);
   } catch (error) {
+    if (error instanceof OrderServiceError) {
+      return res.status(error.status).json(error.body);
+    }
     console.error("Failed to create MCP order:", error);
     return res.status(500).json({
       error: "Failed to create order",
       details: error instanceof Error ? error.message : "Unknown error",
     });
   }
+
+  return formatCreateOrderResult(res, result);
 }
 
-async function handleStripeSubscription(
+/**
+ * Reproduce the exact legacy MCP HTTP responses from the neutral order-service
+ * result. The shapes, status codes, messages, and the L402 challenge header are
+ * intentionally byte-for-byte identical to the previous inline handlers so MCP
+ * clients (and verify-payment) see no contract change.
+ */
+function formatCreateOrderResult(
   res: NextApiResponse,
-  buyerPubkey: string,
-  product: any,
-  productId: string,
-  unitPrice: number,
-  currency: string,
-  quantity: number,
-  frequency: string,
-  buyerEmail: string,
-  shippingAddress: Record<string, string> | null,
-  selectedSpecs: Record<string, any>
+  result: OrderFlowResult
 ) {
-  try {
-    // Reuse the battle-tested web subscription endpoint (Stripe Connect,
-    // donation fee, affiliate, idempotency, and the subscriptions-table insert
-    // all live there) instead of duplicating that logic on the MCP path. The
-    // self-call mirrors how the MCP order tool already reaches create-order.
-    const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
-    const productEventId = product.d
-      ? `30402:${product.pubkey}:${product.d}`
-      : productId;
-    const variantInfo =
-      Object.keys(selectedSpecs).length > 0 ? selectedSpecs : null;
-    const discountPercent = product.subscriptionDiscount || 0;
+  if (result.kind === "lightning") {
+    const orderId = result.order.order_id;
+    // L402: attach the standard WWW-Authenticate challenge so agents that
+    // speak the L402 protocol can discover how to pay this 402. The macaroon
+    // binds the challenge to this order; settlement is confirmed via the mint
+    // quote in verify-payment. See /.well-known/l402.json.
+    const macaroon = issueMacaroon(orderId, result.amountSats);
+    const l402 = { macaroon, invoice: result.bolt11 };
+    setL402Challenge(res, l402);
 
-    const subRes = await fetch(`${baseUrl}/api/stripe/create-subscription`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        customerEmail: buyerEmail,
-        productTitle: product.title,
-        amount: unitPrice,
-        currency,
-        frequency,
-        discountPercent,
-        sellerPubkey: product.pubkey,
-        buyerPubkey,
-        productEventId,
-        quantity,
-        variantInfo,
-        shippingAddress,
-      }),
+    return res.status(402).json({
+      status: "payment_required",
+      message:
+        "Lightning invoice created. Pay the invoice to complete your order.",
+      paymentMethod: "lightning",
+      order: formatOrderForResponse(result.order),
+      payment: {
+        bolt11: result.bolt11,
+        quoteId: result.quoteId,
+        amount: result.amountSats,
+        currency: "sats",
+        mintUrl: result.mintUrl,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        instructions: {
+          step1: "Pay the bolt11 Lightning invoice using any Lightning wallet",
+          step2: `Verify payment: POST /api/mcp/verify-payment with { "orderId": "${orderId}" }`,
+          step3:
+            "Once the invoice is paid, the order status will update to confirmed",
+        },
+      },
+      l402: buildL402Body(l402),
+      pricing: result.pricingBlock,
     });
+  }
 
-    const data = await subRes.json();
-    if (!subRes.ok || !data.success) {
-      return res.status(subRes.status >= 400 ? subRes.status : 502).json({
-        error: "Failed to create subscription",
-        details: data.error || data.details || "Unknown error",
-      });
-    }
+  if (result.kind === "cashu") {
+    return res.status(201).json({
+      success: true,
+      paymentMethod: "cashu",
+      message: "Payment received via Cashu tokens. Order confirmed.",
+      order: formatOrderForResponse({
+        ...result.order,
+        payment_status: "paid",
+      }),
+      payment: {
+        method: "cashu",
+        amount: result.tokenAmount,
+        required: result.requiredAmount,
+        status: "paid",
+        change: result.change,
+      },
+      pricing: result.pricingBlock,
+    });
+  }
 
-    const recurringAmount =
-      Math.round(unitPrice * (1 - discountPercent / 100) * quantity * 100) /
-      100;
+  if (result.kind === "fiat") {
+    return res.status(402).json({
+      status: "payment_required",
+      message:
+        "Order created. Complete payment using the seller's fiat payment details below.",
+      paymentMethod: "fiat",
+      order: formatOrderForResponse(result.order),
+      payment: {
+        method: "fiat",
+        selectedMethod: result.selectedMethod,
+        availableMethods: result.fiatOptions,
+        amount: result.amount,
+        currency: result.currency,
+        sellerContact: result.sellerContact,
+        instructions: {
+          step1: `Send ${result.amount} ${result.currency} via ${
+            result.selectedMethod || "one of the available methods"
+          } to the seller`,
+          step2:
+            "Include your order ID in the payment note/memo: " +
+            result.order.order_id,
+          step3:
+            "The seller will manually confirm receipt and update your order status",
+        },
+      },
+      pricing: result.pricingBlock,
+    });
+  }
 
+  if (result.kind === "subscription") {
     return res.status(402).json({
       status: "payment_required",
       message:
         "Subscription created. Confirm the first payment to activate the recurring order.",
       paymentMethod: "stripe",
       subscription: {
-        subscriptionId: data.subscriptionId,
-        frequency,
-        status: data.status,
-        currentPeriodEnd: data.currentPeriodEnd,
-        recurringAmount,
-        currency,
-        quantity,
-        discountPercent: discountPercent || undefined,
+        subscriptionId: result.subscriptionId,
+        frequency: result.frequency,
+        status: result.status,
+        currentPeriodEnd: result.currentPeriodEnd,
+        recurringAmount: result.recurringAmount,
+        currency: result.currency,
+        quantity: result.quantity,
+        discountPercent: result.discountPercent || undefined,
       },
       payment: {
-        clientSecret: data.clientSecret,
-        customerId: data.customerId,
-        connectedAccountId: data.connectedAccountId || undefined,
+        clientSecret: result.clientSecret,
+        customerId: result.customerId,
+        connectedAccountId: result.connectedAccountId || undefined,
         instructions: {
           step1:
             "Use the clientSecret with Stripe.js or Stripe SDK to confirm the first subscription payment",
@@ -650,543 +285,22 @@ async function handleStripeSubscription(
         },
       },
     });
-  } catch (error) {
-    console.error("Failed to create MCP subscription:", error);
-    return res.status(500).json({
-      error: "Failed to create subscription",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-}
-
-async function handleLightningPayment(
-  res: NextApiResponse,
-  orderId: string,
-  apiKeyId: number,
-  buyerPubkey: string,
-  product: any,
-  productId: string,
-  quantity: number,
-  totalAmount: number,
-  currency: string,
-  buyerEmail: string | null,
-  shippingAddress: Record<string, string> | null,
-  pricingBlock: any,
-  mintUrl?: string,
-  inventoryVariantKey?: string,
-  emailOptions?: Record<string, any>,
-  discountCode?: string | null
-) {
-  // Ignore any caller-supplied mintUrl entirely: the buyer must not be able to
-  // choose which mint the server trusts for Lightning invoice settlement.
-  if (mintUrl && !ALLOWED_MINT_URLS.has(mintUrl)) {
-    return res.status(400).json({
-      error:
-        "The requested mint is not supported. Omit mintUrl to use the default mint.",
-    });
-  }
-  const mint = DEFAULT_MINT_URL;
-
-  let amountInSats: number;
-  if (currency.toLowerCase() === "sats" || currency.toLowerCase() === "sat") {
-    amountInSats = Math.ceil(totalAmount);
-  } else {
-    amountInSats = Math.ceil(totalAmount);
   }
 
-  if (amountInSats < 1) amountInSats = 1;
-
-  try {
-    const cashuMint = new CashuMint(mint);
-    const wallet = new CashuWallet(cashuMint);
-    await wallet.loadMint();
-    const mintQuote = await wallet.createMintQuoteBolt11(amountInSats);
-
-    const order = await createMcpOrder(
-      orderId,
-      apiKeyId,
-      buyerPubkey,
-      product.pubkey,
-      productId,
-      product.title,
-      quantity,
-      totalAmount,
-      currency,
-      buyerEmail,
-      shippingAddress,
-      `ln_${mintQuote.quote}`
-    );
-
-    pendingLightningPayments.set(orderId, {
-      quote: mintQuote.quote,
-      mintUrl: mint,
-      amount: amountInSats,
-      orderId,
-      productId,
-      quantity,
-      inventoryVariantKey: inventoryVariantKey || "_default",
-      ...(discountCode ? { discountCode } : {}),
-      sellerPubkey: product.pubkey,
-    });
-
-    await sendOrderEmail(
-      buyerEmail,
-      buyerPubkey,
-      product,
-      orderId,
-      totalAmount,
-      currency,
-      "lightning",
-      emailOptions
-    );
-
-    // L402: attach the standard WWW-Authenticate challenge so agents that
-    // speak the L402 protocol can discover how to pay this 402. The macaroon
-    // binds the challenge to this order; settlement is confirmed via the mint
-    // quote in verify-payment. See /.well-known/l402.json.
-    const macaroon = issueMacaroon(orderId, amountInSats);
-    const l402 = { macaroon, invoice: mintQuote.request };
-    setL402Challenge(res, l402);
-
-    return res.status(402).json({
-      status: "payment_required",
-      message:
-        "Lightning invoice created. Pay the invoice to complete your order.",
-      paymentMethod: "lightning",
-      order: formatOrderForResponse(order),
-      payment: {
-        bolt11: mintQuote.request,
-        quoteId: mintQuote.quote,
-        amount: amountInSats,
-        currency: "sats",
-        mintUrl: mint,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-        instructions: {
-          step1: "Pay the bolt11 Lightning invoice using any Lightning wallet",
-          step2: `Verify payment: POST /api/mcp/verify-payment with { "orderId": "${orderId}" }`,
-          step3:
-            "Once the invoice is paid, the order status will update to confirmed",
-        },
-      },
-      l402: buildL402Body(l402),
-      pricing: pricingBlock,
-    });
-  } catch (error) {
-    console.error("Lightning invoice generation failed:", error);
-    return res.status(500).json({
-      error: "Failed to generate Lightning invoice",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-}
-
-async function handleCashuPayment(
-  res: NextApiResponse,
-  orderId: string,
-  apiKeyId: number,
-  buyerPubkey: string,
-  product: any,
-  productId: string,
-  quantity: number,
-  totalAmount: number,
-  currency: string,
-  buyerEmail: string | null,
-  shippingAddress: Record<string, string> | null,
-  pricingBlock: any,
-  cashuToken?: string,
-  inventoryVariantKey?: string,
-  emailOptions?: Record<string, any>,
-  discountCode?: string | null
-) {
-  if (!cashuToken) {
-    return res.status(400).json({
-      error:
-        "cashuToken is required for Cashu payments. Provide a serialized Cashu token string.",
-      example: {
-        paymentMethod: "cashu",
-        cashuToken: "cashuBo2F0...",
-      },
-    });
-  }
-
-  try {
-    const { getDecodedToken } = await import("@cashu/cashu-ts");
-    const decoded = getDecodedToken(cashuToken, []);
-
-    if (!decoded || !decoded.proofs || decoded.proofs.length === 0) {
-      return res.status(400).json({
-        error: "Invalid Cashu token: no proofs found",
-      });
-    }
-
-    const tokenAmount = decoded.proofs.reduce(
-      (sum: number, p: any) => sum + (p.amount || 0),
-      0
-    );
-
-    let requiredAmount: number;
-    if (currency.toLowerCase() === "sats" || currency.toLowerCase() === "sat") {
-      requiredAmount = Math.ceil(totalAmount);
-    } else {
-      requiredAmount = Math.ceil(totalAmount);
-    }
-
-    if (tokenAmount < requiredAmount) {
-      return res.status(400).json({
-        error: "Insufficient Cashu token amount",
-        provided: tokenAmount,
-        required: requiredAmount,
-        currency: "sats",
-      });
-    }
-
-    const tokenMintUrl = decoded.mint;
-
-    // The token's embedded mint URL must be on the server-controlled allowlist.
-    // Accepting a buyer-chosen mint would let an attacker point the server at a
-    // fake mint that always reports redemption success, creating fraudulent paid
-    // orders and opening SSRF to arbitrary internal endpoints.
-    if (!tokenMintUrl || !ALLOWED_MINT_URLS.has(tokenMintUrl)) {
-      return res.status(400).json({
-        error:
-          "Cashu token issuer is not a supported mint. Only tokens from trusted mints are accepted.",
-        supportedMints: Array.from(ALLOWED_MINT_URLS),
-      });
-    }
-
-    try {
-      const cashuMint = new CashuMint(tokenMintUrl);
-      const wallet = new CashuWallet(cashuMint);
-      await wallet.loadMint();
-      const { withMintRetry } =
-        await import("@/utils/cashu/mint-retry-service");
-      await withMintRetry(() => wallet.receive(cashuToken), {
-        maxAttempts: 4,
-        perAttemptTimeoutMs: 20000,
-        totalTimeoutMs: 90000,
-      });
-    } catch (redeemError) {
-      console.error("Cashu token redemption failed:", redeemError);
-      return res.status(400).json({
-        error:
-          "Failed to redeem Cashu token. It may be invalid or already spent.",
-        details:
-          redeemError instanceof Error ? redeemError.message : "Unknown error",
-      });
-    }
-
-    const order = await createMcpOrder(
-      orderId,
-      apiKeyId,
-      buyerPubkey,
-      product.pubkey,
-      productId,
-      product.title,
-      quantity,
-      totalAmount,
-      currency,
-      buyerEmail,
-      shippingAddress,
-      `cashu_${orderId}`
-    );
-
-    await updateOrderPaymentStatus(orderId, "paid");
-
-    // Discount code is consumed only now that the Cashu token has been
-    // redeemed and the order is marked paid. If redemption above failed we
-    // returned early without ever reaching this point, so an unpaid order
-    // never burns a use against the code's max_uses limit.
-    if (discountCode) {
-      try {
-        await markDiscountCodeUsed(discountCode, product.pubkey);
-      } catch (markErr) {
-        console.error(
-          "Failed to mark discount code used (cashu, post-paid):",
-          markErr
-        );
-      }
-    }
-
-    try {
-      await deductStock(
-        productId,
-        quantity,
-        orderId,
-        inventoryVariantKey || "_default"
-      );
-    } catch (invErr) {
-      console.error("Inventory deduction failed (cashu):", invErr);
-    }
-
-    await sendOrderEmail(
-      buyerEmail,
-      buyerPubkey,
-      product,
-      orderId,
-      totalAmount,
-      currency,
-      "cashu",
-      emailOptions
-    );
-
-    return res.status(201).json({
-      success: true,
-      paymentMethod: "cashu",
-      message: "Payment received via Cashu tokens. Order confirmed.",
-      order: formatOrderForResponse({ ...order, payment_status: "paid" }),
-      payment: {
-        method: "cashu",
-        amount: tokenAmount,
-        required: requiredAmount,
-        status: "paid",
-        change: tokenAmount > requiredAmount ? tokenAmount - requiredAmount : 0,
-      },
-      pricing: pricingBlock,
-    });
-  } catch (error) {
-    console.error("Cashu payment failed:", error);
-    return res.status(500).json({
-      error: "Failed to process Cashu payment",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-}
-
-async function handleFiatPayment(
-  res: NextApiResponse,
-  orderId: string,
-  apiKeyId: number,
-  buyerPubkey: string,
-  product: any,
-  productId: string,
-  quantity: number,
-  totalAmount: number,
-  currency: string,
-  buyerEmail: string | null,
-  shippingAddress: Record<string, string> | null,
-  pricingBlock: any,
-  sellerProfile: any,
-  fiatMethod?: string,
-  inventoryVariantKey?: string,
-  emailOptions?: Record<string, any>
-) {
-  const fiatOptions = sellerProfile?.fiat_options || [];
-  if (fiatOptions.length === 0) {
-    return res.status(400).json({
-      error:
-        "This seller does not accept fiat payments. Try lightning, cashu, or stripe.",
-    });
-  }
-
-  if (fiatMethod) {
-    const methodExists = fiatOptions.some(
-      (opt: string) => opt.toLowerCase() === fiatMethod.toLowerCase()
-    );
-    if (!methodExists) {
-      return res.status(400).json({
-        error: `Vendor does not accept "${fiatMethod}". Available fiat options: ${fiatOptions.join(
-          ", "
-        )}`,
-      });
-    }
-  }
-
-  const order = await createMcpOrder(
-    orderId,
-    apiKeyId,
-    buyerPubkey,
-    product.pubkey,
-    productId,
-    product.title,
-    quantity,
-    totalAmount,
-    currency,
-    buyerEmail,
-    shippingAddress,
-    `fiat_${fiatMethod || "unspecified"}_${orderId}`
-  );
-
-  try {
-    await deductStock(
-      productId,
-      quantity,
-      orderId,
-      inventoryVariantKey || "_default"
-    );
-  } catch (invErr) {
-    console.error("Inventory deduction failed (fiat):", invErr);
-  }
-
-  await sendOrderEmail(
-    buyerEmail,
-    buyerPubkey,
-    product,
-    orderId,
-    totalAmount,
-    currency,
-    fiatMethod || "fiat",
-    emailOptions
-  );
-
-  return res.status(402).json({
-    status: "payment_required",
-    message:
-      "Order created. Complete payment using the seller's fiat payment details below.",
-    paymentMethod: "fiat",
-    order: formatOrderForResponse(order),
-    payment: {
-      method: "fiat",
-      selectedMethod: fiatMethod || null,
-      availableMethods: fiatOptions,
-      amount: totalAmount,
-      currency,
-      sellerContact: {
-        name: sellerProfile?.name || sellerProfile?.display_name || null,
-        nip05: sellerProfile?.nip05 || null,
-      },
-      instructions: {
-        step1: `Send ${totalAmount} ${currency} via ${
-          fiatMethod || "one of the available methods"
-        } to the seller`,
-        step2: "Include your order ID in the payment note/memo: " + orderId,
-        step3:
-          "The seller will manually confirm receipt and update your order status",
-      },
-    },
-    pricing: pricingBlock,
-  });
-}
-
-async function handleStripePayment(
-  res: NextApiResponse,
-  orderId: string,
-  apiKeyId: number,
-  buyerPubkey: string,
-  product: any,
-  productId: string,
-  quantity: number,
-  totalAmount: number,
-  currency: string,
-  buyerEmail: string | null,
-  shippingAddress: Record<string, string> | null,
-  pricingBlock: any,
-  inventoryVariantKey?: string,
-  emailOptions?: Record<string, any>
-) {
-  let paymentIntentId: string | null = null;
-  let clientSecret: string | null = null;
-  let connectedAccountId: string | null = null;
-
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (stripeKey) {
-    try {
-      const stripe = new Stripe(stripeKey, {
-        apiVersion: "2025-09-30.clover",
-      });
-
-      let amountInCents = Math.ceil(totalAmount * 100);
-      if (amountInCents < 50) amountInCents = 50;
-
-      const sellerPubkey = product.pubkey;
-      const isPlatformAccount =
-        sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-
-      if (!isPlatformAccount) {
-        const connectAccount = await getStripeConnectAccount(sellerPubkey);
-        if (connectAccount && connectAccount.charges_enabled) {
-          connectedAccountId = connectAccount.stripe_account_id;
-        }
-      }
-
-      const stripeOptions = connectedAccountId
-        ? { stripeAccount: connectedAccountId }
-        : undefined;
-
-      const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
-        amount: amountInCents,
-        currency: "usd",
-        description: `MCP Order: ${product.title}`,
-        metadata: {
-          orderId,
-          productId,
-          buyerPubkey,
-          sellerPubkey: product.pubkey,
-          source: "mcp",
-        },
-        automatic_payment_methods: { enabled: true },
-      };
-
-      if (buyerEmail) {
-        paymentIntentParams.receipt_email = buyerEmail;
-      }
-
-      const paymentIntent = await stripe.paymentIntents.create(
-        paymentIntentParams,
-        stripeOptions
-      );
-
-      paymentIntentId = paymentIntent.id;
-      clientSecret = paymentIntent.client_secret;
-    } catch (stripeError) {
-      console.error("Stripe payment intent creation failed:", stripeError);
-      return res.status(500).json({
-        error: "Failed to create payment intent",
-        details:
-          stripeError instanceof Error ? stripeError.message : "Unknown error",
-      });
-    }
-  }
-
-  const order = await createMcpOrder(
-    orderId,
-    apiKeyId,
-    buyerPubkey,
-    product.pubkey,
-    productId,
-    product.title,
-    quantity,
-    totalAmount,
-    currency,
-    buyerEmail,
-    shippingAddress,
-    paymentIntentId
-  );
-
-  try {
-    await deductStock(
-      productId,
-      quantity,
-      orderId,
-      inventoryVariantKey || "_default"
-    );
-  } catch (invErr) {
-    console.error("Inventory deduction failed (stripe):", invErr);
-  }
-
-  await sendOrderEmail(
-    buyerEmail,
-    buyerPubkey,
-    product,
-    orderId,
-    totalAmount,
-    currency,
-    "stripe",
-    emailOptions
-  );
-
-  if (paymentIntentId && clientSecret) {
+  // result.kind === "stripe"
+  if (result.paymentIntentId && result.clientSecret) {
     return res.status(402).json({
       status: "payment_required",
       message:
         "Order created successfully. Payment is required to complete the order.",
       paymentMethod: "stripe",
-      order: formatOrderForResponse(order),
+      order: formatOrderForResponse(result.order),
       payment: {
-        amount: totalAmount,
-        currency,
-        paymentIntentId,
-        clientSecret,
-        connectedAccountId: connectedAccountId || undefined,
+        amount: result.amount,
+        currency: result.currency,
+        paymentIntentId: result.paymentIntentId,
+        clientSecret: result.clientSecret,
+        connectedAccountId: result.connectedAccountId || undefined,
         instructions: {
           step1:
             "Use the clientSecret with Stripe.js or Stripe SDK to confirm the payment",
@@ -1197,72 +311,17 @@ async function handleStripePayment(
           documentationUrl: "https://docs.stripe.com/payments/accept-a-payment",
         },
       },
-      pricing: pricingBlock,
+      pricing: result.pricingBlock,
     });
   }
 
   return res.status(201).json({
     success: true,
     paymentMethod: "stripe",
-    order: formatOrderForResponse(order),
+    order: formatOrderForResponse(result.order),
     payment: null,
-    pricing: pricingBlock,
+    pricing: result.pricingBlock,
   });
-}
-
-async function updateOrderPaymentStatus(orderId: string, status: string) {
-  const { updateMcpOrderPayment } = await import("@/mcp/tools/purchase-tools");
-  await updateMcpOrderPayment(orderId, `${status}_${orderId}`, status);
-}
-
-async function sendOrderEmail(
-  buyerEmail: string | null,
-  buyerPubkey: string,
-  product: any,
-  orderId: string,
-  totalAmount: number,
-  currency: string,
-  paymentMethod: string,
-  options?: {
-    shippingAddress?: string | null;
-    selectedSize?: string;
-    selectedVolume?: string;
-    selectedWeight?: string;
-    selectedBulkUnits?: number;
-    quantity?: number;
-  }
-) {
-  if (!buyerEmail) return;
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-    if (baseUrl) {
-      await fetch(`${baseUrl}/api/email/send-order-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buyerEmail,
-          buyerPubkey,
-          sellerPubkey: product.pubkey,
-          orderId,
-          productTitle: product.title,
-          amount: totalAmount,
-          currency,
-          paymentMethod,
-          shippingAddress: options?.shippingAddress || undefined,
-          selectedSize: options?.selectedSize || undefined,
-          selectedVolume: options?.selectedVolume || undefined,
-          selectedWeight: options?.selectedWeight || undefined,
-          selectedBulkOption: options?.selectedBulkUnits
-            ? String(options.selectedBulkUnits)
-            : undefined,
-          productId: product.id,
-          quantity: options?.quantity || 1,
-        }),
-      });
-    }
-  } catch (emailError) {
-    console.error("Failed to send order email:", emailError);
-  }
 }
 
 async function handleGetOrder(

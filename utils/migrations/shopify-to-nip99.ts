@@ -197,6 +197,23 @@ export function buildListingFromShopifyProduct(
   // Optional: import original Shopify tags as t-tags too (keep listings searchable)
   extraTags.forEach((t) => tags.push(["t", t]));
 
+  // Preserve the seller's existing product taxonomy from the Shopify export as
+  // explicit NIP-99 tags. The UCP catalog mapper (utils/ucp/catalog.ts) reads
+  // these via resolveTaxonomy and prefers them over the category-derived
+  // default, so a product migrated with a real Google/Shopify category keeps it
+  // for shopping agents + Product/Offer JSON-LD instead of falling back to the
+  // broad dairy default. When absent, the mapper still derives one at serve time
+  // from the `t` category tags, so we intentionally do NOT bake a derived
+  // default into the event here (that would go stale if the mapping improves).
+  const googleProductCategory = (product.googleProductCategory || "").trim();
+  if (googleProductCategory) {
+    tags.push(["google_product_category", googleProductCategory]);
+  }
+  const shopifyProductCategory = (product.productCategory || "").trim();
+  if (shopifyProductCategory) {
+    tags.push(["shopify_product_category", shopifyProductCategory]);
+  }
+
   // Quantity / size handling. We only emit a "quantity" tag when there is
   // real inventory data — Shopify exports for untracked items show as 0,
   // and emitting "quantity 0" would publish the listing as out of stock.

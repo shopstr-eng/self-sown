@@ -55,6 +55,12 @@ const CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH = [
 
 const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/storefront/",
+  // UCP (Universal Commerce Protocol) public catalog endpoints. On a seller's
+  // custom domain these are host-scoped to that seller (resolved + membership-
+  // gated server-side from the verified domain), so they must pass the gate.
+  // Checkout-session writes live under the same prefix and enforce their own
+  // read_write API-key auth inside the handler.
+  "/api/ucp/",
   "/api/db/fetch-products",
   "/api/db/fetch-profiles",
   "/api/db/fetch-reviews",
@@ -266,6 +272,15 @@ async function routeRequest(request: NextRequest) {
     return routeSelfHost(request, selfHostSlug);
   }
 
+  // UCP discovery profile. On the platform host this is the aggregate
+  // marketplace profile; custom domains serve their own seller-scoped profile
+  // inside the custom-domain block below (so the guard here is platform-only).
+  // Unlike /.well-known/agent.json (identical on every host) the UCP profile is
+  // host-scoped, so it is NOT short-circuited at the top of the router.
+  if (!isCustomDomain(hostname) && pathname === "/.well-known/ucp") {
+    return NextResponse.rewrite(new URL("/api/.well-known/ucp", request.url));
+  }
+
   // Content negotiation for LLMs/agents on the main platform host only. Custom
   // domains fall through to their own storefront routing below.
   if (!isCustomDomain(hostname) && AGENT_VIEW_PATHS.has(pathname)) {
@@ -411,6 +426,18 @@ async function routeRequest(request: NextRequest) {
       const res = NextResponse.rewrite(url, {
         request: { headers: buildHeaders() },
       });
+      res.headers.set(RL_SKIP_HEADER, "1");
+      return res;
+    }
+
+    // UCP discovery profile, scoped to this seller. Served even when no slug
+    // resolved: the endpoint resolves + membership-gates the seller from the
+    // verified domain (forwarded via x-mm-custom-domain-host) and 404s if none.
+    if (pathname === "/.well-known/ucp") {
+      const res = NextResponse.rewrite(
+        new URL("/api/.well-known/ucp", request.url),
+        { request: { headers: buildHeaders() } }
+      );
       res.headers.set(RL_SKIP_HEADER, "1");
       return res;
     }
@@ -577,6 +604,17 @@ function routeSelfHost(request: NextRequest, slug: string) {
       STATIC_ASSET_EXT_RE.test(pathname))
   ) {
     return NextResponse.next();
+  }
+
+  // UCP discovery profile for this single-tenant instance (the endpoint scopes
+  // it to the configured owner via server env, not a header).
+  if (pathname === "/.well-known/ucp") {
+    const res = NextResponse.rewrite(
+      new URL("/api/.well-known/ucp", request.url),
+      { request: { headers: buildHeaders() } }
+    );
+    res.headers.set(RL_SKIP_HEADER, "1");
+    return res;
   }
 
   // Hidden surfaces (marketplace, Nostr discovery, Pro-billing pages) redirect
