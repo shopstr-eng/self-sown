@@ -51,3 +51,7 @@ next-env.d.ts
 
 # local skill files
 .local/skills/
+
+# self-host (single-tenant) config — copied from milk-market.config.example.json
+# and filled in per-deploy; never commit a real one to the public repo.
+milk-market.config.json

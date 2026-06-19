@@ -758,7 +758,7 @@ export default function SignInModal({
                         />
                         {isNcryptsec && (
                           <p className="mt-1 text-xs text-green-600">
-                            ncryptsec detected — enter the passphrase used to
+                            ncryptsec detected, enter the passphrase used to
                             encrypt it.
                           </p>
                         )}
@@ -1041,7 +1041,7 @@ export default function SignInModal({
                       />
                       {isNcryptsec && (
                         <p className="mt-1 text-xs text-green-600">
-                          ncryptsec detected — enter the passphrase used to
+                          ncryptsec detected, enter the passphrase used to
                           encrypt it.
                         </p>
                       )}

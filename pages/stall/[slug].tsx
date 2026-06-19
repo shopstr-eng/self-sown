@@ -121,7 +121,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         const branding = resolveStallBranding(content, profileContent);
         const title = branding.seo?.metaTitle
           ? branding.seo.metaTitle
-          : `${branding.shopName} — Farm-Fresh Products | Milk Market`;
+          : `${branding.shopName}: Farm-Fresh Products | Milk Market`;
 
         return {
           props: {

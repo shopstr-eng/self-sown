@@ -1,12 +1,12 @@
-# Milk Market — Full Description for LLMs
+# Milk Market: Full Description for LLMs
 
-> Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers directly with buyers — raw milk and dairy are one example among many: meat, eggs, produce, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
+> Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers directly with buyers. Raw milk and dairy are one example among many: meat, eggs, produce, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
 
 ## What Milk Market is
 
 Milk Market is an open marketplace for local and decentralized food systems. Anyone can become a producer without asking permission. Sellers publish product listings as Nostr events (kind 30402); buyers browse them on the website or through AI agents. The platform is designed to be censorship-resistant: because data lives on Nostr relays, no single company can remove a producer from the network.
 
-Raw milk and dairy were the founding use case, but the marketplace is for local food broadly — meat, eggs, fresh produce, baked goods, honey, preserves, and handmade goods.
+Raw milk and dairy were the founding use case, but the marketplace is for local food broadly: meat, eggs, fresh produce, baked goods, honey, preserves, and handmade goods.
 
 ## How buying works
 
@@ -21,14 +21,14 @@ Raw milk and dairy were the founding use case, but the marketplace is for local 
 Producers follow a guided onboarding (see the Producer Guide):
 
 1. Create an account with a Nostr identity (new or existing).
-2. Choose a membership — a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature.
+2. Choose a membership: a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature, plus the option to self-host a private, single-tenant copy of your store on your own server.
 3. List a product with title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
 4. Manage orders and communicate with buyers through encrypted chat.
-5. (Herd) Customize a storefront at /shop/[slug] — colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
-6. (Herd) Automate email flows — welcome series, order follow-ups, and re-engagement — with open, click, and conversion analytics for every flow and one-time send, viewable in the orders dashboard or via the MCP get_email_analytics tool. Herd sellers can send these flow emails and order confirmations from their own authenticated email domain; if the domain is not verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no seller can see another seller's analytics, and the platform does not access or use an individual seller's raw email analytics (the platform runs its own storefront as an ordinary seller account with no special access).
-7. (Herd) Buy shipping labels through Shippo — connect your own Shippo account (Shippo bills you directly), then quote live rates, buy labels, and issue return labels from the orders dashboard.
+5. (Herd) Customize a storefront at /shop/[slug]: colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
+6. (Herd) Automate email flows (welcome series, order follow-ups, and re-engagement) with open, click, and conversion analytics for every flow and one-time send, viewable in the orders dashboard or via the MCP get_email_analytics tool. Herd sellers can send these flow emails and order confirmations from their own authenticated email domain; if the domain is not verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no seller can see another seller's analytics, and the platform does not access or use an individual seller's raw email analytics (the platform runs its own storefront as an ordinary seller account with no special access).
+7. (Herd) Buy shipping labels through Shippo: connect your own Shippo account (Shippo bills you directly), then quote live rates, buy labels, and issue return labels from the orders dashboard.
 8. (Herd) Connect AI agents through the Model Context Protocol (MCP) so autonomous agents can manage listings and orders.
-9. Grow — update listings, build relationships, share the producer's story, and expand reach.
+9. Grow your business: update listings, build relationships, share the producer's story, and expand reach.
 
 Sellers who connect a Stripe account can also turn on automatic US sales tax (free, not part of Herd): once enabled with their registered states, Stripe calculates tax from the buyer's shipping address and collects it at checkout on card orders.
 

@@ -834,9 +834,9 @@ export default function CustomizeProductPageModal({
                 >
                   Customization size: {sizeKb} KB
                   {sizeWarn &&
-                    " — large customizations may be rejected by some Nostr relays."}
+                    ", large customizations may be rejected by some Nostr relays."}
                   {sizeBlock &&
-                    " — exceeds 64 KB limit. Reduce content before saving."}
+                    ", which exceeds the 64 KB limit. Reduce content before saving."}
                 </div>
               </div>
             ) : (

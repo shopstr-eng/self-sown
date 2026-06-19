@@ -47,7 +47,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
   },
   about: {
     heading: "About Our Farm",
-    body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our raw milk and farmstead cheeses to our pasture-raised eggs and grass-fed meats. We believe in food freedom — your right to choose real, nutrient-dense food direct from the source.",
+    body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our raw milk and farmstead cheeses to our pasture-raised eggs and grass-fed meats. We believe in food freedom: your right to choose real, nutrient-dense food direct from the source.",
     image: PLACEHOLDER_ABOUT_IMAGE,
     imagePosition: "right" as const,
   },
@@ -93,7 +93,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
       },
       {
         quote:
-          "Their farmstead cheese is incredible — you can taste the difference that grass-fed, pasture-raised makes. We order every month!",
+          "Their farmstead cheese is incredible. You can taste the difference that grass-fed, pasture-raised makes. We order every month!",
         author: "James T.",
         rating: 5,
       },
@@ -121,7 +121,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
       {
         question: "Is your milk really raw?",
         answer:
-          "Yes — our milk is completely unprocessed. It is not pasteurized or homogenized, preserving all the natural enzymes, beneficial bacteria, and full-bodied flavor.",
+          "Yes, our milk is completely unprocessed. It is not pasteurized or homogenized, preserving all the natural enzymes, beneficial bacteria, and full-bodied flavor.",
       },
       {
         question: "What do your animals eat?",
@@ -171,7 +171,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
       {
         heading: "Our Farm",
         values: [
-          "No — Raw",
+          "No (Raw)",
           "✓ Always",
           "✓ Never Used",
           "✓ Yes",
@@ -185,7 +185,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
           "Yes",
           "Rarely",
           "Often Used",
-          "No — 3+ Middlemen",
+          "No (3+ Middlemen)",
           "No",
           "Reduced by Processing",
         ],
@@ -194,7 +194,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
   },
   text: {
     heading: "Our Promise to You",
-    body: "We believe that everyone deserves access to real, nutrient-dense food produced with integrity. Every product from our farm is made with the same care we'd put into feeding our own family.\n\nWe practice regenerative agriculture that builds soil health, supports biodiversity, and produces food that nourishes both people and the land. When you buy from us, you're not just getting exceptional food — you're supporting a more sustainable food system.",
+    body: "We believe that everyone deserves access to real, nutrient-dense food produced with integrity. Every product from our farm is made with the same care we'd put into feeding our own family.\n\nWe practice regenerative agriculture that builds soil health, supports biodiversity, and produces food that nourishes both people and the land. When you buy from us, you're not just getting exceptional food. You're supporting a more sustainable food system.",
   },
   image: {
     image: PLACEHOLDER_SECTION_IMAGE,
@@ -203,7 +203,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
   },
   contact: {
     heading: "Get in Touch",
-    body: "We'd love to hear from you. Whether you have questions about our products, want to schedule a farm visit, or just want to say hello — reach out anytime.",
+    body: "We'd love to hear from you. Whether you have questions about our products, want to schedule a farm visit, or just want to say hello, reach out anytime.",
     email: "hello@example-farm.com",
     phone: "(555) 123-4567",
     address: "1234 Country Road\nGreen Valley, CA 95945",
@@ -287,7 +287,7 @@ export function fillFooterPlaceholders(
       footer.text ||
       `${
         shopName || "Our Farm"
-      } — Real food, raised right, delivered to your door.`,
+      }: Real food, raised right, delivered to your door.`,
     socialLinks:
       footer.socialLinks && footer.socialLinks.length > 0
         ? footer.socialLinks

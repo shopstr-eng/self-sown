@@ -222,8 +222,8 @@ export default function ProductPageEditor({
             >
               Template size: {sizeKb} KB
               {sizeWarn &&
-                " — large templates may be rejected by some Nostr relays."}
-              {sizeBlock && " — exceeds 64 KB limit. Reduce content."}
+                ", large templates may be rejected by some Nostr relays."}
+              {sizeBlock && ", which exceeds the 64 KB limit. Reduce content."}
             </div>
           )}
         </>

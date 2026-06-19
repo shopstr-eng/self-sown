@@ -336,9 +336,9 @@ const PaymentsSettingsPage = () => {
             <h1 className="text-3xl font-bold text-black">Payments</h1>
           </div>
           <p className="mb-6 text-sm text-gray-700">
-            Manage your Stripe Connect account — payout schedules, bank
-            accounts, business details, tax info, and verification — directly
-            from your Stripe Express dashboard.
+            Manage your Stripe Connect account (payout schedules, bank accounts,
+            business details, tax info, and verification) directly from your
+            Stripe Express dashboard.
           </p>
 
           {loading ? (
@@ -550,7 +550,7 @@ const PaymentsSettingsPage = () => {
                                 <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-xs text-black">
                                   Stripe Tax status: {taxStatus.settingsStatus}
                                   {taxStatus.settingsStatusDetail
-                                    ? ` — ${taxStatus.settingsStatusDetail}`
+                                    ? ` (${taxStatus.settingsStatusDetail})`
                                     : ""}
                                   . Tax may not calculate until this is resolved
                                   in your Stripe dashboard.
@@ -576,7 +576,7 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Stripe</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Stripe account from Milk Market — for example
+                      Remove this Stripe account from Milk Market, for example
                       if you need to switch to a different account or fix a
                       broken connection. Card payments will stop until you
                       connect an account again. Your Stripe account itself
@@ -654,7 +654,7 @@ const PaymentsSettingsPage = () => {
                   tax settings on the new account.
                 </p>
                 <p className="text-sm">
-                  Your Stripe account itself isn&apos;t deleted — any balance or
+                  Your Stripe account itself isn&apos;t deleted; any balance or
                   payouts stay with Stripe, where you can still manage or close
                   the account.
                 </p>

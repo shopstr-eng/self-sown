@@ -31,7 +31,7 @@ export default function StorefrontLoadError({
       <h1 className="mt-6 text-2xl font-bold">Having trouble loading</h1>
       <p className="mt-3 max-w-md text-gray-500">
         We couldn&apos;t load this {label} right now. This is usually a brief
-        connection hiccup — we&apos;ll keep trying automatically.
+        connection hiccup, we&apos;ll keep trying automatically.
       </p>
       <button
         onClick={onRetry}

@@ -194,7 +194,7 @@ export default function SellerMembershipsPanel() {
             ? `Granted ${opMonths} month(s) of Herd access.`
             : op === "grant-lifetime"
               ? "Granted Wrangler lifetime access."
-              : "Membership revoked — seller is back on the free tier."
+              : "Membership revoked. Seller is back on the free tier."
         );
       } catch (err: any) {
         setError(err?.message || "Update failed");

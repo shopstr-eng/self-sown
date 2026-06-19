@@ -65,6 +65,12 @@ interface StorefrontThemeWrapperProps {
   // the component tree shape on hydration. The decision is driven by
   // `isCustomDomainVisit` in _app.tsx.
   renderChrome: boolean;
+  // Self-host (Wrangler single-tenant) only: when true, treat the tenant as
+  // entitled WITHOUT waiting on the public /api/pro/status round trip, so the
+  // owner's branded chrome paints immediately on every page with no flash and
+  // no dependency on a network call. Always false on the hosted platform, so
+  // hosted custom-domain / marketplace behavior is unchanged.
+  forceSelfHostChrome?: boolean;
   children: React.ReactNode;
 }
 
@@ -83,6 +89,7 @@ export default function StorefrontThemeWrapper(
 
 function StorefrontThemeWrapperInner({
   sellerPubkey,
+  forceSelfHostChrome,
   children,
 }: StorefrontThemeWrapperProps) {
   const shopMapContext = useContext(ShopMapContext);
@@ -98,6 +105,15 @@ function StorefrontThemeWrapperInner({
   // any /api/pro/status error, so a lapsed/non-Pro seller's design is never
   // served during an outage.
   const { isPro: sellerIsPro } = usePublicMembershipStatus(sellerPubkey);
+  // On a self-host instance the owner runs their OWN single-tenant copy, so they
+  // are always entitled to their branded chrome. Skipping the Pro gate here lets
+  // the storefront paint on the very first render instead of waiting for (and
+  // depending on) the /api/pro/status round trip. This flag is fail-closed: it is
+  // true only when _app.tsx trusted the x-mm-self-host header, which happens only
+  // when the server process is itself in self-host mode (MM_SELF_HOST env) — a
+  // spoofed header on the hosted platform can't set it, so the hosted Pro gate is
+  // untouched.
+  const entitled = forceSelfHostChrome || sellerIsPro;
 
   const [storefront, setStorefront] = useState<StorefrontConfig | null>(null);
   const [colors, setColors] = useState<StorefrontColorScheme>(DEFAULT_COLORS);
@@ -112,7 +128,7 @@ function StorefrontThemeWrapperInner({
     // side effect below too, so a non-Pro seller's saved colorScheme can't paint
     // the page. We fail closed: while entitlement is unresolved (isPro false)
     // we keep defaults.
-    if (!sellerIsPro) {
+    if (!entitled) {
       setStorefront(null);
       setColors(DEFAULT_COLORS);
       return;
@@ -125,7 +141,7 @@ function StorefrontThemeWrapperInner({
         setColors({ ...DEFAULT_COLORS, ...sf.colorScheme });
       }
     }
-  }, [sellerPubkey, shopMapContext.shopData, sellerIsPro]);
+  }, [sellerPubkey, shopMapContext.shopData, entitled]);
 
   useEffect(() => {
     if (sellerPubkey) {
@@ -179,7 +195,7 @@ function StorefrontThemeWrapperInner({
     };
   }, [storefront, colors]);
 
-  const hasCustomStorefront = !!storefront && sellerIsPro;
+  const hasCustomStorefront = !!storefront && entitled;
   const hasFooter = !!storefront?.footer;
 
   const navBg = storefront?.navColors?.background || colors.secondary;

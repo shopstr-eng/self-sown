@@ -168,7 +168,7 @@ export default function SectionEditor({
             {SECTION_LABELS[section.type] || section.type}
             {section.heading && (
               <span className="font-normal text-gray-400">
-                — {section.heading}
+                : {section.heading}
               </span>
             )}
           </button>
@@ -1097,7 +1097,7 @@ function IngredientEditor({
                     </FileUploaderButton>
                   </div>
                   <p className="text-[11px] text-gray-500">
-                    Recommended: 400 × 400 px (square — fits the circle)
+                    Recommended: 400 × 400 px (square, fits the circle)
                   </p>
                 </div>
               )}

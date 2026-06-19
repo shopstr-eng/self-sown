@@ -19,6 +19,7 @@ import {
   buildProStartTrialProof,
   buildProSyncProof,
   buildProVerifyInvoiceProof,
+  buildProExportStoreProof,
   SIGNED_EVENT_HEADER,
 } from "@/utils/nostr/request-auth";
 import type {
@@ -68,6 +69,17 @@ interface ProMembershipContextValue {
   verifyManualInvoice: (invoiceId: string) => Promise<any>;
   /** Read the seller's past Pro charges (Stripe + manual), newest first. */
   fetchHistory: () => Promise<ProBillingHistoryItem[]>;
+  /**
+   * Download the personalized self-host setup bundle (Wrangler/lifetime only).
+   * Signs a request proof bound to the caller's pubkey and returns the ZIP blob
+   * plus a suggested filename for the browser to save.
+   */
+  exportSelfHostStore: (payload: {
+    slug?: string | null;
+    relays?: string[];
+    blossomServers?: string[];
+    branding?: unknown;
+  }) => Promise<{ blob: Blob; filename: string }>;
 }
 
 const ProMembershipContext = createContext<ProMembershipContextValue | null>(
@@ -282,6 +294,42 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
     return (data?.history ?? []) as ProBillingHistoryItem[];
   }, [requireAuth]);
 
+  const exportSelfHostStore = useCallback(
+    async (payload: {
+      slug?: string | null;
+      relays?: string[];
+      blossomServers?: string[];
+      branding?: unknown;
+    }) => {
+      const { pubkey: pk, signer: s } = requireAuth();
+      const signedEvent = await s.sign(
+        buildSignedHttpRequestProofTemplate(buildProExportStoreProof(pk))
+      );
+      const res = await fetch("/api/pro/export-store", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          [SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent),
+        },
+        body: JSON.stringify({ pubkey: pk, ...payload }),
+      });
+      if (!res.ok) {
+        // Errors come back as JSON even though the success path is a ZIP.
+        const data = await res.json().catch(() => ({}));
+        throw new Error(
+          data?.error || "Failed to download your self-host bundle"
+        );
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="?([^"]+)"?/i);
+      const filename =
+        match?.[1] || `milk-market-self-host-${pk.slice(0, 12)}.zip`;
+      return { blob, filename };
+    },
+    [requireAuth]
+  );
+
   const value = useMemo<ProMembershipContextValue>(
     () => ({
       membership,
@@ -297,6 +345,7 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       createManualLifetimeInvoice,
       verifyManualInvoice,
       fetchHistory,
+      exportSelfHostStore,
     }),
     [
       membership,
@@ -311,6 +360,7 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       createManualLifetimeInvoice,
       verifyManualInvoice,
       fetchHistory,
+      exportSelfHostStore,
     ]
   );
 

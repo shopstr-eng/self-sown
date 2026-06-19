@@ -46,6 +46,7 @@ import {
   sendProLifetimeLingeringCancelAlert,
 } from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
+import { isSelfHostTenant } from "@/utils/self-host/config";
 
 /**
  * Emit a structured, greppable log event for every attempt to cancel a lingering
@@ -156,10 +157,36 @@ async function alertLifetimeLingeringCancelFailure(fields: {
 export async function getMembershipView(
   pubkey: string
 ): Promise<MembershipView> {
+  // Self-host (single-tenant) bypass: on a seller's own private instance the
+  // one configured owner pubkey is always a lifetime (Wrangler) member, so every
+  // Pro/Herd feature unlocks without any billing row or Stripe involvement. This
+  // is scoped to exactly that pubkey by isSelfHostTenant, which fails closed (no
+  // tenant configured ⇒ no bypass) — every OTHER pubkey, and the entire normal
+  // hosted platform (self-host off), is still resolved from the DB below. We
+  // build a synthetic lifetime row so resolveMembershipStatus returns "active".
+  if (isSelfHostTenant(pubkey)) {
+    return membershipView(pubkey, {
+      pubkey,
+      lifetime: true,
+      billing_method: "manual",
+      term: null,
+      status: "active",
+      stripe_customer_id: null,
+      stripe_subscription_id: null,
+      trial_end: null,
+      current_period_end: null,
+      grace_until: null,
+      readonly_until: null,
+      cancel_at_period_end: false,
+    });
+  }
   const row = await getProMembership(pubkey);
   return membershipView(pubkey, row);
 }
 
+// Inherits the self-host tenant bypass transitively via getMembershipView, so
+// the owner is entitled on their own instance while everyone else resolves
+// normally.
 export async function isPubkeyProEntitled(pubkey: string): Promise<boolean> {
   const view = await getMembershipView(pubkey);
   return isProEntitled(view.status);
@@ -620,8 +647,8 @@ async function sendProReceiptNostrDM(
           : "Fiat";
 
     const activeLine = details.lifetime
-      ? `We received your Milk Market payment of ${amount}. Your Wrangler lifetime access is active and never expires — here are the details for your records:`
-      : `We received your Milk Market payment of ${amount}. Your Herd features stay active — here are the details for your records:`;
+      ? `We received your Milk Market payment of ${amount}. Your Wrangler lifetime access is active and never expires. Here are the details for your records:`
+      : `We received your Milk Market payment of ${amount}. Your Herd features stay active. Here are the details for your records:`;
     const lines: string[] = [activeLine, ""];
     if (date) lines.push(`Date: ${date}`);
     lines.push(`Amount: ${amount}`);
@@ -639,7 +666,7 @@ async function sendProReceiptNostrDM(
     await sendServerSideNostrDM(
       pubkey,
       lines.join("\n"),
-      `Milk Market — payment receipt (${amount})`
+      `Milk Market: payment receipt (${amount})`
     );
   } catch (err) {
     console.error("sendProReceiptNostrDM failed:", err);

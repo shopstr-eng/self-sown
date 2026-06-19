@@ -49,3 +49,51 @@ jobs:
 
       - name: Run Testcontainers integration test
         run: npm run test:integration
+
+  self-host-build:
+    name: Self-host full build + boot
+    runs-on: ubuntu-latest
+
+    # Real compile-and-boot of a single-tenant self-host instance. Gated behind
+    # RUN_SELF_HOST_BUILD (mirrors the RUN_TESTCONTAINERS pattern) so it only
+    # ever runs in this dedicated CI job, never in normal `jest` runs or the
+    # agent sandbox (where a cold Next compile OOMs).
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: milkmarket
+          POSTGRES_PASSWORD: milkmarket
+          POSTGRES_DB: milkmarket
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RUN_SELF_HOST_BUILD: "1"
+      DATABASE_URL: postgresql://milkmarket:milkmarket@localhost:5432/milkmarket
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply database schema
+        run: psql "$DATABASE_URL" -f db/schema.sql
+
+      - name: Run self-host full build + boot test
+        run: pnpm run test:self-host-build

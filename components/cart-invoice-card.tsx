@@ -91,6 +91,11 @@ import {
   isAtStripeFloor,
   STRIPE_MINIMUM_CHARGE_USD,
   ZERO_DECIMAL_CURRENCIES,
+  isExchangeRateError,
+  ExchangeRateError,
+  EXCHANGE_RATE_BUYER_MESSAGE,
+  getSatoshiValueResilient,
+  getFiatValueResilient,
 } from "@/utils/stripe/currency";
 
 export default function CartInvoiceCard({
@@ -1227,6 +1232,14 @@ export default function CartInvoiceCard({
   };
 
   const [nativeTotalCost, setNativeTotalCost] = useState<number | null>(null);
+  // True when computing `nativeTotalCost` required an FX conversion that the
+  // exchange-rate feed could not provide (persistent outage), so the displayed
+  // total fell back to a raw/0 amount. The fallback is fine for DISPLAY, but a
+  // card CHARGE must never be derived from it — see the guard in
+  // handleStripePayment which blocks single-seller card checkout when this is
+  // set. Multi-merchant charges are summed per-seller in native currency (no
+  // cross-FX) so they are unaffected.
+  const [chargeFxFailed, setChargeFxFailed] = useState<boolean>(false);
   // Per-seller shipping total expressed in the cart's display currency.
   // Computed alongside `nativeTotalCost` (which needs the same FX work) so
   // downstream consumers like `getMethodDiscountedCosts` can add shipping in
@@ -1254,12 +1267,16 @@ export default function CartInvoiceCard({
       setNativeTotalCost(null);
       setNativeShippingTotal(0);
       setNativeShippingPerSeller({});
+      // Sats carts charge natively (no FX), so a charge can never be blocked
+      // by an FX outage here.
+      setChargeFxFailed(false);
       return;
     }
     let cancelled = false;
     const compute = async () => {
-      const { getSatoshiValue, getFiatValue } =
-        await import("@getalby/lightning-tools");
+      // Tracks whether any charge-contributing FX conversion below fell back to
+      // a raw/0 amount because the rate feed was unavailable.
+      let fxFailed = false;
       const cartCurrencyUpper = cartCurrency.toUpperCase();
       const cartIsZeroDecimal =
         isSatsCurrency(cartCurrencyUpper) ||
@@ -1297,15 +1314,24 @@ export default function CartInvoiceCard({
             const satVal =
               productCurrencyUpper === "SATS" || productCurrencyUpper === "SAT"
                 ? discountedPrice * qty
-                : await getSatoshiValue({
+                : await getSatoshiValueResilient({
                     amount: discountedPrice * qty,
                     currency: product.currency,
                   });
-            lineInCartCurrency = await getFiatValue({
-              satoshi: Math.ceil(satVal),
-              currency: cartCurrencyUpper,
-            });
+            const fiatVal =
+              satVal == null
+                ? null
+                : await getFiatValueResilient({
+                    satoshi: Math.ceil(satVal),
+                    currency: cartCurrencyUpper,
+                  });
+            // On a persistent FX outage fall back to the raw amount rather than
+            // dropping the line; retries + a fresh cache cover brief hiccups.
+            // Flag it so a CARD charge can be blocked (display tolerates it).
+            if (fiatVal == null) fxFailed = true;
+            lineInCartCurrency = fiatVal ?? discountedPrice * qty;
           } catch {
+            fxFailed = true;
             lineInCartCurrency = discountedPrice * qty;
           }
         }
@@ -1320,10 +1346,24 @@ export default function CartInvoiceCard({
         const sellersSeen = new Set<string>();
         for (const product of products) {
           if (sellersSeen.has(product.pubkey)) continue;
+          // In a combined cart, only products the buyer chose to ship (Added
+          // Cost / Free) contribute shipping; pickup products must be skipped
+          // so this fiat total charges the same set of products as the sats
+          // `recompute` effect (which applies the identical per-product gate).
+          // Check BEFORE marking the seller seen so a later shipped product of
+          // the same seller can still be processed if the first one was pickup.
+          if (formType === "combined") {
+            const st = shippingTypes[product.id];
+            if (st !== "Added Cost" && st !== "Free") continue;
+          }
           sellersSeen.add(product.pubkey);
           if (sellerFreeShippingStatus[product.pubkey]?.qualifies) continue;
           const sellerProducts = products.filter(
-            (p) => p.pubkey === product.pubkey
+            (p) =>
+              p.pubkey === product.pubkey &&
+              (formType !== "combined" ||
+                shippingTypes[p.id] === "Added Cost" ||
+                shippingTypes[p.id] === "Free")
           );
           let shippingForSeller: number;
           let shippingProductCurrency: string;
@@ -1362,17 +1402,26 @@ export default function CartInvoiceCard({
               const satVal =
                 shipCurUpper === "SATS" || shipCurUpper === "SAT"
                   ? shippingForSeller
-                  : await getSatoshiValue({
+                  : await getSatoshiValueResilient({
                       amount: shippingForSeller,
                       currency: shippingProductCurrency,
                     });
-              shippingInCartCurrency = await getFiatValue({
-                satoshi: Math.ceil(satVal),
-                currency: cartCurrencyUpper,
-              });
+              const fiatVal =
+                satVal == null
+                  ? null
+                  : await getFiatValueResilient({
+                      satoshi: Math.ceil(satVal),
+                      currency: cartCurrencyUpper,
+                    });
+              // If FX lookup persistently fails, fall back to 0 rather than
+              // misrepresenting the total in the wrong unit. Flag it so a CARD
+              // charge can be blocked (display tolerates the dropped shipping).
+              if (fiatVal == null) fxFailed = true;
+              shippingInCartCurrency = fiatVal ?? 0;
             } catch {
               // If FX lookup fails, fall back to 0 rather than misrepresenting
               // the total in the wrong unit.
+              fxFailed = true;
               shippingInCartCurrency = 0;
             }
           }
@@ -1399,8 +1448,16 @@ export default function CartInvoiceCard({
             : Math.round(v * 100) / 100;
         }
         setNativeShippingPerSeller(roundedNativeShipPerSeller);
+        setChargeFxFailed(fxFailed);
       }
     };
+    // Fail closed: mark the FX result "not ready" before the async conversion
+    // runs. A same-currency cart hits no `await`, so `compute()` synchronously
+    // resets this to false in the same render batch (no false positive); a
+    // cross-currency cart keeps it true through the await window, so a card
+    // submit during a rate-feed outage is blocked instead of charging a stale or
+    // unconfirmed total.
+    setChargeFxFailed(true);
     compute();
     return () => {
       cancelled = true;
@@ -1413,6 +1470,7 @@ export default function CartInvoiceCard({
     cartCurrency,
     formType,
     shippingPickupPreference,
+    shippingTypes,
     sellerFreeShippingStatus,
     liveShippingBySeller,
   ]);
@@ -1433,8 +1491,6 @@ export default function CartInvoiceCard({
     }
     let cancelled = false;
     const compute = async () => {
-      const { getSatoshiValue, getFiatValue } =
-        await import("@getalby/lightning-tools");
       const map: { [productId: string]: number } = {};
       const cartCurrencyUpper = cartCurrency!.toUpperCase();
       for (const product of products) {
@@ -1463,17 +1519,28 @@ export default function CartInvoiceCard({
             const satVal =
               productCurrencyUpper === "SATS" || productCurrencyUpper === "SAT"
                 ? discountedPrice * qty
-                : await getSatoshiValue({
+                : await getSatoshiValueResilient({
                     amount: discountedPrice * qty,
                     currency: product.currency,
                   });
-            const fiatVal = await getFiatValue({
-              satoshi: Math.ceil(satVal),
-              currency: cartCurrencyUpper,
-            });
-            map[product.id] = isSatsCurrency(cartCurrencyUpper)
-              ? Math.ceil(fiatVal)
-              : Math.ceil(fiatVal * 100) / 100;
+            const fiatVal =
+              satVal == null
+                ? null
+                : await getFiatValueResilient({
+                    satoshi: Math.ceil(satVal),
+                    currency: cartCurrencyUpper,
+                  });
+            if (fiatVal == null) {
+              // Persistent FX outage — fall back to the raw amount rather than
+              // dropping the per-product cost.
+              map[product.id] = isSatsCurrency(cartCurrencyUpper)
+                ? Math.ceil(discountedPrice * qty)
+                : Math.ceil(discountedPrice * qty * 100) / 100;
+            } else {
+              map[product.id] = isSatsCurrency(cartCurrencyUpper)
+                ? Math.ceil(fiatVal)
+                : Math.ceil(fiatVal * 100) / 100;
+            }
           } catch {
             map[product.id] = isSatsCurrency(cartCurrencyUpper)
               ? Math.ceil(discountedPrice * qty)
@@ -1496,13 +1563,16 @@ export default function CartInvoiceCard({
     }
     const fetchUsdEstimate = async () => {
       try {
-        const { getSatoshiValue } = await import("@getalby/lightning-tools");
-        const satsPerUsd = await getSatoshiValue({
+        const satsPerUsd = await getSatoshiValueResilient({
           amount: 1,
           currency: "USD",
         });
-        if (satsPerUsd > 0) {
+        if (satsPerUsd != null && satsPerUsd > 0) {
           setUsdEstimate(Math.ceil((totalCost / satsPerUsd) * 100) / 100);
+        } else {
+          // Persistent outage — clear the estimate so the UI shows a
+          // placeholder rather than a stale value.
+          setUsdEstimate(null);
         }
       } catch {
         setUsdEstimate(null);
@@ -2550,7 +2620,16 @@ export default function CartInvoiceCard({
       let shippingTotal = 0;
       const shipPerSeller: Record<string, number> = {};
       const processedSellers = new Set<string>();
+      // In a combined cart, shipping is only charged when the buyer chose the
+      // "shipping" preference; switching to pickup ("contact") must drop all
+      // shipping. This mirrors the fiat `nativeTotalCost` effect's
+      // `shippingPickupPreference === "shipping"` guard so the sats total never
+      // diverges from the card total on the pickup-vs-shipping axis.
+      const includeShipping =
+        formType === "shipping" ||
+        (formType === "combined" && shippingPickupPreference === "shipping");
       for (const product of products) {
+        if (!includeShipping) break;
         const sellerPubkey = product.pubkey;
         if (sellerFreeShippingStatus[sellerPubkey]?.qualifies) continue;
         if (formType === "combined") {
@@ -2710,6 +2789,16 @@ export default function CartInvoiceCard({
 
       const isMultiMerchant = !isSingleSeller && allSellersHaveStripe;
 
+      // Fail closed: a single-seller card charge is derived from the
+      // FX-converted `nativeTotalCost`. If that conversion fell back to a raw/0
+      // amount during a rate-feed outage, block the charge rather than silently
+      // under/over-charging — the buyer is told to retry or use another method.
+      // Multi-merchant charges below are summed per-seller in each seller's own
+      // native currency (no cross-FX), so they are intentionally exempt.
+      if (!isMultiMerchant && !isSatsCart && cartCurrency && chargeFxFailed) {
+        throw new ExchangeRateError();
+      }
+
       if (hasActiveSubscription) {
         const shippingAddressObj =
           data.shippingName && data.shippingAddress
@@ -2783,9 +2872,12 @@ export default function CartInvoiceCard({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(
+          const err = new Error(
             errorData.details || "Failed to create cart subscription"
           );
+          if (errorData.code)
+            (err as Error & { code?: string }).code = errorData.code;
+          throw err;
         }
 
         const respData = await response.json();
@@ -2934,7 +3026,12 @@ export default function CartInvoiceCard({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.details || "Failed to create payment");
+          const err = new Error(
+            errorData.details || "Failed to create payment"
+          );
+          if (errorData.code)
+            (err as Error & { code?: string }).code = errorData.code;
+          throw err;
         }
 
         const respData = await response.json();
@@ -2961,8 +3058,12 @@ export default function CartInvoiceCard({
         setInvoiceGenerationFailed(true);
       }
       setShowInvoiceCard(false);
-      const detail = error instanceof Error ? error.message : "Unknown error";
-      setFailureText(`Card payment setup failed: ${detail}`);
+      if (isExchangeRateError(error)) {
+        setFailureText(EXCHANGE_RATE_BUYER_MESSAGE);
+      } else {
+        const detail = error instanceof Error ? error.message : "Unknown error";
+        setFailureText(`Card payment setup failed: ${detail}`);
+      }
       setShowFailureModal(true);
     }
   };
@@ -7597,61 +7698,18 @@ export default function CartInvoiceCard({
                   </div>
                 </button>
                 <button
-                  onClick={async () => {
+                  onClick={() => {
+                    // Pickup ("contact") preference means NO shipping is charged
+                    // for the combined cart. The sats `recompute` effect and the
+                    // fiat `nativeTotalCost` effect both gate all shipping on the
+                    // "shipping" preference, so the canonical totalCost here is
+                    // simply the item subtotal. The reactive recompute effect
+                    // settles to the same value; setting it here keeps the sats
+                    // total correct immediately and avoids a handler-vs-effect
+                    // race that could briefly re-add the dropped shipping.
                     setShippingPickupPreference("contact");
                     setShowFreePickupSelection(false);
-                    let shippingTotal = 0;
-                    const processedSellers = new Set<string>();
-
-                    for (const product of products) {
-                      const sellerPubkey = product.pubkey;
-                      const productShippingType = shippingTypes[product.id];
-                      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies)
-                        continue;
-                      if (
-                        productShippingType === "Added Cost" ||
-                        productShippingType === "Free"
-                      ) {
-                        if (!processedSellers.has(sellerPubkey)) {
-                          processedSellers.add(sellerPubkey);
-                          const sellerProducts = products.filter(
-                            (p) =>
-                              p.pubkey === sellerPubkey &&
-                              (shippingTypes[p.id] === "Added Cost" ||
-                                shippingTypes[p.id] === "Free")
-                          );
-                          if (sellerProducts.length > 1) {
-                            const { highestShippingProduct } =
-                              getConsolidatedShippingForSeller(sellerPubkey);
-                            if (highestShippingProduct) {
-                              const shippingCostInSats =
-                                await convertShippingToSats(
-                                  highestShippingProduct
-                                );
-                              shippingTotal += Math.ceil(
-                                applyShippingDiscount(
-                                  shippingCostInSats,
-                                  sellerPubkey
-                                )
-                              );
-                            }
-                          } else {
-                            const eff =
-                              getEffectiveSingleProductShipping(product);
-                            const shippingCostInSats =
-                              await convertShippingToSats(eff.syntheticProduct);
-                            shippingTotal += Math.ceil(
-                              applyShippingDiscount(
-                                shippingCostInSats,
-                                sellerPubkey
-                              )
-                            );
-                          }
-                        }
-                      }
-                    }
-
-                    setTotalCost(subtotalCost + shippingTotal);
+                    setTotalCost(subtotalCost);
                   }}
                   className={`shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                     shippingPickupPreference === "contact"

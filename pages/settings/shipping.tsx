@@ -251,8 +251,8 @@ const ShippingSettingsPage = () => {
                     </h2>
                     <p className="mb-4 text-sm text-gray-600">
                       Connect your own Shippo account to buy shipping labels.
-                      Shippo bills your account directly — the marketplace never
-                      charges you for shipping.
+                      Shippo bills your account directly, and the marketplace
+                      never charges you for shipping.
                     </p>
                     {connection && !connection.configured ? (
                       <div className="rounded-md border-2 border-black bg-yellow-50 p-3 text-sm text-black">

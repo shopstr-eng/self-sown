@@ -44,12 +44,12 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
     "/contact": {
       title: "Contact Milk Market | Get in Touch via Nostr & GitHub",
       description:
-        "Contact the Milk Market team via Nostr, GitHub, or X. We are a decentralized open-source project — all communication happens on open protocols.",
+        "Contact the Milk Market team via Nostr, GitHub, or X. We are a decentralized open-source project. All communication happens on open protocols.",
     },
     "/faq": {
-      title: "FAQ | Milk Market — Bitcoin Nostr Marketplace Help",
+      title: "FAQ | Milk Market: Bitcoin Nostr Marketplace Help",
       description:
-        "Answers to common questions about Milk Market — the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
+        "Answers to common questions about Milk Market, the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
     },
     "/communities": {
       title: "Local Food Communities | Milk Market",
@@ -69,7 +69,7 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
     "/producer-guide": {
       title: "Producer Guide - Milk Market | Start Selling Local Food",
       description:
-        "Learn how to become a producer on Milk Market. Step-by-step guide to selling local food — from raw milk and dairy to meat, eggs, produce, and baked goods — directly to customers.",
+        "Learn how to become a producer on Milk Market. Step-by-step guide to selling local food (from raw milk and dairy to meat, eggs, produce, and baked goods) directly to customers.",
     },
   };
 

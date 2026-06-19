@@ -6,7 +6,7 @@ Disallow: /onboarding/
 Disallow: /auth/
 Disallow: /wallet/
 
-# AI / LLM agents — explicitly welcomed. See /llms.txt and /agents.txt.
+# AI / LLM agents are explicitly welcomed. See /llms.txt and /agents.txt.
 User-agent: GPTBot
 Allow: /
 Disallow: /settings/

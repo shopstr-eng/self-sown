@@ -190,7 +190,7 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
       );
       if (restoredCount === 0) {
         setRestoreStatus(
-          "Nothing to restore — your local wallet already matches your nostr backup."
+          "Nothing to restore. Your local wallet already matches your nostr backup."
         );
       } else {
         setRestoreStatus(
@@ -201,7 +201,7 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
       }
     } catch (err) {
       console.error("Restore failed:", err);
-      setRestoreStatus("Restore failed — see console for details.");
+      setRestoreStatus("Restore failed. See console for details.");
     }
     setTimeout(() => setRestoreStatus(null), 6000);
   };
@@ -254,7 +254,7 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
               style={{ color: colors.accent }}
               onClick={handleMintClick}
             >
-              No mint configured — tap to set up
+              No mint configured, tap to set up
             </p>
           )}
           <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

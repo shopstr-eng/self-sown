@@ -43,6 +43,11 @@ import {
   isAtStripeFloor,
   STRIPE_MINIMUM_CHARGE_USD,
   ZERO_DECIMAL_CURRENCIES,
+  isExchangeRateError,
+  ExchangeRateError,
+  EXCHANGE_RATE_BUYER_MESSAGE,
+  getSatoshiValueResilient,
+  getFiatValueResilient,
 } from "@/utils/stripe/currency";
 import {
   recordPendingMintQuote,
@@ -256,6 +261,11 @@ export default function ProductInvoiceCard({
 
   const [formType, setFormType] = useState<"shipping" | "contact" | null>(null);
   const [convertedShippingCost, setConvertedShippingCost] = useState<number>(0);
+  // True when converting the seller's shipping cost into the product currency
+  // required an FX lookup that the rate feed could not provide, so
+  // `convertedShippingCost` fell back to 0. Fine for DISPLAY, but a card CHARGE
+  // must not silently drop shipping — see the guard in handleStripePayment.
+  const [shippingFxFailed, setShippingFxFailed] = useState<boolean>(false);
   const [showOrderTypeSelection, setShowOrderTypeSelection] = useState(true);
 
   const triggerOrderEmail = async (params: {
@@ -3474,6 +3484,14 @@ export default function ProductInvoiceCard({
         validatePaymentData(convertedPrice);
       }
 
+      // Fail closed: when shipping needs an FX conversion that the rate feed
+      // can't provide, `convertedShippingCost` falls back to 0. That's fine for
+      // display, but charging a card with shipping silently dropped would
+      // under-charge the seller — block and tell the buyer to retry instead.
+      if (formType === "shipping" && shippingFxFailed) {
+        throw new ExchangeRateError();
+      }
+
       const orderId = uuidv4();
 
       if (
@@ -3584,7 +3602,12 @@ export default function ProductInvoiceCard({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.details || "Failed to create subscription");
+          const err = new Error(
+            errorData.details || "Failed to create subscription"
+          );
+          if (errorData.code)
+            (err as Error & { code?: string }).code = errorData.code;
+          throw err;
         }
 
         const {
@@ -3652,7 +3675,12 @@ export default function ProductInvoiceCard({
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.details || "Failed to create payment");
+          const err = new Error(
+            errorData.details || "Failed to create payment"
+          );
+          if (errorData.code)
+            (err as Error & { code?: string }).code = errorData.code;
+          throw err;
         }
 
         const {
@@ -3675,8 +3703,12 @@ export default function ProductInvoiceCard({
       console.error("Stripe payment error:", error);
       setInvoiceGenerationFailed(true);
       setShowInvoiceCard(false);
-      const detail = error instanceof Error ? error.message : "Unknown error";
-      setFailureText(`Card payment setup failed: ${detail}`);
+      if (isExchangeRateError(error)) {
+        setFailureText(EXCHANGE_RATE_BUYER_MESSAGE);
+      } else {
+        const detail = error instanceof Error ? error.message : "Unknown error";
+        setFailureText(`Card payment setup failed: ${detail}`);
+      }
       setShowFailureModal(true);
     }
   };
@@ -4110,11 +4142,13 @@ export default function ProductInvoiceCard({
   useEffect(() => {
     if (formType !== "shipping") {
       if (convertedShippingCost !== 0) setConvertedShippingCost(0);
+      setShippingFxFailed(false);
       return;
     }
     const rawShipping = productData.shippingCost ?? 0;
     if (rawShipping === 0) {
       if (convertedShippingCost !== 0) setConvertedShippingCost(0);
+      setShippingFxFailed(false);
       return;
     }
     const productCur = (productData.currency || "").toUpperCase();
@@ -4127,43 +4161,57 @@ export default function ProductInvoiceCard({
       if (convertedShippingCost !== rawShipping) {
         setConvertedShippingCost(rawShipping);
       }
+      setShippingFxFailed(false);
       return;
     }
+    // Fail closed: a conversion is required here, so mark it "not ready" until
+    // the async FX resolves. A card submit during the pending window (e.g. a
+    // rate-feed outage that just started) is blocked instead of charging with
+    // shipping silently dropped to 0.
     let cancelled = false;
+    setShippingFxFailed(true);
     (async () => {
       try {
-        const { getSatoshiValue: gsv, getFiatValue: gfv } =
-          await import("@getalby/lightning-tools");
-        let inProductCurrency: number;
+        let inProductCurrency: number | null;
         const productIsSats = productCur === "SATS" || productCur === "SAT";
         const shipIsSats = shipCur === "SATS" || shipCur === "SAT";
         if (productIsSats) {
-          inProductCurrency = shipIsSats
-            ? rawShipping
-            : Math.ceil(
-                await gsv({
-                  amount: rawShipping,
-                  currency:
-                    productData.shippingCurrency || productData.currency,
-                })
-              );
+          if (shipIsSats) {
+            inProductCurrency = rawShipping;
+          } else {
+            // Resilient lookup so a brief feed hiccup doesn't drop the shipping
+            // line; a persistent outage yields null → fall back to 0 below.
+            const sats = await getSatoshiValueResilient({
+              amount: rawShipping,
+              currency: productData.shippingCurrency || productData.currency,
+            });
+            inProductCurrency = sats != null ? Math.ceil(sats) : null;
+          }
         } else {
           const satVal = shipIsSats
             ? rawShipping
-            : await gsv({
+            : await getSatoshiValueResilient({
                 amount: rawShipping,
                 currency: productData.shippingCurrency || productData.currency,
               });
-          inProductCurrency = await gfv({
-            satoshi: Math.ceil(satVal),
-            currency: productCur,
-          });
-          inProductCurrency = Math.ceil(inProductCurrency * 100) / 100;
+          if (satVal == null) {
+            inProductCurrency = null;
+          } else {
+            const fiat = await getFiatValueResilient({
+              satoshi: Math.ceil(satVal),
+              currency: productCur,
+            });
+            inProductCurrency =
+              fiat != null ? Math.ceil(fiat * 100) / 100 : null;
+          }
         }
         if (!cancelled) {
-          setConvertedShippingCost((prev) =>
-            prev === inProductCurrency ? prev : inProductCurrency
-          );
+          // A persistent FX outage leaves the cost null; fall back to 0 rather
+          // than misrepresenting the total in the wrong unit. Flag it so a CARD
+          // charge can be blocked (display tolerates the dropped shipping).
+          const next = inProductCurrency ?? 0;
+          setConvertedShippingCost((prev) => (prev === next ? prev : next));
+          setShippingFxFailed(inProductCurrency == null);
         }
       } catch (err) {
         console.error("Error converting product shipping cost:", err);
@@ -4171,6 +4219,7 @@ export default function ProductInvoiceCard({
         // unit.
         if (!cancelled) {
           setConvertedShippingCost((prev) => (prev === 0 ? prev : 0));
+          setShippingFxFailed(true);
         }
       }
     })();
@@ -4318,27 +4367,29 @@ export default function ProductInvoiceCard({
   useEffect(() => {
     const fetchEstimates = async () => {
       try {
-        const { getSatoshiValue } = await import("@getalby/lightning-tools");
         if (!isSatsCurrency) {
-          const numSats = await getSatoshiValue({
+          // Resilient lookups retry a brief feed hiccup and reuse a very
+          // recently observed rate; a persistent outage yields null, which we
+          // surface as a missing estimate (placeholder) rather than crashing.
+          const numSats = await getSatoshiValueResilient({
             amount: discountedTotal,
             currency: productData.currency,
           });
-          setSatsEstimate(Math.round(numSats));
+          setSatsEstimate(numSats != null ? Math.round(numSats) : null);
           setUsdEstimate(null);
 
-          const btcSats = await getSatoshiValue({
+          const btcSats = await getSatoshiValueResilient({
             amount: bitcoinTotal,
             currency: productData.currency,
           });
-          setBitcoinSatsEstimate(Math.round(btcSats));
+          setBitcoinSatsEstimate(btcSats != null ? Math.round(btcSats) : null);
           setBitcoinUsdEstimate(null);
 
-          const stSats = await getSatoshiValue({
+          const stSats = await getSatoshiValueResilient({
             amount: stripeTotal,
             currency: productData.currency,
           });
-          setStripeSatsEstimate(Math.round(stSats));
+          setStripeSatsEstimate(stSats != null ? Math.round(stSats) : null);
           setStripeUsdEstimate(null);
 
           const fiatEst: {
@@ -4347,19 +4398,22 @@ export default function ProductInvoiceCard({
           const fiatKeys = Object.keys(fiatPaymentOptions);
           for (const fk of fiatKeys) {
             const ft = getFiatMethodTotal(fk);
-            const fSats = await getSatoshiValue({
+            const fSats = await getSatoshiValueResilient({
               amount: ft,
               currency: productData.currency,
             });
-            fiatEst[fk] = { sats: Math.round(fSats), usd: null };
+            fiatEst[fk] = {
+              sats: fSats != null ? Math.round(fSats) : null,
+              usd: null,
+            };
           }
           setFiatMethodEstimates(fiatEst);
         } else {
-          const satsPerUsd = await getSatoshiValue({
+          const satsPerUsd = await getSatoshiValueResilient({
             amount: 1,
             currency: "USD",
           });
-          if (satsPerUsd > 0) {
+          if (satsPerUsd != null && satsPerUsd > 0) {
             setUsdEstimate(
               Math.round((discountedTotal / satsPerUsd) * 100) / 100
             );
@@ -4381,6 +4435,13 @@ export default function ProductInvoiceCard({
               };
             }
             setFiatMethodEstimates(fiatEst);
+          } else {
+            // Persistent outage — clear the USD-equivalent estimates so the UI
+            // shows a placeholder rather than a stale or broken value.
+            setUsdEstimate(null);
+            setBitcoinUsdEstimate(null);
+            setStripeUsdEstimate(null);
+            setFiatMethodEstimates({});
           }
           setSatsEstimate(null);
           setBitcoinSatsEstimate(null);

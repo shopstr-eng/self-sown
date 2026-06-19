@@ -176,7 +176,7 @@ const Wallet = () => {
       );
       if (restoredCount === 0) {
         setRestoreStatus(
-          "Nothing to restore — your local wallet already matches your nostr backup."
+          "Nothing to restore. Your local wallet already matches your nostr backup."
         );
       } else {
         setRestoreStatus(
@@ -187,7 +187,7 @@ const Wallet = () => {
       }
     } catch (err) {
       console.error("Restore failed:", err);
-      setRestoreStatus("Restore failed — see console for details.");
+      setRestoreStatus("Restore failed. See console for details.");
     }
     setTimeout(() => setRestoreStatus(null), 6000);
   };

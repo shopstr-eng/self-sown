@@ -925,7 +925,7 @@ export function paymentFailedBuyerEmail(params: {
     </p>`;
 
   return {
-    subject: `${BRAND_NAME} — Payment Failed`,
+    subject: `${BRAND_NAME}: Payment Failed`,
     html: baseTemplate("Payment Failed", body),
   };
 }
@@ -974,7 +974,7 @@ export function paymentFailedSellerEmail(params: {
     </p>`;
 
   return {
-    subject: `${BRAND_NAME} — Customer Payment Failed`,
+    subject: `${BRAND_NAME}: Customer Payment Failed`,
     html: baseTemplate("Customer Payment Failed", body),
   };
 }
@@ -1038,7 +1038,7 @@ export function transferFailureAlertEmail(params: {
     </p>`;
 
   return {
-    subject: `${BRAND_NAME} — Seller Transfer Failure Alert`,
+    subject: `${BRAND_NAME}: Seller Transfer Failure Alert`,
     html: baseTemplate("Transfer Failure Alert", body),
   };
 }
@@ -1054,7 +1054,7 @@ export function proLifetimeLingeringCancelAlertEmail(params: {
       ? "Renewal webhook auto-retry"
       : "At-purchase cancellation";
   const body = `
-    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Lifetime Member — Stuck Subscription Alert</h2>
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Lifetime Member: Stuck Subscription Alert</h2>
     <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
       A lifetime (Wrangler) member still has a live recurring (Herd) subscription that failed to cancel automatically. Until it is canceled by hand, the seller will keep being charged on every billing cycle. Please cancel this subscription in the Stripe dashboard.
     </p>
@@ -1076,7 +1076,7 @@ export function proLifetimeLingeringCancelAlertEmail(params: {
       Cancel this subscription in the Stripe dashboard. See the Stripe Connect runbook (docs/architecture/payments.md) and filter logs on <code>[pro_lifetime_lingering_subscription_cancel]</code> for history. This alert is rate-limited to once per day per subscription.
     </p>`;
   return {
-    subject: `${BRAND_NAME} — Stuck lifetime-member subscription needs manual cancel`,
+    subject: `${BRAND_NAME}: Stuck lifetime-member subscription needs manual cancel`,
     html: baseTemplate("Stuck Subscription Alert", body),
   };
 }
@@ -1104,7 +1104,7 @@ export function customDomainAdminNotificationEmail(params: {
       Review and attach via the admin domains page or directly in the Replit Deployment dashboard.
     </p>`;
   return {
-    subject: `${BRAND_NAME} — New custom domain: ${params.domain}`,
+    subject: `${BRAND_NAME}: New custom domain: ${params.domain}`,
     html: baseTemplate("New Custom Domain", body),
   };
 }
@@ -1162,7 +1162,7 @@ export function affiliatePaidEmail(params: {
     </p>
     ${unsubscribeFooter(params.unsubscribeUrl)}`;
   return {
-    subject: `${BRAND_NAME} — Affiliate payout sent (${amount})`,
+    subject: `${BRAND_NAME}: Affiliate payout sent (${amount})`,
     html: baseTemplate("Affiliate payout sent", body),
     headers: params.unsubscribeUrl
       ? {
@@ -1194,7 +1194,7 @@ export function affiliatePausedToAffiliateEmail(params: {
     </p>
     ${unsubscribeFooter(params.unsubscribeUrl)}`;
   return {
-    subject: `${BRAND_NAME} — Affiliate payouts paused`,
+    subject: `${BRAND_NAME}: Affiliate payouts paused`,
     html: baseTemplate("Affiliate payouts paused", body),
     headers: params.unsubscribeUrl
       ? {
@@ -1225,7 +1225,7 @@ export function affiliatePausedToSellerEmail(params: {
       re-enable payouts once the underlying issue is resolved.
     </p>`;
   return {
-    subject: `${BRAND_NAME} — Affiliate payouts paused (${esc(params.affiliateName)})`,
+    subject: `${BRAND_NAME}: Affiliate payouts paused (${esc(params.affiliateName)})`,
     html: baseTemplate("Affiliate payouts paused", body),
   };
 }
@@ -1258,7 +1258,7 @@ export function accountRecoveryEmail(params: { recoveryLink: string }): {
     </p>`;
 
   return {
-    subject: `${BRAND_NAME} — Account Recovery`,
+    subject: `${BRAND_NAME}: Account Recovery`,
     html: baseTemplate("Account Recovery", body),
   };
 }
@@ -1336,9 +1336,9 @@ export function proReceiptEmail(params: {
     ? "Your Wrangler lifetime access is active and never expires"
     : "Your Herd features stay active";
   const body = `
-    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Payment received — thank you</h2>
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Payment received, thank you</h2>
     <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
-      We received your ${BRAND_NAME} payment of <strong>${esc(amount)}</strong>. ${activeLine} — here are the details for your records.
+      We received your ${BRAND_NAME} payment of <strong>${esc(amount)}</strong>. ${activeLine}, and here are the details for your records.
     </p>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;">
       ${date ? row("Date", date) : ""}
@@ -1352,7 +1352,7 @@ export function proReceiptEmail(params: {
     </p>`;
 
   return {
-    subject: `${BRAND_NAME} — payment receipt (${amount})`,
+    subject: `${BRAND_NAME}: payment receipt (${amount})`,
     html: baseTemplate("Payment receipt", body),
   };
 }

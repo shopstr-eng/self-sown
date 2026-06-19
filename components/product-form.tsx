@@ -1331,7 +1331,7 @@ export default function ProductForm({
                   <p className="mt-1 text-gray-700">
                     Fill in the &quot;Ship From&quot; ZIP <em>and</em> package
                     weight below to enable live USPS rate calculations at
-                    checkout — buyers pay the exact USPS price based on their
+                    checkout, buyers pay the exact USPS price based on their
                     address. If left blank, your static shipping cost above is
                     used instead. Dimensions improve accuracy for larger
                     parcels.
@@ -1373,7 +1373,7 @@ export default function ProductForm({
                         }}
                       >
                         <option value="">
-                          — Pick a saved template (optional) —
+                          Pick a saved template (optional)
                         </option>
                         {parcelTemplates.map((t) => (
                           <option key={t.id} value={String(t.id)}>
@@ -2675,8 +2675,8 @@ export default function ProductForm({
                                     </div>
                                     {entries.length === 0 && (
                                       <p className="text-xs text-gray-400 italic">
-                                        No bulk tiers — buyers won&apos;t see a
-                                        bundle option for this variant
+                                        No bulk tiers, so buyers won&apos;t see
+                                        a bundle option for this variant
                                       </p>
                                     )}
                                     {entries.map(

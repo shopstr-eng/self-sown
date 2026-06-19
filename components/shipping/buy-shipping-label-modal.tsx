@@ -381,7 +381,7 @@ export default function BuyShippingLabelModal({
                     Label purchased successfully
                   </p>
                   <p className="text-sm">
-                    {purchased.carrier} {purchased.service} — $
+                    {purchased.carrier} {purchased.service}: $
                     {purchased.rate.toFixed(2)} {purchased.currency}
                   </p>
                   {purchased.trackingCode && (

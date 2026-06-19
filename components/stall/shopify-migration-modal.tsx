@@ -663,7 +663,7 @@ function ConfigureStep({
     <div className="space-y-6">
       <div className="rounded-md border-2 border-black bg-blue-50 p-3 text-sm text-black">
         Found <b>{parseResult.products.length}</b> products across{" "}
-        <b>{parseResult.rowCount}</b> CSV rows. Choose defaults below — they
+        <b>{parseResult.rowCount}</b> CSV rows. Choose defaults below; they
         apply to every imported listing and you can edit each one afterwards.
       </div>
 
@@ -861,7 +861,7 @@ function ReviewStep({ listings }: { listings: BuiltShopifyListing[] }) {
         {listings.length === 1 ? "" : "s"} as Nostr kind 30402 events.
         {totalWarnings > 0 && (
           <span className="ml-1">
-            {totalWarnings} warning{totalWarnings === 1 ? "" : "s"} below — you
+            {totalWarnings} warning{totalWarnings === 1 ? "" : "s"} below; you
             can still publish and fix them after.
           </span>
         )}

@@ -13,6 +13,7 @@ const pathMap: { [key: string]: string } = {
   "email-flows": "Email Flows",
   payments: "Payments",
   addresses: "Saved Addresses",
+  "self-host": "Self-Host Your Store",
 };
 
 export const SettingsBreadCrumbs = () => {

@@ -398,7 +398,7 @@ export default function EmailSenderDomainSection() {
             <form onSubmit={onSaveFrom} className="space-y-3">
               <div className="rounded-md border-2 border-black bg-green-50 p-3 text-sm text-green-900">
                 Your domain is verified. Choose the address your emails are sent
-                from — it must end with{" "}
+                from, it must end with{" "}
                 <code className="rounded bg-white px-1 py-0.5 text-xs">
                   @{record.domain}
                 </code>

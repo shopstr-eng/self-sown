@@ -1,0 +1,9 @@
+{
+  "_comment": "Self-host (single-tenant) config for a Wrangler/lifetime seller. Copy this file to 'milk-market.config.json', fill in your details, and set MM_SELF_HOST=1. Environment variables (MM_SELF_HOST_*) always override the values here. NEVER put secrets in this file — it is config only.",
+  "pubkey": "your-64-char-hex-pubkey-or-npub1...",
+  "slug": "your-storefront-slug",
+  "relays": ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"],
+  "blossomServers": ["https://blossom.primal.net"],
+  "ownStripe": false,
+  "upstreamRepo": "https://github.com/shopstr-eng/milk-market"
+}

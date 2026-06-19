@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
     {
       title: "Cached Nostr Data",
       content:
-        "To deliver fast page loads, server-side rendering, search, and link previews, our backend caches public Nostr events in PostgreSQL. This includes product listings and metadata, shop and user profiles, reviews and comments, community posts, and relay/cart configuration. Encrypted direct messages and gift-wrapped order messages are cached only in their already-encrypted form — we store the ciphertext and cannot read their contents. This cached data mirrors what is already public on the relays you publish to.",
+        "To deliver fast page loads, server-side rendering, search, and link previews, our backend caches public Nostr events in PostgreSQL. This includes product listings and metadata, shop and user profiles, reviews and comments, community posts, and relay/cart configuration. Encrypted direct messages and gift-wrapped order messages are cached only in their already-encrypted form. We store the ciphertext and cannot read their contents. This cached data mirrors what is already public on the relays you publish to.",
     },
     {
       title: "Account & Sign-In Data",
@@ -32,17 +32,17 @@ export default function PrivacyPolicy() {
     {
       title: "Card Payments & Stripe",
       content:
-        "When you pay by card — for a Pro subscription, or for orders placed through our checkout and AI agent (MCP) flows — payment is processed by Stripe under its own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as Stripe customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information). If a seller has enabled sales tax, Stripe also uses your shipping address to calculate the applicable US sales tax shown at checkout.",
+        "When you pay by card (for a Pro subscription, or for orders placed through our checkout and AI agent (MCP) flows), payment is processed by Stripe under its own privacy policy. We never store full card numbers. We do store payment identifiers and records needed to operate these features, such as Stripe customer, subscription, and connected-account IDs, payment status, and subscription details. Where an order is processed through us, we also store the order amount, currency, and the buyer email and shipping address needed for fulfillment (see Order & Shipping Information). If a seller has enabled sales tax, Stripe also uses your shipping address to calculate the applicable US sales tax shown at checkout.",
     },
     {
       title: "Email & Notifications (SendGrid)",
       content:
-        "If you provide an email address — to sign in, to receive order updates, for abandoned-cart reminders, or as an affiliate — we store that address in our database in plaintext so we can deliver messages through our email provider, SendGrid. Emails are used for transactional and lifecycle messaging and are not sold or rented for third-party marketing. You can opt out of non-essential emails using the unsubscribe link in any such message. Sellers on the Herd plan can also authenticate their own sending domain so their automated flow emails and order emails are sent from their own email address; to enable this we store the domain name and its DNS verification status (we never ask for or store any login credentials for your DNS or email provider), and if the domain is not verified we automatically fall back to our own verified sender so messages always go out. When a seller on the Herd plan sends emails through their automated email flows, we record engagement analytics for that seller — whether a message was opened (using a small tracking pixel) and whether links inside it were clicked — so the seller can measure how their emails perform. This engagement data is private to the sending seller: every analytics request — in the orders dashboard and through our AI-agent (MCP) tools — is scoped to that seller's own account, so no seller can ever see another seller's analytics. Our own marketplace storefront runs as an ordinary seller account with no special privileges or admin view into other sellers' data, and we do not access or use an individual seller's raw email analytics for our own purposes.",
+        "If you provide an email address (to sign in, to receive order updates, for abandoned-cart reminders, or as an affiliate), we store that address in our database in plaintext so we can deliver messages through our email provider, SendGrid. Emails are used for transactional and lifecycle messaging and are not sold or rented for third-party marketing. You can opt out of non-essential emails using the unsubscribe link in any such message. Sellers on the Herd plan can also authenticate their own sending domain so their automated flow emails and order emails are sent from their own email address; to enable this we store the domain name and its DNS verification status (we never ask for or store any login credentials for your DNS or email provider), and if the domain is not verified we automatically fall back to our own verified sender so messages always go out. When a seller on the Herd plan sends emails through their automated email flows, we record engagement analytics for that seller, such as whether a message was opened (using a small tracking pixel) and whether links inside it were clicked, so the seller can measure how their emails perform. This engagement data is private to the sending seller: every analytics request, whether in the orders dashboard or through our AI-agent (MCP) tools, is scoped to that seller's own account, so no seller can ever see another seller's analytics. Our own marketplace storefront runs as an ordinary seller account with no special privileges or admin view into other sellers' data, and we do not access or use an individual seller's raw email analytics for our own purposes.",
     },
     {
       title: "Order & Shipping Information",
       content:
-        "Order coordination conducted over Nostr direct messages is end-to-end encrypted and unreadable by us. However, to fulfill orders, certain details are stored on our servers in plaintext: when you check out as a guest, place an order via an AI agent, or pay by card, your buyer email and shipping address are stored so the seller can fulfill the order and so we can route notifications. Sellers receive the information needed to ship your order and are responsible for handling it. If a seller uses our integrated shipping-label tools, your shipping address is also shared with Shippo — through the seller's own connected Shippo account — to verify the address, quote shipping rates, and create shipping or return labels.",
+        "Order coordination conducted over Nostr direct messages is end-to-end encrypted and unreadable by us. However, to fulfill orders, certain details are stored on our servers in plaintext: when you check out as a guest, place an order via an AI agent, or pay by card, your buyer email and shipping address are stored so the seller can fulfill the order and so we can route notifications. Sellers receive the information needed to ship your order and are responsible for handling it. If a seller uses our integrated shipping-label tools, your shipping address is also shared with Shippo (through the seller's own connected Shippo account) to verify the address, quote shipping rates, and create shipping or return labels.",
     },
     {
       title: "Analytics & Marketing Attribution",
@@ -52,7 +52,7 @@ export default function PrivacyPolicy() {
     {
       title: "Sellers, Storefronts & Custom Domains",
       content:
-        "If you sell on Milk Market, we store operational records for your storefront, including your shop URL slug, inventory counts and variants, and — if you connect a custom domain — the domain name along with its TLS and verification status. This data is used to run your storefront and route visitors to it.",
+        "If you sell on Milk Market, we store operational records for your storefront, including your shop URL slug, inventory counts and variants, and, if you connect a custom domain, the domain name along with its TLS and verification status. This data is used to run your storefront and route visitors to it.",
     },
     {
       title: "Affiliate Program Data",
@@ -87,7 +87,7 @@ export default function PrivacyPolicy() {
     {
       title: "Changes to Privacy Policy",
       content:
-        "We may update this policy as the platform evolves — for example, when we add or change hosted features. Material changes will be reflected here along with an updated date at the top of this page. Continued use of Milk Market after an update constitutes acceptance of the revised policy.",
+        "We may update this policy as the platform evolves, for example when we add or change hosted features. Material changes will be reflected here along with an updated date at the top of this page. Continued use of Milk Market after an update constitutes acceptance of the revised policy.",
     },
     {
       title: "Contact Information",

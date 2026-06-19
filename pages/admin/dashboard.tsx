@@ -247,7 +247,7 @@ function AdminDomainsInner() {
       <div className="mx-auto max-w-6xl px-4 pt-24 pb-24">
         <div className="rounded-lg border border-red-200 bg-red-50 p-6">
           <h1 className="text-xl font-bold text-red-900">
-            403 — Access restricted
+            403: Access restricted
           </h1>
           <p className="mt-2 text-sm text-red-800">
             This page is only available to Milk Market admins. Your signed-in
@@ -306,7 +306,7 @@ function AdminDomainsInner() {
           <p className="text-sm text-gray-500">Loading… ({phase})</p>
           {phase === "signing auth event" && (
             <p className="text-xs text-gray-400">
-              Check your Nostr extension popup or passphrase prompt — it may be
+              Check your Nostr extension popup or passphrase prompt. It may be
               hidden behind another window. Take your time; the page waits up to{" "}
               {Math.round(SIGN_TIMEOUT_MS / 60_000)} minutes.
             </p>

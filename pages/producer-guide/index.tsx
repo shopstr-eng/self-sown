@@ -1,36 +1,35 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { Button, Image, Modal, ModalContent, ModalBody } from "@heroui/react";
+import { Button } from "@heroui/react";
 import {
   ArrowLeftIcon,
-  XMarkIcon,
   InformationCircleIcon,
   Bars3Icon,
   PlusIcon,
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import {
   WHITEBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 
+const VideoPlaceholder = () => (
+  <div className="relative aspect-video w-full overflow-hidden rounded-lg border-3 border-black bg-gray-700">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-white">
+      <div className="shadow-neo flex h-16 w-16 items-center justify-center rounded-full border-3 border-black bg-white">
+        <VideoCameraIcon className="h-8 w-8 text-black" />
+      </div>
+      <span className="text-sm font-bold">Video coming soon</span>
+    </div>
+  </div>
+);
+
 const ProducerGuidePage = () => {
   const router = useRouter();
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("introduction");
-
-  const handleImageClick = (imageSrc: string) => {
-    setExpandedImage(imageSrc);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setExpandedImage(null);
-    setIsModalOpen(false);
-  };
 
   const toggleFaq = (index: number) => {
     setOpenFaqIndex(openFaqIndex === index ? null : index);
@@ -80,35 +79,41 @@ const ProducerGuidePage = () => {
       id: "step-4",
       label: "Step 4: Orders",
       threads: [
-        { id: "step-4-1", label: "4.1 Fiat Order Chat" },
-        { id: "step-4-2", label: "4.2 Bitcoin Order Chat" },
-        { id: "step-4-3", label: "4.3 Payment Redemption" },
-        { id: "step-4-4", label: "4.4 Wallet Page" },
+        { id: "step-4-1", label: "4.1 Orders Dashboard" },
+        { id: "step-4-2", label: "4.2 Fiat Order Chat" },
+        { id: "step-4-3", label: "4.3 Bitcoin Order Chat" },
+        { id: "step-4-4", label: "4.4 Payment Redemption" },
+        { id: "step-4-5", label: "4.5 Wallet Page" },
       ],
     },
     {
       id: "step-5",
-      label: "Step 5: Storefront",
+      label: "Step 5: Stall",
       threads: [],
     },
     {
       id: "step-6",
-      label: "Step 6: Email Flows",
+      label: "Step 6: Self-Host",
       threads: [],
     },
     {
       id: "step-7",
-      label: "Step 7: AI Agents (MCP)",
+      label: "Step 7: Email Flows",
       threads: [],
     },
     {
       id: "step-8",
-      label: "Step 8: Grow",
+      label: "Step 8: AI Agents (MCP)",
+      threads: [],
+    },
+    {
+      id: "step-9",
+      label: "Step 9: Grow",
       threads: [
-        { id: "step-8-1", label: "8.1 Update Listings" },
-        { id: "step-8-2", label: "8.2 Build Relationships" },
-        { id: "step-8-3", label: "8.3 Share Story" },
-        { id: "step-8-4", label: "8.4 Network Growth" },
+        { id: "step-9-1", label: "9.1 Update Listings" },
+        { id: "step-9-2", label: "9.2 Build Relationships" },
+        { id: "step-9-3", label: "9.3 Share Story" },
+        { id: "step-9-4", label: "9.4 Network Growth" },
       ],
     },
   ];
@@ -252,10 +257,10 @@ const ProducerGuidePage = () => {
   return (
     <>
       <Head>
-        <title>Producer Guide — How to Sell on Milk Market</title>
+        <title>Producer Guide: How to Sell on Milk Market</title>
         <meta
           name="description"
-          content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your storefront."
+          content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall."
         />
         <script
           type="application/ld+json"
@@ -265,7 +270,7 @@ const ProducerGuidePage = () => {
               "@type": "HowTo",
               name: "How to Sell on Milk Market",
               description:
-                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their storefront on Milk Market.",
+                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Milk Market.",
               url: "https://milk.market/producer-guide",
               step: [
                 {
@@ -277,7 +282,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced storefront design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
                   url: "https://milk.market/producer-guide#step-2",
                 },
                 {
@@ -294,27 +299,33 @@ const ProducerGuidePage = () => {
                 },
                 {
                   "@type": "HowToStep",
-                  name: "Customize Your Storefront",
-                  text: "Personalize your public storefront with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
+                  name: "Customize Your Stall",
+                  text: "Personalize your public stall with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
                   url: "https://milk.market/producer-guide#step-5",
+                },
+                {
+                  "@type": "HowToStep",
+                  name: "Self-Host Your Store",
+                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
+                  url: "https://milk.market/producer-guide#step-6",
                 },
                 {
                   "@type": "HowToStep",
                   name: "Set Up Email Flows",
                   text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop. Track opens, clicks, and conversions for every flow and one-time send.",
-                  url: "https://milk.market/producer-guide#step-6",
+                  url: "https://milk.market/producer-guide#step-7",
                 },
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
-                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall — creating and updating listings, tracking inventory, and handling orders — and so agentic shopping tools can discover and purchase from your storefront automatically.",
-                  url: "https://milk.market/producer-guide#step-7",
+                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically.",
+                  url: "https://milk.market/producer-guide#step-8",
                 },
                 {
                   "@type": "HowToStep",
                   name: "Grow Your Business",
                   text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Milk Market community to expand your reach.",
-                  url: "https://milk.market/producer-guide#step-8",
+                  url: "https://milk.market/producer-guide#step-9",
                 },
               ],
             }),
@@ -482,19 +493,6 @@ const ProducerGuidePage = () => {
               </div>
             </div>
 
-            {/* Video Section */}
-            <div className="bg-primary-blue shadow-neo mb-16 rounded-lg border-4 border-black p-6">
-              <h2 className="mb-4 text-center text-2xl font-bold text-white">
-                Getting Started Video Guide
-              </h2>
-              <div className="relative mx-auto w-full max-w-3xl overflow-hidden rounded-lg border-2 border-black">
-                <video controls className="w-full bg-black">
-                  <source src="/producer-demo.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-            </div>
-
             {/* Step-by-Step Guide */}
             <div className="space-y-8">
               {/* Step 1 */}
@@ -563,46 +561,8 @@ const ProducerGuidePage = () => {
                   </div>
                 </div>
 
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    {
-                      src: "/sign-in-modal.png",
-                      alt: "Milk Market sign-in modal for new producer account creation",
-                      step: "1.1",
-                    },
-                    {
-                      src: "/keys-page.png",
-                      alt: "Nostr key management page for secure producer authentication",
-                      step: "1.2",
-                    },
-                    {
-                      src: "/profile-page.png",
-                      alt: "Producer profile setup page with farm details and payment preferences",
-                      step: "1.3",
-                    },
-                    {
-                      src: "/shop-page.png",
-                      alt: "Customizable shop page for displaying local food products",
-                      step: "1.4",
-                    },
-                  ].map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="shadow-neo relative cursor-pointer overflow-hidden rounded-lg border-3 border-black bg-gray-700 transition-transform hover:-translate-y-1"
-                      onClick={() => handleImageClick(image.src)}
-                    >
-                      <div className="shadow-neo absolute top-2 left-2 z-10 rounded border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black">
-                        Step {image.step}
-                      </div>
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {/* Video Placeholder */}
+                <VideoPlaceholder />
               </div>
 
               {/* Step 2 */}
@@ -622,7 +582,7 @@ const ProducerGuidePage = () => {
                       <p className="mb-4 text-base text-white">
                         Selling is free with unlimited listings and no mandatory
                         transaction fees. Upgrade to Herd whenever you want a
-                        fully custom storefront and pro tools.
+                        fully custom stall and pro tools.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                         <li>
@@ -632,8 +592,8 @@ const ProducerGuidePage = () => {
                         </li>
                         <li>
                           Go Herd for $21/month (or $168/year, saving 33%) to
-                          unlock advanced storefronts, custom domains, email
-                          flows with open/click analytics, custom product pages,
+                          unlock advanced stalls, custom domains, email flows
+                          with open/click analytics, custom product pages,
                           shipping labels, and AI agent (MCP) access &mdash; or
                           go Wrangler for one-time $2,100 lifetime access
                         </li>
@@ -650,15 +610,7 @@ const ProducerGuidePage = () => {
                     </div>
                   </div>
                   <div className="flex items-center justify-center lg:w-1/2">
-                    <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
-                      <h3 className="mb-1 text-xl font-bold text-black">
-                        30-Day Free Trial
-                      </h3>
-                      <p className="text-sm text-zinc-700">
-                        Try every Herd feature free for 30 days &mdash; no
-                        payment required to start.
-                      </p>
-                    </div>
+                    <VideoPlaceholder />
                   </div>
                 </div>
               </div>
@@ -715,46 +667,8 @@ const ProducerGuidePage = () => {
                   </div>
                 </div>
 
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    {
-                      src: "/listing-password-modal.png",
-                      alt: "Listing passphrase verification for trusted local food producers",
-                      step: "3.1",
-                    },
-                    {
-                      src: "/product-details-form.png",
-                      alt: "Product listing form for local food with pricing options",
-                      step: "3.2",
-                    },
-                    {
-                      src: "/pickup-and-volume-details.png",
-                      alt: "Pickup location and volume pricing configuration for local food products",
-                      step: "3.3",
-                    },
-                    {
-                      src: "/list-product-with-passphrase.png",
-                      alt: "Publishing a new product listing to the Milk Market marketplace",
-                      step: "3.4",
-                    },
-                  ].map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="shadow-neo relative cursor-pointer overflow-hidden rounded-lg border-3 border-black bg-gray-700 transition-transform hover:-translate-y-1"
-                      onClick={() => handleImageClick(image.src)}
-                    >
-                      <div className="shadow-neo absolute top-2 left-2 z-10 rounded border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black">
-                        Step {image.step}
-                      </div>
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {/* Video Placeholder */}
+                <VideoPlaceholder />
               </div>
 
               {/* Step 4 */}
@@ -806,46 +720,8 @@ const ProducerGuidePage = () => {
                   </div>
                 </div>
 
-                {/* Image Grid */}
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  {[
-                    {
-                      src: "/fiat-order-chat.png",
-                      alt: "Encrypted chat interface for processing fiat local food orders",
-                      step: "4.1",
-                    },
-                    {
-                      src: "/bitcoin-order-chat.png",
-                      alt: "Bitcoin Lightning payment order chat with a customer",
-                      step: "4.2",
-                    },
-                    {
-                      src: "/bitcoin-payment-redemption-modal.png",
-                      alt: "Redeeming Bitcoin Cashu payment from a product sale",
-                      step: "4.3",
-                    },
-                    {
-                      src: "/wallet-page.png",
-                      alt: "Milk Market wallet showing Bitcoin and Cashu balance for sales",
-                      step: "4.4",
-                    },
-                  ].map((image, idx) => (
-                    <div
-                      key={idx}
-                      className="shadow-neo relative cursor-pointer overflow-hidden rounded-lg border-3 border-black bg-gray-700 transition-transform hover:-translate-y-1"
-                      onClick={() => handleImageClick(image.src)}
-                    >
-                      <div className="shadow-neo absolute top-2 left-2 z-10 rounded border-2 border-black bg-white px-2 py-0.5 text-xs font-bold text-black">
-                        Step {image.step}
-                      </div>
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        className="h-36 w-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
+                {/* Video Placeholder */}
+                <VideoPlaceholder />
               </div>
 
               {/* Step 5 */}
@@ -859,14 +735,14 @@ const ProducerGuidePage = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
-                      Customize Your Storefront
+                      Customize Your Stall
                       <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
                         Pro
                       </span>
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Make your stall your own with a fully branded storefront
-                      that you control.
+                      Make your stall your own with a fully branded design that
+                      you control.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                       <li>Pick your own colors, fonts, and theme</li>
@@ -894,6 +770,45 @@ const ProducerGuidePage = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
+                      Self-Host Your Store
+                      <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
+                        Wrangler
+                      </span>
+                    </h3>
+                    <p className="mb-4 text-base text-white">
+                      Want full control? On the Wrangler lifetime plan you can
+                      run your own copy of Milk Market on your own server.
+                    </p>
+                    <ul className="list-disc space-y-2 pl-6 text-sm text-white">
+                      <li>Run a single-tenant store that&apos;s just yours</li>
+                      <li>
+                        Take card payments through your own Stripe account, with
+                        no platform fees
+                      </li>
+                      <li>
+                        Drop the marketplace chrome so buyers only ever see your
+                        brand
+                      </li>
+                      <li>
+                        Export a ready-to-deploy setup bundle and host it
+                        yourself
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 7 */}
+              <div
+                id="step-7"
+                className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    7
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="mb-2 text-2xl font-bold text-white">
                       Automate Your Email Flows
                       <span className="shadow-neo bg-primary-yellow ml-2 inline-block rounded border-2 border-black px-2 py-0.5 align-middle text-xs font-bold text-black">
                         Pro
@@ -917,7 +832,7 @@ const ProducerGuidePage = () => {
                         Email Stats dashboard
                       </li>
                       <li>
-                        Your analytics are private to your account — every
+                        Your analytics are private to your account. Every
                         request is scoped to you, so no other seller (and not
                         the platform) can see them
                       </li>
@@ -929,14 +844,14 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 7 */}
+              {/* Step 8 */}
               <div
-                id="step-7"
+                id="step-8"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
                   <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                    7
+                    8
                   </div>
                   <div className="flex-1">
                     <h3 className="mb-2 text-2xl font-bold text-white">
@@ -947,7 +862,7 @@ const ProducerGuidePage = () => {
                     </h3>
                     <p className="mb-4 text-base text-white">
                       Connect AI agents to your stall through the Model Context
-                      Protocol (MCP) API — run your stall with AI, and open it
+                      Protocol (MCP) API to run your stall with AI, and open it
                       up to AI shopping agents.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
@@ -956,7 +871,7 @@ const ProducerGuidePage = () => {
                         levels
                       </li>
                       <li>
-                        Manage your stall with AI — create and update listings,
+                        Manage your stall with AI to create and update listings,
                         track inventory, and handle orders
                       </li>
                       <li>
@@ -973,15 +888,15 @@ const ProducerGuidePage = () => {
                 </div>
               </div>
 
-              {/* Step 8 */}
+              {/* Step 9 */}
               <div
-                id="step-8"
+                id="step-9"
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
                     <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
-                      8
+                      9
                     </div>
                     <div className="flex-1">
                       <h3 className="mb-2 text-2xl font-bold text-white">
@@ -992,26 +907,21 @@ const ProducerGuidePage = () => {
                         the Milk Market community.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
-                        <li id="step-8-1">
+                        <li id="step-9-1">
                           Regularly update your product listings
                         </li>
-                        <li id="step-8-2">
+                        <li id="step-9-2">
                           Engage with customers and build relationships
                         </li>
-                        <li id="step-8-3">
+                        <li id="step-9-3">
                           Share your story and growing practices
                         </li>
-                        <li id="step-8-4">Leverage the Milk Market network</li>
+                        <li id="step-9-4">Leverage the Milk Market network</li>
                       </ul>
                     </div>
                   </div>
                   <div className="flex items-center justify-center lg:w-1/2">
-                    <div className="shadow-neo w-full max-w-md rounded-lg border-4 border-black bg-white p-6 text-center">
-                      <h3 className="text-xl font-bold text-black">
-                        There's no better form of marketing than happy,
-                        recurring customers!
-                      </h3>
-                    </div>
+                    <VideoPlaceholder />
                   </div>
                 </div>
               </div>
@@ -1085,37 +995,6 @@ const ProducerGuidePage = () => {
             </div>
           </div>
         </div>
-
-        {/* Image Expansion Modal */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={closeModal}
-          size="4xl"
-          classNames={{
-            base: "bg-transparent shadow-none",
-            backdrop: "bg-black/80",
-          }}
-        >
-          <ModalContent>
-            <ModalBody className="relative p-0">
-              <button
-                onClick={closeModal}
-                className="shadow-neo absolute top-4 right-4 z-10 rounded-full border-2 border-black bg-white p-2 text-black transition-colors hover:bg-gray-100"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-              {expandedImage && (
-                <div className="overflow-hidden rounded-xl border-4 border-black">
-                  <Image
-                    src={expandedImage}
-                    alt="Expanded view"
-                    className="h-auto max-h-[90vh] w-full object-contain"
-                  />
-                </div>
-              )}
-            </ModalBody>
-          </ModalContent>
-        </Modal>
       </div>
     </>
   );

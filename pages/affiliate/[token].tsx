@@ -187,8 +187,8 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
         </h1>
         <p className="mt-2 text-sm text-gray-600">
           Set your payout destination so the seller&apos;s store can send you
-          rebates automatically. Bookmark this page — anyone with this link can
-          update your payout details.
+          rebates automatically. Bookmark this page, since anyone with this link
+          can update your payout details.
         </p>
       </div>
 

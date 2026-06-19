@@ -102,7 +102,7 @@ async function buildInstructions(domain: string, token: string) {
       type: "TXT",
       host: txtHost,
       value: token,
-      note: `Add this TXT record to prove you own the domain. Required. Most registrars want just the subdomain portion in the host/name field — enter "${txtHost}". ${fqdnHint}.`,
+      note: `Add this TXT record to prove you own the domain. Required. Most registrars want just the subdomain portion in the host/name field, enter "${txtHost}". ${fqdnHint}.`,
     },
     subdomain: {
       type: "CNAME",
@@ -118,14 +118,14 @@ async function buildInstructions(domain: string, token: string) {
       host: "@",
       value: apexValue,
       ips: apexIps,
-      note: `Use this if you're connecting your root domain (e.g. yourdomain.com). In the host/name field enter "@" (some providers use a blank value or the literal apex domain — "@" is the most common). Add one A record per IP shown. Some DNS providers also support ALIAS/ANAME records pointing to ${APEX_RESOLVE_HOST}.`,
+      note: `Use this if you're connecting your root domain (e.g. yourdomain.com). In the host/name field enter "@" (some providers use a blank value or the literal apex domain; "@" is the most common). Add one A record per IP shown. Some DNS providers also support ALIAS/ANAME records pointing to ${APEX_RESOLVE_HOST}.`,
     },
     replitVerify: REPLIT_VERIFY_TXT_VALUE
       ? {
           type: "TXT",
           host: "@",
           value: REPLIT_VERIFY_TXT_VALUE,
-          note: `Add this TXT record so Replit can verify the domain before issuing a TLS certificate. In the host/name field enter "@" (or leave it blank — the record should sit at the root of your domain, ${domain}). The value is the same for every Milk Market storefront because it identifies our deployment, not your individual domain.`,
+          note: `Add this TXT record so Replit can verify the domain before issuing a TLS certificate. In the host/name field enter "@" (or leave it blank, since the record should sit at the root of your domain, ${domain}). The value is the same for every Milk Market storefront because it identifies our deployment, not your individual domain.`,
         }
       : null,
     recommended: type === "apex" ? "apex" : "subdomain",

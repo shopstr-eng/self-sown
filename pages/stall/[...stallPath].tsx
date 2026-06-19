@@ -92,7 +92,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         const branding = resolveStallBranding(content, profileContent);
 
         const pageSuffix = subPage
-          ? ` — ${subPage.charAt(0).toUpperCase() + subPage.slice(1)}`
+          ? `: ${subPage.charAt(0).toUpperCase() + subPage.slice(1)}`
           : "";
         const title = branding.seo?.metaTitle
           ? `${branding.seo.metaTitle}${pageSuffix}`

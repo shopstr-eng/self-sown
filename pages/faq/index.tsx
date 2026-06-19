@@ -33,7 +33,7 @@ export default function Faq() {
         {
           title: "Will I be charged sales tax?",
           content:
-            "Only if the seller has turned it on for card checkout. When they have, Stripe automatically calculates the correct US sales tax from your shipping address and adds it at checkout, so you'll see the exact amount before you pay. If a seller hasn't enabled it — or you pay with Bitcoin (Lightning or Cashu) — no sales tax is added through the platform.",
+            "Only if the seller has turned it on for card checkout. When they have, Stripe automatically calculates the correct US sales tax from your shipping address and adds it at checkout, so you'll see the exact amount before you pay. If a seller hasn't enabled it, or you pay with Bitcoin (Lightning or Cashu), no sales tax is added through the platform.",
         },
         {
           title: "How do I claim a Cashu payment?",
@@ -73,7 +73,7 @@ export default function Faq() {
         {
           title: "What types of items can I sell?",
           content:
-            "Milk Market supports a wide range of local food and goods — raw milk and dairy, meat, eggs, produce, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
+            "Milk Market supports a wide range of local food and goods, including raw milk and dairy, meat, eggs, produce, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
         },
         {
           title: "How does shipping work?",
@@ -83,7 +83,7 @@ export default function Faq() {
         {
           title: "Can I collect sales tax?",
           content:
-            "Yes. If you've connected a Stripe account, you can turn on automatic sales tax under 'Settings' -> 'Payments'. Once you add the US states where you're registered, Stripe calculates the correct sales tax from each buyer's shipping address and shows it at checkout on card orders. It's free to use and available to every Stripe-connected seller — it isn't part of Herd.",
+            "Yes. If you've connected a Stripe account, you can turn on automatic sales tax under 'Settings' -> 'Payments'. Once you add the US states where you're registered, Stripe calculates the correct sales tax from each buyer's shipping address and shows it at checkout on card orders. It's free to use and available to every Stripe-connected seller, and it isn't part of Herd.",
         },
       ],
     },
@@ -128,7 +128,7 @@ export default function Faq() {
         {
           title: "How do I create an account or sign in?",
           content:
-            "Milk Market offers multiple ways to sign in. You can sign in with your email address or Google account for a familiar experience — no Nostr knowledge required. If you already have a Nostr account, you can sign in using a browser extension (Alby, nos2x, etc.) or bunker application (Amber, nsec.app, etc.) to keep your private key secure. It is also possible to sign in by pasting your nsec and setting a passphrase, but this is not recommended as it could potentially leak your private key.",
+            "Milk Market offers multiple ways to sign in. You can sign in with your email address or Google account for a familiar experience, with no Nostr knowledge required. If you already have a Nostr account, you can sign in using a browser extension (Alby, nos2x, etc.) or bunker application (Amber, nsec.app, etc.) to keep your private key secure. It is also possible to sign in by pasting your nsec and setting a passphrase, but this is not recommended as it could potentially leak your private key.",
         },
         {
           title: "How are my messages and data kept private?",

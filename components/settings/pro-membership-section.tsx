@@ -97,7 +97,7 @@ function statusDescription(membership: MembershipView): string {
   const readonlyUntil = formatDate(membership.readonlyUntil);
 
   if (membership.isLifetime) {
-    return "Your Wrangler lifetime access never expires. You keep every Herd feature for good — no renewals, no payments.";
+    return "Your Wrangler lifetime access never expires. You keep every Herd feature for good, no renewals, no payments.";
   }
   if (membership.isTrialing) {
     return trialEnd
@@ -214,8 +214,8 @@ const ProMembershipSection = () => {
                 Upgrade to Herd for advanced storefronts, custom domains, email
                 flows with open &amp; click analytics, custom product pages,
                 shipping labels, and the MCP API. Start with a 30-day free
-                trial, no payment required — or go Wrangler for one-time
-                lifetime access.
+                trial, no payment required, or go Wrangler for one-time lifetime
+                access.
               </p>
             </div>
             <Button

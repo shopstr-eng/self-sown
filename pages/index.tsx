@@ -3,19 +3,28 @@ import type React from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { Image } from "@heroui/react";
+import { Carousel } from "react-responsive-carousel";
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 import {
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import {
   BLACKBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
+  PREVNEXTBUTTONSTYLES,
 } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import SignInModal from "@/components/sign-in/SignInModal";
-import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
+import {
+  FREE_FEATURES,
+  PRO_FEATURES,
+  WRANGLER_EXTRA_FEATURES,
+} from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
@@ -124,6 +133,175 @@ function YouTubeCarousel() {
           </a>
         ))}
       </div>
+    </div>
+  );
+}
+
+type ShowcaseStall = {
+  name: string;
+  url: string;
+  href: string;
+  alt: string;
+  image?: string;
+  placeholder?: boolean;
+};
+
+const SHOWCASE_STALLS: ShowcaseStall[] = [
+  {
+    name: "Free Milk",
+    url: "milk.market/stall/freemilk",
+    href: "/stall/freemilk",
+    image: "/stall-freemilk.png",
+    alt: "Free Milk stall on Milk Market showing real products: raw goat milk and cheddar cheese with prices",
+  },
+  {
+    name: "Naughty Goat Co.",
+    url: "naughtygoat.co",
+    href: "https://naughtygoat.co",
+    image: "/stall-naughtygoatco.png",
+    alt: "Naughty Goat Co. storefront showing their featured Honey Cajeta goat milk caramel",
+  },
+  {
+    name: "Your Farm",
+    url: "milk.market/stall/your-farm",
+    href: "/onboarding/new-account",
+    placeholder: true,
+    alt: "Open your own customizable stall on Milk Market in minutes",
+  },
+];
+
+function YourStallSlide() {
+  return (
+    <div className="bg-grid-pattern relative flex aspect-video w-full flex-col items-center justify-center gap-3 bg-white px-6 text-center md:gap-4">
+      <span className="text-4xl md:text-5xl" aria-hidden="true">
+        🥛
+      </span>
+      <span className="shadow-neo bg-primary-yellow inline-block rounded-full border-2 border-black px-3 py-1 text-[10px] font-bold tracking-wide uppercase md:text-xs">
+        Your turn
+      </span>
+      <h3 className="text-xl font-black md:text-4xl">Your farm. Your stall.</h3>
+      <p className="max-w-md text-xs text-zinc-600 md:text-base">
+        Picture your own shop right here, with your products, your prices, and
+        your branding. Open one in minutes.
+      </p>
+      <span className="shadow-neo bg-primary-yellow inline-block rounded-lg border-2 border-black px-5 py-2 text-sm font-bold md:text-base">
+        Start selling free →
+      </span>
+    </div>
+  );
+}
+
+function StallShowcaseCarousel() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const hasMultiple = SHOWCASE_STALLS.length > 1;
+  const activeStall = SHOWCASE_STALLS[activeIndex] ?? SHOWCASE_STALLS[0];
+
+  return (
+    <div className="shadow-neo mx-auto max-w-4xl overflow-hidden rounded-xl border-3 border-black bg-white">
+      {/* Browser chrome */}
+      <div className="flex items-center gap-2 border-b-2 border-black bg-zinc-100 px-4 py-3">
+        <span className="h-3 w-3 rounded-full border-2 border-black bg-red-400"></span>
+        <span className="h-3 w-3 rounded-full border-2 border-black bg-yellow-400"></span>
+        <span className="h-3 w-3 rounded-full border-2 border-black bg-green-400"></span>
+        <span className="ml-3 hidden truncate rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-bold text-zinc-700 sm:inline-block">
+          {activeStall?.url}
+        </span>
+      </div>
+
+      {/* Stall screenshots */}
+      <Carousel
+        showArrows={hasMultiple}
+        showStatus={false}
+        showIndicators={hasMultiple}
+        showThumbs={false}
+        infiniteLoop
+        swipeable
+        emulateTouch
+        preventMovementUntilSwipeScrollTolerance
+        swipeScrollTolerance={50}
+        onChange={(index) => setActiveIndex(index)}
+        renderArrowPrev={(onClickHandler, hasPrev, label) =>
+          hasPrev && (
+            <button
+              className={`carousel-control left-4 ${PREVNEXTBUTTONSTYLES}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickHandler();
+              }}
+              title={label}
+            >
+              <ChevronLeftIcon className="h-6 w-6 text-black" />
+            </button>
+          )
+        }
+        renderArrowNext={(onClickHandler, hasNext, label) =>
+          hasNext && (
+            <button
+              className={`carousel-control right-4 ${PREVNEXTBUTTONSTYLES}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickHandler();
+              }}
+              title={label}
+            >
+              <ChevronRightIcon className="h-6 w-6 text-black" />
+            </button>
+          )
+        }
+        renderIndicator={(onClickHandler, isSelected, index, label) => {
+          const base =
+            "inline-block w-3 h-3 rounded-full mx-1 cursor-pointer border-2 border-black";
+          return (
+            <li
+              key={index}
+              className={
+                isSelected
+                  ? `${base} bg-primary-yellow`
+                  : `${base} bg-gray-300 hover:bg-gray-400`
+              }
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickHandler(e);
+              }}
+              title={`${label} ${index + 1}`}
+              role="button"
+              tabIndex={0}
+            />
+          );
+        }}
+      >
+        {SHOWCASE_STALLS.map((stall) => {
+          const content = stall.placeholder ? (
+            <YourStallSlide />
+          ) : (
+            <img src={stall.image} alt={stall.alt} className="block w-full" />
+          );
+          return stall.href.startsWith("http") ? (
+            <a
+              key={stall.href}
+              href={stall.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block cursor-pointer"
+              aria-label={`Visit the ${stall.name} stall (opens in a new tab)`}
+            >
+              {content}
+            </a>
+          ) : (
+            <Link
+              key={stall.href}
+              href={stall.href}
+              className="block cursor-pointer"
+              aria-label={`Visit the ${stall.name} stall`}
+            >
+              {content}
+            </Link>
+          );
+        })}
+      </Carousel>
     </div>
   );
 }
@@ -414,10 +592,41 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-3xl px-4 text-center">
           <p className="text-lg text-zinc-600 md:text-xl">
             Milk Market is the permissionless marketplace for food producers and
-            local artisans. Open a storefront in minutes, set your own prices,
-            and reach shoppers who want transparent, sustainable food from real
+            local artisans. Open a stall in minutes, set your own prices, and
+            reach shoppers who want transparent, sustainable food from real
             people nearby.
           </p>
+        </div>
+      </section>
+
+      {/* Product Showcase - real storefront screenshot */}
+      <section className="bg-grid-pattern relative z-10 overflow-hidden border-b-2 border-black py-16">
+        <PlusPattern />
+
+        <div className="relative z-10 mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10 text-center">
+            <span className="shadow-neo mb-4 inline-block rounded-full border-2 border-black bg-white px-4 py-1.5 text-xs font-bold tracking-wide uppercase">
+              See it in action
+            </span>
+            <h2 className="mb-4 text-3xl font-black md:text-4xl">
+              Real stalls. Real food.
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-zinc-600">
+              Every seller gets a customizable stall with their own products,
+              prices, and branding. Here are real, live shops on Milk Market.
+            </p>
+          </div>
+
+          {/* Browser-frame mockup with stall carousel */}
+          <StallShowcaseCarousel />
+
+          <div className="mt-8 text-center">
+            <Link href="/marketplace">
+              <button className={PRIMARYBUTTONCLASSNAMES}>
+                Discover products
+              </button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -434,7 +643,7 @@ export default function StandaloneLanding() {
           </div>
           <div>
             <span className="block text-2xl font-black">Minutes</span>
-            <span className="text-sm text-zinc-600">To Open a Storefront</span>
+            <span className="text-sm text-zinc-600">To Open a Stall</span>
           </div>
           <div>
             <span className="block text-2xl font-black">Open</span>
@@ -485,7 +694,7 @@ export default function StandaloneLanding() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  You own your customers and storefront on an open network
+                  You own your customers and stall on an open network
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
@@ -554,9 +763,7 @@ export default function StandaloneLanding() {
                     1
                   </div>
                   <div>
-                    <h3 className="mb-1 text-lg font-bold">
-                      Open your storefront
-                    </h3>
+                    <h3 className="mb-1 text-lg font-bold">Open your stall</h3>
                     <p className="text-zinc-600">Sign up in minutes.</p>
                   </div>
                 </div>
@@ -698,8 +905,7 @@ export default function StandaloneLanding() {
               <h3 className="mb-2 text-xl font-bold">Own Your Store</h3>
               <p className="text-zinc-600">
                 Built on Nostr, an open and decentralized network. Your
-                customers and storefront are yours, and no one can deplatform
-                you.
+                customers and stall are yours, and no one can deplatform you.
               </p>
             </div>
             <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-center">
@@ -788,6 +994,12 @@ export default function StandaloneLanding() {
                     barn: false,
                   },
                   {
+                    feature: "Self-host your own store",
+                    mm: "Wrangler",
+                    shopify: false,
+                    barn: false,
+                  },
+                  {
                     feature: "Accepts Bitcoin, Lightning & cash natively",
                     mm: true,
                     shopify: false,
@@ -800,7 +1012,7 @@ export default function StandaloneLanding() {
                     barn: false,
                   },
                   {
-                    feature: "Custom domain & storefront",
+                    feature: "Custom domain & stall",
                     mm: "Herd",
                     shopify: true,
                     barn: true,
@@ -884,8 +1096,8 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-600">
               Start selling for free. Upgrade to Herd when you want a fully
-              custom storefront and pro tools, or go Wrangler for one-time
-              lifetime access. No mandatory transaction fees, ever.
+              custom stall and pro tools, or go Wrangler for one-time lifetime
+              access. No mandatory transaction fees, ever.
             </p>
           </div>
 
@@ -960,6 +1172,12 @@ export default function StandaloneLanding() {
                   <span className="text-green-600">&#10003;</span>
                   Everything in Herd
                 </li>
+                {WRANGLER_EXTRA_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <span className="text-green-600">&#10003;</span>
+                    {f}
+                  </li>
+                ))}
                 <li className="flex items-start gap-2">
                   <span className="text-green-600">&#10003;</span>
                   Pay once, keep it for life
@@ -999,11 +1217,11 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
               question="Do I own my customers and store?"
-              answer="Yes. Milk Market is built on Nostr, an open and decentralized network. Your storefront and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you."
+              answer="Yes. Milk Market is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you."
             />
             <FAQItem
               question="How do payments work?"
@@ -1015,7 +1233,7 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="I'm already on Shopify or Barn2Door. Can I switch?"
-              answer="Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your storefront in minutes."
+              answer="Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your stall in minutes."
             />
           </div>
         </div>

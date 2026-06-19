@@ -431,7 +431,7 @@ export default async function handler(
           "Use the API key as a Bearer token to authenticate MCP requests.",
         examples: buildQuickStartExamples(baseUrl, result.key, trimmedName),
         notes: [
-          "Store your API key securely — it will not be shown again.",
+          "Store your API key securely. It will not be shown again.",
           "Run the initialize command with -i so curl prints the Mcp-Session-Id response header for follow-up requests.",
           `Your permissions are set to "${perm}".${
             perm === "read"
