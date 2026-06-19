@@ -31,6 +31,31 @@ relay/network error must degrade to cached data, never overwrite it with empty.
 This is the same meta-lesson as storefront-lookup-resilience (transient source
 must not clobber cached good data).
 
+## Same bug class for POSTS (the feed, not the metadata)
+
+`fetchCommunityPosts` had the identical flaw one layer down: it read DB-cached
+posts/approvals first, but then ALWAYS blocked on `nostr.fetch` relay calls.
+`nostr.fetch` wraps `newPromiseWithTimeout` which **rejects after 60s** on
+timeout. The relay pool is warm on the marketplace full-load (EOSE arrives fast)
+but cold/slow on the storefront fast-path, so the relay fetch rejected/hung; the
+outer `catch` did `reject(error)`, discarding the already-fetched DB posts, and
+`CommunityFeed.loadPosts` had no try/catch so `setIsLoading(false)` never ran →
+permanent "Loading posts..." spinner on `/stall/*/community` while
+`/communities/[naddr]` was fine.
+
+**Fix:** (1) hoist the DB maps above the try and resolve from them
+(`resolveFromCache`) in the no-relay branch AND the outer catch — a relay
+timeout/error must degrade to cached posts, never reject. (2) Progressive render:
+optional `onCachedPosts` callback fired right after the DB seed (only when the
+annotated cache is non-empty) so the feed paints immediately, then the awaited
+relay result enriches it — same DB-seed-then-relay-update shape as
+`communityPromise`. (3) `loadPosts` got try/catch/`finally { setIsLoading(false) }`
+as a backstop (also covers the moderator `fetchPendingPosts` path).
+
+**How to apply:** any feed/list that reads cache+relays must never let the relay
+fetch's rejection throw away cache data already in hand, and its loading flag
+must clear in `finally`. `nostr.fetch` rejecting on a 60s timeout is the trap.
+
 **Display gate (unchanged, intentional):** `storefront-layout.tsx` shows
 `sellerCommunity = first c where c.pubkey === shopPubkey` from the global
 `CommunityContext`, and the storefront relay filter uses `authors:[shopPubkey]`.

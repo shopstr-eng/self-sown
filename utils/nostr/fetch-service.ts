@@ -2176,13 +2176,32 @@ function annotatePosts(
 export const fetchCommunityPosts = async (
   nostr: NostrManager,
   community: Community,
-  limit: number = 20
+  limit: number = 20,
+  onCachedPosts?: (posts: NostrEvent[]) => void
 ): Promise<NostrEvent[]> => {
   return new Promise(async (resolve, reject) => {
     if (!community) {
       resolve([]);
       return;
     }
+    // DB-cached posts/approvals are hoisted above the try so the resilient
+    // fallback (below) can surface them even if the relay fetch throws. The
+    // DB cache already holds the approved posts, so a cold/slow relay pool —
+    // common on the storefront fast-path, unlike the marketplace full-load that
+    // keeps the pool warm — must never strand the feed on a perpetual
+    // "Loading posts..." spinner by rejecting and discarding the cache.
+    const dbPostsMap = new Map<string, NostrEvent>();
+    const dbApprovalsMap = new Map<string, NostrEvent>();
+    const annotateFromCache = (): NostrEvent[] => {
+      const approvals = Array.from(dbApprovalsMap.values()).filter((ap) =>
+        community.moderators.includes(ap.pubkey)
+      );
+      const approvalByPostId = buildApprovalMap(approvals);
+      return annotatePosts(Array.from(dbPostsMap.values()), approvalByPostId);
+    };
+    const resolveFromCache = () => {
+      resolve(annotateFromCache());
+    };
     try {
       const communityAddress = `${community.kind}:${community.pubkey}:${community.d}`;
       const { relays: userRelays } = getLocalStorageData();
@@ -2190,8 +2209,6 @@ export const fetchCommunityPosts = async (
         new Set([...community.relays.all, ...userRelays])
       );
 
-      const dbPostsMap = new Map<string, NostrEvent>();
-      const dbApprovalsMap = new Map<string, NostrEvent>();
       try {
         const response = await fetch("/api/db/fetch-community-posts", {
           method: "POST",
@@ -2212,13 +2229,20 @@ export const fetchCommunityPosts = async (
         console.error("Failed to fetch community data from database:", error);
       }
 
+      // Progressive render: surface the DB-cached approved posts immediately so
+      // the feed paints without waiting on relays (mirrors the community-metadata
+      // DB-seed-then-relay-update pattern). Relay results below enrich/replace
+      // this set; if relays are cold/slow on the storefront fast-path the feed
+      // still shows content instead of an indefinite "Loading posts..." spinner.
+      if (onCachedPosts) {
+        const cached = annotateFromCache();
+        if (cached.length > 0) {
+          onCachedPosts(cached);
+        }
+      }
+
       if (combinedRelays.length === 0) {
-        const dbApprovals = Array.from(dbApprovalsMap.values()).filter((ap) =>
-          community.moderators.includes(ap.pubkey)
-        );
-        const dbApprovalByPostId = buildApprovalMap(dbApprovals);
-        const dbPosts = Array.from(dbPostsMap.values());
-        resolve(annotatePosts(dbPosts, dbApprovalByPostId));
+        resolveFromCache();
         return;
       }
 
@@ -2300,7 +2324,7 @@ export const fetchCommunityPosts = async (
       resolve(annotatePosts(allPosts, approvalByPostId));
     } catch (error) {
       console.error("Failed to fetch community posts:", error);
-      reject(error);
+      resolveFromCache();
     }
   });
 };

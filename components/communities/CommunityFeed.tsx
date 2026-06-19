@@ -134,19 +134,33 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
   const loadPosts = useCallback(async () => {
     if (nostr) {
       setIsLoading(true);
-      // fetch approved posts (annotated with approval metadata)
-      const approved = (await fetchCommunityPosts(
-        nostr,
-        community,
-        50
-      )) as CommunityPost[];
-      setApprovedPosts(approved);
+      try {
+        // fetch approved posts (annotated with approval metadata). The callback
+        // paints DB-cached posts immediately so the feed doesn't block on a
+        // cold/slow relay pool; the awaited result then enriches with relay data.
+        const approved = (await fetchCommunityPosts(
+          nostr,
+          community,
+          50,
+          (cached) => {
+            setApprovedPosts(cached as CommunityPost[]);
+            setIsLoading(false);
+          }
+        )) as CommunityPost[];
+        setApprovedPosts(approved);
 
-      if (isModerator) {
-        const pending = await fetchPendingPosts(nostr, community, 50);
-        setPendingPosts(pending);
+        if (isModerator) {
+          const pending = await fetchPendingPosts(nostr, community, 50);
+          setPendingPosts(pending);
+        }
+      } catch (error) {
+        // Never strand the feed on the spinner if a fetch rejects — the cache
+        // fallback inside fetchCommunityPosts handles most cases, but pending
+        // posts (moderators) or unexpected throws must still clear loading.
+        console.error("Failed to load community posts:", error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
   }, [community, nostr, isModerator]);
 
