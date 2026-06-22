@@ -47,6 +47,7 @@ import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import BulkSelector from "./bulk-selector";
 import ZapsnagButton from "@/components/ZapsnagButton";
 import { RawEventModal, EventIdModal } from "./modals/event-modals";
+import LabReportChip from "./lab-report-chip";
 import SubscriptionPricingCards from "./subscription-pricing-cards";
 import SellerReviewReply from "./seller-review-reply";
 import useReportEventFlow from "./use-report-event-flow";
@@ -862,6 +863,13 @@ export default function CheckoutCard({
                       style={{ aspectRatio: "1 / 1" }}
                     />
                   </div>
+                  {/* Lab test results chip - shown under the main image on large screens */}
+                  {productData.labReports &&
+                    productData.labReports.length > 0 && (
+                      <div className="mt-4 hidden lg:block">
+                        <LabReportChip labReports={productData.labReports} />
+                      </div>
+                    )}
                 </div>
               </div>
 
@@ -1003,6 +1011,14 @@ export default function CheckoutCard({
                     </span>
                   </p>
                 )}
+
+                {/* Lab test results chip - shown above the option selectors on small screens */}
+                {productData.labReports &&
+                  productData.labReports.length > 0 && (
+                    <div className="lg:hidden">
+                      <LabReportChip labReports={productData.labReports} />
+                    </div>
+                  )}
 
                 {/* Volume Selector */}
                 {hasVolumes && (

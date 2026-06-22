@@ -3,6 +3,11 @@ import { calculateTotalCost } from "@/components/utility-components/display-mone
 import { parseShippingTag } from "@/utils/parsers/product-tag-helpers";
 import { NostrEvent, StorefrontProductPageConfig } from "@/utils/types/types";
 
+export type LabReport = {
+  url: string;
+  name?: string;
+};
+
 export type ProductData = {
   id: string;
   pubkey: string;
@@ -47,6 +52,7 @@ export type ProductData = {
   bulkPrice?: number;
   required?: string;
   restrictions?: string;
+  labReports?: LabReport[];
   pickupLocations?: string[];
   herdshareAgreement?: string;
   expiration?: number;
@@ -238,6 +244,21 @@ export const parseTags = (productEvent: NostrEvent) => {
         break;
       case "restrictions":
         parsedData.restrictions = values[0];
+        break;
+      case "lab_report":
+        // Listings are permissionless and can be hand-crafted, so only trust
+        // http(s) URLs and drop anything else (javascript:, data:, relative).
+        const labReportUrl = values[0] ? values[0].trim() : "";
+        if (
+          labReportUrl.startsWith("http://") ||
+          labReportUrl.startsWith("https://")
+        ) {
+          if (parsedData.labReports === undefined) parsedData.labReports = [];
+          parsedData.labReports.push({
+            url: labReportUrl,
+            name: values[1] ? values[1] : undefined,
+          });
+        }
         break;
       case "pickup_location":
         if (parsedData.pickupLocations === undefined)

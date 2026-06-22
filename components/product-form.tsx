@@ -41,7 +41,10 @@ import {
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import { ProductContext, ProfileMapContext } from "../utils/context/context";
-import { ProductData } from "@/utils/parsers/product-parser-functions";
+import {
+  ProductData,
+  LabReport,
+} from "@/utils/parsers/product-parser-functions";
 import {
   formatCurrentDateTimeLocalValue,
   formatUnixTimestampAsDateTimeLocalValue,
@@ -49,6 +52,7 @@ import {
 import { buildSrcSet } from "@/utils/images";
 import { FileUploaderButton } from "./utility-components/file-uploader";
 import { EncryptedAgreementUploaderButton } from "./utility-components/encrypted-agreement-uploader";
+import { LabReportUploaderButton } from "./utility-components/lab-report-uploader";
 import currencySelection from "../public/currencySelection.json";
 import {
   NostrContext,
@@ -94,6 +98,7 @@ export default function ProductForm({
   const [showOptionalTags, setShowOptionalTags] = useState(false);
   const [herdshareAgreementUrl, setHerdshareAgreementUrl] =
     useState<string>("");
+  const [labReports, setLabReports] = useState<LabReport[]>([]);
   const [beefDonationPercentage, setBeefDonationPercentage] = useState<
     number | undefined
   >(oldValues?.beefinit_donation_percentage);
@@ -261,6 +266,8 @@ export default function ProductForm({
     } else {
       setHerdshareAgreementUrl("");
     }
+    // Initialize third-party lab test results (COA) if editing existing product
+    setLabReports(oldValues?.labReports ? [...oldValues.labReports] : []);
     // Initialize beef donation percentage if editing existing product
     if (oldValues?.beefinit_donation_percentage !== undefined) {
       setBeefDonationPercentage(oldValues.beefinit_donation_percentage);
@@ -574,6 +581,13 @@ export default function ProductForm({
     if (data["Restrictions"]) {
       tags.push(["restrictions", data["Restrictions"] as string]);
     }
+
+    // Add third-party lab test results (COA) files
+    labReports.forEach((report) => {
+      if (report.url) {
+        tags.push(["lab_report", report.url, report.name || ""]);
+      }
+    });
 
     // Add herdshare agreement if URL exists and herdshare category is selected
     const categories = (data["Category"] as string).toLowerCase();
@@ -2317,6 +2331,52 @@ export default function ProductForm({
                     </EncryptedAgreementUploaderButton>
                   </div>
                 )}
+
+              <div className="mb-4 space-y-4">
+                <h3 className="text-base font-semibold text-black">
+                  Third-Party Lab Test Results (COA)
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Upload third-party lab test results (Certificate of Analysis)
+                  as PDF or image files. Buyers will see a &quot;Third-Party Lab
+                  Test Results&quot; chip on the listing and can view or
+                  download the files.
+                </p>
+
+                {labReports.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {labReports.map((report, index) => (
+                      <div
+                        key={`${report.url}-${index}`}
+                        className="flex items-center justify-between gap-3 rounded-md border-2 border-black bg-white p-2"
+                      >
+                        <span className="truncate text-sm font-medium text-black">
+                          {report.name || `Lab Test Result ${index + 1}`}
+                        </span>
+                        <Button
+                          size="sm"
+                          className="shrink-0 bg-red-500 text-sm font-semibold text-white"
+                          onClick={() =>
+                            setLabReports((prev) =>
+                              prev.filter((_, i) => i !== index)
+                            )
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <LabReportUploaderButton
+                  fileCallbackOnUpload={(file) => {
+                    setLabReports((prev) => [...prev, file]);
+                  }}
+                >
+                  Upload Lab Test Result
+                </LabReportUploaderButton>
+              </div>
 
               <Controller
                 name="Restrictions"

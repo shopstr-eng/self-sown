@@ -8,6 +8,12 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   testEnvironment: "jest-environment-jsdom",
+  // next/jest only adds `.next` to test/watch ignore lists, NOT to the haste-map
+  // crawl (which is driven by modulePathIgnorePatterns). The dev workflow runs
+  // `next build`, so jest would otherwise crawl `.next/standalone` and crash with
+  // "Cannot parse .next/standalone/package.json" when the build rewrites those
+  // files mid-crawl. Exclude the whole build dir from module resolution.
+  modulePathIgnorePatterns: ["<rootDir>/\\.next/"],
   collectCoverageFrom: [
     "utils/**/*.{ts,tsx}",
     "components/**/*.{ts,tsx}",

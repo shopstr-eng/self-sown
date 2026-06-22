@@ -1,36 +1,42 @@
 ---
-name: Jest cold compile exceeds the 120s tool window
-description: Constraint — next/jest cold compile can't start within a single bash tool call here; testcontainer DB tests are effectively unrunnable from the agent.
+name: Jest haste-map must exclude the .next build dir
+description: next/jest only ignores .next for test/watch, NOT the haste-map crawl; the dev workflow's next build makes jest crawl/parse .next/standalone and crash + run slow.
 ---
 
-Running `jest` (via `next/jest`) in this repo cold-starts so slowly that it does
-not produce output within a single bash tool call (max 120s). This is NOT
-specific to Testcontainers — even a tiny mocked unit test (e.g.
-`utils/db/__tests__/lifetime-grant-sql.test.ts`) fails to start in time.
+# jest must not crawl `.next`
 
-**Why:** `next/jest` loads next config + SWC and compiles the whole graph under
-heavy memory pressure (persistent tsserver/LSP eat RAM; see
-`upstream-parity-and-dev-oom.md`). Detached `setsid` runs survive across tool
-calls but get memory-starved and die during compile before any container starts
-(raising `--max-old-space-size` makes it OOM _sooner_, not later).
+The dev workflow runs `next build` (standalone output), so `.next/standalone`
+exists and contains a FULL copied `node_modules` tree plus many `package.json`
+files. Jest's haste map crawls the whole rootDir, so it walks `.next/standalone`
+too. Two failures result:
 
-**How to apply:** Don't expect to green a jest run (especially the
-RUN_TESTCONTAINERS=1 real-Postgres DB tests under `utils/db/__tests__/*-db.test.ts`)
-from the agent here. Validate DB-test changes structurally instead: `tsc --noEmit`
-(clean), `eslint <file>`, `prettier --check <file>`, and mirror the assertion
-patterns of the existing proven testcontainer cases in the same file. Mark the
-jest run as environment-blocked rather than burning many attempts on it.
+1. **Crash:** `Error: Cannot parse .next/standalone/package.json as JSON: ENOENT`
+   — the running dev `next build` rewrites those files mid-crawl, so a worker
+   reads a file that just vanished.
+2. **Slowness:** crawling the duplicated `node_modules` under `.next/standalone`
+   roughly doubles haste-map work and RAM, which is what made cold jest runs
+   appear to never finish in a 120s bash window.
 
-**tsc is also often unrunnable, and don't try to kill the dev server to free CPU.**
-A cold `pnpm run typecheck:web` (`tsc --noEmit --incremental false`, TS6) can run
-10+ min and exceed even multi-window polling, especially while the Next dev
-workflow recompiles and competes for CPU. Two traps that waste turns:
+**Fix (in `jest.config.cjs`):** add `modulePathIgnorePatterns: ["<rootDir>/.next/"]`.
+`next/jest` only adds `/.next/` to `testPathIgnorePatterns` + `watchPathIgnorePatterns`;
+the haste-map ignore is built from `modulePathIgnorePatterns` (confirmed in
+jest-runtime: `ignorePatternParts = [...config.modulePathIgnorePatterns, ...]`),
+so `.next` must be listed there explicitly or the crawl still happens.
 
-- `kill`-ing the Next dev process (by PID _or_ `pkill -f`) cascades SIGTERM to the
-  agent's own bash tool process (exit 143) **and reaps `setsid`-detached jobs**, so
-  you cannot free CPU that way; the workflow supervisor also auto-restarts dev. Use
-  `restart_workflow`, never manual kills.
-- When tsc genuinely won't finish, fall back to: `eslint <changed files>` (uses the
-  TS parser, catches most real errors) **plus** reading the exact signatures of
-  every imported symbol you call and confirming arg/return types by hand. That
-  targeted check covers the actual risk surface of small, pattern-following edits.
+**Why it matters:** with `.next` excluded, the `test-ucp-geo` workflow AND a plain
+`npx jest __tests__/utils/ucp __tests__/utils/geo` bash call both pass in ~24s
+wall (7 suites / 77 tests). So mocked/unit jest IS runnable from the agent here —
+the earlier "cold start never finishes in 120s" belief was the `.next` crawl, not
+an inherent next/jest limit.
+
+## Still genuinely unrunnable / slow
+
+- **RUN_TESTCONTAINERS=1 real-Postgres DB tests** (`utils/db/__tests__/*-db.test.ts`):
+  need a live Postgres container; validate structurally (`tsc --noEmit`, `eslint`,
+  `prettier --check`) and mirror existing proven testcontainer cases instead.
+- **A full cold `tsc --noEmit` typecheck** can still run 10+ min, especially while
+  the Next dev workflow competes for CPU. Don't kill the dev server to free CPU:
+  `kill`/`pkill -f` the Next dev process cascades SIGTERM to the agent's own bash
+  tool (exit 143) and reaps `setsid`-detached jobs; the supervisor auto-restarts
+  dev anyway. Use `restart_workflow`, and fall back to `eslint` + reading exact
+  signatures of imported symbols for small pattern-following edits.

@@ -189,6 +189,48 @@ describe("parseTags", () => {
     expect(parseTags(event3)!.contentWarning).toBe(true);
   });
 
+  it("should parse multiple lab_report tags with and without names", () => {
+    const event = {
+      ...baseEvent,
+      tags: [
+        ["lab_report", "https://cdn.example/coa1.pdf", "Glyphosate Panel"],
+        ["lab_report", "https://cdn.example/coa2.pdf"],
+      ],
+    };
+    const result = parseTags(event)!;
+
+    expect(result.labReports).toEqual([
+      { url: "https://cdn.example/coa1.pdf", name: "Glyphosate Panel" },
+      { url: "https://cdn.example/coa2.pdf", name: undefined },
+    ]);
+  });
+
+  it("should drop unsafe or malformed lab_report urls and leave labReports undefined when absent", () => {
+    const withUnsafe = {
+      ...baseEvent,
+      tags: [
+        ["lab_report"],
+        ["lab_report", ""],
+        ["lab_report", "javascript:alert(1)"],
+        ["lab_report", "data:text/html,<script>alert(1)</script>"],
+        ["lab_report", "/relative/path.pdf"],
+        ["lab_report", "  https://cdn.example/coa.pdf  "],
+      ],
+    };
+    expect(parseTags(withUnsafe)!.labReports).toEqual([
+      { url: "https://cdn.example/coa.pdf", name: undefined },
+    ]);
+
+    const onlyUnsafe = {
+      ...baseEvent,
+      tags: [["lab_report", "javascript:alert(1)"]],
+    };
+    expect(parseTags(onlyUnsafe)!.labReports).toBeUndefined();
+
+    const withoutAny = { ...baseEvent, tags: [["title", "No COA"]] };
+    expect(parseTags(withoutAny)!.labReports).toBeUndefined();
+  });
+
   it("should parse size tags into sizes array and quantities map", () => {
     const event = {
       ...baseEvent,
