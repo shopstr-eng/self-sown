@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useRef } from "react";
 import type React from "react";
 import { Button } from "@heroui/react";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
@@ -27,18 +27,28 @@ export function LabReportUploaderButton({
 }: LabReportUploaderButtonProps) {
   const [isUploading, setIsUploading] = useState(false);
   const { signer } = useContext(SignerContext);
+  const hiddenFileInput = useRef<HTMLInputElement>(null);
 
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
+  const handleClick = () => {
+    if (isUploading) return;
+    hiddenFileInput.current?.click();
+  };
+
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    if (!ACCEPTED_TYPES.includes(file.type)) {
-      setFailureText("Please upload a PDF or image file (JPEG, PNG, or WEBP).");
+    const selected = Array.from(files);
+    const invalid = selected.some(
+      (file) => !ACCEPTED_TYPES.includes(file.type)
+    );
+    if (invalid) {
+      setFailureText("Please upload PDF or image files (JPEG, PNG, or WEBP).");
       setShowFailureModal(true);
       event.target.value = "";
       return;
@@ -46,30 +56,39 @@ export function LabReportUploaderButton({
 
     setIsUploading(true);
 
+    let anyFailed = false;
     try {
       const { blossomServers } = getLocalStorageData();
-      const isImage = file.type.startsWith("image/");
-
-      const uploadTags = await blossomUpload(
-        file,
-        isImage,
-        signer!,
-        blossomServers
-      );
-
-      const urlTag = uploadTags.find((tag) => tag[0] === "url");
-      if (urlTag && urlTag[1]) {
-        fileCallbackOnUpload({ url: urlTag[1], name: file.name });
-      } else {
-        throw new Error("Failed to get upload URL");
+      for (const file of selected) {
+        try {
+          const isImage = file.type.startsWith("image/");
+          const uploadTags = await blossomUpload(
+            file,
+            isImage,
+            signer!,
+            blossomServers
+          );
+          const urlTag = uploadTags.find((tag) => tag[0] === "url");
+          if (urlTag && urlTag[1]) {
+            fileCallbackOnUpload({ url: urlTag[1], name: file.name });
+          } else {
+            anyFailed = true;
+          }
+        } catch (error) {
+          console.error("Error uploading lab report:", error);
+          anyFailed = true;
+        }
       }
-    } catch (error) {
-      console.error("Error uploading lab report:", error);
-      setFailureText("Failed to upload lab report. Please try again.");
-      setShowFailureModal(true);
     } finally {
       setIsUploading(false);
       event.target.value = "";
+    }
+
+    if (anyFailed) {
+      setFailureText(
+        "One or more lab test files failed to upload. Please try again."
+      );
+      setShowFailureModal(true);
     }
   };
 
@@ -79,14 +98,15 @@ export function LabReportUploaderButton({
         <input
           type="file"
           accept=".pdf,image/jpeg,image/png,image/webp"
+          multiple
+          ref={hiddenFileInput}
           onChange={handleFileUpload}
-          style={{ display: "none" }}
-          id="lab-report-upload"
+          className="hidden"
         />
         <Button
-          as="label"
-          htmlFor="lab-report-upload"
-          className={`w-full cursor-pointer ${WHITEBUTTONCLASSNAMES}`}
+          type="button"
+          onClick={handleClick}
+          className={`w-full ${WHITEBUTTONCLASSNAMES}`}
           isLoading={isUploading}
           disabled={isUploading}
         >
