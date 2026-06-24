@@ -50,6 +50,8 @@ export type ProductData = {
   variantBulkPrices?: Map<string, Map<number, number>>;
   selectedBulkOption?: number;
   bulkPrice?: number;
+  selectedSubscription?: boolean;
+  selectedSubscriptionFrequency?: string;
   required?: string;
   restrictions?: string;
   labReports?: LabReport[];

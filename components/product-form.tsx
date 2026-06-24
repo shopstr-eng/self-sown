@@ -37,6 +37,7 @@ import {
   PostListing,
   getLocalStorageData,
   finalizeAndSendNostrEvent,
+  buildParcelTag,
 } from "@/utils/nostr/nostr-helper-functions";
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
@@ -416,31 +417,14 @@ export default function ProductForm({
       tags.push(["ship_from_zip", shipFromZip, shipFromCountry || "US"]);
     }
 
-    const pkgWeight = data["Package Weight Oz"]
-      ? Number(data["Package Weight Oz"])
-      : NaN;
-    if (Number.isFinite(pkgWeight) && pkgWeight > 0) {
-      const pkgLen = data["Package Length In"]
-        ? Number(data["Package Length In"])
-        : NaN;
-      const pkgWid = data["Package Width In"]
-        ? Number(data["Package Width In"])
-        : NaN;
-      const pkgHei = data["Package Height In"]
-        ? Number(data["Package Height In"])
-        : NaN;
-      const parcelTag: string[] = ["parcel", String(pkgWeight)];
-      if (Number.isFinite(pkgLen) && pkgLen > 0) parcelTag.push(String(pkgLen));
-      else parcelTag.push("");
-      if (Number.isFinite(pkgWid) && pkgWid > 0) parcelTag.push(String(pkgWid));
-      else parcelTag.push("");
-      if (Number.isFinite(pkgHei) && pkgHei > 0) parcelTag.push(String(pkgHei));
-      else parcelTag.push("");
-      // Trim trailing empty values so we don't emit zero-padded dims.
-      while (parcelTag.length > 2 && parcelTag[parcelTag.length - 1] === "") {
-        parcelTag.pop();
-      }
-      tags.push(parcelTag as [string, ...string[]]);
+    const parcelTag = buildParcelTag({
+      weightOz: data["Package Weight Oz"] as string | number | undefined,
+      lengthIn: data["Package Length In"] as string | number | undefined,
+      widthIn: data["Package Width In"] as string | number | undefined,
+      heightIn: data["Package Height In"] as string | number | undefined,
+    });
+    if (parcelTag) {
+      tags.push(parcelTag);
     }
 
     images.forEach((image) => {

@@ -266,6 +266,83 @@ export async function republishProductWithPageConfig(
   return await finalizeAndSendNostrEvent(signer, nostr, event);
 }
 
+/**
+ * Build the NIP-99 ["parcel", weight, length?, width?, height?] tag from a set
+ * of package measurements. Weight is required and must be a positive number;
+ * the optional dimensions are emitted only when positive, and trailing empty
+ * dimensions are trimmed so we never write zero-padded values. Returns null
+ * when there is no usable weight (so the caller can omit the tag entirely).
+ *
+ * This is the single source of truth for parcel-tag shape so the product
+ * editor and the "apply template to listings" flow stay byte-compatible with
+ * what checkout/shipping-rate code reads back.
+ */
+export function buildParcelTag(parcel: {
+  weightOz: number | string | null | undefined;
+  lengthIn?: number | string | null;
+  widthIn?: number | string | null;
+  heightIn?: number | string | null;
+}): [string, ...string[]] | null {
+  const toPositive = (v: number | string | null | undefined): number => {
+    if (v === null || v === undefined || v === "") return NaN;
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : NaN;
+  };
+  const weight = toPositive(parcel.weightOz);
+  if (!Number.isFinite(weight)) return null;
+  const len = toPositive(parcel.lengthIn);
+  const wid = toPositive(parcel.widthIn);
+  const hei = toPositive(parcel.heightIn);
+  const tag: string[] = ["parcel", String(weight)];
+  tag.push(Number.isFinite(len) ? String(len) : "");
+  tag.push(Number.isFinite(wid) ? String(wid) : "");
+  tag.push(Number.isFinite(hei) ? String(hei) : "");
+  while (tag.length > 2 && tag[tag.length - 1] === "") {
+    tag.pop();
+  }
+  return tag as [string, ...string[]];
+}
+
+/**
+ * Re-publish an existing product listing (kind 30402) with a new parcel tag,
+ * preserving every other tag (including the replaceable `d` tag and
+ * `ship_from_zip` origin) so the listing is UPDATED, not forked. Used by the
+ * Settings → Shipping "apply parcel template to listings" flow.
+ */
+export async function republishProductWithParcel(
+  rawEvent: NostrEvent,
+  parcel: {
+    weightOz: number | string | null | undefined;
+    lengthIn?: number | string | null;
+    widthIn?: number | string | null;
+    heightIn?: number | string | null;
+  },
+  signer: NostrSigner,
+  nostr: NostrManager
+) {
+  if (!signer) throw new Error("Signer required");
+  if (!nostr) throw new Error("Nostr writer required");
+
+  const parcelTag = buildParcelTag(parcel);
+  if (!parcelTag) throw new Error("Parcel template needs a valid weight");
+
+  const tags = rawEvent.tags.filter(
+    (t) => t[0] !== "parcel" && t[0] !== "published_at"
+  );
+  tags.push(parcelTag);
+  const created_at = Math.floor(Date.now() / 1000);
+  tags.push(["published_at", String(created_at)]);
+
+  const event: EventTemplate = {
+    created_at,
+    kind: 30402,
+    tags,
+    content: rawEvent.content || "",
+  };
+
+  return await finalizeAndSendNostrEvent(signer, nostr, event);
+}
+
 export async function createNostrShopEvent(
   nostr: NostrManager,
   signer: NostrSigner,

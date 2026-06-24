@@ -415,9 +415,17 @@ export default function Component() {
             item.subscriptionFrequency &&
             item.subscriptionFrequency.length > 0
           ) {
+            // Respect the buyer's choice from the product page. If they
+            // explicitly selected one-time purchase, don't default the
+            // Subscribe & Save toggle on (the toggle still shows so they can
+            // opt in later). Older cart items lack this field, so they keep the
+            // prior default-on behavior.
+            const optedOutOfSubscription = item.selectedSubscription === false;
             initialSubSelections[item.id] = {
-              enabled: true,
-              frequency: item.subscriptionFrequency[0]!,
+              enabled: !optedOutOfSubscription,
+              frequency:
+                item.selectedSubscriptionFrequency ||
+                item.subscriptionFrequency[0]!,
             };
           }
         }

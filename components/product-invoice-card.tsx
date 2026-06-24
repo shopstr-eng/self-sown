@@ -266,6 +266,46 @@ export default function ProductInvoiceCard({
   // `convertedShippingCost` fell back to 0. Fine for DISPLAY, but a card CHARGE
   // must not silently drop shipping — see the guard in handleStripePayment.
   const [shippingFxFailed, setShippingFxFailed] = useState<boolean>(false);
+
+  // Live USPS shipping rate (Shippo) for this single-product order. When
+  // present it overrides the seller's static shipping cost (mirrors the cart).
+  interface LiveShippingEntry {
+    amountUsd: number;
+    shipmentId: string;
+    rateId: string;
+    service: string;
+    carrier: string;
+    // Encodes the exact inputs this quote was fetched for, so a stale quote
+    // from a previous address is never applied to a different one.
+    key: string;
+  }
+  const [liveShipping, setLiveShipping] = useState<LiveShippingEntry | null>(
+    null
+  );
+  const [isFetchingLiveRate, setIsFetchingLiveRate] = useState(false);
+
+  // Shippo address verification result for the buyer's shipping address.
+  type AddressVerificationStatus =
+    | "idle"
+    | "checking"
+    | "verified"
+    | "issues"
+    | "error";
+  interface AddressVerificationState {
+    status: AddressVerificationStatus;
+    suggestion?: {
+      street1: string;
+      street2?: string;
+      city: string;
+      state: string;
+      zip: string;
+      country: string;
+    };
+    messages: string[];
+  }
+  const [addressVerification, setAddressVerification] =
+    useState<AddressVerificationState>({ status: "idle", messages: [] });
+
   const [showOrderTypeSelection, setShowOrderTypeSelection] = useState(true);
 
   const triggerOrderEmail = async (params: {
@@ -505,9 +545,11 @@ export default function ProductInvoiceCard({
           paymentMethod: entry.paymentMethod,
           orderId: entry.orderId,
           shippingCost:
-            entry.shippingAddress && productData.shippingCost
-              ? String(productData.shippingCost)
-              : undefined,
+            entry.shippingAddress && liveShipping
+              ? String(convertedShippingCost)
+              : entry.shippingAddress && productData.shippingCost
+                ? String(productData.shippingCost)
+                : undefined,
           selectedSize,
           selectedVolume,
           selectedWeight,
@@ -1921,9 +1963,11 @@ export default function ProductInvoiceCard({
             paymentMethod: selectedFiatOption || "fiat",
             orderId: orderId || "",
             shippingCost:
-              addressTag && productData.shippingCost
-                ? String(productData.shippingCost)
-                : undefined,
+              addressTag && liveShipping
+                ? String(convertedShippingCost)
+                : addressTag && productData.shippingCost
+                  ? String(productData.shippingCost)
+                  : undefined,
             selectedSize,
             selectedVolume,
             selectedWeight,
@@ -4134,6 +4178,96 @@ export default function ProductInvoiceCard({
     return getMethodDiscountedTotal(fiatKey);
   };
 
+  // Whether this product charges for shipping (vs free/pickup-only). Only
+  // chargeable types get a live USPS quote; everything else keeps its static
+  // (typically 0) cost.
+  const chargesForShipping =
+    productData.shippingType === "Added Cost" ||
+    productData.shippingType === "Added Cost/Pickup";
+
+  // Free-shipping threshold (mirrors the cart). When the discounted product
+  // subtotal meets the seller's threshold we skip the live quote so we don't
+  // charge shipping the seller intended to waive. Guarded on a matching
+  // currency so a mismatch never changes behavior — it just falls back to the
+  // existing static path.
+  const freeShippingQualifies = (() => {
+    const profile = shopContext.shopData.get(productData.pubkey);
+    const threshold = profile?.content?.freeShippingThreshold;
+    if (!threshold || threshold <= 0) return false;
+    const thresholdCurrency = (
+      profile?.content?.freeShippingCurrency || "USD"
+    ).toUpperCase();
+    if (thresholdCurrency !== (productData.currency || "").toUpperCase())
+      return false;
+    return discountedPrice >= threshold;
+  })();
+
+  // A live USPS quote is only trustworthy for the EXACT inputs it was fetched
+  // for. We encode those inputs (seller, origin, destination, parcel) into a
+  // key, store it with the quote, and only apply a quote whose key still
+  // matches the current inputs. This way a stale quote from a previous address
+  // can never be charged during the debounce/fetch window for a new address.
+  const liveQuoteEligible =
+    formType === "shipping" &&
+    chargesForShipping &&
+    !freeShippingQualifies &&
+    !!productData.shipFromZip &&
+    (productData.shipFromCountry || "US").toUpperCase() === "US" &&
+    !!productData.packageWeightOz &&
+    productData.packageWeightOz > 0;
+
+  const liveQuoteAddress = {
+    country: (watchedValues?.Country || "").toString().trim(),
+    postal: (watchedValues?.["Postal Code"] || "").toString().trim(),
+    city: (watchedValues?.City || "").toString().trim(),
+    state: (watchedValues?.["State/Province"] || "").toString().trim(),
+    line1: (watchedValues?.Address || "").toString().trim(),
+  };
+
+  const liveQuoteWeightOz =
+    (productData.packageWeightOz || 0) * (selectedBulkOption ?? 1);
+
+  const liveQuoteCountry = liveQuoteAddress.country.toUpperCase();
+  const liveQuoteKey =
+    liveQuoteEligible &&
+    (liveQuoteCountry === "US" || liveQuoteCountry === "USA") &&
+    liveQuoteAddress.postal &&
+    liveQuoteAddress.line1 &&
+    liveQuoteAddress.city &&
+    liveQuoteAddress.state &&
+    liveQuoteWeightOz > 0 &&
+    liveQuoteWeightOz <= 1120 // USPS max ~1120 oz (70 lb)
+      ? JSON.stringify({
+          p: productData.pubkey,
+          z: productData.shipFromZip,
+          line1: liveQuoteAddress.line1,
+          city: liveQuoteAddress.city,
+          state: liveQuoteAddress.state,
+          postal: liveQuoteAddress.postal,
+          weight: liveQuoteWeightOz,
+          l: productData.packageLengthIn,
+          w: productData.packageWidthIn,
+          h: productData.packageHeightIn,
+        })
+      : null;
+
+  // Only treat a live quote as active when its key matches the current inputs.
+  const liveShippingActive =
+    liveQuoteKey !== null &&
+    !!liveShipping &&
+    liveShipping.key === liveQuoteKey;
+
+  // Effective shipping inputs fed into the FX conversion below. A live USPS
+  // rate (quoted in USD) overrides the seller's static shipping cost; without
+  // an applicable one we keep the seller's static cost/currency unchanged.
+  const effectiveShippingCost =
+    liveShippingActive && liveShipping
+      ? liveShipping.amountUsd
+      : (productData.shippingCost ?? 0);
+  const effectiveShippingCurrency = liveShippingActive
+    ? "USD"
+    : productData.shippingCurrency || productData.currency;
+
   // Convert the seller's shipping cost into the product's currency. Sellers
   // can denominate shipping in any currency (often sats), so we must FX it
   // before adding to the product price. Without this, a USD product with
@@ -4145,18 +4279,14 @@ export default function ProductInvoiceCard({
       setShippingFxFailed(false);
       return;
     }
-    const rawShipping = productData.shippingCost ?? 0;
+    const rawShipping = effectiveShippingCost;
     if (rawShipping === 0) {
       if (convertedShippingCost !== 0) setConvertedShippingCost(0);
       setShippingFxFailed(false);
       return;
     }
     const productCur = (productData.currency || "").toUpperCase();
-    const shipCur = (
-      productData.shippingCurrency ||
-      productData.currency ||
-      ""
-    ).toUpperCase();
+    const shipCur = (effectiveShippingCurrency || "").toUpperCase();
     if (!shipCur || shipCur === productCur) {
       if (convertedShippingCost !== rawShipping) {
         setConvertedShippingCost(rawShipping);
@@ -4183,7 +4313,7 @@ export default function ProductInvoiceCard({
             // line; a persistent outage yields null → fall back to 0 below.
             const sats = await getSatoshiValueResilient({
               amount: rawShipping,
-              currency: productData.shippingCurrency || productData.currency,
+              currency: effectiveShippingCurrency,
             });
             inProductCurrency = sats != null ? Math.ceil(sats) : null;
           }
@@ -4192,7 +4322,7 @@ export default function ProductInvoiceCard({
             ? rawShipping
             : await getSatoshiValueResilient({
                 amount: rawShipping,
-                currency: productData.shippingCurrency || productData.currency,
+                currency: effectiveShippingCurrency,
               });
           if (satVal == null) {
             inProductCurrency = null;
@@ -4232,10 +4362,199 @@ export default function ProductInvoiceCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     formType,
-    productData.shippingCost,
-    productData.shippingCurrency,
+    effectiveShippingCost,
+    effectiveShippingCurrency,
     productData.currency,
   ]);
+
+  // Address verification (Shippo) — debounced, US only, non-blocking. Mirrors
+  // the cart so single-product checkout gets the same USPS address correction.
+  useEffect(() => {
+    if (formType !== "shipping") {
+      setAddressVerification((prev) =>
+        prev.status === "idle" ? prev : { status: "idle", messages: [] }
+      );
+      return;
+    }
+    const country = (watchedValues?.Country || "").toString().trim();
+    const postal = (watchedValues?.["Postal Code"] || "").toString().trim();
+    const city = (watchedValues?.City || "").toString().trim();
+    const state = (watchedValues?.["State/Province"] || "").toString().trim();
+    const line1 = (watchedValues?.Address || "").toString().trim();
+    const line2 = (watchedValues?.Unit || "").toString().trim();
+
+    if (country.toUpperCase() !== "US" && country.toUpperCase() !== "USA") {
+      setAddressVerification((prev) =>
+        prev.status === "idle" ? prev : { status: "idle", messages: [] }
+      );
+      return;
+    }
+    if (!postal || !line1 || !city || !state) return;
+
+    let cancelled = false;
+    setAddressVerification((prev) =>
+      prev.status === "checking" ? prev : { ...prev, status: "checking" }
+    );
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/shipping/verify-address", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            street1: line1,
+            street2: line2 || undefined,
+            city,
+            state,
+            zip: postal,
+            country: "US",
+            sellerPubkey: productData.pubkey,
+          }),
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        if (!data || data.success === false) {
+          setAddressVerification({
+            status: "issues",
+            messages: (data?.messages || []).map(
+              (m: { text?: string }) => m.text || "Unknown issue"
+            ),
+          });
+          return;
+        }
+        if (data.valid) {
+          // Compare suggested vs entered; show "use suggested" if different.
+          const changed =
+            (data.street1 || "").toUpperCase() !== line1.toUpperCase() ||
+            (data.city || "").toUpperCase() !== city.toUpperCase() ||
+            (data.state || "").toUpperCase() !== state.toUpperCase() ||
+            (data.zip || "").split("-")[0] !== postal.split("-")[0];
+          if (changed) {
+            setAddressVerification({
+              status: "issues",
+              messages: ["USPS suggests a corrected address."],
+              suggestion: {
+                street1: data.street1,
+                street2: data.street2,
+                city: data.city,
+                state: data.state,
+                zip: data.zip,
+                country: data.country || "US",
+              },
+            });
+          } else {
+            setAddressVerification({ status: "verified", messages: [] });
+          }
+        } else {
+          setAddressVerification({
+            status: "issues",
+            messages:
+              (data.messages || []).map(
+                (m: { text?: string }) => m.text || "Unknown issue"
+              ) || [],
+          });
+        }
+      } catch {
+        if (!cancelled)
+          setAddressVerification((prev) =>
+            prev.status === "idle" ? prev : { status: "idle", messages: [] }
+          );
+      }
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    watchedValues?.Country,
+    watchedValues?.["Postal Code"],
+    watchedValues?.["State/Province"],
+    watchedValues?.City,
+    watchedValues?.Address,
+    watchedValues?.Unit,
+    formType,
+    productData.pubkey,
+  ]);
+
+  // Live USPS shipping rate (Shippo) — debounced, US only, non-blocking.
+  // Mirrors the cart's live-rate flow for a single product/seller. A
+  // successful quote overrides the seller's static shipping cost (applied via
+  // effectiveShipping* feeding the FX conversion above). The quote is tagged
+  // with liveQuoteKey so a stale rate for a previous address is never applied.
+  useEffect(() => {
+    if (!liveQuoteKey) {
+      // Ineligible (pickup/contact, cleared/non-US address, free shipping,
+      // overweight, etc.) — drop any prior quote and stop any spinner.
+      setLiveShipping((prev) => (prev === null ? prev : null));
+      setIsFetchingLiveRate((prev) => (prev === false ? prev : false));
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetchingLiveRate(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/shipping/rates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: {
+              street1: "Unknown",
+              city: "Unknown",
+              state: "",
+              zip: productData.shipFromZip,
+              country: "US",
+            },
+            to: {
+              street1: liveQuoteAddress.line1,
+              city: liveQuoteAddress.city,
+              state: liveQuoteAddress.state,
+              zip: liveQuoteAddress.postal,
+              country: "US",
+            },
+            parcel: {
+              weightOz: liveQuoteWeightOz,
+              lengthIn: productData.packageLengthIn,
+              widthIn: productData.packageWidthIn,
+              heightIn: productData.packageHeightIn,
+            },
+            carriers: ["USPS"],
+            sellerPubkey: productData.pubkey,
+          }),
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        if (
+          data?.success &&
+          data.cheapest &&
+          typeof data.cheapest.rate === "number"
+        ) {
+          setLiveShipping({
+            amountUsd: data.cheapest.rate,
+            shipmentId: data.shipmentId,
+            rateId: data.cheapest.id,
+            service: data.cheapest.service,
+            carrier: data.cheapest.carrier,
+            key: liveQuoteKey,
+          });
+        } else {
+          setLiveShipping(null);
+        }
+      } catch {
+        // Network/quote failure — fall back to the seller's static cost.
+        if (!cancelled) setLiveShipping(null);
+      } finally {
+        if (!cancelled) setIsFetchingLiveRate(false);
+      }
+    }, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+    // liveQuoteKey encodes every input the quote depends on; the address/parcel
+    // values read inside stay consistent with it on each run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveQuoteKey]);
 
   // Debounced Stripe Tax lookup — fires when the shipping form has at least a
   // country + postal code. Resets when the form type changes away from shipping.
@@ -4810,6 +5129,82 @@ export default function ProductInvoiceCard({
                 )}
               />
             </div>
+
+            {/* Address verification banner (US only, Shippo) */}
+            {(addressVerification.status === "checking" ||
+              addressVerification.status === "verified" ||
+              addressVerification.status === "issues") && (
+              <div
+                className={`mt-3 rounded-md border-2 p-3 text-sm ${
+                  addressVerification.status === "verified"
+                    ? "border-green-700 bg-green-50 text-green-900"
+                    : addressVerification.status === "issues"
+                      ? "border-yellow-700 bg-yellow-50 text-yellow-900"
+                      : "border-black bg-white text-black"
+                }`}
+              >
+                {addressVerification.status === "checking" && (
+                  <span>Verifying address…</span>
+                )}
+                {addressVerification.status === "verified" && (
+                  <span>Address verified by USPS.</span>
+                )}
+                {addressVerification.status === "issues" && (
+                  <div>
+                    <p className="font-semibold">
+                      We couldn&apos;t fully verify your address.
+                    </p>
+                    {addressVerification.messages.length > 0 && (
+                      <ul className="mt-1 ml-4 list-disc">
+                        {addressVerification.messages.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {addressVerification.suggestion && (
+                      <button
+                        type="button"
+                        className="mt-2 rounded-md border-2 border-black bg-white px-3 py-1 text-xs font-semibold hover:bg-yellow-50"
+                        onClick={() => {
+                          const s = addressVerification.suggestion!;
+                          setValue("Address", s.street1, {
+                            shouldValidate: true,
+                          });
+                          if (s.street2)
+                            setValue("Unit", s.street2, {
+                              shouldValidate: true,
+                            });
+                          setValue("City", s.city, { shouldValidate: true });
+                          setValue("State/Province", s.state, {
+                            shouldValidate: true,
+                          });
+                          setValue("Postal Code", s.zip, {
+                            shouldValidate: true,
+                          });
+                          setAddressVerification({
+                            status: "verified",
+                            messages: [],
+                          });
+                        }}
+                      >
+                        Use suggested address
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Live USPS rate status indicator */}
+            {(isFetchingLiveRate || liveShippingActive) && (
+              <div className="mt-2 rounded-md border-2 border-black bg-yellow-50 p-2 text-xs text-black">
+                {isFetchingLiveRate ? (
+                  <span>Calculating live USPS shipping rate…</span>
+                ) : (
+                  <span>Live USPS shipping rate applied.</span>
+                )}
+              </div>
+            )}
 
             <div className="space-y-3">
               <Checkbox

@@ -381,6 +381,17 @@ export default function CheckoutCard({
       }
     }
 
+    // Carry the buyer's subscription choice into the cart. If they explicitly
+    // picked one-time purchase, the cart must not default the Subscribe & Save
+    // toggle on for this product. Only meaningful when the product offers a
+    // subscription at all.
+    if (hasSubscription) {
+      productToAdd.selectedSubscription = isSubscriptionSelected;
+      if (isSubscriptionSelected && selectedFrequency) {
+        productToAdd.selectedSubscriptionFrequency = selectedFrequency;
+      }
+    }
+
     updatedCart = [...cart, productToAdd];
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));

@@ -1,12 +1,29 @@
 import { useCallback, useContext, useEffect, useState } from "react";
-import { Button, Input, Spinner } from "@heroui/react";
+import {
+  Button,
+  Checkbox,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Spinner,
+} from "@heroui/react";
 import {
   ArrowDownTrayIcon,
   PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import ProtectedRoute from "@/components/utility-components/protected-route";
-import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import {
+  NostrContext,
+  SignerContext,
+} from "@/components/utility-components/nostr-context-provider";
+import { ProductContext } from "@/utils/context/context";
+import parseTags from "@/utils/parsers/product-parser-functions";
+import { republishProductWithParcel } from "@/utils/nostr/nostr-helper-functions";
+import { NostrEvent } from "@/utils/types/types";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
 import {
@@ -56,8 +73,22 @@ const EMPTY_TEMPLATE = {
   heightIn: "" as string | number,
 };
 
+type MyProductRow = {
+  event: NostrEvent;
+  title: string;
+  parcelSummary: string;
+  hasShipFromZip: boolean;
+  usesLiveRates: boolean;
+};
+
 const ShippingSettingsPage = () => {
   const { signer, pubkey } = useContext(SignerContext);
+  const { nostr } = useContext(NostrContext);
+  const {
+    productEvents,
+    addNewlyCreatedProductEvent,
+    removeDeletedProductEvent,
+  } = useContext(ProductContext);
   const { membership } = useProMembership();
 
   const [loading, setLoading] = useState(true);
@@ -76,6 +107,17 @@ const ShippingSettingsPage = () => {
 
   const [newTemplate, setNewTemplate] = useState(EMPTY_TEMPLATE);
   const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const [applyTemplate, setApplyTemplate] =
+    useState<ShippoParcelTemplate | null>(null);
+  const [modalProducts, setModalProducts] = useState<MyProductRow[]>([]);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [applying, setApplying] = useState(false);
+  const [applyResults, setApplyResults] = useState<
+    Record<string, "ok" | "error">
+  >({});
 
   const signerReady = !!signer?.sign && !!pubkey;
 
@@ -163,6 +205,115 @@ const ShippingSettingsPage = () => {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to delete template");
     }
+  };
+
+  // Build the list of the seller's OWN listings (kind 30402) with a short
+  // package + shipping summary, so they can pick which ones to apply a parcel
+  // template to from this page.
+  const buildMyProducts = useCallback((): MyProductRow[] => {
+    if (!pubkey) return [];
+    return productEvents
+      .filter((e) => e.kind === 30402 && e.pubkey === pubkey)
+      .flatMap((event) => {
+        let p;
+        try {
+          p = parseTags(event);
+        } catch {
+          return [];
+        }
+        if (!p) return [];
+        const dims =
+          p.packageLengthIn && p.packageWidthIn && p.packageHeightIn
+            ? ` • ${p.packageLengthIn}×${p.packageWidthIn}×${p.packageHeightIn} in`
+            : "";
+        const parcelSummary = p.packageWeightOz
+          ? `${p.packageWeightOz} oz${dims}`
+          : "No package size set";
+        return [
+          {
+            event,
+            title: p.title || "Untitled listing",
+            parcelSummary,
+            hasShipFromZip: !!p.shipFromZip,
+            usesLiveRates:
+              p.shippingType === "Added Cost" ||
+              p.shippingType === "Added Cost/Pickup" ||
+              p.shippingType === "Free",
+          },
+        ];
+      })
+      .sort((a, b) => a.title.localeCompare(b.title));
+  }, [productEvents, pubkey]);
+
+  const openApplyModal = (t: ShippoParcelTemplate) => {
+    setApplyTemplate(t);
+    // Freeze the list while the modal is open so per-row results stay aligned
+    // even as we update the product cache after applying.
+    setModalProducts(buildMyProducts());
+    setSelectedProductIds(new Set());
+    setApplyResults({});
+  };
+
+  const closeApplyModal = () => {
+    if (applying) return;
+    setApplyTemplate(null);
+    setModalProducts([]);
+    setSelectedProductIds(new Set());
+    setApplyResults({});
+  };
+
+  const toggleProduct = (id: string) => {
+    setSelectedProductIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleApplyTemplate = async () => {
+    if (!signer || !pubkey || !nostr || !applyTemplate) return;
+    const targets = modalProducts.filter((p) =>
+      selectedProductIds.has(p.event.id)
+    );
+    if (targets.length === 0) return;
+    setApplying(true);
+    const results: Record<string, "ok" | "error"> = {};
+    const succeeded: { oldId: string; signed: NostrEvent }[] = [];
+    for (const target of targets) {
+      try {
+        const signed = await republishProductWithParcel(
+          target.event,
+          {
+            weightOz: applyTemplate.weightOz,
+            lengthIn: applyTemplate.lengthIn,
+            widthIn: applyTemplate.widthIn,
+            heightIn: applyTemplate.heightIn,
+          },
+          signer,
+          nostr
+        );
+        if (signed) {
+          results[target.event.id] = "ok";
+          succeeded.push({
+            oldId: target.event.id,
+            signed: signed as NostrEvent,
+          });
+        } else {
+          results[target.event.id] = "error";
+        }
+      } catch {
+        results[target.event.id] = "error";
+      }
+      setApplyResults({ ...results });
+    }
+    // Update the local product cache only after the batch finishes so the
+    // frozen modal list (and its per-row status) stays stable while we work.
+    for (const s of succeeded) {
+      removeDeletedProductEvent(s.oldId);
+      addNewlyCreatedProductEvent(s.signed);
+    }
+    setApplying(false);
   };
 
   const toggleCarrier = (id: string) => {
@@ -583,14 +734,23 @@ const ShippingSettingsPage = () => {
                                   : ""}
                               </div>
                             </div>
-                            <Button
-                              variant="light"
-                              isIconOnly
-                              aria-label="Delete template"
-                              onPress={() => handleDeleteTemplate(t.id)}
-                            >
-                              <TrashIcon className="h-5 w-5 text-red-600" />
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="border-2 border-black bg-white font-semibold text-black"
+                                onPress={() => openApplyModal(t)}
+                              >
+                                Apply to listings
+                              </Button>
+                              <Button
+                                variant="light"
+                                isIconOnly
+                                aria-label="Delete template"
+                                onPress={() => handleDeleteTemplate(t.id)}
+                              >
+                                <TrashIcon className="h-5 w-5 text-red-600" />
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -672,6 +832,135 @@ const ShippingSettingsPage = () => {
           )}
         </div>
       </div>
+
+      {/* Apply a parcel template to existing listings */}
+      <Modal
+        isOpen={applyTemplate !== null}
+        onClose={closeApplyModal}
+        size="2xl"
+        scrollBehavior="inside"
+        classNames={{ base: "border-2 border-black" }}
+      >
+        <ModalContent>
+          <ModalHeader className="flex flex-col gap-1 text-black">
+            <span>Apply &ldquo;{applyTemplate?.name}&rdquo; to listings</span>
+            <span className="text-sm font-normal text-gray-600">
+              Sets the package size ({applyTemplate?.weightOz} oz
+              {applyTemplate?.lengthIn &&
+              applyTemplate?.widthIn &&
+              applyTemplate?.heightIn
+                ? ` • ${applyTemplate.lengthIn}×${applyTemplate.widthIn}×${applyTemplate.heightIn} in`
+                : ""}
+              ) on the listings you choose, so buyers see live USPS rates at
+              checkout.
+            </span>
+          </ModalHeader>
+          <ModalBody>
+            {modalProducts.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                You don&apos;t have any listings yet.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    {selectedProductIds.size} selected
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-blue-700 underline disabled:opacity-50"
+                      disabled={applying}
+                      onClick={() =>
+                        setSelectedProductIds(
+                          new Set(modalProducts.map((p) => p.event.id))
+                        )
+                      }
+                    >
+                      Select all
+                    </button>
+                    <button
+                      type="button"
+                      className="text-sm font-semibold text-blue-700 underline disabled:opacity-50"
+                      disabled={applying}
+                      onClick={() => setSelectedProductIds(new Set())}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <div className="divide-y-2 divide-black overflow-hidden rounded-md border-2 border-black">
+                  {modalProducts.map((p) => {
+                    const result = applyResults[p.event.id];
+                    return (
+                      <div
+                        key={p.event.id}
+                        className="flex items-start gap-3 bg-white p-3"
+                      >
+                        <Checkbox
+                          isSelected={selectedProductIds.has(p.event.id)}
+                          onValueChange={() => toggleProduct(p.event.id)}
+                          isDisabled={applying}
+                          aria-label={`Select ${p.title}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate font-semibold text-black">
+                            {p.title}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {p.parcelSummary}
+                          </div>
+                          {!p.usesLiveRates && (
+                            <div className="mt-0.5 text-xs text-gray-500">
+                              This listing&apos;s shipping type doesn&apos;t use
+                              live rates, so the package size won&apos;t change
+                              checkout.
+                            </div>
+                          )}
+                          {p.usesLiveRates && !p.hasShipFromZip && (
+                            <div className="mt-0.5 text-xs text-orange-700">
+                              Add a &ldquo;Ship From&rdquo; ZIP in the listing
+                              editor to fully enable live rates.
+                            </div>
+                          )}
+                        </div>
+                        {result === "ok" && (
+                          <span className="text-sm font-semibold text-green-700">
+                            Updated
+                          </span>
+                        )}
+                        {result === "error" && (
+                          <span className="text-sm font-semibold text-red-700">
+                            Failed
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              className="border-2 border-black bg-white font-semibold text-black"
+              onPress={closeApplyModal}
+              isDisabled={applying}
+            >
+              Close
+            </Button>
+            <Button
+              className="bg-primary-yellow border-2 border-black font-semibold text-black"
+              onPress={handleApplyTemplate}
+              isLoading={applying}
+              isDisabled={applying || selectedProductIds.size === 0}
+            >
+              Apply to {selectedProductIds.size} listing
+              {selectedProductIds.size === 1 ? "" : "s"}
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </ProtectedRoute>
   );
 };
