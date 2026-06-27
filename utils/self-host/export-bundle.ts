@@ -199,7 +199,7 @@ MCP_ENCRYPTION_KEY=
 }
 
 function readmeMarkdown(config: SelfHostConfigJson): string {
-  return `# Milk Market: Your Self-Hosted Store
+  return `# Milk Market - Your Self-Hosted Store
 
 This bundle wires a self-hosted, single-tenant copy of Milk Market to YOUR
 storefront. The marketplace and other sellers are hidden; this instance serves

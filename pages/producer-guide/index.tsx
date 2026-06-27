@@ -282,7 +282,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe, Stripe charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
                   url: "https://milk.market/producer-guide#step-2",
                 },
                 {

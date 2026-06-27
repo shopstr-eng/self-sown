@@ -85,15 +85,15 @@ const homepageFaqSchema = {
       name: "How much does it cost to sell?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced storefront design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice.",
+        text: "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe, Stripe charges its own standard processing fee. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice.",
       },
     },
     {
       "@type": "Question",
-      name: "Do I own my customers and store?",
+      name: "What happens if Milk Market shuts down or removes my account?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Milk Market is built on Nostr, an open and decentralized network. Your storefront and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you.",
+        text: "Yes. Milk Market is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you.",
       },
     },
     {
@@ -117,7 +117,7 @@ const homepageFaqSchema = {
       name: "I'm already on Shopify or Barn2Door. Can I switch?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your storefront in minutes.",
+        text: "Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your stall in minutes.",
       },
     },
   ],

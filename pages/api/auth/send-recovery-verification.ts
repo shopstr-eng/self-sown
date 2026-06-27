@@ -46,7 +46,7 @@ export default async function handler(
       [pubkey, email, code, expiresAt]
     );
 
-    const subject = "Milk Market: Verify Your Recovery Email";
+    const subject = "Milk Market - Verify Your Recovery Email";
     const html = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
         <h2 style="margin: 0 0 16px; font-size: 20px; color: #111;">Verify Your Email</h2>

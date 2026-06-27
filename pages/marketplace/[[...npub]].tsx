@@ -47,7 +47,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         ogMeta: {
-          title: "Milk Market: Browse Local Food Producers",
+          title: "Milk Market - Browse Local Food Producers",
           description:
             "Discover farms, dairies, and local food producers on Milk Market. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
           image: "/milk-market.png",

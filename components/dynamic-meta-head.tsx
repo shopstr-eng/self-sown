@@ -48,7 +48,7 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
         "Contact the Milk Market team via Nostr, GitHub, or X. We are a decentralized open-source project. All communication happens on open protocols.",
     },
     "/faq": {
-      title: "FAQ | Milk Market: Bitcoin Nostr Marketplace Help",
+      title: "FAQ | Milk Market - Bitcoin Nostr Marketplace Help",
       description:
         "Answers to common questions about Milk Market, the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
     },

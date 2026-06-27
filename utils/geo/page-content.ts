@@ -15,18 +15,19 @@ const SITE = "https://milk.market";
 
 export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
-    title: "Milk Market: Permissionless marketplace for local food",
+    title:
+      "Milk Market - Sell Local Products Online. Zero Platform Fees.",
     description:
-      "A Bitcoin-native, Nostr-based marketplace for local food and decentralized food systems. Buy and sell raw milk, dairy, meat, eggs, produce, and more.",
+      "List your products in minutes and keep 100% of every sale. No $200 a month subscriptions and no one can shut you down. Built for food producers, farmers, and artisan makers tired of paying Shopify and Barn2Door, with payments in Bitcoin, cards, or cash.",
     markdown: `# Milk Market
 
-Milk Market is a permissionless, Bitcoin-native marketplace for **local food and decentralized food systems**, built on the Nostr protocol. Producers sell directly to buyers with no central gatekeeper.
+Milk Market is the online store built for farmers, food makers, and artisan producers who are tired of handing over 2.9% and 30 cents per sale plus $39 to $2,300 a month just to run their own store. List your products in minutes, get paid directly, and keep everything you earn. Because it runs on Nostr, an open and decentralized network, your store and customer list belong to you, and no one can freeze your account or shut you down.
 
 ## What you can buy and sell
 Raw milk and dairy, meat, eggs, fresh produce, baked goods, honey, and other local and handmade goods.
 
 ## Payments
-Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat (Venmo, Cash App, Zelle, and more).
+Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat (Venmo, Cash App, Zelle, and more). Sellers get paid directly, with no mandatory platform fees.
 
 ## Get started
 - Browse the [marketplace](${SITE}/marketplace)
@@ -54,7 +55,7 @@ Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-g
   "/faq": {
     title: "Milk Market FAQ",
     description:
-      "Answers to common questions about Milk Market: payments, selling, privacy, Nostr, and AI-agent access.",
+      "Answers to common questions about Milk Market - payments, selling, privacy, Nostr, and AI-agent access.",
     markdown: `# Milk Market FAQ
 
 **What can I sell?** Local food and goods of all kinds. Raw milk and dairy are one example, alongside meat, eggs, produce, baked goods, honey, and handmade goods.
@@ -82,7 +83,7 @@ Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,
   "/producer-guide": {
     title: "Milk Market Producer Guide",
     description:
-      "Step-by-step guide to selling local food on Milk Market: account, membership, listings, orders, storefront, email flows, and AI agents.",
+      "Step-by-step guide to selling local food on Milk Market - account, membership, listings, orders, storefront, email flows, and AI agents.",
     markdown: `# Producer Guide
 
 How to start selling local food and goods on Milk Market.

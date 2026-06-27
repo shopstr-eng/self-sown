@@ -5064,7 +5064,7 @@ export default function CartInvoiceCard({
                 title +
                 " by " +
                 (userNPub || "a guest buyer") +
-                " on milk.market: " +
+                " on Milk Market: " +
                 beefDonationToken;
               try {
                 const __beefOk = await sendPaymentAndContactMessage(

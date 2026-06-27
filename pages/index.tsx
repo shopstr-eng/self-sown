@@ -437,6 +437,15 @@ export default function StandaloneLanding() {
             <a href="#pricing" className="font-bold text-black hover:underline">
               Pricing
             </a>
+            <Link
+              href="/marketplace"
+              className="font-bold text-black hover:underline"
+            >
+              Shop
+            </Link>
+            <Link href="/sell" className="font-bold text-black hover:underline">
+              Sell
+            </Link>
           </div>
         </div>
 
@@ -488,6 +497,20 @@ export default function StandaloneLanding() {
                 >
                   Pricing
                 </a>
+                <Link
+                  href="/marketplace"
+                  className="text-lg font-bold text-black hover:underline"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Shop
+                </Link>
+                <Link
+                  href="/sell"
+                  className="text-lg font-bold text-black hover:underline"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sell
+                </Link>
                 <Link href="/marketplace" className="block">
                   <button
                     className={PRIMARYBUTTONCLASSNAMES}
@@ -550,17 +573,18 @@ export default function StandaloneLanding() {
           </span>
 
           <h1 className="mb-4 text-3xl leading-tight font-black break-words sm:text-4xl md:text-6xl">
-            Sell local food online,{" "}
+            Sell your products online without paying{" "}
             <span className="relative mt-2 inline-block">
               <span className="relative z-10 inline-block rounded-lg border-[3px] border-black bg-black px-3 py-1.5 text-white sm:px-4 sm:py-2">
-                without the middlemen
+                $200 a month.
               </span>
               <span className="bg-primary-yellow absolute right-[-5px] bottom-[-5px] z-0 h-full w-full rounded-lg border-[3px] border-black"></span>
             </span>
           </h1>
 
           <p className="mx-auto mb-5 max-w-2xl text-lg font-bold text-zinc-800 md:text-xl">
-            Commerce that flows milky smooth.
+            No platform fees. No one can shut you down. Your customers stay
+            yours.
           </p>
 
           <div className="mx-auto mt-8 flex w-full max-w-md flex-col items-center justify-center gap-3 sm:max-w-none sm:flex-row">
@@ -587,14 +611,53 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
+      {/* Audience segmentation - sell vs buy funnels */}
+      <section className="border-b-2 border-black bg-zinc-50 py-16">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Sell funnel */}
+            <div className="shadow-neo flex flex-col rounded-lg border-2 border-black bg-white p-6 sm:p-8">
+              <h3 className="mb-3 text-xl font-black sm:text-2xl">
+                I want to sell food or maker products
+              </h3>
+              <p className="mb-6 text-zinc-600">
+                Open a stall in minutes, set your prices, and get paid directly
+                with no platform fees.
+              </p>
+              <Link href="/onboarding/new-account" className="mt-auto">
+                <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
+                  Start Selling
+                </button>
+              </Link>
+            </div>
+
+            {/* Buy funnel */}
+            <div className="shadow-neo flex flex-col rounded-lg border-2 border-black bg-white p-6 sm:p-8">
+              <h3 className="mb-3 text-xl font-black sm:text-2xl">
+                I want to buy from local producers
+              </h3>
+              <p className="mb-6 text-zinc-600">
+                Browse transparent, sustainably sourced food and maker products
+                from people near you.
+              </p>
+              <Link href="/marketplace" className="mt-auto">
+                <button className={`${WHITEBUTTONCLASSNAMES} w-full`}>
+                  Browse Marketplace
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Intro paragraph */}
       <section className="border-b-2 border-black bg-white py-12">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <p className="text-lg text-zinc-600 md:text-xl">
-            Milk Market is the permissionless marketplace for food producers and
-            local artisans. Open a stall in minutes, set your own prices, and
-            reach shoppers who want transparent, sustainable food from real
-            people nearby.
+            Milk Market is built for farmers, food makers, and artisan producers
+            who are tired of handing over 2.9% + 30 cents per sale plus $39 to
+            $2,300 a month just to run their own store. List your products in
+            minutes. Get paid directly. Keep everything you earn.
           </p>
         </div>
       </section>
@@ -647,9 +710,7 @@ export default function StandaloneLanding() {
           </div>
           <div>
             <span className="block text-2xl font-black">Open</span>
-            <span className="text-sm text-zinc-600">
-              Permissionless &amp; Decentralized
-            </span>
+            <span className="text-sm text-zinc-600">Network You Own</span>
           </div>
         </div>
       </section>
@@ -665,20 +726,23 @@ export default function StandaloneLanding() {
               <ul className="space-y-3 text-zinc-700">
                 <li className="flex items-start gap-2">
                   <span className="text-red-500">&#10007;</span>
-                  Big platforms take a cut of every sale and charge monthly rent
+                  Barn2Door and Shopify charge between $39 to $2,300 a month,
+                  plus a fee on every sale
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500">&#10007;</span>
-                  They own your customers, your data, and your store
+                  They own your customer list, and they can shut your store down
+                  overnight
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500">&#10007;</span>
-                  Accounts can be frozen or shut down without warning
+                  Accounts get frozen or banned with no explanation and no way
+                  to appeal
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-500">&#10007;</span>
-                  Shoppers can&apos;t tell what&apos;s truly local or
-                  transparent
+                  You&apos;re building on someone else&apos;s land, and they can
+                  take it back anytime
                 </li>
               </ul>
             </div>
@@ -690,21 +754,21 @@ export default function StandaloneLanding() {
               <ul className="space-y-3 text-zinc-700">
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Keep what you earn, with 0% mandatory fees, ever
+                  No mandatory fees, so you keep 100% of every sale
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  You own your customers and stall on an open network
+                  Your customer list is yours to keep, and we can never take it
+                  away
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Permissionless, with no approvals and no one who can
-                  deplatform you
+                  No one can freeze or shut down your store
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Shoppers find transparent, sustainable food from real people
-                  nearby
+                  Even if Milk Market disappeared tomorrow, your store would
+                  stay online
                 </li>
               </ul>
             </div>
@@ -754,7 +818,7 @@ export default function StandaloneLanding() {
             <div>
               <div className="mb-6 flex items-center gap-3">
                 <span className="bg-primary-yellow rounded-md border-2 border-black px-3 py-1 text-sm font-black">
-                  For Producers
+                  For Producers (Sell)
                 </span>
               </div>
               <div className="space-y-4">
@@ -790,8 +854,9 @@ export default function StandaloneLanding() {
                       Get paid directly
                     </h3>
                     <p className="text-zinc-600">
-                      Accept cards, Bitcoin, or cash. Keep what you earn on your
-                      own terms.
+                      Accept cards, Venmo, Cash App, Zelle, cash, or Bitcoin if
+                      your buyers prefer it. You choose what you accept and keep
+                      everything you earn.
                     </p>
                   </div>
                 </div>
@@ -809,7 +874,7 @@ export default function StandaloneLanding() {
             <div>
               <div className="mb-6 flex items-center gap-3">
                 <span className="rounded-md border-2 border-black bg-white px-3 py-1 text-sm font-black">
-                  For Shoppers
+                  For Shoppers (Buy)
                 </span>
               </div>
               <div className="space-y-4">
@@ -895,17 +960,28 @@ export default function StandaloneLanding() {
               <span className="mb-4 block text-4xl">0%</span>
               <h3 className="mb-2 text-xl font-bold">No Mandatory Fees</h3>
               <p className="text-zinc-600">
-                We never take a mandatory cut. Sellers can choose to set an
-                optional donation rate to support the platform, but it&apos;s
-                always their choice.
+                Barn2Door charges $99 to $299 a month plus 2.9% + 30 cents per
+                transaction. At $200 a month, that is $2,400 a year in
+                subscription fees before you sell a single item. On Milk Market
+                that is $0. You can choose to donate to support the platform,
+                but it is always your call.
+              </p>
+              <p className="mt-3 text-sm text-zinc-500">
+                That 0% is Milk Market&apos;s own fee. Bitcoin payments have no
+                fees at all. If you choose to accept cards through Stripe,
+                Stripe charges its own standard processing fee, and Milk Market
+                still adds nothing on top.
               </p>
             </div>
             <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-center">
               <span className="mb-4 block text-4xl">You</span>
               <h3 className="mb-2 text-xl font-bold">Own Your Store</h3>
               <p className="text-zinc-600">
-                Built on Nostr, an open and decentralized network. Your
-                customers and stall are yours, and no one can deplatform you.
+                Your store and your customer list belong to you. No one can
+                freeze your account or take your store away. Even if Milk Market
+                disappeared tomorrow, your store would stay online, because your
+                data lives on Nostr, an open network that runs independently of
+                us.
               </p>
             </div>
             <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-center">
@@ -914,8 +990,10 @@ export default function StandaloneLanding() {
                 Private &amp; Transparent
               </h3>
               <p className="text-zinc-600">
-                Your data stays encrypted. Shoppers see exactly who they&apos;re
-                buying from and support a transparent, sustainable food system.
+                Buyers see exactly who they&apos;re buying from and how it was
+                made. You see exactly who your customers are, and we never touch
+                that data. We don&apos;t track you and we never sell your
+                information.
               </p>
             </div>
           </div>
@@ -946,8 +1024,10 @@ export default function StandaloneLanding() {
               How We Compare
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-600">
-              Most platforms rent you a store and take a cut. Milk Market is an
-              open marketplace you actually own.
+              Barn2Door starts at $99 a month plus a $399 setup fee. Shopify
+              adds transaction fees on top of its monthly plans. Milk Market is
+              free to start and has no mandatory fees. Here&apos;s how we
+              compare.
             </p>
           </div>
 
@@ -973,7 +1053,7 @@ export default function StandaloneLanding() {
                     feature: "Up-front & platform fees",
                     mm: "0%",
                     shopify: "Up to 2%¹",
-                    barn: "$399+ setup fee²",
+                    barn: "$399+ setup fee¹ ²",
                   },
                   {
                     feature: "Monthly subscription",
@@ -1067,14 +1147,24 @@ export default function StandaloneLanding() {
 
           <p className="mt-4 text-center text-xs text-zinc-500">
             &sup1; Shopify charges an additional transaction fee when you
-            don&apos;t use Shopify Payments; standard card-processing fees apply
-            on all platforms. &sup2; Barn2Door plans start at $99/mo billed
-            yearly (Entrepreneur) plus a one-time setup fee from $399, rising to
-            $159 and $299/mo on higher tiers. Competitor details are based on
+            don&apos;t use Shopify Payments, and Barn2Door charges 2.9% + 30
+            cents per transaction; standard card-processing fees apply on all
+            platforms. &sup2; Barn2Door plans start at $99/mo billed yearly
+            (Entrepreneur) plus a one-time setup fee from $399, rising to $159
+            and $299/mo on higher tiers. Competitor details are based on
             publicly listed pricing and features and may change.
           </p>
 
           <div className="mt-8 text-center">
+            <h3 className="mb-3 text-2xl font-black md:text-3xl">
+              Already on Shopify or Barn2Door?
+            </h3>
+            <p className="mx-auto mb-6 max-w-2xl text-zinc-600">
+              Bring your entire product catalog over in a few clicks. Your
+              products, prices, and photos come across automatically, so
+              there&apos;s no rebuilding from scratch. And you&apos;ll never pay
+              a transaction fee again.
+            </p>
             <Link href="/onboarding/new-account?migrate=shopify">
               <button className={PRIMARYBUTTONCLASSNAMES}>
                 Migrate from Shopify
@@ -1217,10 +1307,10 @@ export default function StandaloneLanding() {
             />
             <FAQItem
               question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
+              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe, Stripe charges its own standard processing fee. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
             />
             <FAQItem
-              question="Do I own my customers and store?"
+              question="What happens if Milk Market shuts down or removes my account?"
               answer="Yes. Milk Market is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you."
             />
             <FAQItem
@@ -1395,7 +1485,7 @@ export default function StandaloneLanding() {
       <section className="relative z-10 bg-black py-16 text-white">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="mb-6 text-3xl font-black md:text-4xl">
-            Commerce that flows milky smooth
+            Your products. Your customers. Your money.
           </h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg text-zinc-300">
             Join the movement building a transparent, sustainable, and
@@ -1431,7 +1521,7 @@ export default function StandaloneLanding() {
               </p>
             </div>
             <div>
-              <h4 className="mb-2 font-bold">Permissionless</h4>
+              <h4 className="mb-2 font-bold">Open Network</h4>
               <p className="text-sm text-zinc-400">
                 No central authority controls the platform
               </p>

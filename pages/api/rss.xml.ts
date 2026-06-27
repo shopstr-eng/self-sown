@@ -69,7 +69,7 @@ export default async function handler(
   const feed = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Milk Market: Local Food Listings</title>
+    <title>Milk Market - Local Food Listings</title>
     <link>${BASE_URL}/marketplace</link>
     <atom:link href="${BASE_URL}/rss.xml" rel="self" type="application/rss+xml" />
     <description>Recent product listings from local food producers on Milk Market, a permissionless Bitcoin-native marketplace built on Nostr.</description>

@@ -666,7 +666,7 @@ async function sendProReceiptNostrDM(
     await sendServerSideNostrDM(
       pubkey,
       lines.join("\n"),
-      `Milk Market: payment receipt (${amount})`
+      `Milk Market - payment receipt (${amount})`
     );
   } catch (err) {
     console.error("sendProReceiptNostrDM failed:", err);

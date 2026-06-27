@@ -2900,7 +2900,7 @@ export default function ProductInvoiceCard({
                 productData.title +
                 " by " +
                 userNPub +
-                " on milk.market: " +
+                " on Milk Market: " +
                 beefDonationToken;
 
               const __beefOk = await sendPaymentAndContactMessage(
