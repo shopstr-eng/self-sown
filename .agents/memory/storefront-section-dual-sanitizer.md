@@ -30,3 +30,21 @@ top-level sanitizer is enough for the homepage/custom-stall hero banner.
 homepage hero. Only touch the `pages[].sections[]` sanitizer if you explicitly
 intend the field to survive on custom builder pages — and if so, you'll likely
 need to also carry the other already-stripped hero fields for consistency.
+
+## The full sanitizer is now shared (`sanitizeFullSection`)
+
+The homepage `sections[]` sanitizer was extracted into a named helper
+`sanitizeFullSection` and is now reused by a THIRD sections container:
+`blogPage.sections[]` (the built-in Blog index page). So there are three
+containers with two fidelity levels: `sections[]` and `blogPage.sections[]` use
+the FULL set (`sanitizeFullSection`); `pages[].sections[]` stays reduced.
+
+**Rule for a new built-in toggleable page** (Blog mirrors Community/Wallet): its
+dedicated `xPage.sections[]` must run through `sanitizeFullSection`, NOT the
+reduced custom-pages sanitizer, or rich section fields silently vanish on
+save/reload. Adding such a page also touches: `showXPage` config flag (kept in
+`normalizeStorefrontConfig`), the reserved-slug set in `page-editor.tsx` (so no
+custom page can claim that slug), the nav-link push + `activeSections` branch +
+"Page Not Found" gate in `storefront-layout.tsx`, the index-vs-single route
+split in `pages/stall/[...stallPath].tsx`, and MCP `set_shop_profile` parity for
+the `showXPage` flag.

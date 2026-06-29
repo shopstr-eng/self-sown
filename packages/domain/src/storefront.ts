@@ -191,6 +191,11 @@ export interface StorefrontSection {
   blogLayout?: "featured" | "grid" | "list";
   blogPostIds?: string[];
   blogPostLimit?: number;
+  // How the blog section chooses which posts to show. "latest" (default/
+  // undefined) shows newest posts first — blogPostIds may still reorder them and
+  // the rest are appended — cut off at blogPostLimit. "selected" shows ONLY the
+  // posts listed in blogPostIds, in that order, cut off at blogPostLimit.
+  blogPostMode?: "latest" | "selected";
 }
 
 export interface StorefrontProductPageConfig {
@@ -205,6 +210,10 @@ export interface StorefrontPage {
   id: string;
   title: string;
   slug: string;
+  sections: StorefrontSection[];
+}
+
+export interface StorefrontBlogPage {
   sections: StorefrontSection[];
 }
 
@@ -287,6 +296,11 @@ export interface StorefrontConfig {
   navLinks?: StorefrontNavLink[];
   showCommunityPage?: boolean;
   showWalletPage?: boolean;
+  // When true, the storefront exposes a "Blog" page: a nav link to /blog plus
+  // the /blog route. The /blog index renders blogPage.sections (defaulting to a
+  // single blog section) like a custom page; /blog/<slug> renders the article.
+  showBlogPage?: boolean;
+  blogPage?: StorefrontBlogPage;
   emailPopup?: StorefrontEmailPopup;
   navColors?: StorefrontNavColors;
   footerColors?: StorefrontFooterColors;

@@ -351,6 +351,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   });
   const [showCommunityPage, setShowCommunityPage] = useState(false);
   const [showWalletPage, setShowWalletPage] = useState(false);
+  const [showBlogPage, setShowBlogPage] = useState(false);
+  const [blogPageSections, setBlogPageSections] = useState<StorefrontSection[]>(
+    []
+  );
   const [emailPopup, setEmailPopup] = useState<StorefrontEmailPopup>({
     enabled: false,
     discountPercentage: 10,
@@ -448,6 +452,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         if (sf.footerColors) setFooterColors(sf.footerColors);
         if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
         if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
+        if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
+        if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
       }
     },
     [reset]
@@ -560,6 +566,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       if (sf.footerColors) setFooterColors(sf.footerColors);
       if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
       if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
+      if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
+      if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
       if (sf.emailPopup) setEmailPopup({ ...emailPopup, ...sf.emailPopup });
       if (sf.seoMeta) setSeoMeta({ ...seoMeta, ...sf.seoMeta });
     }
@@ -836,6 +844,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         footerColors,
         showCommunityPage,
         showWalletPage,
+        showBlogPage,
+        blogPageSections,
         emailPopup,
         seoMeta,
       }),
@@ -865,6 +875,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       footerColors,
       showCommunityPage,
       showWalletPage,
+      showBlogPage,
+      blogPageSections,
       emailPopup,
       seoMeta,
     ]
@@ -973,6 +985,11 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             : undefined,
         showCommunityPage: showCommunityPage || undefined,
         showWalletPage: showWalletPage || undefined,
+        showBlogPage: showBlogPage || undefined,
+        blogPage:
+          blogPageSections.length > 0
+            ? { sections: blogPageSections }
+            : undefined,
         emailPopup: emailPopup.enabled ? emailPopup : undefined,
         seoMeta: buildSeoMetaForSave(data),
       });
@@ -2173,6 +2190,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             sellerProducts={sellerProducts}
                             shopPubkey={userPubkey}
                             hasSellerEmail={notificationEmail.trim().length > 0}
+                            showBlogPage={showBlogPage}
+                            blogPageSections={blogPageSections}
+                            onBlogPageSectionsChange={setBlogPageSections}
                           />
                         </div>
 
@@ -2212,6 +2232,37 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             Enable a Bitcoin wallet page on your storefront for
                             Cashu ecash payments. A &quot;Wallet&quot; link will
                             be added to your storefront navigation bar.
+                          </p>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="mb-2 flex items-center gap-3 text-base font-bold text-black">
+                            <input
+                              type="checkbox"
+                              checked={showBlogPage}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setShowBlogPage(checked);
+                                if (checked && blogPageSections.length === 0) {
+                                  setBlogPageSections([
+                                    {
+                                      id: `section-${Date.now()}`,
+                                      type: "blog",
+                                      enabled: true,
+                                    },
+                                  ]);
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            Show Blog Page
+                          </label>
+                          <p className="ml-7 text-sm text-gray-500">
+                            Enable a blog page on your storefront to share posts
+                            and updates. A &quot;Blog&quot; link will be added
+                            to your storefront navigation bar, and you can
+                            customize the blog index page from the Pages section
+                            above.
                           </p>
                         </div>
 

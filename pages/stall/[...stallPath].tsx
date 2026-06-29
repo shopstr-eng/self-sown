@@ -252,13 +252,16 @@ export default function ShopSubPage({
     );
   }
 
-  if (subPage === "blog") {
+  // A single blog article (/blog/<slug>) renders the dedicated article view.
+  // The blog index (/blog) falls through to StorefrontLayout below so it renders
+  // the seller's editable blog page sections (currentPage="blog").
+  if (subPage === "blog" && pathParts[2]) {
     const postSlug = pathParts[2];
     return (
       <ThemedBlog
         sellerPubkey={shopPubkey}
         shopSlug={slug}
-        {...(postSlug ? { postSlug } : {})}
+        postSlug={postSlug}
       />
     );
   }

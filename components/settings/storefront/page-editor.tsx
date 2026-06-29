@@ -17,6 +17,9 @@ interface PageEditorProps {
   sellerProducts?: ProductData[];
   shopPubkey?: string;
   hasSellerEmail?: boolean;
+  showBlogPage?: boolean;
+  blogPageSections?: StorefrontSection[];
+  onBlogPageSectionsChange?: (sections: StorefrontSection[]) => void;
 }
 
 const SECTION_TYPES: { type: StorefrontSectionType; label: string }[] = [
@@ -37,6 +40,20 @@ const SECTION_TYPES: { type: StorefrontSectionType; label: string }[] = [
   { type: "blog", label: "Blog" },
 ];
 
+// Slugs reserved for built-in storefront routes — custom pages can't use them.
+const RESERVED_PAGE_SLUGS = new Set([
+  "blog",
+  "shop",
+  "orders",
+  "wallet",
+  "community",
+  "my-listings",
+  "order-confirmation",
+]);
+
+// Sentinel key for expanding the built-in Blog page card.
+const BLOG_PAGE_KEY = "__blog_page__";
+
 const inputWrapperClass =
   "border-2 border-gray-300 rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-black";
 
@@ -48,8 +65,12 @@ export default function PageEditor({
   sellerProducts = [],
   shopPubkey,
   hasSellerEmail = false,
+  showBlogPage = false,
+  blogPageSections = [],
+  onBlogPageSectionsChange,
 }: PageEditorProps) {
   const [expandedPage, setExpandedPage] = useState<string | null>(null);
+  const [slugErrors, setSlugErrors] = useState<Record<string, string>>({});
 
   const externalLinks = navLinks.filter((l) => !l.isPage);
 
@@ -74,11 +95,36 @@ export default function PageEditor({
 
   const updatePage = (id: string, fields: Partial<StorefrontPage>) => {
     const page = pages.find((p) => p.id === id);
-    onChange(pages.map((p) => (p.id === id ? { ...p, ...fields } : p)));
-    if (page && (fields.title || fields.slug)) {
+    if (!page) return;
+    const applied: Partial<StorefrontPage> = { ...fields };
+    if (typeof fields.slug === "string") {
+      const candidate = fields.slug;
+      const isReserved = RESERVED_PAGE_SLUGS.has(candidate);
+      const isDuplicate = pages.some(
+        (p) => p.id !== id && p.slug === candidate
+      );
+      if (candidate && (isReserved || isDuplicate)) {
+        setSlugErrors((prev) => ({
+          ...prev,
+          [id]: isReserved
+            ? `"/${candidate}" is a reserved address and can't be used.`
+            : `"/${candidate}" is already used by another page.`,
+        }));
+        delete applied.slug;
+      } else {
+        setSlugErrors((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }
+    }
+    if (Object.keys(applied).length === 0) return;
+    onChange(pages.map((p) => (p.id === id ? { ...p, ...applied } : p)));
+    if (applied.title || applied.slug) {
       const oldSlug = page.slug;
-      const newSlug = fields.slug || oldSlug;
-      const newTitle = fields.title || page.title;
+      const newSlug = applied.slug || oldSlug;
+      const newTitle = applied.title || page.title;
       onNavLinksChange(
         navLinks.map((l) =>
           l.isPage && l.href === oldSlug
@@ -96,16 +142,69 @@ export default function PageEditor({
     onChange(pages.map((p) => (p.id === pageId ? { ...p, sections } : p)));
   };
 
-  const addSectionToPage = (pageId: string, type: StorefrontSectionType) => {
-    const page = pages.find((p) => p.id === pageId);
-    if (!page) return;
-    const newSection: StorefrontSection = {
-      id: `section-${Date.now()}`,
-      type,
-      enabled: true,
-    };
-    updatePageSections(pageId, [...page.sections, newSection]);
-  };
+  const renderSectionList = (
+    sectionList: StorefrontSection[],
+    onSectionsChange: (sections: StorefrontSection[]) => void
+  ) => (
+    <>
+      <div className="space-y-2">
+        {sectionList.map((section, idx) => (
+          <SectionEditor
+            key={section.id}
+            section={section}
+            onChange={(updated) => {
+              const next = [...sectionList];
+              next[idx] = updated;
+              onSectionsChange(next);
+            }}
+            onRemove={() =>
+              onSectionsChange(sectionList.filter((_, i) => i !== idx))
+            }
+            onMoveUp={() => {
+              if (idx === 0) return;
+              const next = [...sectionList];
+              [next[idx - 1], next[idx]] = [next[idx]!, next[idx - 1]!];
+              onSectionsChange(next);
+            }}
+            onMoveDown={() => {
+              if (idx === sectionList.length - 1) return;
+              const next = [...sectionList];
+              [next[idx], next[idx + 1]] = [next[idx + 1]!, next[idx]!];
+              onSectionsChange(next);
+            }}
+            isFirst={idx === 0}
+            isLast={idx === sectionList.length - 1}
+            sellerProducts={sellerProducts}
+            shopPubkey={shopPubkey}
+          />
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {SECTION_TYPES.filter(
+          (st) => st.type !== "contact_form" || hasSellerEmail
+        ).map((st) => (
+          <button
+            key={st.type}
+            type="button"
+            onClick={() =>
+              onSectionsChange([
+                ...sectionList,
+                {
+                  id: `section-${Date.now()}`,
+                  type: st.type,
+                  enabled: true,
+                },
+              ])
+            }
+            className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 hover:border-black hover:text-black"
+          >
+            + {st.label}
+          </button>
+        ))}
+      </div>
+    </>
+  );
 
   const addExternalLink = () => {
     onNavLinksChange([...navLinks, { label: "", href: "" }]);
@@ -153,6 +252,39 @@ export default function PageEditor({
         Create pages for your storefront. Each page gets its own URL, sections,
         and a link in the navigation bar.
       </p>
+
+      {showBlogPage && onBlogPageSectionsChange && (
+        <div className="rounded-lg border-2 border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between px-4 py-3">
+            <button
+              type="button"
+              onClick={() =>
+                setExpandedPage(
+                  expandedPage === BLOG_PAGE_KEY ? null : BLOG_PAGE_KEY
+                )
+              }
+              className="flex items-center gap-2 text-sm font-bold text-black"
+            >
+              <span className="text-xs">
+                {expandedPage === BLOG_PAGE_KEY ? "▾" : "▸"}
+              </span>
+              Blog
+              <span className="font-normal text-gray-400">/blog</span>
+            </button>
+            <span className="text-xs font-medium text-gray-400">Built-in</span>
+          </div>
+
+          {expandedPage === BLOG_PAGE_KEY && (
+            <div className="space-y-4 border-t border-gray-200 px-4 py-4">
+              <p className="text-sm text-gray-500">
+                Customize your blog index page. Add a Blog section to list your
+                posts, plus any other sections you like.
+              </p>
+              {renderSectionList(blogPageSections, onBlogPageSectionsChange)}
+            </div>
+          )}
+        </div>
+      )}
 
       {pages.map((page) => (
         <div
@@ -210,63 +342,15 @@ export default function PageEditor({
                   className="flex-1"
                 />
               </div>
+              {slugErrors[page.id] && (
+                <p className="text-xs font-medium text-red-500">
+                  {slugErrors[page.id]}
+                </p>
+              )}
 
-              <div className="space-y-2">
-                {page.sections.map((section, idx) => (
-                  <SectionEditor
-                    key={section.id}
-                    section={section}
-                    onChange={(updated) => {
-                      const sections = [...page.sections];
-                      sections[idx] = updated;
-                      updatePageSections(page.id, sections);
-                    }}
-                    onRemove={() => {
-                      updatePageSections(
-                        page.id,
-                        page.sections.filter((_, i) => i !== idx)
-                      );
-                    }}
-                    onMoveUp={() => {
-                      if (idx === 0) return;
-                      const sections = [...page.sections];
-                      [sections[idx - 1], sections[idx]] = [
-                        sections[idx]!,
-                        sections[idx - 1]!,
-                      ];
-                      updatePageSections(page.id, sections);
-                    }}
-                    onMoveDown={() => {
-                      if (idx === page.sections.length - 1) return;
-                      const sections = [...page.sections];
-                      [sections[idx], sections[idx + 1]] = [
-                        sections[idx + 1]!,
-                        sections[idx]!,
-                      ];
-                      updatePageSections(page.id, sections);
-                    }}
-                    isFirst={idx === 0}
-                    isLast={idx === page.sections.length - 1}
-                    sellerProducts={sellerProducts}
-                    shopPubkey={shopPubkey}
-                  />
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {SECTION_TYPES.filter(
-                  (st) => st.type !== "contact_form" || hasSellerEmail
-                ).map((st) => (
-                  <button
-                    key={st.type}
-                    type="button"
-                    onClick={() => addSectionToPage(page.id, st.type)}
-                    className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-gray-600 hover:border-black hover:text-black"
-                  >
-                    + {st.label}
-                  </button>
-                ))}
-              </div>
+              {renderSectionList(page.sections, (sections) =>
+                updatePageSections(page.id, sections)
+              )}
             </div>
           )}
         </div>

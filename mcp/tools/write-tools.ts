@@ -771,6 +771,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Enable a Bitcoin wallet page on the storefront for Cashu ecash payments. When true, a 'Wallet' link is auto-added to the nav and /stall/{slug}/wallet shows the wallet UI."
         ),
+      showBlogPage: z
+        .boolean()
+        .optional()
+        .describe(
+          "Enable a blog page on the storefront. When true, a 'Blog' link is auto-added to the nav and /stall/{slug}/blog shows the seller's blog posts. The blog index page itself is section-editable in the seller dashboard."
+        ),
       productPageDefaults: productPageConfigSchema
         .optional()
         .describe(
@@ -863,6 +869,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.showCommunityPage = params.showCommunityPage;
         if (params.showWalletPage !== undefined)
           storefront.showWalletPage = params.showWalletPage;
+        if (params.showBlogPage !== undefined)
+          storefront.showBlogPage = params.showBlogPage;
         if (params.productPageDefaults)
           storefront.productPageDefaults = params.productPageDefaults;
         if (Object.keys(storefront).length > 0) content.storefront = storefront;

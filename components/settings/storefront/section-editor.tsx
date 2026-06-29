@@ -943,8 +943,31 @@ export default function SectionEditor({
                   Featured
                 </SelectItem>
               </Select>
+              <Select
+                label="Which posts to show"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.blogPostMode || "latest"]}
+                onChange={(e) =>
+                  update({
+                    blogPostMode:
+                      e.target.value === "selected" ? "selected" : "latest",
+                  })
+                }
+              >
+                <SelectItem key="latest" className="text-black">
+                  Latest posts (automatic)
+                </SelectItem>
+                <SelectItem key="selected" className="text-black">
+                  Choose specific posts
+                </SelectItem>
+              </Select>
               <Input
-                label="Post Limit (optional)"
+                label={
+                  section.blogPostMode === "selected"
+                    ? "Max posts (optional)"
+                    : "Number of latest posts (optional)"
+                }
                 classNames={{ inputWrapper: inputWrapperClass }}
                 variant="bordered"
                 type="number"
@@ -964,11 +987,14 @@ export default function SectionEditor({
               {shopPubkey && (
                 <div>
                   <label className="mb-1 block text-sm font-bold text-black">
-                    Post Order
+                    {section.blogPostMode === "selected"
+                      ? "Choose Posts"
+                      : "Post Order"}
                   </label>
                   <p className="mb-2 text-xs text-gray-500">
-                    Drag to reorder how posts appear. Leave untouched for newest
-                    first.
+                    {section.blogPostMode === "selected"
+                      ? "Check the posts you want to show. Drag to set their order."
+                      : "Drag to reorder how posts appear. Leave untouched for newest first."}
                   </p>
                   <BlogPostOrderList
                     shopPubkey={shopPubkey}
@@ -980,6 +1006,7 @@ export default function SectionEditor({
                     }
                     dragItemRef={dragItemRef}
                     dragOverItemRef={dragOverItemRef}
+                    selectable={section.blogPostMode === "selected"}
                   />
                 </div>
               )}
@@ -1639,12 +1666,14 @@ function BlogPostOrderList({
   onChange,
   dragItemRef,
   dragOverItemRef,
+  selectable = false,
 }: {
   shopPubkey: string;
   postRefs: string[];
   onChange: (refs: string[]) => void;
   dragItemRef: React.MutableRefObject<number | null>;
   dragOverItemRef: React.MutableRefObject<number | null>;
+  selectable?: boolean;
 }) {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -1698,6 +1727,27 @@ function BlogPostOrderList({
     return ordered;
   })();
 
+  const isSelected = (post: BlogPost) =>
+    postRefs.includes(post.dTag) || postRefs.includes(post.id);
+
+  // In ordering mode emit the full ordered list; in selection mode emit only
+  // the chosen posts (their order within the list is preserved).
+  const emitOrder = (items: BlogPost[]) => {
+    if (selectable) {
+      onChange(items.filter(isSelected).map((p) => p.dTag));
+    } else {
+      onChange(items.map((p) => p.dTag));
+    }
+  };
+
+  const toggleSelected = (post: BlogPost) => {
+    if (isSelected(post)) {
+      onChange(postRefs.filter((r) => r !== post.dTag && r !== post.id));
+    } else {
+      onChange([...postRefs, post.dTag]);
+    }
+  };
+
   const handleDrop = () => {
     if (dragItemRef.current === null || dragOverItemRef.current === null)
       return;
@@ -1705,7 +1755,7 @@ function BlogPostOrderList({
     const items = [...orderedPosts];
     const [dragged] = items.splice(dragItemRef.current, 1);
     items.splice(dragOverItemRef.current, 0, dragged!);
-    onChange(items.map((p) => p.dTag));
+    emitOrder(items);
     dragItemRef.current = null;
     dragOverItemRef.current = null;
   };
@@ -1715,7 +1765,7 @@ function BlogPostOrderList({
     const items = [...orderedPosts];
     const [moved] = items.splice(fromIdx, 1);
     items.splice(toIdx, 0, moved!);
-    onChange(items.map((p) => p.dTag));
+    emitOrder(items);
   };
 
   if (!loaded) {
@@ -1745,6 +1795,15 @@ function BlogPostOrderList({
           onDrop={handleDrop}
           className="flex cursor-grab items-center gap-2 rounded border border-transparent px-2 py-1.5 text-sm transition-colors hover:bg-gray-50 active:cursor-grabbing"
         >
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={isSelected(post)}
+              onChange={() => toggleSelected(post)}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 flex-shrink-0 rounded border-gray-300"
+            />
+          )}
           <span className="flex flex-col gap-0.5 text-[10px] text-gray-400">
             <button
               type="button"

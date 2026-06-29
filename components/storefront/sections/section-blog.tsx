@@ -105,11 +105,26 @@ export default function SectionBlog({
   const layout = section.blogLayout || "grid";
 
   const displayPosts = useMemo(() => {
+    const limit = section.blogPostLimit;
+    // "selected" mode shows ONLY the explicitly chosen posts, in chosen order —
+    // nothing is appended. "latest" (or legacy undefined) shows newest posts,
+    // optionally reordered by blogPostIds with the rest appended.
+    if (section.blogPostMode === "selected") {
+      const refs = section.blogPostIds || [];
+      const selected: BlogPost[] = [];
+      const used = new Set<string>();
+      for (const ref of refs) {
+        const match = posts.find((p) => p.dTag === ref || p.id === ref);
+        if (match && !used.has(match.id)) {
+          selected.push(match);
+          used.add(match.id);
+        }
+      }
+      return limit ? selected.slice(0, limit) : selected;
+    }
     const ordered = applyBlogOrder(posts, section.blogPostIds);
-    return section.blogPostLimit
-      ? ordered.slice(0, section.blogPostLimit)
-      : ordered;
-  }, [posts, section.blogPostIds, section.blogPostLimit]);
+    return limit ? ordered.slice(0, limit) : ordered;
+  }, [posts, section.blogPostIds, section.blogPostLimit, section.blogPostMode]);
 
   const slugFor = (post: BlogPost) => getBlogPostSlug(post, posts);
 

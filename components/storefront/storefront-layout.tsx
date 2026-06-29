@@ -287,7 +287,6 @@ export default function StorefrontLayout({
     customFontBodyName,
   ]);
 
-  const hasSections = storefront.sections && storefront.sections.length > 0;
   const hasNav = storefront.navLinks && storefront.navLinks.length > 0;
   const hasFooter = !!storefront.footer;
 
@@ -296,6 +295,17 @@ export default function StorefrontLayout({
   const navAccent = storefront.navColors?.accent || colors.primary;
 
   const activeSections = useMemo(() => {
+    if (currentPage === "blog") {
+      // Blog index: render the seller's editable blogPage.sections. When the
+      // page is enabled but empty, default to a single blog section so the
+      // index still lists posts out of the box. Off → empty (Not Found).
+      if (!storefront.showBlogPage) return [];
+      const blogSections = storefront.blogPage?.sections?.filter(
+        (s) => s.enabled !== false
+      );
+      if (blogSections && blogSections.length > 0) return blogSections;
+      return [{ id: "blog-default", type: "blog" as const }];
+    }
     if (currentPage && storefront.pages) {
       const page = storefront.pages.find((p) => p.slug === currentPage);
       if (page) return page.sections.filter((s) => s.enabled !== false);
@@ -304,7 +314,13 @@ export default function StorefrontLayout({
       return storefront.sections.filter((s) => s.enabled !== false);
     }
     return [];
-  }, [currentPage, storefront.pages, storefront.sections]);
+  }, [
+    currentPage,
+    storefront.pages,
+    storefront.sections,
+    storefront.showBlogPage,
+    storefront.blogPage,
+  ]);
 
   const policyPageData = useMemo(() => {
     if (!currentPage) return null;
@@ -364,6 +380,7 @@ export default function StorefrontLayout({
 
   const showCommunity = !!storefront.showCommunityPage;
   const showWallet = !!storefront.showWalletPage;
+  const showBlog = !!storefront.showBlogPage;
   const isShopOwner = isLoggedIn && userPubkey === shopPubkey;
 
   const sellerCommunity = useMemo(() => {
@@ -427,8 +444,23 @@ export default function StorefrontLayout({
         links.push({ label: "Community", href: "community", isPage: true });
       }
     }
+    if (showBlog) {
+      const alreadyHasBlog = links.some(
+        (l) => l.href === "blog" || l.href === "/blog"
+      );
+      if (!alreadyHasBlog) {
+        links.push({ label: "Blog", href: "blog", isPage: true });
+      }
+    }
     return links;
-  }, [hasNav, storefront.navLinks, showCommunity, showWallet, isShopOwner]);
+  }, [
+    hasNav,
+    storefront.navLinks,
+    showCommunity,
+    showWallet,
+    showBlog,
+    isShopOwner,
+  ]);
 
   const cssVars = {
     "--sf-primary": colors.primary,
@@ -1045,6 +1077,20 @@ export default function StorefrontLayout({
               </div>
             )}
           </div>
+        ) : currentPage === "blog" && !showBlog ? (
+          <div className="pt-14">
+            <div className="flex min-h-screen flex-col items-center justify-center py-24 text-center">
+              <h2
+                className="font-heading text-2xl font-bold"
+                style={{ color: colors.text }}
+              >
+                Page Not Found
+              </h2>
+              <p className="mt-2 text-sm" style={{ color: colors.text + "99" }}>
+                This page doesn&apos;t exist.
+              </p>
+            </div>
+          </div>
         ) : policyPageData ? (
           <div className="pt-14">
             <StorefrontPolicyPage policy={policyPageData} colors={colors} />
@@ -1147,7 +1193,7 @@ export default function StorefrontLayout({
               </>
             )}
 
-            {hasSections && activeSections.length > 0 ? (
+            {activeSections.length > 0 ? (
               <div
                 className={
                   hasNav && (currentPage || activeSections[0]?.type === "hero")
