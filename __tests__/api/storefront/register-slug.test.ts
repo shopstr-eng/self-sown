@@ -23,6 +23,7 @@ function createMockResponse() {
   const response = {
     statusCode: 200,
     body: undefined as unknown,
+    headers: {} as Record<string, string>,
     status(code: number) {
       response.statusCode = code;
       return response;
@@ -31,20 +32,25 @@ function createMockResponse() {
       response.body = payload;
       return response;
     },
+    setHeader(name: string, value: string | number) {
+      response.headers[name] = String(value);
+      return response;
+    },
   };
 
   return response;
 }
 
 function createSignedAction(
-  action: Parameters<typeof createAuthEventTemplate>[1]
+  action: Parameters<typeof createAuthEventTemplate>[1],
+  binding?: Parameters<typeof createAuthEventTemplate>[2]
 ) {
   const secretKey = generateSecretKey();
   const pubkey = getPublicKey(secretKey);
   return {
     pubkey,
     signedEvent: finalizeEvent(
-      createAuthEventTemplate(pubkey, action),
+      createAuthEventTemplate(pubkey, action, binding),
       secretKey
     ),
   };
@@ -58,7 +64,11 @@ describe("register slug api", () => {
   test("registers a slug with a valid signed event", async () => {
     const response = createMockResponse();
     query.mockResolvedValueOnce({});
-    const { pubkey, signedEvent } = createSignedAction("storefront-slug-write");
+    const { pubkey, signedEvent } = createSignedAction("storefront-slug-write", {
+      method: "POST",
+      path: "/api/storefront/register-slug",
+      fields: { slug: "Fresh Farm!!" },
+    });
 
     await handler(
       {
@@ -104,7 +114,10 @@ describe("register slug api", () => {
   test("deletes a slug with a valid signed event", async () => {
     const response = createMockResponse();
     query.mockResolvedValue({});
-    const { pubkey, signedEvent } = createSignedAction("storefront-slug-write");
+    const { pubkey, signedEvent } = createSignedAction("storefront-slug-write", {
+      method: "DELETE",
+      path: "/api/storefront/register-slug",
+    });
 
     await handler(
       {

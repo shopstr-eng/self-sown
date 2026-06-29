@@ -36,6 +36,18 @@ reachable from jest, so without the mock the real shared counter is used and
 regression of the store swap (the structured body predates it). Don't "fix" it by
 weakening `applyRateLimit`; update that assertion if you touch it.
 
+**The async migration exposed latent pre-existing broken API-route tests.** The
+limiter always writes `X-RateLimit-*` headers on the success path, so any
+node-mock-response helper that omits `setHeader` now throws `res.setHeader is not
+a function` and masks every assertion after it. Several seller-action endpoint
+tests (`register-slug`, `create-account-link`, `nostr-json`) were already broken
+on `origin/main` for this reason and only *surfaced* during the rate-limit review
+— they are NOT regressions of the swap. After adding `setHeader` to the mock, a
+second latent bug can appear: a seller-action test must sign its NIP-98 event with
+the handler's EXACT `verifyNostrAuth` binding (`{ method, path, fields }`, using
+the RAW pre-sanitization field values), or auth 401s before any DB query runs and
+a `toHaveBeenCalledTimes` count assertion fails for the wrong reason.
+
 **Unrelated pre-existing tsc noise:** repo ships with `noUncheckedIndexedAccess`
 errors on `PAGE_CONTENT[path]` / `PAGE_FINGERPRINT[path]` style index access in
 several `__tests__/utils/geo/*` and the agent-view test, plus unused-var warnings
