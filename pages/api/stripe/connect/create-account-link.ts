@@ -72,7 +72,12 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(req, res, "stripe-connect-create-account-link", RATE_LIMIT)
+    !(await applyRateLimit(
+      req,
+      res,
+      "stripe-connect-create-account-link",
+      RATE_LIMIT
+    ))
   )
     return;
 

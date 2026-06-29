@@ -22,7 +22,9 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "flows-send-to-contacts:ip", PER_IP_LIMIT))
+  if (
+    !(await applyRateLimit(req, res, "flows-send-to-contacts:ip", PER_IP_LIMIT))
+  )
     return;
 
   const flowIdNum = parseInt(req.query.flowId as string, 10);
@@ -36,13 +38,13 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "flows-send-to-contacts:pubkey",
       PER_PUBKEY_LIMIT,
       authResult.pubkey
-    )
+    ))
   )
     return;
 
@@ -87,6 +89,7 @@ export default async function handler(
             email: c.email,
             discountCode: c.discount_code,
             discountPercentage: Number(c.discount_percentage),
+            source: c.source === "subscription" ? "subscription" : "popup",
             alreadyReceived: received.has((c.email || "").trim().toLowerCase()),
           })),
       });

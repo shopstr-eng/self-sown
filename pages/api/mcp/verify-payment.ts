@@ -38,7 +38,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
 
-  if (!applyRateLimit(req, res, "mcp-verify-payment:ip", RATE_LIMIT)) {
+  if (!(await applyRateLimit(req, res, "mcp-verify-payment:ip", RATE_LIMIT))) {
     recordRequest(Date.now() - requestStart, false, "verify-payment");
     return;
   }
@@ -50,13 +50,13 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "mcp-verify-payment:key",
       PER_KEY_LIMIT,
       String(apiKey.id)
-    )
+    ))
   ) {
     recordRequest(Date.now() - requestStart, false, "verify-payment");
     return;

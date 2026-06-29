@@ -1,5 +1,6 @@
 import { Button, Card, CardBody } from "@heroui/react";
 import { useRouter } from "next/router";
+import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 
 interface UpgradeBannerProps {
@@ -31,15 +32,18 @@ export default function UpgradeBanner({
         : "Upgrade to use advanced storefronts, custom domains, email flows, custom product pages, shipping labels, and the MCP API.";
 
   return (
-    <Card className={className} shadow="sm">
+    <Card
+      className={`shadow-neo rounded-md border-2 border-black bg-white${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-base font-semibold">{title}</p>
-          <p className="text-small text-default-500">{body}</p>
+          <p className="text-base font-semibold text-black">{title}</p>
+          <p className="text-sm text-gray-600">{body}</p>
         </div>
         <Button
-          color="primary"
-          className="shrink-0"
+          className={`${BLUEBUTTONCLASSNAMES} shrink-0`}
           onPress={() => router.push("/pro")}
         >
           {membership.isReadOnly || membership.isHidden

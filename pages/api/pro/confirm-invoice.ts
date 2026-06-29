@@ -21,10 +21,10 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (
-    !applyRateLimit(req, res, "pro-confirm-invoice", {
+    !(await applyRateLimit(req, res, "pro-confirm-invoice", {
       limit: 30,
       windowMs: 60_000,
-    })
+    }))
   )
     return;
 

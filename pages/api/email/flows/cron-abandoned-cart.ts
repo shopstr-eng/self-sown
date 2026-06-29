@@ -18,10 +18,10 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(req, res, "cron-abandoned-cart", {
+    !(await applyRateLimit(req, res, "cron-abandoned-cart", {
       limit: 10,
       windowMs: 60_000,
-    })
+    }))
   )
     return;
 

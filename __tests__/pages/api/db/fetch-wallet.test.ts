@@ -3,7 +3,7 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 
 jest.mock("@/utils/rate-limit", () => ({
-  applyRateLimit: jest.fn(() => true),
+  applyRateLimit: jest.fn(() => Promise.resolve(true)),
 }));
 
 import type { NextApiRequest, NextApiResponse } from "next";
@@ -62,7 +62,7 @@ describe("/api/db/fetch-wallet", () => {
   beforeEach(() => {
     mockedFetchAllWalletEventsFromDb.mockReset();
     mockedApplyRateLimit.mockReset();
-    mockedApplyRateLimit.mockReturnValue(true);
+    mockedApplyRateLimit.mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -130,7 +130,7 @@ describe("/api/db/fetch-wallet", () => {
   });
 
   it("short-circuits when the rate limiter rejects the request", async () => {
-    mockedApplyRateLimit.mockReturnValue(false);
+    mockedApplyRateLimit.mockResolvedValue(false);
     const res = createResponse();
 
     await handler(makeRequest({ pubkey: VALID_PUBKEY }), res);

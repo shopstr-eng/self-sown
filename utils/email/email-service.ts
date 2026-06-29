@@ -9,6 +9,7 @@ import {
   subscriptionCancellationEmail,
   returnRequestEmail,
   inquiryNotificationEmail,
+  contactFormEmail,
   accountRecoveryEmail,
   paymentFailedBuyerEmail,
   paymentFailedSellerEmail,
@@ -87,6 +88,55 @@ export async function sendEmail(
     }
   } catch (error) {
     console.error("Failed to send email:", error);
+    return false;
+  }
+}
+
+/**
+ * Strict-from send for SELLER BULK BROADCASTS (blog-post emails to a seller's
+ * whole audience). Unlike `sendEmail`, this NEVER falls back to the platform's
+ * global verified sender: a seller's marketing blast must originate only from
+ * their own SendGrid domain-authenticated address. If we silently fell back to
+ * the global sender, any Pro seller could blast a list under the platform's
+ * reputation and spoof "from Milk Market". So a sender rejection here counts as
+ * a failed send (return false), never a global-sent one. The caller is
+ * responsible for proving the seller owns `fromEmail` (resolveSellerSenderEmail)
+ * BEFORE calling this — there is no other safety net.
+ */
+export async function sendEmailStrictFrom(params: {
+  to: string;
+  subject: string;
+  html: string;
+  fromEmail: string;
+  fromName?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+}): Promise<boolean> {
+  const { to, subject, html, fromEmail, fromName, replyTo, headers } = params;
+  if (!fromEmail || !fromEmail.includes("@")) {
+    console.error("sendEmailStrictFrom called without a valid from-address");
+    return false;
+  }
+  try {
+    const { client } = await getUncachableSendGridClient();
+    const safeFromName = fromName
+      ? fromName
+          .replace(/[\r\n\t\u0000-\u001F]/g, " ")
+          .slice(0, 78)
+          .trim()
+      : "";
+    const msg: any = {
+      to,
+      from: safeFromName ? { email: fromEmail, name: safeFromName } : fromEmail,
+      subject,
+      html,
+    };
+    if (replyTo) msg.replyTo = replyTo;
+    if (headers && Object.keys(headers).length > 0) msg.headers = headers;
+    await client.send(msg);
+    return true;
+  } catch (error) {
+    console.error("sendEmailStrictFrom: send failed (no fallback):", error);
     return false;
   }
 }
@@ -278,6 +328,37 @@ export async function sendInquiryNotification(
     subject,
     html,
     params.senderEmail,
+    undefined,
+    branding?.shopName,
+    fromEmail
+  );
+}
+
+export async function sendContactFormNotification(
+  recipientEmail: string,
+  params: {
+    name: string;
+    email?: string;
+    phone?: string;
+    message?: string;
+  },
+  branding?: StorefrontBranding | null,
+  fromEmail?: string
+): Promise<boolean> {
+  const { subject, html } = contactFormEmail(
+    {
+      name: params.name,
+      email: params.email,
+      phone: params.phone,
+      message: params.message,
+    },
+    branding
+  );
+  return sendEmail(
+    recipientEmail,
+    subject,
+    html,
+    params.email,
     undefined,
     branding?.shopName,
     fromEmail

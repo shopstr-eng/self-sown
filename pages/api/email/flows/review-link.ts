@@ -22,7 +22,8 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "email-flow-review-link", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "email-flow-review-link", RATE_LIMIT)))
+    return;
 
   const token = typeof req.query.t === "string" ? req.query.t : "";
   if (!token) {

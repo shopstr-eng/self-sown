@@ -21,7 +21,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "affiliates-codes", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "affiliates-codes", RATE_LIMIT))) return;
 
   try {
     if (req.method === "GET") {

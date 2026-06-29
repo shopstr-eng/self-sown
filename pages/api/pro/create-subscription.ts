@@ -28,10 +28,10 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (
-    !applyRateLimit(req, res, "pro-create-subscription", {
+    !(await applyRateLimit(req, res, "pro-create-subscription", {
       limit: 20,
       windowMs: 60_000,
-    })
+    }))
   )
     return;
 

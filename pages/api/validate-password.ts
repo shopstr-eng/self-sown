@@ -12,7 +12,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "validate-password", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "validate-password", RATE_LIMIT)))
+    return;
 
   const { password, pubkey } = req.body;
   const correctPassword = process.env["LISTING_PASSWORD"];

@@ -31,7 +31,8 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "affiliates-record-click", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "affiliates-record-click", RATE_LIMIT)))
+    return;
 
   try {
     const { sellerPubkey, code, landingPath } = req.body ?? {};

@@ -110,3 +110,102 @@ export function buildAffiliateUnsubscribeUrl(
     mintAffiliateUnsubscribeToken(affiliateId)
   )}`;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Seller marketing (blog broadcast) unsubscribe tokens.                      */
+/*                                                                            */
+/* Reuses AFFILIATE_UNSUBSCRIBE_SECRET via getSecret() but with a distinct    */
+/* HMAC label ("seller-email-unsub:") so a token minted for one protocol can  */
+/* never validate under the other (domain separation). The token is fully     */
+/* self-describing — it carries the seller pubkey and recipient email — so a  */
+/* single `token` query param drives both the RFC 8058 one-click POST and the */
+/* human-clickable GET link without trusting any other request input.         */
+/*                                                                            */
+/* Token format: `<base64url(JSON{s,e,t})>.<mac32>`                           */
+/* -------------------------------------------------------------------------- */
+
+function base64UrlEncode(value: string): string {
+  return Buffer.from(value, "utf8")
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+function base64UrlDecode(value: string): string {
+  const padded = value
+    .replace(/-/g, "+")
+    .replace(/_/g, "/")
+    .padEnd(Math.ceil(value.length / 4) * 4, "=");
+  return Buffer.from(padded, "base64").toString("utf8");
+}
+
+function macForSellerEmail(
+  sellerPubkey: string,
+  emailLower: string,
+  issuedAtMs: number
+): string {
+  return createHmac("sha256", getSecret())
+    .update(`seller-email-unsub:${sellerPubkey}:${emailLower}:${issuedAtMs}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+export function mintSellerEmailUnsubscribeToken(
+  sellerPubkey: string,
+  email: string,
+  nowMs: number = Date.now()
+): string {
+  const emailLower = email.trim().toLowerCase();
+  const payload = base64UrlEncode(
+    JSON.stringify({ s: sellerPubkey, e: emailLower, t: nowMs })
+  );
+  return `${payload}.${macForSellerEmail(sellerPubkey, emailLower, nowMs)}`;
+}
+
+export function verifySellerEmailUnsubscribeToken(
+  token: string,
+  nowMs: number = Date.now()
+): { sellerPubkey: string; email: string } | null {
+  if (typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length !== 2) return null;
+  const [payloadPart, macPart] = parts as [string, string];
+
+  let parsed: { s?: unknown; e?: unknown; t?: unknown };
+  try {
+    parsed = JSON.parse(base64UrlDecode(payloadPart));
+  } catch {
+    return null;
+  }
+  const sellerPubkey = typeof parsed.s === "string" ? parsed.s : "";
+  const emailLower = typeof parsed.e === "string" ? parsed.e : "";
+  const issuedAtMs = typeof parsed.t === "number" ? parsed.t : NaN;
+  if (!sellerPubkey || !emailLower) return null;
+  if (!Number.isInteger(issuedAtMs) || issuedAtMs <= 0) return null;
+  if (issuedAtMs > nowMs + 5 * 60 * 1000) return null;
+  if (nowMs - issuedAtMs > UNSUBSCRIBE_TOKEN_TTL_MS) return null;
+
+  let expected: string;
+  try {
+    expected = macForSellerEmail(sellerPubkey, emailLower, issuedAtMs);
+  } catch {
+    return null;
+  }
+  if (macPart.length !== expected.length) return null;
+  const a = new Uint8Array(Buffer.from(macPart, "utf8"));
+  const b = new Uint8Array(Buffer.from(expected, "utf8"));
+  return timingSafeEqual(a, b) ? { sellerPubkey, email: emailLower } : null;
+}
+
+export function buildSellerEmailUnsubscribeUrl(
+  baseUrl: string,
+  sellerPubkey: string,
+  email: string,
+  nowMs: number = Date.now()
+): string {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+  return `${trimmed}/api/email/unsubscribe?token=${encodeURIComponent(
+    mintSellerEmailUnsubscribeToken(sellerPubkey, email, nowMs)
+  )}`;
+}

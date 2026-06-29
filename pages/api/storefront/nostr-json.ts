@@ -53,7 +53,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "storefront-nostr-json", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "storefront-nostr-json", RATE_LIMIT)))
+    return;
 
   // Never let an intermediary cache a NIP-05 answer from before a domain was
   // verified or a seller renamed/lapsed (mirrors /api/storefront/lookup).

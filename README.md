@@ -11,6 +11,7 @@ A global, permissionless marketplace for food freedom.
 - [x] NIP-17: Private Direct Messages
 - [x] NIP-19: bech32-encoded entities
 - [x] NIP-22: Comment
+- [x] NIP-23: Long-form Content
 - [x] NIP-24: Extra metadata fields and tags
 - [x] NIP-31: Dealing with Unknown Events
 - [x] NIP-36: Sensitive Content

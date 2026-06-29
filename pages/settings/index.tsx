@@ -7,6 +7,7 @@ import {
   ArrowRightStartOnRectangleIcon,
   KeyIcon,
   EnvelopeIcon,
+  NewspaperIcon,
   CreditCardIcon,
   TruckIcon,
   MapPinIcon,
@@ -44,6 +45,15 @@ const SettingsPage = () => {
       icon: EnvelopeIcon,
       iconBg: "bg-slate-600",
       route: "/settings/email-flows",
+    },
+    {
+      id: "blog",
+      title: "Blog",
+      description:
+        "Write blog posts for your storefront and optionally email them to your audience",
+      icon: NewspaperIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/blog",
     },
     {
       id: "community",

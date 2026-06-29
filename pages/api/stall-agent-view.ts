@@ -4,12 +4,18 @@ import {
   fetchShopProfileByPubkeyFromDb,
   fetchProfileByPubkeyFromDb,
   fetchAllProductsFromDb,
+  fetchBlogPostsByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import { resolveStallBranding } from "@/utils/storefront/stall-branding";
 import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
-import { getListingSlug } from "@/utils/url-slugs";
+import {
+  getListingSlug,
+  getBlogPostSlug,
+  findBlogPostBySlug,
+} from "@/utils/url-slugs";
+import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { sendAgentError } from "@/utils/api/agent-error";
 import {
@@ -20,8 +26,14 @@ import {
   buildStallRobotsTxt,
   buildStallSitemap,
   buildStallRss,
+  buildPostMarkdown,
+  buildPostJson,
+  buildPostText,
+  buildPostLlmsTxt,
   type StallContentInput,
   type StallProductSummary,
+  type StallBlogSummary,
+  type StallPostInput,
 } from "@/utils/geo/stall-content";
 
 // Backing endpoint for per-stall content negotiation. `proxy.ts` rewrites a
@@ -30,7 +42,9 @@ import {
 // headers (query string is a fallback for direct calls). Returns shop-specific
 // markdown / JSON / plain-text / llms.txt / robots.txt / RSS so LLMs and agents
 // get tailored, machine-readable storefront content while browsers and SEO bots
-// keep getting HTML.
+// keep getting HTML. When `x-post-slug` (or ?postSlug) is set, it instead
+// renders a single blog post's full article body (markdown / JSON / plain-text /
+// llms) for /blog/<slug> content negotiation.
 
 const PLATFORM = "https://milk.market";
 
@@ -56,6 +70,9 @@ export default async function handler(
   const format = (headerStr(req, "x-stall-format") ||
     queryStr(req, "format") ||
     "md") as Format;
+  // When set, render a single blog post (full body) instead of the stall view.
+  const postSlug =
+    headerStr(req, "x-post-slug") || queryStr(req, "postSlug") || "";
   const host = headerStr(req, "x-mm-custom-domain-host");
   const isCustomDomain = !!host;
   const siteUrl = host ? `https://${host}` : `${PLATFORM}/stall/${slug}`;
@@ -65,7 +82,7 @@ export default async function handler(
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("X-Robots-Tag", "noindex");
 
-  if (!applyRateLimit(req, res, "stall-agent-view", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "stall-agent-view", RATE_LIMIT))) return;
 
   if (!slug) {
     return sendAgentError(res, {
@@ -88,11 +105,13 @@ export default async function handler(
       });
     }
 
-    const [shopEvent, profileEvent, allProducts] = await Promise.all([
-      fetchShopProfileByPubkeyFromDb(pubkey),
-      fetchProfileByPubkeyFromDb(pubkey),
-      fetchAllProductsFromDb(500, 0),
-    ]);
+    const [shopEvent, profileEvent, allProducts, blogEvents] =
+      await Promise.all([
+        fetchShopProfileByPubkeyFromDb(pubkey),
+        fetchProfileByPubkeyFromDb(pubkey),
+        fetchAllProductsFromDb(500, 0),
+        fetchBlogPostsByPubkeyFromDb(pubkey),
+      ]);
 
     let shopContent: Record<string, unknown> | null = null;
     if (shopEvent) {
@@ -137,6 +156,71 @@ export default async function handler(
         image: data.images?.[0] || "",
       }));
 
+    // Published blog posts (NIP-23), newest-first, with collision-resolved
+    // readable slugs. The optional external link-out is never fetched here —
+    // parseBlogPostEvent only reads the post's own cached tags/content.
+    const parsedPosts = blogEvents
+      .map((e) => parseBlogPostEvent(e))
+      .filter((p): p is BlogPost => p !== null)
+      .sort((a, b) => b.publishedAt - a.publishedAt);
+    const blogPosts: StallBlogSummary[] = parsedPosts.slice(0, 50).map((p) => ({
+      title: p.title,
+      slug: getBlogPostSlug(p, parsedPosts),
+      summary: p.summary || "",
+      image: p.image || "",
+      publishedAt: p.publishedAt,
+    }));
+
+    // Single blog post: serve the full article body (markdown/JSON/plain-text/
+    // llms) so agents don't have to render the HTML page. The optional external
+    // link-out is never fetched — only the post's own cached tags/content are
+    // used. Hostile fields are inert here (non-HTML content types + JSON
+    // serialization); image/link URLs were http(s)-validated at parse time.
+    if (postSlug) {
+      const match = findBlogPostBySlug(postSlug, parsedPosts);
+      if (!match) {
+        return sendAgentError(res, {
+          status: 404,
+          error: "Blog post not found",
+          code: "post_not_found",
+          message: `No blog post matches the slug "${postSlug}" in shop "${slug}".`,
+          slug,
+        });
+      }
+      const postInput: StallPostInput = {
+        shopName: branding.shopName,
+        slug,
+        siteUrl,
+        isCustomDomain,
+        post: {
+          title: match.title,
+          slug: getBlogPostSlug(match, parsedPosts),
+          summary: match.summary || "",
+          image: match.image || "",
+          content: match.content || "",
+          publishedAt: match.publishedAt,
+          updatedAt: match.updatedAt,
+          hashtags: match.hashtags || [],
+          ...(match.externalUrl ? { externalUrl: match.externalUrl } : {}),
+        },
+      };
+      switch (format) {
+        case "json":
+          res.setHeader("Content-Type", "application/json; charset=utf-8");
+          return res.status(200).json(buildPostJson(postInput));
+        case "txt":
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.status(200).send(buildPostText(postInput));
+        case "llms":
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+          return res.status(200).send(buildPostLlmsTxt(postInput));
+        case "md":
+        default:
+          res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+          return res.status(200).send(buildPostMarkdown(postInput));
+      }
+    }
+
     const input: StallContentInput = {
       shopName: branding.shopName,
       about: branding.about,
@@ -145,6 +229,7 @@ export default async function handler(
       siteUrl,
       isCustomDomain,
       products,
+      blogPosts,
     };
 
     switch (format) {

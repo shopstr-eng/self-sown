@@ -42,7 +42,8 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "ucp-catalog-lookup", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "ucp-catalog-lookup", RATE_LIMIT)))
+    return;
 
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store, max-age=0");

@@ -52,7 +52,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "get-order-statuses", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "get-order-statuses", RATE_LIMIT)))
+    return;
 
   const orderIds =
     req.method === "POST" ? req.body.orderIds : req.query.orderIds;

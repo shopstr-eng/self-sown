@@ -23,7 +23,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "discount-codes", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "discount-codes", RATE_LIMIT))) return;
 
   if (req.method === "POST") {
     try {

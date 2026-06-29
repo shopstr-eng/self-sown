@@ -71,7 +71,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "ucp-checkout-sessions:ip", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "ucp-checkout-sessions:ip", RATE_LIMIT)))
+    return;
 
   await ensureTables();
 
@@ -79,13 +80,13 @@ export default async function handler(
   if (!apiKey) return;
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "ucp-checkout-sessions:key",
       PER_KEY_LIMIT,
       String(apiKey.id)
-    )
+    ))
   ) {
     return;
   }

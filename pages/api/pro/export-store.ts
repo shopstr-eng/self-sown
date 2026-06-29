@@ -25,10 +25,10 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (
-    !applyRateLimit(req, res, "pro-export-store", {
+    !(await applyRateLimit(req, res, "pro-export-store", {
       limit: 10,
       windowMs: 60_000,
-    })
+    }))
   )
     return;
 

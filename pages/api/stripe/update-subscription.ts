@@ -27,7 +27,9 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "stripe-update-subscription", RATE_LIMIT))
+  if (
+    !(await applyRateLimit(req, res, "stripe-update-subscription", RATE_LIMIT))
+  )
     return;
 
   try {

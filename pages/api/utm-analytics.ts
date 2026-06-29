@@ -12,7 +12,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "utm-analytics", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "utm-analytics", RATE_LIMIT))) return;
 
   const client = new Client({
     connectionString: process.env["DATABASE_URL"],

@@ -17,7 +17,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "admin-domain-status", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "admin-domain-status", RATE_LIMIT)))
+    return;
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }

@@ -134,7 +134,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "og-preview", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "og-preview", RATE_LIMIT))) return;
 
   const { url } = req.query;
   if (!url || typeof url !== "string") {

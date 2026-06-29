@@ -144,6 +144,53 @@ export function findPubkeyByProfileSlug(
   return undefined;
 }
 
+export interface BlogPostSlugCandidate {
+  title: string;
+  dTag: string;
+}
+
+// Blog posts are scoped to a single seller, so the readable slug is just the
+// title slug. On collision (two posts with the same title slug) we fall back to
+// a short d-tag suffix so the URL still resolves to exactly one post. Edits that
+// change the title change the slug (same tradeoff as product listings).
+export function getBlogPostSlug<T extends BlogPostSlugCandidate>(
+  post: T,
+  allPosts: T[]
+): string {
+  const baseSlug = titleToSlug(post.title);
+  if (!baseSlug) return post.dTag;
+
+  const collisions = allPosts.filter((p) => titleToSlug(p.title) === baseSlug);
+  if (collisions.length <= 1) return baseSlug;
+
+  return `${baseSlug}-${post.dTag.substring(0, 8)}`;
+}
+
+export function findBlogPostBySlug<T extends BlogPostSlugCandidate>(
+  slug: string,
+  allPosts: T[]
+): T | undefined {
+  // Exact d-tag match first (stable identifier links never break).
+  const byDTag = allPosts.find((p) => p.dTag === slug);
+  if (byDTag) return byDTag;
+
+  const suffixMatch = slug.match(/^(.+)-([a-f0-9]{8})$/);
+  if (suffixMatch) {
+    const baseSlug = suffixMatch[1]!;
+    const dTagFragment = suffixMatch[2]!;
+    const match = allPosts.find(
+      (p) =>
+        titleToSlug(p.title) === baseSlug && p.dTag.startsWith(dTagFragment)
+    );
+    if (match) return match;
+  }
+
+  const plainMatches = allPosts.filter((p) => titleToSlug(p.title) === slug);
+  if (plainMatches.length >= 1) return plainMatches[0];
+
+  return undefined;
+}
+
 export function isNaddr(str: string): boolean {
   return str.startsWith("naddr1");
 }

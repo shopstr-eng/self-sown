@@ -12,7 +12,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "email-flows-report-cart", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "email-flows-report-cart", RATE_LIMIT)))
+    return;
 
   const { seller_pubkey, buyer_email, buyer_pubkey, cart_items } = req.body;
 

@@ -4,6 +4,7 @@ import { ShopMapContext } from "@/utils/context/context";
 import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import ThemedStallOrders from "@/components/storefront/themed-stall-orders";
+import ThemedBlog from "@/components/storefront/themed-blog";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { matchShopSlug } from "@/utils/storefront/match-shop-slug";
@@ -13,7 +14,11 @@ import {
   fetchShopPubkeyBySlug,
   fetchShopProfileByPubkeyFromDb,
   fetchProfileByPubkeyFromDb,
+  fetchBlogPostsByPubkeyFromDb,
 } from "@/utils/db/db-service";
+import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { findBlogPostBySlug } from "@/utils/url-slugs";
+import { eventToBlogOgMeta } from "@/utils/og/blog-og";
 import {
   resolveStallBranding,
   buildStallOgMeta,
@@ -76,6 +81,40 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           const c = JSON.parse(profileEvent.content);
           ssrShopName = c.display_name || c.name || "";
         } catch {}
+      }
+
+      // Single blog post: serve the post's own OG meta + BlogPosting JSON-LD so
+      // social previews and crawlers see the article (not generic stall meta).
+      // The optional external link-out is NEVER fetched server-side — only the
+      // post's own cached tags/content are used. Pro-gated like other custom
+      // storefront SSR meta.
+      if (subPage === "blog" && pathParts[2] && membership.isPro) {
+        try {
+          const events = await fetchBlogPostsByPubkeyFromDb(pubkey);
+          const parsed = events
+            .map((e) => parseBlogPostEvent(e))
+            .filter((p): p is BlogPost => p !== null);
+          const match = findBlogPostBySlug(pathParts[2], parsed);
+          if (match) {
+            const raw = events.find((e) => e.id === match.id);
+            if (raw) {
+              return {
+                props: {
+                  ogMeta: eventToBlogOgMeta(
+                    raw,
+                    `/stall/${pathParts.join("/")}`,
+                    ssrShopName ? { authorName: ssrShopName } : {}
+                  ),
+                  shopPubkey: pubkey,
+                  ssrShopName,
+                  ssrShopAbout,
+                },
+              };
+            }
+          }
+        } catch (err) {
+          console.error("SSR blog post OG fetch error:", err);
+        }
       }
 
       if (shopEvent && membership.isPro) {
@@ -209,6 +248,20 @@ export default function ShopSubPage({
         sellerPubkey={shopPubkey}
         shopSlug={slug}
         {...(initialTab ? { initialTab } : {})}
+      />
+    );
+  }
+
+  // A single blog article (/blog/<slug>) renders the dedicated article view.
+  // The blog index (/blog) falls through to StorefrontLayout below so it renders
+  // the seller's editable blog page sections (currentPage="blog").
+  if (subPage === "blog" && pathParts[2]) {
+    const postSlug = pathParts[2];
+    return (
+      <ThemedBlog
+        sellerPubkey={shopPubkey}
+        shopSlug={slug}
+        postSlug={postSlug}
       />
     );
   }

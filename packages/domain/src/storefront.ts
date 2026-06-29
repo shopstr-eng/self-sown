@@ -102,7 +102,9 @@ export type StorefrontSectionType =
   | "text"
   | "image"
   | "contact"
+  | "contact_form"
   | "reviews"
+  | "blog"
   | "social_posts"
   | "product_description"
   | "product_specifications"
@@ -162,6 +164,16 @@ export interface StorefrontSection {
   email?: string;
   phone?: string;
   address?: string;
+  successMessage?: string;
+  // Contact-form section behavior. "contact" (default/undefined) emails the
+  // seller; "subscription" adds the visitor to the seller's email list and
+  // enrolls them in the active welcome series instead. The show* flags toggle
+  // individual optional inputs — Email is always shown and required, so it has
+  // no flag. Undefined defaults to shown, preserving the legacy contact form.
+  contactFormMode?: "contact" | "subscription";
+  showNameField?: boolean;
+  showPhoneField?: boolean;
+  showMessageField?: boolean;
   caption?: string;
   reviewOrder?: string[];
   specifications?: StorefrontSpecificationItem[];
@@ -175,6 +187,15 @@ export interface StorefrontSection {
   socialPostsLayout?: "grid" | "carousel";
   socialPostsAutoplay?: boolean;
   socialPostsSpeed?: number;
+  // Blog section: layout + curated/reorderable post references (by `d` tag).
+  blogLayout?: "featured" | "grid" | "list";
+  blogPostIds?: string[];
+  blogPostLimit?: number;
+  // How the blog section chooses which posts to show. "latest" (default/
+  // undefined) shows newest posts first — blogPostIds may still reorder them and
+  // the rest are appended — cut off at blogPostLimit. "selected" shows ONLY the
+  // posts listed in blogPostIds, in that order, cut off at blogPostLimit.
+  blogPostMode?: "latest" | "selected";
 }
 
 export interface StorefrontProductPageConfig {
@@ -189,6 +210,10 @@ export interface StorefrontPage {
   id: string;
   title: string;
   slug: string;
+  sections: StorefrontSection[];
+}
+
+export interface StorefrontBlogPage {
   sections: StorefrontSection[];
 }
 
@@ -271,6 +296,11 @@ export interface StorefrontConfig {
   navLinks?: StorefrontNavLink[];
   showCommunityPage?: boolean;
   showWalletPage?: boolean;
+  // When true, the storefront exposes a "Blog" page: a nav link to /blog plus
+  // the /blog route. The /blog index renders blogPage.sections (defaulting to a
+  // single blog section) like a custom page; /blog/<slug> renders the article.
+  showBlogPage?: boolean;
+  blogPage?: StorefrontBlogPage;
   emailPopup?: StorefrontEmailPopup;
   navColors?: StorefrontNavColors;
   footerColors?: StorefrontFooterColors;

@@ -174,6 +174,12 @@ export function sanitizeStorefrontConfigLinks(
     ...storefront,
     sections: storefront.sections?.map(sanitizeSection),
     pages: storefront.pages?.map(sanitizePage),
+    blogPage: storefront.blogPage
+      ? {
+          ...storefront.blogPage,
+          sections: storefront.blogPage.sections?.map(sanitizeSection),
+        }
+      : storefront.blogPage,
     navLinks: storefront.navLinks?.map(
       (link): StorefrontNavLink => ({
         ...link,

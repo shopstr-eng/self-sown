@@ -25,7 +25,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const ipRate = checkRateLimit(
+  const ipRate = await checkRateLimit(
     "publish-order-event:ip",
     getRequestIp(req),
     PER_IP_LIMIT
@@ -64,7 +64,7 @@ export default async function handler(
       }
       // Per-event-id dedupe so the same event can't be replayed to amplify.
       if (typeof event.id === "string" && event.id.length > 0) {
-        const eventRate = checkRateLimit(
+        const eventRate = await checkRateLimit(
           "publish-order-event:eid",
           event.id,
           PER_EVENT_LIMIT

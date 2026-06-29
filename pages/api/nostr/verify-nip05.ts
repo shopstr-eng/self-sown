@@ -299,7 +299,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "verify-nip05", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "verify-nip05", RATE_LIMIT))) return;
 
   const nip05 =
     typeof req.query.nip05 === "string" ? req.query.nip05.trim() : "";

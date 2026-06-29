@@ -36,12 +36,17 @@ function createMockResponse() {
   const response = {
     statusCode: 200,
     body: undefined as unknown,
+    headers: {} as Record<string, string>,
     status(code: number) {
       response.statusCode = code;
       return response;
     },
     json(payload: unknown) {
       response.body = payload;
+      return response;
+    },
+    setHeader(name: string, value: string | number) {
+      response.headers[name] = String(value);
       return response;
     },
   };

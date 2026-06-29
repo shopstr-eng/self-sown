@@ -11,6 +11,7 @@ import SectionComparison from "./sections/section-comparison";
 import SectionText from "./sections/section-text";
 import SectionImage from "./sections/section-image";
 import SectionContact from "./sections/section-contact";
+import SectionContactForm from "./sections/section-contact-form";
 import SectionReviews from "./sections/section-reviews";
 import SectionSocialPosts from "./sections/section-social-posts";
 import SectionProductDescription from "./sections/section-product-description";
@@ -19,6 +20,7 @@ import SectionProductShippingReturns from "./sections/section-product-shipping-r
 import SectionProductGallery from "./sections/section-product-gallery";
 import SectionProductReviews from "./sections/section-product-reviews";
 import SectionRelatedProducts from "./sections/section-related-products";
+import SectionBlog from "./sections/section-blog";
 
 interface SectionRendererProps {
   section: StorefrontSection;
@@ -83,8 +85,28 @@ export default function SectionRenderer({
       return <SectionImage section={section} colors={colors} />;
     case "contact":
       return <SectionContact section={section} colors={colors} />;
+    case "contact_form":
+      return (
+        <SectionContactForm
+          section={section}
+          colors={colors}
+          shopPubkey={shopPubkey}
+          shopName={shopName}
+          isPreview={isPreview}
+        />
+      );
     case "social_posts":
       return <SectionSocialPosts section={section} colors={colors} />;
+    case "blog":
+      return (
+        <SectionBlog
+          section={section}
+          colors={colors}
+          shopPubkey={shopPubkey}
+          shopSlug={shopSlug}
+          isPreview={isPreview}
+        />
+      );
     case "reviews":
       if (currentProduct?.d) {
         return (

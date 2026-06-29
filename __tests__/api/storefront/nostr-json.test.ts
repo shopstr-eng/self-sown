@@ -1,7 +1,7 @@
 const mockQuery = jest.fn();
 
 jest.mock("@/utils/db/db-service", () => ({
-  getDbPool: () => ({ query: mockQuery }),
+  getDbPool: () => ({ query: (...args: unknown[]) => mockQuery(...args) }),
   fetchCachedEvents: jest.fn(),
 }));
 

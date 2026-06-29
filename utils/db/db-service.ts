@@ -235,6 +235,107 @@ export async function getAuthedSellerPubkeys(): Promise<string[]> {
   }
 }
 
+let rateLimitTableInitialized = false;
+
+async function ensureRateLimitCountersTable(client: PoolClient): Promise<void> {
+  if (rateLimitTableInitialized) return;
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS rate_limit_counters (
+      bucket TEXT NOT NULL,
+      rate_key TEXT NOT NULL,
+      window_start BIGINT NOT NULL,
+      reset_at BIGINT NOT NULL,
+      count INTEGER NOT NULL,
+      PRIMARY KEY (bucket, rate_key)
+    )
+  `);
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS idx_rate_limit_counters_reset_at
+      ON rate_limit_counters(reset_at)
+  `);
+  rateLimitTableInitialized = true;
+}
+
+export type RateLimitCounter = {
+  count: number;
+  resetAt: number;
+};
+
+/**
+ * Atomically increment the shared (cross-instance) counter for a rate-limit
+ * key and return the post-increment count plus the window reset time. The
+ * single upsert both rolls the window over when it has elapsed and increments
+ * the count in one round trip so concurrent requests across instances can't
+ * race. Callers compare `count` against the configured limit. Throws on any DB
+ * error so the caller can fall back to its in-process counter (the limiter is
+ * advisory and must never block a request just because the store is down).
+ */
+export async function incrementRateLimitCounter(
+  bucket: string,
+  key: string,
+  windowMs: number,
+  now: number = Date.now()
+): Promise<RateLimitCounter> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await ensureRateLimitCountersTable(client);
+
+    const resetAt = now + windowMs;
+    const result = await client.query(
+      `INSERT INTO rate_limit_counters (bucket, rate_key, window_start, reset_at, count)
+       VALUES ($1, $2, $3, $4, 1)
+       ON CONFLICT (bucket, rate_key) DO UPDATE SET
+         count = CASE
+           WHEN rate_limit_counters.reset_at <= $3 THEN 1
+           ELSE rate_limit_counters.count + 1
+         END,
+         window_start = CASE
+           WHEN rate_limit_counters.reset_at <= $3 THEN $3
+           ELSE rate_limit_counters.window_start
+         END,
+         reset_at = CASE
+           WHEN rate_limit_counters.reset_at <= $3 THEN $4
+           ELSE rate_limit_counters.reset_at
+         END
+       RETURNING count, reset_at`,
+      [bucket, key, now, resetAt]
+    );
+
+    const row = result.rows[0];
+    return {
+      count: Number(row.count),
+      resetAt: Number(row.reset_at),
+    };
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Opportunistically prune expired rate-limit rows so the table stays bounded by
+ * the number of currently-active clients rather than every client ever seen.
+ * Best-effort: swallows its own errors and is meant to be called fire-and-forget.
+ */
+export async function cleanupExpiredRateLimitCounters(
+  now: number = Date.now()
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await ensureRateLimitCountersTable(client);
+    await client.query(`DELETE FROM rate_limit_counters WHERE reset_at < $1`, [
+      now,
+    ]);
+  } catch (error) {
+    console.error("Failed to clean up expired rate-limit counters:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export function getDbPool(): Pool {
   if (!pool) {
     const databaseUrl = process.env.DATABASE_URL;
@@ -303,6 +404,52 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_product_events_pubkey ON product_events(pubkey);
       CREATE INDEX IF NOT EXISTS idx_product_events_created_at ON product_events(created_at DESC);
+
+      -- Long-form / blog posts table (kind 30023 - NIP-23, addressable per d-tag)
+      CREATE TABLE IF NOT EXISTS long_form_events (
+          id TEXT PRIMARY KEY,
+          pubkey TEXT NOT NULL,
+          created_at BIGINT NOT NULL,
+          kind INTEGER NOT NULL,
+          tags JSONB NOT NULL,
+          content TEXT NOT NULL,
+          sig TEXT NOT NULL,
+          cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT long_form_events_kind_check CHECK (kind = 30023)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_long_form_events_pubkey ON long_form_events(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_long_form_events_created_at ON long_form_events(created_at DESC);
+
+      -- Drafts + scheduled blog posts. Hold a pre-signed kind:30023 event that
+      -- has NOT been broadcast to relays: a draft waits, a scheduled post is
+      -- published (and optionally emailed) by the cron at scheduled_at.
+      CREATE TABLE IF NOT EXISTS scheduled_blog_posts (
+          id SERIAL PRIMARY KEY,
+          pubkey TEXT NOT NULL,
+          d_tag TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'draft',
+          event_id TEXT NOT NULL,
+          signed_event JSONB NOT NULL,
+          scheduled_at BIGINT,
+          send_as_email BOOLEAN NOT NULL DEFAULT FALSE,
+          title TEXT NOT NULL DEFAULT '',
+          summary TEXT,
+          processing_at BIGINT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (pubkey, d_tag)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_scheduled_blog_posts_pubkey ON scheduled_blog_posts(pubkey);
+      CREATE INDEX IF NOT EXISTS idx_scheduled_blog_posts_due ON scheduled_blog_posts(status, scheduled_at);
+
+      -- Retry visibility: the cron stamps these when a due post fails to publish
+      -- or email so the seller can see a post that is repeatedly failing instead
+      -- of it silently lingering. Reset to 0/NULL whenever the seller re-saves.
+      ALTER TABLE scheduled_blog_posts ADD COLUMN IF NOT EXISTS attempt_count INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE scheduled_blog_posts ADD COLUMN IF NOT EXISTS last_error TEXT;
+      ALTER TABLE scheduled_blog_posts ADD COLUMN IF NOT EXISTS last_attempt_at BIGINT;
 
       -- Reviews table (kind 31555)
       CREATE TABLE IF NOT EXISTS review_events (
@@ -569,6 +716,31 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_email_sender_domains_pubkey ON email_sender_domains(pubkey);
       CREATE INDEX IF NOT EXISTS idx_email_sender_domains_domain ON email_sender_domains(domain);
+
+      -- Per-seller marketing unsubscribe list. A buyer/subscriber who opts out of
+      -- one seller's broadcasts is suppressed only for that seller (scoped key).
+      CREATE TABLE IF NOT EXISTS email_unsubscribes (
+          seller_pubkey TEXT NOT NULL,
+          email TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (seller_pubkey, email)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_email_unsubscribes_seller ON email_unsubscribes(seller_pubkey);
+
+      -- Idempotency ledger for blog-post email broadcasts. A unique
+      -- (pubkey, d_tag, event_id) row guarantees a given published version is
+      -- emailed to the audience at most once even under double-click / retry.
+      CREATE TABLE IF NOT EXISTS blog_email_broadcasts (
+          id SERIAL PRIMARY KEY,
+          pubkey TEXT NOT NULL,
+          d_tag TEXT NOT NULL,
+          event_id TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (pubkey, d_tag, event_id)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_blog_email_broadcasts_pubkey ON blog_email_broadcasts(pubkey);
 
       -- Subscriptions table for recurring product subscriptions
       CREATE TABLE IF NOT EXISTS subscriptions (
@@ -1438,6 +1610,9 @@ export function getTableForKind(kind: number): string | null {
   // Products
   if (kind === 30402) return "product_events";
 
+  // Long-form / blog posts (NIP-23)
+  if (kind === 30023) return "long_form_events";
+
   // Reviews
   if (kind === 31555) return "review_events";
 
@@ -2006,6 +2181,43 @@ export async function deleteCachedEventsByIds(
       [eventIds]
     );
 
+    // For long_form_events (blog posts): same addressable cleanup as products
+    // — delete the targeted ids plus any strictly-older versions sharing the
+    // pubkey + d-tag, so a deleted post can't resurrect an older version on the
+    // dedup-latest read path.
+    await client.query(
+      `WITH refs AS (
+         SELECT
+           ref.pubkey,
+           ref.created_at,
+           d.d_tag
+         FROM long_form_events ref
+         CROSS JOIN LATERAL (
+           SELECT elem->>1 AS d_tag
+           FROM jsonb_array_elements(ref.tags) elem
+           WHERE elem->>0 = 'd'
+           LIMIT 1
+         ) d
+         WHERE ref.id = ANY($1)
+       )
+       DELETE FROM long_form_events lfe
+       WHERE lfe.id = ANY($1)
+         OR EXISTS (
+           SELECT 1
+           FROM refs
+           WHERE lfe.kind = 30023
+             AND lfe.pubkey = refs.pubkey
+             AND lfe.created_at < refs.created_at
+             AND EXISTS (
+               SELECT 1
+               FROM jsonb_array_elements(lfe.tags) elem
+               WHERE elem->>0 = 'd'
+                 AND elem->>1 = refs.d_tag
+             )
+         )`,
+      [eventIds]
+    );
+
     // For all other tables, delete by ID only
     for (const table of otherTables) {
       await client.query(`DELETE FROM ${table} WHERE id = ANY($1)`, [eventIds]);
@@ -2041,6 +2253,7 @@ export async function cachedEventsBelongToPubkey(
 
   const eventTables = [
     "product_events",
+    "long_form_events",
     "review_events",
     "message_events",
     "profile_events",
@@ -2214,6 +2427,143 @@ export async function fetchProductByDTagAndPubkey(
     };
   } catch (error) {
     console.error("Failed to fetch product by d-tag and pubkey:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Fetch a seller's blog posts (kind:30023), deduped to the latest version per
+ * d-tag (addressable replacement), returned newest-first by created_at. The
+ * caller parses with parseBlogPostEvent and may re-sort by published_at.
+ */
+export async function fetchBlogPostsByPubkeyFromDb(
+  pubkey: string
+): Promise<NostrEvent[]> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT DISTINCT ON (d_tag) id, pubkey, created_at, kind, tags, content, sig
+       FROM (
+         SELECT id, pubkey, created_at, kind, tags, content, sig,
+           (SELECT elem->>1 FROM jsonb_array_elements(tags) elem
+            WHERE elem->>0 = 'd' LIMIT 1) AS d_tag
+         FROM long_form_events
+         WHERE pubkey = $1 AND kind = 30023
+       ) sub
+       WHERE d_tag IS NOT NULL
+       ORDER BY d_tag, created_at DESC`,
+      [pubkey]
+    );
+    return result.rows
+      .map((row) => ({
+        id: row.id,
+        pubkey: row.pubkey,
+        created_at: row.created_at,
+        kind: row.kind,
+        tags: row.tags,
+        content: row.content,
+        sig: row.sig,
+      }))
+      .sort((a, b) => b.created_at - a.created_at);
+  } catch (error) {
+    console.error("Failed to fetch blog posts by pubkey:", error);
+    return [];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Fetch every registered storefront's blog posts (kind:30023) joined to the
+ * shop slug, deduped to the latest version per (pubkey, d-tag). Used to build
+ * the global sitemap's per-stall blog URLs in one round trip instead of a query
+ * per slug. The caller parses each event with parseBlogPostEvent and derives the
+ * readable post slug; the optional external link-out is never fetched here.
+ */
+export async function fetchStorefrontBlogPostEventsForSitemap(
+  limit = 2000
+): Promise<Array<{ slug: string; event: NostrEvent }>> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT DISTINCT ON (s.pubkey, d_tag)
+         s.slug AS slug, sub.id, sub.pubkey, sub.created_at, sub.kind,
+         sub.tags, sub.content, sub.sig
+       FROM shop_slugs s
+       JOIN (
+         SELECT id, pubkey, created_at, kind, tags, content, sig,
+           (SELECT elem->>1 FROM jsonb_array_elements(tags) elem
+            WHERE elem->>0 = 'd' LIMIT 1) AS d_tag
+         FROM long_form_events
+         WHERE kind = 30023
+       ) sub ON sub.pubkey = s.pubkey
+       WHERE sub.d_tag IS NOT NULL
+       ORDER BY s.pubkey, d_tag, sub.created_at DESC
+       LIMIT $1`,
+      [limit]
+    );
+    return result.rows.map((row) => ({
+      slug: row.slug as string,
+      event: {
+        id: row.id,
+        pubkey: row.pubkey,
+        created_at: row.created_at,
+        kind: row.kind,
+        tags: row.tags,
+        content: row.content,
+        sig: row.sig,
+      },
+    }));
+  } catch (error) {
+    console.error("Failed to fetch storefront blog posts for sitemap:", error);
+    return [];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Fetch the latest version of a single blog post (kind:30023) by its d-tag and
+ * author pubkey. Mirrors fetchProductByDTagAndPubkey.
+ */
+export async function fetchBlogPostByDTagAndPubkey(
+  dTag: string,
+  pubkey: string
+): Promise<NostrEvent | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT id, pubkey, created_at, kind, tags, content, sig
+       FROM long_form_events
+       WHERE pubkey = $1
+         AND EXISTS (
+           SELECT 1 FROM jsonb_array_elements(tags) t
+           WHERE t->>0 = 'd' AND t->>1 = $2
+         )
+       ORDER BY created_at DESC LIMIT 1`,
+      [pubkey, dTag]
+    );
+    if (result.rows.length === 0) return null;
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      pubkey: row.pubkey,
+      created_at: row.created_at,
+      kind: row.kind,
+      tags: row.tags,
+      content: row.content,
+      sig: row.sig,
+    };
+  } catch (error) {
+    console.error("Failed to fetch blog post by d-tag and pubkey:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -2403,6 +2753,28 @@ export async function fetchShopPubkeyBySlug(
     return result.rows[0].pubkey;
   } catch (error) {
     console.error("Failed to fetch shop pubkey by slug:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** Resolve a seller's registered storefront slug (pubkey → slug), or null. */
+export async function getShopSlugByPubkey(
+  pubkey: string
+): Promise<string | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT slug FROM shop_slugs WHERE pubkey = $1 LIMIT 1`,
+      [pubkey]
+    );
+    if (result.rows.length === 0) return null;
+    return result.rows[0].slug;
+  } catch (error) {
+    console.error("Failed to fetch shop slug by pubkey:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3272,12 +3644,13 @@ export async function savePopupEmailCapture(
       discountPercentage,
     ];
     const result = await client.query(
-      `INSERT INTO popup_email_captures (seller_pubkey, email, phone, discount_code, discount_percentage)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO popup_email_captures (seller_pubkey, email, phone, discount_code, discount_percentage, source)
+       VALUES ($1, $2, $3, $4, $5, 'popup')
        ON CONFLICT (seller_pubkey, email) DO UPDATE SET
          phone = COALESCE(EXCLUDED.phone, popup_email_captures.phone),
          discount_code = EXCLUDED.discount_code,
-         discount_percentage = EXCLUDED.discount_percentage
+         discount_percentage = EXCLUDED.discount_percentage,
+         source = 'popup'
        RETURNING (xmax = 0) AS is_new`,
       params
     );
@@ -3290,11 +3663,46 @@ export async function savePopupEmailCapture(
   }
 }
 
+/**
+ * Save an email-subscription signup (from a contact-form section in
+ * "subscription" mode) into the same popup_email_captures list the seller
+ * already views for captured contacts. Unlike the welcome-offer capture, no
+ * discount code is generated: new rows store an empty code / 0%. On conflict we
+ * only refresh the phone and DO NOT touch discount_code/discount_percentage, so
+ * a visitor who previously claimed a welcome offer keeps their existing code.
+ */
+export async function saveSubscriberEmailCapture(
+  sellerPubkey: string,
+  email: string,
+  phone: string | null
+): Promise<{ isNew: boolean }> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `INSERT INTO popup_email_captures (seller_pubkey, email, phone, discount_code, discount_percentage, source)
+       VALUES ($1, $2, $3, '', 0, 'subscription')
+       ON CONFLICT (seller_pubkey, email) DO UPDATE SET
+         phone = COALESCE(EXCLUDED.phone, popup_email_captures.phone)
+       RETURNING (xmax = 0) AS is_new`,
+      [sellerPubkey, email.toLowerCase(), phone || null]
+    );
+    return { isNew: result.rows[0]?.is_new ?? true };
+  } catch (error) {
+    console.error("Failed to save subscriber email capture:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export interface PopupEmailCaptureRow {
   email: string;
   phone: string | null;
   discount_code: string;
   discount_percentage: number;
+  source: string;
   created_at: string;
   times_used: number;
 }
@@ -3311,6 +3719,7 @@ export async function getPopupEmailCapturesBySeller(
               p.phone,
               p.discount_code,
               p.discount_percentage,
+              p.source,
               p.created_at,
               COALESCE(d.times_used, 0) AS times_used
          FROM popup_email_captures p
@@ -3324,6 +3733,449 @@ export async function getPopupEmailCapturesBySeller(
   } catch (error) {
     console.error("Failed to list popup email captures:", error);
     return [];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** A captured-contact origin the audience can be narrowed to. */
+export type SellerAudienceSource = "popup" | "subscription";
+
+/**
+ * Resolve the seller's email broadcast audience: distinct lowercased emails of
+ * buyers who placed an order with this seller (server-trusted via
+ * notification_emails joined to the seller's own message_events) UNION the
+ * seller's popup email captures, with anyone on the seller's unsubscribe list
+ * removed. Email shape is validated by the caller. Scoped to the seller pubkey
+ * so one seller can never reach another seller's audience.
+ *
+ * Pass `source` to narrow to a single captured-contact origin (popup or
+ * subscription); doing so excludes buyers, who have no capture origin.
+ */
+export async function getSellerAudienceEmails(
+  sellerPubkey: string,
+  source?: SellerAudienceSource
+): Promise<string[]> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    // When a specific captured-contact source is requested (popup vs
+    // subscription), scope strictly to popup_email_captures of that source and
+    // DROP the buyers union: buyers come from orders, not a capture form, so
+    // they carry no popup/subscription origin and must not leak into a
+    // source-targeted send. With no source the audience is the full set
+    // (buyers UNION every captured contact), preserving the original behavior.
+    const result = source
+      ? await client.query(
+          `SELECT email FROM (
+             SELECT DISTINCT lower(p.email) AS email
+               FROM popup_email_captures p
+              WHERE p.seller_pubkey = $1
+                AND p.source = $2
+                AND p.email IS NOT NULL
+           ) sub
+           WHERE sub.email NOT IN (
+             SELECT lower(email) FROM email_unsubscribes
+              WHERE seller_pubkey = $1
+           )`,
+          [sellerPubkey, source]
+        )
+      : await client.query(
+          `SELECT email FROM (
+             SELECT DISTINCT lower(ne.email) AS email
+               FROM notification_emails ne
+               INNER JOIN message_events me ON ne.order_id = me.order_id
+              WHERE ne.role = 'buyer'
+                AND me.pubkey = $1
+                AND ne.email IS NOT NULL
+             UNION
+             SELECT DISTINCT lower(p.email) AS email
+               FROM popup_email_captures p
+              WHERE p.seller_pubkey = $1
+                AND p.email IS NOT NULL
+           ) sub
+           WHERE sub.email NOT IN (
+             SELECT lower(email) FROM email_unsubscribes
+              WHERE seller_pubkey = $1
+           )`,
+          [sellerPubkey]
+        );
+    return result.rows
+      .map((row) => (typeof row.email === "string" ? row.email.trim() : ""))
+      .filter((email) => email.length > 0);
+  } catch (error) {
+    console.error("Failed to resolve seller audience emails:", error);
+    return [];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** Record a per-seller marketing unsubscribe. Idempotent (PK conflict no-ops). */
+export async function unsubscribeSellerEmail(
+  sellerPubkey: string,
+  email: string
+): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `INSERT INTO email_unsubscribes (seller_pubkey, email)
+       VALUES ($1, $2)
+       ON CONFLICT (seller_pubkey, email) DO NOTHING`,
+      [sellerPubkey, normalized]
+    );
+    return true;
+  } catch (error) {
+    console.error("Failed to record email unsubscribe:", error);
+    return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** True if `email` has unsubscribed from `sellerPubkey`'s broadcasts. */
+export async function isSellerEmailUnsubscribed(
+  sellerPubkey: string,
+  email: string
+): Promise<boolean> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return false;
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT 1 FROM email_unsubscribes
+        WHERE seller_pubkey = $1 AND email = $2 LIMIT 1`,
+      [sellerPubkey, normalized]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error("Failed to check email unsubscribe:", error);
+    return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Atomically claim the right to broadcast a specific published blog-post
+ * version. Returns true only if THIS call created the ledger row, so the
+ * caller can gate the actual send on a single winner even under double-click /
+ * retry. Returns false if already claimed, or null if the claim could not be
+ * recorded (DB error) — the caller must fail closed and NOT send on null.
+ */
+export async function claimBlogBroadcast(
+  pubkey: string,
+  dTag: string,
+  eventId: string
+): Promise<boolean | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `INSERT INTO blog_email_broadcasts (pubkey, d_tag, event_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (pubkey, d_tag, event_id) DO NOTHING
+       RETURNING id`,
+      [pubkey, dTag, eventId]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    console.error("Failed to claim blog broadcast:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Release a previously-claimed blog broadcast so it can be retried. Only safe
+ * to call when ZERO emails were actually sent (e.g. a transient SendGrid
+ * outage), otherwise a retry would re-deliver to recipients who already got it.
+ */
+export async function releaseBlogBroadcast(
+  pubkey: string,
+  dTag: string,
+  eventId: string
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `DELETE FROM blog_email_broadcasts
+        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
+      [pubkey, dTag, eventId]
+    );
+  } catch (error) {
+    console.error("Failed to release blog broadcast claim:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+export interface ScheduledBlogPostRow {
+  pubkey: string;
+  d_tag: string;
+  status: "draft" | "scheduled";
+  event_id: string;
+  signed_event: NostrEvent;
+  scheduled_at: number | null;
+  send_as_email: boolean;
+  updated_at: number;
+  /** How many times the cron has failed to publish/email this post. */
+  attempt_count: number;
+  /** Last failure reason recorded by the cron (null if none). */
+  last_error: string | null;
+  /** Epoch seconds of the last failed attempt (null if none). */
+  last_attempt_at: number | null;
+}
+
+/**
+ * Create or replace a draft / scheduled blog post for a seller. Keyed by
+ * (pubkey, d_tag) so re-saving the same addressable post overwrites the prior
+ * draft/scheduled version. `signedEvent` is the pre-signed kind:30023 event that
+ * has NOT been broadcast to relays. Resets `processing_at` so an edit clears any
+ * stale cron lock. Returns false on failure.
+ */
+export async function upsertScheduledBlogPost(params: {
+  pubkey: string;
+  dTag: string;
+  status: "draft" | "scheduled";
+  eventId: string;
+  signedEvent: unknown;
+  scheduledAt: number | null;
+  sendAsEmail: boolean;
+  title: string;
+  summary: string | null;
+}): Promise<boolean> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `INSERT INTO scheduled_blog_posts
+         (pubkey, d_tag, status, event_id, signed_event, scheduled_at,
+          send_as_email, title, summary, processing_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NULL, CURRENT_TIMESTAMP)
+       ON CONFLICT (pubkey, d_tag) DO UPDATE SET
+         status = EXCLUDED.status,
+         event_id = EXCLUDED.event_id,
+         signed_event = EXCLUDED.signed_event,
+         scheduled_at = EXCLUDED.scheduled_at,
+         send_as_email = EXCLUDED.send_as_email,
+         title = EXCLUDED.title,
+         summary = EXCLUDED.summary,
+         processing_at = NULL,
+         attempt_count = 0,
+         last_error = NULL,
+         last_attempt_at = NULL,
+         updated_at = CURRENT_TIMESTAMP`,
+      [
+        params.pubkey,
+        params.dTag,
+        params.status,
+        params.eventId,
+        JSON.stringify(params.signedEvent),
+        params.scheduledAt,
+        params.sendAsEmail,
+        params.title,
+        params.summary,
+      ]
+    );
+    return true;
+  } catch (error) {
+    console.error("Failed to upsert scheduled blog post:", error);
+    return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** Shared row → ScheduledBlogPostRow mapper for list/claim queries. */
+function mapScheduledBlogPostRow(row: any): ScheduledBlogPostRow {
+  return {
+    pubkey: row.pubkey,
+    d_tag: row.d_tag,
+    status: row.status,
+    event_id: row.event_id,
+    signed_event:
+      typeof row.signed_event === "string"
+        ? JSON.parse(row.signed_event)
+        : row.signed_event,
+    scheduled_at: row.scheduled_at === null ? null : Number(row.scheduled_at),
+    send_as_email: !!row.send_as_email,
+    updated_at: Number(row.updated_at),
+    attempt_count: Number(row.attempt_count ?? 0),
+    last_error: row.last_error ?? null,
+    last_attempt_at:
+      row.last_attempt_at === null || row.last_attempt_at === undefined
+        ? null
+        : Number(row.last_attempt_at),
+  };
+}
+
+/** List a seller's drafts + scheduled posts, newest-saved first. */
+export async function listScheduledBlogPosts(
+  pubkey: string
+): Promise<ScheduledBlogPostRow[]> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT pubkey, d_tag, status, event_id, signed_event, scheduled_at,
+              send_as_email, EXTRACT(EPOCH FROM updated_at)::bigint AS updated_at,
+              attempt_count, last_error, last_attempt_at
+         FROM scheduled_blog_posts
+        WHERE pubkey = $1
+        ORDER BY updated_at DESC`,
+      [pubkey]
+    );
+    return result.rows.map(mapScheduledBlogPostRow);
+  } catch (error) {
+    console.error("Failed to list scheduled blog posts:", error);
+    return [];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** Delete a seller's draft / scheduled post by (pubkey, d_tag). */
+export async function deleteScheduledBlogPost(
+  pubkey: string,
+  dTag: string
+): Promise<boolean> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `DELETE FROM scheduled_blog_posts WHERE pubkey = $1 AND d_tag = $2`,
+      [pubkey, dTag]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    console.error("Failed to delete scheduled blog post:", error);
+    return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Atomically claim due scheduled posts for publishing. Picks rows that are
+ * `scheduled`, past their `scheduled_at`, and not already being processed within
+ * the staleness window — stamping `processing_at` so a second concurrent cron
+ * tick skips them (FOR UPDATE SKIP LOCKED). A claimed row is published exactly
+ * once by the winner; on failure the caller releases the claim for a later tick.
+ */
+export async function claimDueScheduledBlogPosts(
+  nowEpoch: number,
+  limit = 20,
+  staleSeconds = 5 * 60
+): Promise<ScheduledBlogPostRow[]> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `UPDATE scheduled_blog_posts SET processing_at = $1
+        WHERE id IN (
+          SELECT id FROM scheduled_blog_posts
+           WHERE status = 'scheduled'
+             AND scheduled_at IS NOT NULL
+             AND scheduled_at <= $1
+             AND (processing_at IS NULL OR processing_at < $2)
+           ORDER BY scheduled_at ASC
+           LIMIT $3
+           FOR UPDATE SKIP LOCKED
+        )
+        RETURNING pubkey, d_tag, status, event_id, signed_event, scheduled_at,
+                  send_as_email, EXTRACT(EPOCH FROM updated_at)::bigint AS updated_at,
+                  attempt_count, last_error, last_attempt_at`,
+      [nowEpoch, nowEpoch - staleSeconds, limit]
+    );
+    return result.rows.map(mapScheduledBlogPostRow);
+  } catch (error) {
+    console.error("Failed to claim due scheduled blog posts:", error);
+    return [];
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Delete a scheduled post after it has been successfully published, but only if
+ * the stored version still matches the one we published (event_id). If the
+ * seller re-saved a newer version meanwhile, leave it for the next tick.
+ */
+export async function deletePublishedScheduledBlogPost(
+  pubkey: string,
+  dTag: string,
+  eventId: string
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `DELETE FROM scheduled_blog_posts
+        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
+      [pubkey, dTag, eventId]
+    );
+  } catch (error) {
+    console.error("Failed to delete published scheduled blog post:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Release a cron claim (clear processing_at) so the post is retried later.
+ *
+ * When `failure` is provided the attempt is recorded for seller visibility:
+ * attempt_count is incremented, last_error is stored (truncated), and
+ * last_attempt_at is stamped — matched on event_id so a seller re-save (which
+ * resets these to 0/NULL with a new event_id) is never clobbered. Omitting
+ * `failure` just clears the lock without touching the retry counters.
+ */
+export async function releaseScheduledBlogPostClaim(
+  pubkey: string,
+  dTag: string,
+  eventId: string,
+  failure?: { error: string; at: number }
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    if (failure) {
+      await client.query(
+        `UPDATE scheduled_blog_posts
+            SET processing_at = NULL,
+                attempt_count = attempt_count + 1,
+                last_error = $4,
+                last_attempt_at = $5
+          WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
+        [pubkey, dTag, eventId, failure.error.slice(0, 500), failure.at]
+      );
+    } else {
+      await client.query(
+        `UPDATE scheduled_blog_posts SET processing_at = NULL
+          WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
+        [pubkey, dTag, eventId]
+      );
+    }
+  } catch (error) {
+    console.error("Failed to release scheduled blog post claim:", error);
   } finally {
     if (client) client.release();
   }

@@ -137,7 +137,11 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === "POST" || req.method === "DELETE") {
-    const rate = checkRateLimit("custom-domain", getRequestIp(req), RATE_LIMIT);
+    const rate = await checkRateLimit(
+      "custom-domain",
+      getRequestIp(req),
+      RATE_LIMIT
+    );
     res.setHeader("X-RateLimit-Limit", String(rate.limit));
     res.setHeader("X-RateLimit-Remaining", String(rate.remaining));
     res.setHeader("X-RateLimit-Reset", String(Math.ceil(rate.resetAt / 1000)));

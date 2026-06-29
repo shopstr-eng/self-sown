@@ -1,5 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getDbPool } from "@/utils/db/db-service";
+import {
+  getDbPool,
+  fetchStorefrontBlogPostEventsForSitemap,
+} from "@/utils/db/db-service";
+import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { getBlogPostSlug } from "@/utils/url-slugs";
 import { nip19 } from "nostr-tools";
 
 const BASE_URL = "https://milk.market";
@@ -160,6 +165,42 @@ export default async function handler(
   } catch (err) {
     console.error("sitemap.xml DB query failed:", err);
     // Fall through — static pages were already added above.
+  }
+
+  // Blog posts — one entry per published post under its stall's blog path. Done
+  // outside the client block above so a blog query failure can't drop the rest
+  // of the sitemap. Posts are grouped per stall slug so collision-resolved
+  // readable slugs match what the storefront actually serves.
+  try {
+    const blogRows = await fetchStorefrontBlogPostEventsForSitemap(2000);
+    const postsBySlug = new Map<string, BlogPost[]>();
+    for (const { slug, event } of blogRows) {
+      if (!slug) continue;
+      const post = parseBlogPostEvent(event);
+      if (!post) continue;
+      const arr = postsBySlug.get(slug) ?? [];
+      arr.push(post);
+      postsBySlug.set(slug, arr);
+    }
+    for (const [slug, posts] of postsBySlug) {
+      for (const post of posts) {
+        const postSlug = getBlogPostSlug(post, posts);
+        const lastmod = toDate(post.updatedAt, currentDate);
+        entries.push(
+          urlEntry(
+            `${BASE_URL}/stall/${encodeURIComponent(slug)}/blog/${encodeURIComponent(
+              postSlug
+            )}`,
+            lastmod,
+            "monthly",
+            "0.6"
+          )
+        );
+      }
+    }
+  } catch (err) {
+    console.error("sitemap.xml blog query failed:", err);
+    // Fall through — the rest of the sitemap is already built.
   }
 
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>

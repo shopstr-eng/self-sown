@@ -118,8 +118,13 @@ const STOREFRONT_SECTION_TYPES = new Set([
   "text",
   "image",
   "contact",
+  "contact_form",
   "reviews",
+  "blog",
 ]);
+const STOREFRONT_BLOG_LAYOUTS = new Set(["featured", "grid", "list"]);
+const STOREFRONT_BLOG_MODES = new Set(["latest", "selected"]);
+const STOREFRONT_CONTACT_FORM_MODES = new Set(["contact", "subscription"]);
 const STOREFRONT_SOCIAL_PLATFORMS = new Set([
   "instagram",
   "x",
@@ -171,6 +176,143 @@ export function normalizeStorefrontSlug(input: string): string {
     .replace(/-+/g, "-")
     .slice(0, 63)
     .replace(/^-|-$/g, "");
+}
+
+// Full storefront-section sanitizer shared by the homepage `sections[]` and the
+// dedicated `blogPage.sections[]` so the blog index page keeps the same rich
+// field set (the custom `pages[]` sanitizer below is intentionally reduced).
+function sanitizeFullSection(section: Record<string, unknown>) {
+  return {
+    id: typeof section.id === "string" ? section.id : "",
+    type:
+      typeof section.type === "string" &&
+      STOREFRONT_SECTION_TYPES.has(section.type)
+        ? (section.type as
+            | "hero"
+            | "about"
+            | "story"
+            | "products"
+            | "testimonials"
+            | "faq"
+            | "ingredients"
+            | "comparison"
+            | "text"
+            | "image"
+            | "contact"
+            | "contact_form"
+            | "reviews"
+            | "blog")
+        : "text",
+    ...(typeof section.enabled === "boolean"
+      ? { enabled: section.enabled }
+      : {}),
+    ...(typeof section.heading === "string"
+      ? { heading: section.heading }
+      : {}),
+    ...(typeof section.subheading === "string"
+      ? { subheading: section.subheading }
+      : {}),
+    ...(typeof section.body === "string" ? { body: section.body } : {}),
+    ...(typeof section.image === "string" ? { image: section.image } : {}),
+    ...(typeof section.imagePosition === "string" &&
+    STOREFRONT_IMAGE_POSITIONS.has(section.imagePosition)
+      ? { imagePosition: section.imagePosition as "left" | "right" }
+      : {}),
+    ...(typeof section.fullWidth === "boolean"
+      ? { fullWidth: section.fullWidth }
+      : {}),
+    ...(typeof section.ctaText === "string"
+      ? { ctaText: section.ctaText }
+      : {}),
+    ...(typeof section.ctaLink === "string"
+      ? { ctaLink: section.ctaLink }
+      : {}),
+    ...(typeof section.overlayOpacity === "number"
+      ? { overlayOpacity: section.overlayOpacity }
+      : {}),
+    ...(typeof section.headingColor === "string"
+      ? { headingColor: section.headingColor }
+      : {}),
+    ...(typeof section.subheadingColor === "string"
+      ? { subheadingColor: section.subheadingColor }
+      : {}),
+    ...(typeof section.textOutlineColor === "string"
+      ? { textOutlineColor: section.textOutlineColor }
+      : {}),
+    ...(Array.isArray(section.items) ? { items: section.items } : {}),
+    ...(Array.isArray(section.testimonials)
+      ? { testimonials: section.testimonials }
+      : {}),
+    ...(Array.isArray(section.ingredientItems)
+      ? { ingredientItems: section.ingredientItems }
+      : {}),
+    ...(Array.isArray(section.comparisonFeatures)
+      ? { comparisonFeatures: section.comparisonFeatures }
+      : {}),
+    ...(Array.isArray(section.comparisonColumns)
+      ? { comparisonColumns: section.comparisonColumns }
+      : {}),
+    ...(Array.isArray(section.timelineItems)
+      ? { timelineItems: section.timelineItems }
+      : {}),
+    ...(typeof section.productLayout === "string" &&
+    STOREFRONT_PRODUCT_LAYOUTS.has(section.productLayout)
+      ? {
+          productLayout: section.productLayout as "grid" | "list" | "featured",
+        }
+      : {}),
+    ...(typeof section.productLimit === "number"
+      ? { productLimit: section.productLimit }
+      : {}),
+    ...(typeof section.email === "string" ? { email: section.email } : {}),
+    ...(typeof section.phone === "string" ? { phone: section.phone } : {}),
+    ...(typeof section.address === "string"
+      ? { address: section.address }
+      : {}),
+    ...(typeof section.successMessage === "string"
+      ? { successMessage: section.successMessage }
+      : {}),
+    ...(typeof section.contactFormMode === "string" &&
+    STOREFRONT_CONTACT_FORM_MODES.has(section.contactFormMode)
+      ? {
+          contactFormMode: section.contactFormMode as
+            | "contact"
+            | "subscription",
+        }
+      : {}),
+    ...(typeof section.showNameField === "boolean"
+      ? { showNameField: section.showNameField }
+      : {}),
+    ...(typeof section.showPhoneField === "boolean"
+      ? { showPhoneField: section.showPhoneField }
+      : {}),
+    ...(typeof section.showMessageField === "boolean"
+      ? { showMessageField: section.showMessageField }
+      : {}),
+    ...(typeof section.caption === "string"
+      ? { caption: section.caption }
+      : {}),
+    ...(typeof section.blogLayout === "string" &&
+    STOREFRONT_BLOG_LAYOUTS.has(section.blogLayout)
+      ? {
+          blogLayout: section.blogLayout as "featured" | "grid" | "list",
+        }
+      : {}),
+    ...(Array.isArray(section.blogPostIds)
+      ? {
+          blogPostIds: section.blogPostIds.filter(
+            (id): id is string => typeof id === "string"
+          ),
+        }
+      : {}),
+    ...(typeof section.blogPostLimit === "number"
+      ? { blogPostLimit: section.blogPostLimit }
+      : {}),
+    ...(typeof section.blogPostMode === "string" &&
+    STOREFRONT_BLOG_MODES.has(section.blogPostMode)
+      ? { blogPostMode: section.blogPostMode as "latest" | "selected" }
+      : {}),
+  };
 }
 
 function normalizeStorefrontConfig(
@@ -315,106 +457,19 @@ function normalizeStorefrontConfig(
   const sections = Array.isArray(value.sections)
     ? value.sections
         .filter(isRecord)
-        .map((section) => ({
-          id: typeof section.id === "string" ? section.id : "",
-          type:
-            typeof section.type === "string" &&
-            STOREFRONT_SECTION_TYPES.has(section.type)
-              ? (section.type as
-                  | "hero"
-                  | "about"
-                  | "story"
-                  | "products"
-                  | "testimonials"
-                  | "faq"
-                  | "ingredients"
-                  | "comparison"
-                  | "text"
-                  | "image"
-                  | "contact"
-                  | "reviews")
-              : "text",
-          ...(typeof section.enabled === "boolean"
-            ? { enabled: section.enabled }
-            : {}),
-          ...(typeof section.heading === "string"
-            ? { heading: section.heading }
-            : {}),
-          ...(typeof section.subheading === "string"
-            ? { subheading: section.subheading }
-            : {}),
-          ...(typeof section.body === "string" ? { body: section.body } : {}),
-          ...(typeof section.image === "string"
-            ? { image: section.image }
-            : {}),
-          ...(typeof section.imagePosition === "string" &&
-          STOREFRONT_IMAGE_POSITIONS.has(section.imagePosition)
-            ? { imagePosition: section.imagePosition as "left" | "right" }
-            : {}),
-          ...(typeof section.fullWidth === "boolean"
-            ? { fullWidth: section.fullWidth }
-            : {}),
-          ...(typeof section.ctaText === "string"
-            ? { ctaText: section.ctaText }
-            : {}),
-          ...(typeof section.ctaLink === "string"
-            ? { ctaLink: section.ctaLink }
-            : {}),
-          ...(typeof section.overlayOpacity === "number"
-            ? { overlayOpacity: section.overlayOpacity }
-            : {}),
-          ...(typeof section.headingColor === "string"
-            ? { headingColor: section.headingColor }
-            : {}),
-          ...(typeof section.subheadingColor === "string"
-            ? { subheadingColor: section.subheadingColor }
-            : {}),
-          ...(typeof section.textOutlineColor === "string"
-            ? { textOutlineColor: section.textOutlineColor }
-            : {}),
-          ...(Array.isArray(section.items) ? { items: section.items } : {}),
-          ...(Array.isArray(section.testimonials)
-            ? { testimonials: section.testimonials }
-            : {}),
-          ...(Array.isArray(section.ingredientItems)
-            ? { ingredientItems: section.ingredientItems }
-            : {}),
-          ...(Array.isArray(section.comparisonFeatures)
-            ? { comparisonFeatures: section.comparisonFeatures }
-            : {}),
-          ...(Array.isArray(section.comparisonColumns)
-            ? { comparisonColumns: section.comparisonColumns }
-            : {}),
-          ...(Array.isArray(section.timelineItems)
-            ? { timelineItems: section.timelineItems }
-            : {}),
-          ...(typeof section.productLayout === "string" &&
-          STOREFRONT_PRODUCT_LAYOUTS.has(section.productLayout)
-            ? {
-                productLayout: section.productLayout as
-                  | "grid"
-                  | "list"
-                  | "featured",
-              }
-            : {}),
-          ...(typeof section.productLimit === "number"
-            ? { productLimit: section.productLimit }
-            : {}),
-          ...(typeof section.email === "string"
-            ? { email: section.email }
-            : {}),
-          ...(typeof section.phone === "string"
-            ? { phone: section.phone }
-            : {}),
-          ...(typeof section.address === "string"
-            ? { address: section.address }
-            : {}),
-          ...(typeof section.caption === "string"
-            ? { caption: section.caption }
-            : {}),
-        }))
+        .map(sanitizeFullSection)
         .filter((section) => section.id)
     : undefined;
+
+  const blogPage =
+    isRecord(value.blogPage) && Array.isArray(value.blogPage.sections)
+      ? {
+          sections: value.blogPage.sections
+            .filter(isRecord)
+            .map(sanitizeFullSection)
+            .filter((section) => section.id),
+        }
+      : undefined;
 
   const pages = Array.isArray(value.pages)
     ? value.pages
@@ -441,13 +496,74 @@ function normalizeStorefrontConfig(
                         | "text"
                         | "image"
                         | "contact"
-                        | "reviews")
+                        | "contact_form"
+                        | "reviews"
+                        | "blog")
                     : "text",
+                ...(typeof section.enabled === "boolean"
+                  ? { enabled: section.enabled }
+                  : {}),
                 ...(typeof section.heading === "string"
                   ? { heading: section.heading }
                   : {}),
+                ...(typeof section.subheading === "string"
+                  ? { subheading: section.subheading }
+                  : {}),
                 ...(typeof section.body === "string"
                   ? { body: section.body }
+                  : {}),
+                ...(typeof section.ctaText === "string"
+                  ? { ctaText: section.ctaText }
+                  : {}),
+                ...(typeof section.headingColor === "string"
+                  ? { headingColor: section.headingColor }
+                  : {}),
+                ...(typeof section.successMessage === "string"
+                  ? { successMessage: section.successMessage }
+                  : {}),
+                ...(typeof section.contactFormMode === "string" &&
+                STOREFRONT_CONTACT_FORM_MODES.has(section.contactFormMode)
+                  ? {
+                      contactFormMode: section.contactFormMode as
+                        | "contact"
+                        | "subscription",
+                    }
+                  : {}),
+                ...(typeof section.showNameField === "boolean"
+                  ? { showNameField: section.showNameField }
+                  : {}),
+                ...(typeof section.showPhoneField === "boolean"
+                  ? { showPhoneField: section.showPhoneField }
+                  : {}),
+                ...(typeof section.showMessageField === "boolean"
+                  ? { showMessageField: section.showMessageField }
+                  : {}),
+                ...(typeof section.blogLayout === "string" &&
+                STOREFRONT_BLOG_LAYOUTS.has(section.blogLayout)
+                  ? {
+                      blogLayout: section.blogLayout as
+                        | "featured"
+                        | "grid"
+                        | "list",
+                    }
+                  : {}),
+                ...(Array.isArray(section.blogPostIds)
+                  ? {
+                      blogPostIds: section.blogPostIds.filter(
+                        (id): id is string => typeof id === "string"
+                      ),
+                    }
+                  : {}),
+                ...(typeof section.blogPostLimit === "number"
+                  ? { blogPostLimit: section.blogPostLimit }
+                  : {}),
+                ...(typeof section.blogPostMode === "string" &&
+                STOREFRONT_BLOG_MODES.has(section.blogPostMode)
+                  ? {
+                      blogPostMode: section.blogPostMode as
+                        | "latest"
+                        | "selected",
+                    }
                   : {}),
               }))
             : [],
@@ -500,6 +616,10 @@ function normalizeStorefrontConfig(
     ...(typeof value.showWalletPage === "boolean"
       ? { showWalletPage: value.showWalletPage }
       : {}),
+    ...(typeof value.showBlogPage === "boolean"
+      ? { showBlogPage: value.showBlogPage }
+      : {}),
+    ...(blogPage && blogPage.sections.length > 0 ? { blogPage } : {}),
   };
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;

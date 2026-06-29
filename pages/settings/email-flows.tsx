@@ -164,12 +164,17 @@ const EmailFlowsPage = () => {
       email: string;
       discountCode: string;
       discountPercentage: number;
+      source: "popup" | "subscription";
       alreadyReceived: boolean;
     }[]
   >([]);
   const [loadingPickerContacts, setLoadingPickerContacts] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  // Narrow the picker to a single captured-contact origin (or "all").
+  const [pickerSource, setPickerSource] = useState<
+    "all" | "popup" | "subscription"
+  >("all");
 
   const fetchFlows = useCallback(async () => {
     if (!pubkey) return;
@@ -308,6 +313,7 @@ const EmailFlowsPage = () => {
     setContactPickerFlow(flow);
     setPickerContacts([]);
     setSelectedEmails(new Set());
+    setPickerSource("all");
     setPickerError(null);
     setLoadingPickerContacts(true);
     try {
@@ -347,6 +353,7 @@ const EmailFlowsPage = () => {
     setContactPickerFlow(null);
     setPickerContacts([]);
     setSelectedEmails(new Set());
+    setPickerSource("all");
     setPickerError(null);
   };
 
@@ -363,12 +370,33 @@ const EmailFlowsPage = () => {
     });
   };
 
+  // Contacts shown in the list, narrowed to the chosen source.
+  const visibleContacts = useMemo(
+    () =>
+      pickerSource === "all"
+        ? pickerContacts
+        : pickerContacts.filter((c) => c.source === pickerSource),
+    [pickerContacts, pickerSource]
+  );
+
+  const sourceCounts = useMemo(
+    () => ({
+      all: pickerContacts.length,
+      popup: pickerContacts.filter((c) => c.source === "popup").length,
+      subscription: pickerContacts.filter((c) => c.source === "subscription")
+        .length,
+    }),
+    [pickerContacts]
+  );
+
+  // Only the currently-visible, not-yet-sent contacts can be (de)selected en
+  // masse, so "Select all" never silently enrolls a hidden segment.
   const selectableEmails = useMemo(
     () =>
-      pickerContacts
+      visibleContacts
         .filter((c) => !c.alreadyReceived)
         .map((c) => c.email.toLowerCase()),
-    [pickerContacts]
+    [visibleContacts]
   );
   const allSelectableSelected =
     selectableEmails.length > 0 &&
@@ -376,10 +404,37 @@ const EmailFlowsPage = () => {
 
   const toggleSelectAll = () => {
     if (allSelectableSelected) {
-      setSelectedEmails(new Set());
+      // Clear only the visible selectable emails; selections in other segments
+      // (if the seller toggled sources) are left intact.
+      setSelectedEmails((prev) => {
+        const next = new Set(prev);
+        selectableEmails.forEach((e) => next.delete(e));
+        return next;
+      });
     } else {
-      setSelectedEmails(new Set(selectableEmails));
+      setSelectedEmails((prev) => {
+        const next = new Set(prev);
+        selectableEmails.forEach((e) => next.add(e));
+        return next;
+      });
     }
+  };
+
+  // Switching segment pre-selects everyone in that segment who hasn't already
+  // received the flow, mirroring the initial open behavior.
+  const changePickerSource = (next: "all" | "popup" | "subscription") => {
+    setPickerSource(next);
+    const segment =
+      next === "all"
+        ? pickerContacts
+        : pickerContacts.filter((c) => c.source === next);
+    setSelectedEmails(
+      new Set(
+        segment
+          .filter((c) => !c.alreadyReceived)
+          .map((c) => c.email.toLowerCase())
+      )
+    );
   };
 
   const handleSendToContacts = async () => {
@@ -693,290 +748,305 @@ const EmailFlowsPage = () => {
             </div>
           )}
 
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-black">
-                {editingFlow.name}
-              </h2>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="rounded-md border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-700">
-                  {FLOW_TYPE_LABELS[editingFlow.flow_type] ||
-                    editingFlow.flow_type}
-                </span>
-                <span
-                  className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
-                    editingFlow.status === "active"
-                      ? "border-green-300 bg-green-100 text-green-700"
-                      : editingFlow.status === "paused"
-                        ? "border-yellow-300 bg-yellow-100 text-yellow-700"
-                        : "border-gray-300 bg-gray-100 text-gray-700"
-                  }`}
+          <fieldset
+            disabled={!membership.isPro}
+            className="m-0 border-0 p-0 disabled:opacity-60"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-black">
+                  {editingFlow.name}
+                </h2>
+                <div className="mt-1 flex items-center gap-2">
+                  <span className="rounded-md border border-gray-300 bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-700">
+                    {FLOW_TYPE_LABELS[editingFlow.flow_type] ||
+                      editingFlow.flow_type}
+                  </span>
+                  <span
+                    className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
+                      editingFlow.status === "active"
+                        ? "border-green-300 bg-green-100 text-green-700"
+                        : editingFlow.status === "paused"
+                          ? "border-yellow-300 bg-yellow-100 text-yellow-700"
+                          : "border-gray-300 bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {editingFlow.status}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className={BLACKBUTTONCLASSNAMES}
+                  size="sm"
+                  onClick={addNewStep}
                 >
-                  {editingFlow.status}
-                </span>
+                  <PlusIcon className="h-4 w-4" />
+                  Add Step
+                </Button>
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                className={BLACKBUTTONCLASSNAMES}
-                size="sm"
-                onClick={addNewStep}
-              >
-                <PlusIcon className="h-4 w-4" />
-                Add Step
-              </Button>
-            </div>
-          </div>
 
-          <div className="mb-4 rounded-md border-2 border-black bg-white p-4">
-            <p className="mb-3 text-sm font-bold text-black">Sender Settings</p>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Input
-                label="From Name"
-                value={editFromName}
-                onValueChange={setEditFromName}
-                placeholder="e.g., Fresh Farm Dairy"
-                description="Display name recipients see (optional)"
-                classNames={{
-                  label: "text-black text-xs",
-                  input: "!text-black",
-                  inputWrapper:
-                    "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
-                }}
-              />
-              <Input
-                label="Reply-To Email"
-                value={editReplyTo}
-                onValueChange={setEditReplyTo}
-                placeholder="e.g., hello@yourfarm.com"
-                description="Where replies go (optional)"
-                classNames={{
-                  label: "text-black text-xs",
-                  input: "!text-black",
-                  inputWrapper:
-                    "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
-                }}
-              />
+            <div className="mb-4 rounded-md border-2 border-black bg-white p-4">
+              <p className="mb-3 text-sm font-bold text-black">
+                Sender Settings
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Input
+                  label="From Name"
+                  value={editFromName}
+                  onValueChange={setEditFromName}
+                  placeholder="e.g., Fresh Farm Dairy"
+                  description="Display name recipients see (optional)"
+                  classNames={{
+                    label: "text-black text-xs",
+                    input: "!text-black",
+                    inputWrapper:
+                      "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
+                  }}
+                />
+                <Input
+                  label="Reply-To Email"
+                  value={editReplyTo}
+                  onValueChange={setEditReplyTo}
+                  placeholder="e.g., hello@yourfarm.com"
+                  description="Where replies go (optional)"
+                  classNames={{
+                    label: "text-black text-xs",
+                    input: "!text-black",
+                    inputWrapper:
+                      "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="mb-4 flex items-start gap-2 rounded-md border-2 border-black bg-blue-50 p-3">
-            <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
-            <div className="text-sm text-blue-800">
-              <p className="font-bold">Merge tags you can use:</p>
-              <p className="mt-1">
-                <code className="rounded bg-blue-100 px-1">
-                  {"{{buyer_name}}"}
-                </code>{" "}
-                <code className="rounded bg-blue-100 px-1">
-                  {"{{shop_name}}"}
-                </code>{" "}
-                <code className="rounded bg-blue-100 px-1">
-                  {"{{product_title}}"}
-                </code>{" "}
-                <code className="rounded bg-blue-100 px-1">
-                  {"{{order_id}}"}
-                </code>{" "}
-                <code className="rounded bg-blue-100 px-1">
-                  {"{{shop_url}}"}
-                </code>{" "}
-                <code className="rounded bg-blue-100 px-1">
-                  {"{{review_link}}"}
-                </code>
-              </p>
-              <p className="mt-1">
-                Use the ★ button in the editor toolbar to drop in a “Leave a
-                review” button. It links each buyer straight to their order so
-                they can leave a review in one click.
-              </p>
+            <div className="mb-4 flex items-start gap-2 rounded-md border-2 border-black bg-blue-50 p-3">
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+              <div className="text-sm text-blue-800">
+                <p className="font-bold">Merge tags you can use:</p>
+                <p className="mt-1">
+                  <code className="rounded bg-blue-100 px-1">
+                    {"{{buyer_name}}"}
+                  </code>{" "}
+                  <code className="rounded bg-blue-100 px-1">
+                    {"{{shop_name}}"}
+                  </code>{" "}
+                  <code className="rounded bg-blue-100 px-1">
+                    {"{{product_title}}"}
+                  </code>{" "}
+                  <code className="rounded bg-blue-100 px-1">
+                    {"{{order_id}}"}
+                  </code>{" "}
+                  <code className="rounded bg-blue-100 px-1">
+                    {"{{shop_url}}"}
+                  </code>{" "}
+                  <code className="rounded bg-blue-100 px-1">
+                    {"{{review_link}}"}
+                  </code>
+                </p>
+                <p className="mt-1">
+                  Use the ★ button in the editor toolbar to drop in a “Leave a
+                  review” button. It links each buyer straight to their order so
+                  they can leave a review in one click.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {isLoadingSteps ? (
-            <div className="flex justify-center py-8">
-              <Spinner size="lg" />
-            </div>
-          ) : editingSteps.length === 0 ? (
-            <div className="rounded-md border-2 border-dashed border-gray-300 p-8 text-center">
-              <EnvelopeIcon className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-              <p className="mb-2 font-bold text-gray-600">No steps yet</p>
-              <p className="mb-4 text-sm text-gray-500">
-                Add your first email step to start building this flow.
-              </p>
-              <Button className={BLUEBUTTONCLASSNAMES} onClick={addNewStep}>
-                <PlusIcon className="h-4 w-4" />
-                Add First Step
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {editingSteps
-                .sort((a, b) => a.step_order - b.step_order)
-                .map((step, index) => {
-                  const stepKey = step.id
-                    ? `id-${step.id}`
-                    : `new-${index}-${step.step_order}`;
-                  return (
-                    <div
-                      key={stepKey}
-                      className="shadow-neo rounded-md border-2 border-black bg-white"
-                    >
-                      <button
-                        onClick={() =>
-                          setExpandedStep(expandedStep === index ? null : index)
-                        }
-                        className="flex w-full items-center justify-between p-4"
+            {isLoadingSteps ? (
+              <div className="flex justify-center py-8">
+                <Spinner size="lg" />
+              </div>
+            ) : editingSteps.length === 0 ? (
+              <div className="rounded-md border-2 border-dashed border-gray-300 p-8 text-center">
+                <EnvelopeIcon className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+                <p className="mb-2 font-bold text-gray-600">No steps yet</p>
+                <p className="mb-4 text-sm text-gray-500">
+                  Add your first email step to start building this flow.
+                </p>
+                <Button className={BLUEBUTTONCLASSNAMES} onClick={addNewStep}>
+                  <PlusIcon className="h-4 w-4" />
+                  Add First Step
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {editingSteps
+                  .sort((a, b) => a.step_order - b.step_order)
+                  .map((step, index) => {
+                    const stepKey = step.id
+                      ? `id-${step.id}`
+                      : `new-${index}-${step.step_order}`;
+                    return (
+                      <div
+                        key={stepKey}
+                        className="shadow-neo rounded-md border-2 border-black bg-white"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="bg-primary-blue flex h-8 w-8 items-center justify-center rounded-full border-2 border-black text-sm font-bold text-white">
-                            {step.step_order}
-                          </div>
-                          <div className="text-left">
-                            <p className="font-bold text-black">
-                              {step.subject || "(No subject)"}
-                            </p>
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <ClockIcon className="h-3 w-3" />
-                              {formatDelayHours(step.delay_hours)}
-                              {index > 0 && " previous step"}
-                              {index === 0 && " enrollment"}
+                        <button
+                          onClick={() =>
+                            setExpandedStep(
+                              expandedStep === index ? null : index
+                            )
+                          }
+                          className="flex w-full items-center justify-between p-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary-blue flex h-8 w-8 items-center justify-center rounded-full border-2 border-black text-sm font-bold text-white">
+                              {step.step_order}
                             </div>
-                          </div>
-                        </div>
-                        {expandedStep === index ? (
-                          <ChevronUpIcon className="h-5 w-5 text-gray-500" />
-                        ) : (
-                          <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-                        )}
-                      </button>
-
-                      {expandedStep === index && (
-                        <div className="border-t-2 border-black p-4">
-                          <div className="space-y-4">
-                            <Input
-                              label="Subject Line"
-                              value={step.subject}
-                              onValueChange={(v) =>
-                                updateStep(index, "subject", v)
-                              }
-                              placeholder="e.g., Welcome to {{shop_name}}!"
-                              classNames={{
-                                label: "text-black",
-                                input: "!text-black",
-                                inputWrapper:
-                                  "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
-                              }}
-                            />
-                            <div>
-                              <p className="mb-1 text-sm font-bold text-black">
-                                Email Body
+                            <div className="text-left">
+                              <p className="font-bold text-black">
+                                {step.subject || "(No subject)"}
                               </p>
-                              <FlowStepEditor
-                                value={step.body_html}
-                                onChange={(v) =>
-                                  updateStep(index, "body_html", v)
-                                }
-                                subject={step.subject}
-                                shopName={editFromName || previewShopName}
-                                storefrontStyle={previewStorefrontStyle}
-                              />
+                              <div className="flex items-center gap-1 text-xs text-gray-500">
+                                <ClockIcon className="h-3 w-3" />
+                                {formatDelayHours(step.delay_hours)}
+                                {index > 0 && " previous step"}
+                                {index === 0 && " enrollment"}
+                              </div>
                             </div>
-                            <div className="flex items-end gap-4">
+                          </div>
+                          {expandedStep === index ? (
+                            <ChevronUpIcon className="h-5 w-5 text-gray-500" />
+                          ) : (
+                            <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                          )}
+                        </button>
+
+                        {expandedStep === index && (
+                          <div className="border-t-2 border-black p-4">
+                            <div className="space-y-4">
                               <Input
-                                label="Delay (hours)"
-                                type="number"
-                                min={0}
-                                value={String(step.delay_hours)}
+                                label="Subject Line"
+                                value={step.subject}
                                 onValueChange={(v) =>
-                                  updateStep(
-                                    index,
-                                    "delay_hours",
-                                    parseInt(v) || 0
-                                  )
+                                  updateStep(index, "subject", v)
                                 }
-                                description={formatDelayHours(step.delay_hours)}
+                                placeholder="e.g., Welcome to {{shop_name}}!"
                                 classNames={{
-                                  base: "max-w-[200px]",
                                   label: "text-black",
                                   input: "!text-black",
                                   inputWrapper:
                                     "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
                                 }}
                               />
-                              <Button
-                                className={DANGERBUTTONCLASSNAMES}
-                                size="sm"
-                                onClick={() => handleDeleteStep(step, index)}
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                                Remove
-                              </Button>
-                            </div>
-                            <div className="rounded-md border-2 border-black bg-gray-50 p-3">
-                              <p className="mb-2 text-sm font-bold text-black">
-                                Send Test Email
-                              </p>
-                              <p className="mb-3 text-xs text-gray-600">
-                                Delivers this email (with sample merge tags) to
-                                the address below so you can preview it live in
-                                an inbox.
-                              </p>
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                                <Input
-                                  label="Test recipient"
-                                  type="email"
-                                  value={testEmailByStep[stepKey] || ""}
-                                  onValueChange={(v) =>
-                                    setTestEmailByStep((prev) => ({
-                                      ...prev,
-                                      [stepKey]: v,
-                                    }))
+                              <div>
+                                <p className="mb-1 text-sm font-bold text-black">
+                                  Email Body
+                                </p>
+                                <FlowStepEditor
+                                  value={step.body_html}
+                                  onChange={(v) =>
+                                    updateStep(index, "body_html", v)
                                   }
-                                  placeholder="you@example.com"
+                                  subject={step.subject}
+                                  shopName={editFromName || previewShopName}
+                                  storefrontStyle={previewStorefrontStyle}
+                                />
+                              </div>
+                              <div className="flex items-end gap-4">
+                                <Input
+                                  label="Delay (hours)"
+                                  type="number"
+                                  min={0}
+                                  value={String(step.delay_hours)}
+                                  onValueChange={(v) =>
+                                    updateStep(
+                                      index,
+                                      "delay_hours",
+                                      parseInt(v) || 0
+                                    )
+                                  }
+                                  description={formatDelayHours(
+                                    step.delay_hours
+                                  )}
                                   classNames={{
-                                    label: "text-black text-xs",
+                                    base: "max-w-[200px]",
+                                    label: "text-black",
                                     input: "!text-black",
                                     inputWrapper:
                                       "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
                                   }}
                                 />
                                 <Button
-                                  className={BLUEBUTTONCLASSNAMES}
+                                  className={DANGERBUTTONCLASSNAMES}
                                   size="sm"
-                                  onClick={() => handleSendTest(step, stepKey)}
-                                  isLoading={sendingTestForStep === stepKey}
-                                  isDisabled={
-                                    sendingTestForStep !== null ||
-                                    !(testEmailByStep[stepKey] || "").trim()
-                                  }
+                                  onClick={() => handleDeleteStep(step, index)}
                                 >
-                                  <EnvelopeIcon className="h-4 w-4" />
-                                  {sendingTestForStep === stepKey
-                                    ? "Sending..."
-                                    : "Send Test"}
+                                  <TrashIcon className="h-4 w-4" />
+                                  Remove
                                 </Button>
+                              </div>
+                              <div className="rounded-md border-2 border-black bg-gray-50 p-3">
+                                <p className="mb-2 text-sm font-bold text-black">
+                                  Send Test Email
+                                </p>
+                                <p className="mb-3 text-xs text-gray-600">
+                                  Delivers this email (with sample merge tags)
+                                  to the address below so you can preview it
+                                  live in an inbox.
+                                </p>
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                                  <Input
+                                    label="Test recipient"
+                                    type="email"
+                                    value={testEmailByStep[stepKey] || ""}
+                                    onValueChange={(v) =>
+                                      setTestEmailByStep((prev) => ({
+                                        ...prev,
+                                        [stepKey]: v,
+                                      }))
+                                    }
+                                    placeholder="you@example.com"
+                                    classNames={{
+                                      label: "text-black text-xs",
+                                      input: "!text-black",
+                                      inputWrapper:
+                                        "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
+                                    }}
+                                  />
+                                  <Button
+                                    className={BLUEBUTTONCLASSNAMES}
+                                    size="sm"
+                                    onClick={() =>
+                                      handleSendTest(step, stepKey)
+                                    }
+                                    isLoading={sendingTestForStep === stepKey}
+                                    isDisabled={
+                                      !membership.isPro ||
+                                      sendingTestForStep !== null ||
+                                      !(testEmailByStep[stepKey] || "").trim()
+                                    }
+                                  >
+                                    <EnvelopeIcon className="h-4 w-4" />
+                                    {sendingTestForStep === stepKey
+                                      ? "Sending..."
+                                      : "Send Test"}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
-          )}
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
 
-          {editingSteps.length > 0 && (
-            <div className="mt-6 flex justify-end">
-              <Button
-                className={BLUEBUTTONCLASSNAMES}
-                onClick={handleSaveSteps}
-                isLoading={isSavingSteps}
-              >
-                {isSavingSteps ? "Saving..." : "Save All Steps"}
-              </Button>
-            </div>
-          )}
+            {editingSteps.length > 0 && (
+              <div className="mt-6 flex justify-end">
+                <Button
+                  className={BLUEBUTTONCLASSNAMES}
+                  onClick={handleSaveSteps}
+                  isLoading={isSavingSteps}
+                  isDisabled={!membership.isPro}
+                >
+                  {isSavingSteps ? "Saving..." : "Save All Steps"}
+                </Button>
+              </div>
+            )}
+          </fieldset>
         </div>
       </div>
     );
@@ -1186,7 +1256,10 @@ const EmailFlowsPage = () => {
                         )}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <fieldset
+                      disabled={!membership.isPro}
+                      className="m-0 flex gap-2 border-0 p-0 disabled:opacity-60"
+                    >
                       <Tooltip
                         content={
                           flow.status === "active"
@@ -1243,7 +1316,7 @@ const EmailFlowsPage = () => {
                           <TrashIcon className="h-4 w-4" />
                         </Button>
                       </Tooltip>
-                    </div>
+                    </fieldset>
                   </div>
                 </div>
               ))}
@@ -1281,54 +1354,90 @@ const EmailFlowsPage = () => {
                 You don&apos;t have any captured contacts yet.
               </p>
             ) : (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm text-gray-500">
-                  Choose who should receive this flow. Contacts who already
-                  received it are marked and can&apos;t be selected again.
-                </p>
-                <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                  <Checkbox
-                    isSelected={allSelectableSelected}
-                    isDisabled={selectableEmails.length === 0}
-                    onValueChange={toggleSelectAll}
-                  >
-                    Select all
-                  </Checkbox>
-                  <span className="text-sm text-gray-500">
-                    {selectedEmails.size} selected
-                  </span>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {pickerContacts.map((contact) => (
-                    <div
-                      key={contact.email}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <Checkbox
-                        isSelected={selectedEmails.has(
-                          contact.email.toLowerCase()
-                        )}
-                        isDisabled={contact.alreadyReceived}
-                        onValueChange={() =>
-                          toggleContactSelection(contact.email)
-                        }
+              <fieldset
+                disabled={!membership.isPro}
+                className="m-0 border-0 p-0 disabled:opacity-60"
+              >
+                <div className="flex flex-col gap-3">
+                  <p className="text-sm text-gray-500">
+                    Choose who should receive this flow. Contacts who already
+                    received it are marked and can&apos;t be selected again.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(
+                      [
+                        ["all", `All (${sourceCounts.all})`],
+                        ["popup", `Popup (${sourceCounts.popup})`],
+                        [
+                          "subscription",
+                          `Subscription (${sourceCounts.subscription})`,
+                        ],
+                      ] as ["all" | "popup" | "subscription", string][]
+                    ).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => changePickerSource(value)}
+                        className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors ${
+                          pickerSource === value
+                            ? "border-black bg-black text-white"
+                            : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                        }`}
                       >
-                        <span className="text-sm break-all">
-                          {contact.email}
-                        </span>
-                      </Checkbox>
-                      {contact.alreadyReceived && (
-                        <span className="text-xs whitespace-nowrap text-gray-400">
-                          Already received
-                        </span>
-                      )}
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                    <Checkbox
+                      isSelected={allSelectableSelected}
+                      isDisabled={selectableEmails.length === 0}
+                      onValueChange={toggleSelectAll}
+                    >
+                      Select all
+                    </Checkbox>
+                    <span className="text-sm text-gray-500">
+                      {selectedEmails.size} selected
+                    </span>
+                  </div>
+                  {visibleContacts.length === 0 ? (
+                    <p className="py-4 text-center text-sm text-gray-500">
+                      No contacts in this segment.
+                    </p>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      {visibleContacts.map((contact) => (
+                        <div
+                          key={contact.email}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <Checkbox
+                            isSelected={selectedEmails.has(
+                              contact.email.toLowerCase()
+                            )}
+                            isDisabled={contact.alreadyReceived}
+                            onValueChange={() =>
+                              toggleContactSelection(contact.email)
+                            }
+                          >
+                            <span className="text-sm break-all">
+                              {contact.email}
+                            </span>
+                          </Checkbox>
+                          {contact.alreadyReceived && (
+                            <span className="text-xs whitespace-nowrap text-gray-400">
+                              Already received
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  {pickerError && (
+                    <p className="text-sm text-red-500">{pickerError}</p>
+                  )}
                 </div>
-                {pickerError && (
-                  <p className="text-sm text-red-500">{pickerError}</p>
-                )}
-              </div>
+              </fieldset>
             )}
           </ModalBody>
           <ModalFooter>
@@ -1341,6 +1450,7 @@ const EmailFlowsPage = () => {
             <Button
               className={BLUEBUTTONCLASSNAMES}
               isDisabled={
+                !membership.isPro ||
                 selectedEmails.size === 0 ||
                 loadingPickerContacts ||
                 sendingContactsForFlow !== null

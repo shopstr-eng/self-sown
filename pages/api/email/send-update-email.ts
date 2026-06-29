@@ -26,7 +26,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "email-send-update:ip", PER_IP_LIMIT)) {
+  if (!(await applyRateLimit(req, res, "email-send-update:ip", PER_IP_LIMIT))) {
     console.warn("[send-update-email] blocked by per-IP rate limit");
     return;
   }
@@ -44,13 +44,13 @@ export default async function handler(
   );
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "email-send-update:pubkey",
       PER_PUBKEY_LIMIT,
       authResult.pubkey
-    )
+    ))
   )
     return;
 

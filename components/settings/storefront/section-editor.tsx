@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useContext } from "react";
+import Link from "next/link";
 import { Input, Textarea, Select, SelectItem } from "@heroui/react";
 import {
   StorefrontSection,
@@ -11,7 +12,13 @@ import {
   StorefrontSpecificationItem,
   StorefrontSocialPost,
   StorefrontSocialPostPlatform,
+  NostrEvent,
 } from "@/utils/types/types";
+import {
+  parseBlogPostEvent,
+  dedupeLatestBlogPosts,
+  type BlogPost,
+} from "@milk-market/domain";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { ReviewsContext } from "@/utils/context/context";
@@ -47,8 +54,10 @@ const SECTION_LABELS: Record<StorefrontSectionType, string> = {
   text: "Text Block",
   image: "Image",
   contact: "Contact",
+  contact_form: "Contact Form",
   reviews: "Customer Reviews",
   social_posts: "Social Posts",
+  blog: "Blog",
   product_description: "Product Description",
   product_specifications: "Product Specifications",
   product_shipping_returns: "Shipping & Returns",
@@ -214,7 +223,7 @@ export default function SectionEditor({
             onChange={(e) => update({ heading: e.target.value })}
           />
 
-          {["hero", "products"].includes(section.type) && (
+          {["hero", "products", "blog"].includes(section.type) && (
             <Input
               label="Subheading"
               classNames={{ inputWrapper: inputWrapperClass }}
@@ -230,7 +239,9 @@ export default function SectionEditor({
             "text",
             "ingredients",
             "contact",
+            "contact_form",
             "product_description",
+            "blog",
           ].includes(section.type) && (
             <Textarea
               label="Body Text"
@@ -570,6 +581,125 @@ export default function SectionEditor({
             </>
           )}
 
+          {section.type === "contact_form" && (
+            <>
+              <Input
+                label="Button Text"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={section.ctaText || ""}
+                onChange={(e) => update({ ctaText: e.target.value })}
+                placeholder="Send Message"
+              />
+              <Textarea
+                label="Success Message"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                minRows={2}
+                value={section.successMessage || ""}
+                onChange={(e) => update({ successMessage: e.target.value })}
+                placeholder="Thanks for reaching out! We'll get back to you soon."
+              />
+              <Select
+                label="Form Type"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.contactFormMode || "contact"]}
+                onChange={(e) =>
+                  update({
+                    contactFormMode:
+                      (e.target.value as "contact" | "subscription") ||
+                      "contact",
+                  })
+                }
+              >
+                <SelectItem key="contact" className="text-black">
+                  Contact form (emails you)
+                </SelectItem>
+                <SelectItem key="subscription" className="text-black">
+                  Email subscription (adds to your list)
+                </SelectItem>
+              </Select>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Visitor Inputs
+                </label>
+                <p className="mb-2 text-xs text-gray-400">
+                  Email is always shown and required. Turn the others on or off.
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={section.showNameField !== false}
+                      onChange={(e) =>
+                        update({ showNameField: e.target.checked })
+                      }
+                    />
+                    Name
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={section.showPhoneField !== false}
+                      onChange={(e) =>
+                        update({ showPhoneField: e.target.checked })
+                      }
+                    />
+                    Phone
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={section.showMessageField !== false}
+                      onChange={(e) =>
+                        update({ showMessageField: e.target.checked })
+                      }
+                    />
+                    Message
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Heading Text Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Heading text color"
+                    value={section.headingColor || "#000000"}
+                    onChange={(e) => update({ headingColor: e.target.value })}
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.headingColor || ""}
+                    onChange={(e) =>
+                      update({ headingColor: e.target.value || undefined })
+                    }
+                    placeholder="Default (theme text color)"
+                  />
+                  {section.headingColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ headingColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                {section.contactFormMode === "subscription"
+                  ? "Submissions add the visitor's email to your contacts list and enroll them in your active welcome email series (if you have one). You are not emailed."
+                  : "Submissions are emailed to your configured contact email. Email is always required; the other inputs are optional based on the toggles above."}
+              </p>
+            </>
+          )}
+
           {section.type === "reviews" && shopPubkey && (
             <ReviewOrderList
               shopPubkey={shopPubkey}
@@ -781,6 +911,105 @@ export default function SectionEditor({
                 posts={section.socialPosts || []}
                 onChange={(socialPosts) => update({ socialPosts })}
               />
+            </>
+          )}
+
+          {section.type === "blog" && (
+            <>
+              <Link
+                href="/settings/blog"
+                className="text-primary-blue inline-block text-sm font-bold underline underline-offset-2 hover:opacity-80"
+              >
+                Manage your blog posts →
+              </Link>
+              <Select
+                label="Blog Layout"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.blogLayout || "grid"]}
+                onChange={(e) =>
+                  update({
+                    blogLayout: e.target.value as "grid" | "list" | "featured",
+                  })
+                }
+              >
+                <SelectItem key="grid" className="text-black">
+                  Grid
+                </SelectItem>
+                <SelectItem key="list" className="text-black">
+                  List
+                </SelectItem>
+                <SelectItem key="featured" className="text-black">
+                  Featured
+                </SelectItem>
+              </Select>
+              <Select
+                label="Which posts to show"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.blogPostMode || "latest"]}
+                onChange={(e) =>
+                  update({
+                    blogPostMode:
+                      e.target.value === "selected" ? "selected" : "latest",
+                  })
+                }
+              >
+                <SelectItem key="latest" className="text-black">
+                  Latest posts (automatic)
+                </SelectItem>
+                <SelectItem key="selected" className="text-black">
+                  Choose specific posts
+                </SelectItem>
+              </Select>
+              <Input
+                label={
+                  section.blogPostMode === "selected"
+                    ? "Max posts (optional)"
+                    : "Number of latest posts (optional)"
+                }
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                type="number"
+                min="1"
+                value={
+                  section.blogPostLimit ? String(section.blogPostLimit) : ""
+                }
+                onChange={(e) =>
+                  update({
+                    blogPostLimit: e.target.value
+                      ? parseInt(e.target.value)
+                      : undefined,
+                  })
+                }
+                placeholder="Show all"
+              />
+              {shopPubkey && (
+                <div>
+                  <label className="mb-1 block text-sm font-bold text-black">
+                    {section.blogPostMode === "selected"
+                      ? "Choose Posts"
+                      : "Post Order"}
+                  </label>
+                  <p className="mb-2 text-xs text-gray-500">
+                    {section.blogPostMode === "selected"
+                      ? "Check the posts you want to show. Drag to set their order."
+                      : "Drag to reorder how posts appear. Leave untouched for newest first."}
+                  </p>
+                  <BlogPostOrderList
+                    shopPubkey={shopPubkey}
+                    postRefs={section.blogPostIds || []}
+                    onChange={(refs) =>
+                      update({
+                        blogPostIds: refs.length > 0 ? refs : undefined,
+                      })
+                    }
+                    dragItemRef={dragItemRef}
+                    dragOverItemRef={dragOverItemRef}
+                    selectable={section.blogPostMode === "selected"}
+                  />
+                </div>
+              )}
             </>
           )}
 
@@ -1427,6 +1656,186 @@ function ProductOrderList({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function BlogPostOrderList({
+  shopPubkey,
+  postRefs,
+  onChange,
+  dragItemRef,
+  dragOverItemRef,
+  selectable = false,
+}: {
+  shopPubkey: string;
+  postRefs: string[];
+  onChange: (refs: string[]) => void;
+  dragItemRef: React.MutableRefObject<number | null>;
+  dragOverItemRef: React.MutableRefObject<number | null>;
+  selectable?: boolean;
+}) {
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!shopPubkey) {
+      setLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/storefront/blog-posts?pubkey=${encodeURIComponent(shopPubkey)}`
+        );
+        if (!res.ok) {
+          if (!cancelled) setLoaded(true);
+          return;
+        }
+        const events = (await res.json()) as NostrEvent[];
+        const parsed = (Array.isArray(events) ? events : [])
+          .map((e) => parseBlogPostEvent(e))
+          .filter((p): p is BlogPost => p !== null);
+        if (!cancelled) {
+          setPosts(dedupeLatestBlogPosts(parsed));
+          setLoaded(true);
+        }
+      } catch {
+        if (!cancelled) setLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [shopPubkey]);
+
+  const orderedPosts = (() => {
+    if (postRefs.length === 0) return posts;
+    const ordered: BlogPost[] = [];
+    const used = new Set<string>();
+    for (const ref of postRefs) {
+      const match = posts.find((p) => p.dTag === ref || p.id === ref);
+      if (match && !used.has(match.id)) {
+        ordered.push(match);
+        used.add(match.id);
+      }
+    }
+    for (const p of posts) {
+      if (!used.has(p.id)) ordered.push(p);
+    }
+    return ordered;
+  })();
+
+  const isSelected = (post: BlogPost) =>
+    postRefs.includes(post.dTag) || postRefs.includes(post.id);
+
+  // In ordering mode emit the full ordered list; in selection mode emit only
+  // the chosen posts (their order within the list is preserved).
+  const emitOrder = (items: BlogPost[]) => {
+    if (selectable) {
+      onChange(items.filter(isSelected).map((p) => p.dTag));
+    } else {
+      onChange(items.map((p) => p.dTag));
+    }
+  };
+
+  const toggleSelected = (post: BlogPost) => {
+    if (isSelected(post)) {
+      onChange(postRefs.filter((r) => r !== post.dTag && r !== post.id));
+    } else {
+      onChange([...postRefs, post.dTag]);
+    }
+  };
+
+  const handleDrop = () => {
+    if (dragItemRef.current === null || dragOverItemRef.current === null)
+      return;
+    if (dragItemRef.current === dragOverItemRef.current) return;
+    const items = [...orderedPosts];
+    const [dragged] = items.splice(dragItemRef.current, 1);
+    items.splice(dragOverItemRef.current, 0, dragged!);
+    emitOrder(items);
+    dragItemRef.current = null;
+    dragOverItemRef.current = null;
+  };
+
+  const movePost = (fromIdx: number, toIdx: number) => {
+    if (toIdx < 0 || toIdx >= orderedPosts.length) return;
+    const items = [...orderedPosts];
+    const [moved] = items.splice(fromIdx, 1);
+    items.splice(toIdx, 0, moved!);
+    emitOrder(items);
+  };
+
+  if (!loaded) {
+    return <p className="text-xs text-gray-400 italic">Loading posts…</p>;
+  }
+  if (orderedPosts.length === 0) {
+    return (
+      <p className="text-xs text-gray-400 italic">
+        No blog posts yet. Publish a post first.
+      </p>
+    );
+  }
+
+  return (
+    <div className="max-h-64 space-y-1 overflow-y-auto rounded border border-gray-200 p-2">
+      {orderedPosts.map((post, idx) => (
+        <div
+          key={post.id}
+          draggable
+          onDragStart={() => {
+            dragItemRef.current = idx;
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            dragOverItemRef.current = idx;
+          }}
+          onDrop={handleDrop}
+          className="flex cursor-grab items-center gap-2 rounded border border-transparent px-2 py-1.5 text-sm transition-colors hover:bg-gray-50 active:cursor-grabbing"
+        >
+          {selectable && (
+            <input
+              type="checkbox"
+              checked={isSelected(post)}
+              onChange={() => toggleSelected(post)}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 flex-shrink-0 rounded border-gray-300"
+            />
+          )}
+          <span className="flex flex-col gap-0.5 text-[10px] text-gray-400">
+            <button
+              type="button"
+              onClick={() => movePost(idx, idx - 1)}
+              disabled={idx === 0}
+              className="leading-none hover:text-black disabled:opacity-30"
+            >
+              &#9650;
+            </button>
+            <button
+              type="button"
+              onClick={() => movePost(idx, idx + 1)}
+              disabled={idx === orderedPosts.length - 1}
+              className="leading-none hover:text-black disabled:opacity-30"
+            >
+              &#9660;
+            </button>
+          </span>
+          <span className="text-xs text-gray-400">&#9776;</span>
+          {post.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={post.image}
+              alt={post.title}
+              className="h-8 w-8 flex-shrink-0 rounded object-cover"
+            />
+          )}
+          <span className="flex-1 truncate font-medium text-black">
+            {post.title}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

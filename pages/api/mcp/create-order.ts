@@ -40,7 +40,7 @@ export default async function handler(
 ) {
   const requestStart = Date.now();
 
-  if (!applyRateLimit(req, res, "mcp-create-order:ip", RATE_LIMIT)) {
+  if (!(await applyRateLimit(req, res, "mcp-create-order:ip", RATE_LIMIT))) {
     recordRequest(Date.now() - requestStart, false, "create-order");
     return;
   }
@@ -54,13 +54,13 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "mcp-create-order:key",
       PER_KEY_LIMIT,
       String(apiKey.id)
-    )
+    ))
   ) {
     recordRequest(Date.now() - requestStart, false, "create-order");
     return;

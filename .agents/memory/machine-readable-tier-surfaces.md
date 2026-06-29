@@ -55,6 +55,15 @@ SSR HTML — only the JSON-LD answer is crawler-visible.
 JSON-LD and the homepage JSON-LD↔visible drift; only grepping the claim
 string across pages/ + components/ finds them all.
 
+**Guards (all keyed off `utils/geo/fee-claims.ts`):**
+`structured-data-claim-sync.test.ts` pins claims PRESENT across the JSON-LD
+copies; `discovery-files-no-claims.test.ts` pins them ABSENT from pure-discovery
+files; `rich-content-fee-claims.test.ts` pins them PRESENT in the rich-content
+files agents read — `llms-full.txt` carries "no platform fee"+"no fees at all",
+`page-content.ts` carries "no mandatory platform fees"+"Zero Platform Fees".
+Neither rich-content file uses "never adds a fee", so map claims to the surface
+that genuinely carries each phrasing or you get false failures.
+
 Human-prose pages (`pages/about`, `pages/terms`) and the self-host "no
 platform fees" HowTo step are accurate face-value claims, not structured-data
 marketing — leave them unless the task is about those pages.

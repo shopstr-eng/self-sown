@@ -42,7 +42,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "fetch-reports", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "fetch-reports", RATE_LIMIT))) return;
 
   try {
     const productIds = normalizeQueryParam("e", req.query.e);

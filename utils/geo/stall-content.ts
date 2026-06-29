@@ -16,6 +16,16 @@ export interface StallProductSummary {
   image: string;
 }
 
+export interface StallBlogSummary {
+  title: string;
+  /** Readable post slug used in /blog/<slug> (already collision-resolved). */
+  slug: string;
+  summary: string;
+  image: string;
+  /** Publish time in seconds since epoch (NIP-23 published_at). */
+  publishedAt: number;
+}
+
 export interface StallContentInput {
   /** Resolved display name of the shop. */
   shopName: string;
@@ -34,12 +44,48 @@ export interface StallContentInput {
   isCustomDomain: boolean;
   /** Recent products for this shop (already filtered + parsed). */
   products: StallProductSummary[];
+  /** Published blog posts (NIP-23) for this shop, newest-first. */
+  blogPosts: StallBlogSummary[];
 }
 
 export interface StallPageContent {
   title: string;
   description: string;
   markdown: string;
+}
+
+/** A single blog post (NIP-23) rendered in full for agents/LLMs. */
+export interface StallPostDetail {
+  title: string;
+  /** Readable post slug used in /blog/<slug> (already collision-resolved). */
+  slug: string;
+  summary: string;
+  image: string;
+  /** Markdown body (NIP-23 content). Never HTML. */
+  content: string;
+  /** Publish time in seconds since epoch (NIP-23 published_at). */
+  publishedAt: number;
+  /** Last-updated time in seconds since epoch (event created_at). */
+  updatedAt: number;
+  hashtags: string[];
+  /** Optional validated http(s) link-out URL (already http(s)-checked). */
+  externalUrl?: string;
+}
+
+export interface StallPostInput {
+  /** Resolved display name of the shop. */
+  shopName: string;
+  /** Friendly stall slug. */
+  slug: string;
+  /**
+   * Canonical base URL for THIS stall. On a custom domain this is
+   * `https://<host>`; on the platform it is `https://milk.market/stall/<slug>`.
+   */
+  siteUrl: string;
+  /** Whether this stall is served from a seller's own custom domain. */
+  isCustomDomain: boolean;
+  /** The single post being rendered, in full. */
+  post: StallPostDetail;
 }
 
 function escapeXml(value: string): string {
@@ -56,6 +102,13 @@ function listingUrl(input: StallContentInput, slug: string): string {
   // so prefer the stall's own origin when it has one.
   const base = input.isCustomDomain ? new URL(input.siteUrl).origin : PLATFORM;
   return `${base}/listing/${slug}`;
+}
+
+function blogUrl(input: StallContentInput, slug: string): string {
+  // Blog posts are stall-scoped: on a custom domain they live at
+  // `<host>/blog/<slug>`; on the platform at `<siteUrl>/blog/<slug>` which is
+  // already `https://milk.market/stall/<slug>/blog/<slug>`.
+  return `${input.siteUrl}/blog/${encodeURIComponent(slug)}`;
 }
 
 function priceLabel(p: StallProductSummary): string {
@@ -86,6 +139,16 @@ export function buildStallMarkdown(input: StallContentInput): string {
       const url = listingUrl(input, p.slug);
       const summary = p.summary ? ` · ${p.summary}` : "";
       lines.push(`- [${p.title}](${url})${priceLabel(p)}${summary}`);
+    }
+    lines.push("");
+  }
+
+  if (input.blogPosts.length > 0) {
+    lines.push("## Blog");
+    for (const post of input.blogPosts) {
+      const url = blogUrl(input, post.slug);
+      const summary = post.summary ? ` · ${post.summary}` : "";
+      lines.push(`- [${post.title}](${url})${summary}`);
     }
     lines.push("");
   }
@@ -123,6 +186,13 @@ export function buildStallJson(
       currency: p.price != null ? p.currency : undefined,
       summary: p.summary || undefined,
       image: p.image || undefined,
+    })),
+    posts: input.blogPosts.map((post) => ({
+      title: post.title,
+      url: blogUrl(input, post.slug),
+      summary: post.summary || undefined,
+      image: post.image || undefined,
+      publishedAt: post.publishedAt || undefined,
     })),
     payments: ["lightning", "cashu", "stripe", "fiat"],
     agents: {
@@ -162,6 +232,16 @@ export function buildStallLlmsTxt(input: StallContentInput): string {
     lines.push("");
   }
 
+  if (input.blogPosts.length > 0) {
+    lines.push("## Posts");
+    for (const post of input.blogPosts) {
+      const url = blogUrl(input, post.slug);
+      const note = post.summary || `Blog post from ${input.shopName}`;
+      lines.push(`- [${post.title}](${url}): ${note}`);
+    }
+    lines.push("");
+  }
+
   lines.push("## Shop");
   lines.push(
     `- [Storefront](${input.siteUrl}): Browse and buy from ${input.shopName}.`
@@ -180,7 +260,7 @@ export function buildStallLlmsTxt(input: StallContentInput): string {
   lines.push("");
   lines.push("## Optional");
   lines.push(
-    `- [Product feed (RSS)](${input.siteUrl}/rss.xml): Recent products from this shop.`
+    `- [Feed (RSS)](${input.siteUrl}/rss.xml): Recent blog posts and products from this shop.`
   );
   return lines.join("\n");
 }
@@ -234,6 +314,16 @@ export function buildStallSitemap(input: StallContentInput): string {
     });
   }
 
+  // Blog posts live under /blog/<slug> on this stall's own origin (the proxy
+  // rewrites a custom domain's /blog/<slug> back to /stall/<slug>/blog/<slug>).
+  for (const post of input.blogPosts) {
+    urls.push({
+      loc: `${origin}/blog/${encodeURIComponent(post.slug)}`,
+      changefreq: "monthly",
+      priority: "0.6",
+    });
+  }
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls
@@ -249,9 +339,37 @@ ${urls
 </urlset>`;
 }
 
-/** Tailored RSS feed for a stall's products. */
+/**
+ * Tailored RSS feed for a stall. Blog posts (NIP-23) come first as dated
+ * articles, followed by the shop's products, so a single per-storefront feed
+ * surfaces both. Subscribers polling `<host>/rss.xml` (or `/feed.xml`) discover
+ * new posts. The optional external link-out is never followed — items always
+ * link to the post's own internal /blog/<slug> page.
+ */
 export function buildStallRss(input: StallContentInput): string {
-  const items = input.products
+  const blogItems = input.blogPosts
+    .map((post) => {
+      const link = blogUrl(input, post.slug);
+      const title = escapeXml(post.title || "Untitled post");
+      const desc = escapeXml(
+        post.summary || `A blog post from ${input.shopName} on Milk Market.`
+      );
+      const pubDate = `\n      <pubDate>${new Date(
+        post.publishedAt * 1000
+      ).toUTCString()}</pubDate>`;
+      const image = post.image
+        ? `\n      <enclosure url="${escapeXml(post.image)}" type="image/jpeg" />`
+        : "";
+      return `    <item>
+      <title>${title}</title>
+      <link>${escapeXml(link)}</link>
+      <guid isPermaLink="true">${escapeXml(link)}</guid>${pubDate}
+      <description>${desc}</description>${image}
+    </item>`;
+    })
+    .join("\n");
+
+  const productItems = input.products
     .map((p) => {
       const link = listingUrl(input, p.slug);
       const title = escapeXml(p.title || "Untitled listing");
@@ -274,11 +392,15 @@ export function buildStallRss(input: StallContentInput): string {
     })
     .join("\n");
 
+  const items = [blogItems, productItems]
+    .filter((s) => s.length > 0)
+    .join("\n");
+
   const lastBuild = new Date().toUTCString();
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(input.shopName)} Products</title>
+    <title>${escapeXml(input.shopName)}</title>
     <link>${escapeXml(input.siteUrl)}</link>
     <atom:link href="${escapeXml(input.siteUrl)}/rss.xml" rel="self" type="application/rss+xml" />
     <description>${escapeXml(description(input))}</description>
@@ -288,4 +410,141 @@ export function buildStallRss(input: StallContentInput): string {
 ${items}
   </channel>
 </rss>`;
+}
+
+// --- Single blog post (NIP-23) machine-readable representations ---------------
+// Served via content negotiation on /blog/<slug> so agents/LLMs get the full
+// article body directly instead of having to render the HTML page. The post's
+// fields come from a permissionless, attacker-controllable event, so:
+//   - The image + external link-out URLs are already http(s)-validated upstream
+//     (parseBlogPostEvent) before reaching here.
+//   - The JSON representation relies on JSON serialization to escape hostile
+//     field values; the markdown/text/llms representations are served with
+//     non-HTML content types (text/markdown, text/plain) so embedded markup is
+//     inert (never interpreted as HTML).
+// The body is NIP-23 markdown authored by the seller and is emitted as-is.
+
+/** Canonical public URL of a single post on this stall. */
+function postUrl(input: StallPostInput): string {
+  return `${input.siteUrl}/blog/${encodeURIComponent(input.post.slug)}`;
+}
+
+/** Short ISO date (YYYY-MM-DD) for a post timestamp in seconds. */
+function postDate(seconds: number): string {
+  if (!seconds) return "";
+  return new Date(seconds * 1000).toISOString().split("T")[0] || "";
+}
+
+/** Full markdown rendering of a single blog post, including its body. */
+export function buildPostMarkdown(input: StallPostInput): string {
+  const p = input.post;
+  const lines: string[] = [];
+  lines.push(`# ${p.title}`);
+  lines.push("");
+  if (p.summary) {
+    lines.push(`> ${p.summary}`);
+    lines.push("");
+  }
+  const meta: string[] = [`By ${input.shopName}`];
+  const published = postDate(p.publishedAt);
+  if (published) meta.push(`Published ${published}`);
+  lines.push(`*${meta.join(" · ")}*`);
+  lines.push("");
+  if (p.hashtags.length > 0) {
+    lines.push(p.hashtags.map((t) => `#${t}`).join(" "));
+    lines.push("");
+  }
+  if (p.image) {
+    lines.push(`![${p.title}](${p.image})`);
+    lines.push("");
+  }
+  lines.push(p.content || "_This post has no content._");
+  lines.push("");
+  if (p.externalUrl) {
+    lines.push(`[Read more](${p.externalUrl})`);
+    lines.push("");
+  }
+  lines.push("---");
+  lines.push(
+    `Post: ${postUrl(input)} · More from ${input.shopName}: ${input.siteUrl}`
+  );
+  return lines.join("\n");
+}
+
+/** Structured JSON for a single blog post, including its body. */
+export function buildPostJson(input: StallPostInput): Record<string, unknown> {
+  const p = input.post;
+  return {
+    type: "article",
+    shop: input.shopName,
+    slug: input.slug,
+    url: postUrl(input),
+    post: {
+      title: p.title,
+      slug: p.slug,
+      summary: p.summary || undefined,
+      image: p.image || undefined,
+      content: p.content,
+      publishedAt: p.publishedAt || undefined,
+      updatedAt: p.updatedAt || undefined,
+      hashtags: p.hashtags.length > 0 ? p.hashtags : undefined,
+      externalUrl: p.externalUrl || undefined,
+    },
+    agents: {
+      mcp: `${PLATFORM}/api/mcp`,
+      l402: `${PLATFORM}/.well-known/l402.json`,
+      marketplace: `${PLATFORM}/marketplace`,
+    },
+  };
+}
+
+/** Plain-text rendering of a single post, derived from its markdown. */
+export function buildPostText(input: StallPostInput): string {
+  return buildPostMarkdown(input)
+    .replace(/^#+\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)")
+    .trim();
+}
+
+/** llms.txt-style rendering of a single post, including its body. */
+export function buildPostLlmsTxt(input: StallPostInput): string {
+  const p = input.post;
+  const lines: string[] = [];
+  lines.push(`# ${p.title}`);
+  lines.push("");
+  if (p.summary) {
+    lines.push(`> ${p.summary}`);
+    lines.push("");
+  }
+  const meta: string[] = [`By ${input.shopName}`];
+  const published = postDate(p.publishedAt);
+  if (published) meta.push(`Published ${published}`);
+  lines.push(meta.join(" · "));
+  lines.push("");
+  lines.push("## Article");
+  lines.push("");
+  lines.push(p.content || "_This post has no content._");
+  lines.push("");
+  if (p.externalUrl) {
+    lines.push("## Link");
+    lines.push(`- [External link](${p.externalUrl})`);
+    lines.push("");
+  }
+  lines.push("## Shop");
+  lines.push(
+    `- [Storefront](${input.siteUrl}): Browse and buy from ${input.shopName}.`
+  );
+  lines.push(`- [This post](${postUrl(input)})`);
+  lines.push("");
+  lines.push("## For AI Agents");
+  lines.push(
+    `- [MCP discovery](${PLATFORM}/.well-known/mcp.json): Model Context Protocol endpoint for programmatic browsing and purchasing.`
+  );
+  lines.push(
+    `- [L402 discovery](${PLATFORM}/.well-known/l402.json): Pay-per-request standard for paid endpoints (HTTP 402).`
+  );
+  return lines.join("\n");
 }

@@ -43,7 +43,14 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "affiliates-stripe-onboarding", RATE_LIMIT))
+  if (
+    !(await applyRateLimit(
+      req,
+      res,
+      "affiliates-stripe-onboarding",
+      RATE_LIMIT
+    ))
+  )
     return;
   if (!process.env.STRIPE_SECRET_KEY) {
     return res

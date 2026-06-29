@@ -556,6 +556,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
                 "text",
                 "image",
                 "contact",
+                "contact_form",
                 "reviews",
               ])
               .describe("Section type"),
@@ -656,6 +657,36 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             email: z.string().optional().describe("Contact email"),
             phone: z.string().optional().describe("Contact phone"),
             address: z.string().optional().describe("Contact address"),
+            successMessage: z
+              .string()
+              .optional()
+              .describe(
+                "Success message shown after a contact-form submission"
+              ),
+            contactFormMode: z
+              .enum(["contact", "subscription"])
+              .optional()
+              .describe(
+                "Contact-form section behavior: 'contact' emails the seller (default); 'subscription' adds the visitor to the seller's email list and enrolls them in the active welcome series"
+              ),
+            showNameField: z
+              .boolean()
+              .optional()
+              .describe(
+                "Show the optional Name input on a contact-form section (default true)"
+              ),
+            showPhoneField: z
+              .boolean()
+              .optional()
+              .describe(
+                "Show the optional Phone input on a contact-form section (default true)"
+              ),
+            showMessageField: z
+              .boolean()
+              .optional()
+              .describe(
+                "Show the optional Message input on a contact-form section (default true)"
+              ),
             caption: z.string().optional().describe("Image caption"),
           })
         )
@@ -739,6 +770,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .optional()
         .describe(
           "Enable a Bitcoin wallet page on the storefront for Cashu ecash payments. When true, a 'Wallet' link is auto-added to the nav and /stall/{slug}/wallet shows the wallet UI."
+        ),
+      showBlogPage: z
+        .boolean()
+        .optional()
+        .describe(
+          "Enable a blog page on the storefront. When true, a 'Blog' link is auto-added to the nav and /stall/{slug}/blog shows the seller's blog posts. The blog index page itself is section-editable in the seller dashboard."
         ),
       productPageDefaults: productPageConfigSchema
         .optional()
@@ -832,6 +869,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.showCommunityPage = params.showCommunityPage;
         if (params.showWalletPage !== undefined)
           storefront.showWalletPage = params.showWalletPage;
+        if (params.showBlogPage !== undefined)
+          storefront.showBlogPage = params.showBlogPage;
         if (params.productPageDefaults)
           storefront.productPageDefaults = params.productPageDefaults;
         if (Object.keys(storefront).length > 0) content.storefront = storefront;
