@@ -41,7 +41,7 @@ limiter always writes `X-RateLimit-*` headers on the success path, so any
 node-mock-response helper that omits `setHeader` now throws `res.setHeader is not
 a function` and masks every assertion after it. Several seller-action endpoint
 tests (`register-slug`, `create-account-link`, `nostr-json`) were already broken
-on `origin/main` for this reason and only *surfaced* during the rate-limit review
+on `origin/main` for this reason and only _surfaced_ during the rate-limit review
 — they are NOT regressions of the swap. After adding `setHeader` to the mock, a
 second latent bug can appear: a seller-action test must sign its NIP-98 event with
 the handler's EXACT `verifyNostrAuth` binding (`{ method, path, fields }`, using

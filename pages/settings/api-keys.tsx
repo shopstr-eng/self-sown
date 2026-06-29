@@ -405,6 +405,7 @@ const ApiKeysPage = () => {
                         <Button
                           className={DANGERBUTTONCLASSNAMES}
                           size="sm"
+                          isDisabled={!membership.isPro}
                           onClick={() => handleRevoke(key.id)}
                         >
                           <TrashIcon className="h-4 w-4" />

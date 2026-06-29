@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useContext } from "react";
+import Link from "next/link";
 import { Input, Textarea, Select, SelectItem } from "@heroui/react";
 import {
   StorefrontSection,
@@ -915,6 +916,12 @@ export default function SectionEditor({
 
           {section.type === "blog" && (
             <>
+              <Link
+                href="/settings/blog"
+                className="text-primary-blue inline-block text-sm font-bold underline underline-offset-2 hover:opacity-80"
+              >
+                Manage your blog posts →
+              </Link>
               <Select
                 label="Blog Layout"
                 classNames={selectClassNames}

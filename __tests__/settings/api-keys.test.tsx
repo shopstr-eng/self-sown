@@ -7,6 +7,12 @@ import {
   MCP_SIGNED_EVENT_HEADER,
 } from "@/utils/mcp/request-proof";
 
+let mockIsPro = true;
+
+jest.mock("@/components/utility-components/pro-membership-context", () => ({
+  useProMembership: () => ({ membership: { isPro: mockIsPro } }),
+}));
+
 jest.mock("next/router", () => ({
   useRouter: () => ({
     replace: jest.fn(),
@@ -62,6 +68,7 @@ describe("ApiKeysPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsPro = true;
     (global as any).fetch = fetchMock;
     Object.assign(navigator, {
       clipboard: {

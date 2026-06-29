@@ -745,132 +745,139 @@ const BlogSettingsPage = () => {
           </h2>
 
           <div className="space-y-4">
-            <Input
-              label="Title"
-              placeholder="Post title"
-              value={title}
-              onValueChange={setTitle}
-              isRequired
-              classNames={INPUT_CLASSNAMES}
-            />
-            <Textarea
-              label="Summary"
-              placeholder="A short summary shown in cards and previews (optional)"
-              value={summary}
-              onValueChange={setSummary}
-              minRows={2}
-              classNames={INPUT_CLASSNAMES}
-            />
-            <Input
-              label="Cover image URL"
-              placeholder="https://… (optional)"
-              value={imageUrl}
-              onValueChange={setImageUrl}
-              classNames={INPUT_CLASSNAMES}
-            />
-            <Input
-              label="External link URL"
-              placeholder="https://… link out to another page (optional)"
-              value={externalUrl}
-              onValueChange={setExternalUrl}
-              classNames={INPUT_CLASSNAMES}
-            />
-            <Input
-              label="Hashtags"
-              placeholder="comma or space separated, e.g. recipes, farm-news"
-              value={hashtags}
-              onValueChange={setHashtags}
-              classNames={INPUT_CLASSNAMES}
-            />
+            <fieldset
+              disabled={!membership.isPro}
+              className="m-0 space-y-4 border-0 p-0 disabled:opacity-60"
+            >
+              <Input
+                label="Title"
+                placeholder="Post title"
+                value={title}
+                onValueChange={setTitle}
+                isRequired
+                classNames={INPUT_CLASSNAMES}
+              />
+              <Textarea
+                label="Summary"
+                placeholder="A short summary shown in cards and previews (optional)"
+                value={summary}
+                onValueChange={setSummary}
+                minRows={2}
+                classNames={INPUT_CLASSNAMES}
+              />
+              <Input
+                label="Cover image URL"
+                placeholder="https://… (optional)"
+                value={imageUrl}
+                onValueChange={setImageUrl}
+                classNames={INPUT_CLASSNAMES}
+              />
+              <Input
+                label="External link URL"
+                placeholder="https://… link out to another page (optional)"
+                value={externalUrl}
+                onValueChange={setExternalUrl}
+                classNames={INPUT_CLASSNAMES}
+              />
+              <Input
+                label="Hashtags"
+                placeholder="comma or space separated, e.g. recipes, farm-news"
+                value={hashtags}
+                onValueChange={setHashtags}
+                classNames={INPUT_CLASSNAMES}
+              />
 
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="text-sm font-bold text-black">
-                  Content (Markdown)
-                </label>
-                <Button
-                  size="sm"
-                  className={WHITEBUTTONCLASSNAMES}
-                  onClick={() => setShowPreview((p) => !p)}
-                >
-                  <EyeIcon className="h-4 w-4" />
-                  {showPreview ? "Edit" : "Preview"}
-                </Button>
-              </div>
-              {showPreview ? (
-                <div className="min-h-[12rem] rounded-md border-2 border-black bg-white p-4">
-                  {content.trim() ? (
-                    <BlogMarkdown content={content} />
-                  ) : (
-                    <p className="text-sm text-gray-400">Nothing to preview.</p>
-                  )}
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-sm font-bold text-black">
+                    Content (Markdown)
+                  </label>
+                  <Button
+                    size="sm"
+                    className={WHITEBUTTONCLASSNAMES}
+                    onClick={() => setShowPreview((p) => !p)}
+                  >
+                    <EyeIcon className="h-4 w-4" />
+                    {showPreview ? "Edit" : "Preview"}
+                  </Button>
                 </div>
-              ) : (
-                <Textarea
-                  placeholder="Write your post in Markdown. Raw HTML is not allowed."
-                  value={content}
-                  onValueChange={setContent}
-                  minRows={12}
-                  classNames={INPUT_CLASSNAMES}
-                />
-              )}
-            </div>
-
-            {membership.isPro ? (
-              canEmail ? (
-                <div className="shadow-neo flex items-start justify-between gap-3 rounded-md border-2 border-black bg-gray-50 p-4">
-                  <div>
-                    <p className="text-sm font-bold text-black">
-                      Email this post to your audience
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      Sends from your verified domain to buyers and subscribers
-                      who haven&apos;t unsubscribed. Sent once per version, at
-                      publish time (or the scheduled time below).
-                    </p>
+                {showPreview ? (
+                  <div className="min-h-[12rem] rounded-md border-2 border-black bg-white p-4">
+                    {content.trim() ? (
+                      <BlogMarkdown content={content} />
+                    ) : (
+                      <p className="text-sm text-gray-400">
+                        Nothing to preview.
+                      </p>
+                    )}
                   </div>
-                  <Switch
-                    isSelected={sendAsEmail}
-                    onValueChange={setSendAsEmail}
+                ) : (
+                  <Textarea
+                    placeholder="Write your post in Markdown. Raw HTML is not allowed."
+                    value={content}
+                    onValueChange={setContent}
+                    minRows={12}
+                    classNames={INPUT_CLASSNAMES}
+                  />
+                )}
+              </div>
+
+              {membership.isPro ? (
+                canEmail ? (
+                  <div className="shadow-neo flex items-start justify-between gap-3 rounded-md border-2 border-black bg-gray-50 p-4">
+                    <div>
+                      <p className="text-sm font-bold text-black">
+                        Email this post to your audience
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Sends from your verified domain to buyers and
+                        subscribers who haven&apos;t unsubscribed. Sent once per
+                        version, at publish time (or the scheduled time below).
+                      </p>
+                    </div>
+                    <Switch
+                      isSelected={sendAsEmail}
+                      onValueChange={setSendAsEmail}
+                    />
+                  </div>
+                ) : (
+                  <div className="shadow-neo rounded-md border-2 border-black bg-gray-50 p-4 text-sm text-gray-700">
+                    Want to email this post to your customers? Connect and
+                    verify a sender domain in{" "}
+                    <a
+                      href="/settings/email-flows"
+                      className="font-bold underline"
+                    >
+                      Email settings
+                    </a>{" "}
+                    first.
+                  </div>
+                )
+              ) : null}
+
+              {membership.isPro && (
+                <div className="shadow-neo rounded-md border-2 border-black bg-gray-50 p-4">
+                  <label
+                    htmlFor="blog-schedule-at"
+                    className="text-sm font-bold text-black"
+                  >
+                    Schedule publish time (optional)
+                  </label>
+                  <p className="mb-2 text-xs text-gray-600">
+                    Leave empty to publish now or save as a draft. Set a time to
+                    automatically publish
+                    {canEmail && sendAsEmail ? " and email" : ""} later.
+                  </p>
+                  <input
+                    id="blog-schedule-at"
+                    type="datetime-local"
+                    value={scheduleAt}
+                    onChange={(e) => setScheduleAt(e.target.value)}
+                    className="w-full rounded-md border-2 border-black bg-white p-2 text-sm text-black"
                   />
                 </div>
-              ) : (
-                <div className="shadow-neo rounded-md border-2 border-black bg-gray-50 p-4 text-sm text-gray-700">
-                  Want to email this post to your customers? Connect and verify
-                  a sender domain in{" "}
-                  <a
-                    href="/settings/email-flows"
-                    className="font-bold underline"
-                  >
-                    Email settings
-                  </a>{" "}
-                  first.
-                </div>
-              )
-            ) : null}
-
-            {membership.isPro && (
-              <div className="shadow-neo rounded-md border-2 border-black bg-gray-50 p-4">
-                <label
-                  htmlFor="blog-schedule-at"
-                  className="text-sm font-bold text-black"
-                >
-                  Schedule publish time (optional)
-                </label>
-                <p className="mb-2 text-xs text-gray-600">
-                  Leave empty to publish now or save as a draft. Set a time to
-                  automatically publish
-                  {canEmail && sendAsEmail ? " and email" : ""} later.
-                </p>
-                <input
-                  id="blog-schedule-at"
-                  type="datetime-local"
-                  value={scheduleAt}
-                  onChange={(e) => setScheduleAt(e.target.value)}
-                  className="w-full rounded-md border-2 border-black bg-white p-2 text-sm text-black"
-                />
-              </div>
-            )}
+              )}
+            </fieldset>
 
             <div className="flex flex-wrap gap-2 pt-2">
               <Button
@@ -878,6 +885,7 @@ const BlogSettingsPage = () => {
                 onClick={handlePublish}
                 isLoading={isPublishing}
                 isDisabled={
+                  !membership.isPro ||
                   !title.trim() ||
                   !content.trim() ||
                   isSavingDraft ||
@@ -953,234 +961,241 @@ const BlogSettingsPage = () => {
           <UpgradeBanner className="mb-6" feature="Storefront blog + email" />
         )}
 
-        {scheduledItems.length > 0 && (
-          <div className="mb-8">
-            <h2 className="mb-4 text-2xl font-bold text-black">
-              Drafts &amp; scheduled
-            </h2>
-            <div className="space-y-3">
-              {scheduledItems.map((item) => {
-                const health = scheduledPostHealth(item, Date.now());
-                return (
-                  <div
-                    key={item.dTag}
-                    className={`shadow-neo rounded-md border-2 border-black p-4 ${
-                      health === "failed" ? "bg-red-50" : "bg-yellow-50"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold ${
-                              item.status === "scheduled"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-700"
-                            }`}
-                          >
-                            {item.status === "scheduled" ? (
-                              <ClockIcon className="h-3 w-3" />
-                            ) : (
-                              <DocumentTextIcon className="h-3 w-3" />
-                            )}
-                            {item.status === "scheduled"
-                              ? "Scheduled"
-                              : "Draft"}
-                          </span>
-                          {item.sendAsEmail && (
-                            <span className="inline-flex items-center gap-1 rounded border-2 border-black bg-green-100 px-2 py-0.5 text-xs font-bold text-green-800">
-                              <PaperAirplaneIcon className="h-3 w-3" />
-                              Email
-                            </span>
-                          )}
-                          {health && (
+        <fieldset
+          disabled={!membership.isPro}
+          className="m-0 block border-0 p-0 disabled:opacity-60"
+        >
+          {scheduledItems.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-4 text-2xl font-bold text-black">
+                Drafts &amp; scheduled
+              </h2>
+              <div className="space-y-3">
+                {scheduledItems.map((item) => {
+                  const health = scheduledPostHealth(item, Date.now());
+                  return (
+                    <div
+                      key={item.dTag}
+                      className={`shadow-neo rounded-md border-2 border-black p-4 ${
+                        health === "failed" ? "bg-red-50" : "bg-yellow-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span
                               className={`inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold ${
-                                health === "failed"
-                                  ? "bg-red-200 text-red-900"
-                                  : "bg-orange-100 text-orange-800"
+                                item.status === "scheduled"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-700"
                               }`}
                             >
-                              <ExclamationCircleIcon className="h-3 w-3" />
-                              {health === "failed" ? "Failed" : "Retrying"}
+                              {item.status === "scheduled" ? (
+                                <ClockIcon className="h-3 w-3" />
+                              ) : (
+                                <DocumentTextIcon className="h-3 w-3" />
+                              )}
+                              {item.status === "scheduled"
+                                ? "Scheduled"
+                                : "Draft"}
                             </span>
+                            {item.sendAsEmail && (
+                              <span className="inline-flex items-center gap-1 rounded border-2 border-black bg-green-100 px-2 py-0.5 text-xs font-bold text-green-800">
+                                <PaperAirplaneIcon className="h-3 w-3" />
+                                Email
+                              </span>
+                            )}
+                            {health && (
+                              <span
+                                className={`inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold ${
+                                  health === "failed"
+                                    ? "bg-red-200 text-red-900"
+                                    : "bg-orange-100 text-orange-800"
+                                }`}
+                              >
+                                <ExclamationCircleIcon className="h-3 w-3" />
+                                {health === "failed" ? "Failed" : "Retrying"}
+                              </span>
+                            )}
+                          </div>
+                          <span className="mt-2 block truncate font-bold text-black">
+                            {item.post.title || "Untitled"}
+                          </span>
+                          {item.post.summary && (
+                            <p className="mt-1 line-clamp-2 text-sm text-gray-600">
+                              {item.post.summary}
+                            </p>
+                          )}
+                          {item.status === "scheduled" && item.scheduledAt && (
+                            <p className="mt-1 text-xs text-gray-600">
+                              Publishes{" "}
+                              {new Date(
+                                item.scheduledAt * 1000
+                              ).toLocaleString()}
+                            </p>
+                          )}
+                          {health && (
+                            <p
+                              className={`mt-1 text-xs font-semibold ${
+                                health === "failed"
+                                  ? "text-red-700"
+                                  : "text-orange-700"
+                              }`}
+                            >
+                              {health === "failed"
+                                ? `Couldn't publish after ${item.attemptCount} tries. `
+                                : item.attemptCount > 0
+                                  ? `Last attempt failed (${item.attemptCount} so far). Will keep retrying. `
+                                  : "Past its scheduled time — will publish on the next run. "}
+                              {item.lastError ? item.lastError : null}
+                              {" Try Publish now, or edit and re-save."}
+                            </p>
                           )}
                         </div>
-                        <span className="mt-2 block truncate font-bold text-black">
-                          {item.post.title || "Untitled"}
-                        </span>
-                        {item.post.summary && (
-                          <p className="mt-1 line-clamp-2 text-sm text-gray-600">
-                            {item.post.summary}
-                          </p>
-                        )}
-                        {item.status === "scheduled" && item.scheduledAt && (
-                          <p className="mt-1 text-xs text-gray-600">
-                            Publishes{" "}
-                            {new Date(item.scheduledAt * 1000).toLocaleString()}
-                          </p>
-                        )}
-                        {health && (
-                          <p
-                            className={`mt-1 text-xs font-semibold ${
-                              health === "failed"
-                                ? "text-red-700"
-                                : "text-orange-700"
-                            }`}
+                        <div className="flex flex-shrink-0 gap-2">
+                          <Button
+                            className={BLUEBUTTONCLASSNAMES}
+                            size="sm"
+                            isLoading={publishingDTag === item.dTag}
+                            onClick={() => handlePublishNow(item)}
+                            title="Publish now"
                           >
-                            {health === "failed"
-                              ? `Couldn't publish after ${item.attemptCount} tries. `
-                              : item.attemptCount > 0
-                                ? `Last attempt failed (${item.attemptCount} so far). Will keep retrying. `
-                                : "Past its scheduled time — will publish on the next run. "}
-                            {item.lastError ? item.lastError : null}
-                            {" Try Publish now, or edit and re-save."}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-shrink-0 gap-2">
-                        <Button
-                          className={BLUEBUTTONCLASSNAMES}
-                          size="sm"
-                          isLoading={publishingDTag === item.dTag}
-                          onClick={() => handlePublishNow(item)}
-                          title="Publish now"
-                        >
-                          <PaperAirplaneIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          className={WHITEBUTTONCLASSNAMES}
-                          size="sm"
-                          onClick={() => openEditScheduled(item)}
-                          title="Edit"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          className={DANGERBUTTONCLASSNAMES}
-                          size="sm"
-                          onClick={() => handleDeleteScheduled(item)}
-                          title="Delete"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </Button>
+                            <PaperAirplaneIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className={WHITEBUTTONCLASSNAMES}
+                            size="sm"
+                            onClick={() => openEditScheduled(item)}
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            className={DANGERBUTTONCLASSNAMES}
+                            size="sm"
+                            onClick={() => handleDeleteScheduled(item)}
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-black">Your posts</h2>
-          <Button className={BLACKBUTTONCLASSNAMES} onClick={openCreate}>
-            <PlusIcon className="h-4 w-4" />
-            New post
-          </Button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Spinner size="lg" />
-          </div>
-        ) : sortedPosts.length === 0 ? (
-          <div className="rounded-md border-2 border-dashed border-gray-300 p-8 text-center">
-            <NewspaperIcon className="mx-auto mb-3 h-10 w-10 text-gray-400" />
-            <p className="mb-2 font-bold text-gray-600">No posts yet</p>
-            <p className="mb-4 text-sm text-gray-500">
-              Write your first blog post to share news, recipes, or updates with
-              your customers.
-            </p>
-            <Button className={BLUEBUTTONCLASSNAMES} onClick={openCreate}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-black">Your posts</h2>
+            <Button className={BLACKBUTTONCLASSNAMES} onClick={openCreate}>
               <PlusIcon className="h-4 w-4" />
-              Write your first post
+              New post
             </Button>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {sortedPosts.map((post) => (
-              <div
-                key={post.dTag}
-                className="shadow-neo rounded-md border-2 border-black bg-white p-4"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <span className="block truncate font-bold text-black">
-                      {post.title}
-                    </span>
-                    {post.summary && (
-                      <p className="mt-1 line-clamp-2 text-sm text-gray-600">
-                        {post.summary}
-                      </p>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {new Date(post.publishedAt * 1000).toLocaleDateString(
-                        undefined,
-                        { month: "short", day: "numeric", year: "numeric" }
+
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="lg" />
+            </div>
+          ) : sortedPosts.length === 0 ? (
+            <div className="rounded-md border-2 border-dashed border-gray-300 p-8 text-center">
+              <NewspaperIcon className="mx-auto mb-3 h-10 w-10 text-gray-400" />
+              <p className="mb-2 font-bold text-gray-600">No posts yet</p>
+              <p className="mb-4 text-sm text-gray-500">
+                Write your first blog post to share news, recipes, or updates
+                with your customers.
+              </p>
+              <Button className={BLUEBUTTONCLASSNAMES} onClick={openCreate}>
+                <PlusIcon className="h-4 w-4" />
+                Write your first post
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedPosts.map((post) => (
+                <div
+                  key={post.dTag}
+                  className="shadow-neo rounded-md border-2 border-black bg-white p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="block truncate font-bold text-black">
+                        {post.title}
+                      </span>
+                      {post.summary && (
+                        <p className="mt-1 line-clamp-2 text-sm text-gray-600">
+                          {post.summary}
+                        </p>
                       )}
-                      {post.hashtags.length > 0 &&
-                        ` · ${post.hashtags.map((h) => `#${h}`).join(" ")}`}
-                    </p>
-                  </div>
-                  <div className="flex flex-shrink-0 gap-2">
-                    {canEmail && (
-                      <>
-                        <select
-                          aria-label="Choose who to email this post to"
-                          title="Choose who to email this post to"
-                          value={emailAudienceByDTag[post.dTag] || "all"}
-                          onChange={(e) =>
-                            setEmailAudienceByDTag((prev) => ({
-                              ...prev,
-                              [post.dTag]: e.target.value as
-                                | "all"
-                                | "popup"
-                                | "subscription",
-                            }))
-                          }
-                          className="shadow-neo rounded-md border-2 border-black bg-white px-2 text-xs font-medium text-black"
-                        >
-                          <option value="all">All contacts</option>
-                          <option value="popup">Popup only</option>
-                          <option value="subscription">
-                            Subscription only
-                          </option>
-                        </select>
-                        <Button
-                          className={BLUEBUTTONCLASSNAMES}
-                          size="sm"
-                          isLoading={emailingDTag === post.dTag}
-                          onClick={() => handleEmailExisting(post)}
-                          title="Email this post to the chosen audience"
-                        >
-                          <PaperAirplaneIcon className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Button
-                      className={WHITEBUTTONCLASSNAMES}
-                      size="sm"
-                      onClick={() => openEdit(post)}
-                      title="Edit"
-                    >
-                      <PencilIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      className={DANGERBUTTONCLASSNAMES}
-                      size="sm"
-                      onClick={() => handleDelete(post)}
-                      title="Delete"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                    </Button>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {new Date(post.publishedAt * 1000).toLocaleDateString(
+                          undefined,
+                          { month: "short", day: "numeric", year: "numeric" }
+                        )}
+                        {post.hashtags.length > 0 &&
+                          ` · ${post.hashtags.map((h) => `#${h}`).join(" ")}`}
+                      </p>
+                    </div>
+                    <div className="flex flex-shrink-0 gap-2">
+                      {canEmail && (
+                        <>
+                          <select
+                            aria-label="Choose who to email this post to"
+                            title="Choose who to email this post to"
+                            value={emailAudienceByDTag[post.dTag] || "all"}
+                            onChange={(e) =>
+                              setEmailAudienceByDTag((prev) => ({
+                                ...prev,
+                                [post.dTag]: e.target.value as
+                                  | "all"
+                                  | "popup"
+                                  | "subscription",
+                              }))
+                            }
+                            className="shadow-neo rounded-md border-2 border-black bg-white px-2 text-xs font-medium text-black"
+                          >
+                            <option value="all">All contacts</option>
+                            <option value="popup">Popup only</option>
+                            <option value="subscription">
+                              Subscription only
+                            </option>
+                          </select>
+                          <Button
+                            className={BLUEBUTTONCLASSNAMES}
+                            size="sm"
+                            isLoading={emailingDTag === post.dTag}
+                            onClick={() => handleEmailExisting(post)}
+                            title="Email this post to the chosen audience"
+                          >
+                            <PaperAirplaneIcon className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        className={WHITEBUTTONCLASSNAMES}
+                        size="sm"
+                        onClick={() => openEdit(post)}
+                        title="Edit"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        className={DANGERBUTTONCLASSNAMES}
+                        size="sm"
+                        onClick={() => handleDelete(post)}
+                        title="Delete"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </fieldset>
       </div>
     </div>
   );

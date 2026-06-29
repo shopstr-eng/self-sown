@@ -64,11 +64,14 @@ describe("register slug api", () => {
   test("registers a slug with a valid signed event", async () => {
     const response = createMockResponse();
     query.mockResolvedValueOnce({});
-    const { pubkey, signedEvent } = createSignedAction("storefront-slug-write", {
-      method: "POST",
-      path: "/api/storefront/register-slug",
-      fields: { slug: "Fresh Farm!!" },
-    });
+    const { pubkey, signedEvent } = createSignedAction(
+      "storefront-slug-write",
+      {
+        method: "POST",
+        path: "/api/storefront/register-slug",
+        fields: { slug: "Fresh Farm!!" },
+      }
+    );
 
     await handler(
       {
@@ -114,10 +117,13 @@ describe("register slug api", () => {
   test("deletes a slug with a valid signed event", async () => {
     const response = createMockResponse();
     query.mockResolvedValue({});
-    const { pubkey, signedEvent } = createSignedAction("storefront-slug-write", {
-      method: "DELETE",
-      path: "/api/storefront/register-slug",
-    });
+    const { pubkey, signedEvent } = createSignedAction(
+      "storefront-slug-write",
+      {
+        method: "DELETE",
+        path: "/api/storefront/register-slug",
+      }
+    );
 
     await handler(
       {
