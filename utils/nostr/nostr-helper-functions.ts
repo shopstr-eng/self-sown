@@ -30,6 +30,11 @@ import {
 } from "@/utils/nostr/request-auth";
 import { newPromiseWithTimeout } from "@/utils/timeout";
 import { getLocalStorageJson } from "@/utils/safe-json";
+import {
+  BLOG_POST_KIND,
+  buildBlogPostTags,
+  type BlogPostDraft,
+} from "@milk-market/domain";
 
 export const REPORT_TYPES = [
   "nudity",
@@ -93,6 +98,65 @@ export async function deleteEvent(
   deleteEventsFromDatabase(event_ids_to_delete, signedRequestProof).catch(
     (error) => console.error("Failed to delete events from database:", error)
   );
+}
+
+/**
+ * Sign + cache + publish a NIP-23 (kind:30023) blog post. The draft's `dTag`
+ * is the stable addressable id — reuse it to edit (publish a newer version that
+ * replaces the old one) or generate a fresh one (uuid) for a new post. The
+ * markdown body is carried on `content`; tags are built by the shared domain
+ * helper, which http(s)-validates the image + optional link-out URL.
+ */
+export async function createNostrBlogPost(
+  nostr: NostrManager,
+  signer: NostrSigner,
+  draft: BlogPostDraft,
+  options: FinalizeAndSendOptions = {}
+) {
+  if (!signer) throw new Error("Login required");
+  if (!nostr) throw new Error("Nostr writer required");
+
+  const created_at = Math.floor(Date.now() / 1000);
+  const tags = buildBlogPostTags(draft, created_at);
+
+  const event: EventTemplate = {
+    kind: BLOG_POST_KIND,
+    created_at,
+    tags,
+    content: typeof draft.content === "string" ? draft.content : "",
+  };
+
+  return await finalizeAndSendNostrEvent(signer, nostr, event, options);
+}
+
+/**
+ * Sign a NIP-23 (kind:30023) blog post WITHOUT publishing it to relays or
+ * caching it. Used for drafts and scheduled posts: the signed event is held in
+ * our server store and only broadcast at publish / scheduled-publish time. Pass
+ * `createdAt` to stamp the event at a future scheduled time so it sorts ahead of
+ * any current version once published; defaults to now (for plain drafts).
+ */
+export async function signNostrBlogPost(
+  signer: NostrSigner,
+  draft: BlogPostDraft,
+  createdAt?: number
+): Promise<NostrEvent> {
+  if (!signer) throw new Error("Login required");
+
+  const created_at =
+    typeof createdAt === "number" && Number.isFinite(createdAt)
+      ? Math.floor(createdAt)
+      : Math.floor(Date.now() / 1000);
+  const tags = buildBlogPostTags(draft, created_at);
+
+  const event: EventTemplate = {
+    kind: BLOG_POST_KIND,
+    created_at,
+    tags,
+    content: typeof draft.content === "string" ? draft.content : "",
+  };
+
+  return (await signer.sign(event)) as NostrEvent;
 }
 
 export function createNostrDeleteEvent(

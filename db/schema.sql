@@ -16,6 +16,46 @@ CREATE TABLE IF NOT EXISTS product_events (
 CREATE INDEX IF NOT EXISTS idx_product_events_pubkey ON product_events(pubkey);
 CREATE INDEX IF NOT EXISTS idx_product_events_created_at ON product_events(created_at DESC);
 
+-- Long-form / blog posts table (kind 30023 - NIP-23, addressable per d-tag)
+CREATE TABLE IF NOT EXISTS long_form_events (
+    id TEXT PRIMARY KEY,
+    pubkey TEXT NOT NULL,
+    created_at BIGINT NOT NULL,
+    kind INTEGER NOT NULL,
+    tags JSONB NOT NULL,
+    content TEXT NOT NULL,
+    sig TEXT NOT NULL,
+    cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT long_form_events_kind_check CHECK (kind = 30023)
+);
+
+CREATE INDEX IF NOT EXISTS idx_long_form_events_pubkey ON long_form_events(pubkey);
+CREATE INDEX IF NOT EXISTS idx_long_form_events_created_at ON long_form_events(created_at DESC);
+
+-- Drafts + scheduled blog posts. These hold a pre-signed kind:30023 event that
+-- has NOT been broadcast to relays yet: a `draft` waits indefinitely, a
+-- `scheduled` post is published (and optionally emailed) by the cron at
+-- `scheduled_at`. One entry per addressable post (pubkey, d_tag).
+CREATE TABLE IF NOT EXISTS scheduled_blog_posts (
+    id SERIAL PRIMARY KEY,
+    pubkey TEXT NOT NULL,
+    d_tag TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'draft',
+    event_id TEXT NOT NULL,
+    signed_event JSONB NOT NULL,
+    scheduled_at BIGINT,
+    send_as_email BOOLEAN NOT NULL DEFAULT FALSE,
+    title TEXT NOT NULL DEFAULT '',
+    summary TEXT,
+    processing_at BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (pubkey, d_tag)
+);
+
+CREATE INDEX IF NOT EXISTS idx_scheduled_blog_posts_pubkey ON scheduled_blog_posts(pubkey);
+CREATE INDEX IF NOT EXISTS idx_scheduled_blog_posts_due ON scheduled_blog_posts(status, scheduled_at);
+
 -- Reviews table (kind 31555)
 CREATE TABLE IF NOT EXISTS review_events (
     id TEXT PRIMARY KEY,
@@ -498,12 +538,32 @@ CREATE TABLE IF NOT EXISTS popup_email_captures (
     phone TEXT,
     discount_code TEXT NOT NULL,
     discount_percentage DECIMAL(5,2) NOT NULL,
+    source TEXT NOT NULL DEFAULT 'popup',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(seller_pubkey, email)
 );
 
 CREATE INDEX IF NOT EXISTS idx_popup_email_captures_seller ON popup_email_captures(seller_pubkey);
 CREATE INDEX IF NOT EXISTS idx_popup_email_captures_email ON popup_email_captures(email);
+
+-- Origin of each captured contact: 'popup' (welcome-offer popup, gets a discount
+-- code) vs 'subscription' (storefront subscription form, no code). Added after the
+-- table shipped, so backfill existing rows once: rows with an empty discount_code
+-- were subscription signups, everything else came from the popup. The guard on
+-- column existence keeps the backfill a one-time operation on re-applies.
+DO $popup_source_migrate$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_name = 'popup_email_captures' AND column_name = 'source'
+  ) THEN
+    ALTER TABLE popup_email_captures ADD COLUMN source TEXT NOT NULL DEFAULT 'popup';
+    UPDATE popup_email_captures
+       SET source = 'subscription'
+     WHERE COALESCE(discount_code, '') = '';
+  END IF;
+END
+$popup_source_migrate$;
 
 -- Account recovery: universal table for all auth types (email, oauth, nsec)
 CREATE TABLE IF NOT EXISTS account_recovery (
@@ -845,3 +905,18 @@ CREATE TABLE IF NOT EXISTS authed_sellers (
     pubkey TEXT PRIMARY KEY,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Shared (cross-instance) rate-limit counters. One row per (bucket, key) — e.g.
+-- ("agent-view", client IP). Backs utils/rate-limit.ts so the configured ceiling
+-- is enforced consistently across horizontally-scaled instances instead of
+-- per-process. Expired rows are pruned opportunistically.
+CREATE TABLE IF NOT EXISTS rate_limit_counters (
+    bucket TEXT NOT NULL,
+    rate_key TEXT NOT NULL,
+    window_start BIGINT NOT NULL,
+    reset_at BIGINT NOT NULL,
+    count INTEGER NOT NULL,
+    PRIMARY KEY (bucket, rate_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_rate_limit_counters_reset_at ON rate_limit_counters(reset_at);

@@ -21,7 +21,8 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "affiliates-click-stats", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "affiliates-click-stats", RATE_LIMIT)))
+    return;
 
   const { pubkey, sinceDays } = req.query;
   if (!pubkey || typeof pubkey !== "string") {

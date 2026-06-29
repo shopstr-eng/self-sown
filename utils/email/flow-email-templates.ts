@@ -103,7 +103,7 @@ function flowBaseTemplate(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
 </head>
 <body style="margin:0;padding:0;background-color:${pageBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:${bodyText};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${pageBg};padding:40px 20px;">

@@ -118,8 +118,12 @@ const STOREFRONT_SECTION_TYPES = new Set([
   "text",
   "image",
   "contact",
+  "contact_form",
   "reviews",
+  "blog",
 ]);
+const STOREFRONT_BLOG_LAYOUTS = new Set(["featured", "grid", "list"]);
+const STOREFRONT_CONTACT_FORM_MODES = new Set(["contact", "subscription"]);
 const STOREFRONT_SOCIAL_PLATFORMS = new Set([
   "instagram",
   "x",
@@ -332,7 +336,9 @@ function normalizeStorefrontConfig(
                   | "text"
                   | "image"
                   | "contact"
-                  | "reviews")
+                  | "contact_form"
+                  | "reviews"
+                  | "blog")
               : "text",
           ...(typeof section.enabled === "boolean"
             ? { enabled: section.enabled }
@@ -409,8 +415,44 @@ function normalizeStorefrontConfig(
           ...(typeof section.address === "string"
             ? { address: section.address }
             : {}),
+          ...(typeof section.successMessage === "string"
+            ? { successMessage: section.successMessage }
+            : {}),
+          ...(typeof section.contactFormMode === "string" &&
+          STOREFRONT_CONTACT_FORM_MODES.has(section.contactFormMode)
+            ? {
+                contactFormMode: section.contactFormMode as
+                  | "contact"
+                  | "subscription",
+              }
+            : {}),
+          ...(typeof section.showNameField === "boolean"
+            ? { showNameField: section.showNameField }
+            : {}),
+          ...(typeof section.showPhoneField === "boolean"
+            ? { showPhoneField: section.showPhoneField }
+            : {}),
+          ...(typeof section.showMessageField === "boolean"
+            ? { showMessageField: section.showMessageField }
+            : {}),
           ...(typeof section.caption === "string"
             ? { caption: section.caption }
+            : {}),
+          ...(typeof section.blogLayout === "string" &&
+          STOREFRONT_BLOG_LAYOUTS.has(section.blogLayout)
+            ? {
+                blogLayout: section.blogLayout as "featured" | "grid" | "list",
+              }
+            : {}),
+          ...(Array.isArray(section.blogPostIds)
+            ? {
+                blogPostIds: section.blogPostIds.filter(
+                  (id): id is string => typeof id === "string"
+                ),
+              }
+            : {}),
+          ...(typeof section.blogPostLimit === "number"
+            ? { blogPostLimit: section.blogPostLimit }
             : {}),
         }))
         .filter((section) => section.id)
@@ -441,13 +483,66 @@ function normalizeStorefrontConfig(
                         | "text"
                         | "image"
                         | "contact"
-                        | "reviews")
+                        | "contact_form"
+                        | "reviews"
+                        | "blog")
                     : "text",
+                ...(typeof section.enabled === "boolean"
+                  ? { enabled: section.enabled }
+                  : {}),
                 ...(typeof section.heading === "string"
                   ? { heading: section.heading }
                   : {}),
+                ...(typeof section.subheading === "string"
+                  ? { subheading: section.subheading }
+                  : {}),
                 ...(typeof section.body === "string"
                   ? { body: section.body }
+                  : {}),
+                ...(typeof section.ctaText === "string"
+                  ? { ctaText: section.ctaText }
+                  : {}),
+                ...(typeof section.headingColor === "string"
+                  ? { headingColor: section.headingColor }
+                  : {}),
+                ...(typeof section.successMessage === "string"
+                  ? { successMessage: section.successMessage }
+                  : {}),
+                ...(typeof section.contactFormMode === "string" &&
+                STOREFRONT_CONTACT_FORM_MODES.has(section.contactFormMode)
+                  ? {
+                      contactFormMode: section.contactFormMode as
+                        | "contact"
+                        | "subscription",
+                    }
+                  : {}),
+                ...(typeof section.showNameField === "boolean"
+                  ? { showNameField: section.showNameField }
+                  : {}),
+                ...(typeof section.showPhoneField === "boolean"
+                  ? { showPhoneField: section.showPhoneField }
+                  : {}),
+                ...(typeof section.showMessageField === "boolean"
+                  ? { showMessageField: section.showMessageField }
+                  : {}),
+                ...(typeof section.blogLayout === "string" &&
+                STOREFRONT_BLOG_LAYOUTS.has(section.blogLayout)
+                  ? {
+                      blogLayout: section.blogLayout as
+                        | "featured"
+                        | "grid"
+                        | "list",
+                    }
+                  : {}),
+                ...(Array.isArray(section.blogPostIds)
+                  ? {
+                      blogPostIds: section.blogPostIds.filter(
+                        (id): id is string => typeof id === "string"
+                      ),
+                    }
+                  : {}),
+                ...(typeof section.blogPostLimit === "number"
+                  ? { blogPostLimit: section.blogPostLimit }
                   : {}),
               }))
             : [],

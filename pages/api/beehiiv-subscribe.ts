@@ -11,7 +11,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "beehiiv-subscribe", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "beehiiv-subscribe", RATE_LIMIT)))
+    return;
 
   const { email } = req.body;
 

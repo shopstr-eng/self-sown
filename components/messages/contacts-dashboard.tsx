@@ -7,16 +7,23 @@ import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { copyToClipboard } from "@/utils/clipboard";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 
+type ContactSource = "popup" | "subscription";
+
 interface PopupContact {
   email: string;
   phone: string | null;
   discountCode: string;
   discountPercentage: number;
+  source: ContactSource;
   timesUsed: number;
   createdAt: string;
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+type SourceFilter = "all" | ContactSource;
+
+function sourceLabel(source: ContactSource): string {
+  return source === "subscription" ? "Subscription" : "Popup";
+}
 
 function formatDate(value: string): string {
   try {
@@ -36,6 +43,7 @@ function toCsv(contacts: PopupContact[]): string {
   const header = [
     "email",
     "phone",
+    "source",
     "discount_code",
     "discount_percentage",
     "times_used",
@@ -51,6 +59,7 @@ function toCsv(contacts: PopupContact[]): string {
     [
       c.email,
       c.phone,
+      c.source,
       c.discountCode,
       c.discountPercentage,
       c.timesUsed,
@@ -68,6 +77,7 @@ export default function ContactsDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
 
   const loadContacts = useCallback(async () => {
@@ -108,24 +118,23 @@ export default function ContactsDashboard() {
   const filtered = useMemo(() => {
     if (!contacts) return [];
     const q = search.trim().toLowerCase();
-    if (!q) return contacts;
-    return contacts.filter(
-      (c) =>
+    return contacts.filter((c) => {
+      if (sourceFilter !== "all" && c.source !== sourceFilter) return false;
+      if (!q) return true;
+      return (
         c.email.toLowerCase().includes(q) ||
         (c.phone || "").toLowerCase().includes(q) ||
         c.discountCode.toLowerCase().includes(q)
-    );
-  }, [contacts, search]);
+      );
+    });
+  }, [contacts, search, sourceFilter]);
 
   const stats = useMemo(() => {
-    if (!contacts) return { total: 0, recent: 0, used: 0 };
-    const cutoff = Date.now() - 7 * DAY_MS;
+    if (!contacts) return { total: 0, popup: 0, subscription: 0, used: 0 };
     return {
       total: contacts.length,
-      recent: contacts.filter((c) => {
-        const t = new Date(c.createdAt).getTime();
-        return Number.isFinite(t) && t >= cutoff;
-      }).length,
+      popup: contacts.filter((c) => c.source === "popup").length,
+      subscription: contacts.filter((c) => c.source === "subscription").length,
       used: contacts.filter((c) => c.timesUsed > 0).length,
     };
   }, [contacts]);
@@ -176,15 +185,43 @@ export default function ContactsDashboard() {
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-black">Captured Contacts</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Visitors who signed up through your email capture popup. Each
-            contact receives a unique discount code by email.
+            Visitors who signed up through your email capture popup or a
+            storefront subscription form. Popup signups receive a unique
+            discount code; subscription signups are added to your list.
           </p>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Total Contacts" value={stats.total} />
-          <StatCard label="New in last 7 days" value={stats.recent} />
+          <StatCard label="From Popup" value={stats.popup} />
+          <StatCard label="From Subscription" value={stats.subscription} />
           <StatCard label="Codes Redeemed" value={stats.used} />
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
+            Source
+          </span>
+          {(
+            [
+              ["all", `All (${stats.total})`],
+              ["popup", `Popup (${stats.popup})`],
+              ["subscription", `Subscription (${stats.subscription})`],
+            ] as [SourceFilter, string][]
+          ).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setSourceFilter(value)}
+              className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors ${
+                sourceFilter === value
+                  ? "border-black bg-black text-white"
+                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="mb-4 flex w-full min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -259,7 +296,9 @@ export default function ContactsDashboard() {
             <MilkMarketSpinner />
           </div>
         ) : !filtered.length ? (
-          <EmptyState hasFilter={search.trim().length > 0} />
+          <EmptyState
+            hasFilter={search.trim().length > 0 || sourceFilter !== "all"}
+          />
         ) : (
           <div className="w-full max-w-full min-w-0 overflow-x-auto rounded-lg border-2 border-gray-200">
             <table className="w-full min-w-[640px] text-left text-sm">
@@ -267,6 +306,7 @@ export default function ContactsDashboard() {
                 <tr>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Phone</th>
+                  <th className="px-4 py-3">Source</th>
                   <th className="px-4 py-3">Discount Code</th>
                   <th className="px-4 py-3">Used</th>
                   <th className="px-4 py-3">Captured</th>
@@ -297,12 +337,29 @@ export default function ContactsDashboard() {
                       {c.phone || "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-black">
-                        {c.discountCode}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                          c.source === "subscription"
+                            ? "bg-blue-50 text-blue-700"
+                            : "bg-purple-50 text-purple-700"
+                        }`}
+                      >
+                        {sourceLabel(c.source)}
                       </span>
-                      <span className="ml-2 text-xs text-gray-500">
-                        {c.discountPercentage}% off
-                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.discountCode ? (
+                        <>
+                          <span className="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-black">
+                            {c.discountCode}
+                          </span>
+                          <span className="ml-2 text-xs text-gray-500">
+                            {c.discountPercentage}% off
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       {c.timesUsed > 0 ? (

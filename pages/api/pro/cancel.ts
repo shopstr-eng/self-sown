@@ -23,7 +23,12 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "pro-cancel", { limit: 20, windowMs: 60_000 }))
+  if (
+    !(await applyRateLimit(req, res, "pro-cancel", {
+      limit: 20,
+      windowMs: 60_000,
+    }))
+  )
     return;
 
   const { pubkey } = req.body || {};

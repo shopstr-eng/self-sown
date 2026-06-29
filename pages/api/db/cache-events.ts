@@ -30,7 +30,11 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const rate = checkRateLimit("cache-events", getRequestIp(req), RATE_LIMIT);
+  const rate = await checkRateLimit(
+    "cache-events",
+    getRequestIp(req),
+    RATE_LIMIT
+  );
   if (!rate.ok) {
     res.setHeader(
       "Retry-After",

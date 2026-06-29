@@ -16,6 +16,7 @@ interface PageEditorProps {
   onNavLinksChange: (links: StorefrontNavLink[]) => void;
   sellerProducts?: ProductData[];
   shopPubkey?: string;
+  hasSellerEmail?: boolean;
 }
 
 const SECTION_TYPES: { type: StorefrontSectionType; label: string }[] = [
@@ -30,8 +31,10 @@ const SECTION_TYPES: { type: StorefrontSectionType; label: string }[] = [
   { type: "text", label: "Text Block" },
   { type: "image", label: "Image" },
   { type: "contact", label: "Contact" },
+  { type: "contact_form", label: "Contact Form" },
   { type: "reviews", label: "Customer Reviews" },
   { type: "social_posts", label: "Social Posts" },
+  { type: "blog", label: "Blog" },
 ];
 
 const inputWrapperClass =
@@ -44,6 +47,7 @@ export default function PageEditor({
   onNavLinksChange,
   sellerProducts = [],
   shopPubkey,
+  hasSellerEmail = false,
 }: PageEditorProps) {
   const [expandedPage, setExpandedPage] = useState<string | null>(null);
 
@@ -250,7 +254,9 @@ export default function PageEditor({
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {SECTION_TYPES.map((st) => (
+                {SECTION_TYPES.filter(
+                  (st) => st.type !== "contact_form" || hasSellerEmail
+                ).map((st) => (
                   <button
                     key={st.type}
                     type="button"

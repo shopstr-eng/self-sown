@@ -164,12 +164,17 @@ const EmailFlowsPage = () => {
       email: string;
       discountCode: string;
       discountPercentage: number;
+      source: "popup" | "subscription";
       alreadyReceived: boolean;
     }[]
   >([]);
   const [loadingPickerContacts, setLoadingPickerContacts] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+  // Narrow the picker to a single captured-contact origin (or "all").
+  const [pickerSource, setPickerSource] = useState<
+    "all" | "popup" | "subscription"
+  >("all");
 
   const fetchFlows = useCallback(async () => {
     if (!pubkey) return;
@@ -308,6 +313,7 @@ const EmailFlowsPage = () => {
     setContactPickerFlow(flow);
     setPickerContacts([]);
     setSelectedEmails(new Set());
+    setPickerSource("all");
     setPickerError(null);
     setLoadingPickerContacts(true);
     try {
@@ -347,6 +353,7 @@ const EmailFlowsPage = () => {
     setContactPickerFlow(null);
     setPickerContacts([]);
     setSelectedEmails(new Set());
+    setPickerSource("all");
     setPickerError(null);
   };
 
@@ -363,12 +370,33 @@ const EmailFlowsPage = () => {
     });
   };
 
+  // Contacts shown in the list, narrowed to the chosen source.
+  const visibleContacts = useMemo(
+    () =>
+      pickerSource === "all"
+        ? pickerContacts
+        : pickerContacts.filter((c) => c.source === pickerSource),
+    [pickerContacts, pickerSource]
+  );
+
+  const sourceCounts = useMemo(
+    () => ({
+      all: pickerContacts.length,
+      popup: pickerContacts.filter((c) => c.source === "popup").length,
+      subscription: pickerContacts.filter((c) => c.source === "subscription")
+        .length,
+    }),
+    [pickerContacts]
+  );
+
+  // Only the currently-visible, not-yet-sent contacts can be (de)selected en
+  // masse, so "Select all" never silently enrolls a hidden segment.
   const selectableEmails = useMemo(
     () =>
-      pickerContacts
+      visibleContacts
         .filter((c) => !c.alreadyReceived)
         .map((c) => c.email.toLowerCase()),
-    [pickerContacts]
+    [visibleContacts]
   );
   const allSelectableSelected =
     selectableEmails.length > 0 &&
@@ -376,10 +404,37 @@ const EmailFlowsPage = () => {
 
   const toggleSelectAll = () => {
     if (allSelectableSelected) {
-      setSelectedEmails(new Set());
+      // Clear only the visible selectable emails; selections in other segments
+      // (if the seller toggled sources) are left intact.
+      setSelectedEmails((prev) => {
+        const next = new Set(prev);
+        selectableEmails.forEach((e) => next.delete(e));
+        return next;
+      });
     } else {
-      setSelectedEmails(new Set(selectableEmails));
+      setSelectedEmails((prev) => {
+        const next = new Set(prev);
+        selectableEmails.forEach((e) => next.add(e));
+        return next;
+      });
     }
+  };
+
+  // Switching segment pre-selects everyone in that segment who hasn't already
+  // received the flow, mirroring the initial open behavior.
+  const changePickerSource = (next: "all" | "popup" | "subscription") => {
+    setPickerSource(next);
+    const segment =
+      next === "all"
+        ? pickerContacts
+        : pickerContacts.filter((c) => c.source === next);
+    setSelectedEmails(
+      new Set(
+        segment
+          .filter((c) => !c.alreadyReceived)
+          .map((c) => c.email.toLowerCase())
+      )
+    );
   };
 
   const handleSendToContacts = async () => {
@@ -1286,6 +1341,31 @@ const EmailFlowsPage = () => {
                   Choose who should receive this flow. Contacts who already
                   received it are marked and can&apos;t be selected again.
                 </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {(
+                    [
+                      ["all", `All (${sourceCounts.all})`],
+                      ["popup", `Popup (${sourceCounts.popup})`],
+                      [
+                        "subscription",
+                        `Subscription (${sourceCounts.subscription})`,
+                      ],
+                    ] as ["all" | "popup" | "subscription", string][]
+                  ).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => changePickerSource(value)}
+                      className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors ${
+                        pickerSource === value
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex items-center justify-between border-b border-gray-200 pb-2">
                   <Checkbox
                     isSelected={allSelectableSelected}
@@ -1298,33 +1378,39 @@ const EmailFlowsPage = () => {
                     {selectedEmails.size} selected
                   </span>
                 </div>
-                <div className="flex flex-col gap-2">
-                  {pickerContacts.map((contact) => (
-                    <div
-                      key={contact.email}
-                      className="flex items-center justify-between gap-2"
-                    >
-                      <Checkbox
-                        isSelected={selectedEmails.has(
-                          contact.email.toLowerCase()
-                        )}
-                        isDisabled={contact.alreadyReceived}
-                        onValueChange={() =>
-                          toggleContactSelection(contact.email)
-                        }
+                {visibleContacts.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-gray-500">
+                    No contacts in this segment.
+                  </p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {visibleContacts.map((contact) => (
+                      <div
+                        key={contact.email}
+                        className="flex items-center justify-between gap-2"
                       >
-                        <span className="text-sm break-all">
-                          {contact.email}
-                        </span>
-                      </Checkbox>
-                      {contact.alreadyReceived && (
-                        <span className="text-xs whitespace-nowrap text-gray-400">
-                          Already received
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        <Checkbox
+                          isSelected={selectedEmails.has(
+                            contact.email.toLowerCase()
+                          )}
+                          isDisabled={contact.alreadyReceived}
+                          onValueChange={() =>
+                            toggleContactSelection(contact.email)
+                          }
+                        >
+                          <span className="text-sm break-all">
+                            {contact.email}
+                          </span>
+                        </Checkbox>
+                        {contact.alreadyReceived && (
+                          <span className="text-xs whitespace-nowrap text-gray-400">
+                            Already received
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {pickerError && (
                   <p className="text-sm text-red-500">{pickerError}</p>
                 )}

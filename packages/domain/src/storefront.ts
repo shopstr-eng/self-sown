@@ -102,7 +102,9 @@ export type StorefrontSectionType =
   | "text"
   | "image"
   | "contact"
+  | "contact_form"
   | "reviews"
+  | "blog"
   | "social_posts"
   | "product_description"
   | "product_specifications"
@@ -162,6 +164,16 @@ export interface StorefrontSection {
   email?: string;
   phone?: string;
   address?: string;
+  successMessage?: string;
+  // Contact-form section behavior. "contact" (default/undefined) emails the
+  // seller; "subscription" adds the visitor to the seller's email list and
+  // enrolls them in the active welcome series instead. The show* flags toggle
+  // individual optional inputs — Email is always shown and required, so it has
+  // no flag. Undefined defaults to shown, preserving the legacy contact form.
+  contactFormMode?: "contact" | "subscription";
+  showNameField?: boolean;
+  showPhoneField?: boolean;
+  showMessageField?: boolean;
   caption?: string;
   reviewOrder?: string[];
   specifications?: StorefrontSpecificationItem[];
@@ -175,6 +187,10 @@ export interface StorefrontSection {
   socialPostsLayout?: "grid" | "carousel";
   socialPostsAutoplay?: boolean;
   socialPostsSpeed?: number;
+  // Blog section: layout + curated/reorderable post references (by `d` tag).
+  blogLayout?: "featured" | "grid" | "list";
+  blogPostIds?: string[];
+  blogPostLimit?: number;
 }
 
 export interface StorefrontProductPageConfig {

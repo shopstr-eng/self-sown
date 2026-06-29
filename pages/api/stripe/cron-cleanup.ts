@@ -14,10 +14,10 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(req, res, "stripe-cron-cleanup", {
+    !(await applyRateLimit(req, res, "stripe-cron-cleanup", {
       limit: 5,
       windowMs: 60_000,
-    })
+    }))
   )
     return;
 

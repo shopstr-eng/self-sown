@@ -9,7 +9,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "email-notification", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "email-notification", RATE_LIMIT)))
+    return;
 
   if (req.method === "POST") {
     const { email, role, pubkey, orderId, signedEvent } = req.body;

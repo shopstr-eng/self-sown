@@ -23,19 +23,19 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed. Use POST." });
   }
 
-  if (!applyRateLimit(req, res, "mcp-set-nsec:ip", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "mcp-set-nsec:ip", RATE_LIMIT))) return;
 
   const apiKey = await authenticateRequest(req, res);
   if (!apiKey) return;
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "mcp-set-nsec:key",
       PER_KEY_LIMIT,
       String(apiKey.id)
-    )
+    ))
   ) {
     return;
   }

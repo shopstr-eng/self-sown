@@ -42,7 +42,7 @@ export default async function handler(
     req.method === "PUT" ||
     req.method === "DELETE"
   ) {
-    const rate = checkRateLimit(
+    const rate = await checkRateLimit(
       "email-sender-domain",
       getRequestIp(req),
       RATE_LIMIT

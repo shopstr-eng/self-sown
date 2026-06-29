@@ -68,6 +68,9 @@ integrations = ["sendgrid:1.0.0"]
 
 [userenv.shared]
 
+[userenv.production]
+TRUST_PROXY_HEADERS = "true"
+
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 180000

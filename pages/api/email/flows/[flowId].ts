@@ -13,7 +13,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "email-flows-flow-id", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "email-flows-flow-id", RATE_LIMIT)))
+    return;
 
   const { flowId } = req.query;
   const id = parseInt(flowId as string, 10);

@@ -804,6 +804,92 @@ export function inquiryNotificationEmail(
   };
 }
 
+export function contactFormEmail(
+  params: {
+    name: string;
+    email?: string;
+    phone?: string;
+    message?: string;
+  },
+  branding?: StorefrontBranding | null
+): { subject: string; html: string } {
+  const shopName = branding?.shopName || BRAND_NAME;
+
+  const contactRows = [
+    `
+      <tr>
+        <td style="padding:0 0 12px;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Name</p>
+          <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;">${esc(
+            params.name
+          )}</p>
+        </td>
+      </tr>`,
+  ];
+
+  if (params.email) {
+    contactRows.push(`
+      <tr>
+        <td style="padding:0 0 12px;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Email</p>
+          <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;"><a href="mailto:${esc(
+            params.email
+          )}" style="color:#2563eb;text-decoration:none;">${esc(
+            params.email
+          )}</a></p>
+        </td>
+      </tr>`);
+  }
+
+  if (params.phone) {
+    contactRows.push(`
+      <tr>
+        <td style="padding:0 0 12px;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Phone</p>
+          <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;">${esc(
+            params.phone
+          )}</p>
+        </td>
+      </tr>`);
+  }
+
+  const messageBlock = params.message
+    ? `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border-radius:8px;padding:20px;margin-bottom:24px;">
+      <tr>
+        <td>
+          <p style="margin:0 0 8px;color:#6b7280;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;">Message</p>
+          <p style="margin:0;color:#111827;font-size:15px;line-height:1.6;white-space:pre-wrap;">${esc(
+            params.message
+          )}</p>
+        </td>
+      </tr>
+    </table>`
+    : "";
+
+  const replyNote = params.email
+    ? `<p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">You can reply directly to this email to respond to ${esc(
+        params.name
+      )}.</p>`
+    : `<p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">No email was provided — use the phone number above to follow up.</p>`;
+
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;">New Contact Form Submission</h2>
+    <p style="margin:0 0 24px;color:#374151;font-size:15px;line-height:1.6;">Someone reached out through your <strong>${esc(
+      shopName
+    )}</strong> storefront contact form.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9fafb;border-radius:8px;padding:20px;margin-bottom:24px;">
+      ${contactRows.join("")}
+    </table>
+    ${messageBlock}
+    ${replyNote}`;
+
+  return {
+    subject: `New contact form message from ${esc(params.name)}`,
+    html: baseTemplate("New Contact Message", body, branding),
+  };
+}
+
 export function popupDiscountEmail(params: {
   discountCode: string;
   discountPercentage: number;

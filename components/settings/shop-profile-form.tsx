@@ -2172,6 +2172,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             onNavLinksChange={setNavLinks}
                             sellerProducts={sellerProducts}
                             shopPubkey={userPubkey}
+                            hasSellerEmail={notificationEmail.trim().length > 0}
                           />
                         </div>
 
@@ -3297,6 +3298,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     desc: "Email, phone, and address info",
                                   },
                                   {
+                                    type: "contact_form" as StorefrontSectionType,
+                                    label: "Contact Form",
+                                    icon: "✉️",
+                                    desc: "Let visitors send you a message by email",
+                                  },
+                                  {
                                     type: "reviews" as StorefrontSectionType,
                                     label: "Reviews",
                                     icon: "💬",
@@ -3308,43 +3315,56 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     icon: "📱",
                                     desc: "Link out to posts from X, Instagram, Nostr, etc.",
                                   },
+                                  {
+                                    type: "blog" as StorefrontSectionType,
+                                    label: "Blog",
+                                    icon: "📝",
+                                    desc: "Show your latest blog posts and articles",
+                                  },
                                 ] as const
-                              ).map((st) => (
-                                <button
-                                  key={st.type}
-                                  type="button"
-                                  onClick={() => {
-                                    const sectionId = `section-${Date.now()}-${Math.random()
-                                      .toString(36)
-                                      .slice(2, 6)}`;
-                                    const newSection: StorefrontSection = {
-                                      id: sectionId,
-                                      type: st.type,
-                                      enabled: true,
-                                    };
-                                    if (st.type === "products") {
-                                      newSection.productLayout = productLayout;
-                                    }
-                                    setNewSectionId(sectionId);
-                                    if (st.type === "hero") {
-                                      setSections([newSection, ...sections]);
-                                    } else {
-                                      setSections([...sections, newSection]);
-                                    }
-                                  }}
-                                  className="group flex flex-col items-center rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-black hover:shadow-sm"
-                                >
-                                  <div className="mb-2">
-                                    <SectionPreviewSvg type={st.type} />
-                                  </div>
-                                  <span className="block text-sm font-bold text-black">
-                                    {st.label}
-                                  </span>
-                                  <span className="block text-[10px] leading-tight text-gray-400 group-hover:text-gray-600">
-                                    {st.desc}
-                                  </span>
-                                </button>
-                              ))}
+                              )
+                                .filter(
+                                  (st) =>
+                                    st.type !== "contact_form" ||
+                                    notificationEmail.trim().length > 0
+                                )
+                                .map((st) => (
+                                  <button
+                                    key={st.type}
+                                    type="button"
+                                    onClick={() => {
+                                      const sectionId = `section-${Date.now()}-${Math.random()
+                                        .toString(36)
+                                        .slice(2, 6)}`;
+                                      const newSection: StorefrontSection = {
+                                        id: sectionId,
+                                        type: st.type,
+                                        enabled: true,
+                                      };
+                                      if (st.type === "products") {
+                                        newSection.productLayout =
+                                          productLayout;
+                                      }
+                                      setNewSectionId(sectionId);
+                                      if (st.type === "hero") {
+                                        setSections([newSection, ...sections]);
+                                      } else {
+                                        setSections([...sections, newSection]);
+                                      }
+                                    }}
+                                    className="group flex flex-col items-center rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-black hover:shadow-sm"
+                                  >
+                                    <div className="mb-2">
+                                      <SectionPreviewSvg type={st.type} />
+                                    </div>
+                                    <span className="block text-sm font-bold text-black">
+                                      {st.label}
+                                    </span>
+                                    <span className="block text-[10px] leading-tight text-gray-400 group-hover:text-gray-600">
+                                      {st.desc}
+                                    </span>
+                                  </button>
+                                ))}
                             </div>
                           </div>
                         </div>
@@ -3985,6 +4005,26 @@ function SectionPreviewSvg({ type }: { type: string }) {
           <rect x="56" y="14" width="38" height="38" rx="3" fill="#CBD5E1" />
         </svg>
       );
+    case "contact_form":
+      return (
+        <svg
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          fill="none"
+          className="rounded"
+        >
+          <rect width={w} height={h} rx="3" fill="#F8FAFC" />
+          <rect x="30" y="5" width="40" height="4" rx="1.5" fill="#334155" />
+          <rect x="22" y="14" width="56" height="7" rx="2" fill="#fff" />
+          <rect x="22" y="14" width="56" height="7" rx="2" stroke="#CBD5E1" />
+          <rect x="22" y="24" width="56" height="7" rx="2" fill="#fff" />
+          <rect x="22" y="24" width="56" height="7" rx="2" stroke="#CBD5E1" />
+          <rect x="22" y="34" width="56" height="11" rx="2" fill="#fff" />
+          <rect x="22" y="34" width="56" height="11" rx="2" stroke="#CBD5E1" />
+          <rect x="22" y="48" width="56" height="6" rx="2" fill="#3B82F6" />
+        </svg>
+      );
     case "reviews":
       return (
         <svg
@@ -4035,6 +4075,29 @@ function SectionPreviewSvg({ type }: { type: string }) {
           <rect x="79" y="21" width="8" height="1.5" rx="1" fill="#94A3B8" />
           <rect x="71" y="26" width="20" height="14" rx="1.5" fill="#CBD5E1" />
           <rect x="71" y="42" width="16" height="2" rx="1" fill="#94A3B8" />
+        </svg>
+      );
+    case "blog":
+      return (
+        <svg
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          fill="none"
+          className="rounded"
+        >
+          <rect width={w} height={h} rx="3" fill="#F8FAFC" />
+          <rect x="6" y="5" width="34" height="4" rx="1.5" fill="#334155" />
+          <rect x="6" y="14" width="40" height="36" rx="2" fill="#E2E8F0" />
+          <rect x="10" y="18" width="32" height="16" rx="1.5" fill="#CBD5E1" />
+          <rect x="10" y="38" width="28" height="3" rx="1" fill="#334155" />
+          <rect x="10" y="44" width="20" height="2" rx="1" fill="#94A3B8" />
+          <rect x="54" y="14" width="40" height="16" rx="2" fill="#E2E8F0" />
+          <rect x="58" y="18" width="20" height="3" rx="1" fill="#334155" />
+          <rect x="58" y="24" width="28" height="2" rx="1" fill="#94A3B8" />
+          <rect x="54" y="34" width="40" height="16" rx="2" fill="#E2E8F0" />
+          <rect x="58" y="38" width="20" height="3" rx="1" fill="#334155" />
+          <rect x="58" y="44" width="28" height="2" rx="1" fill="#94A3B8" />
         </svg>
       );
     default:

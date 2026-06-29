@@ -19,7 +19,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "admin-custom-domains", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "admin-custom-domains", RATE_LIMIT)))
+    return;
 
   const filter = typeof req.query.status === "string" ? req.query.status : "";
 

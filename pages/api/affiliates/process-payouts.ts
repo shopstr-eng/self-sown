@@ -120,7 +120,9 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "affiliates-process-payouts", RATE_LIMIT))
+  if (
+    !(await applyRateLimit(req, res, "affiliates-process-payouts", RATE_LIMIT))
+  )
     return;
 
   const expected = process.env.AFFILIATE_PAYOUT_CRON_SECRET;

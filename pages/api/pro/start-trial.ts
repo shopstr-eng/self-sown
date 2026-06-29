@@ -21,10 +21,10 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (
-    !applyRateLimit(req, res, "pro-start-trial", {
+    !(await applyRateLimit(req, res, "pro-start-trial", {
       limit: 20,
       windowMs: 60_000,
-    })
+    }))
   )
     return;
 

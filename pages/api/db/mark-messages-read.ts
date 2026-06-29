@@ -14,7 +14,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "mark-messages-read:ip", PER_IP_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "mark-messages-read:ip", PER_IP_LIMIT)))
+    return;
 
   const authResult = await verifyNip98Request(req, "POST", req.body);
   if (!authResult.ok) {
@@ -22,13 +23,13 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "mark-messages-read:pubkey",
       PER_PUBKEY_LIMIT,
       authResult.pubkey
-    )
+    ))
   )
     return;
 

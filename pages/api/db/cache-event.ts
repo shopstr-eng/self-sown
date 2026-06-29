@@ -21,7 +21,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const ipRate = checkRateLimit(
+  const ipRate = await checkRateLimit(
     "cache-event:ip",
     getRequestIp(req),
     PER_IP_LIMIT
@@ -42,7 +42,7 @@ export default async function handler(
         .json({ error: "Event kind is not permitted for caching" });
     }
 
-    const pubkeyRate = checkRateLimit(
+    const pubkeyRate = await checkRateLimit(
       "cache-event:pubkey",
       event.pubkey,
       PER_PUBKEY_LIMIT

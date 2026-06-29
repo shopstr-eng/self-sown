@@ -14,7 +14,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "popup-contacts:ip", PER_IP_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "popup-contacts:ip", PER_IP_LIMIT)))
+    return;
 
   const authResult = await verifyNip98Request(req, "GET");
   if (!authResult.ok) {
@@ -22,13 +23,13 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(
+    !(await applyRateLimit(
       req,
       res,
       "popup-contacts:pubkey",
       PER_PUBKEY_LIMIT,
       authResult.pubkey
-    )
+    ))
   )
     return;
 
@@ -40,6 +41,7 @@ export default async function handler(
         phone: r.phone,
         discountCode: r.discount_code,
         discountPercentage: Number(r.discount_percentage),
+        source: r.source === "subscription" ? "subscription" : "popup",
         timesUsed: r.times_used,
         createdAt: r.created_at,
       })),

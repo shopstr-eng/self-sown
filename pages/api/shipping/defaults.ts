@@ -45,7 +45,8 @@ export default async function handler(
   if (!["GET", "POST"].includes(req.method || "")) {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "shipping-defaults", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "shipping-defaults", RATE_LIMIT)))
+    return;
 
   const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
   const signedHeaderValue = Array.isArray(signedHeader)

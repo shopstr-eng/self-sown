@@ -172,6 +172,64 @@ export async function republishGiftWrapToRecipientRelays(
   return { published, relays };
 }
 
+// Resolve the relays an author WRITES to (NIP-65 kind 10002) from our Postgres
+// cache. Used when the server publishes the author's own pre-signed content
+// (e.g. a scheduled blog post) on their behalf.
+async function getAuthorWriteRelays(pubkey: string): Promise<string[]> {
+  try {
+    const events = await fetchRelayConfigFromDb(pubkey);
+    const out: string[] = [];
+    for (const ev of events) {
+      for (const tag of ev.tags) {
+        // Unmarked ("r", url) = read+write; ("r", url, "write") = write-only.
+        if (tag[0] === "r" && tag[1] && (!tag[2] || tag[2] === "write")) {
+          out.push(tag[1]);
+        }
+      }
+    }
+    return out;
+  } catch (error) {
+    console.error("Failed to resolve author write relays:", error);
+    return [];
+  }
+}
+
+// Publish an already-signed kind:30023 blog post (NIP-23) to the author's own
+// write relays + defaults from the server. Used by the scheduled-publish cron:
+// the seller pre-signed the event client-side, so it is self-authenticating
+// (verified below) and needs no server key. The event is mirrored into our
+// Postgres cache (idempotent) so the storefront SSR + email broadcast can read
+// it immediately. Returns the number of relays that accepted it.
+export async function republishBlogPostToAuthorRelays(
+  event: NostrEvent
+): Promise<{ published: number; relays: string[] }> {
+  if (!event || event.kind !== 30023) {
+    return { published: 0, relays: [] };
+  }
+  if (!verifyEvent(event as any)) {
+    return { published: 0, relays: [] };
+  }
+
+  const authorRelays = await getAuthorWriteRelays(event.pubkey);
+  const relays = Array.from(
+    new Set([...authorRelays, ...getDefaultRelays(), BLASTR_RELAY])
+  );
+
+  // Mirror into our cache (idempotent upsert by id) before broadcasting so the
+  // post is readable even if every relay publish times out.
+  try {
+    await cacheEvent(event);
+  } catch (error) {
+    console.error("Failed to cache blog post before relay publish:", error);
+  }
+
+  const published = await publishToRelays(event, relays);
+  if (published === 0) {
+    await trackFailedRelayPublish(event.id, event, relays).catch(console.error);
+  }
+  return { published, relays };
+}
+
 export async function sendServerSideNostrDM(
   recipientPubkey: string,
   message: string,

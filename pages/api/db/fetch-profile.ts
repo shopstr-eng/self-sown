@@ -13,7 +13,7 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== "GET") return res.status(405).end();
-  if (!applyRateLimit(req, res, "fetch-profile", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "fetch-profile", RATE_LIMIT))) return;
   const { pubkey } = req.query;
   if (!pubkey || typeof pubkey !== "string")
     return res.status(400).json({ error: "pubkey required" });

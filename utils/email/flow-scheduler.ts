@@ -50,6 +50,12 @@ async function processProLifecycle() {
   await callEndpoint("/api/pro/cron-lifecycle", {});
 }
 
+async function processScheduledBlogPosts() {
+  await callEndpoint("/api/storefront/blog/process-scheduled", {
+    batch_size: 20,
+  });
+}
+
 export function startFlowScheduler() {
   if (schedulerStarted) return;
   if (!process.env.FLOW_PROCESSOR_SECRET) {
@@ -73,6 +79,7 @@ export function startFlowScheduler() {
   const ABANDONED_CART_INTERVAL = 30 * 60 * 1000;
   const WINBACK_INTERVAL = 24 * 60 * 60 * 1000;
   const PRO_LIFECYCLE_INTERVAL = 6 * 60 * 60 * 1000;
+  const SCHEDULED_BLOG_INTERVAL = 2 * 60 * 1000;
 
   setTimeout(() => processEmails(), 30 * 1000);
   setInterval(() => processEmails(), PROCESS_INTERVAL);
@@ -85,4 +92,7 @@ export function startFlowScheduler() {
 
   setTimeout(() => processProLifecycle(), 3 * 60 * 1000);
   setInterval(() => processProLifecycle(), PRO_LIFECYCLE_INTERVAL);
+
+  setTimeout(() => processScheduledBlogPosts(), 90 * 1000);
+  setInterval(() => processScheduledBlogPosts(), SCHEDULED_BLOG_INTERVAL);
 }

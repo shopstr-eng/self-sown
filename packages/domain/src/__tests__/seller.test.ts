@@ -115,6 +115,80 @@ describe("seller domain helpers", () => {
     );
   });
 
+  test("preserves contact_form sections and their fields through normalization", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          sections: [
+            {
+              id: "cf-home",
+              type: "contact_form",
+              enabled: true,
+              heading: "Get in touch",
+              body: "We'd love to hear from you.",
+              ctaText: "Send it",
+              successMessage: "Thanks for reaching out!",
+              headingColor: "#123456",
+            },
+          ],
+          pages: [
+            {
+              id: "page-contact",
+              title: "Contact",
+              slug: "contact",
+              sections: [
+                {
+                  id: "cf-page",
+                  type: "contact_form",
+                  enabled: true,
+                  heading: "Reach us",
+                  body: "Drop us a line.",
+                  ctaText: "Submit",
+                  successMessage: "Got it!",
+                  headingColor: "#abcdef",
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+
+    expect(storefront.sections[0]).toEqual({
+      id: "cf-home",
+      type: "contact_form",
+      enabled: true,
+      heading: "Get in touch",
+      body: "We'd love to hear from you.",
+      ctaText: "Send it",
+      successMessage: "Thanks for reaching out!",
+      headingColor: "#123456",
+    });
+
+    expect(storefront.pages[0].sections[0]).toEqual({
+      id: "cf-page",
+      type: "contact_form",
+      enabled: true,
+      heading: "Reach us",
+      body: "Drop us a line.",
+      ctaText: "Submit",
+      successMessage: "Got it!",
+      headingColor: "#abcdef",
+    });
+  });
+
   test("selects seller listing summaries from cached product events", () => {
     const summaries = selectSellerListingSummaries(
       [

@@ -18,7 +18,12 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "pro-history", { limit: 60, windowMs: 60_000 }))
+  if (
+    !(await applyRateLimit(req, res, "pro-history", {
+      limit: 60,
+      windowMs: 60_000,
+    }))
+  )
     return;
 
   const pubkeyParam = req.query.pubkey;

@@ -39,7 +39,7 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "verify-domain", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "verify-domain", RATE_LIMIT))) return;
 
   const { pubkey } = req.body ?? {};
   if (!pubkey) {

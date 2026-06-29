@@ -31,7 +31,10 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(req, res, "flows-process", { limit: 30, windowMs: 60_000 })
+    !(await applyRateLimit(req, res, "flows-process", {
+      limit: 30,
+      windowMs: 60_000,
+    }))
   )
     return;
 

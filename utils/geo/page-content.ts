@@ -15,8 +15,7 @@ const SITE = "https://milk.market";
 
 export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
-    title:
-      "Milk Market - Sell Local Products Online. Zero Platform Fees.",
+    title: "Milk Market - Sell Local Products Online. Zero Platform Fees.",
     description:
       "List your products in minutes and keep 100% of every sale. No $200 a month subscriptions and no one can shut you down. Built for food producers, farmers, and artisan makers tired of paying Shopify and Barn2Door, with payments in Bitcoin, cards, or cash.",
     markdown: `# Milk Market

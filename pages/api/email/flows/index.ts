@@ -25,7 +25,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "email-flows-index", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "email-flows-index", RATE_LIMIT)))
+    return;
 
   if (req.method === "GET") {
     const { seller_pubkey } = req.query;

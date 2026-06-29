@@ -11,6 +11,7 @@ const pathMap: { [key: string]: string } = {
   community: "Community Management",
   "api-keys": "API Keys",
   "email-flows": "Email Flows",
+  blog: "Blog",
   payments: "Payments",
   addresses: "Saved Addresses",
   "self-host": "Self-Host Your Store",

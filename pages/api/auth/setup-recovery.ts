@@ -17,7 +17,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "auth-setup-recovery", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "auth-setup-recovery", RATE_LIMIT)))
+    return;
 
   const { pubkey, email, nsec, authType, verificationCode } = req.body;
 

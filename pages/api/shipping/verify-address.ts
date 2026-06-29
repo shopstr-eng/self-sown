@@ -20,7 +20,7 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "shipping-verify", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "shipping-verify", RATE_LIMIT))) return;
   if (!isShippoOAuthConfigured()) {
     return res
       .status(503)

@@ -22,7 +22,8 @@ export default async function handler(
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "email-flow-click-stats", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "email-flow-click-stats", RATE_LIMIT)))
+    return;
 
   const authResult = await verifyNip98Request(req, req.method);
   if (!authResult.ok) {

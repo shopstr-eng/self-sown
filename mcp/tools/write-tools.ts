@@ -556,6 +556,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
                 "text",
                 "image",
                 "contact",
+                "contact_form",
                 "reviews",
               ])
               .describe("Section type"),
@@ -656,6 +657,36 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             email: z.string().optional().describe("Contact email"),
             phone: z.string().optional().describe("Contact phone"),
             address: z.string().optional().describe("Contact address"),
+            successMessage: z
+              .string()
+              .optional()
+              .describe(
+                "Success message shown after a contact-form submission"
+              ),
+            contactFormMode: z
+              .enum(["contact", "subscription"])
+              .optional()
+              .describe(
+                "Contact-form section behavior: 'contact' emails the seller (default); 'subscription' adds the visitor to the seller's email list and enrolls them in the active welcome series"
+              ),
+            showNameField: z
+              .boolean()
+              .optional()
+              .describe(
+                "Show the optional Name input on a contact-form section (default true)"
+              ),
+            showPhoneField: z
+              .boolean()
+              .optional()
+              .describe(
+                "Show the optional Phone input on a contact-form section (default true)"
+              ),
+            showMessageField: z
+              .boolean()
+              .optional()
+              .describe(
+                "Show the optional Message input on a contact-form section (default true)"
+              ),
             caption: z.string().optional().describe("Image caption"),
           })
         )

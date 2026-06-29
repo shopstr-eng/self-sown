@@ -25,7 +25,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "delete-events", IP_RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "delete-events", IP_RATE_LIMIT))) return;
 
   try {
     const { eventIds } = req.body;
@@ -54,13 +54,13 @@ export default async function handler(
     const pubkey = signedEvent.pubkey;
 
     if (
-      !applyRateLimit(
+      !(await applyRateLimit(
         req,
         res,
         "delete-events:pubkey",
         PUBKEY_RATE_LIMIT,
         `pubkey:${pubkey}`
-      )
+      ))
     ) {
       return;
     }

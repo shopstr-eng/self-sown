@@ -17,7 +17,10 @@ export default async function handler(
   }
 
   if (
-    !applyRateLimit(req, res, "cron-winback", { limit: 10, windowMs: 60_000 })
+    !(await applyRateLimit(req, res, "cron-winback", {
+      limit: 10,
+      windowMs: 60_000,
+    }))
   )
     return;
 

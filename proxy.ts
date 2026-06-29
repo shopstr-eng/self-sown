@@ -171,6 +171,34 @@ function negotiateAgentFormat(
   return null;
 }
 
+// Per-post format negotiation for /blog/<slug>. Adds an explicit `?format=`
+// override on top of the Accept/User-Agent negotiation so agents can request
+// the llms-style representation (which has no standard Accept media type) and
+// any other variant deterministically — e.g. `/blog/<slug>?format=llms`.
+// Browsers and SEO/social bots never send `?format=`, so HTML behavior is
+// untouched; the override only widens what an explicit agent request can ask
+// for (md | json | txt | llms).
+export function negotiatePostFormat(
+  request: NextRequest,
+  accept: string,
+  userAgent: string
+): "md" | "json" | "txt" | "llms" | null {
+  const explicit = request.nextUrl.searchParams.get("format");
+  if (
+    explicit === "md" ||
+    explicit === "json" ||
+    explicit === "txt" ||
+    explicit === "llms"
+  ) {
+    // An explicit machine-format request from an HTML-only bot is still served
+    // HTML (link unfurlers occasionally append stray query params); honor the
+    // override only when the UA isn't a known HTML-only crawler.
+    if (HTML_ONLY_UA.test(userAgent)) return null;
+    return explicit;
+  }
+  return negotiateAgentFormat(accept, userAgent);
+}
+
 function hostStripPort(host: string): string {
   return host.split(":")[0]?.toLowerCase() ?? "";
 }
@@ -307,6 +335,39 @@ async function routeRequest(request: NextRequest) {
     }
   }
 
+  // Per-stall GEO/feed files on the platform host: /stall/<slug>/rss.xml,
+  // /feed.xml, and /sitemap.xml are served as the seller's own tailored feed /
+  // sitemap (blog posts + products) by stall-agent-view. Unlike the homepage
+  // these are explicit file paths, so they're routed regardless of Accept.
+  // Custom domains + self-host map the same files from their own root below.
+  if (!isCustomDomain(hostname)) {
+    const stallFileMatch = pathname.match(
+      /^\/stall\/([^/]+)\/(rss\.xml|feed\.xml|sitemap\.xml)$/
+    );
+    if (stallFileMatch && stallFileMatch[1] && stallFileMatch[2]) {
+      let stallSlug = "";
+      try {
+        stallSlug = decodeURIComponent(stallFileMatch[1]);
+      } catch {
+        stallSlug = "";
+      }
+      if (stallSlug && stallSlug !== "_custom-domain") {
+        const format = stallFileMatch[2] === "sitemap.xml" ? "sitemap" : "rss";
+        const url = new URL("/api/stall-agent-view", request.url);
+        url.searchParams.set("slug", stallSlug);
+        url.searchParams.set("format", format);
+        const requestHeaders = new Headers(request.headers);
+        requestHeaders.set("x-stall-slug", stallSlug);
+        requestHeaders.set("x-stall-format", format);
+        const res = NextResponse.rewrite(url, {
+          request: { headers: requestHeaders },
+        });
+        res.headers.set(RL_SKIP_HEADER, "1");
+        return res;
+      }
+    }
+  }
+
   // Per-stall content negotiation on the platform host: /stall/<slug> can be
   // served as tailored markdown/JSON/plain-text for agents. Custom domains are
   // handled separately inside their own block below.
@@ -332,6 +393,48 @@ async function routeRequest(request: NextRequest) {
           url.searchParams.set("format", format);
           const requestHeaders = new Headers(request.headers);
           requestHeaders.set("x-stall-slug", stallSlug);
+          requestHeaders.set("x-stall-format", format);
+          const res = NextResponse.rewrite(url, {
+            request: { headers: requestHeaders },
+          });
+          res.headers.set("Vary", "Accept, User-Agent");
+          res.headers.set(RL_SKIP_HEADER, "1");
+          return res;
+        }
+      }
+    }
+  }
+
+  // Per-stall single blog post content negotiation on the platform host:
+  // /stall/<slug>/blog/<postSlug> can be served as tailored markdown/JSON/
+  // plain-text/llms for agents, including the full article body. Browsers and
+  // SEO/social bots keep getting the HTML article (its OG/JSON-LD SSR).
+  if (!isCustomDomain(hostname)) {
+    const postMatch = pathname.match(/^\/stall\/([^/]+)\/blog\/([^/]+)\/?$/);
+    if (postMatch && postMatch[1] && postMatch[2]) {
+      let stallSlug = "";
+      let postSlug = "";
+      try {
+        stallSlug = decodeURIComponent(postMatch[1]);
+        postSlug = decodeURIComponent(postMatch[2]);
+      } catch {
+        stallSlug = "";
+        postSlug = "";
+      }
+      if (stallSlug && stallSlug !== "_custom-domain" && postSlug) {
+        const format = negotiatePostFormat(
+          request,
+          request.headers.get("accept") || "",
+          request.headers.get("user-agent") || ""
+        );
+        if (format) {
+          const url = new URL("/api/stall-agent-view", request.url);
+          url.searchParams.set("slug", stallSlug);
+          url.searchParams.set("postSlug", postSlug);
+          url.searchParams.set("format", format);
+          const requestHeaders = new Headers(request.headers);
+          requestHeaders.set("x-stall-slug", stallSlug);
+          requestHeaders.set("x-post-slug", postSlug);
           requestHeaders.set("x-stall-format", format);
           const res = NextResponse.rewrite(url, {
             request: { headers: requestHeaders },
@@ -393,13 +496,15 @@ async function routeRequest(request: NextRequest) {
       return h;
     };
 
-    const rewriteToStallAgentView = (format: string) => {
+    const rewriteToStallAgentView = (format: string, postSlug?: string) => {
       const url = new URL("/api/stall-agent-view", request.url);
       url.searchParams.set("slug", slug as string);
       url.searchParams.set("format", format);
+      if (postSlug) url.searchParams.set("postSlug", postSlug);
       const h = buildHeaders();
       h.set("x-stall-slug", slug as string);
       h.set("x-stall-format", format);
+      if (postSlug) h.set("x-post-slug", postSlug);
       const res = NextResponse.rewrite(url, { request: { headers: h } });
       res.headers.set("Vary", "Accept, User-Agent");
       res.headers.set(RL_SKIP_HEADER, "1");
@@ -451,6 +556,31 @@ async function routeRequest(request: NextRequest) {
         request.headers.get("user-agent") || ""
       );
       if (format) return rewriteToStallAgentView(format);
+    }
+
+    // Single blog post content negotiation on a custom domain: /blog/<postSlug>
+    // served as tailored markdown/JSON/plain-text/llms (incl. the full body) for
+    // agents. Browsers + social bots keep getting the HTML article. Must run
+    // before the generic stall rewrite below, which would otherwise hand the
+    // HTML page to the agent.
+    if (slug) {
+      const postMatch = pathname.match(/^\/blog\/([^/]+)\/?$/);
+      if (postMatch && postMatch[1]) {
+        let postSlug = "";
+        try {
+          postSlug = decodeURIComponent(postMatch[1]);
+        } catch {
+          postSlug = "";
+        }
+        if (postSlug) {
+          const format = negotiatePostFormat(
+            request,
+            request.headers.get("accept") || "",
+            request.headers.get("user-agent") || ""
+          );
+          if (format) return rewriteToStallAgentView(format, postSlug);
+        }
+      }
     }
 
     // Shared platform routes (listing, cart, checkout, auth, etc.) render
@@ -636,13 +766,15 @@ function routeSelfHost(request: NextRequest, slug: string) {
     return NextResponse.next({ request: { headers: buildHeaders() } });
   }
 
-  const rewriteToStallAgentView = (format: string) => {
+  const rewriteToStallAgentView = (format: string, postSlug?: string) => {
     const url = new URL("/api/stall-agent-view", request.url);
     url.searchParams.set("slug", slug);
     url.searchParams.set("format", format);
+    if (postSlug) url.searchParams.set("postSlug", postSlug);
     const h = buildHeaders();
     h.set("x-stall-slug", slug);
     h.set("x-stall-format", format);
+    if (postSlug) h.set("x-post-slug", postSlug);
     const res = NextResponse.rewrite(url, { request: { headers: h } });
     res.headers.set("Vary", "Accept, User-Agent");
     res.headers.set(RL_SKIP_HEADER, "1");
@@ -664,6 +796,29 @@ function routeSelfHost(request: NextRequest, slug: string) {
       request.headers.get("user-agent") || ""
     );
     if (format) return rewriteToStallAgentView(format);
+  }
+
+  // Single blog post content negotiation: /blog/<postSlug> served as tailored
+  // markdown/JSON/plain-text/llms (incl. the full body) for agents; browsers +
+  // social bots keep getting the HTML article.
+  {
+    const postMatch = pathname.match(/^\/blog\/([^/]+)\/?$/);
+    if (postMatch && postMatch[1]) {
+      let postSlug = "";
+      try {
+        postSlug = decodeURIComponent(postMatch[1]);
+      } catch {
+        postSlug = "";
+      }
+      if (postSlug) {
+        const format = negotiatePostFormat(
+          request,
+          request.headers.get("accept") || "",
+          request.headers.get("user-agent") || ""
+        );
+        if (format) return rewriteToStallAgentView(format, postSlug);
+      }
+    }
   }
 
   // Shared platform pages (listing, cart, checkout, auth, orders, settings)

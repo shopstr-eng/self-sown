@@ -2,6 +2,8 @@ import type { StorefrontConfig } from "@milk-market/domain";
 import { Event } from "nostr-tools";
 
 export type {
+  BlogPost,
+  BlogPostDraft,
   CombinedFormData,
   ContactFormData,
   ProductFormValues,

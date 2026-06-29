@@ -31,7 +31,9 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  if (!applyRateLimit(req, res, "affiliates-record-referral", RATE_LIMIT))
+  if (
+    !(await applyRateLimit(req, res, "affiliates-record-referral", RATE_LIMIT))
+  )
     return;
 
   try {

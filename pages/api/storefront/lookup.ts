@@ -17,7 +17,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "storefront-lookup", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "storefront-lookup", RATE_LIMIT)))
+    return;
 
   // Mirror the service-worker's NetworkOnly rule for `/api/storefront/*`
   // at the HTTP layer too. Prevents intermediaries (browser HTTP cache,

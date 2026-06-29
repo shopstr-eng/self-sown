@@ -15,7 +15,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (!applyRateLimit(req, res, "mcp-status", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "mcp-status", RATE_LIMIT))) return;
 
   const startTime = Date.now();
 

@@ -203,7 +203,11 @@ describe("/api/db/delete-events", () => {
     await handler(blockedReq, blockedRes as unknown as NextApiResponse);
 
     expect(blockedRes.statusCode).toBe(429);
-    expect(blockedRes.jsonBody).toEqual({ error: "Too many requests" });
+    expect(blockedRes.jsonBody).toMatchObject({
+      error: "Too many requests",
+      code: "rate_limited",
+      retryAfterSeconds: expect.any(Number),
+    });
     expect(blockedRes.headers["Retry-After"]).toBeDefined();
     // The 61st delete must not have reached the database mutation.
     expect(deleteCachedEventsByIdsMock).toHaveBeenCalledTimes(60);

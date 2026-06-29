@@ -45,7 +45,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "stripe-webhook", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "stripe-webhook", RATE_LIMIT))) return;
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {

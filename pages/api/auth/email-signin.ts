@@ -13,7 +13,8 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!applyRateLimit(req, res, "auth-email-signin", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "auth-email-signin", RATE_LIMIT)))
+    return;
 
   const { email, password } = req.body;
 
