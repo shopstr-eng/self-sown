@@ -26,7 +26,7 @@ Milk Market is the online store built for farmers, food makers, and artisan prod
 Raw milk and dairy, meat, eggs, fresh produce, baked goods, honey, and other local and handmade goods.
 
 ## Payments
-Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat (Venmo, Cash App, Zelle, and more). Sellers get paid directly, with no mandatory platform fees.
+Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and manual fiat (Venmo, Cash App, Zelle, and more). Sellers get paid directly, with no mandatory platform fees.
 
 ## Get started
 - Browse the [marketplace](${SITE}/marketplace)
@@ -59,7 +59,7 @@ Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-g
 
 **What can I sell?** Local food and goods of all kinds. Raw milk and dairy are one example, alongside meat, eggs, produce, baked goods, honey, and handmade goods.
 
-**How do payments work?** Bitcoin (Lightning, Cashu ecash), Stripe cards, and manual fiat. Buyers can check out as a guest with just an email, or with their own Nostr keys.
+**How do payments work?** Bitcoin (Lightning, Cashu ecash), card payments (Stripe or Square), and manual fiat. Buyers can check out as a guest with just an email, or with their own Nostr keys.
 
 **Is it really permissionless?** Yes. Listings are Nostr events on open relays; there is no central approval step.
 
@@ -97,7 +97,7 @@ How to start selling local food and goods on Milk Market.
 8. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders.
 9. **Grow your business**: update listings, build relationships, share your story, and expand reach.
 
-If you connect a Stripe account, you can also turn on automatic US sales tax (free). Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.
+To accept card payments, connect either Stripe or Square (one card processor per stall, your choice). If you connect a Stripe account, you can also turn on automatic US sales tax (free). Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.
 
 Start at the [marketplace](${SITE}/marketplace) or read the [FAQ](${SITE}/faq).`,
   },

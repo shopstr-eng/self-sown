@@ -131,9 +131,9 @@ const ProducerGuidePage = () => {
       answer: (
         <>
           Milk Market supports Bitcoin payments through Lightning Network and
-          Cashu tokens, as well as credit and debit card payments via Stripe.
-          You can also arrange cash payments directly with customers during
-          pickup or delivery and other payment options like{" "}
+          Cashu tokens, as well as credit and debit card payments via Stripe or
+          Square. You can also arrange cash payments directly with customers
+          during pickup or delivery and other payment options like{" "}
           <a
             href="https://cash.app/bitcoin"
             target="_blank"
@@ -282,7 +282,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe, Stripe charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
                   url: "https://milk.market/producer-guide#step-2",
                 },
                 {
@@ -294,7 +294,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Manage Orders",
-                  text: "Receive and process orders through the orders dashboard. Accept Bitcoin payments via Lightning or Cashu, card payments via Stripe, or arrange cash transactions directly with customers.",
+                  text: "Receive and process orders through the orders dashboard. Accept Bitcoin payments via Lightning or Cashu, card payments via Stripe or Square, or arrange cash transactions directly with customers.",
                   url: "https://milk.market/producer-guide#step-4",
                 },
                 {

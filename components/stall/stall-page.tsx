@@ -23,6 +23,7 @@ import DiscountCodes from "./discount-codes";
 import Affiliates from "./affiliates";
 import ProductPageTemplateForm from "@/components/settings/product-page-template-form";
 import ShopifyMigrationModal from "./shopify-migration-modal";
+import SquareMigrationModal from "./square-migration-modal";
 
 const StallPage = () => {
   const { pubkey: usersPubkey } = useContext(SignerContext);
@@ -37,6 +38,7 @@ const StallPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showMigrationTooltip, setShowMigrationTooltip] = useState(false);
+  const [showSquareModal, setShowSquareModal] = useState(false);
 
   const shopMapContext = useContext(ShopMapContext);
   const shopProfile: ShopProfile | undefined = usersPubkey
@@ -66,6 +68,9 @@ const StallPage = () => {
     if (migrate === "shopify") {
       setSelectedSection("Listings");
       setShowMigrationModal(true);
+    } else if (migrate === "square") {
+      setSelectedSection("Listings");
+      setShowSquareModal(true);
     } else if (migrate === "tooltip") {
       setSelectedSection("Listings");
       setShowMigrationTooltip(true);
@@ -76,6 +81,14 @@ const StallPage = () => {
     if (usersPubkey) {
       setShowMigrationTooltip(false);
       setShowMigrationModal(true);
+    } else {
+      onOpen();
+    }
+  };
+
+  const handleOpenSquareImport = () => {
+    if (usersPubkey) {
+      setShowSquareModal(true);
     } else {
       onOpen();
     }
@@ -178,6 +191,15 @@ const StallPage = () => {
           }}
         >
           Import from Shopify
+        </Button>
+        <Button
+          className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-black hover:bg-gray-100"
+          onClick={() => {
+            handleOpenSquareImport();
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Import from Square
         </Button>
       </div>
     </div>
@@ -283,13 +305,20 @@ const StallPage = () => {
             Edit Stall
           </Button>
         </div>
-        <div className="mb-4 sm:hidden">
+        <div className="mb-4 flex flex-col gap-2 sm:hidden">
           <Button
             className={`${WHITEBUTTONCLASSNAMES} w-full`}
             startContent={<ArrowUpTrayIcon className="h-4 w-4" />}
             onClick={handleOpenMigration}
           >
             Import from Shopify
+          </Button>
+          <Button
+            className={`${WHITEBUTTONCLASSNAMES} w-full`}
+            startContent={<ArrowUpTrayIcon className="h-4 w-4" />}
+            onClick={handleOpenSquareImport}
+          >
+            Import from Square
           </Button>
         </div>
 
@@ -347,6 +376,13 @@ const StallPage = () => {
                   Import from Shopify
                 </Button>
               </Tooltip>
+              <Button
+                className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                startContent={<ArrowUpTrayIcon className="h-4 w-4" />}
+                onClick={handleOpenSquareImport}
+              >
+                Import from Square
+              </Button>
             </div>
           </div>
 
@@ -376,6 +412,10 @@ const StallPage = () => {
       <ShopifyMigrationModal
         isOpen={showMigrationModal}
         onClose={() => setShowMigrationModal(false)}
+      />
+      <SquareMigrationModal
+        isOpen={showSquareModal}
+        onClose={() => setShowSquareModal(false)}
       />
     </div>
   );

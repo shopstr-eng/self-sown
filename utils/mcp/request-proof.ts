@@ -294,6 +294,44 @@ export function buildShippingOAuthDisconnectProof(
   };
 }
 
+export function buildSquareOAuthStartProof(pubkey: string): McpRequestProof {
+  return {
+    action: "square_oauth_start",
+    method: "POST",
+    path: "/api/square/oauth/start",
+    pubkey,
+  };
+}
+
+export function buildSquareOAuthStatusProof(pubkey: string): McpRequestProof {
+  return {
+    action: "square_oauth_status",
+    method: "GET",
+    path: "/api/square/oauth/status",
+    pubkey,
+  };
+}
+
+export function buildSquareOAuthDisconnectProof(
+  pubkey: string
+): McpRequestProof {
+  return {
+    action: "square_oauth_disconnect",
+    method: "POST",
+    path: "/api/square/oauth/disconnect",
+    pubkey,
+  };
+}
+
+export function buildSquareCatalogImportProof(pubkey: string): McpRequestProof {
+  return {
+    action: "square_catalog_import",
+    method: "GET",
+    path: "/api/square/catalog",
+    pubkey,
+  };
+}
+
 export function buildShippingDefaultsProof({
   pubkey,
   method,

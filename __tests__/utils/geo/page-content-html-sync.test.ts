@@ -136,6 +136,13 @@ const CLAIMS: Claim[] = [
     htmlPages: ["index", "faq", "producer-guide"],
   },
   {
+    id: "pay-square",
+    label: "payment method: Square cards",
+    pattern: /Square/,
+    agentPaths: ["/", "/faq", "/producer-guide"],
+    htmlPages: ["index", "faq", "producer-guide"],
+  },
+  {
     id: "pay-manual-fiat",
     label: "payment method: manual fiat (Venmo/Cash App/Zelle/PayPal/cash)",
     pattern: /manual fiat|Venmo|Cash App|Zelle|PayPal|\bcash\b/i,

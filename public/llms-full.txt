@@ -11,8 +11,8 @@ Raw milk and dairy were the founding use case, but the marketplace is for local 
 ## How buying works
 
 - Buyers can check out as a guest (just an email) or with their own Nostr keys.
-- Supported payments: Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
-- Milk Market charges no platform fee on sales. Bitcoin payments have no fees at all, and if a seller accepts cards through Stripe, Stripe charges its own standard processing fee.
+- Supported payments: Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
+- Milk Market charges no platform fee on sales. Bitcoin payments have no fees at all, and if a seller accepts cards through Stripe or Square, that processor charges its own standard processing fee.
 - Carts can mix payment methods and currencies. Free-shipping thresholds and payment-method discounts are supported.
 - On card (Stripe) checkouts, sales tax is automatically calculated from the buyer's shipping address and shown at checkout when the seller has turned it on.
 - Orders are delivered as encrypted Nostr messages (NIP-17 gift wraps) to the seller, plus optional email confirmations.
@@ -38,7 +38,7 @@ Sellers who connect a Stripe account can also turn on automatic US sales tax (fr
 - Frontend: Next.js (App Router), React, TypeScript, HeroUI, Tailwind, PWA.
 - Backend: Next.js API routes with PostgreSQL caching for server-side rendering, search, and analytics.
 - Protocol: Nostr for events, Blossom for media, NIP-05 for DNS-based identity verification. Implements 15+ NIPs.
-- Payments: Lightning, Cashu mints, Stripe Connect, manual fiat.
+- Payments: Lightning, Cashu mints, Stripe Connect, Square, manual fiat.
 
 ## For AI agents
 

@@ -155,7 +155,7 @@ export function buildStallMarkdown(input: StallContentInput): string {
 
   lines.push("## Payments");
   lines.push(
-    "Bitcoin over the Lightning Network, Cashu ecash, Stripe (cards), and manual fiat."
+    "Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and manual fiat."
   );
   lines.push("");
   lines.push("## For AI agents");

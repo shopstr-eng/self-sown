@@ -20,6 +20,8 @@ import {
   PlusIcon,
   TrashIcon,
   LinkSlashIcon,
+  BuildingStorefrontIcon,
+  ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import {
   BLUEBUTTONCLASSNAMES,
@@ -38,6 +40,12 @@ import {
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import {
+  fetchSquareConnectionStatus,
+  startSquareOAuth,
+  disconnectSquare,
+  type SquareConnectionStatus,
+} from "@/utils/square/client-api";
 
 interface AccountStatus {
   hasAccount: boolean;
@@ -79,6 +87,11 @@ const PaymentsSettingsPage = () => {
     onOpen: onDisconnectOpen,
     onClose: onDisconnectClose,
   } = useDisclosure();
+  const {
+    isOpen: isSquareDisconnectOpen,
+    onOpen: onSquareDisconnectOpen,
+    onClose: onSquareDisconnectClose,
+  } = useDisclosure();
 
   const [status, setStatus] = useState<AccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +100,13 @@ const PaymentsSettingsPage = () => {
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  const [squareStatus, setSquareStatus] =
+    useState<SquareConnectionStatus | null>(null);
+  const [squareLoading, setSquareLoading] = useState(true);
+  const [squareAction, setSquareAction] = useState<
+    "connect" | "disconnect" | null
+  >(null);
 
   const [taxStatus, setTaxStatus] = useState<TaxStatus | null>(null);
   const [taxLoading, setTaxLoading] = useState(false);
@@ -126,6 +146,65 @@ const PaymentsSettingsPage = () => {
     loadStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pubkey, signer]);
+
+  const loadSquareStatus = async () => {
+    if (!pubkey || !signer?.sign) return;
+    setSquareLoading(true);
+    try {
+      const data = await fetchSquareConnectionStatus(signer as never, pubkey);
+      setSquareStatus(data);
+    } catch {
+      // Treat a failure as "not connected" so the page still renders; the
+      // seller can retry. Square stays fail-closed when unconfigured.
+      setSquareStatus({ configured: false, connected: false });
+    } finally {
+      setSquareLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSquareStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pubkey, signer]);
+
+  // Begin the Square OAuth flow: sign the proof, get the authorize URL, and
+  // send the browser to Square. The bidirectional XOR is enforced server-side.
+  const handleConnectSquare = async () => {
+    if (!pubkey || !signer?.sign) return;
+    setSquareAction("connect");
+    setError(null);
+    setInfo(null);
+    try {
+      const authorizeUrl = await startSquareOAuth(signer as never, pubkey);
+      window.location.href = authorizeUrl;
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to start Square connection"
+      );
+      setSquareAction(null);
+    }
+  };
+
+  const handleDisconnectSquare = async () => {
+    if (!pubkey || !signer?.sign) return;
+    setSquareAction("disconnect");
+    setError(null);
+    setInfo(null);
+    try {
+      await disconnectSquare(signer as never, pubkey);
+      onSquareDisconnectClose();
+      setInfo(
+        "Square disconnected. You can connect Square again or set up Stripe."
+      );
+      await loadSquareStatus();
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to disconnect Square account"
+      );
+    } finally {
+      setSquareAction(null);
+    }
+  };
 
   useEffect(() => {
     if (router.query.stripe === "updated") {
@@ -336,38 +415,168 @@ const PaymentsSettingsPage = () => {
             <h1 className="text-3xl font-bold text-black">Payments</h1>
           </div>
           <p className="mb-6 text-sm text-gray-700">
-            Manage your Stripe Connect account (payout schedules, bank accounts,
-            business details, tax info, and verification) directly from your
-            Stripe Express dashboard.
+            Accept credit card payments with one card processor of your choice —
+            either <span className="font-semibold">Stripe</span> or{" "}
+            <span className="font-semibold">Square</span>. You connect your own
+            account, payouts go straight to your bank, and you can switch
+            processors at any time (connect one, and the other is turned off).
           </p>
 
-          {loading ? (
+          {loading || squareLoading ? (
             <MilkMarketSpinner />
           ) : (
             <div className="shadow-neo space-y-4 rounded-md border-2 border-black bg-white p-5">
-              {!status?.hasAccount ? (
-                <div className="space-y-4">
+              {squareStatus?.connected ? (
+                <div className="space-y-5">
+                  <div className="flex items-start gap-3">
+                    <BuildingStorefrontIcon className="text-primary-blue mt-0.5 h-6 w-6 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-black">Square connected</p>
+                      <p className="text-sm text-gray-700">
+                        Card payments at checkout are processed by your Square
+                        account. Charges and payouts are handled by Square.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <StatusPill label="Card payments" ok={true} />
+                    <StatusPill
+                      label={`Currency: ${squareStatus.currency || "—"}`}
+                      ok={!!squareStatus.currency}
+                    />
+                    <StatusPill
+                      label={`Location: ${
+                        squareStatus.locationId ? "set" : "missing"
+                      }`}
+                      ok={!!squareStatus.locationId}
+                    />
+                  </div>
+
+                  {!squareStatus.locationId && (
+                    <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-sm text-black">
+                      We couldn&apos;t read a Square business location. Card
+                      checkout stays off until a location is available.
+                      Reconnect Square to refresh it.
+                    </div>
+                  )}
+
+                  {squareStatus.environment === "sandbox" && (
+                    <div className="rounded-md border-2 border-black bg-gray-50 p-3 text-xs text-black">
+                      Square is running in <strong>sandbox</strong> mode. Real
+                      cards won&apos;t be charged.
+                    </div>
+                  )}
+
+                  <div className="space-y-2 border-t-2 border-black pt-4">
+                    <p className="font-bold text-black">
+                      Import your Square catalog
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      Turn your Square items into marketplace listings. You
+                      choose what to publish.
+                    </p>
+                    <Button
+                      className={`${BLUEBUTTONCLASSNAMES} mt-1`}
+                      startContent={<ArrowDownTrayIcon className="h-4 w-4" />}
+                      onClick={() =>
+                        router.push("/settings/stall?import=square")
+                      }
+                    >
+                      Import from Square
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2 border-t-2 border-black pt-4">
+                    <p className="font-bold text-black">Disconnect Square</p>
+                    <p className="text-sm text-gray-700">
+                      Remove this Square account from Milk Market, for example
+                      to switch to Stripe or a different Square account. Card
+                      payments will stop until you connect a processor again.
+                      Your Square account itself isn&apos;t deleted.
+                    </p>
+                    <Button
+                      className={`${DANGERBUTTONCLASSNAMES} mt-1`}
+                      startContent={<LinkSlashIcon className="h-4 w-4" />}
+                      isLoading={squareAction === "disconnect"}
+                      onClick={onSquareDisconnectOpen}
+                    >
+                      Disconnect Square
+                    </Button>
+                  </div>
+
+                  {squareStatus.merchantId && (
+                    <p className="text-xs text-gray-500">
+                      Merchant ID:{" "}
+                      <span className="font-mono">
+                        {squareStatus.merchantId}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              ) : !status?.hasAccount ? (
+                <div className="space-y-5">
                   <div className="flex items-start gap-3">
                     <ExclamationTriangleIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-yellow-600" />
                     <div>
                       <p className="font-bold text-black">
-                        No Stripe account connected
+                        No card processor connected
                       </p>
                       <p className="text-sm text-gray-700">
-                        Connect Stripe to accept credit card payments and
-                        receive payouts to your bank account.
+                        Choose one processor to accept credit cards. You can
+                        change it later.
                       </p>
                     </div>
                   </div>
-                  <Button
-                    className={BLUEBUTTONCLASSNAMES}
-                    startContent={
-                      <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                    }
-                    onClick={onOpen}
-                  >
-                    Set Up Stripe
-                  </Button>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-white p-4">
+                      <div className="flex items-center gap-2">
+                        <CreditCardIcon className="text-primary-blue h-6 w-6" />
+                        <p className="font-bold text-black">Stripe</p>
+                      </div>
+                      <p className="flex-1 text-sm text-gray-700">
+                        Card payments, payouts to your bank, and optional US
+                        sales tax collection.
+                      </p>
+                      <Button
+                        className={BLUEBUTTONCLASSNAMES}
+                        startContent={
+                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                        }
+                        onClick={onOpen}
+                      >
+                        Set Up Stripe
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-white p-4">
+                      <div className="flex items-center gap-2">
+                        <BuildingStorefrontIcon className="text-primary-blue h-6 w-6" />
+                        <p className="font-bold text-black">Square</p>
+                      </div>
+                      <p className="flex-1 text-sm text-gray-700">
+                        Card payments on your own Square account, plus one-click
+                        import of your Square catalog into listings.
+                      </p>
+                      {squareStatus?.configured === false ? (
+                        <p className="text-xs text-gray-500">
+                          Square isn&apos;t available yet. Check back soon.
+                        </p>
+                      ) : (
+                        <Button
+                          className={WHITEBUTTONCLASSNAMES}
+                          startContent={
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                          }
+                          isLoading={squareAction === "connect"}
+                          onClick={handleConnectSquare}
+                        >
+                          Connect Square
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -673,6 +882,66 @@ const PaymentsSettingsPage = () => {
                   isLoading={actionLoading === "disconnect"}
                   startContent={
                     actionLoading !== "disconnect" ? (
+                      <LinkSlashIcon className="h-4 w-4" />
+                    ) : undefined
+                  }
+                >
+                  Disconnect
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+
+          <Modal
+            backdrop="blur"
+            isOpen={isSquareDisconnectOpen}
+            onClose={onSquareDisconnectClose}
+            classNames={{
+              wrapper: "shadow-neo",
+              base: "border-2 border-black rounded-md",
+              backdrop: "bg-black/20 backdrop-blur-sm",
+              header:
+                "border-b-2 border-black bg-white rounded-t-md text-black",
+              body: "py-6 bg-white",
+              footer: "border-t-2 border-black bg-white rounded-b-md",
+              closeButton:
+                "hover:bg-gray-200 active:bg-gray-300 rounded-md text-black",
+            }}
+            isDismissable={squareAction !== "disconnect"}
+            placement="center"
+            size="lg"
+          >
+            <ModalContent>
+              <ModalHeader className="flex items-center gap-2 text-black">
+                <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
+                <span>Disconnect Square?</span>
+              </ModalHeader>
+              <ModalBody className="text-black">
+                <p className="text-sm">
+                  This removes your Square account from Milk Market. You
+                  won&apos;t be able to accept card payments until you connect a
+                  processor again.
+                </p>
+                <p className="text-sm">
+                  Your Square account itself isn&apos;t deleted; any balance or
+                  payouts stay with Square, where you can still manage or close
+                  the account.
+                </p>
+              </ModalBody>
+              <ModalFooter className="flex gap-2">
+                <Button
+                  className={WHITEBUTTONCLASSNAMES}
+                  onClick={onSquareDisconnectClose}
+                  isDisabled={squareAction === "disconnect"}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className={DANGERBUTTONCLASSNAMES}
+                  onClick={handleDisconnectSquare}
+                  isLoading={squareAction === "disconnect"}
+                  startContent={
+                    squareAction !== "disconnect" ? (
                       <LinkSlashIcon className="h-4 w-4" />
                     ) : undefined
                   }

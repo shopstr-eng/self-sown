@@ -1146,6 +1146,38 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_shipping_oauth_states_created_at
         ON shipping_oauth_states(created_at);
 
+      -- Square OAuth: per-seller connected Square accounts. Square is an
+      -- ALTERNATIVE card processor to Stripe — a seller uses EITHER Stripe OR
+      -- Square, never both (mutual exclusion enforced server-side at connect).
+      -- Unlike Shippo's never-expiring tokens, Square access tokens EXPIRE
+      -- (~30d) and are renewed with the refresh token, so access+refresh+expires
+      -- are stored together. Charges land directly on the seller's Square
+      -- account (no platform split). location_id + location_currency are
+      -- captured at connect so checkout can refuse a currency mismatch.
+      CREATE TABLE IF NOT EXISTS square_oauth_connections (
+        pubkey TEXT PRIMARY KEY,
+        access_token TEXT NOT NULL,
+        refresh_token TEXT,
+        expires_at TIMESTAMPTZ,
+        merchant_id TEXT,
+        location_id TEXT,
+        location_currency TEXT,
+        scope TEXT,
+        status TEXT NOT NULL DEFAULT 'connected',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      -- Square OAuth: short-lived state→pubkey binding for the OAuth callback
+      -- (CSRF protection; the browser redirect carries no signed event).
+      CREATE TABLE IF NOT EXISTS square_oauth_states (
+        state TEXT PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_square_oauth_states_created_at
+        ON square_oauth_states(created_at);
+
       -- Shippo: cross-instance shipment registry used for (a) shipment
       -- ownership (which seller quoted a shipment, authorizing its purchase)
       -- and (b) the atomic duplicate-purchase guard. Replaces the old

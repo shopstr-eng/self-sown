@@ -1,0 +1,33 @@
+---
+name: Agent bash sandbox gotchas (pkill self-kill, long builds)
+description: Two recurring traps when driving the bash tool — pkill kills the agent's own shell, and long builds need detaching from the 2-min cap and the workflow port-wait.
+---
+
+# Agent bash sandbox gotchas
+
+## `pkill -f <pattern>` kills the agent's OWN shell
+
+Every bash command that ran `pkill -f '<pattern>'` exited 143 (SIGTERM) with no
+output — even when the pattern (e.g. `next build`, `pnpm run dev`) did not
+literally appear in my command. Commands without pkill ran fine and produced
+output.
+**Why:** the bash tool's shell shares a process group / supervisor with the
+targets, so the signal cascades back to the running command and kills it before
+any later line executes.
+**How to apply:** do NOT use `pkill`/`killall` from the bash tool. To stop a
+workflow process use the workflow tooling; to find a stray pid use `ps`/`pgrep`
+and kill that exact pid only if truly necessary.
+
+## Running a build longer than the 2-min bash cap
+
+The bash tool caps at 120s, too short for a cold Next/Turbopack build. Configuring
+the build as a `waitForPort` workflow does NOT help either: the harness kills the
+whole process group when the port doesn't open within its short wait window, so
+the build dies mid-compile.
+**How to apply:** launch the build fully detached and poll its log:
+`setsid bash -c "next build > /tmp/b.log 2>&1; echo EXIT=\$? >> /tmp/b.log" </dev/null >/dev/null 2>&1 &`
+then `sleep` + `tail /tmp/b.log` across turns. If memory drops sharply and the
+log freezes at "Creating an optimized production build" with no EXIT marker, the
+kernel OOM-killer reaped it — that is the documented cold-build OOM (see
+upstream-parity-and-dev-oom.md), not a code regression. Verify via tsc+lint+jest
+instead and note the boot limitation.

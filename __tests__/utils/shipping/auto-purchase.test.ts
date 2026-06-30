@@ -358,6 +358,54 @@ describe("runAutoLabelPurchase — Stripe-bound claimRef dedup (web replay prote
       "mcp-order-9"
     );
   });
+
+  it("Square replay: one settled payment id buys at most one label across fresh orderIds", async () => {
+    // Model the REAL claim layer's atomicity: claimAutoLabelPurchase inserts
+    // `ON CONFLICT (claim_key) DO NOTHING`, so the first caller for a claim key
+    // wins and every later caller for the SAME key sees false. We dedupe on the
+    // exact claim-key string the core builds, exactly as Postgres dedupes on the
+    // claim_key column.
+    const claimed = new Set<string>();
+    claimAutoLabelPurchaseMock.mockImplementation(async (key: string) => {
+      if (claimed.has(key)) return false;
+      claimed.add(key);
+      return true;
+    });
+
+    const SQUARE_PAYMENT_ID = "sqpmt_replay_xyz";
+
+    // First POST from the buyer's browser after a verified COMPLETED Square
+    // payment. The route passes claimRef = the verified Square payment id.
+    const r1 = await runAutoLabelPurchase(
+      baseArgs({ orderId: "client-uuid-A", claimRef: SQUARE_PAYMENT_ID })
+    );
+    expect(r1.purchased).toBe(true);
+
+    // Replays of the SAME settled payment with a fresh client orderId each time
+    // (the orderId is generated in the browser, so an attacker controls it).
+    const r2 = await runAutoLabelPurchase(
+      baseArgs({ orderId: "client-uuid-B", claimRef: SQUARE_PAYMENT_ID })
+    );
+    const r3 = await runAutoLabelPurchase(
+      baseArgs({ orderId: "client-uuid-C", claimRef: SQUARE_PAYMENT_ID })
+    );
+    expect(r2).toEqual({ purchased: false, reason: "claimed-by-other" });
+    expect(r3).toEqual({ purchased: false, reason: "claimed-by-other" });
+
+    // Only ONE seller-billed label is ever bought for the one real payment.
+    expect(buyLabelMock).toHaveBeenCalledTimes(1);
+
+    // Every attempt resolved to the SAME claim key, and that key is bound to the
+    // Square payment id — NOT to any of the client-supplied orderIds. If a
+    // regression keyed the claim on orderId, these three keys would differ and
+    // each replay would buy another label.
+    const keys = claimAutoLabelPurchaseMock.mock.calls.map((c) => c[0]);
+    expect(new Set(keys).size).toBe(1);
+    expect(keys[0]).toContain(SQUARE_PAYMENT_ID);
+    expect(keys[0]).not.toContain("client-uuid-A");
+    expect(keys[0]).not.toContain("client-uuid-B");
+    expect(keys[0]).not.toContain("client-uuid-C");
+  });
 });
 
 describe("autoPurchaseForMcpOrder", () => {
