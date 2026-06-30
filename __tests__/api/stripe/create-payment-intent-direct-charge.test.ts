@@ -149,6 +149,44 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     expect(params.amount).toBe(1000);
   });
 
+  it("treats a Stripe leg of a multi-seller card cart as a SEPARATE single-seller direct charge (no multi-merchant split)", async () => {
+    // Multi-seller carts that include a Square seller charge each seller on
+    // their OWN account, one at a time. The Stripe legs are sent as
+    // single-seller direct charges (metadata.sellerPubkey + isCart, NO
+    // sellerSplits) so each settles on that seller's connected account — they
+    // must NEVER be folded into the combined multi-merchant transfer-group path.
+    getStripeConnectAccountMock.mockResolvedValue({
+      stripe_account_id: "acct_seller",
+      charges_enabled: true,
+    });
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          amount: 7,
+          currency: "usd",
+          metadata: { sellerPubkey: SELLER, isCart: "true" },
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(stripeCreateMock).toHaveBeenCalledTimes(1);
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    const opts = stripeCreateMock.mock.calls[0][1] ?? {};
+    // Direct charge on the seller's own account...
+    expect((opts as any).stripeAccount).toBe("acct_seller");
+    expect((res.body as any).connectedAccountId).toBe("acct_seller");
+    // ...charging exactly this seller's leg (700 cents)...
+    expect(params.amount).toBe(700);
+    // ...and crucially NOT a multi-merchant charge.
+    expect((res.body as any).isMultiMerchant).toBeUndefined();
+    expect(params.transfer_group).toBeUndefined();
+    expect(params.metadata.isMultiMerchant).toBeUndefined();
+    expect(params.metadata.sellerSplits).toBeUndefined();
+  });
+
   it("does NOT route to the connected account when charges_enabled is false", async () => {
     getStripeConnectAccountMock.mockResolvedValue({
       stripe_account_id: "acct_seller",

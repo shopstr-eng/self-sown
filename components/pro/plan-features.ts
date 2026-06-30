@@ -5,7 +5,7 @@
 export const FREE_FEATURES: string[] = [
   "Unlimited product listings",
   "Seller profile & basic stall",
-  "Stripe payout setup",
+  "Stripe or Square payout setup",
   "Affiliate management",
   "Discount codes",
 ];

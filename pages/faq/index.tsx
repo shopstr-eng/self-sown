@@ -28,7 +28,7 @@ export default function Faq() {
         {
           title: "What payment methods are accepted?",
           content:
-            "Milk Market supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe and other fiat options such as Cash App, Venmo, and PayPal. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
+            "Milk Market supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe or Square and other fiat options such as Cash App, Venmo, and PayPal. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
         },
         {
           title: "Will I be charged sales tax?",
@@ -63,7 +63,7 @@ export default function Faq() {
         {
           title: "How much does it cost to sell?",
           content:
-            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe, Stripe charges its own standard processing fee. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
         },
         {
           title: "Is there a free trial of Herd?",

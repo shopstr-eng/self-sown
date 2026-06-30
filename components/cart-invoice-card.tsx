@@ -64,6 +64,12 @@ import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import {
+  computeMultiSellerCardEligible,
+  buildMultiCardQueue,
+  resolveMultiCardOrderId,
+  isFinalMultiCardStep,
+} from "@/utils/cart/multi-seller-card";
 import { NostrWebLNProvider } from "@getalby/sdk";
 import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
@@ -85,6 +91,7 @@ import {
 } from "@/utils/types/types";
 import { Controller } from "react-hook-form";
 import StripeCardForm from "./utility-components/stripe-card-form";
+import SquareCardForm from "./utility-components/square-card-form";
 import {
   isSatsCurrency,
   applyStripeFloor,
@@ -399,6 +406,70 @@ export default function CartInvoiceCard({
     string | null
   >(null);
   const [usdEstimate, setUsdEstimate] = useState<number | null>(null);
+
+  // Square (alternative per-seller card processor; a seller has EITHER Stripe OR
+  // Square, never both). `squareCheckout` holds the active embedded-form payload;
+  // unlike Stripe there is no pre-created intent (the form tokenizes + charges).
+  // Single-seller Square uses `squareSellerStatus`/`squareCardEligible`;
+  // multi-seller carts that include Square sellers charge each seller
+  // sequentially on their own account (see `sellerCardProcessors` +
+  // `multiCardQueue` below).
+  const [isSquareMerchant, setIsSquareMerchant] = useState(false);
+  const [squareSellerStatus, setSquareSellerStatus] = useState<{
+    applicationId: string;
+    locationId: string;
+    environment: "sandbox" | "production";
+    currency: string;
+  } | null>(null);
+  const [squareCheckout, setSquareCheckout] = useState<{
+    sellerPubkey: string;
+    amount: number;
+    currency: string;
+    productTitle: string;
+    applicationId: string;
+    locationId: string;
+    environment: "sandbox" | "production";
+    metadata: Record<string, unknown>;
+  } | null>(null);
+
+  // Per-seller card processor for MULTI-seller carts. Each seller uses EITHER
+  // Stripe OR Square (server-enforced XOR). Built by the seller-status detection
+  // effect; drives `multiSellerCardEligible` + the sequential per-seller charge
+  // queue. `stripeAccountId` is the connected account (or "platform"); `square`
+  // carries that seller's Web Payments SDK config.
+  const [sellerCardProcessors, setSellerCardProcessors] = useState<
+    Record<
+      string,
+      {
+        processor: "stripe" | "square";
+        stripeAccountId?: string;
+        square?: {
+          applicationId: string;
+          locationId: string;
+          environment: "sandbox" | "production";
+          currency: string;
+        };
+      }
+    >
+  >({});
+
+  // Sequential per-seller card checkout for multi-seller carts that include a
+  // Square seller. Square Web Payments tokens are single-use and bound to one
+  // location, and each seller is charged on their OWN account (no combined
+  // charge), so the buyer enters card details once per seller in order.
+  // `multiCardQueue` is the ordered list of remaining steps; `multiCardIndex`
+  // is the active step; `multiCardResultsRef` accumulates each seller's verified
+  // payment (and survives a mid-sequence cancel so a resubmit never re-charges
+  // an already-paid seller). `multiCardOrderIdRef` is the single order id shared
+  // across every seller's DMs/emails/buyer-receipts.
+  const [multiCardQueue, setMultiCardQueue] = useState<
+    { pubkey: string; processor: "stripe" | "square" }[] | null
+  >(null);
+  const [multiCardIndex, setMultiCardIndex] = useState(0);
+  const multiCardResultsRef = useRef<
+    Record<string, { processor: "stripe" | "square"; paymentId: string }>
+  >({});
+  const multiCardOrderIdRef = useRef<string>("");
 
   const pendingOrderEmailRef = useRef<Array<{
     orderId: string;
@@ -1657,12 +1728,18 @@ export default function CartInvoiceCard({
     setSellerConnectedAccountId(null);
     setSellerStripeAccounts({});
     setStripeClientSecret(null);
+    setSquareCheckout(null);
     setStripePaymentIntentId(null);
     setStripePaymentConfirmed(false);
     setHasTimedOut(false);
     setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
     setMultiMerchantTransferGroup(null);
     setMultiMerchantSellerSplits(null);
+    setSellerCardProcessors({});
+    setMultiCardQueue(null);
+    setMultiCardIndex(0);
+    multiCardResultsRef.current = {};
+    multiCardOrderIdRef.current = "";
 
     if (products.length === 0 || uniqueSellerPubkeys.length === 0) {
       setFiatPaymentOptions({});
@@ -1687,10 +1764,31 @@ export default function CartInvoiceCard({
       try {
         const accounts: Record<string, string> = {};
         let allHaveStripe = true;
+        // Per-seller card processor map. A seller without a usable Stripe account
+        // is probed for Square (multi-seller carts only — single-seller Square is
+        // handled by its own detection effect). Fail closed: a seller missing
+        // from this map makes the cart card-ineligible.
+        const processors: Record<
+          string,
+          {
+            processor: "stripe" | "square";
+            stripeAccountId?: string;
+            square?: {
+              applicationId: string;
+              locationId: string;
+              environment: "sandbox" | "production";
+              currency: string;
+            };
+          }
+        > = {};
 
         for (const pubkey of uniqueSellerPubkeys) {
           if (pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
             accounts[pubkey] = "platform";
+            processors[pubkey] = {
+              processor: "stripe",
+              stripeAccountId: "platform",
+            };
             continue;
           }
           const res = await fetch("/api/stripe/connect/seller-status", {
@@ -1698,21 +1796,65 @@ export default function CartInvoiceCard({
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ pubkey }),
           });
+          let hasUsableStripe = false;
           if (res.ok) {
             const data = await res.json();
             if (data.hasStripeAccount && data.chargesEnabled) {
+              hasUsableStripe = true;
               if (data.connectedAccountId) {
                 accounts[pubkey] = data.connectedAccountId;
+                processors[pubkey] = {
+                  processor: "stripe",
+                  stripeAccountId: data.connectedAccountId,
+                };
               }
-            } else {
-              allHaveStripe = false;
             }
-          } else {
+          }
+          if (!hasUsableStripe) {
             allHaveStripe = false;
+            // Stripe unavailable for this seller — probe Square so a multi-seller
+            // cart can still complete card checkout by charging this seller's own
+            // Square account. Skipped for single-seller carts (handled elsewhere).
+            if (!isSingleSeller) {
+              try {
+                const sqRes = await fetch("/api/square/seller-status", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ pubkey }),
+                });
+                if (sqRes.ok) {
+                  const sq = await sqRes.json();
+                  if (
+                    sq.configured &&
+                    sq.hasSquareAccount &&
+                    sq.chargesEnabled &&
+                    sq.applicationId &&
+                    sq.locationId &&
+                    sq.currency
+                  ) {
+                    processors[pubkey] = {
+                      processor: "square",
+                      square: {
+                        applicationId: String(sq.applicationId),
+                        locationId: String(sq.locationId),
+                        environment:
+                          sq.environment === "production"
+                            ? "production"
+                            : "sandbox",
+                        currency: String(sq.currency).toUpperCase(),
+                      },
+                    };
+                  }
+                }
+              } catch {
+                /* fail closed: seller stays absent from the processor map */
+              }
+            }
           }
         }
 
         setSellerStripeAccounts(accounts);
+        setSellerCardProcessors(processors);
 
         if (isSingleSeller && singleSellerPubkey) {
           const hasStripe = !!accounts[singleSellerPubkey];
@@ -1738,6 +1880,52 @@ export default function CartInvoiceCard({
     uniqueSellerPubkeys.length,
     products.length,
   ]);
+
+  // Detect whether the single seller accepts Square card payments. Square is the
+  // per-seller alternative to Stripe (server-enforced XOR) and is single-seller
+  // only — multi-seller carts are never Square card-eligible. Fail closed: any
+  // error or missing field means no Square card option is offered.
+  useEffect(() => {
+    let cancelled = false;
+    setIsSquareMerchant(false);
+    setSquareSellerStatus(null);
+    if (!isSingleSeller || !singleSellerPubkey) return;
+    if (singleSellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/square/seller-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pubkey: singleSellerPubkey }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        if (
+          data.configured &&
+          data.hasSquareAccount &&
+          data.chargesEnabled &&
+          data.applicationId &&
+          data.locationId &&
+          data.currency
+        ) {
+          setIsSquareMerchant(true);
+          setSquareSellerStatus({
+            applicationId: String(data.applicationId),
+            locationId: String(data.locationId),
+            environment:
+              data.environment === "production" ? "production" : "sandbox",
+            currency: String(data.currency).toUpperCase(),
+          });
+        }
+      } catch {
+        /* fail closed: no Square card option */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isSingleSeller, singleSellerPubkey, products.length]);
 
   useEffect(() => {
     if (isSingleSeller && singleSellerPubkey) {
@@ -2222,7 +2410,14 @@ export default function CartInvoiceCard({
 
   const onFormSubmit = async (
     data: { [x: string]: string },
-    paymentType?: "lightning" | "cashu" | "nwc" | "stripe" | "fiat"
+    paymentType?:
+      | "lightning"
+      | "cashu"
+      | "nwc"
+      | "stripe"
+      | "square"
+      | "fiat"
+      | "multicard"
   ) => {
     try {
       if (buyerEmail) {
@@ -2234,7 +2429,7 @@ export default function CartInvoiceCard({
         paymentType === "cashu" ||
         paymentType === "nwc"
           ? bitcoinCosts
-          : paymentType === "stripe"
+          : paymentType === "stripe" || paymentType === "square"
             ? stripeCosts
             : { nativeTotal: nativeTotalCost, satsTotal: totalCost };
       const price = methodCosts.satsTotal;
@@ -2399,11 +2594,24 @@ export default function CartInvoiceCard({
             profileContext.profileData.get(sellerPubkey);
           const isPlatformSeller =
             sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+          // Multi-seller card carts charge each seller on their OWN processor,
+          // so resolve this seller's effective method (stripe vs square) and
+          // whether a platform donation applies (Stripe only; Square charges go
+          // straight to the seller with no platform fee).
+          const sellerProcessor =
+            paymentType === "multicard"
+              ? sellerCardProcessors[sellerPubkey]?.processor || "stripe"
+              : undefined;
+          const effectivePaymentMethod =
+            paymentType === "multicard"
+              ? sellerProcessor!
+              : paymentType || "lightning";
           const onPlatformPayment =
             paymentType === "cashu" ||
             paymentType === "nwc" ||
             paymentType === "lightning" ||
-            paymentType === "stripe";
+            paymentType === "stripe" ||
+            (paymentType === "multicard" && sellerProcessor === "stripe");
           const orderAmountNumeric = parseFloat(orderAmount) || 0;
           const emailDonationPercentage =
             !isPlatformSeller && onPlatformPayment
@@ -2418,7 +2626,7 @@ export default function CartInvoiceCard({
             productTitle: sellerProductTitles,
             amount: orderAmount,
             currency: orderCurrency,
-            paymentMethod: paymentType || "lightning",
+            paymentMethod: effectivePaymentMethod,
             sellerPubkey,
             buyerName: paymentData.shippingName || undefined,
             shippingAddress: emailAddressTag,
@@ -2438,6 +2646,10 @@ export default function CartInvoiceCard({
         await handleNWCPayment(price, paymentData);
       } else if (paymentType === "stripe") {
         await handleStripePayment(price, paymentData);
+      } else if (paymentType === "square") {
+        await handleSquarePayment(price, paymentData);
+      } else if (paymentType === "multicard") {
+        await handleMultiSellerCardPayment(paymentData);
       } else {
         await handleLightningPayment(price, paymentData);
       }
@@ -3068,18 +3280,534 @@ export default function CartInvoiceCard({
     }
   };
 
-  const handleStripePaymentSuccess = async (paymentIntentId: string) => {
+  const handleSquarePayment = async (convertedPrice: number, data: any) => {
+    try {
+      validatePaymentData(convertedPrice, data);
+
+      if (!isSingleSeller || !singleSellerPubkey || !squareSellerStatus) {
+        throw new Error(
+          "Square checkout is only available for single-seller carts."
+        );
+      }
+
+      // Use the discounted card totals (same basis as Stripe) so the buyer is
+      // charged exactly what the "Pay with Card" button shows.
+      const squareAmount =
+        stripeCosts.nativeTotal !== null && cartCurrency
+          ? stripeCosts.nativeTotal
+          : stripeCosts.satsTotal;
+      const squareCurrency =
+        stripeCosts.nativeTotal !== null && cartCurrency
+          ? cartCurrency
+          : "sats";
+
+      // Fail closed on an FX-feed outage — the single-seller card charge is
+      // derived from the FX-converted native total (matches the Stripe path).
+      if (!isSatsCart && cartCurrency && chargeFxFailed) {
+        throw new ExchangeRateError();
+      }
+
+      const orderId = uuidv4();
+      if (pendingOrderEmailRef.current) {
+        pendingOrderEmailRef.current.forEach((entry) => {
+          if (!entry.orderId) entry.orderId = orderId;
+        });
+      }
+
+      const productTitles = products
+        .map((p: any) => p.title || p.productName)
+        .join(", ");
+
+      // Square has no pre-created intent; the embedded Web Payments SDK form
+      // tokenizes the card and POSTs the charge to /api/square/create-payment,
+      // then calls back into handleCardPaymentSuccess.
+      setSquareCheckout({
+        sellerPubkey: singleSellerPubkey,
+        amount: squareAmount,
+        currency: squareCurrency,
+        productTitle: `Cart Order: ${productTitles}`,
+        applicationId: squareSellerStatus.applicationId,
+        locationId: squareSellerStatus.locationId,
+        environment: squareSellerStatus.environment,
+        metadata: {
+          orderId,
+          productId: products.map((p) => p.id).join(","),
+          sellerPubkey: singleSellerPubkey,
+          buyerPubkey: userPubkey || "",
+          productTitle: productTitles,
+          isCart: "true",
+        },
+      });
+      setPendingStripeData(data);
+      setShowInvoiceCard(true);
+    } catch (error) {
+      console.error("Square payment error:", error);
+      if (setInvoiceGenerationFailed) {
+        setInvoiceGenerationFailed(true);
+      }
+      setShowInvoiceCard(false);
+      if (isExchangeRateError(error)) {
+        setFailureText(EXCHANGE_RATE_BUYER_MESSAGE);
+      } else {
+        const detail = error instanceof Error ? error.message : "Unknown error";
+        setFailureText(`Card payment setup failed: ${detail}`);
+      }
+      setShowFailureModal(true);
+    }
+  };
+
+  // Configure the invoice card for one step of the multi-seller card sequence:
+  // show that seller's card form, charging on their OWN account. Square sellers
+  // get an embedded Web Payments form; Stripe sellers get a freshly created
+  // single-seller direct-charge PaymentIntent. Clears the other processor's
+  // state so only one form is mounted at a time.
+  const configureMultiCardStep = async (
+    index: number,
+    queue: { pubkey: string; processor: "stripe" | "square" }[]
+  ) => {
+    const step = queue[index];
+    if (!step) return;
+    const proc = sellerCardProcessors[step.pubkey];
+    const { amount, currency } = getSellerCardCharge(step.pubkey);
+    const sellerProducts = products.filter((p) => p.pubkey === step.pubkey);
+    const sellerProductTitles = sellerProducts
+      .map((p: any) => p.title || p.productName)
+      .join(", ");
+    const metadata = {
+      orderId: multiCardOrderIdRef.current,
+      productId: sellerProducts.map((p) => p.id).join(","),
+      sellerPubkey: step.pubkey,
+      buyerPubkey: userPubkey || "",
+      productTitle: sellerProductTitles,
+      isCart: "true",
+    };
+
+    if (step.processor === "square") {
+      if (!proc?.square) {
+        throw new Error("Square is not available for one of the sellers.");
+      }
+      setStripeClientSecret(null);
+      setStripePaymentIntentId(null);
+      setStripeConnectedAccountForForm(null);
+      setSquareCheckout({
+        sellerPubkey: step.pubkey,
+        amount,
+        currency,
+        productTitle: `Cart Order: ${sellerProductTitles}`,
+        applicationId: proc.square.applicationId,
+        locationId: proc.square.locationId,
+        environment: proc.square.environment,
+        metadata,
+      });
+      setMultiCardIndex(index);
+      setShowInvoiceCard(true);
+      return;
+    }
+
+    // Stripe seller: create a single-seller DIRECT-charge PaymentIntent on the
+    // seller's own connected account (no sellerSplits → no multi-merchant
+    // transfer group; donation handled server-side via resolveDonationCut).
+    const response = await fetch("/api/stripe/create-payment-intent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount,
+        currency,
+        customerEmail:
+          buyerEmail ||
+          (userPubkey
+            ? `${userPubkey.substring(0, 8)}@nostr.com`
+            : `guest-${multiCardOrderIdRef.current.substring(0, 8)}@nostr.com`),
+        productTitle: `Cart Order: ${sellerProductTitles}`,
+        metadata,
+      }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const err = new Error(errorData.details || "Failed to create payment");
+      if (errorData.code)
+        (err as Error & { code?: string }).code = errorData.code;
+      throw err;
+    }
+    const respData = await response.json();
+    setSquareCheckout(null);
+    setStripeClientSecret(respData.clientSecret);
+    setStripePaymentIntentId(respData.paymentIntentId);
+    setStripeConnectedAccountForForm(respData.connectedAccountId || null);
+    setStripeTimeoutSeconds(STRIPE_TIMEOUT_SECONDS);
+    setHasTimedOut(false);
+    setMultiCardIndex(index);
+    setShowInvoiceCard(true);
+  };
+
+  // Entry point for a multi-seller cart that includes a Square seller. Each
+  // seller is charged separately on their own account, one card-entry step at a
+  // time. Generates the shared order id, builds the email entries, and starts
+  // the queue — skipping any seller already paid in a prior (cancelled) attempt
+  // so a resubmit never double-charges.
+  const handleMultiSellerCardPayment = async (data: any) => {
+    try {
+      validatePaymentData(1, data);
+
+      // Reuse the order id from a prior partial attempt so per-step DMs,
+      // emails, and buyer receipts all line up under one order.
+      multiCardOrderIdRef.current = resolveMultiCardOrderId(
+        multiCardOrderIdRef.current,
+        uuidv4
+      );
+      const orderId = multiCardOrderIdRef.current;
+      if (pendingOrderEmailRef.current) {
+        pendingOrderEmailRef.current.forEach((entry) => {
+          if (!entry.orderId) entry.orderId = orderId;
+        });
+      }
+
+      // Build the queue from sellers NOT already charged in a prior attempt.
+      const queue = buildMultiCardQueue(
+        uniqueSellerPubkeys,
+        sellerCardProcessors,
+        multiCardResultsRef.current
+      );
+
+      setPendingStripeData(data);
+
+      if (queue.length === 0) {
+        // Everything already paid (resubmit after all steps succeeded) — just
+        // finalize emails/receipts/confirm state.
+        await handleCardPaymentSuccess({
+          processor: "stripe",
+          paymentId: "",
+          sellerPayments: multiCardResultsRef.current,
+          skipSellerEffects: true,
+          orderIdOverride: orderId,
+        });
+        return;
+      }
+
+      setMultiCardQueue(queue);
+      await configureMultiCardStep(0, queue);
+    } catch (error) {
+      console.error("Multi-seller card payment error:", error);
+      if (setInvoiceGenerationFailed) {
+        setInvoiceGenerationFailed(true);
+      }
+      setShowInvoiceCard(false);
+      if (isExchangeRateError(error)) {
+        setFailureText(EXCHANGE_RATE_BUYER_MESSAGE);
+      } else {
+        const detail = error instanceof Error ? error.message : "Unknown error";
+        setFailureText(`Card payment setup failed: ${detail}`);
+      }
+      setShowFailureModal(true);
+    }
+  };
+
+  // Called when one seller's card charge in the multi-seller sequence succeeds.
+  // Records the verified payment, fires that seller's order DMs + auto-ship
+  // immediately (so a paid seller is always notified even if the buyer abandons
+  // a later step), then advances to the next seller or finalizes the order.
+  const onMultiCardStepSuccess = async (paymentId: string) => {
+    const queue = multiCardQueue;
+    if (!queue) return;
+    const index = multiCardIndex;
+    const step = queue[index];
+    if (!step) return;
+
+    multiCardResultsRef.current[step.pubkey] = {
+      processor: step.processor,
+      paymentId,
+    };
+
+    const data = pendingStripeData;
+    const addressTag =
+      data?.shippingName && data?.shippingAddress
+        ? data.shippingUnitNo
+          ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+          : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+        : undefined;
+
+    const sellerProducts = products.filter((p) => p.pubkey === step.pubkey);
+    try {
+      await sendSellerCardOrderEffects(step.pubkey, sellerProducts, {
+        processor: step.processor,
+        paymentId,
+        orderId: multiCardOrderIdRef.current,
+        data,
+        addressTag,
+        subscriptionLabel: "",
+      });
+    } catch (e) {
+      console.warn("Per-seller order effects failed:", e);
+    }
+
+    if (!isFinalMultiCardStep(index, queue.length)) {
+      try {
+        await configureMultiCardStep(index + 1, queue);
+      } catch (error) {
+        console.error("Failed to set up next seller's card form:", error);
+        const detail = error instanceof Error ? error.message : "Unknown error";
+        setFailureText(
+          `Your previous sellers were paid, but setting up the next seller's card form failed: ${detail}. Please retry to finish the remaining sellers.`
+        );
+        setShowFailureModal(true);
+      }
+      return;
+    }
+
+    // Last seller paid — finalize the whole order (emails, buyer receipts,
+    // confirm state). Seller DMs already fired per-step, so skip them here.
+    setMultiCardQueue(null);
+    await handleCardPaymentSuccess({
+      processor: "stripe",
+      paymentId,
+      sellerPayments: multiCardResultsRef.current,
+      skipSellerEffects: true,
+      orderIdOverride: multiCardOrderIdRef.current,
+    });
+  };
+
+  // Per-seller order side-effects for a card payment: the seller's order DM,
+  // the fire-and-forget auto-ship label purchase (on the seller's own Shippo
+  // account), and one order DM per product. Shared by the single-charge path
+  // (`handleCardPaymentSuccess`) and the multi-seller sequential path, where it
+  // fires incrementally as each seller is charged on their own account so a
+  // paid seller is always notified even if the buyer abandons later steps.
+  const sendSellerCardOrderEffects = async (
+    sellerPk: string,
+    sellerProducts: typeof products,
+    ctx: {
+      processor: "stripe" | "square";
+      paymentId: string;
+      orderId: string;
+      data: any;
+      addressTag?: string;
+      subscriptionLabel: string;
+      // Order-level sales tax is single-seller Stripe only; pass a shared
+      // mutable flag so it's attributed to exactly one DM line. Omit (the
+      // multi-seller path) to never attach tax.
+      taxState?: { attributed: boolean };
+    }
+  ) => {
+    const isStripe = ctx.processor === "stripe";
+    const paymentIntentId = ctx.paymentId;
+    const { orderId, data, addressTag, subscriptionLabel } = ctx;
+
+    const sellerProductTitles = sellerProducts
+      .map((p: any) => p.title || p.productName)
+      .join(", ");
+
+    const paymentMessage =
+      "You have received a " +
+      (isStripe ? "Stripe" : "Square") +
+      " card payment from " +
+      (userNPub || "a guest buyer") +
+      " for your cart order (" +
+      sellerProductTitles +
+      ")" +
+      subscriptionLabel +
+      " on Milk Market! Check your " +
+      (isStripe ? "Stripe" : "Square") +
+      " account for the payment.";
+
+    // Fire-and-forget automatic shipping-label purchase on the seller's own
+    // Shippo account (card path, US destinations only). The server re-verifies
+    // the payment (Stripe PaymentIntent or Square payment) and the
+    // per-(seller, order) claim dedups concurrent line POSTs, so one label is
+    // bought per seller. Buyer address is transient — sent only for this
+    // request, never persisted client-side.
+    const autoShipCountry = (data.shippingCountry || "").trim().toUpperCase();
+    const autoShipIsUs =
+      autoShipCountry === "US" ||
+      autoShipCountry === "USA" ||
+      autoShipCountry === "UNITED STATES";
+    const autoShipLineProduct = sellerProducts[0];
+    if (
+      autoShipIsUs &&
+      autoShipLineProduct &&
+      data.shippingName &&
+      data.shippingAddress &&
+      data.shippingCity &&
+      data.shippingState &&
+      data.shippingPostalCode
+    ) {
+      const autoShipToAddress = {
+        name: data.shippingName,
+        street1: data.shippingAddress,
+        street2: data.shippingUnitNo || undefined,
+        city: data.shippingCity,
+        state: data.shippingState,
+        zip: data.shippingPostalCode,
+        country: "US",
+      };
+      const autoShipUrl = isStripe
+        ? "/api/shipping/auto-purchase"
+        : "/api/shipping/auto-purchase-square";
+      const autoShipBody = isStripe
+        ? {
+            paymentIntentId,
+            orderId,
+            sellerPubkey: sellerPk,
+            productId: autoShipLineProduct.id,
+            toAddress: autoShipToAddress,
+          }
+        : {
+            squarePaymentId: paymentIntentId,
+            orderId,
+            sellerPubkey: sellerPk,
+            productId: autoShipLineProduct.id,
+            toAddress: autoShipToAddress,
+          };
+      fetch(autoShipUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(autoShipBody),
+      }).catch((e) => console.warn("Auto label purchase request failed:", e));
+    }
+
+    for (const product of sellerProducts) {
+      const sel = subscriptionSelections[product.id];
+      const subInfo =
+        sel?.enabled && stripeSubscriptionId
+          ? {
+              enabled: true,
+              frequency: sel.frequency,
+              stripeSubscriptionId: stripeSubscriptionId,
+            }
+          : undefined;
+
+      // The native and sats branches must be gated by the same condition,
+      // otherwise we can pick the sats value (from totalCostsInSats) while
+      // still tagging it as the cart's native currency (e.g. USD) — which
+      // renders as ~1500x the actual amount in the orders dashboard. We
+      // also intentionally do NOT fall back to product.price, because for
+      // a product priced in a currency that differs from the cart's
+      // native currency, product.price would be in the wrong unit.
+      const nativeAmt = nativeCostsPerProduct?.[product.id];
+      const useNativeForMsg =
+        !isSatsCart &&
+        !!cartCurrency &&
+        typeof nativeAmt === "number" &&
+        nativeAmt > 0;
+      const productAmount = useNativeForMsg
+        ? nativeAmt
+        : totalCostsInSats[product.id] || totalCostsInSats[product.pubkey] || 0;
+      const productCurrency = useNativeForMsg
+        ? (cartCurrency as string)
+        : "sats";
+
+      // Fold the seller's discounted shipping into the REPORTED amount only
+      // (attributed to the first product so multi-product sellers don't
+      // double-count). The card charge and donation base are unchanged.
+      const reportShipStripe =
+        product === sellerProducts[0]
+          ? useNativeForMsg
+            ? nativeShippingPerSeller[product.pubkey] || 0
+            : shippingCostsInSats[product.pubkey] || 0
+          : 0;
+      const reportedProductAmount = productAmount + reportShipStripe;
+
+      const sellerProfileForDonation = profileContext.profileData.get(
+        product.pubkey
+      );
+      const stripeDonationPercentage =
+        sellerProfileForDonation?.content?.mm_donation ?? 0;
+      const stripeDonationAmount =
+        stripeDonationPercentage > 0 && productAmount
+          ? Math.ceil((productAmount * stripeDonationPercentage) / 100)
+          : 0;
+
+      const canTax = !!ctx.taxState && !multiMerchantSellerSplits;
+      const taxForDmLine =
+        canTax && !ctx.taxState!.attributed && salesTaxNative > 0
+          ? salesTaxNative
+          : 0;
+      if (taxForDmLine > 0) ctx.taxState!.attributed = true;
+      const taxCurrencyForDmLine =
+        taxForDmLine > 0
+          ? salesTaxCurrency || cartCurrency || "USD"
+          : undefined;
+
+      await sendPaymentAndContactMessage(
+        sellerPk,
+        paymentMessage,
+        product,
+        true,
+        false,
+        false,
+        false,
+        orderId,
+        ctx.processor,
+        paymentIntentId,
+        paymentIntentId,
+        reportedProductAmount,
+        quantities[product.id] || 1,
+        undefined,
+        addressTag,
+        selectedPickupLocations[product.id] || undefined,
+        stripeDonationAmount,
+        stripeDonationPercentage,
+        undefined,
+        subInfo,
+        productCurrency,
+        taxForDmLine || undefined,
+        taxCurrencyForDmLine
+      );
+    }
+  };
+
+  const handleCardPaymentSuccess = async ({
+    processor,
+    paymentId,
+    sellerPayments,
+    skipSellerEffects,
+    orderIdOverride,
+  }: {
+    processor: "stripe" | "square";
+    paymentId: string;
+    // Multi-seller card finalize: each seller was charged separately on their
+    // own account (Stripe or Square), so per-seller payment refs are resolved
+    // from this map instead of the single `processor`/`paymentId`.
+    sellerPayments?: Record<
+      string,
+      { processor: "stripe" | "square"; paymentId: string }
+    >;
+    // Multi-seller card: per-seller order DMs + auto-ship already fired
+    // incrementally as each seller was charged, so skip the seller loop here
+    // (this finalize only flushes emails, buyer receipts, and confirm state).
+    skipSellerEffects?: boolean;
+    // Multi-seller card: reuse the single order id shared across every seller's
+    // per-step DMs so emails/receipts line up.
+    orderIdOverride?: string;
+  }) => {
     const data = pendingStripeData;
     if (!data) return;
 
-    const orderId = uuidv4();
+    const isStripe = processor === "stripe";
+    // Reused as the order's payment reference across DMs/emails. For Stripe this
+    // is the PaymentIntent id (server-re-verifiable for custom-domain confirms,
+    // tax, transfers); for Square it's the Square payment id. Both are
+    // server-re-verifiable (Stripe via the PaymentIntent, Square via the payment
+    // id on the seller's own account), so the auto-label path runs for both;
+    // tax/transfer/custom-domain-confirm paths remain Stripe-only and are gated
+    // on `isStripe`.
+    const paymentIntentId = paymentId;
+
+    const orderId = orderIdOverride ?? uuidv4();
 
     if (pendingOrderEmailRef.current) {
       pendingOrderEmailRef.current.forEach((entry) => {
         if (!entry.orderId) entry.orderId = orderId;
         // Pin the verified Stripe payment so the buyer confirmation can use the
         // seller's authenticated domain (card-only; the server re-verifies it).
-        entry.paymentIntentId = paymentIntentId;
+        // Square has no server-re-verifiable reference, so leave it unset there
+        // (the confirmation falls back to the global verified sender). In a
+        // multi-seller cart each entry is pinned to its OWN seller's payment.
+        const sp = sellerPayments?.[entry.sellerPubkey];
+        if (sp) {
+          if (sp.processor === "stripe") entry.paymentIntentId = sp.paymentId;
+        } else if (isStripe) {
+          entry.paymentIntentId = paymentIntentId;
+        }
       });
       // Sales tax is order-level; attribute it to the first email entry only so
       // multi-product carts don't repeat the line. Single-seller Stripe only.
@@ -3099,6 +3827,7 @@ export default function CartInvoiceCard({
     // reports. Single-seller direct charges only; best-effort, never blocks the
     // order.
     if (
+      isStripe &&
       !multiMerchantSellerSplits &&
       stripeConnectedAccountForForm &&
       salesTaxSmallest > 0
@@ -3128,7 +3857,7 @@ export default function CartInvoiceCard({
           : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
         : undefined;
 
-    if (multiMerchantSellerSplits && multiMerchantTransferGroup) {
+    if (isStripe && multiMerchantSellerSplits && multiMerchantTransferGroup) {
       try {
         const transferResponse = await fetch("/api/stripe/process-transfers", {
           method: "POST",
@@ -3177,156 +3906,25 @@ export default function CartInvoiceCard({
       sellerGroupedProducts[product.pubkey]!.push(product);
     }
 
-    // Sales tax is order-level; attach it to the very first order DM line only
-    // (single-seller Stripe orders) so it isn't repeated per product/seller.
-    let taxAttributedToDm = false;
-
-    for (const [sellerPk, sellerProducts] of Object.entries(
-      sellerGroupedProducts
-    )) {
-      const sellerProductTitles = sellerProducts
-        .map((p: any) => p.title || p.productName)
-        .join(", ");
-
-      const paymentMessage =
-        "You have received a stripe payment from " +
-        (userNPub || "a guest buyer") +
-        " for your cart order (" +
-        sellerProductTitles +
-        ")" +
-        subscriptionLabel +
-        " on Milk Market! Check your Stripe account for the payment.";
-
-      // Fire-and-forget automatic shipping-label purchase on the seller's own
-      // Shippo account (card path, US destinations only). The server re-verifies
-      // the PaymentIntent and the per-(seller, order) claim dedups concurrent
-      // line POSTs, so one label is bought per seller. Buyer address is
-      // transient — sent only for this request, never persisted client-side.
-      const autoShipCountry = (data.shippingCountry || "").trim().toUpperCase();
-      const autoShipIsUs =
-        autoShipCountry === "US" ||
-        autoShipCountry === "USA" ||
-        autoShipCountry === "UNITED STATES";
-      const autoShipLineProduct = sellerProducts[0];
-      if (
-        autoShipIsUs &&
-        autoShipLineProduct &&
-        data.shippingName &&
-        data.shippingAddress &&
-        data.shippingCity &&
-        data.shippingState &&
-        data.shippingPostalCode
-      ) {
-        fetch("/api/shipping/auto-purchase", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            paymentIntentId,
-            orderId,
-            sellerPubkey: sellerPk,
-            productId: autoShipLineProduct.id,
-            toAddress: {
-              name: data.shippingName,
-              street1: data.shippingAddress,
-              street2: data.shippingUnitNo || undefined,
-              city: data.shippingCity,
-              state: data.shippingState,
-              zip: data.shippingPostalCode,
-              country: "US",
-            },
-          }),
-        }).catch((e) => console.warn("Auto label purchase request failed:", e));
-      }
-
-      for (const product of sellerProducts) {
-        const sel = subscriptionSelections[product.id];
-        const subInfo =
-          sel?.enabled && stripeSubscriptionId
-            ? {
-                enabled: true,
-                frequency: sel.frequency,
-                stripeSubscriptionId: stripeSubscriptionId,
-              }
-            : undefined;
-
-        // The native and sats branches must be gated by the same condition,
-        // otherwise we can pick the sats value (from totalCostsInSats) while
-        // still tagging it as the cart's native currency (e.g. USD) — which
-        // renders as ~1500x the actual amount in the orders dashboard. We
-        // also intentionally do NOT fall back to product.price, because for
-        // a product priced in a currency that differs from the cart's
-        // native currency, product.price would be in the wrong unit.
-        const nativeAmt = nativeCostsPerProduct?.[product.id];
-        const useNativeForMsg =
-          !isSatsCart &&
-          !!cartCurrency &&
-          typeof nativeAmt === "number" &&
-          nativeAmt > 0;
-        const productAmount = useNativeForMsg
-          ? nativeAmt
-          : totalCostsInSats[product.id] ||
-            totalCostsInSats[product.pubkey] ||
-            0;
-        const productCurrency = useNativeForMsg
-          ? (cartCurrency as string)
-          : "sats";
-
-        // Fold the seller's discounted shipping into the REPORTED amount only
-        // (attributed to the first product so multi-product sellers don't
-        // double-count). The Stripe charge and donation base are unchanged.
-        const reportShipStripe =
-          product === sellerProducts[0]
-            ? useNativeForMsg
-              ? nativeShippingPerSeller[product.pubkey] || 0
-              : shippingCostsInSats[product.pubkey] || 0
-            : 0;
-        const reportedProductAmount = productAmount + reportShipStripe;
-
-        const sellerProfileForDonation = profileContext.profileData.get(
-          product.pubkey
-        );
-        const stripeDonationPercentage =
-          sellerProfileForDonation?.content?.mm_donation ?? 0;
-        const stripeDonationAmount =
-          stripeDonationPercentage > 0 && productAmount
-            ? Math.ceil((productAmount * stripeDonationPercentage) / 100)
-            : 0;
-
-        const taxForDmLine =
-          !multiMerchantSellerSplits && !taxAttributedToDm && salesTaxNative > 0
-            ? salesTaxNative
-            : 0;
-        if (taxForDmLine > 0) taxAttributedToDm = true;
-        const taxCurrencyForDmLine =
-          taxForDmLine > 0
-            ? salesTaxCurrency || cartCurrency || "USD"
-            : undefined;
-
-        await sendPaymentAndContactMessage(
-          sellerPk,
-          paymentMessage,
-          product,
-          true,
-          false,
-          false,
-          false,
+    // Per-seller order DMs + auto-ship. Skipped on the multi-seller card
+    // finalize, where each seller's effects already fired as it was charged
+    // (on the seller's own Stripe or Square account).
+    if (!skipSellerEffects) {
+      // Sales tax is order-level; attribute it to exactly one DM line
+      // (single-seller Stripe orders) so it isn't repeated per product/seller.
+      const taxState = { attributed: false };
+      for (const [sellerPk, sellerProducts] of Object.entries(
+        sellerGroupedProducts
+      )) {
+        await sendSellerCardOrderEffects(sellerPk, sellerProducts, {
+          processor,
+          paymentId: paymentIntentId,
           orderId,
-          "stripe",
-          paymentIntentId,
-          paymentIntentId,
-          reportedProductAmount,
-          quantities[product.id] || 1,
-          undefined,
+          data,
           addressTag,
-          selectedPickupLocations[product.id] || undefined,
-          stripeDonationAmount,
-          stripeDonationPercentage,
-          undefined,
-          subInfo,
-          productCurrency,
-          taxForDmLine || undefined,
-          taxCurrencyForDmLine
-        );
+          subscriptionLabel,
+          taxState,
+        });
       }
     }
 
@@ -3453,10 +4051,19 @@ export default function CartInvoiceCard({
                 stripeSubscriptionId: stripeSubscriptionId,
               }
             : undefined;
+        // Multi-seller carts charge each product's seller on their OWN account
+        // (Stripe or Square), so the receipt's "via X" wording and the payment
+        // reference must come from that product's seller, not a single global
+        // processor.
+        const sp = sellerPayments?.[product.pubkey];
+        const productProcessor = sp?.processor ?? processor;
+        const productPaymentId = sp?.paymentId ?? paymentIntentId;
         const receiptMessage =
           "Your cart order (" +
           productTitles +
-          ") was processed successfully via Stripe. You should be receiving delivery information from " +
+          ") was processed successfully via " +
+          (productProcessor === "stripe" ? "Stripe" : "Square") +
+          ". You should be receiving delivery information from " +
           sellerNames +
           " as soon as they review your order.";
         const sellerProfileForReceiptDonation = profileContext.profileData.get(
@@ -3477,9 +4084,9 @@ export default function CartInvoiceCard({
           false,
           false,
           orderId,
-          "stripe",
-          paymentIntentId,
-          paymentIntentId,
+          productProcessor,
+          productPaymentId,
+          productPaymentId,
           productAmount,
           qty,
           undefined,
@@ -5693,6 +6300,81 @@ export default function CartInvoiceCard({
   const getFiatMethodCosts = (fiatKey: string) =>
     getMethodDiscountedCosts(fiatKey);
 
+  // Square card eligibility (single-seller only). The cart's charge currency
+  // must match the seller's Square location currency; sats/BTC carts are only
+  // eligible when that location settles in USD (the server converts). Square
+  // does not support Subscribe & Save in v1, so subscription carts are excluded.
+  const squareCardEligible = useMemo(() => {
+    if (!isSingleSeller || !isSquareMerchant || !squareSellerStatus)
+      return false;
+    if (hasActiveSubscription) return false;
+    const loc = squareSellerStatus.currency;
+    if (!loc) return false;
+    if (isSatsCart) return loc === "USD";
+    if (!cartCurrency) return false;
+    return cartCurrency.toUpperCase() === loc;
+  }, [
+    isSingleSeller,
+    isSquareMerchant,
+    squareSellerStatus,
+    hasActiveSubscription,
+    isSatsCart,
+    cartCurrency,
+  ]);
+
+  // Multi-seller card eligibility. A multi-seller cart can complete card
+  // checkout when EVERY seller has a usable card processor (Stripe or Square)
+  // and at least one is Square — otherwise the existing all-Stripe multi-merchant
+  // flow handles it. Each Square seller is charged separately on their own
+  // account, so each Square seller's location currency must match the cart's
+  // charge currency (or settle in USD for sats carts). Subscriptions aren't
+  // supported across the sequential per-seller flow in v1.
+  const multiSellerCardEligible = useMemo(() => {
+    return computeMultiSellerCardEligible({
+      isSingleSeller,
+      hasActiveSubscription,
+      uniqueSellerPubkeys,
+      sellerCardProcessors,
+      isSatsCart,
+      cartCurrency,
+    });
+  }, [
+    isSingleSeller,
+    hasActiveSubscription,
+    uniqueSellerPubkeys,
+    sellerCardProcessors,
+    isSatsCart,
+    cartCurrency,
+  ]);
+
+  // Per-seller card charge = items + that seller's discounted shipping, in the
+  // cart's charge currency (or sats→USD for sats carts). Multi-seller carts have
+  // no payment-method discount and no sales tax (both single-seller only), so
+  // this equals the per-seller amount reported in that seller's order DM/email.
+  // Rounded UP to the minor unit so the captured charge never under-collects.
+  const getSellerCardCharge = (
+    pubkey: string
+  ): { amount: number; currency: string } => {
+    const sellerProducts = products.filter((p) => p.pubkey === pubkey);
+    const useNative = !isSatsCart && !!cartCurrency;
+    if (useNative) {
+      const items = sellerProducts.reduce(
+        (sum, p) => sum + (nativeCostsPerProduct?.[p.id] || 0),
+        0
+      );
+      const shipping = nativeShippingPerSeller[pubkey] || 0;
+      const amount = Math.ceil((items + shipping) * 100) / 100;
+      return { amount, currency: (cartCurrency as string).toUpperCase() };
+    }
+    // Sats cart: each eligible Square seller settles in USD, and Stripe direct
+    // charges accept sats. Send the sats total; the server handles conversion.
+    const items =
+      totalCostsInSats[pubkey] ||
+      sellerProducts.reduce((sum, p) => sum + (totalCostsInSats[p.id] || 0), 0);
+    const shipping = shippingCostsInSats[pubkey] || 0;
+    return { amount: items + shipping, currency: "sats" };
+  };
+
   // Watch shipping address fields and request a Stripe Tax calculation
   // once a country + postal code are present. Debounced to avoid hammering
   // the API on every keystroke. Resets to zero when shipping form isn't
@@ -7135,7 +7817,9 @@ export default function CartInvoiceCard({
             <div className="w-full">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold">
-                  {stripeClientSecret ? "Card Payment" : "Lightning Invoice"}
+                  {stripeClientSecret || squareCheckout
+                    ? "Card Payment"
+                    : "Lightning Invoice"}
                 </h2>
               </div>
               <div className="flex flex-col items-center">
@@ -7188,14 +7872,29 @@ export default function CartInvoiceCard({
                     )}
                     {stripeClientSecret && (
                       <div className="w-full">
+                        {multiCardQueue && multiCardQueue.length > 1 && (
+                          <p className="text-dark-text mb-1 text-center text-sm font-medium">
+                            Seller {multiCardIndex + 1} of{" "}
+                            {multiCardQueue.length} — each seller is charged
+                            separately on their own account.
+                          </p>
+                        )}
                         <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
                           Enter your card details below to complete your
                           payment.
                         </h3>
                         <StripeCardForm
+                          key={`st-${multiCardIndex}`}
                           clientSecret={stripeClientSecret}
                           connectedAccountId={stripeConnectedAccountForForm}
-                          onPaymentSuccess={handleStripePaymentSuccess}
+                          onPaymentSuccess={(pid) =>
+                            multiCardQueue
+                              ? onMultiCardStepSuccess(pid)
+                              : handleCardPaymentSuccess({
+                                  processor: "stripe",
+                                  paymentId: pid,
+                                })
+                          }
                           onPaymentError={(error) => {
                             console.error("Stripe payment error:", error);
                           }}
@@ -7204,11 +7903,56 @@ export default function CartInvoiceCard({
                             setStripeClientSecret(null);
                             setStripePaymentIntentId(null);
                             setHasTimedOut(false);
+                            setMultiCardQueue(null);
                           }}
                         />
                       </div>
                     )}
-                    {!qrCodeUrl && !stripeClientSecret && (
+                    {squareCheckout && (
+                      <div className="w-full">
+                        {multiCardQueue && multiCardQueue.length > 1 && (
+                          <p className="text-dark-text mb-1 text-center text-sm font-medium">
+                            Seller {multiCardIndex + 1} of{" "}
+                            {multiCardQueue.length} — each seller is charged
+                            separately on their own account.
+                          </p>
+                        )}
+                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                          Enter your card details below to complete your
+                          payment.
+                        </h3>
+                        <SquareCardForm
+                          key={`sq-${multiCardIndex}-${squareCheckout.locationId}`}
+                          applicationId={squareCheckout.applicationId}
+                          locationId={squareCheckout.locationId}
+                          environment={squareCheckout.environment}
+                          sellerPubkey={squareCheckout.sellerPubkey}
+                          amount={squareCheckout.amount}
+                          currency={squareCheckout.currency}
+                          customerEmail={buyerEmail || undefined}
+                          productTitle={squareCheckout.productTitle}
+                          metadata={squareCheckout.metadata}
+                          onPaymentSuccess={(pid) =>
+                            multiCardQueue
+                              ? onMultiCardStepSuccess(pid)
+                              : handleCardPaymentSuccess({
+                                  processor: "square",
+                                  paymentId: pid,
+                                })
+                          }
+                          onPaymentError={(error) => {
+                            console.error("Square payment error:", error);
+                          }}
+                          onCancel={() => {
+                            setShowInvoiceCard(false);
+                            setSquareCheckout(null);
+                            setHasTimedOut(false);
+                            setMultiCardQueue(null);
+                          }}
+                        />
+                      </div>
+                    )}
+                    {!qrCodeUrl && !stripeClientSecret && !squareCheckout && (
                       <div>
                         <p>Waiting for payment invoice...</p>
                       </div>
@@ -8004,8 +8748,10 @@ export default function CartInvoiceCard({
                     </>
                   )}
 
-                  {((isSingleSeller && isStripeMerchant) ||
-                    (!isSingleSeller && allSellersHaveStripe)) && (
+                  {((isSingleSeller &&
+                    (isStripeMerchant || squareCardEligible)) ||
+                    (!isSingleSeller &&
+                      (allSellersHaveStripe || multiSellerCardEligible))) && (
                     <Button
                       className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
                         !isFormValid || (!isLoggedIn && !buyerEmail)
@@ -8023,7 +8769,16 @@ export default function CartInvoiceCard({
                         }
                         setEmailError("");
                         handleFormSubmit((data) =>
-                          onFormSubmit(data, "stripe")
+                          onFormSubmit(
+                            data,
+                            isSingleSeller
+                              ? squareCardEligible && !isStripeMerchant
+                                ? "square"
+                                : "stripe"
+                              : allSellersHaveStripe
+                                ? "stripe"
+                                : "multicard"
+                          )
                         )();
                       }}
                       startContent={
@@ -8093,12 +8848,15 @@ export default function CartInvoiceCard({
                       </Button>
                     )}
 
-                  {!isSingleSeller && !allSellersHaveStripe && (
-                    <p className="mt-2 text-center text-sm text-gray-500">
-                      Card payment requires all merchants to have Stripe
-                      enabled. Bitcoin payments are available for all carts.
-                    </p>
-                  )}
+                  {!isSingleSeller &&
+                    !allSellersHaveStripe &&
+                    !multiSellerCardEligible && (
+                      <p className="mt-2 text-center text-sm text-gray-500">
+                        Card payment for a multi-seller cart requires every
+                        merchant to accept cards (Stripe or Square). Bitcoin
+                        payments are available for all carts.
+                      </p>
+                    )}
                 </div>
               </form>
             </>

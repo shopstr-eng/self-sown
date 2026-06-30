@@ -10,6 +10,7 @@ import {
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
+import { hasSquareConnection } from "@/utils/db/square-service";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -71,6 +72,18 @@ export default async function handler(
       return res.status(200).json({
         accountId: existing.stripe_account_id,
         alreadyExists: true,
+      });
+    }
+
+    // Bidirectional XOR: a seller uses EITHER Stripe OR Square, never both.
+    // Refuse to create a Stripe account while Square is connected. (The check
+    // runs after the existing-account short-circuit so a seller who already had
+    // Stripe is unaffected.)
+    if (await hasSquareConnection(normalizedPubkey)) {
+      return res.status(409).json({
+        error:
+          "Square is already connected. Disconnect Square before connecting Stripe.",
+        code: "square_connected",
       });
     }
 
