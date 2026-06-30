@@ -372,6 +372,12 @@ export function buildParcelTag(parcel: {
  * preserving every other tag (including the replaceable `d` tag and
  * `ship_from_zip` origin) so the listing is UPDATED, not forked. Used by the
  * Settings → Shipping "apply parcel template to listings" flow.
+ *
+ * Optionally stamps a `ship_from_zip` origin from the seller's shipping
+ * defaults, but ONLY when the listing doesn't already carry one — an explicit
+ * per-listing origin always wins. Live USPS rates at checkout need both a
+ * parcel weight AND an origin ZIP, so applying a template without an origin
+ * would still fall back to the fixed rate; stamping the default closes that gap.
  */
 export async function republishProductWithParcel(
   rawEvent: NostrEvent,
@@ -382,7 +388,11 @@ export async function republishProductWithParcel(
     heightIn?: number | string | null;
   },
   signer: NostrSigner,
-  nostr: NostrManager
+  nostr: NostrManager,
+  origin?: {
+    shipFromZip?: string | null;
+    shipFromCountry?: string | null;
+  }
 ) {
   if (!signer) throw new Error("Signer required");
   if (!nostr) throw new Error("Nostr writer required");
@@ -394,6 +404,18 @@ export async function republishProductWithParcel(
     (t) => t[0] !== "parcel" && t[0] !== "published_at"
   );
   tags.push(parcelTag);
+
+  // Stamp the seller's default origin only when the listing lacks its own.
+  const hasOwnOrigin = tags.some(
+    (t) => t[0] === "ship_from_zip" && !!t[1] && t[1].trim() !== ""
+  );
+  const defaultZip = origin?.shipFromZip?.trim();
+  if (!hasOwnOrigin && defaultZip) {
+    const defaultCountry =
+      origin?.shipFromCountry?.trim().toUpperCase() || "US";
+    tags.push(["ship_from_zip", defaultZip, defaultCountry]);
+  }
+
   const created_at = Math.floor(Date.now() / 1000);
   tags.push(["published_at", String(created_at)]);
 

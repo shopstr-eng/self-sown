@@ -115,8 +115,8 @@ const PaymentsSettingsPage = () => {
   const [taxError, setTaxError] = useState<string | null>(null);
   const [taxInfo, setTaxInfo] = useState<string | null>(null);
 
-  const loadStatus = async () => {
-    if (!pubkey || !signer?.sign) return;
+  const loadStatus = async (): Promise<AccountStatus | null> => {
+    if (!pubkey || !signer?.sign) return null;
     setLoading(true);
     setError(null);
     try {
@@ -133,19 +133,16 @@ const PaymentsSettingsPage = () => {
       }
       const data = (await res.json()) as AccountStatus;
       setStatus(data);
+      return data;
     } catch (e) {
       setError(
         e instanceof Error ? e.message : "Failed to load Stripe account status"
       );
+      return null;
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pubkey, signer]);
 
   const loadSquareStatus = async () => {
     if (!pubkey || !signer?.sign) return;
@@ -162,8 +159,36 @@ const PaymentsSettingsPage = () => {
     }
   };
 
+  // Refresh Stripe account status and, when the seller can take cards, sales tax
+  // — always in this order. Both sign a Nostr proof and the passphrase challenge
+  // is single-flight, so they must never run concurrently. Tax eligibility is
+  // read from loadStatus's return value (not a separate status-watching effect)
+  // so the tax sign can't fire concurrently with anything else.
+  const refreshStripeStatus = async () => {
+    const accountStatus = await loadStatus();
+    if (accountStatus?.hasAccount && accountStatus.chargesEnabled) {
+      await loadTaxStatus();
+    }
+  };
+
+  // On first load, run every signed call in one ordered sequence: Stripe (+ tax)
+  // then Square. The passphrase challenge is single-flight — firing signs
+  // concurrently lets a later challenge replace an earlier one's resolver,
+  // leaving a sign hung forever (stuck spinner until the page is remounted,
+  // which is why clicking away and back "fixes" it). In order, the first sign
+  // decrypts and caches the key, so every later sign reuses it with no extra
+  // prompt.
   useEffect(() => {
-    loadSquareStatus();
+    if (!pubkey || !signer?.sign) return;
+    let cancelled = false;
+    (async () => {
+      await refreshStripeStatus();
+      if (cancelled) return;
+      await loadSquareStatus();
+    })();
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pubkey, signer]);
 
@@ -213,14 +238,6 @@ const PaymentsSettingsPage = () => {
       setInfo("Stripe link expired. Please try again.");
     }
   }, [router.query.stripe]);
-
-  // Only sellers who can take card payments can collect sales tax.
-  useEffect(() => {
-    if (status?.hasAccount && status.chargesEnabled) {
-      loadTaxStatus();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status?.hasAccount, status?.chargesEnabled]);
 
   const openManageLink = async (mode: "dashboard" | "update") => {
     if (!pubkey || !signer?.sign || !status?.accountId) return;
@@ -823,7 +840,7 @@ const PaymentsSettingsPage = () => {
               isOpen={isOpen}
               onClose={() => {
                 onClose();
-                loadStatus();
+                refreshStripeStatus();
               }}
               pubkey={pubkey}
               returnPath="/settings/payments?stripe=updated"

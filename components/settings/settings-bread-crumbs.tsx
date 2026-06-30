@@ -4,6 +4,7 @@ import { useRouter } from "next/router";
 const pathMap: { [key: string]: string } = {
   settings: "Settings",
   "market-profile": "Market Profile",
+  "user-profile": "Profile",
   profile: "Profile",
   account: "Account Settings & Preferences",
   "shop-profile": "Stall Profile",
@@ -14,6 +15,7 @@ const pathMap: { [key: string]: string } = {
   blog: "Blog",
   payments: "Payments",
   addresses: "Saved Addresses",
+  shipping: "Shipping",
   "self-host": "Self-Host Your Store",
 };
 

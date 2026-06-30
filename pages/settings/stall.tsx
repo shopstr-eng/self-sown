@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useTabs } from "@/components/hooks/use-tabs";
 import { Framer } from "@/components/framer";
+import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import ShopProfileForm from "@/components/settings/shop-profile-form";
 import StallFeed from "@/components/stall/stall-feed";
 import StripeConnectBanner from "@/components/stripe-connect/StripeConnectBanner";
@@ -89,7 +90,7 @@ const StallManagementPage = () => {
           />
         </div>
         <div className="mx-auto w-full px-4 pb-2 lg:w-[90%] lg:max-w-[1600px]">
-          <h1 className="text-3xl font-bold text-black">Market Stall</h1>
+          <SettingsBreadCrumbs />
         </div>
         <div className="sticky inset-x-0 top-0 z-30 flex w-full translate-y-0 flex-col border-0 backdrop-blur-xl transition-all md:translate-y-0">
           <div className="w-full overflow-x-auto">

@@ -16,6 +16,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import ProtectedRoute from "@/components/utility-components/protected-route";
+import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import {
   NostrContext,
   SignerContext,
@@ -292,7 +293,11 @@ const ShippingSettingsPage = () => {
             heightIn: applyTemplate.heightIn,
           },
           signer,
-          nostr
+          nostr,
+          {
+            shipFromZip: defaults.fromZip,
+            shipFromCountry: defaults.fromCountry,
+          }
         );
         if (signed) {
           results[target.event.id] = "ok";
@@ -362,6 +367,7 @@ const ShippingSettingsPage = () => {
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col bg-white pt-24 pb-20">
         <div className="mx-auto w-full max-w-4xl px-4">
+          <SettingsBreadCrumbs />
           <h1 className="mb-2 text-4xl font-bold text-black">Shipping</h1>
           <p className="mb-6 text-sm text-gray-600">
             Manage your default ship-from address, parcel templates, carrier
@@ -940,12 +946,24 @@ const ShippingSettingsPage = () => {
                               checkout.
                             </div>
                           )}
-                          {p.usesLiveRates && !p.hasShipFromZip && (
-                            <div className="mt-0.5 text-xs text-orange-700">
-                              Add a &ldquo;Ship From&rdquo; ZIP in the listing
-                              editor to fully enable live rates.
-                            </div>
-                          )}
+                          {p.usesLiveRates &&
+                            !p.hasShipFromZip &&
+                            !!defaults.fromZip?.trim() && (
+                              <div className="mt-0.5 text-xs text-gray-500">
+                                Applying will also set this listing&apos;s ship
+                                from to your default ZIP ({defaults.fromZip}) so
+                                live rates can calculate.
+                              </div>
+                            )}
+                          {p.usesLiveRates &&
+                            !p.hasShipFromZip &&
+                            !defaults.fromZip?.trim() && (
+                              <div className="mt-0.5 text-xs text-orange-700">
+                                Set a &ldquo;Ship From&rdquo; ZIP in your
+                                Shipping defaults above (or the listing editor)
+                                to enable live rates.
+                              </div>
+                            )}
                         </div>
                         {result === "ok" && (
                           <span className="text-sm font-semibold text-green-700">

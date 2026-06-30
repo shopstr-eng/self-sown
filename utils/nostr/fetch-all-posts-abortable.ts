@@ -6,6 +6,7 @@ import {
   NostrManager,
   NostrSub,
 } from "@/utils/nostr/nostr-manager";
+import { getProductEventKey } from "@/utils/nostr/product-event-key";
 
 type EditProductContext = (
   productEvents: NostrEvent[],
@@ -19,14 +20,6 @@ function isAbortError(error: unknown): boolean {
     "name" in error &&
     (error as { name?: unknown }).name === "AbortError"
   );
-}
-
-function getEventKey(event: NostrEvent): string {
-  if (event.kind === 30402) {
-    const dTag = event.tags?.find((tag: string[]) => tag[0] === "d")?.[1];
-    if (dTag) return `${event.pubkey}:${dTag}`;
-  }
-  return event.id;
 }
 
 function isValidProductRelayEvent(
@@ -165,7 +158,7 @@ export const fetchAllPostsAbortable = async (
           for (const event of batch) {
             if (resolveIfAborted()) return;
             if (event && event.id) {
-              const key = getEventKey(event);
+              const key = getProductEventKey(event);
               const existing = dbProductsMap.get(key);
               if (!existing || event.created_at > existing.created_at) {
                 dbProductsMap.set(key, event);
@@ -235,7 +228,7 @@ export const fetchAllPostsAbortable = async (
       for (const event of fetchedEvents) {
         if (resolveIfAborted()) return;
         if (!isValidProductRelayEvent(event)) continue;
-        const key = getEventKey(event);
+        const key = getProductEventKey(event);
         const existing = dbProductsMap.get(key);
         if (!existing || event.created_at >= existing.created_at) {
           dbProductsMap.set(key, event);

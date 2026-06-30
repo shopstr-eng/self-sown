@@ -31,3 +31,23 @@ call `buildParcelTag` + `republishProductWithParcel` rather than constructing ta
 hand. When updating the modal/list of "my listings", remember kind:30402 republish
 gives the event a NEW id, so update ProductContext via
 `removeDeletedProductEvent(oldId)` + `addNewlyCreatedProductEvent(signed)`.
+
+**Live rates need TWO co-inputs on the event — parcel AND origin:** a valid `parcel`
+tag alone is NOT enough. The buyer-side gate (`liveQuoteEligible` in
+product-invoice-card.tsx / cart-invoice-card.tsx) requires `productData.shipFromZip`,
+and `pages/api/shipping/rates.ts` requires `from.zip` with NO server-side defaults
+fallback (deliberate — preserves the stale-quote input-key invariant). So a listing
+with a parcel tag but no `["ship_from_zip", zip, country]` tag silently falls back to
+the FIXED rate at checkout, even when the seller has shipping_defaults + a connected
+Shippo account. This was a real prod bug ("Honey Cajeta"): the apply-template flow
+stamped only the parcel tag, never the origin.
+
+**Rule:** any listing-republish path must also ensure an origin. `republishProductWithParcel`
+takes an optional `origin` and gap-fills `["ship_from_zip", zip, country||"US"]` ONLY
+when the listing lacks its own non-empty one (explicit per-listing origin always wins;
+a blank existing tag is not authoritative so the default fills it). The apply-template
+handler passes the seller's `shipping_defaults`. **Consequence of the data-stamp
+approach (Path A):** existing broken listings do NOT self-heal — the seller must
+RE-APPLY the parcel template to publish a new event carrying the origin. The origin ZIP
+becomes public Nostr metadata (acceptable, matches existing design); never add
+street/city.

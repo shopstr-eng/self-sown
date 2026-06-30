@@ -52,6 +52,7 @@ import {
   fetchStorefrontChats,
 } from "@/utils/nostr/fetch-service";
 import { fetchAllPostsAbortable } from "@/utils/nostr/fetch-all-posts-abortable";
+import { upsertProductEvent } from "@/utils/nostr/product-event-key";
 import {
   NostrEvent,
   Community,
@@ -127,9 +128,11 @@ function MilkMarket({ props }: { props: AppProps }) {
       isLoading: true,
       addNewlyCreatedProductEvent: (productEvent: NostrEvent) => {
         setProductContext((productContext) => {
-          const productEvents = [...productContext.productEvents, productEvent];
           return {
-            productEvents: productEvents,
+            productEvents: upsertProductEvent(
+              productContext.productEvents,
+              productEvent
+            ),
             isLoading: false,
             addNewlyCreatedProductEvent:
               productContext.addNewlyCreatedProductEvent,
