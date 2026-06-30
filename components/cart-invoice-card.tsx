@@ -68,7 +68,8 @@ import {
   computeMultiSellerCardEligible,
   buildMultiCardQueue,
   resolveMultiCardOrderId,
-  isFinalMultiCardStep,
+  computeSellerCardCharge,
+  runMultiCardStepAdvance,
 } from "@/utils/cart/multi-seller-card";
 import { NostrWebLNProvider } from "@getalby/sdk";
 import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
@@ -638,7 +639,13 @@ export default function CartInvoiceCard({
   // fetch lets the POST survive even if the page closes mid-flight. The
   // useEffect below remains as a safety net; it short-circuits once
   // `pendingOrderEmailRef.current` is nulled here.
-  const flushPendingOrderEmails = () => {
+  //
+  // `skipEmails` is set by the multi-seller card finalize: there each paid
+  // seller (and the buyer's per-purchase copy) was already emailed inline via
+  // `sendOrderEmailForPaidSeller` the moment that seller's charge settled, so
+  // re-sending here would double-email. Inventory deduction + the order summary
+  // still run.
+  const flushPendingOrderEmails = (opts?: { skipEmails?: boolean }) => {
     if (
       !pendingOrderEmailRef.current ||
       pendingOrderEmailRef.current.length === 0
@@ -648,12 +655,14 @@ export default function CartInvoiceCard({
     const emailEntries = pendingOrderEmailRef.current;
     pendingOrderEmailRef.current = null;
 
-    emailEntries.forEach((entry, index) => {
-      triggerOrderEmail({
-        ...entry,
-        includeBuyerEmail: index === 0,
+    if (!opts?.skipEmails) {
+      emailEntries.forEach((entry, index) => {
+        triggerOrderEmail({
+          ...entry,
+          includeBuyerEmail: index === 0,
+        });
       });
-    });
+    }
 
     products.forEach((p: any) => {
       const qty = quantities[p.id] || 1;
@@ -752,6 +761,27 @@ export default function CartInvoiceCard({
         })
       );
     } catch {}
+  };
+
+  // Multi-seller card sequential path: send ONE paid seller's order-confirmation
+  // email (and the buyer's per-purchase copy) inline, the moment that seller's
+  // charge settles — so an abandoned later step can never drop the email for a
+  // seller who was actually paid. Each such purchase is a SEPARATE payment, so
+  // the buyer gets one email per purchase (includeBuyerEmail: true); the
+  // finalize flush then skips emails (see flushPendingOrderEmails `skipEmails`).
+  const sendOrderEmailForPaidSeller = (
+    sellerPubkey: string,
+    paymentIntentId?: string
+  ) => {
+    const entry = pendingOrderEmailRef.current?.find(
+      (e) => e.sellerPubkey === sellerPubkey
+    );
+    if (!entry) return;
+    triggerOrderEmail({
+      ...entry,
+      includeBuyerEmail: true,
+      ...(paymentIntentId ? { paymentIntentId } : {}),
+    });
   };
 
   useEffect(() => {
@@ -3503,9 +3533,11 @@ export default function CartInvoiceCard({
   };
 
   // Called when one seller's card charge in the multi-seller sequence succeeds.
-  // Records the verified payment, fires that seller's order DMs + auto-ship
-  // immediately (so a paid seller is always notified even if the buyer abandons
-  // a later step), then advances to the next seller or finalizes the order.
+  // Records the verified payment, then (via runMultiCardStepAdvance) notifies
+  // that seller FIRST — their order DMs + auto-ship AND their order-confirmation
+  // email (plus the buyer's per-purchase copy) — before advancing to the next
+  // seller or finalizing, so a paid seller is always notified even if the buyer
+  // abandons a later step or the next seller's card form fails to load.
   const onMultiCardStepSuccess = async (paymentId: string) => {
     const queue = multiCardQueue;
     if (!queue) return;
@@ -3527,42 +3559,54 @@ export default function CartInvoiceCard({
         : undefined;
 
     const sellerProducts = products.filter((p) => p.pubkey === step.pubkey);
-    try {
-      await sendSellerCardOrderEffects(step.pubkey, sellerProducts, {
-        processor: step.processor,
-        paymentId,
-        orderId: multiCardOrderIdRef.current,
-        data,
-        addressTag,
-        subscriptionLabel: "",
-      });
-    } catch (e) {
-      console.warn("Per-seller order effects failed:", e);
-    }
 
-    if (!isFinalMultiCardStep(index, queue.length)) {
-      try {
-        await configureMultiCardStep(index + 1, queue);
-      } catch (error) {
+    await runMultiCardStepAdvance({
+      index,
+      queueLength: queue.length,
+      notifyPaidSeller: async () => {
+        try {
+          await sendSellerCardOrderEffects(step.pubkey, sellerProducts, {
+            processor: step.processor,
+            paymentId,
+            orderId: multiCardOrderIdRef.current,
+            data,
+            addressTag,
+            subscriptionLabel: "",
+          });
+        } catch (e) {
+          console.warn("Per-seller order effects failed:", e);
+        }
+        // Email this paid seller their order confirmation (and the buyer's
+        // per-purchase copy) inline. Stripe pins the verified PaymentIntent
+        // (server-re-verifiable for the seller's authenticated-domain
+        // confirmation); Square has no such reference, so it's left unset.
+        sendOrderEmailForPaidSeller(
+          step.pubkey,
+          step.processor === "stripe" ? paymentId : undefined
+        );
+      },
+      configureNextStep: () => configureMultiCardStep(index + 1, queue),
+      onAdvanceError: (error) => {
         console.error("Failed to set up next seller's card form:", error);
         const detail = error instanceof Error ? error.message : "Unknown error";
         setFailureText(
           `Your previous sellers were paid, but setting up the next seller's card form failed: ${detail}. Please retry to finish the remaining sellers.`
         );
         setShowFailureModal(true);
-      }
-      return;
-    }
-
-    // Last seller paid — finalize the whole order (emails, buyer receipts,
-    // confirm state). Seller DMs already fired per-step, so skip them here.
-    setMultiCardQueue(null);
-    await handleCardPaymentSuccess({
-      processor: "stripe",
-      paymentId,
-      sellerPayments: multiCardResultsRef.current,
-      skipSellerEffects: true,
-      orderIdOverride: multiCardOrderIdRef.current,
+      },
+      finalizeOrder: async () => {
+        // Last seller paid — finalize the whole order (buyer receipts,
+        // inventory, order summary, confirm state). Seller DMs AND order emails
+        // already fired per-step, so the finalize flush skips emails.
+        setMultiCardQueue(null);
+        await handleCardPaymentSuccess({
+          processor: "stripe",
+          paymentId,
+          sellerPayments: multiCardResultsRef.current,
+          skipSellerEffects: true,
+          orderIdOverride: multiCardOrderIdRef.current,
+        });
+      },
     });
   };
 
@@ -3820,7 +3864,7 @@ export default function CartInvoiceCard({
       }
     }
 
-    flushPendingOrderEmails();
+    flushPendingOrderEmails({ skipEmails: !!skipSellerEffects });
     setStripePaymentConfirmed(true);
 
     // Record the Stripe Tax transaction so it shows in the seller's Stripe Tax
@@ -4106,7 +4150,7 @@ export default function CartInvoiceCard({
     }
 
     clearPurchasedFromCart();
-    flushPendingOrderEmails();
+    flushPendingOrderEmails({ skipEmails: !!skipSellerEffects });
     setPaymentConfirmed(true);
     setOrderConfirmed(true);
     if (discountCodes) {
@@ -6347,33 +6391,22 @@ export default function CartInvoiceCard({
     cartCurrency,
   ]);
 
-  // Per-seller card charge = items + that seller's discounted shipping, in the
-  // cart's charge currency (or sats→USD for sats carts). Multi-seller carts have
-  // no payment-method discount and no sales tax (both single-seller only), so
-  // this equals the per-seller amount reported in that seller's order DM/email.
-  // Rounded UP to the minor unit so the captured charge never under-collects.
+  // Per-seller card charge = items + that seller's discounted shipping.
+  // Delegates to the pure `computeSellerCardCharge` helper (covered by its own
+  // unit tests) so the exact per-seller amount stays verifiable in isolation.
   const getSellerCardCharge = (
     pubkey: string
-  ): { amount: number; currency: string } => {
-    const sellerProducts = products.filter((p) => p.pubkey === pubkey);
-    const useNative = !isSatsCart && !!cartCurrency;
-    if (useNative) {
-      const items = sellerProducts.reduce(
-        (sum, p) => sum + (nativeCostsPerProduct?.[p.id] || 0),
-        0
-      );
-      const shipping = nativeShippingPerSeller[pubkey] || 0;
-      const amount = Math.ceil((items + shipping) * 100) / 100;
-      return { amount, currency: (cartCurrency as string).toUpperCase() };
-    }
-    // Sats cart: each eligible Square seller settles in USD, and Stripe direct
-    // charges accept sats. Send the sats total; the server handles conversion.
-    const items =
-      totalCostsInSats[pubkey] ||
-      sellerProducts.reduce((sum, p) => sum + (totalCostsInSats[p.id] || 0), 0);
-    const shipping = shippingCostsInSats[pubkey] || 0;
-    return { amount: items + shipping, currency: "sats" };
-  };
+  ): { amount: number; currency: string } =>
+    computeSellerCardCharge({
+      pubkey,
+      products,
+      isSatsCart,
+      cartCurrency,
+      nativeCostsPerProduct,
+      nativeShippingPerSeller,
+      totalCostsInSats,
+      shippingCostsInSats,
+    });
 
   // Watch shipping address fields and request a Stripe Tax calculation
   // once a country + postal code are present. Debounced to avoid hammering

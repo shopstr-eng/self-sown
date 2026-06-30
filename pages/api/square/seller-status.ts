@@ -32,24 +32,20 @@ export default async function handler(
 
     // Fail closed when Square isn't configured for this deployment.
     if (!isSquareConfigured()) {
-      return res
-        .status(200)
-        .json({
-          configured: false,
-          hasSquareAccount: false,
-          chargesEnabled: false,
-        });
+      return res.status(200).json({
+        configured: false,
+        hasSquareAccount: false,
+        chargesEnabled: false,
+      });
     }
 
     const conn = await getSquareConnection(pubkey);
     if (!conn || conn.status !== "connected") {
-      return res
-        .status(200)
-        .json({
-          configured: true,
-          hasSquareAccount: false,
-          chargesEnabled: false,
-        });
+      return res.status(200).json({
+        configured: true,
+        hasSquareAccount: false,
+        chargesEnabled: false,
+      });
     }
 
     // Card charges need a resolved location + its settlement currency. If either

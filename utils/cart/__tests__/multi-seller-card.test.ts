@@ -3,6 +3,8 @@ import {
   buildMultiCardQueue,
   resolveMultiCardOrderId,
   isFinalMultiCardStep,
+  computeSellerCardCharge,
+  runMultiCardStepAdvance,
   SellerCardProcessor,
   MultiCardResult,
 } from "@/utils/cart/multi-seller-card";
@@ -243,5 +245,181 @@ describe("end-to-end resubmit invariant", () => {
     const finalQueue = buildMultiCardQueue(sellers, processors, results);
     expect(finalQueue).toEqual([]);
     expect(isFinalMultiCardStep(0, finalQueue.length)).toBe(true);
+  });
+});
+
+describe("computeSellerCardCharge", () => {
+  const products = [
+    { id: "p1", pubkey: "a" },
+    { id: "p2", pubkey: "a" },
+    { id: "p3", pubkey: "b" },
+  ];
+
+  it("sums only the seller's own items + that seller's shipping (per-seller isolation)", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: "a",
+      products,
+      isSatsCart: false,
+      cartCurrency: "usd",
+      nativeCostsPerProduct: { p1: 10, p2: 5, p3: 99 },
+      nativeShippingPerSeller: { a: 2, b: 7 },
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    // 10 + 5 items + 2 shipping = 17.00; seller "b"'s p3/shipping excluded.
+    expect(charge).toEqual({ amount: 17, currency: "USD" });
+  });
+
+  it("rounds the native charge UP to the minor unit so it never under-collects", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: "a",
+      products,
+      isSatsCart: false,
+      cartCurrency: "eur",
+      // 10.005 + 5.001 = 15.006 items + 2.001 shipping = 17.007 → ceil to 17.01.
+      nativeCostsPerProduct: { p1: 10.005, p2: 5.001 },
+      nativeShippingPerSeller: { a: 2.001 },
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    expect(charge.amount).toBe(17.01);
+    // The cart currency is upper-cased for the charge.
+    expect(charge.currency).toBe("EUR");
+  });
+
+  it("treats missing per-product/shipping native costs as zero", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: "a",
+      products,
+      isSatsCart: false,
+      cartCurrency: "usd",
+      nativeCostsPerProduct: { p1: 4 }, // p2 missing → 0
+      nativeShippingPerSeller: {}, // a missing → 0
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    expect(charge).toEqual({ amount: 4, currency: "USD" });
+  });
+
+  it("uses the per-seller sats total + sats shipping for a sats cart", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: "a",
+      products,
+      isSatsCart: true,
+      cartCurrency: "sats",
+      nativeCostsPerProduct: null,
+      nativeShippingPerSeller: {},
+      totalCostsInSats: { a: 1000 },
+      shippingCostsInSats: { a: 200 },
+    });
+    expect(charge).toEqual({ amount: 1200, currency: "sats" });
+  });
+
+  it("falls back to summing per-product sats when no per-seller sats total exists", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: "a",
+      products,
+      isSatsCart: true,
+      cartCurrency: null,
+      nativeCostsPerProduct: null,
+      nativeShippingPerSeller: {},
+      // No "a" key → sum p1 + p2 (both seller "a"); p3 (seller "b") excluded.
+      totalCostsInSats: { p1: 300, p2: 400, p3: 9999 },
+      shippingCostsInSats: { a: 50 },
+    });
+    expect(charge).toEqual({ amount: 750, currency: "sats" });
+  });
+});
+
+describe("runMultiCardStepAdvance", () => {
+  function makeSpies() {
+    const calls: string[] = [];
+    return {
+      calls,
+      notifyPaidSeller: jest.fn(async () => {
+        calls.push("notify");
+      }),
+      configureNextStep: jest.fn(async () => {
+        calls.push("configureNext");
+      }),
+      finalizeOrder: jest.fn(async () => {
+        calls.push("finalize");
+      }),
+      onAdvanceError: jest.fn((_e: unknown) => {
+        calls.push("error");
+      }),
+    };
+  }
+
+  it("notifies the paid seller BEFORE advancing to the next step (non-final)", async () => {
+    const s = makeSpies();
+    await runMultiCardStepAdvance({
+      index: 0,
+      queueLength: 2,
+      notifyPaidSeller: s.notifyPaidSeller,
+      configureNextStep: s.configureNextStep,
+      finalizeOrder: s.finalizeOrder,
+      onAdvanceError: s.onAdvanceError,
+    });
+    expect(s.calls).toEqual(["notify", "configureNext"]);
+    expect(s.finalizeOrder).not.toHaveBeenCalled();
+    expect(s.onAdvanceError).not.toHaveBeenCalled();
+  });
+
+  it("finalizes (not configureNext) on the final step, after notifying the seller", async () => {
+    const s = makeSpies();
+    await runMultiCardStepAdvance({
+      index: 1,
+      queueLength: 2,
+      notifyPaidSeller: s.notifyPaidSeller,
+      configureNextStep: s.configureNextStep,
+      finalizeOrder: s.finalizeOrder,
+      onAdvanceError: s.onAdvanceError,
+    });
+    expect(s.calls).toEqual(["notify", "finalize"]);
+    expect(s.configureNextStep).not.toHaveBeenCalled();
+  });
+
+  it("keeps the paid seller notified and does NOT finalize when the next step's setup throws", async () => {
+    const s = makeSpies();
+    const boom = new Error("card form boom");
+    s.configureNextStep.mockImplementation(async () => {
+      s.calls.push("configureNext");
+      throw boom;
+    });
+    await runMultiCardStepAdvance({
+      index: 0,
+      queueLength: 2,
+      notifyPaidSeller: s.notifyPaidSeller,
+      configureNextStep: s.configureNextStep,
+      finalizeOrder: s.finalizeOrder,
+      onAdvanceError: s.onAdvanceError,
+    });
+    // Seller was notified, the setup failure was surfaced (not thrown), and the
+    // order was NOT finalized — a retry resumes from the remaining sellers.
+    expect(s.calls).toEqual(["notify", "configureNext", "error"]);
+    expect(s.onAdvanceError).toHaveBeenCalledWith(boom);
+    expect(s.finalizeOrder).not.toHaveBeenCalled();
+  });
+
+  it("attempts the seller notification first; a notify failure halts the advance", async () => {
+    const s = makeSpies();
+    s.notifyPaidSeller.mockImplementation(async () => {
+      s.calls.push("notify");
+      throw new Error("notify boom");
+    });
+    await expect(
+      runMultiCardStepAdvance({
+        index: 0,
+        queueLength: 2,
+        notifyPaidSeller: s.notifyPaidSeller,
+        configureNextStep: s.configureNextStep,
+        finalizeOrder: s.finalizeOrder,
+        onAdvanceError: s.onAdvanceError,
+      })
+    ).rejects.toThrow("notify boom");
+    expect(s.calls).toEqual(["notify"]);
+    expect(s.configureNextStep).not.toHaveBeenCalled();
+    expect(s.finalizeOrder).not.toHaveBeenCalled();
   });
 });

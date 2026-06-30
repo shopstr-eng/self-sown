@@ -113,3 +113,92 @@ export function isFinalMultiCardStep(
 ): boolean {
   return index + 1 >= queueLength;
 }
+
+// Per-seller card charge for a multi-seller cart = that seller's items + that
+// seller's discounted shipping, in the cart's charge currency (or sats→USD,
+// handled server-side, for sats carts). Multi-seller carts carry no
+// payment-method discount and no sales tax (both single-seller only), so this
+// equals the per-seller amount reported in that seller's order DM/email. The
+// native amount is rounded UP to the minor unit so a captured charge never
+// under-collects. Pure port of the cart component's `getSellerCardCharge`.
+export function computeSellerCardCharge(params: {
+  pubkey: string;
+  products: { id: string; pubkey: string }[];
+  isSatsCart: boolean;
+  cartCurrency: string | null | undefined;
+  nativeCostsPerProduct: Record<string, number> | null | undefined;
+  nativeShippingPerSeller: Record<string, number>;
+  totalCostsInSats: Record<string, number>;
+  shippingCostsInSats: Record<string, number>;
+}): { amount: number; currency: string } {
+  const {
+    pubkey,
+    products,
+    isSatsCart,
+    cartCurrency,
+    nativeCostsPerProduct,
+    nativeShippingPerSeller,
+    totalCostsInSats,
+    shippingCostsInSats,
+  } = params;
+
+  const sellerProducts = products.filter((p) => p.pubkey === pubkey);
+  const useNative = !isSatsCart && !!cartCurrency;
+  if (useNative) {
+    const items = sellerProducts.reduce(
+      (sum, p) => sum + (nativeCostsPerProduct?.[p.id] || 0),
+      0
+    );
+    const shipping = nativeShippingPerSeller[pubkey] || 0;
+    const amount = Math.ceil((items + shipping) * 100) / 100;
+    return { amount, currency: (cartCurrency as string).toUpperCase() };
+  }
+
+  // Sats cart: each eligible Square seller settles in USD, and Stripe direct
+  // charges accept sats. Send the sats total; the server handles conversion.
+  const items =
+    totalCostsInSats[pubkey] ||
+    sellerProducts.reduce((sum, p) => sum + (totalCostsInSats[p.id] || 0), 0);
+  const shipping = shippingCostsInSats[pubkey] || 0;
+  return { amount: items + shipping, currency: "sats" };
+}
+
+// Orchestrates what happens after ONE seller's card charge settles in the
+// sequential multi-seller flow. The paid seller is notified FIRST (their order
+// DM + auto-ship + order-confirmation email), and only then does the flow
+// advance to the next seller or finalize — so a failure setting up the next
+// seller's card form (or finalizing) can NEVER suppress the notification for a
+// seller who was actually paid. A throw while configuring the next step is
+// surfaced via `onAdvanceError` (not rethrown): the previous sellers stay paid
+// and a retry resumes from the remaining unpaid sellers.
+export async function runMultiCardStepAdvance(params: {
+  index: number;
+  queueLength: number;
+  notifyPaidSeller: () => Promise<void> | void;
+  configureNextStep: () => Promise<void>;
+  finalizeOrder: () => Promise<void>;
+  onAdvanceError: (error: unknown) => void;
+}): Promise<void> {
+  const {
+    index,
+    queueLength,
+    notifyPaidSeller,
+    configureNextStep,
+    finalizeOrder,
+    onAdvanceError,
+  } = params;
+
+  // Notify the just-paid seller before any advance/finalize work.
+  await notifyPaidSeller();
+
+  if (!isFinalMultiCardStep(index, queueLength)) {
+    try {
+      await configureNextStep();
+    } catch (error) {
+      onAdvanceError(error);
+    }
+    return;
+  }
+
+  await finalizeOrder();
+}

@@ -235,3 +235,32 @@ describe("/api/shipping/auto-purchase — account resolution", () => {
     expect(runAutoLabelPurchaseMock).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("/api/shipping/auto-purchase — claim is bound to the verified PI id, not the client value", () => {
+  it("uses the Stripe-verified PaymentIntent id as claimRef even when the request body sends a different id", async () => {
+    // The replay guard must key off the id Stripe actually returns, never the
+    // client-supplied paymentIntentId — otherwise a buyer could craft a body
+    // that escapes the once-per-payment claim and buy unlimited seller-billed
+    // labels off one settled charge.
+    retrieveMock.mockResolvedValue({
+      id: "pi_VERIFIED",
+      status: "succeeded",
+      metadata: { sellerPubkey: SELLER, source: "cart" },
+    });
+
+    const res = createResponse();
+    await handler(
+      makeRequest(validBody({ paymentIntentId: "pi_CLIENT" })),
+      res as any
+    );
+
+    expect(res.statusCode).toBe(200);
+    // The PI is looked up using the client-supplied id...
+    expect(retrieveMock).toHaveBeenCalledWith("pi_CLIENT", {
+      stripeAccount: "acct_123",
+    });
+    // ...but the claim is bound to the id Stripe actually returned.
+    const arg = runAutoLabelPurchaseMock.mock.calls[0][0];
+    expect(arg.claimRef).toBe("pi_VERIFIED");
+  });
+});

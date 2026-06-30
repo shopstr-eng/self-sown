@@ -60,9 +60,13 @@ across heterogeneous processors.
 - Each Stripe leg is a _single-seller direct charge_ (`metadata.sellerPubkey` +
   `isCart`, **NO sellerSplits**) so it lands on that seller's account — never fold
   cart context into multi-merchant mode (pinned by a direct-charge route test).
-- Each seller's order DMs + auto-ship fire **incrementally** as that seller is
-  charged (`sendSellerCardOrderEffects`), so a paid seller is always notified even
-  if the buyer abandons a later step.
+- Each seller's order DMs + auto-ship **AND their order-confirmation email** fire
+  **incrementally** as that seller is charged (`sendSellerCardOrderEffects` then
+  `sendOrderEmailForPaidSeller`, both inside `notifyPaidSeller` which runs BEFORE
+  the next-step setup/finalize via `runMultiCardStepAdvance`), so a paid seller is
+  always notified — DM AND email — even if the buyer abandons a later step. Each
+  sequential leg is a SEPARATE payment, so the inline email sets
+  `includeBuyerEmail:true` (buyer gets one copy per purchase, not one summary).
 - Accumulate paid sellers in a ref and skip already-paid sellers on resubmit, and
   reuse one shared order id — or a retry double-charges / splits the order.
 - Multi-seller carts have **no payment-method discount and no sales tax** (both
@@ -72,9 +76,15 @@ across heterogeneous processors.
 - Eligibility (`multiSellerCardEligible`) fails closed: every seller must resolve
   to a processor, ≥1 must be Square, and every Square seller's location currency
   must match the cart charge currency (USD for sats carts).
-- **Known v1 limitation:** order _emails_ are flushed only at finalize (last
-  seller), so abandoning mid-sequence means paid earlier sellers got their DM but
-  not their email — candidate follow-up.
+- **Finalize must NOT re-send emails.** Since each paid seller (and the buyer's
+  per-purchase copy) is emailed inline per step, the multicard finalize calls
+  `handleCardPaymentSuccess({skipSellerEffects:true})`, and the flush honors that
+  via `flushPendingOrderEmails({skipEmails:!!skipSellerEffects})` — it still nulls
+  the pending ref, deducts inventory and writes the order summary, but skips the
+  email loop. Single-seller / all-Stripe-combined paths leave `skipSellerEffects`
+  falsy, so the flush still sends one buyer summary (index 0 only). The safety-net
+  `useEffect` flush (no opts) can't double-send because the finalize already nulled
+  the ref and per-step success never sets the confirmation state that gates it.
 
 ## Buyer charge resolves everything server-side
 

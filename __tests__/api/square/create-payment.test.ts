@@ -380,3 +380,62 @@ describe("POST /api/square/create-payment — fail closed when unconfigured", ()
     expect(createSquarePaymentMock).not.toHaveBeenCalled();
   });
 });
+
+describe("POST /api/square/create-payment — order metadata forwarded to the charge", () => {
+  const baseBody = {
+    sourceId: "cnon_card",
+    amount: 12.34,
+    currency: "USD",
+    sellerPubkey: SELLER,
+    customerEmail: "buyer@example.com",
+    productTitle: "Raw milk",
+    metadata: { orderId: "order_42" },
+  };
+
+  function chargeFrom(res: any) {
+    expect(res.statusCode).toBe(200);
+    return createSquarePaymentMock.mock.calls.at(-1)?.[1] as any;
+  }
+
+  it("forwards referenceId=orderId, buyerEmailAddress, and note=productTitle so the receipt ties back to the order", async () => {
+    const charge = chargeFrom(await callHandler({ ...baseBody }));
+    expect(charge.referenceId).toBe("order_42");
+    expect(charge.buyerEmailAddress).toBe("buyer@example.com");
+    expect(charge.note).toBe("Raw milk");
+  });
+
+  it("trims surrounding whitespace from the buyer email before forwarding it", async () => {
+    const charge = chargeFrom(
+      await callHandler({ ...baseBody, customerEmail: "  buyer@example.com  " })
+    );
+    expect(charge.buyerEmailAddress).toBe("buyer@example.com");
+  });
+
+  it("drops a malformed buyer email rather than forwarding it to Square", async () => {
+    const charge = chargeFrom(
+      await callHandler({ ...baseBody, customerEmail: "not-an-email" })
+    );
+    expect(charge.buyerEmailAddress).toBeUndefined();
+  });
+
+  it("leaves referenceId undefined when no order metadata is supplied", async () => {
+    const charge = chargeFrom(
+      await callHandler({ ...baseBody, metadata: undefined })
+    );
+    expect(charge.referenceId).toBeUndefined();
+  });
+
+  it("leaves referenceId undefined when metadata.orderId is not a string", async () => {
+    const charge = chargeFrom(
+      await callHandler({ ...baseBody, metadata: { orderId: 123 } })
+    );
+    expect(charge.referenceId).toBeUndefined();
+  });
+
+  it("omits the note when no productTitle is supplied", async () => {
+    const charge = chargeFrom(
+      await callHandler({ ...baseBody, productTitle: undefined })
+    );
+    expect(charge.note).toBeUndefined();
+  });
+});
