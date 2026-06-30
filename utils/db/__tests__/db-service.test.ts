@@ -732,6 +732,114 @@ describe("db-service helpers", () => {
     );
 
     maybeItTc(
+      "fetchProductsByPubkeyFromDb returns only the latest version per (pubkey, d-tag)",
+      async () => {
+        await withPostgresDbService(async (db) => {
+          await waitForTables(db, ["product_events"]);
+
+          // Three cached versions of the SAME listing (same pubkey + d-tag) —
+          // product_events keeps every version, so without dedup all three leak.
+          await db.cacheEvent(
+            productEvent({
+              id: "milk-old",
+              pubkey: "alice",
+              created_at: 10,
+              tags: [["d", "milk"]],
+              content: "old",
+            })
+          );
+          await db.cacheEvent(
+            productEvent({
+              id: "milk-mid",
+              pubkey: "alice",
+              created_at: 20,
+              tags: [["d", "milk"]],
+              content: "mid",
+            })
+          );
+          await db.cacheEvent(
+            productEvent({
+              id: "milk-new",
+              pubkey: "alice",
+              created_at: 30,
+              tags: [["d", "milk"]],
+              content: "new",
+            })
+          );
+          // A second, distinct listing for the same seller (different d-tag).
+          await db.cacheEvent(
+            productEvent({
+              id: "cheese",
+              pubkey: "alice",
+              created_at: 15,
+              tags: [["d", "cheese"]],
+              content: "cheese",
+            })
+          );
+          // Another seller's listing must never leak in.
+          await db.cacheEvent(
+            productEvent({
+              id: "bob-milk",
+              pubkey: "bob",
+              created_at: 40,
+              tags: [["d", "milk"]],
+              content: "bob",
+            })
+          );
+
+          // Only the latest version of each of alice's two distinct listings,
+          // newest first.
+          const products = await db.fetchProductsByPubkeyFromDb("alice");
+          expect(products.map((event) => event.id)).toEqual([
+            "milk-new",
+            "cheese",
+          ]);
+          expect(
+            products.find((event) => event.id === "milk-new")?.content
+          ).toBe("new");
+
+          // Pagination is applied AFTER dedup, not over the raw stale rows.
+          const limited = await db.fetchProductsByPubkeyFromDb("alice", 1, 1);
+          expect(limited.map((event) => event.id)).toEqual(["cheese"]);
+        });
+      }
+    );
+
+    maybeItTc(
+      "fetchProductsByPubkeyFromDb breaks created_at ties deterministically by id",
+      async () => {
+        await withPostgresDbService(async (db) => {
+          await waitForTables(db, ["product_events"]);
+
+          // Two same-second versions of one listing — DISTINCT ON must pick a
+          // stable winner (higher id) rather than an arbitrary row.
+          await db.cacheEvent(
+            productEvent({
+              id: "tie-a",
+              pubkey: "carol",
+              created_at: 50,
+              tags: [["d", "jam"]],
+              content: "a",
+            })
+          );
+          await db.cacheEvent(
+            productEvent({
+              id: "tie-b",
+              pubkey: "carol",
+              created_at: 50,
+              tags: [["d", "jam"]],
+              content: "b",
+            })
+          );
+
+          const products = await db.fetchProductsByPubkeyFromDb("carol");
+          expect(products).toHaveLength(1);
+          expect(products[0]!.id).toBe("tie-b");
+        });
+      }
+    );
+
+    maybeItTc(
       "cacheEvent keeps only the latest-only event per pubkey",
       async () => {
         await withPostgresDbService(async (db) => {

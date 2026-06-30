@@ -2412,12 +2412,62 @@ export async function fetchAllProductsFromDb(
   }
 }
 
+// Fetch a single seller's products, returning only the latest version per
+// (pubkey, d-tag) so an updated or deleted-then-re-listed product never shows a
+// stale duplicate on the seller's storefront. Mirrors fetchAllProductsFromDb's
+// DISTINCT ON dedup, scoped to one pubkey — the product_events table keeps every
+// version (id is the PK), and the prior fetchCachedEvents path returned them all.
 export async function fetchProductsByPubkeyFromDb(
   pubkey: string,
   limit = 500,
   offset = 0
 ): Promise<NostrEvent[]> {
-  return fetchCachedEvents(30402, { pubkey, limit, offset });
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT pe.id, pe.pubkey, pe.created_at, pe.kind,
+              pe.tags, pe.content, pe.sig
+       FROM (
+         SELECT DISTINCT ON (p.pubkey, d.d_tag)
+           p.id, p.pubkey, p.created_at, p.kind, p.tags, p.content, p.sig
+         FROM product_events p,
+         LATERAL (
+           SELECT COALESCE(
+             (SELECT elem->>1
+              FROM jsonb_array_elements(p.tags) elem
+              WHERE elem->>0 = 'd'
+              LIMIT 1),
+             p.id
+           ) AS d_tag
+         ) d
+         WHERE p.kind = 30402 AND p.pubkey = $1
+         ORDER BY p.pubkey, d.d_tag, p.created_at DESC, p.id DESC
+       ) pe
+       ORDER BY pe.created_at DESC, pe.id DESC
+       LIMIT $2 OFFSET $3`,
+      [pubkey, limit, offset]
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      pubkey: row.pubkey,
+      created_at: row.created_at,
+      kind: row.kind,
+      tags: row.tags,
+      content: row.content,
+      sig: row.sig,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch products by pubkey from database:", error);
+    return [];
+  } finally {
+    if (client) {
+      client.release();
+    }
+  }
 }
 
 export async function fetchProductByIdFromDb(
