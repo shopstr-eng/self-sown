@@ -863,6 +863,11 @@ async function initializeCashu(
 
   await updateOrderPaymentStatus(orderId, "paid");
 
+  // NOTE: No automatic shipping-label purchase for Cashu. Auto-purchase spends
+  // the seller's own Shippo funds, so it only runs for payments the server can
+  // independently verify (Stripe card). Lightning/Cashu orders are always
+  // shipped via the manual "Buy label" button on the orders dashboard.
+
   // Discount code is consumed only now that the Cashu token has been
   // redeemed and the order is marked paid. If redemption above failed we
   // threw before reaching this point, so an unpaid order never burns a use

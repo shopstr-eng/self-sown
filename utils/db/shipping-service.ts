@@ -44,6 +44,10 @@ export interface ShippingDefaultsRecord {
   fromPhone: string | null;
   fromEmail: string | null;
   preferredCarriers: string[];
+  // When true (the default), paid card/agent orders auto-buy the cheapest
+  // preferred-carrier label on the seller's own Shippo account. When false the
+  // seller buys labels manually from the orders dashboard.
+  autoPurchaseLabels: boolean;
   updatedAt: string;
 }
 
@@ -442,6 +446,105 @@ async function pruneShipmentClaimsThrottled(): Promise<void> {
   }
 }
 
+// --- Automatic label purchase: order-level atomic guard ------------------
+
+// Atomically claim an order line for AUTOMATIC label purchase. Returns true
+// only for the single caller that inserts the row; concurrent or duplicate
+// triggers (payment retries, webhook replays, multiple server instances) all
+// see false and must skip. The winner MUST call `releaseAutoLabelClaim` if the
+// purchase fails before Shippo charges, so a legitimate retry can re-attempt.
+export async function claimAutoLabelPurchase(
+  claimKey: string,
+  pubkey: string,
+  orderId: string
+): Promise<boolean> {
+  if (!claimKey || !pubkey) return false;
+  const pool = getDbPool();
+  const result = await pool.query(
+    `INSERT INTO shipping_label_order_claims (claim_key, pubkey, order_id, status, updated_at)
+     VALUES ($1, $2, $3, 'pending', NOW())
+     ON CONFLICT (claim_key) DO NOTHING
+     RETURNING claim_key`,
+    [claimKey, pubkey, orderId]
+  );
+  void pruneAutoLabelClaimsThrottled();
+  return (result.rowCount || 0) > 0;
+}
+
+// Release a still-pending claim so a failed auto-purchase can be retried. Only
+// deletes 'pending' rows — a 'purchased' marker is permanent, so a label that
+// was actually bought can never be auto-bought a second time.
+export async function releaseAutoLabelClaim(claimKey: string): Promise<void> {
+  if (!claimKey) return;
+  const pool = getDbPool();
+  await pool.query(
+    `DELETE FROM shipping_label_order_claims
+     WHERE claim_key = $1 AND status = 'pending'`,
+    [claimKey]
+  );
+}
+
+// Promote a claim to the permanent 'purchased' marker after Shippo has charged
+// and the label history row is written.
+export async function markAutoLabelPurchased(
+  claimKey: string,
+  shipmentId: string | null
+): Promise<void> {
+  if (!claimKey) return;
+  const pool = getDbPool();
+  await pool.query(
+    `UPDATE shipping_label_order_claims
+       SET status = 'purchased', shipment_id = $2, updated_at = NOW()
+     WHERE claim_key = $1`,
+    [claimKey, shipmentId]
+  );
+}
+
+// Count non-return labels already recorded for this seller + order. Used as a
+// belt-and-suspenders pre-check so an auto-purchase never duplicates a label
+// the seller already bought manually (or a prior auto-purchase) for the order.
+export async function countOutboundLabelsForOrder(
+  pubkey: string,
+  orderId: string
+): Promise<number> {
+  if (!pubkey || !orderId) return 0;
+  const pool = getDbPool();
+  const result = await pool.query<{ n: string }>(
+    `SELECT COUNT(*)::text AS n FROM shipping_labels
+     WHERE pubkey = $1 AND order_id = $2 AND is_return = false`,
+    [pubkey, orderId]
+  );
+  return Number(result.rows[0]?.n || 0);
+}
+
+// Delete stale auto-label claims: only 'pending' rows older than 7 days
+// (orphaned by a crash mid-purchase — the seller falls back to the manual
+// dashboard button). 'purchased' rows are NEVER pruned: that marker is the
+// durable money-safety guard preventing a settled card PaymentIntent from being
+// replayed to buy a second seller-billed label, and — in the rare case a label
+// was bought but its shipping_labels insert failed — it is the only record that
+// the seller was already charged. Returns the number of rows removed.
+export async function pruneAutoLabelClaims(): Promise<number> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `DELETE FROM shipping_label_order_claims
+     WHERE status = 'pending' AND created_at < NOW() - INTERVAL '7 days'`
+  );
+  return result.rowCount || 0;
+}
+
+let lastAutoLabelPruneAt = 0;
+async function pruneAutoLabelClaimsThrottled(): Promise<void> {
+  const now = Date.now();
+  if (now - lastAutoLabelPruneAt < PRUNE_INTERVAL_MS) return;
+  lastAutoLabelPruneAt = now;
+  try {
+    await pruneAutoLabelClaims();
+  } catch (err) {
+    console.warn("pruneAutoLabelClaims failed:", err);
+  }
+}
+
 // --- Parcel templates ----------------------------------------------------
 
 interface ParcelTemplateRow {
@@ -545,6 +648,7 @@ interface ShippingDefaultsRow {
   from_phone: string | null;
   from_email: string | null;
   preferred_carriers: string;
+  auto_purchase_labels: boolean | null;
   updated_at: string;
 }
 
@@ -566,6 +670,9 @@ function mapDefaultsRow(row: ShippingDefaultsRow): ShippingDefaultsRecord {
     fromPhone: row.from_phone,
     fromEmail: row.from_email,
     preferredCarriers: carriers.length > 0 ? carriers : ["USPS"],
+    // Default ON: treat a missing/legacy value as enabled so existing sellers
+    // get auto-purchase without re-saving their defaults.
+    autoPurchaseLabels: row.auto_purchase_labels !== false,
     updatedAt: row.updated_at,
   };
 }
@@ -594,6 +701,7 @@ export interface UpsertShippingDefaultsInput {
   fromPhone?: string | null;
   fromEmail?: string | null;
   preferredCarriers?: string[];
+  autoPurchaseLabels?: boolean;
 }
 
 export async function upsertShippingDefaults(
@@ -605,8 +713,8 @@ export async function upsertShippingDefaults(
     `INSERT INTO shipping_defaults (
        pubkey, from_name, from_company, from_street1, from_street2,
        from_city, from_state, from_zip, from_country, from_phone, from_email,
-       preferred_carriers, updated_at
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+       preferred_carriers, auto_purchase_labels, updated_at
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())
      ON CONFLICT (pubkey) DO UPDATE SET
        from_name = EXCLUDED.from_name,
        from_company = EXCLUDED.from_company,
@@ -619,6 +727,7 @@ export async function upsertShippingDefaults(
        from_phone = EXCLUDED.from_phone,
        from_email = EXCLUDED.from_email,
        preferred_carriers = EXCLUDED.preferred_carriers,
+       auto_purchase_labels = EXCLUDED.auto_purchase_labels,
        updated_at = NOW()
      RETURNING *`,
     [
@@ -634,6 +743,7 @@ export async function upsertShippingDefaults(
       input.fromPhone ?? null,
       input.fromEmail ?? null,
       carriersCsv,
+      input.autoPurchaseLabels ?? true,
     ]
   );
   const row = result.rows[0];

@@ -36,6 +36,7 @@ interface DefaultsBody {
   fromPhone?: string | null;
   fromEmail?: string | null;
   preferredCarriers?: string[];
+  autoPurchaseLabels?: boolean;
 }
 
 export default async function handler(
@@ -109,6 +110,8 @@ export default async function handler(
       fromPhone: body.fromPhone ?? null,
       fromEmail: body.fromEmail ?? null,
       preferredCarriers: carriers.length > 0 ? carriers : ["USPS"],
+      // Default ON: only an explicit boolean `false` disables auto-purchase.
+      autoPurchaseLabels: body.autoPurchaseLabels !== false,
     });
     return res.status(200).json({ success: true, defaults });
   } catch (err) {

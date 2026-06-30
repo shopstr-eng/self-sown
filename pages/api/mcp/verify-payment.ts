@@ -161,6 +161,11 @@ export default async function handler(
 
       pendingLightningPayments.delete(orderId);
 
+      // NOTE: No automatic shipping-label purchase for Lightning. Auto-purchase
+      // spends the seller's own Shippo funds, so it only runs for payments the
+      // server can independently verify (Stripe card). Lightning/Cashu orders
+      // are always shipped via the manual "Buy label" button on the dashboard.
+
       return res.status(200).json({
         success: true,
         status: "paid",

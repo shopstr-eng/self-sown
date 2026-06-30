@@ -1118,6 +1118,7 @@ async function initializeTables(): Promise<void> {
         from_phone TEXT,
         from_email TEXT,
         preferred_carriers TEXT NOT NULL DEFAULT 'USPS',
+        auto_purchase_labels BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -1161,6 +1162,29 @@ async function initializeTables(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_shipping_shipment_claims_created_at
         ON shipping_shipment_claims(created_at);
+
+      -- Shippo: order-level atomic guard for AUTOMATIC label purchase. Unlike
+      -- shipping_shipment_claims (keyed by Shippo shipment id, for the manual
+      -- buy flow), this is keyed by a deterministic order/product key so a paid
+      -- order can never trigger more than one auto-purchase even across retries,
+      -- concurrent webhooks, or multiple server instances. Transient: the
+      -- permanent record of a bought label lives in shipping_labels.
+      CREATE TABLE IF NOT EXISTS shipping_label_order_claims (
+        claim_key TEXT PRIMARY KEY,
+        pubkey TEXT NOT NULL,
+        order_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        shipment_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_label_order_claims_created_at
+        ON shipping_label_order_claims(created_at);
+
+      -- Backfill the auto-purchase toggle for sellers whose shipping_defaults
+      -- row predates this column (defaults ON to match the new-row default).
+      ALTER TABLE shipping_defaults
+        ADD COLUMN IF NOT EXISTS auto_purchase_labels BOOLEAN NOT NULL DEFAULT TRUE;
     `);
 
     await client.query(`

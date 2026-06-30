@@ -3197,6 +3197,47 @@ export default function CartInvoiceCard({
         subscriptionLabel +
         " on Milk Market! Check your Stripe account for the payment.";
 
+      // Fire-and-forget automatic shipping-label purchase on the seller's own
+      // Shippo account (card path, US destinations only). The server re-verifies
+      // the PaymentIntent and the per-(seller, order) claim dedups concurrent
+      // line POSTs, so one label is bought per seller. Buyer address is
+      // transient — sent only for this request, never persisted client-side.
+      const autoShipCountry = (data.shippingCountry || "").trim().toUpperCase();
+      const autoShipIsUs =
+        autoShipCountry === "US" ||
+        autoShipCountry === "USA" ||
+        autoShipCountry === "UNITED STATES";
+      const autoShipLineProduct = sellerProducts[0];
+      if (
+        autoShipIsUs &&
+        autoShipLineProduct &&
+        data.shippingName &&
+        data.shippingAddress &&
+        data.shippingCity &&
+        data.shippingState &&
+        data.shippingPostalCode
+      ) {
+        fetch("/api/shipping/auto-purchase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentIntentId,
+            orderId,
+            sellerPubkey: sellerPk,
+            productId: autoShipLineProduct.id,
+            toAddress: {
+              name: data.shippingName,
+              street1: data.shippingAddress,
+              street2: data.shippingUnitNo || undefined,
+              city: data.shippingCity,
+              state: data.shippingState,
+              zip: data.shippingPostalCode,
+              country: "US",
+            },
+          }),
+        }).catch((e) => console.warn("Auto label purchase request failed:", e));
+      }
+
       for (const product of sellerProducts) {
         const sel = subscriptionSelections[product.id];
         const subInfo =

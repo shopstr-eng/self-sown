@@ -63,6 +63,7 @@ const EMPTY_DEFAULTS: ShippoDefaults = {
   fromPhone: "",
   fromEmail: "",
   preferredCarriers: ["USPS"],
+  autoPurchaseLabels: true,
 };
 
 const EMPTY_TEMPLATE = {
@@ -601,6 +602,28 @@ const ShippingSettingsPage = () => {
                           );
                         })}
                       </div>
+                    </div>
+
+                    <div className="mt-5 rounded-md border-2 border-black bg-white p-3">
+                      <Checkbox
+                        isSelected={defaults.autoPurchaseLabels !== false}
+                        onValueChange={(checked) =>
+                          setDefaults({
+                            ...defaults,
+                            autoPurchaseLabels: checked,
+                          })
+                        }
+                      >
+                        <span className="text-sm font-semibold text-black">
+                          Automatically buy shipping labels for paid orders
+                        </span>
+                      </Checkbox>
+                      <p className="mt-1 text-xs text-gray-600">
+                        When on, paid card and agent orders shipping to the US
+                        automatically buy the cheapest label from your preferred
+                        carriers on your connected Shippo account. Turn off to
+                        buy labels yourself from the Orders dashboard.
+                      </p>
                     </div>
 
                     <div className="mt-5 flex items-center gap-3">

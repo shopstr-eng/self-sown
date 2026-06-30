@@ -98,6 +98,28 @@ export default async function handler(
         } catch (e) {
           console.warn("markPendingPaymentByIntent succeeded failed:", e);
         }
+        // Agent (MCP) card orders are settled here: the agent completes the
+        // PaymentIntent on the seller's connected account and Stripe notifies
+        // us. (Web card orders are settled client-side and never carry this
+        // metadata.) Mark the order paid, then best-effort auto-purchase a
+        // shipping label on the seller's own Shippo account if enabled.
+        if (pi.metadata?.source === "mcp" && pi.metadata?.orderId) {
+          const orderId = pi.metadata.orderId;
+          try {
+            const { updateMcpOrderPayment } =
+              await import("@/mcp/tools/purchase-tools");
+            await updateMcpOrderPayment(orderId, pi.id, "paid");
+          } catch (e) {
+            console.error("Failed to mark MCP order paid from webhook:", e);
+          }
+          try {
+            const { autoPurchaseForMcpOrder } =
+              await import("@/utils/shipping/auto-purchase");
+            await autoPurchaseForMcpOrder(orderId);
+          } catch (e) {
+            console.error("Auto label purchase (mcp webhook) failed:", e);
+          }
+        }
         break;
       }
       case "payment_intent.payment_failed": {

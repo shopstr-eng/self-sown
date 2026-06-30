@@ -64,6 +64,7 @@ export interface ShippoDefaults {
   fromPhone: string | null;
   fromEmail: string | null;
   preferredCarriers: string[];
+  autoPurchaseLabels: boolean;
 }
 
 type Signer = { sign: (t: NostrEventTemplate) => Promise<{ kind: number }> };
