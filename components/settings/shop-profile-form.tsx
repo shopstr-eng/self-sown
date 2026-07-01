@@ -2300,6 +2300,50 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             <div className="ml-7 space-y-4 border-t border-gray-100 pt-4">
                               <div>
                                 <label className="mb-1 block text-sm font-semibold text-black">
+                                  Display Style
+                                </label>
+                                <div className="flex gap-2">
+                                  {(
+                                    [
+                                      { value: "modal", label: "Modal" },
+                                      {
+                                        value: "fullscreen",
+                                        label: "Full screen",
+                                      },
+                                    ] as const
+                                  ).map((opt) => {
+                                    const active =
+                                      (emailPopup.displayMode || "modal") ===
+                                      opt.value;
+                                    return (
+                                      <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() =>
+                                          setEmailPopup({
+                                            ...emailPopup,
+                                            displayMode: opt.value,
+                                          })
+                                        }
+                                        className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors ${
+                                          active
+                                            ? "border-black bg-black text-white"
+                                            : "border-gray-300 bg-white text-black hover:border-black"
+                                        }`}
+                                      >
+                                        {opt.label}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Modal shows a centered card over a dimmed
+                                  page. Full screen covers the whole page with
+                                  your text, buttons, and background image.
+                                </p>
+                              </div>
+                              <div>
+                                <label className="mb-1 block text-sm font-semibold text-black">
                                   Discount Percentage
                                 </label>
                                 <div className="flex items-center gap-2">

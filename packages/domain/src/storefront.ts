@@ -242,6 +242,10 @@ export interface PopupStyle {
 
 export interface StorefrontEmailPopup {
   enabled: boolean;
+  // How the popup is presented to visitors. "modal" (default) shows a centered
+  // card over a dimmed page; "fullscreen" covers the whole viewport with the
+  // content (and optional background image) filling the screen.
+  displayMode?: "modal" | "fullscreen";
   discountPercentage: number;
   // Optional shipping discount layered on top of the product percentage.
   // 'none' (or omitted) preserves the legacy product-only welcome code.

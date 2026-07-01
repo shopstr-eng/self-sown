@@ -4532,11 +4532,17 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
   registerTool(
     server,
     "set_email_popup",
-    "Configure the email popup for your storefront. When enabled, visitors see a popup offering a discount in exchange for their email address. This merges with your existing shop profile.",
+    "Configure the email popup for your storefront. When enabled, visitors see a popup offering a discount in exchange for their email address. This merges with your existing popup config: fields you omit are preserved, including styling (background image/colors) and any interactive flow steps set in the dashboard.",
     {
       enabled: z
         .boolean()
         .describe("Enable or disable the email popup on the storefront"),
+      displayMode: z
+        .enum(["modal", "fullscreen"])
+        .optional()
+        .describe(
+          "How the popup is presented: 'modal' (default) shows a centered card over a dimmed page; 'fullscreen' covers the whole page with the content and optional background image"
+        ),
       discountPercentage: z
         .number()
         .min(1)
@@ -4590,10 +4596,19 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
         if (!content.storefront) content.storefront = {};
 
+        const existingPopup =
+          content.storefront.emailPopup &&
+          typeof content.storefront.emailPopup === "object"
+            ? content.storefront.emailPopup
+            : {};
+
         const emailPopup: Record<string, any> = {
+          ...existingPopup,
           enabled: params.enabled,
           discountPercentage: params.discountPercentage,
         };
+        if (params.displayMode !== undefined)
+          emailPopup.displayMode = params.displayMode;
         if (params.headline !== undefined)
           emailPopup.headline = params.headline;
         if (params.subtext !== undefined) emailPopup.subtext = params.subtext;

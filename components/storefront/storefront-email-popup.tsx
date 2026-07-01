@@ -53,6 +53,7 @@ export default function StorefrontEmailPopupComponent({
   const bgImage = s?.backgroundImage;
   const overlayOpacity = s?.overlayOpacity ?? 0.6;
   const useCustomFonts = s?.useCustomFonts ?? false;
+  const isFullscreen = config.displayMode === "fullscreen";
 
   const fontStyles = useCustomFonts
     ? {
@@ -200,22 +201,36 @@ export default function StorefrontEmailPopupComponent({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+          className={`fixed inset-0 z-[9999] flex items-center justify-center ${isFullscreen ? "" : "p-4"}`}
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           onClick={(e) => {
             if (e.target === e.currentTarget) handleDismiss();
           }}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-            animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`relative w-full max-w-md overflow-hidden rounded-2xl ${neoShadows ? "border-2" : "shadow-2xl"}`}
+            initial={
+              isFullscreen ? { opacity: 0 } : { scale: 0.9, opacity: 0, y: 20 }
+            }
+            animate={
+              isFullscreen ? { opacity: 1 } : { scale: 1, opacity: 1, y: 0 }
+            }
+            exit={
+              isFullscreen ? { opacity: 0 } : { scale: 0.9, opacity: 0, y: 20 }
+            }
+            transition={
+              isFullscreen
+                ? { duration: 0.25 }
+                : { type: "spring", damping: 25, stiffness: 300 }
+            }
+            className={
+              isFullscreen
+                ? "relative h-full w-full overflow-hidden"
+                : `relative w-full max-w-md overflow-hidden rounded-2xl ${neoShadows ? "border-2" : "shadow-2xl"}`
+            }
             style={{
               backgroundColor: bg,
               ...fontStyles,
-              ...(neoShadows
+              ...(!isFullscreen && neoShadows
                 ? {
                     borderColor: colors.secondary,
                     boxShadow: `8px 8px 0 ${colors.secondary}`,
@@ -235,219 +250,241 @@ export default function StorefrontEmailPopupComponent({
               />
             )}
 
-            <div className="relative z-10">
-              <button
-                onClick={handleDismiss}
-                aria-label="Dismiss popup"
-                className="absolute top-3 right-3 z-10 rounded-full p-1 transition-colors hover:bg-black/10"
-                style={{ color: text + "99" }}
-              >
-                <span aria-hidden="true" className="text-lg leading-none">
-                  ✖️
-                </span>
-              </button>
+            <button
+              onClick={handleDismiss}
+              aria-label="Dismiss popup"
+              className="absolute top-3 right-3 z-20 rounded-full p-1 transition-colors hover:bg-black/10"
+              style={{ color: text + "99" }}
+            >
+              <span aria-hidden="true" className="text-lg leading-none">
+                ✖️
+              </span>
+            </button>
 
+            <div
+              className={
+                isFullscreen
+                  ? "relative z-10 h-full w-full overflow-y-auto"
+                  : "relative z-10"
+              }
+            >
               <div
-                className="px-6 py-4 text-center"
-                style={{ backgroundColor: accent }}
+                className={
+                  isFullscreen
+                    ? "flex min-h-full w-full flex-col items-center justify-center p-4"
+                    : ""
+                }
               >
                 <div
-                  className="text-4xl font-bold"
-                  style={{ color: btnText, ...headingFontStyles }}
+                  className={
+                    isFullscreen
+                      ? "w-full max-w-md overflow-hidden rounded-2xl"
+                      : ""
+                  }
                 >
-                  {benefitLabel}
-                </div>
-              </div>
+                  <div
+                    className="px-6 py-4 text-center"
+                    style={{ backgroundColor: accent }}
+                  >
+                    <div
+                      className="text-4xl font-bold"
+                      style={{ color: btnText, ...headingFontStyles }}
+                    >
+                      {benefitLabel}
+                    </div>
+                  </div>
 
-              <div className="px-6 py-6">
-                <AnimatePresence mode="wait">
-                  {status === "success" ? (
-                    <motion.div
-                      key="success"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="text-center"
-                    >
-                      <div className="mb-3 text-3xl">&#127881;</div>
-                      <h3
-                        className="mb-2 text-lg font-bold"
-                        style={{ color: text, ...headingFontStyles }}
-                      >
-                        You&apos;re In!
-                      </h3>
-                      <p
-                        className="mb-4 text-sm"
-                        style={{ color: text + "99" }}
-                      >
-                        {successMessage}
-                      </p>
-                      <div
-                        className="mb-4 rounded-lg border-2 border-dashed px-4 py-3"
-                        style={{
-                          borderColor: accent,
-                          backgroundColor: accent + "15",
-                        }}
-                      >
-                        <p
-                          className="mb-1 text-xs tracking-wider uppercase"
-                          style={{ color: text + "77" }}
+                  <div className="px-6 py-6">
+                    <AnimatePresence mode="wait">
+                      {status === "success" ? (
+                        <motion.div
+                          key="success"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="text-center"
                         >
-                          Your Code
-                        </p>
-                        <p
-                          className="font-mono text-xl font-bold tracking-wider"
-                          style={{ color: text }}
-                        >
-                          {discountCode}
-                        </p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          const ok = await copyToClipboard(discountCode);
-                          if (ok !== false) {
-                            setCodeCopied(true);
-                            setTimeout(() => setCodeCopied(false), 2000);
-                          }
-                        }}
-                        aria-live="polite"
-                        className="mb-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
-                        style={{
-                          backgroundColor: btnColor,
-                          color: btnText,
-                        }}
-                      >
-                        {codeCopied ? "✓ Copied!" : "Copy Code"}
-                      </button>
-                      <button
-                        onClick={handleDismiss}
-                        className="mt-2 block w-full text-sm"
-                        style={{ color: text + "77" }}
-                      >
-                        Continue Shopping
-                      </button>
-                    </motion.div>
-                  ) : !flowCompleted && currentStep ? (
-                    <motion.div
-                      key={`step-${currentStep.id}`}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="text-center"
-                    >
-                      <h3
-                        className="mb-5 text-lg font-bold"
-                        style={{ color: text, ...headingFontStyles }}
-                      >
-                        {currentStep.question}
-                      </h3>
-                      <div className="space-y-2">
-                        {currentStep.answers.map((answer) => (
+                          <div className="mb-3 text-3xl">&#127881;</div>
+                          <h3
+                            className="mb-2 text-lg font-bold"
+                            style={{ color: text, ...headingFontStyles }}
+                          >
+                            You&apos;re In!
+                          </h3>
+                          <p
+                            className="mb-4 text-sm"
+                            style={{ color: text + "99" }}
+                          >
+                            {successMessage}
+                          </p>
+                          <div
+                            className="mb-4 rounded-lg border-2 border-dashed px-4 py-3"
+                            style={{
+                              borderColor: accent,
+                              backgroundColor: accent + "15",
+                            }}
+                          >
+                            <p
+                              className="mb-1 text-xs tracking-wider uppercase"
+                              style={{ color: text + "77" }}
+                            >
+                              Your Code
+                            </p>
+                            <p
+                              className="font-mono text-xl font-bold tracking-wider"
+                              style={{ color: text }}
+                            >
+                              {discountCode}
+                            </p>
+                          </div>
                           <button
-                            key={answer.id}
-                            type="button"
-                            onClick={() =>
-                              handleFlowAnswer(currentStep, answer.id)
-                            }
-                            className="w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all hover:opacity-90"
+                            onClick={async () => {
+                              const ok = await copyToClipboard(discountCode);
+                              if (ok !== false) {
+                                setCodeCopied(true);
+                                setTimeout(() => setCodeCopied(false), 2000);
+                              }
+                            }}
+                            aria-live="polite"
+                            className="mb-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
                             style={{
                               backgroundColor: btnColor,
                               color: btnText,
                             }}
                           >
-                            {answer.label}
+                            {codeCopied ? "✓ Copied!" : "Copy Code"}
                           </button>
-                        ))}
-                      </div>
-                      <button
-                        onClick={handleDismiss}
-                        className="mt-4 block w-full text-center text-xs"
-                        style={{ color: text + "55" }}
-                      >
-                        No thanks
-                      </button>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="capture"
-                      initial={{ opacity: 0, x: hasFlow ? 20 : 0 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                    >
-                      <h3
-                        className="mb-2 text-center text-lg font-bold"
-                        style={{ color: text, ...headingFontStyles }}
-                      >
-                        {headline}
-                      </h3>
-                      <p
-                        className="mb-5 text-center text-sm"
-                        style={{ color: text + "99" }}
-                      >
-                        {subtext}
-                      </p>
-                      <form onSubmit={handleSubmit} className="space-y-3">
-                        <input
-                          type="email"
-                          placeholder="Enter your email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
-                          style={{
-                            borderColor: text + "22",
-                            color: text,
-                            backgroundColor: bg,
-                          }}
-                        />
-                        {config.collectPhone && (
-                          <input
-                            type="tel"
-                            placeholder={
-                              config.requirePhone
-                                ? "Enter your phone number"
-                                : "Phone number (optional)"
-                            }
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            required={config.requirePhone}
-                            className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
-                            style={{
-                              borderColor: text + "22",
-                              color: text,
-                              backgroundColor: bg,
-                            }}
-                          />
-                        )}
-                        {errorMsg && (
-                          <p className="text-center text-sm text-red-500">
-                            {errorMsg}
-                          </p>
-                        )}
-                        <button
-                          type="submit"
-                          disabled={status === "submitting"}
-                          className="w-full rounded-lg px-4 py-3 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                          style={{
-                            backgroundColor: btnColor,
-                            color: btnText,
-                          }}
+                          <button
+                            onClick={handleDismiss}
+                            className="mt-2 block w-full text-sm"
+                            style={{ color: text + "77" }}
+                          >
+                            Continue Shopping
+                          </button>
+                        </motion.div>
+                      ) : !flowCompleted && currentStep ? (
+                        <motion.div
+                          key={`step-${currentStep.id}`}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="text-center"
                         >
-                          {status === "submitting"
-                            ? "Please wait..."
-                            : buttonText}
-                        </button>
-                      </form>
-                      <button
-                        onClick={handleDismiss}
-                        className="mt-3 block w-full text-center text-xs"
-                        style={{ color: text + "55" }}
-                      >
-                        No thanks
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                          <h3
+                            className="mb-5 text-lg font-bold"
+                            style={{ color: text, ...headingFontStyles }}
+                          >
+                            {currentStep.question}
+                          </h3>
+                          <div className="space-y-2">
+                            {currentStep.answers.map((answer) => (
+                              <button
+                                key={answer.id}
+                                type="button"
+                                onClick={() =>
+                                  handleFlowAnswer(currentStep, answer.id)
+                                }
+                                className="w-full rounded-lg px-4 py-3 text-sm font-semibold transition-all hover:opacity-90"
+                                style={{
+                                  backgroundColor: btnColor,
+                                  color: btnText,
+                                }}
+                              >
+                                {answer.label}
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            onClick={handleDismiss}
+                            className="mt-4 block w-full text-center text-xs"
+                            style={{ color: text + "55" }}
+                          >
+                            No thanks
+                          </button>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="capture"
+                          initial={{ opacity: 0, x: hasFlow ? 20 : 0 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                        >
+                          <h3
+                            className="mb-2 text-center text-lg font-bold"
+                            style={{ color: text, ...headingFontStyles }}
+                          >
+                            {headline}
+                          </h3>
+                          <p
+                            className="mb-5 text-center text-sm"
+                            style={{ color: text + "99" }}
+                          >
+                            {subtext}
+                          </p>
+                          <form onSubmit={handleSubmit} className="space-y-3">
+                            <input
+                              type="email"
+                              placeholder="Enter your email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              required
+                              className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
+                              style={{
+                                borderColor: text + "22",
+                                color: text,
+                                backgroundColor: bg,
+                              }}
+                            />
+                            {config.collectPhone && (
+                              <input
+                                type="tel"
+                                placeholder={
+                                  config.requirePhone
+                                    ? "Enter your phone number"
+                                    : "Phone number (optional)"
+                                }
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                required={config.requirePhone}
+                                className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
+                                style={{
+                                  borderColor: text + "22",
+                                  color: text,
+                                  backgroundColor: bg,
+                                }}
+                              />
+                            )}
+                            {errorMsg && (
+                              <p className="text-center text-sm text-red-500">
+                                {errorMsg}
+                              </p>
+                            )}
+                            <button
+                              type="submit"
+                              disabled={status === "submitting"}
+                              className="w-full rounded-lg px-4 py-3 text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
+                              style={{
+                                backgroundColor: btnColor,
+                                color: btnText,
+                              }}
+                            >
+                              {status === "submitting"
+                                ? "Please wait..."
+                                : buttonText}
+                            </button>
+                          </form>
+                          <button
+                            onClick={handleDismiss}
+                            className="mt-3 block w-full text-center text-xs"
+                            style={{ color: text + "55" }}
+                          >
+                            No thanks
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
