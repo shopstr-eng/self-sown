@@ -19,12 +19,9 @@ export default function SectionImage({ section }: SectionImageProps) {
         <img
           src={sanitizeUrl(section.image)}
           alt={section.caption || section.heading || ""}
-          className={`w-full object-cover ${
+          className={`mx-auto h-auto max-w-full ${
             section.fullWidth ? "" : "rounded-xl shadow-lg"
           }`}
-          style={
-            section.fullWidth ? { maxHeight: "500px" } : { maxHeight: "600px" }
-          }
         />
         {section.caption && (
           <figcaption

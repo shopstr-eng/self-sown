@@ -266,12 +266,50 @@ function cleanInlineText(value: string): string {
     .trim();
 }
 
+// Pick the highest-resolution candidate out of a srcset. Candidates are
+// "url descriptor" pairs; the descriptor is a width ("600w") or pixel density
+// ("2x"). No descriptor is treated as the smallest so a real-sized sibling wins.
+function pickLargestSrcsetCandidate(srcset: string): string | undefined {
+  let bestUrl: string | undefined;
+  let bestWidth = -1;
+  for (const part of srcset.split(",")) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const [url, descriptor] = trimmed.split(/\s+/);
+    if (!url || /^data:/i.test(url)) continue;
+    const d = descriptor?.toLowerCase();
+    let width = 1;
+    if (d?.endsWith("w")) width = parseInt(d, 10) || 1;
+    else if (d?.endsWith("x")) width = (parseFloat(d) || 1) * 1000;
+    if (width > bestWidth) {
+      bestWidth = width;
+      bestUrl = url;
+    }
+  }
+  return bestUrl;
+}
+
+// ponytail: only strips the two CDN size conventions that reliably map back to
+// the original file (Shopify `_WxH`/`_Wx`, WooCommerce `-WxH` before the file
+// extension). A rare real filename like `part-10x20.jpg` would be mis-stripped;
+// ceiling accepted — rehost is fail-open, so a 404 on the stripped URL keeps the
+// original untouched URL rather than dropping the image.
+function stripImageSizeSuffix(url: string): string {
+  return url
+    .replace(/_\d+x\d*(@\d+x)?(?=\.[a-z]{3,4}([?#]|$))/i, "")
+    .replace(/-\d+x\d+(?=\.[a-z]{3,4}([?#]|$))/i, "");
+}
+
 function pickImageSrc(tag: string): string | undefined {
+  const srcset =
+    tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1] ||
+    tag.match(/\bdata-srcset=["']([^"']+)["']/i)?.[1];
+  const largest = srcset ? pickLargestSrcsetCandidate(srcset) : undefined;
   return (
+    largest ||
     tag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ||
     tag.match(/\bdata-lazy-src=["']([^"']+)["']/i)?.[1] ||
-    tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] ||
-    tag.match(/\bsrcset=["']\s*([^"',\s]+)/i)?.[1]
+    tag.match(/\bsrc=["']([^"']+)["']/i)?.[1]
   );
 }
 
@@ -306,9 +344,11 @@ function extractContentImages(
     const hay = `${tag} ${alt ?? ""}`.toLowerCase();
     if (JUNK_IMAGE_RE.test(hay)) continue;
     if (imageAttrTooSmall(tag)) continue;
-    const abs = absolute(decoded, base);
-    if (!abs) continue;
-    if (/\.svg(\?|#|$)/i.test(abs)) continue;
+    const absRaw = absolute(decoded, base);
+    if (!absRaw) continue;
+    if (/\.svg(\?|#|$)/i.test(absRaw)) continue;
+    // Upgrade CDN thumbnails to the full-resolution original for best quality.
+    const abs = stripImageSizeSuffix(absRaw);
     const key = abs.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);

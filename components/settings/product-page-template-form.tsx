@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { Button } from "@heroui/react";
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon, GlobeAltIcon } from "@heroicons/react/24/outline";
 import {
   SignerContext,
   NostrContext,
@@ -16,7 +16,10 @@ import { ProductContext, ShopMapContext } from "@/utils/context/context";
 import { createNostrShopEvent } from "@/utils/nostr/nostr-helper-functions";
 import { sanitizeStorefrontConfigLinks } from "@/utils/storefront-links";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
-import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  BLUEBUTTONCLASSNAMES,
+  WHITEBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import type { ProductData } from "@/utils/parsers/product-parser-functions";
 import {
   ShopProfile,
@@ -25,6 +28,7 @@ import {
   StorefrontSection,
 } from "@/utils/types/types";
 import ProductPageEditor from "@/components/settings/storefront/product-page-editor";
+import ImportDesignModal from "@/components/stall/import-design-modal";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
@@ -48,6 +52,7 @@ const ProductPageTemplateForm = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
   const [productPageDefaults, setProductPageDefaults] = useState<
     StorefrontSection[]
   >([]);
@@ -198,6 +203,24 @@ const ProductPageTemplateForm = () => {
         </p>
       </div>
 
+      <div className="mb-6 rounded-lg border-2 border-black bg-yellow-50 p-4">
+        <p className="text-sm text-black">
+          <strong>Start from a website.</strong> Drop in a product page&apos;s
+          web address and we&apos;ll build these sections for you — its photos
+          and words, ready to tweak. You can also build your whole stall design
+          from your homepage URL over in the <strong>Storefront</strong> tab, so
+          both your stall and your product pages can come straight from a URL.
+        </p>
+        <Button
+          className={`${WHITEBUTTONCLASSNAMES} mt-3`}
+          startContent={<GlobeAltIcon className="h-4 w-4" />}
+          onClick={() => setShowImport(true)}
+          isDisabled={!membership.isPro}
+        >
+          Build product page from a website
+        </Button>
+      </div>
+
       {!membership.isPro && (
         <UpgradeBanner className="mb-6" feature="Custom product pages" />
       )}
@@ -247,6 +270,24 @@ const ProductPageTemplateForm = () => {
           </div>
         </>
       ) : null}
+
+      <ImportDesignModal
+        isOpen={showImport}
+        onClose={() => setShowImport(false)}
+        mode="product"
+        productPreview={previewContext}
+        shopPubkey={userPubkey || undefined}
+        onApplyProduct={(imported) => {
+          // Append imported sections with fresh unique ids so re-imports never
+          // collide with existing section ids (React keys / drag-reorder).
+          const stamped = imported.sections.map((s, i) => ({
+            ...s,
+            id: `imported-${Date.now()}-${i}`,
+          }));
+          setProductPageDefaults((prev) => [...prev, ...stamped]);
+          setIsSaved(false);
+        }}
+      />
     </div>
   );
 };

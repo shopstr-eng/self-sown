@@ -3,12 +3,23 @@ import {
   getLocalStorageData,
 } from "@/utils/nostr/nostr-helper-functions";
 import type { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
-import type { ImportedStoreDesign } from "@/utils/migrations/site-design";
+import type {
+  ImportedStoreDesign,
+  ImportedProductPage,
+} from "@/utils/migrations/site-design";
 
 export interface StorefrontImageRehostResult {
   design: ImportedStoreDesign;
   warnings: string[];
 }
+
+export interface ProductPageImageRehostResult {
+  design: ImportedProductPage;
+  warnings: string[];
+}
+
+const NO_MEDIA_SERVER_WARNING =
+  "No media server is configured, so imported images still point at the original website and may break later. Add a media server in Settings → Preferences, then re-import to fix this.";
 
 /**
  * Re-uploads the images referenced by an imported stall design (logo, banner,
@@ -39,33 +50,11 @@ export async function rehostStorefrontDesignImages(
   }
 
   if (blossomServers.length === 0) {
-    warnings.push(
-      "No media server is configured, so imported images still point at the original website and may break later. Add a media server in Settings → Preferences, then re-import to fix this."
-    );
+    warnings.push(NO_MEDIA_SERVER_WARNING);
     return { design, warnings };
   }
 
-  const urlMap = new Map<string, string>();
-  for (const url of urls) {
-    try {
-      const file = await fetchRemoteImageAsFile(url);
-      const tags = await blossomUpload(file, true, signer, blossomServers);
-      const newUrl = tags.find((t) => t[0] === "url")?.[1];
-      if (newUrl) {
-        urlMap.set(url, newUrl);
-      } else {
-        warnings.push(
-          `Couldn't move ${shortUrl(url)} to your media server (no URL returned); kept the original link.`
-        );
-      }
-    } catch (err) {
-      console.error("Failed to rehost storefront image", url, err);
-      const reason = err instanceof Error ? err.message : "unknown error";
-      warnings.push(
-        `Couldn't move ${shortUrl(url)} to your media server (${reason}); kept the original link.`
-      );
-    }
-  }
+  const urlMap = await rehostUrls(urls, signer, blossomServers, warnings);
 
   if (urlMap.size === 0) {
     return {
@@ -96,6 +85,88 @@ export async function rehostStorefrontDesignImages(
   };
 
   return { design: rehosted, warnings };
+}
+
+/**
+ * Product-page equivalent of rehostStorefrontDesignImages: rehosts the images
+ * referenced by an imported product page (section images + OG image) to the
+ * seller's Blossom servers and swaps in the new URLs. Same fail-open semantics.
+ */
+export async function rehostProductPageImages(
+  design: ImportedProductPage,
+  signer: NostrSigner
+): Promise<ProductPageImageRehostResult> {
+  const warnings: string[] = [];
+  const blossomServers = getLocalStorageData().blossomServers || [];
+
+  const urls = new Set<string>();
+  for (const section of design.sections ?? []) {
+    if (section.image) urls.add(section.image);
+  }
+  if (design.ogImage) urls.add(design.ogImage);
+
+  if (urls.size === 0) {
+    return { design, warnings };
+  }
+
+  if (blossomServers.length === 0) {
+    warnings.push(NO_MEDIA_SERVER_WARNING);
+    return { design, warnings };
+  }
+
+  const urlMap = await rehostUrls(urls, signer, blossomServers, warnings);
+
+  if (urlMap.size === 0) {
+    return {
+      design: { ...design, warnings: [...design.warnings, ...warnings] },
+      warnings,
+    };
+  }
+
+  const remap = (u: string | undefined) => (u ? (urlMap.get(u) ?? u) : u);
+
+  const rehosted: ImportedProductPage = {
+    ...design,
+    sections: design.sections?.map((s) =>
+      s.image ? { ...s, image: remap(s.image) as string } : s
+    ),
+    ogImage: remap(design.ogImage),
+    warnings: [...design.warnings, ...warnings],
+  };
+
+  return { design: rehosted, warnings };
+}
+
+// Shared upload loop: rehosts every URL in `urls` to Blossom, recording a
+// warning (never throwing) for each one that fails. Returns the old→new map.
+async function rehostUrls(
+  urls: Set<string>,
+  signer: NostrSigner,
+  blossomServers: string[],
+  warnings: string[]
+): Promise<Map<string, string>> {
+  const urlMap = new Map<string, string>();
+  for (const url of urls) {
+    try {
+      const file = await fetchRemoteImageAsFile(url);
+      const tags = await blossomUpload(file, true, signer, blossomServers);
+      const newUrl = tags.find((t) => t[0] === "url")?.[1];
+      if (newUrl) {
+        urlMap.set(url, newUrl);
+      } else {
+        warnings.push(
+          `Couldn't move ${shortUrl(url)} to your media server (no URL returned); kept the original link.`
+        );
+      }
+    } catch (err) {
+      console.error("Failed to rehost storefront image", url, err);
+      const reason = err instanceof Error ? err.message : "unknown error";
+      warnings.push(
+        `Couldn't move ${shortUrl(url)} to your media server (${reason}); kept the original link.`
+      );
+    }
+  }
+  return urlMap;
 }
 
 async function fetchRemoteImageAsFile(url: string): Promise<File> {

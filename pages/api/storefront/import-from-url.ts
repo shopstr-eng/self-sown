@@ -8,7 +8,10 @@ import {
   hasUsableSignals,
   SiteExtractionError,
 } from "@/utils/migrations/site-design-extractor";
-import { buildExtractionDraft } from "@/utils/migrations/site-design";
+import {
+  buildExtractionDraft,
+  buildProductPageDraft,
+} from "@/utils/migrations/site-design";
 import { composeStoreDesignWithAI } from "@/utils/storefront/ai-compose";
 
 // Each call fetches an arbitrary external site + a few stylesheets and may hit
@@ -41,7 +44,8 @@ export default async function handler(
     return res.status(429).json({ error: "Too many requests" });
   }
 
-  const { pubkey, url, signedEvent } = req.body ?? {};
+  const { pubkey, url, signedEvent, mode: modeRaw } = req.body ?? {};
+  const mode = modeRaw === "product" ? "product" : "stall";
   if (!pubkey || !url) {
     return res.status(400).json({ error: "pubkey and url are required" });
   }
@@ -57,6 +61,11 @@ export default async function handler(
   }
   const cleanUrl = parsed.toString();
 
+  // Bind `mode` into the signed fields only for product imports so existing
+  // stall-import signatures (which sign just { url }) stay byte-identical.
+  const authFields: Record<string, string> =
+    mode === "product" ? { url: cleanUrl, mode } : { url: cleanUrl };
+
   const authResult = verifyNostrAuth(
     signedEvent,
     pubkey,
@@ -64,7 +73,7 @@ export default async function handler(
     {
       method: "POST",
       path: AUTH_PATH,
-      fields: { url: cleanUrl },
+      fields: authFields,
     }
   );
   if (!authResult.valid) {
@@ -93,6 +102,11 @@ export default async function handler(
       error:
         "We couldn't find any design details on that page. Try your homepage URL.",
     });
+  }
+
+  // Product-page imports are fully deterministic (no AI-styled hero/about).
+  if (mode === "product") {
+    return res.status(200).json({ design: buildProductPageDraft(signals) });
   }
 
   const draft = buildExtractionDraft(signals);

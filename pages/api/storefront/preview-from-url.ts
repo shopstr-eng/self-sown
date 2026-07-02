@@ -8,7 +8,9 @@ import {
 } from "@/utils/migrations/site-design-extractor";
 import {
   buildExtractionDraft,
+  buildProductPageDraft,
   type ImportedStoreDesign,
+  type ImportedProductPage,
 } from "@/utils/migrations/site-design";
 import { composeStoreDesignWithAI } from "@/utils/storefront/ai-compose";
 
@@ -28,10 +30,15 @@ const GLOBAL_LIMIT = { limit: 40, windowMs: 60 * 1000 };
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const CACHE_MAX = 200;
 
-type CacheEntry = { design: ImportedStoreDesign; expiresAt: number };
+type CacheEntry = {
+  design: ImportedStoreDesign | ImportedProductPage;
+  expiresAt: number;
+};
 const previewCache = new Map<string, CacheEntry>();
 
-function getCached(url: string): ImportedStoreDesign | null {
+function getCached(
+  url: string
+): ImportedStoreDesign | ImportedProductPage | null {
   const hit = previewCache.get(url);
   if (!hit) return null;
   if (hit.expiresAt < Date.now()) {
@@ -41,7 +48,10 @@ function getCached(url: string): ImportedStoreDesign | null {
   return hit.design;
 }
 
-function setCached(url: string, design: ImportedStoreDesign): void {
+function setCached(
+  url: string,
+  design: ImportedStoreDesign | ImportedProductPage
+): void {
   if (previewCache.size >= CACHE_MAX) {
     const oldest = previewCache.keys().next().value;
     if (oldest) previewCache.delete(oldest);
@@ -74,7 +84,8 @@ export default async function handler(
     return res.status(429).json({ error: "Too many requests" });
   }
 
-  const { url } = req.body ?? {};
+  const { url, mode: modeRaw } = req.body ?? {};
+  const mode = modeRaw === "product" ? "product" : "stall";
   if (!url) {
     return res.status(400).json({ error: "url is required" });
   }
@@ -86,10 +97,13 @@ export default async function handler(
       .json({ error: "Enter a valid http(s) website address" });
   }
   const cleanUrl = parsed.toString();
+  // Key the cache by mode too: the same URL yields a different draft for a
+  // stall preview vs a product-page preview.
+  const cacheKey = `${mode}:${cleanUrl}`;
 
   // Serve a recent preview for this exact URL without re-fetching or re-billing
   // the LLM. This is the common case for a shared outreach link.
-  const cached = getCached(cleanUrl);
+  const cached = getCached(cacheKey);
   if (cached) {
     return res.status(200).json({ design: cached });
   }
@@ -131,6 +145,14 @@ export default async function handler(
     });
   }
 
+  // Product-page imports are fully deterministic (product pages have no
+  // AI-styled hero/about, so composeStoreDesignWithAI would be a no-op).
+  if (mode === "product") {
+    const productDraft = buildProductPageDraft(signals);
+    setCached(cacheKey, productDraft);
+    return res.status(200).json({ design: productDraft });
+  }
+
   const draft = buildExtractionDraft(signals);
 
   // AI enhancement is best-effort. If the integration isn't configured or the
@@ -138,7 +160,7 @@ export default async function handler(
   try {
     const enhanced = await composeStoreDesignWithAI(signals, draft);
     if (enhanced) {
-      setCached(cleanUrl, enhanced);
+      setCached(cacheKey, enhanced);
       return res.status(200).json({ design: enhanced });
     }
     draft.warnings.push(
@@ -151,6 +173,6 @@ export default async function handler(
     );
   }
 
-  setCached(cleanUrl, draft);
+  setCached(cacheKey, draft);
   return res.status(200).json({ design: draft });
 }

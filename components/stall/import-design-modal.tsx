@@ -27,16 +27,45 @@ import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
 import {
   IMPORT_DESIGN_DRAFT_KEY,
   type ImportedStoreDesign,
+  type ImportedProductPage,
 } from "@/utils/migrations/site-design";
-import { rehostStorefrontDesignImages } from "@/utils/migrations/rehost-storefront-images";
+import {
+  rehostStorefrontDesignImages,
+  rehostProductPageImages,
+} from "@/utils/migrations/rehost-storefront-images";
 import type { StorefrontColorScheme } from "@/utils/types/types";
 import StorefrontPreviewPanel from "@/components/settings/storefront/storefront-preview-panel";
+import StorefrontPreviewFrame from "@/components/storefront/storefront-preview-frame";
+import SectionRenderer from "@/components/storefront/section-renderer";
+import { PLACEHOLDER_PRODUCT } from "@/utils/storefront/placeholder-product";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
+
+// Colors/fonts used to render the product-page preview so it matches the
+// seller's actual stall theme (the imported page adopts the shop theme, not the
+// source site's colors).
+export interface ProductImportPreviewContext {
+  colors: StorefrontColorScheme;
+  shopName?: string;
+  shopPicture?: string;
+  fontHeading?: string;
+  fontBody?: string;
+  customFontHeadingUrl?: string;
+  customFontHeadingName?: string;
+  customFontBodyUrl?: string;
+  customFontBodyName?: string;
+}
 
 interface ImportDesignModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // "stall" (default) imports a full landing/stall design and hands off to the
+  // storefront editor. "product" imports product-page sections and hands them
+  // back via onApplyProduct (no route hop).
+  mode?: "stall" | "product";
+  onApplyProduct?: (design: ImportedProductPage) => void;
+  productPreview?: ProductImportPreviewContext;
+  shopPubkey?: string;
 }
 
 type Step = "url" | "generating" | "preview";
@@ -58,17 +87,31 @@ const INPUT_CLASSNAMES = {
   label: "text-black font-bold",
 };
 
+function isProductDesign(
+  d: ImportedStoreDesign | ImportedProductPage
+): d is ImportedProductPage {
+  return !("storefront" in d);
+}
+
 export default function ImportDesignModal({
   isOpen,
   onClose,
+  mode = "stall",
+  onApplyProduct,
+  productPreview,
+  shopPubkey,
 }: ImportDesignModalProps) {
   const { signer, isLoggedIn, pubkey } = useContext(SignerContext);
   const { isPro, loading: proLoading } = useProMembership();
 
+  const isProductMode = mode === "product";
+
   const [step, setStep] = useState<Step>("url");
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [design, setDesign] = useState<ImportedStoreDesign | null>(null);
+  const [design, setDesign] = useState<
+    ImportedStoreDesign | ImportedProductPage | null
+  >(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const resetAndClose = () => {
@@ -111,18 +154,28 @@ export default function ImportDesignModal({
     setStep("generating");
     setIsLoading(true);
     try {
+      // Product imports bind `mode` into the signed fields; stall imports sign
+      // just { url } so existing signatures stay byte-identical.
+      const fields = isProductMode
+        ? { url: cleanUrl, mode: "product" }
+        : { url: cleanUrl };
       const signedEvent = await signer.sign(
         createSellerActionAuthEventTemplate(pubkey, "storefront-import-write", {
           method: "POST",
           path: API_PATH,
-          fields: { url: cleanUrl },
+          fields,
         })
       );
 
       const res = await fetch(API_PATH, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pubkey, url: cleanUrl, signedEvent }),
+        body: JSON.stringify({
+          pubkey,
+          url: cleanUrl,
+          signedEvent,
+          ...(isProductMode ? { mode: "product" } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -130,7 +183,7 @@ export default function ImportDesignModal({
         setStep("url");
         return;
       }
-      setDesign(data.design as ImportedStoreDesign);
+      setDesign(data.design as ImportedStoreDesign | ImportedProductPage);
       setStep("preview");
     } catch (err) {
       console.error("Import design failed:", err);
@@ -142,14 +195,15 @@ export default function ImportDesignModal({
   };
 
   const handleLoadIntoEditor = async () => {
-    if (!design) return;
+    if (!design || isProductDesign(design)) return;
+    const stallDesign = design;
     setIsLoading(true);
     setError(null);
-    let finalDesign = design;
+    let finalDesign = stallDesign;
     try {
       if (signer) {
         const { design: rehosted } = await rehostStorefrontDesignImages(
-          design,
+          stallDesign,
           signer
         );
         finalDesign = rehosted;
@@ -175,7 +229,38 @@ export default function ImportDesignModal({
     router.push("/settings/stall?tab=storefront&importDraft=1");
   };
 
-  const previewColors = design?.storefront.colorScheme ?? FALLBACK_COLORS;
+  const handleApplyProduct = async () => {
+    if (!design || !isProductDesign(design)) return;
+    const productDesign = design;
+    setIsLoading(true);
+    setError(null);
+    let finalDesign = productDesign;
+    try {
+      if (signer) {
+        const { design: rehosted } = await rehostProductPageImages(
+          productDesign,
+          signer
+        );
+        finalDesign = rehosted;
+      }
+    } catch (err) {
+      // Rehost is best-effort; keep the original image URLs.
+      console.error("Product image rehost failed:", err);
+    }
+    onApplyProduct?.(finalDesign);
+    resetAndClose();
+  };
+
+  const stallColors =
+    design && !isProductDesign(design)
+      ? design.storefront.colorScheme
+      : undefined;
+  const previewColors =
+    stallColors ?? productPreview?.colors ?? FALLBACK_COLORS;
+
+  const headerText = isProductMode
+    ? "Import product page from a website"
+    : "Import stall design from a website";
 
   return (
     <Modal
@@ -192,7 +277,7 @@ export default function ImportDesignModal({
       <ModalContent>
         <ModalHeader className="flex items-center gap-2 text-black">
           <GlobeAltIcon className="h-6 w-6" />
-          Import stall design from a website
+          {headerText}
         </ModalHeader>
 
         <ModalBody className="text-black">
@@ -206,18 +291,27 @@ export default function ImportDesignModal({
           {step === "url" && (
             <div className="flex flex-col gap-4 py-2">
               <p className="text-sm text-gray-700">
-                Paste the address of your existing shop (Shopify, WooCommerce,
-                Barn2Door, or any website). We&apos;ll pull in your colors,
-                fonts, logo, and text, then use AI to shape a matching stall
-                design you can preview and tweak before saving.
+                {isProductMode
+                  ? "Paste the address of a product page from your existing shop (Shopify, WooCommerce, or any website). We'll pull in its photos and description and turn them into product-page sections you can preview and tweak before saving."
+                  : "Paste the address of your existing shop (Shopify, WooCommerce, Barn2Door, or any website). We'll pull in your colors, fonts, logo, and text, then use AI to shape a matching stall design you can preview and tweak before saving."}
               </p>
               {!proLoading && !isPro ? (
-                <UpgradeBanner feature="Importing a design from a website" />
+                <UpgradeBanner
+                  feature={
+                    isProductMode
+                      ? "Importing a product page from a website"
+                      : "Importing a design from a website"
+                  }
+                />
               ) : (
                 <>
                   <Input
                     label="Website address"
-                    placeholder="yourshop.com"
+                    placeholder={
+                      isProductMode
+                        ? "yourshop.com/products/raw-milk"
+                        : "yourshop.com"
+                    }
                     value={url}
                     onValueChange={setUrl}
                     variant="bordered"
@@ -241,7 +335,9 @@ export default function ImportDesignModal({
               <div>
                 <p className="flex items-center justify-center gap-2 font-bold">
                   <SparklesIcon className="h-5 w-5" />
-                  Building your stall design…
+                  {isProductMode
+                    ? "Building your product page…"
+                    : "Building your stall design…"}
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
                   Reading your site and composing a matching look. This can take
@@ -256,10 +352,12 @@ export default function ImportDesignModal({
               <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-700">
                   Here&apos;s a draft based on{" "}
-                  <span className="font-bold">{design.sourceUrl}</span>. Load it
-                  into the editor to fine-tune and save.
+                  <span className="font-bold">{design.sourceUrl}</span>.{" "}
+                  {isProductMode
+                    ? "Add it to your product page to fine-tune and save."
+                    : "Load it into the editor to fine-tune and save."}
                 </p>
-                {design.aiApplied && (
+                {!isProductDesign(design) && design.aiApplied && (
                   <span className="bg-primary-yellow flex items-center gap-1 rounded-full border-2 border-black px-2 py-0.5 text-xs font-bold whitespace-nowrap">
                     <SparklesIcon className="h-3.5 w-3.5" />
                     AI styled
@@ -278,27 +376,65 @@ export default function ImportDesignModal({
               )}
 
               <div className="overflow-hidden rounded-lg border-2 border-black">
-                <StorefrontPreviewPanel
-                  shopName={design.name || "Your Shop"}
-                  shopAbout={design.about || ""}
-                  pictureUrl={design.logoUrl || ""}
-                  bannerUrl={design.bannerUrl || ""}
-                  colors={previewColors}
-                  productLayout="grid"
-                  landingPageStyle={
-                    design.storefront.landingPageStyle || "hero"
-                  }
-                  fontHeading={design.storefront.fontHeading || ""}
-                  fontBody={design.storefront.fontBody || ""}
-                  sections={design.storefront.sections || []}
-                  pages={[]}
-                  footer={design.storefront.footer || {}}
-                  navLinks={[]}
-                  navColors={design.storefront.navColors}
-                  footerColors={design.storefront.footerColors}
-                  shopSlug="preview"
-                  compact
-                />
+                {isProductDesign(design) ? (
+                  design.sections.length === 0 ? (
+                    <div className="bg-white p-6 text-center text-sm text-gray-600">
+                      We couldn&apos;t find product content on that page. Try a
+                      direct product URL.
+                    </div>
+                  ) : (
+                    <StorefrontPreviewFrame
+                      colors={previewColors}
+                      fontHeading={productPreview?.fontHeading}
+                      fontBody={productPreview?.fontBody}
+                      customFontHeadingUrl={
+                        productPreview?.customFontHeadingUrl
+                      }
+                      customFontHeadingName={
+                        productPreview?.customFontHeadingName
+                      }
+                      customFontBodyUrl={productPreview?.customFontBodyUrl}
+                      customFontBodyName={productPreview?.customFontBodyName}
+                    >
+                      {design.sections.map((s) => (
+                        <SectionRenderer
+                          key={s.id}
+                          section={s}
+                          colors={previewColors}
+                          shopName={
+                            productPreview?.shopName || design.name || "Stall"
+                          }
+                          shopPicture={productPreview?.shopPicture || ""}
+                          shopPubkey={shopPubkey || ""}
+                          products={[]}
+                          currentProduct={PLACEHOLDER_PRODUCT}
+                        />
+                      ))}
+                    </StorefrontPreviewFrame>
+                  )
+                ) : (
+                  <StorefrontPreviewPanel
+                    shopName={design.name || "Your Shop"}
+                    shopAbout={design.about || ""}
+                    pictureUrl={design.logoUrl || ""}
+                    bannerUrl={design.bannerUrl || ""}
+                    colors={previewColors}
+                    productLayout="grid"
+                    landingPageStyle={
+                      design.storefront.landingPageStyle || "hero"
+                    }
+                    fontHeading={design.storefront.fontHeading || ""}
+                    fontBody={design.storefront.fontBody || ""}
+                    sections={design.storefront.sections || []}
+                    pages={[]}
+                    footer={design.storefront.footer || {}}
+                    navLinks={[]}
+                    navColors={design.storefront.navColors}
+                    footerColors={design.storefront.footerColors}
+                    shopSlug="preview"
+                    compact
+                  />
+                )}
               </div>
             </div>
           )}
@@ -316,7 +452,7 @@ export default function ImportDesignModal({
                 isDisabled={isLoading || proLoading || !isPro}
                 startContent={<SparklesIcon className="h-4 w-4" />}
               >
-                Build my design
+                {isProductMode ? "Build product page" : "Build my design"}
               </Button>
             </>
           )}
@@ -334,10 +470,18 @@ export default function ImportDesignModal({
               </Button>
               <Button
                 className={BLUEBUTTONCLASSNAMES}
-                onClick={handleLoadIntoEditor}
+                onClick={
+                  isProductMode ? handleApplyProduct : handleLoadIntoEditor
+                }
                 isDisabled={isLoading}
               >
-                {isLoading ? "Loading…" : "Load into editor"}
+                {isLoading
+                  ? isProductMode
+                    ? "Adding…"
+                    : "Loading…"
+                  : isProductMode
+                    ? "Add to product page"
+                    : "Load into editor"}
               </Button>
             </>
           )}

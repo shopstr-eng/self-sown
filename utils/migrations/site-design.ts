@@ -116,6 +116,21 @@ export interface ImportedStoreDesign {
   warnings: string[];
 }
 
+// Product-page equivalent of ImportedStoreDesign: only the sections a product
+// detail page can actually render (product_description + text/image), plus meta.
+// colorScheme is preview-only — the apply path (product-page editor) keeps the
+// shop theme and never writes it.
+export interface ImportedProductPage {
+  sourceUrl: string;
+  name?: string;
+  sections: StorefrontSection[];
+  metaTitle?: string;
+  metaDescription?: string;
+  ogImage?: string;
+  colorScheme?: StorefrontColorScheme;
+  warnings: string[];
+}
+
 // ---------------------------------------------------------------------------
 // Color helpers
 // ---------------------------------------------------------------------------
@@ -404,6 +419,86 @@ export function buildExtractionDraft(
       seoMeta,
     },
     aiApplied: false,
+    warnings: [],
+  };
+}
+
+// Deterministic product-page draft (no AI). Mirrors buildExtractionDraft but
+// emits only product-page section types: a product_description for the main
+// copy, then the page's remaining copy blocks + images interleaved as
+// text/image sections. Images/text come only from extraction — never the LLM.
+export function buildProductPageDraft(
+  signals: ExtractedSiteSignals
+): ImportedProductPage {
+  const colorScheme = pickColorScheme(signals);
+  const sections: StorefrontSection[] = [];
+
+  const body = capText(
+    signals.aboutText || signals.description || signals.contentBlocks[0]?.body,
+    800
+  );
+  if (body) {
+    sections.push({
+      id: "imported-product-description",
+      type: "product_description",
+      enabled: true,
+      heading:
+        capText(signals.title || signals.siteName, 80) || "About this product",
+      body,
+    });
+  }
+
+  const usedBody = body.toLowerCase();
+  const extraBlocks = signals.contentBlocks.filter((b) => {
+    const bodyLc = b.body.toLowerCase();
+    return bodyLc.length > 0 && !usedBody.includes(bodyLc.slice(0, 60));
+  });
+  const images = signals.images;
+
+  let siteHost: string | undefined;
+  try {
+    siteHost = new URL(signals.url).hostname.replace(/^www\./, "");
+  } catch {
+    siteHost = undefined;
+  }
+
+  const richCount = Math.max(extraBlocks.length, images.length);
+  for (let i = 0; i < richCount; i++) {
+    const block = extraBlocks[i];
+    if (block) {
+      sections.push({
+        id: `imported-product-text-${i + 1}`,
+        type: "text",
+        enabled: true,
+        heading: capText(block.heading, 80),
+        body: capText(block.body, 600),
+      });
+    }
+    const image = images[i];
+    if (image) {
+      const caption =
+        (image.alt && image.alt.trim()) ||
+        capText(signals.siteName || signals.title, 80) ||
+        siteHost ||
+        undefined;
+      sections.push({
+        id: `imported-product-image-${i + 1}`,
+        type: "image",
+        enabled: true,
+        image: image.url,
+        caption,
+      });
+    }
+  }
+
+  return {
+    sourceUrl: signals.url,
+    name: capText(signals.title || signals.siteName, 80) || undefined,
+    sections,
+    metaTitle: capText(signals.title || signals.siteName, 70) || undefined,
+    metaDescription: capText(signals.description, 160) || undefined,
+    ogImage: signals.ogImage || undefined,
+    colorScheme,
     warnings: [],
   };
 }
