@@ -1640,6 +1640,7 @@ function MilkMarket({ props }: { props: AppProps }) {
                               router.pathname !== "/privacy" &&
                               router.pathname !== "/about" &&
                               router.pathname !== "/contact" &&
+                              router.pathname !== "/stall-preview" &&
                               !router.pathname.startsWith("/stall/") &&
                               !(router.asPath ?? "").startsWith("/stall/") && (
                                 <TopNav

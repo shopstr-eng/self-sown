@@ -183,10 +183,184 @@ function extractGoogleFontFamilies(html: string): string[] {
   return Array.from(fonts);
 }
 
-async function readCapped(res: Response, maxBytes: number): Promise<string> {
-  const buf = await res.arrayBuffer();
-  const slice = buf.byteLength > maxBytes ? buf.slice(0, maxBytes) : buf;
-  return new TextDecoder("utf-8").decode(slice);
+// Read at most `maxBytes` of a response body, streaming so a hostile origin
+// can't OOM us by advertising fast headers then sending gigabytes (or slow-
+// dripping forever). safeFetch clears its abort timeout once headers arrive, so
+// this owns its own overall read deadline. Critical now that the extraction
+// pipeline is reachable from the PUBLIC /api/storefront/preview-from-url.
+async function readCapped(
+  res: Response,
+  maxBytes: number,
+  timeoutMs = 8000
+): Promise<string> {
+  const body = res.body;
+  if (!body) {
+    // No readable stream (e.g. a polyfilled Response); fall back to a bounded
+    // buffer read. Still capped, just without incremental protection.
+    const buf = await res.arrayBuffer();
+    const slice = buf.byteLength > maxBytes ? buf.slice(0, maxBytes) : buf;
+    return new TextDecoder("utf-8").decode(slice);
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+  const deadline = Date.now() + timeoutMs;
+  try {
+    while (received < maxBytes) {
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) break; // slow origin: keep what we have and stop
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeoutP = new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), remainingMs);
+      });
+      let result: Awaited<ReturnType<typeof reader.read>> | null;
+      try {
+        result = await Promise.race([reader.read(), timeoutP]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+      if (!result || result.done) break;
+      const value = result.value;
+      if (!value) continue;
+      const remaining = maxBytes - received;
+      if (value.byteLength > remaining) {
+        chunks.push(value.subarray(0, remaining));
+        received += remaining;
+        break;
+      }
+      chunks.push(value);
+      received += value.byteLength;
+    }
+  } finally {
+    // Stop the transfer — we have enough, timed out, or the origin misbehaved.
+    await reader.cancel().catch(() => {});
+  }
+
+  const merged = new Uint8Array(received);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder("utf-8").decode(merged);
+}
+
+const MAX_CONTENT_IMAGES = 5;
+const MAX_CONTENT_BLOCKS = 4;
+
+// Junk we never want to promote into a storefront section image: logos, icons,
+// tracking pixels and UI chrome. Matched against the whole <img> tag (src +
+// class + id) plus its alt text, so a hit anywhere disqualifies the image.
+const JUNK_IMAGE_RE =
+  /logo|icon|favicon|sprite|pixel|tracking|beacon|avatar|badge|emoji|spinner|loader|placeholder|1x1|blank|arrow|chevron|bullet|thumb/i;
+
+// Boilerplate headings/paragraphs that aren't real page content and shouldn't
+// become a storefront text section.
+const JUNK_TEXT_RE =
+  /cookie|newsletter|subscribe|sign\s?up|sign\s?in|log\s?in|add to cart|checkout|©|copyright|all rights reserved|privacy policy|terms of service|terms (&|and) conditions|skip to (main )?content/i;
+
+function cleanInlineText(value: string): string {
+  return decodeEntities(value.replace(/<[^>]*>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function pickImageSrc(tag: string): string | undefined {
+  return (
+    tag.match(/\bdata-src=["']([^"']+)["']/i)?.[1] ||
+    tag.match(/\bdata-lazy-src=["']([^"']+)["']/i)?.[1] ||
+    tag.match(/\bsrc=["']([^"']+)["']/i)?.[1] ||
+    tag.match(/\bsrcset=["']\s*([^"',\s]+)/i)?.[1]
+  );
+}
+
+function imageAttrTooSmall(tag: string): boolean {
+  const w = Number(tag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? "");
+  const h = Number(tag.match(/\bheight=["']?(\d+)/i)?.[1] ?? "");
+  return (w > 0 && w < 100) || (h > 0 && h < 100);
+}
+
+/**
+ * Pull a handful of real content images (banners, feature graphics) from the
+ * page in document order, skipping logos/icons/tracking pixels and anything we
+ * already used elsewhere (og image, logo, favicon). These become extra
+ * storefront `image` sections.
+ */
+function extractContentImages(
+  html: string,
+  base: URL,
+  exclude: Set<string>
+): { url: string; alt?: string }[] {
+  const tags = html.match(/<img\b[^>]*>/gi) || [];
+  const out: { url: string; alt?: string }[] = [];
+  const seen = new Set<string>(exclude);
+  for (const tag of tags) {
+    if (out.length >= MAX_CONTENT_IMAGES) break;
+    const raw = pickImageSrc(tag);
+    if (!raw) continue;
+    const decoded = decodeEntities(raw);
+    if (/^data:/i.test(decoded)) continue;
+    const altRaw = tag.match(/\balt=["']([^"']*)["']/i)?.[1];
+    const alt = altRaw ? decodeEntities(altRaw) : undefined;
+    const hay = `${tag} ${alt ?? ""}`.toLowerCase();
+    if (JUNK_IMAGE_RE.test(hay)) continue;
+    if (imageAttrTooSmall(tag)) continue;
+    const abs = absolute(decoded, base);
+    if (!abs) continue;
+    if (/\.svg(\?|#|$)/i.test(abs)) continue;
+    const key = abs.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ url: abs, alt: alt && alt.length > 0 ? alt : undefined });
+  }
+  return out;
+}
+
+/**
+ * Pull ordered heading + paragraph blocks from the page body so the site's own
+ * sections of copy become extra storefront `text` sections. Only keeps blocks
+ * that have BOTH a real heading and a substantial paragraph, so we never
+ * fabricate headings or ship nav/cookie boilerplate.
+ */
+function extractContentBlocks(
+  html: string
+): { heading: string; body: string }[] {
+  const cleaned = html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<(nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, " ");
+
+  const tokenRe =
+    /<(h[1-3])\b[^>]*>([\s\S]*?)<\/\1>|<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  const blocks: { heading: string; body: string }[] = [];
+  let heading: string | null = null;
+  let body: string[] = [];
+
+  const flush = () => {
+    if (heading) {
+      const text = body.join("\n\n").trim();
+      if (text.length >= 40) blocks.push({ heading, body: text.slice(0, 800) });
+    }
+    heading = null;
+    body = [];
+  };
+
+  let match: RegExpExecArray | null;
+  while ((match = tokenRe.exec(cleaned)) !== null) {
+    if (match[1]) {
+      flush();
+      const h = cleanInlineText(match[2] || "");
+      heading =
+        h.length >= 3 && h.length <= 80 && !JUNK_TEXT_RE.test(h) ? h : null;
+    } else if (heading) {
+      const p = cleanInlineText(match[3] || "");
+      if (p.length >= 20 && !JUNK_TEXT_RE.test(p)) body.push(p);
+    }
+  }
+  flush();
+
+  return blocks.slice(0, MAX_CONTENT_BLOCKS);
 }
 
 export async function extractSiteSignals(
@@ -290,6 +464,15 @@ export async function extractSiteSignals(
   const socialLinks = extractSocialLinks(html, base);
   const aboutText = extractAboutText(html);
 
+  // Images already spoken for elsewhere shouldn't be repeated as content
+  // sections.
+  const usedImageUrls = new Set<string>();
+  for (const u of [ogImage, logoUrl, faviconUrl]) {
+    if (u) usedImageUrls.add(u.toLowerCase());
+  }
+  const images = extractContentImages(html, base, usedImageUrls);
+  const contentBlocks = extractContentBlocks(html);
+
   return {
     url: base.toString(),
     siteName,
@@ -303,6 +486,8 @@ export async function extractSiteSignals(
     colors,
     fonts: Array.from(fonts),
     socialLinks,
+    images,
+    contentBlocks,
   };
 }
 

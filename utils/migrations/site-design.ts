@@ -69,6 +69,11 @@ export interface ExtractedSiteSignals {
   colors: string[];
   fonts: string[];
   socialLinks: StorefrontSocialLink[];
+  // Extra content pulled from the page body (beyond hero/about): real banner /
+  // feature images and heading+paragraph copy blocks, in document order. Both
+  // come only from deterministic extraction — the LLM never sees or emits them.
+  images: { url: string; alt?: string }[];
+  contentBlocks: { heading: string; body: string }[];
 }
 
 export interface ImportedStorefrontDraft {
@@ -87,6 +92,18 @@ export interface ImportedStorefrontDraft {
 // shop-profile-form (which applies it via the normal Save path). Keeping the
 // key in the shared module keeps the writer and reader in lockstep.
 export const IMPORT_DESIGN_DRAFT_KEY = "mm_import_design_draft";
+
+// True when a "Claim this design" draft is waiting in the browser. The signup
+// flow uses this (not a threaded query param) to decide whether to finish on the
+// stall editor with the imported design applied. Client-only + fail-safe.
+export function hasPendingImportDraft(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return !!window.localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY);
+  } catch {
+    return false;
+  }
+}
 
 export interface ImportedStoreDesign {
   sourceUrl: string;
@@ -287,8 +304,67 @@ export function buildExtractionDraft(
       .find((f) => f !== fontHeading) ?? fontHeading;
 
   const sections: StorefrontSection[] = [buildHeroSection(signals)];
+
   const about = buildAboutSection(signals);
-  if (about) sections.push(about);
+  let aboutImageUsed = false;
+  if (about) {
+    if (signals.images[0]) {
+      about.image = signals.images[0].url;
+      aboutImageUsed = true;
+    }
+    sections.push(about);
+  }
+
+  // Turn the rest of the site's copy blocks + images into extra sections so the
+  // imported design mirrors the source page, not just a hero + about. Text
+  // sections use the page's own headings/paragraphs; image sections use banners
+  // pulled deterministically (never the LLM). The two are interleaved so the
+  // preview reads like a real landing page.
+  const aboutBodyLc = (about?.body || signals.description || "").toLowerCase();
+  const extraBlocks = signals.contentBlocks.filter((b) => {
+    const bodyLc = b.body.toLowerCase();
+    return bodyLc.length > 0 && !aboutBodyLc.includes(bodyLc.slice(0, 60));
+  });
+  const extraImages = signals.images.slice(aboutImageUsed ? 1 : 0);
+
+  // Always have a real caption fallback so the preview never fills in a fake
+  // placeholder caption under a real imported image.
+  let siteHost: string | undefined;
+  try {
+    siteHost = new URL(signals.url).hostname.replace(/^www\./, "");
+  } catch {
+    siteHost = undefined;
+  }
+
+  const richSectionCount = Math.max(extraBlocks.length, extraImages.length);
+  for (let i = 0; i < richSectionCount; i++) {
+    const block = extraBlocks[i];
+    if (block) {
+      sections.push({
+        id: `imported-text-${i + 1}`,
+        type: "text",
+        enabled: true,
+        heading: capText(block.heading, 80),
+        body: capText(block.body, 600),
+      });
+    }
+    const image = extraImages[i];
+    if (image) {
+      const caption =
+        (image.alt && image.alt.trim()) ||
+        capText(signals.siteName || signals.title, 80) ||
+        siteHost ||
+        undefined;
+      sections.push({
+        id: `imported-image-${i + 1}`,
+        type: "image",
+        enabled: true,
+        image: image.url,
+        caption,
+        fullWidth: true,
+      });
+    }
+  }
 
   const navColors: StorefrontNavColors = {
     background: colorScheme.background,

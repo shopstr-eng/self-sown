@@ -21,6 +21,7 @@ const SELF_HOST_BLOCKED_PAGE_PREFIXES = [
   "/contact",
   "/terms",
   "/privacy",
+  "/stall-preview",
 ];
 
 // Returns true for any PAGE path that should redirect back to the storefront

@@ -15,6 +15,7 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import FailureModal from "../../components/utility-components/failure-modal";
+import { hasPendingImportDraft } from "@/utils/migrations/site-design";
 
 const Keys = () => {
   const router = useRouter();
@@ -37,6 +38,11 @@ const Keys = () => {
     const migrate = router.query.migrate as string | undefined;
     if (migrate === "shopify") {
       router.replace("/settings/stall?tab=products&migrate=shopify");
+    } else if (hasPendingImportDraft()) {
+      // Already-signed-in prospect who clicked "Claim this design" on /stall-preview:
+      // skip account creation and drop straight into the stall editor with the
+      // imported design applied.
+      router.replace("/settings/stall?tab=storefront&importDraft=1");
     } else {
       router.replace("/marketplace");
     }
@@ -95,11 +101,14 @@ const Keys = () => {
           `/onboarding/choose-plan?type=seller&migrate=shopify${planSuffix}`
         );
       } else {
-        router.push(
-          `/onboarding/user-type${
-            plan ? `?plan=${encodeURIComponent(plan)}` : ""
-          }`
-        );
+        // Forward plan (paid-tier preselect) and preselect=seller (set by the
+        // /stall-preview "Claim this design" CTA so prospects skip picking a role).
+        const preselect = router.query.preselect as string | undefined;
+        const params = new URLSearchParams();
+        if (plan) params.set("plan", plan);
+        if (preselect) params.set("preselect", preselect);
+        const qs = params.toString();
+        router.push(`/onboarding/user-type${qs ? `?${qs}` : ""}`);
       }
     }
   };

@@ -51,6 +51,9 @@ const CUSTOM_DOMAIN_PLATFORM_PASSTHROUGH = [
   "/orders",
   "/settings/",
   "/settings",
+  // Public "website conversion" preview tool (/convert?url=...) — a platform
+  // marketing page, so render it even when reached via a seller custom domain.
+  "/convert",
 ];
 
 const CUSTOM_DOMAIN_API_ALLOWLIST = [

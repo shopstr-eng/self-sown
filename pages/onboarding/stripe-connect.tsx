@@ -18,6 +18,7 @@ import {
   buildStripeCreateAccountProof,
   buildStripeCreateAccountLinkProof,
 } from "@/utils/mcp/request-proof";
+import { hasPendingImportDraft } from "@/utils/migrations/site-design";
 
 const OnboardingStripeConnect = () => {
   const router = useRouter();
@@ -125,17 +126,24 @@ const OnboardingStripeConnect = () => {
   };
 
   const migrate = router.query.migrate as string | undefined;
-  const finishDestination =
-    migrate === "shopify"
-      ? "/settings/stall?tab=products&migrate=shopify"
-      : "/marketplace";
+  const getFinishDestination = () => {
+    if (migrate === "shopify") {
+      return "/settings/stall?tab=products&migrate=shopify";
+    }
+    // A seller who arrived via "Claim this design" on /stall-preview finishes on the
+    // stall editor with their imported design applied, ready to save.
+    if (hasPendingImportDraft()) {
+      return "/settings/stall?tab=storefront&importDraft=1";
+    }
+    return "/marketplace";
+  };
 
   const handleSkip = () => {
-    router.push(finishDestination);
+    router.push(getFinishDestination());
   };
 
   const handleFinish = () => {
-    router.push(finishDestination);
+    router.push(getFinishDestination());
   };
 
   return (
