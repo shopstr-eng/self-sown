@@ -28,6 +28,7 @@ const StallFeed = () => {
   const [passwordError, setPasswordError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordStorageKey, setPasswordStorageKey] = useState<string>("");
+  const [passwordHint, setPasswordHint] = useState<string>("");
   const { isLoggedIn, pubkey: userPubkey } = useContext(SignerContext);
 
   useEffect(() => {
@@ -46,6 +47,9 @@ const StallFeed = () => {
           if (storedAuth === "true") {
             setIsAuthenticated(true);
           }
+        }
+        if (typeof data.password === "string") {
+          setPasswordHint(data.password);
         }
       } catch (error) {
         console.error("Failed to fetch password storage key:", error);
@@ -160,6 +164,12 @@ const StallFeed = () => {
             <h3 className="text-xl font-bold">Enter Listing Password</h3>
           </ModalHeader>
           <ModalBody>
+            {passwordHint && (
+              <p className="text-sm text-black">
+                Enter <span className="font-bold">{passwordHint}</span> to get
+                started.
+              </p>
+            )}
             <Input
               classNames={{
                 input: "text-black font-medium",
@@ -171,7 +181,8 @@ const StallFeed = () => {
               variant="bordered"
               label="Password"
               labelPlacement="inside"
-              type="password"
+              type="text"
+              placeholder={passwordHint || undefined}
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               onKeyDown={handleKeyDown}

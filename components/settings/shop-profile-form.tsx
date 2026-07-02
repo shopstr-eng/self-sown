@@ -77,6 +77,10 @@ import CustomDomainSection from "./custom-domain-section";
 import StorefrontPreviewModal from "./storefront/storefront-preview-modal";
 import StorefrontPreviewPanel from "./storefront/storefront-preview-panel";
 import { sanitizeStorefrontConfigLinks } from "@/utils/storefront-links";
+import {
+  IMPORT_DESIGN_DRAFT_KEY,
+  type ImportedStoreDesign,
+} from "@/utils/migrations/site-design";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import type { MembershipView } from "@/utils/pro/constants";
@@ -244,6 +248,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const [storefrontPasswordInput, setStorefrontPasswordInput] = useState("");
   const [storefrontPasswordError, setStorefrontPasswordError] = useState("");
   const [passwordStorageKey, setPasswordStorageKey] = useState("");
+  const [storefrontPasswordHint, setStorefrontPasswordHint] = useState("");
 
   useEffect(() => {
     if (isOnboarding) return;
@@ -260,6 +265,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
           if (storedAuth === "true") {
             setStorefrontAuthenticated(true);
           }
+        }
+        if (typeof data.password === "string") {
+          setStorefrontPasswordHint(data.password);
         }
       } catch (error) {
         console.error("Failed to fetch password storage key:", error);
@@ -405,6 +413,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   // Tracks whether relay-context data has been applied so DB pre-load doesn't
   // override more authoritative data that arrived later.
   const contextLoadedRef = useRef(false);
+  const importHydratedRef = useRef(false);
 
   const applyShopConfig = useCallback(
     (config: any) => {
@@ -491,6 +500,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   // ── Slow path: override with authoritative relay-context data when ready ───
   useEffect(() => {
     if (hasLoadedShopRef.current) return;
+    // A website-import draft may already have been applied on top of the
+    // fast-path config. The relay override would silently clobber it (name,
+    // colors, fonts, sections…) with the seller's *old* stored design, so bail.
+    if (importHydratedRef.current) return;
     // Don't let the slow path resolve loading before auth is ready — otherwise
     // an unrelated populated shopMap would clear the spinner and reveal a blank
     // form while we still don't know the seller's pubkey.
@@ -573,6 +586,78 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     }
     setIsFetchingShop(false);
   }, [shopContext, userPubkey, reset]);
+
+  // ── Import handoff: apply a draft produced by the "Import design from a
+  // website" wizard. The wizard stashes the draft in localStorage and routes
+  // here with ?importDraft=1. We wait until the existing config has loaded so
+  // we merge on top of it, run once, then clear the draft + query param so a
+  // refresh can't re-apply it. Never touches pages/blogPage/emailPopup/product
+  // defaults — only the design surfaces the import produces.
+  useEffect(() => {
+    if (importHydratedRef.current) return;
+    if (!router.isReady) return;
+    if (router.query.importDraft !== "1") return;
+    if (isFetchingShop) return;
+
+    let draft: ImportedStoreDesign | null = null;
+    try {
+      const raw = localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY);
+      if (raw) draft = JSON.parse(raw) as ImportedStoreDesign;
+    } catch (err) {
+      console.error("Failed to read imported design draft:", err);
+    }
+
+    const clearDraft = () => {
+      try {
+        localStorage.removeItem(IMPORT_DESIGN_DRAFT_KEY);
+      } catch {
+        // ignore
+      }
+      const { importDraft, ...rest } = router.query;
+      void importDraft;
+      router.replace({ pathname: router.pathname, query: rest }, undefined, {
+        shallow: true,
+      });
+    };
+
+    importHydratedRef.current = true;
+
+    if (!draft) {
+      clearDraft();
+      return;
+    }
+
+    if (draft.name) setValue("name", draft.name, { shouldDirty: true });
+    if (draft.about) setValue("about", draft.about, { shouldDirty: true });
+    if (draft.logoUrl)
+      setValue("picture", draft.logoUrl, { shouldDirty: true });
+    if (draft.bannerUrl)
+      setValue("banner", draft.bannerUrl, { shouldDirty: true });
+
+    const sf = draft.storefront || {};
+    if (sf.colorScheme)
+      setColorScheme({ ...DEFAULT_COLORS, ...sf.colorScheme });
+    if (sf.landingPageStyle) setLandingPageStyle(sf.landingPageStyle);
+    if (sf.fontHeading) setFontHeading(sf.fontHeading);
+    if (sf.fontBody) setFontBody(sf.fontBody);
+    if (sf.navColors) setNavColors((prev) => ({ ...prev, ...sf.navColors }));
+    if (sf.footerColors)
+      setFooterColors((prev) => ({ ...prev, ...sf.footerColors }));
+    if (sf.footer?.socialLinks)
+      setFooter((prev) => ({ ...prev, socialLinks: sf.footer!.socialLinks }));
+    if (sf.seoMeta) setSeoMeta((prev) => ({ ...prev, ...sf.seoMeta }));
+
+    if (sf.sections && sf.sections.length > 0) {
+      const replaceSections =
+        sections.length === 0 ||
+        window.confirm(
+          "Replace your current storefront sections with the imported ones? Click Cancel to keep your existing sections and only apply the imported colors, fonts, and text."
+        );
+      if (replaceSections) setSections(sf.sections);
+    }
+
+    clearDraft();
+  }, [router, isFetchingShop, setValue, sections]);
 
   useEffect(() => {
     if (userPubkey && signer?.sign) {
@@ -3775,6 +3860,13 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             <h3 className="text-xl font-bold">Enter Listing Password</h3>
           </ModalHeader>
           <ModalBody>
+            {storefrontPasswordHint && (
+              <p className="text-sm text-black">
+                Enter{" "}
+                <span className="font-bold">{storefrontPasswordHint}</span> to
+                get started.
+              </p>
+            )}
             <Input
               classNames={{
                 input: "text-black font-medium",
@@ -3786,7 +3878,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
               variant="bordered"
               label="Password"
               labelPlacement="inside"
-              type="password"
+              type="text"
+              placeholder={storefrontPasswordHint || undefined}
               value={storefrontPasswordInput}
               onChange={(e) => setStorefrontPasswordInput(e.target.value)}
               onKeyDown={(e) => {

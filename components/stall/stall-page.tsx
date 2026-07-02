@@ -9,6 +9,7 @@ import { Button, Tooltip, useDisclosure } from "@heroui/react";
 import {
   ArrowUpTrayIcon,
   Bars3Icon,
+  GlobeAltIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -24,6 +25,7 @@ import Affiliates from "./affiliates";
 import ProductPageTemplateForm from "@/components/settings/product-page-template-form";
 import ShopifyMigrationModal from "./shopify-migration-modal";
 import SquareMigrationModal from "./square-migration-modal";
+import ImportDesignModal from "./import-design-modal";
 
 const StallPage = () => {
   const { pubkey: usersPubkey } = useContext(SignerContext);
@@ -39,6 +41,7 @@ const StallPage = () => {
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const [showMigrationTooltip, setShowMigrationTooltip] = useState(false);
   const [showSquareModal, setShowSquareModal] = useState(false);
+  const [showImportDesignModal, setShowImportDesignModal] = useState(false);
 
   const shopMapContext = useContext(ShopMapContext);
   const shopProfile: ShopProfile | undefined = usersPubkey
@@ -71,6 +74,9 @@ const StallPage = () => {
     } else if (migrate === "square") {
       setSelectedSection("Listings");
       setShowSquareModal(true);
+    } else if (migrate === "design") {
+      setSelectedSection("Listings");
+      setShowImportDesignModal(true);
     } else if (migrate === "tooltip") {
       setSelectedSection("Listings");
       setShowMigrationTooltip(true);
@@ -89,6 +95,14 @@ const StallPage = () => {
   const handleOpenSquareImport = () => {
     if (usersPubkey) {
       setShowSquareModal(true);
+    } else {
+      onOpen();
+    }
+  };
+
+  const handleOpenImportDesign = () => {
+    if (usersPubkey) {
+      setShowImportDesignModal(true);
     } else {
       onOpen();
     }
@@ -200,6 +214,15 @@ const StallPage = () => {
           }}
         >
           Import from Square
+        </Button>
+        <Button
+          className="w-full bg-transparent px-4 py-2 text-left text-sm font-bold text-black hover:bg-gray-100"
+          onClick={() => {
+            handleOpenImportDesign();
+            setIsMobileMenuOpen(false);
+          }}
+        >
+          Import design from website
         </Button>
       </div>
     </div>
@@ -320,6 +343,13 @@ const StallPage = () => {
           >
             Import from Square
           </Button>
+          <Button
+            className={`${WHITEBUTTONCLASSNAMES} w-full`}
+            startContent={<GlobeAltIcon className="h-4 w-4" />}
+            onClick={handleOpenImportDesign}
+          >
+            Import design from website
+          </Button>
         </div>
 
         <div className="flex gap-6">
@@ -383,6 +413,13 @@ const StallPage = () => {
               >
                 Import from Square
               </Button>
+              <Button
+                className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                startContent={<GlobeAltIcon className="h-4 w-4" />}
+                onClick={handleOpenImportDesign}
+              >
+                Import design from website
+              </Button>
             </div>
           </div>
 
@@ -416,6 +453,10 @@ const StallPage = () => {
       <SquareMigrationModal
         isOpen={showSquareModal}
         onClose={() => setShowSquareModal(false)}
+      />
+      <ImportDesignModal
+        isOpen={showImportDesignModal}
+        onClose={() => setShowImportDesignModal(false)}
       />
     </div>
   );

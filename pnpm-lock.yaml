@@ -19,6 +19,9 @@ overrides:
 importers:
   .:
     dependencies:
+      "@anthropic-ai/sdk":
+        specifier: 0.109.1
+        version: 0.109.1(zod@4.0.17)
       "@braintree/sanitize-url":
         specifier: 7.1.2
         version: 7.1.2
@@ -337,6 +340,18 @@ packages:
         integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==,
       }
     engines: { node: ">=10" }
+
+  "@anthropic-ai/sdk@0.109.1":
+    resolution:
+      {
+        integrity: sha512-q9OnEKLr5H9nxSuXdgDgJhxfYMiE+AaUEBze2Gk91UcaaLnsN+Lx5fbCYywiqurU/APLdwv23x03Wm6WN3EBsg==,
+      }
+    hasBin: true
+    peerDependencies:
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      zod:
+        optional: true
 
   "@apideck/better-ajv-errors@0.3.6":
     resolution:
@@ -4905,6 +4920,12 @@ packages:
         integrity: sha512-DsG+8/LscQIQg68J6Ef3dv10u6nVyetYn923s3/sus5eaGfTo1of5WMZSLf0UJc9KDuKPilPH0UDJCjvNbDNCA==,
       }
 
+  "@stablelib/base64@1.0.1":
+    resolution:
+      {
+        integrity: sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==,
+      }
+
   "@stripe/react-stripe-js@5.6.0":
     resolution:
       {
@@ -8193,6 +8214,12 @@ packages:
         integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==,
       }
 
+  fast-sha256@1.3.0:
+    resolution:
+      {
+        integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==,
+      }
+
   fast-uri@3.1.0:
     resolution:
       {
@@ -9746,6 +9773,13 @@ packages:
         integrity: sha512-xyFwyhro/JEof6Ghe2iz2NcXoj2sloNsWr/XsERDK/oiPCfaNhl5ONfp+jQdAZRQQ0IJWNzH9zIZF7li91kh2w==,
       }
 
+  json-schema-to-ts@3.1.1:
+    resolution:
+      {
+        integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==,
+      }
+    engines: { node: ">=16" }
+
   json-schema-traverse@0.4.1:
     resolution:
       {
@@ -10994,6 +11028,7 @@ packages:
     resolution:
       {
         integrity: sha512-sHGJy8sOC1YraBywpzQlIKBE4pBbGbiF95U6Auspzyem956E0+FtDtsx1ZxlOJkQCZ1AFXAY/yuvtFYrOxF+Bw==,
+        tarball: https://registry.npmjs.org/npm-package-arg/-/npm-package-arg-11.0.3.tgz,
       }
     engines: { node: ^16.14.0 || >=18.0.0 }
 
@@ -11001,6 +11036,7 @@ packages:
     resolution:
       {
         integrity: sha512-S48WzZW777zhNIrn7gxOlISNAqi9ZC/uQFnRdbeIHhZhCA6UqpkOT8T1G7BvfdgP4Er8gF4sUbaS0i7QvIfCWw==,
+        tarball: https://registry.npmjs.org/npm-run-path/-/npm-run-path-4.0.1.tgz,
       }
     engines: { node: ">=8" }
 
@@ -12688,6 +12724,12 @@ packages:
       }
     engines: { node: ">=6" }
 
+  standardwebhooks@1.0.0:
+    resolution:
+      {
+        integrity: sha512-BbHGOQK9olHPMvQNHWul6MYlrRTAOKn03rOe4A8O3CLWhNf4YHBqq2HJKKC+sfqpxiBY52pNeesD6jIiLDz8jg==,
+      }
+
   statuses@1.5.0:
     resolution:
       {
@@ -13198,6 +13240,12 @@ packages:
     resolution:
       {
         integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==,
+      }
+
+  ts-algebra@2.0.0:
+    resolution:
+      {
+        integrity: sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==,
       }
 
   ts-api-utils@2.5.0:
@@ -14208,6 +14256,13 @@ snapshots:
   "@adobe/css-tools@4.4.4": {}
 
   "@alloc/quick-lru@5.2.0": {}
+
+  "@anthropic-ai/sdk@0.109.1(zod@4.0.17)":
+    dependencies:
+      json-schema-to-ts: 3.1.1
+      standardwebhooks: 1.0.0
+    optionalDependencies:
+      zod: 4.0.17
 
   "@apideck/better-ajv-errors@0.3.6(ajv@8.18.0)":
     dependencies:
@@ -18494,6 +18549,8 @@ snapshots:
     dependencies:
       "@sinonjs/commons": 3.0.1
 
+  "@stablelib/base64@1.0.1": {}
+
   "@stripe/react-stripe-js@5.6.0(@stripe/stripe-js@8.8.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)":
     dependencies:
       "@stripe/stripe-js": 8.8.0
@@ -20814,6 +20871,8 @@ snapshots:
 
   fast-levenshtein@2.0.6: {}
 
+  fast-sha256@1.3.0: {}
+
   fast-uri@3.1.0: {}
 
   fastq@1.20.1:
@@ -21967,6 +22026,11 @@ snapshots:
   json-buffer@3.0.1: {}
 
   json-parse-even-better-errors@2.3.1: {}
+
+  json-schema-to-ts@3.1.1:
+    dependencies:
+      "@babel/runtime": 7.29.2
+      ts-algebra: 2.0.0
 
   json-schema-traverse@0.4.1: {}
 
@@ -24152,6 +24216,11 @@ snapshots:
     dependencies:
       type-fest: 0.7.1
 
+  standardwebhooks@1.0.0:
+    dependencies:
+      "@stablelib/base64": 1.0.1
+      fast-sha256: 1.3.0
+
   statuses@1.5.0: {}
 
   statuses@2.0.2: {}
@@ -24487,6 +24556,8 @@ snapshots:
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
+
+  ts-algebra@2.0.0: {}
 
   ts-api-utils@2.5.0(typescript@6.0.3):
     dependencies:

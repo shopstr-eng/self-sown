@@ -39,6 +39,7 @@
     "pre-commit": "node scripts/run-staged-checks.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.109.1",
     "@braintree/sanitize-url": "7.1.2",
     "@cashu/cashu-ts": "4.5.1",
     "@ducanh2912/next-pwa": "10.2.9",

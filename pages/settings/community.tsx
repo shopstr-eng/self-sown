@@ -49,6 +49,7 @@ const CommunityManagementPage = () => {
   const [passwordError, setPasswordError] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordStorageKey, setPasswordStorageKey] = useState<string>("");
+  const [passwordHint, setPasswordHint] = useState<string>("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -70,6 +71,9 @@ const CommunityManagementPage = () => {
           if (storedAuth === "true") {
             setIsAuthenticated(true);
           }
+        }
+        if (typeof data.password === "string") {
+          setPasswordHint(data.password);
         }
       } catch (error) {
         console.error("Failed to fetch password storage key:", error);
@@ -297,6 +301,12 @@ const CommunityManagementPage = () => {
                 Enter Vendor Password
               </ModalHeader>
               <ModalBody>
+                {passwordHint && (
+                  <p className="text-sm text-black">
+                    Enter <span className="font-bold">{passwordHint}</span> to
+                    get started.
+                  </p>
+                )}
                 <Input
                   className="text-black"
                   classNames={{
@@ -308,7 +318,8 @@ const CommunityManagementPage = () => {
                   variant="bordered"
                   label="Password"
                   labelPlacement="inside"
-                  type="password"
+                  type="text"
+                  placeholder={passwordHint || undefined}
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   onKeyDown={handleKeyDown}

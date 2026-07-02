@@ -15,6 +15,11 @@ export default async function handler(
     return;
 
   const passwordStorageKey = process.env["PASSWORD_STORAGE_KEY"];
+  // The listing password is intentionally a human/manual-action check, not a
+  // secret, so we surface the value for the prompt to display to the seller.
+  const listingPassword = process.env["LISTING_PASSWORD"];
 
-  res.status(200).json({ value: passwordStorageKey });
+  res
+    .status(200)
+    .json({ value: passwordStorageKey, password: listingPassword });
 }

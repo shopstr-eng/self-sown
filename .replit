@@ -62,7 +62,7 @@ isValidation = true
 
 [agent]
 expertMode = true
-integrations = ["sendgrid:1.0.0"]
+integrations = ["sendgrid:1.0.0", "javascript_openai_ai_integrations:2.0.0", "javascript_anthropic_ai_integrations:2.0.0"]
 
 [userenv]
 
