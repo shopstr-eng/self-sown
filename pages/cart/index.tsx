@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
@@ -352,23 +352,40 @@ export default function Component() {
   };
 
   const router = useRouter();
+  // Keep the latest router in a ref so the post-payment redirect can fire
+  // without listing `router` (or the sf* values) as effect dependencies —
+  // their identity churn previously re-armed the timer and looped the GIF.
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  // Guards the redirect so it is scheduled exactly once, immune to re-renders.
+  const redirectScheduledRef = useRef(false);
 
   // Once payment lands, let the inline "Payment confirmed!" indicator play
   // through once and then push straight to the order summary page. Avoids
   // the prior friction of a "click X to dismiss" success modal.
   useEffect(() => {
     if (!invoiceIsPaid && !cashuPaymentSent) return;
+    if (redirectScheduledRef.current) return;
+    redirectScheduledRef.current = true;
     const timer = setTimeout(() => {
       setInvoiceIsPaid(false);
       setCashuPaymentSent(false);
-      if (sfSellerPubkey && sfShopSlug) {
-        router.push(`/stall/${sfShopSlug}/order-confirmation`);
+      const sfPk =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("sf_seller_pubkey")
+          : null;
+      const sfSlug =
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("sf_shop_slug")
+          : null;
+      if (sfPk && sfSlug) {
+        routerRef.current.push(`/stall/${sfSlug}/order-confirmation`);
       } else {
-        router.push("/order-summary");
+        routerRef.current.push("/order-summary");
       }
-    }, 2500);
+    }, 2100);
     return () => clearTimeout(timer);
-  }, [invoiceIsPaid, cashuPaymentSent, sfSellerPubkey, sfShopSlug, router]);
+  }, [invoiceIsPaid, cashuPaymentSent]);
 
   const [excludedItemCount, setExcludedItemCount] = useState(0);
 

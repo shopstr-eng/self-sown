@@ -1,12 +1,19 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTabs } from "@/components/hooks/use-tabs";
 import { Framer } from "@/components/framer";
 import Messages from "./messages";
 import OrdersDashboard from "./orders-dashboard";
 import SubscriptionManagement from "./subscription-management";
-import ContactsDashboard from "./contacts-dashboard";
+import ContactsDashboard, { type PopupContact } from "./contacts-dashboard";
 import EmailStatsDashboard from "./email-stats-dashboard";
 import { useRouter } from "next/router";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
@@ -29,8 +36,14 @@ const MessageFeed = ({
   const { signer, pubkey, isLoggedIn } = useContext(SignerContext);
   const { isPro } = useProMembership();
   const [hasContacts, setHasContacts] = useState(false);
+  const [contacts, setContacts] = useState<PopupContact[] | null>(null);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactsError, setContactsError] = useState<string | null>(null);
   const [hasEmailFlows, setHasEmailFlows] = useState(false);
   const appliedDeepTabRef = useRef(false);
+  // Guards against a stale contacts response (e.g. signer changed mid-flight)
+  // winning a race and overwriting fresher state.
+  const contactsRunRef = useRef(0);
 
   // Contacts tab is seller-only. When scoped to a stall, only show it if
   // the viewer is the seller on their own stall. Outside a scoped context,
@@ -42,37 +55,54 @@ const MessageFeed = ({
     ? viewerRole === "seller" && pubkey === scopeToSellerPubkey
     : true;
 
-  useEffect(() => {
+  // Load the seller's captured contacts once, here, and pass them down to the
+  // Contacts tab. This both decides tab visibility AND feeds ContactsDashboard,
+  // so the endpoint is fetched (and NIP-98 signed) once instead of twice.
+  const loadContacts = useCallback(async () => {
     if (!isOwnerView || !signer) {
+      setContacts(null);
       setHasContacts(false);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      try {
-        const url = `${window.location.origin}/api/storefront/popup-contacts`;
-        const authHeader = await createNip98AuthorizationHeader(
-          signer,
-          url,
-          "GET"
-        );
-        const res = await fetch("/api/storefront/popup-contacts", {
-          method: "GET",
-          headers: { Authorization: authHeader },
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled && Array.isArray(data.contacts)) {
-          setHasContacts(data.contacts.length > 0);
-        }
-      } catch {
-        // silently ignore — tab just stays hidden
+    const runId = ++contactsRunRef.current;
+    setContactsLoading(true);
+    setContactsError(null);
+    try {
+      const url = `${window.location.origin}/api/storefront/popup-contacts`;
+      const authHeader = await createNip98AuthorizationHeader(
+        signer,
+        url,
+        "GET"
+      );
+      const res = await fetch("/api/storefront/popup-contacts", {
+        method: "GET",
+        headers: { Authorization: authHeader },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || `Request failed (${res.status})`);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      const data = await res.json();
+      if (contactsRunRef.current !== runId) return;
+      const list: PopupContact[] = Array.isArray(data.contacts)
+        ? data.contacts
+        : [];
+      setContacts(list);
+      setHasContacts(list.length > 0);
+    } catch (err) {
+      if (contactsRunRef.current !== runId) return;
+      setContactsError(
+        err instanceof Error ? err.message : "Failed to load contacts"
+      );
+      setContacts([]);
+    } finally {
+      if (contactsRunRef.current === runId) setContactsLoading(false);
+    }
   }, [isOwnerView, signer]);
+
+  useEffect(() => {
+    void loadContacts();
+  }, [loadContacts]);
 
   // Email Stats tab is seller-only and shows once the seller has at least one
   // email flow. The flow listing is a public, read-only endpoint, so no auth is
@@ -138,7 +168,14 @@ const MessageFeed = ({
           ? [
               {
                 label: "Contacts",
-                children: <ContactsDashboard />,
+                children: (
+                  <ContactsDashboard
+                    contacts={contacts}
+                    loading={contactsLoading}
+                    error={contactsError}
+                    onRefresh={loadContacts}
+                  />
+                ),
                 id: "contacts",
               },
             ]
@@ -155,7 +192,17 @@ const MessageFeed = ({
       ],
       initialTabId: "orders",
     }),
-    [hasContacts, hasEmailFlows, isPro, scopeToSellerPubkey, allowContactsTab]
+    [
+      hasContacts,
+      hasEmailFlows,
+      isPro,
+      scopeToSellerPubkey,
+      allowContactsTab,
+      contacts,
+      contactsLoading,
+      contactsError,
+      loadContacts,
+    ]
   );
 
   const resolvedInitialTab = initialTab || (isInquiry ? "inquiries" : "orders");

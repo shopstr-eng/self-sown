@@ -453,6 +453,7 @@ interface StorefrontPreviewPanelProps {
   pages: StorefrontPage[];
   footer: StorefrontFooter;
   navLinks: StorefrontNavLink[];
+  hideShopLink?: boolean;
   navColors?: StorefrontNavColors;
   footerColors?: StorefrontFooterColors;
   shopSlug: string;
@@ -480,6 +481,7 @@ export default function StorefrontPreviewPanel({
   pages,
   footer,
   navLinks,
+  hideShopLink,
   navColors,
   footerColors,
   shopSlug,
@@ -583,6 +585,11 @@ export default function StorefrontPreviewPanel({
   const previewNavLinks: StorefrontNavLink[] = useMemo(() => {
     const links: StorefrontNavLink[] =
       navLinks.length > 0 ? [...navLinks] : [{ label: "Home", href: "" }];
+    if (hideShopLink) {
+      return links.filter(
+        (l) => l.href !== STALL_SENTINEL && l.href !== "/stall"
+      );
+    }
     const alreadyHasShop = links.some(
       (l) => l.href === STALL_SENTINEL || l.href === "/stall"
     );
@@ -595,7 +602,7 @@ export default function StorefrontPreviewPanel({
       });
     }
     return links;
-  }, [navLinks]);
+  }, [navLinks, hideShopLink]);
 
   const activeSections = (() => {
     let raw: StorefrontSection[];

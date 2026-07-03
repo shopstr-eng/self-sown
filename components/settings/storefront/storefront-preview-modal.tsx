@@ -26,6 +26,7 @@ interface StorefrontPreviewModalProps {
   pages: StorefrontPage[];
   footer: StorefrontFooter;
   navLinks: StorefrontNavLink[];
+  hideShopLink?: boolean;
   navColors?: StorefrontNavColors;
   footerColors?: StorefrontFooterColors;
   shopSlug: string;
@@ -48,6 +49,7 @@ export default function StorefrontPreviewModal({
   pages,
   footer,
   navLinks,
+  hideShopLink,
   navColors,
   footerColors,
   shopSlug,
@@ -90,6 +92,7 @@ export default function StorefrontPreviewModal({
         pages={pages}
         footer={footer}
         navLinks={navLinks}
+        hideShopLink={hideShopLink}
         navColors={navColors}
         footerColors={footerColors}
         shopSlug={shopSlug}

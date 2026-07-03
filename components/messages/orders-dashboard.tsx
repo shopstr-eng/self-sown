@@ -367,7 +367,10 @@ const OrdersDashboard = ({
   useEffect(() => {
     if (!chatsContext || chatsContext.isLoading) return;
     chatsContext.markAllMessagesAsRead();
-  }, [chatsContext?.isLoading]);
+    // Depend on chatsMap too: with incremental rendering the map is published
+    // again when relay results merge in after the initial cached-first paint,
+    // and markAllMessagesAsRead is idempotent.
+  }, [chatsContext?.isLoading, chatsContext?.chatsMap]);
 
   useEffect(() => {
     async function loadCachedStatuses() {

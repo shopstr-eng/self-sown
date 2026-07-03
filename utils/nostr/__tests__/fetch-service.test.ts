@@ -579,6 +579,168 @@ describe("fetchGiftWrappedChatsAndMessages", () => {
 
     warnSpy.mockRestore();
   });
+
+  const makeGiftWrap = (id: string) => ({
+    id,
+    pubkey: `wrap-${id}`,
+    created_at: 1,
+    kind: 1059,
+    tags: [] as string[][],
+    content: `wrap:${id}`,
+    sig: "sig",
+  });
+
+  const makeDbRow = (id: string) => ({
+    ...makeGiftWrap(id),
+    is_read: false,
+  });
+
+  // A signer that double-unwraps our synthetic wraps: `wrap:<id>` -> seal
+  // (kind 13) -> rumor (kind 14, subject order-info). A wrap whose id is "bad"
+  // throws on decrypt so we can prove one bad wrap doesn't sink the batch.
+  const makeSigner = () =>
+    ({
+      sign: jest.fn().mockResolvedValue({ id: "proof", sig: "sig" }),
+      decrypt: jest.fn(async (_pubkey: string, cipher: string) => {
+        if (cipher.startsWith("wrap:")) {
+          const id = cipher.slice("wrap:".length);
+          if (id === "bad") throw new Error("cannot decrypt");
+          return JSON.stringify({
+            kind: 13,
+            pubkey: `seal-${id}`,
+            content: `seal:${id}`,
+          });
+        }
+        if (cipher.startsWith("seal:")) {
+          const id = cipher.slice("seal:".length);
+          return JSON.stringify({
+            pubkey: `seal-${id}`,
+            created_at: 1,
+            kind: 14,
+            tags: [
+              ["subject", "order-info"],
+              ["p", "recipient"],
+            ],
+            content: "hi",
+          });
+        }
+        return "";
+      }),
+    }) as any;
+
+  const importFetchService = async () => {
+    const cacheEventsToDatabase = jest.fn().mockResolvedValue(undefined);
+    jest.doMock("@/utils/db/db-client", () => ({ cacheEventsToDatabase }));
+    const mod = await import("../fetch-service");
+    return { ...mod, cacheEventsToDatabase };
+  };
+
+  const lastMap = (editChatContext: jest.Mock): Map<string, unknown[]> =>
+    editChatContext.mock.calls.at(-1)![0];
+
+  it("skips a single undecryptable gift wrap instead of dropping the whole batch", async () => {
+    const { fetchGiftWrappedChatsAndMessages } = await importFetchService();
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    }) as unknown as typeof global.fetch;
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const nostr = {
+      fetch: jest
+        .fn()
+        .mockResolvedValue([
+          makeGiftWrap("good1"),
+          makeGiftWrap("bad"),
+          makeGiftWrap("good2"),
+        ]),
+    } as any;
+    const editChatContext = jest.fn();
+
+    const { profileSetFromChats } = await fetchGiftWrappedChatsAndMessages(
+      nostr,
+      makeSigner(),
+      ["wss://relay.example"],
+      editChatContext,
+      "user-pubkey"
+    );
+
+    const map = lastMap(editChatContext);
+    expect(new Set(map.keys())).toEqual(new Set(["seal-good1", "seal-good2"]));
+    expect(profileSetFromChats).toEqual(new Set(["seal-good1", "seal-good2"]));
+    expect(warnSpy).toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
+  it("still renders cached messages when the relay fetch fails", async () => {
+    const { fetchGiftWrappedChatsAndMessages, cacheEventsToDatabase } =
+      await importFetchService();
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [makeDbRow("c1"), makeDbRow("c2")],
+    }) as unknown as typeof global.fetch;
+    const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const nostr = {
+      fetch: jest.fn().mockRejectedValue(new Error("relays down")),
+    } as any;
+    const editChatContext = jest.fn();
+
+    const { profileSetFromChats } = await fetchGiftWrappedChatsAndMessages(
+      nostr,
+      makeSigner(),
+      ["wss://relay.example"],
+      editChatContext,
+      "user-pubkey"
+    );
+
+    const map = lastMap(editChatContext);
+    expect(new Set(map.keys())).toEqual(new Set(["seal-c1", "seal-c2"]));
+    expect(profileSetFromChats).toEqual(new Set(["seal-c1", "seal-c2"]));
+    // Relay failure is non-fatal and there are no new relay events to persist.
+    expect(cacheEventsToDatabase).not.toHaveBeenCalled();
+
+    errorSpy.mockRestore();
+    warnSpy.mockRestore();
+  });
+
+  it("renders cached messages first, then merges relay results (incremental)", async () => {
+    const { fetchGiftWrappedChatsAndMessages, cacheEventsToDatabase } =
+      await importFetchService();
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [makeDbRow("c1")],
+    }) as unknown as typeof global.fetch;
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([makeGiftWrap("r1")]),
+    } as any;
+    const editChatContext = jest.fn();
+
+    await fetchGiftWrappedChatsAndMessages(
+      nostr,
+      makeSigner(),
+      ["wss://relay.example"],
+      editChatContext,
+      "user-pubkey"
+    );
+
+    expect(editChatContext.mock.calls.length).toBeGreaterThanOrEqual(2);
+    // Phase 1 renders the cached message only.
+    const firstMap = editChatContext.mock.calls[0][0] as Map<string, unknown[]>;
+    expect(new Set(firstMap.keys())).toEqual(new Set(["seal-c1"]));
+    // Final render merges cached + relay.
+    const finalMap = lastMap(editChatContext);
+    expect(new Set(finalMap.keys())).toEqual(new Set(["seal-c1", "seal-r1"]));
+    // Only the new, signed relay wrap is persisted.
+    expect(cacheEventsToDatabase).toHaveBeenCalledTimes(1);
+    expect(cacheEventsToDatabase).toHaveBeenCalledWith([makeGiftWrap("r1")]);
+
+    warnSpy.mockRestore();
+  });
 });
 
 describe("fetchCashuWallet", () => {

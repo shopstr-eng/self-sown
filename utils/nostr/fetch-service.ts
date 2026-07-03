@@ -759,8 +759,9 @@ export const fetchGiftWrappedChatsAndMessages = async (
         }
       }
 
+      const chatsMap = new Map();
       try {
-        const chatsMap = new Map();
+        const processedWrapIds = new Set<string>();
 
         const addToChatsMap = (
           pubkeyOfChat: string,
@@ -774,118 +775,154 @@ export const fetchGiftWrappedChatsAndMessages = async (
           }
         };
 
-        const fetchedEvents = await nostr.fetch(
-          [
-            {
-              kinds: [1059],
-              "#p": [userPubkey],
-            },
-          ],
-          {},
-          relays
-        );
+        const ALLOWED_SUBJECTS = new Set([
+          "listing-inquiry",
+          "order-payment",
+          "order-info",
+          "payment-change",
+          "order-receipt",
+          "shipping-info",
+          "zapsnag-order",
+        ]);
 
-        // Merge relay-fetched gift wraps with the server-cached ones so order
-        // messages (and any DMs) still surface even when a relay dropped the
-        // event or never received it. The DB stores the same encrypted
-        // kind-1059 wraps, so they decrypt through the identical path below.
-        const wrapsToProcess = new Map<string, NostrEvent>();
-        for (const event of fetchedEvents) {
-          if (event?.id) wrapsToProcess.set(event.id, event);
-        }
-        for (const [id, cached] of chatMessagesFromCache) {
-          if (!wrapsToProcess.has(id)) {
-            wrapsToProcess.set(id, cached as unknown as NostrEvent);
-          }
-        }
-
-        for (const event of wrapsToProcess.values()) {
-          let messageEvent;
-
-          const sealEventString = await signer!.decrypt(
-            event.pubkey,
-            event.content
-          );
-          if (sealEventString) {
-            const sealEvent = JSON.parse(sealEventString);
-            if (sealEvent?.kind === 13) {
-              const messageEventString = await signer!.decrypt(
-                sealEvent.pubkey,
-                sealEvent.content
-              );
-              if (messageEventString) {
-                const messageEventCheck = JSON.parse(messageEventString);
-                if (messageEventCheck?.pubkey === sealEvent.pubkey) {
-                  messageEvent = messageEventCheck;
-                }
-              } else {
-                continue;
-              }
-            }
-          } else {
-            continue;
-          }
-          const senderPubkey = messageEvent.pubkey;
-
-          const tagsMap: Map<string, string> = new Map(
-            messageEvent.tags.map(([k, v]: [string, string]) => [k, v])
-          );
-          const subject = tagsMap.has("subject")
-            ? tagsMap.get("subject")
-            : null;
-          if (
-            subject !== "listing-inquiry" &&
-            subject !== "order-payment" &&
-            subject !== "order-info" &&
-            subject !== "payment-change" &&
-            subject !== "order-receipt" &&
-            subject !== "shipping-info" &&
-            subject !== "zapsnag-order"
-          ) {
-            continue;
-          }
-          const recipientPubkey = tagsMap.get("p") ? tagsMap.get("p") : null; // pubkey you sent the message to
-          if (typeof recipientPubkey !== "string") {
-            console.error(
-              `fetchAllOutgoingChats: Failed to get recipientPubkey from tagsMap",
-                ${tagsMap},
-                ${event}`
+        // Double-unwrap one gift wrap (1059 -> seal kind 13 -> rumor kind 14).
+        // Isolated in its own try/catch: a single malformed, spam, or
+        // rotated-key wrap must NOT throw out of the batch and blank out every
+        // order message (the previous serial loop did exactly that).
+        const decryptWrap = async (event: NostrEvent): Promise<any | null> => {
+          try {
+            const sealEventString = await signer!.decrypt(
+              event.pubkey,
+              event.content
             );
-            continue;
+            if (!sealEventString) return null;
+            const sealEvent = JSON.parse(sealEventString);
+            if (sealEvent?.kind !== 13) return null;
+            const messageEventString = await signer!.decrypt(
+              sealEvent.pubkey,
+              sealEvent.content
+            );
+            if (!messageEventString) return null;
+            const messageEvent = JSON.parse(messageEventString);
+            if (messageEvent?.pubkey !== sealEvent.pubkey) return null;
+            return messageEvent;
+          } catch (err) {
+            console.warn("Skipping undecryptable gift wrap", event?.id, err);
+            return null;
           }
-          const cachedMessage = chatMessagesFromCache.get(event.id);
-          let chatMessage: NostrMessageEvent;
-          if (cachedMessage) {
-            chatMessage = {
+        };
+
+        // Decrypt a batch of wraps with bounded concurrency, then fold the
+        // rumors into chatsMap. Decryption is the slow part: for a NIP-46
+        // (bunker) signer each decrypt is a relay round-trip, so a serial loop
+        // over N orders is 2N sequential round-trips. Running up to 8 at once
+        // parallelizes those round-trips (harmless for the CPU-bound nsec
+        // signer, whose concurrent unlocks are coalesced single-flight).
+        const processWraps = async (wraps: NostrEvent[]) => {
+          const pending = wraps.filter(
+            (e) => e?.id && !processedWrapIds.has(e.id)
+          );
+          if (pending.length === 0) return;
+          const CONCURRENCY = 8; // cap concurrent decrypts to stay courteous to bunker signers
+          const decrypted: (any | null)[] = new Array(pending.length);
+          let cursor = 0;
+          const worker = async () => {
+            while (cursor < pending.length) {
+              const i = cursor++;
+              decrypted[i] = await decryptWrap(pending[i]);
+            }
+          };
+          await Promise.all(
+            Array.from(
+              { length: Math.min(CONCURRENCY, pending.length) },
+              worker
+            )
+          );
+
+          for (let i = 0; i < pending.length; i++) {
+            const event = pending[i];
+            processedWrapIds.add(event.id);
+            const messageEvent = decrypted[i];
+            if (!messageEvent) continue;
+
+            const tagsMap: Map<string, string> = new Map(
+              messageEvent.tags.map(([k, v]: [string, string]) => [k, v])
+            );
+            const subject = tagsMap.get("subject") ?? null;
+            if (!subject || !ALLOWED_SUBJECTS.has(subject)) continue;
+
+            const recipientPubkey = tagsMap.get("p") ?? null; // pubkey you sent the message to
+            if (typeof recipientPubkey !== "string") {
+              console.error(
+                `fetchGiftWrappedChatsAndMessages: missing recipient pubkey for wrap ${event.id}`
+              );
+              continue;
+            }
+
+            const cachedMessage = chatMessagesFromCache.get(event.id);
+            const chatMessage: NostrMessageEvent = {
               ...messageEvent,
               sig: "",
-              read: cachedMessage.read,
+              read: cachedMessage ? cachedMessage.read : false,
               wrappedEventId: event.id,
             };
-          } else {
-            chatMessage = {
-              ...messageEvent,
-              sig: "",
-              read: false,
-              wrappedEventId: event.id,
-            };
+            if (messageEvent.pubkey === userPubkey) {
+              addToChatsMap(recipientPubkey, chatMessage);
+            } else {
+              addToChatsMap(messageEvent.pubkey, chatMessage);
+            }
           }
-          if (senderPubkey === userPubkey) {
-            addToChatsMap(recipientPubkey, chatMessage);
-          } else {
-            addToChatsMap(senderPubkey, chatMessage);
-          }
+        };
+
+        const sortAndPublish = () => {
+          chatsMap.forEach((value: NostrMessageEvent[]) => {
+            value.sort(
+              (a: NostrMessageEvent, b: NostrMessageEvent) =>
+                a.created_at - b.created_at
+            );
+          });
+          // New Map instance each publish so React sees a fresh reference.
+          editChatContext(new Map(chatsMap), false);
+        };
+
+        // Phase 1 — decrypt and render the server-cached wraps first for a fast
+        // first paint. Only publish once the DECRYPTED map is non-empty so a
+        // cache of pure DMs (all filtered out) can't flash an empty "no orders"
+        // table before relay results arrive.
+        await processWraps(
+          Array.from(chatMessagesFromCache.values()) as unknown as NostrEvent[]
+        );
+        if (chatsMap.size > 0) {
+          sortAndPublish();
         }
 
-        chatsMap.forEach((value) => {
-          value.sort(
-            (a: NostrMessageEvent, b: NostrMessageEvent) =>
-              a.created_at - b.created_at
+        // Phase 2 — merge in relay results. A relay failure is NON-FATAL: the
+        // same encrypted 1059 wraps are cached in Postgres, so we keep showing
+        // what we have instead of blanking the dashboard.
+        let fetchedEvents: NostrEvent[] = [];
+        try {
+          fetchedEvents = await nostr.fetch(
+            [
+              {
+                kinds: [1059],
+                "#p": [userPubkey],
+              },
+            ],
+            {},
+            relays
           );
-        });
-        editChatContext(chatsMap, false);
+        } catch (relayError) {
+          console.error(
+            "Relay gift-wrap fetch failed; showing cached messages only:",
+            relayError
+          );
+        }
 
-        // Cache messages to database via API (only valid messages with required fields)
+        await processWraps(fetchedEvents);
+        sortAndPublish();
+
+        // Cache newly fetched relay wraps to the database (only valid, signed
+        // 1059 events; cached rows are already persisted).
         const validMessages = fetchedEvents.filter(
           (e) => e.id && e.sig && e.pubkey && e.kind === 1059
         );
@@ -897,7 +934,12 @@ export const fetchGiftWrappedChatsAndMessages = async (
 
         resolve({ profileSetFromChats: new Set(chatsMap.keys()) });
       } catch (error) {
-        reject(error);
+        // Never reject: both callers wipe the chat context to an empty map on
+        // rejection, which would blank out messages we may have already
+        // surfaced in phase 1. Publish whatever we have and resolve.
+        console.error("fetchGiftWrappedChatsAndMessages failed:", error);
+        editChatContext(new Map(chatsMap), false);
+        resolve({ profileSetFromChats: new Set(chatsMap.keys()) });
       }
     }
   });

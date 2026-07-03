@@ -67,8 +67,13 @@ import {
   StorefrontFooterColors,
   StorefrontEmailPopup,
   StorefrontSeoMeta,
+  StorefrontPaymentMethodGroup,
   PopupFlowStep,
 } from "@/utils/types/types";
+import {
+  DEFAULT_PAYMENT_METHOD_ORDER,
+  orderedPaymentMethodGroups,
+} from "@milk-market/domain";
 import SectionEditor from "./storefront/section-editor";
 import { useDragReorder } from "@/utils/hooks/useDragReorder";
 import FooterEditor from "./storefront/footer-editor";
@@ -357,9 +362,14 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     text: "",
     accent: "",
   });
+  const [hideShopLink, setHideShopLink] = useState(false);
   const [showCommunityPage, setShowCommunityPage] = useState(false);
   const [showWalletPage, setShowWalletPage] = useState(false);
   const [showBlogPage, setShowBlogPage] = useState(false);
+  const [paymentMethodOrder, setPaymentMethodOrder] = useState<
+    StorefrontPaymentMethodGroup[]
+  >(DEFAULT_PAYMENT_METHOD_ORDER);
+  const [acceptBitcoin, setAcceptBitcoin] = useState(true);
   const [blogPageSections, setBlogPageSections] = useState<StorefrontSection[]>(
     []
   );
@@ -459,10 +469,17 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         if (sf.navLinks) setNavLinks(sf.navLinks);
         if (sf.navColors) setNavColors(sf.navColors);
         if (sf.footerColors) setFooterColors(sf.footerColors);
+        if (typeof sf.hideShopLink === "boolean")
+          setHideShopLink(sf.hideShopLink);
         if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
         if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
         if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
         if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
+        if (sf.paymentMethodOrder)
+          setPaymentMethodOrder(
+            orderedPaymentMethodGroups(sf.paymentMethodOrder)
+          );
+        setAcceptBitcoin(sf.acceptBitcoin !== false);
       }
     },
     [reset]
@@ -519,6 +536,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       return;
     }
     hasLoadedShopRef.current = true;
+    // Arm the fast-path (DB) guards: the relay copy is authoritative and has now
+    // hydrated the form, so a late DB fetch response must NOT re-run
+    // applyShopConfig and clobber it (or any keystrokes typed in the meantime).
+    contextLoadedRef.current = true;
     const shopUi = (shop.content as any)?.ui || {};
     const mappedContent = {
       name: shop.content.name,
@@ -577,10 +598,17 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       if (sf.navLinks) setNavLinks(sf.navLinks);
       if (sf.navColors) setNavColors(sf.navColors);
       if (sf.footerColors) setFooterColors(sf.footerColors);
+      if (typeof sf.hideShopLink === "boolean")
+        setHideShopLink(sf.hideShopLink);
       if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
       if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
       if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
       if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
+      if (sf.paymentMethodOrder)
+        setPaymentMethodOrder(
+          orderedPaymentMethodGroups(sf.paymentMethodOrder)
+        );
+      setAcceptBitcoin(sf.acceptBitcoin !== false);
       if (sf.emailPopup) setEmailPopup({ ...emailPopup, ...sf.emailPopup });
       if (sf.seoMeta) setSeoMeta({ ...seoMeta, ...sf.seoMeta });
     }
@@ -927,12 +955,15 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         navLinks,
         navColors,
         footerColors,
+        hideShopLink,
         showCommunityPage,
         showWalletPage,
         showBlogPage,
         blogPageSections,
         emailPopup,
         seoMeta,
+        paymentMethodOrder,
+        acceptBitcoin,
       }),
     [
       watchedFormValues,
@@ -958,12 +989,15 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       navLinks,
       navColors,
       footerColors,
+      hideShopLink,
       showCommunityPage,
       showWalletPage,
       showBlogPage,
       blogPageSections,
       emailPopup,
       seoMeta,
+      paymentMethodOrder,
+      acceptBitcoin,
     ]
   );
   useEffect(() => {
@@ -1068,6 +1102,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
           footerColors.background || footerColors.text || footerColors.accent
             ? footerColors
             : undefined,
+        hideShopLink: hideShopLink || undefined,
         showCommunityPage: showCommunityPage || undefined,
         showWalletPage: showWalletPage || undefined,
         showBlogPage: showBlogPage || undefined,
@@ -1077,6 +1112,24 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             : undefined,
         emailPopup: emailPopup.enabled ? emailPopup : undefined,
         seoMeta: buildSeoMetaForSave(data),
+        paymentMethodOrder:
+          JSON.stringify(orderedPaymentMethodGroups(paymentMethodOrder)) !==
+          JSON.stringify(DEFAULT_PAYMENT_METHOD_ORDER)
+            ? orderedPaymentMethodGroups(paymentMethodOrder)
+            : undefined,
+        // Only persist the opt-out when the seller actually has another
+        // payment method (card or fiat) — matches the disabled-checkbox UI and
+        // the checkout fail-safe, so the stored value can never drift to a
+        // state that would leave buyers unable to pay.
+        acceptBitcoin:
+          !acceptBitcoin &&
+          (hasStripeAccount ||
+            Object.keys(
+              profileContext.profileData.get(userPubkey || "")?.content
+                ?.fiat_options || {}
+            ).length > 0)
+            ? false
+            : undefined,
       });
       transformedData.storefront = storefrontConfig;
     }
@@ -1402,6 +1455,98 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
               </div>
             );
           })()}
+
+          {shopSlug &&
+            (() => {
+              const fiatMethodCount = userPubkey
+                ? Object.keys(
+                    profileContext.profileData.get(userPubkey)?.content
+                      ?.fiat_options || {}
+                  ).length
+                : 0;
+              const hasOtherPaymentMethod =
+                hasStripeAccount || fiatMethodCount > 0;
+              const groupLabels: Record<StorefrontPaymentMethodGroup, string> =
+                {
+                  bitcoin: "Bitcoin (Lightning / Cashu / NWC)",
+                  card: "Card (Stripe / Square)",
+                  fiat: "Cash / Payment app",
+                };
+              const order = orderedPaymentMethodGroups(paymentMethodOrder);
+              const move = (index: number, dir: -1 | 1) => {
+                const target = index + dir;
+                if (target < 0 || target >= order.length) return;
+                const next = [...order];
+                [next[index], next[target]] = [next[target]!, next[index]!];
+                setPaymentMethodOrder(next);
+              };
+              return (
+                <div className="space-y-6">
+                  <div>
+                    <label className="mb-2 block text-base font-bold text-black">
+                      Checkout Button Order
+                    </label>
+                    <p className="mb-3 text-sm text-gray-500">
+                      Choose the order buyers see the payment buttons at
+                      checkout. The group at the top shows first.
+                    </p>
+                    <div className="space-y-2">
+                      {order.map((group, index) => (
+                        <div
+                          key={group}
+                          className="flex items-center gap-3 rounded-lg border-3 border-black bg-white p-3"
+                        >
+                          <span className="flex-1 text-sm font-medium text-black">
+                            {index + 1}. {groupLabels[group]}
+                          </span>
+                          <button
+                            type="button"
+                            aria-label={`Move ${groupLabels[group]} up`}
+                            disabled={index === 0}
+                            onClick={() => move(index, -1)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-black bg-white text-lg font-bold text-black disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Move ${groupLabels[group]} down`}
+                            disabled={index === order.length - 1}
+                            onClick={() => move(index, 1)}
+                            className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-black bg-white text-lg font-bold text-black disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 flex items-center gap-3 text-base font-bold text-black">
+                      <input
+                        type="checkbox"
+                        checked={hasOtherPaymentMethod ? acceptBitcoin : true}
+                        disabled={!hasOtherPaymentMethod}
+                        onChange={(e) => setAcceptBitcoin(e.target.checked)}
+                        className="h-4 w-4 rounded border-gray-300 disabled:opacity-50"
+                      />
+                      Accept Bitcoin payments
+                    </label>
+                    <p className="ml-7 text-sm text-gray-500">
+                      Shows the Lightning, Cashu, and NWC buttons at checkout.
+                      {!hasOtherPaymentMethod && (
+                        <span className="mt-1 block">
+                          To turn Bitcoin off, first add a card (Stripe) or a
+                          cash / payment-app method — otherwise buyers would
+                          have no way to pay.
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
 
           {isOnboarding && (
             <div className="rounded-lg border-3 border-black bg-gray-50 p-4">
@@ -2279,6 +2424,27 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             blogPageSections={blogPageSections}
                             onBlogPageSectionsChange={setBlogPageSections}
                           />
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="mb-2 flex items-center gap-3 text-base font-bold text-black">
+                            <input
+                              type="checkbox"
+                              checked={!hideShopLink}
+                              onChange={(e) =>
+                                setHideShopLink(!e.target.checked)
+                              }
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            Show Shop Link in Navigation
+                          </label>
+                          <p className="ml-7 text-sm text-gray-500">
+                            Show the built-in &quot;Shop&quot; link in your
+                            storefront navigation bar, which opens your full
+                            product listing. Turn this off to hide it (your
+                            products can still be featured on your home page or
+                            custom pages).
+                          </p>
                         </div>
 
                         <div className="mb-6">
@@ -3612,6 +3778,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                         pages={pages}
                         footer={footer}
                         navLinks={navLinks}
+                        hideShopLink={hideShopLink}
                         navColors={
                           navColors.background ||
                           navColors.text ||
@@ -3713,6 +3880,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                     pages={pages}
                     footer={footer}
                     navLinks={navLinks}
+                    hideShopLink={hideShopLink}
                     navColors={
                       navColors.background || navColors.text || navColors.accent
                         ? navColors
@@ -3822,6 +3990,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         pages={pages}
         footer={footer}
         navLinks={navLinks}
+        hideShopLink={hideShopLink}
         navColors={
           navColors.background || navColors.text || navColors.accent
             ? navColors

@@ -1,4 +1,16 @@
-import { useContext, useState, useEffect, useMemo, useRef } from "react";
+import {
+  useContext,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  Fragment,
+  type ReactNode,
+} from "react";
+import {
+  orderedPaymentMethodGroups,
+  type StorefrontPaymentMethodGroup,
+} from "@milk-market/domain";
 import {
   CashuWalletContext,
   ChatsContext,
@@ -8690,196 +8702,240 @@ export default function CartInvoiceCard({
                     </h3>
                   )}
 
-                  {!hasActiveSubscription && !hasSubscriptionStripeConflict && (
-                    <>
-                      <Button
-                        className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
-                          !isFormValid || (!isLoggedIn && !buyerEmail)
-                            ? "cursor-not-allowed opacity-50"
-                            : ""
-                        }`}
-                        disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
-                        onClick={() => {
-                          handleFormSubmit((data) =>
-                            onFormSubmit(data, "lightning")
-                          )();
-                        }}
-                        startContent={
-                          <span
-                            aria-hidden="true"
-                            className="text-2xl leading-none"
-                          >
-                            ⚡
-                          </span>
-                        }
-                      >
-                        Pay with Lightning: {formattedLightningCost}
-                        {getDiscountLabel(bitcoinDiscountPct)}
-                      </Button>
-
-                      {hasTokensAvailable && (
-                        <Button
-                          className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
-                            !isFormValid || (!isLoggedIn && !buyerEmail)
-                              ? "cursor-not-allowed opacity-50"
-                              : ""
-                          }`}
-                          disabled={
-                            !isFormValid || (!isLoggedIn && !buyerEmail)
-                          }
-                          onClick={() => {
-                            handleFormSubmit((data) =>
-                              onFormSubmit(data, "cashu")
-                            )();
-                          }}
-                          startContent={
-                            <span
-                              aria-hidden="true"
-                              className="text-2xl leading-none"
-                            >
-                              🥜
-                            </span>
-                          }
-                        >
-                          Pay with Cashu: {formattedLightningCost}
-                          {getDiscountLabel(bitcoinDiscountPct)}
-                        </Button>
-                      )}
-
-                      {nwcInfo && (
-                        <Button
-                          className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
-                            !isFormValid || (!isLoggedIn && !buyerEmail)
-                              ? "cursor-not-allowed opacity-50"
-                              : ""
-                          }`}
-                          disabled={
-                            !isFormValid ||
-                            (!isLoggedIn && !buyerEmail) ||
-                            isNwcLoading
-                          }
-                          isLoading={isNwcLoading}
-                          onClick={() => {
-                            handleFormSubmit((data) =>
-                              onFormSubmit(data, "nwc")
-                            )();
-                          }}
-                          startContent={
-                            <span
-                              aria-hidden="true"
-                              className="text-2xl leading-none"
-                            >
-                              👛
-                            </span>
-                          }
-                        >
-                          Pay with {nwcInfo.alias || "NWC"}:{" "}
-                          {formattedLightningCost}
-                          {getDiscountLabel(bitcoinDiscountPct)}
-                        </Button>
-                      )}
-                    </>
-                  )}
-
-                  {((isSingleSeller &&
-                    (isStripeMerchant || squareCardEligible)) ||
-                    (!isSingleSeller &&
-                      (allSellersHaveStripe || multiSellerCardEligible))) && (
-                    <Button
-                      className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                        !isFormValid || (!isLoggedIn && !buyerEmail)
-                          ? "cursor-not-allowed opacity-50"
-                          : ""
-                      }`}
-                      disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
-                      onClick={() => {
-                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                        if (!buyerEmail || !emailRegex.test(buyerEmail)) {
-                          setEmailError(
-                            "Please enter a valid email address to pay with card"
-                          );
-                          return;
-                        }
-                        setEmailError("");
-                        handleFormSubmit((data) =>
-                          onFormSubmit(
-                            data,
-                            isSingleSeller
-                              ? squareCardEligible && !isStripeMerchant
-                                ? "square"
-                                : "stripe"
-                              : allSellersHaveStripe
-                                ? "stripe"
-                                : "multicard"
-                          )
-                        )();
-                      }}
-                      startContent={
-                        <span
-                          aria-hidden="true"
-                          className="text-2xl leading-none"
-                        >
-                          💳️
-                        </span>
-                      }
-                    >
-                      Pay with Card: {formattedCardCost}
-                      {getDiscountLabel(stripeDiscountPct)}
-                    </Button>
-                  )}
-
-                  {!hasActiveSubscription &&
-                    (isSingleSeller
+                  {(() => {
+                    const sellerStorefront =
+                      singleSellerShopProfile?.content?.storefront;
+                    const cardAvailable = isSingleSeller
+                      ? isStripeMerchant || squareCardEligible
+                      : allSellersHaveStripe || multiSellerCardEligible;
+                    const fiatAvailable = isSingleSeller
                       ? Object.keys(fiatPaymentOptions).length > 0
-                      : isMultiFiatAvailable) && (
-                      <Button
-                        className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
-                          !isFormValid || (!isLoggedIn && !buyerEmail)
-                            ? "cursor-not-allowed opacity-50"
-                            : ""
-                        }`}
-                        disabled={!isFormValid || (!isLoggedIn && !buyerEmail)}
-                        onClick={() => {
-                          handleFormSubmit((data) =>
-                            onFormSubmit(data, "fiat")
-                          )();
-                        }}
-                        startContent={
-                          <span
-                            aria-hidden="true"
-                            className="text-2xl leading-none"
-                          >
-                            💵
-                          </span>
-                        }
-                      >
-                        Pay with Cash or Payment App:{" "}
-                        {(() => {
-                          if (isSingleSeller) {
-                            const fiatKeys = Object.keys(fiatPaymentOptions);
-                            const fiatDiscountVals = fiatKeys.map(
-                              (k) => pmDiscounts[k] || 0
-                            );
-                            const allSame =
-                              fiatDiscountVals.length > 0 &&
-                              fiatDiscountVals.every(
-                                (d) => d === fiatDiscountVals[0]
-                              );
-                            if (allSame && fiatDiscountVals[0]! > 0) {
-                              return `${getFormattedFiatCost(
-                                fiatKeys[0]!
-                              )}${getDiscountLabel(fiatDiscountVals[0]!)}`;
+                      : isMultiFiatAvailable;
+                    // Bitcoin-off is a per-seller setting, so only honor it for
+                    // single-seller carts — and only when a card/fiat option
+                    // remains (fail-safe: never leave a buyer unable to pay).
+                    const showBitcoinGroup =
+                      !isSingleSeller ||
+                      sellerStorefront?.acceptBitcoin !== false ||
+                      !(cardAvailable || fiatAvailable);
+                    // Button order is also per-seller; multi-seller carts fall
+                    // back to the default order.
+                    const order = orderedPaymentMethodGroups(
+                      isSingleSeller
+                        ? sellerStorefront?.paymentMethodOrder
+                        : undefined
+                    );
+
+                    const groupNodes: Record<
+                      StorefrontPaymentMethodGroup,
+                      ReactNode
+                    > = {
+                      bitcoin:
+                        !hasActiveSubscription &&
+                        !hasSubscriptionStripeConflict &&
+                        showBitcoinGroup ? (
+                          <Fragment key="bitcoin">
+                            <Button
+                              className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                !isFormValid || (!isLoggedIn && !buyerEmail)
+                                  ? "cursor-not-allowed opacity-50"
+                                  : ""
+                              }`}
+                              disabled={
+                                !isFormValid || (!isLoggedIn && !buyerEmail)
+                              }
+                              onClick={() => {
+                                handleFormSubmit((data) =>
+                                  onFormSubmit(data, "lightning")
+                                )();
+                              }}
+                              startContent={
+                                <span
+                                  aria-hidden="true"
+                                  className="text-2xl leading-none"
+                                >
+                                  ⚡
+                                </span>
+                              }
+                            >
+                              Pay with Lightning: {formattedLightningCost}
+                              {getDiscountLabel(bitcoinDiscountPct)}
+                            </Button>
+
+                            {hasTokensAvailable && (
+                              <Button
+                                className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                  !isFormValid || (!isLoggedIn && !buyerEmail)
+                                    ? "cursor-not-allowed opacity-50"
+                                    : ""
+                                }`}
+                                disabled={
+                                  !isFormValid || (!isLoggedIn && !buyerEmail)
+                                }
+                                onClick={() => {
+                                  handleFormSubmit((data) =>
+                                    onFormSubmit(data, "cashu")
+                                  )();
+                                }}
+                                startContent={
+                                  <span
+                                    aria-hidden="true"
+                                    className="text-2xl leading-none"
+                                  >
+                                    🥜
+                                  </span>
+                                }
+                              >
+                                Pay with Cashu: {formattedLightningCost}
+                                {getDiscountLabel(bitcoinDiscountPct)}
+                              </Button>
+                            )}
+
+                            {nwcInfo && (
+                              <Button
+                                className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                  !isFormValid || (!isLoggedIn && !buyerEmail)
+                                    ? "cursor-not-allowed opacity-50"
+                                    : ""
+                                }`}
+                                disabled={
+                                  !isFormValid ||
+                                  (!isLoggedIn && !buyerEmail) ||
+                                  isNwcLoading
+                                }
+                                isLoading={isNwcLoading}
+                                onClick={() => {
+                                  handleFormSubmit((data) =>
+                                    onFormSubmit(data, "nwc")
+                                  )();
+                                }}
+                                startContent={
+                                  <span
+                                    aria-hidden="true"
+                                    className="text-2xl leading-none"
+                                  >
+                                    👛
+                                  </span>
+                                }
+                              >
+                                Pay with {nwcInfo.alias || "NWC"}:{" "}
+                                {formattedLightningCost}
+                                {getDiscountLabel(bitcoinDiscountPct)}
+                              </Button>
+                            )}
+                          </Fragment>
+                        ) : null,
+                      card:
+                        (isSingleSeller &&
+                          (isStripeMerchant || squareCardEligible)) ||
+                        (!isSingleSeller &&
+                          (allSellersHaveStripe || multiSellerCardEligible)) ? (
+                          <Button
+                            key="card"
+                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                              !isFormValid || (!isLoggedIn && !buyerEmail)
+                                ? "cursor-not-allowed opacity-50"
+                                : ""
+                            }`}
+                            disabled={
+                              !isFormValid || (!isLoggedIn && !buyerEmail)
                             }
-                          }
-                          return formatCartMethodCost(
-                            nativeTotalCost,
-                            totalCost,
-                            "card",
-                            { stripeFloor: true }
-                          );
-                        })()}
-                      </Button>
-                    )}
+                            onClick={() => {
+                              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                              if (!buyerEmail || !emailRegex.test(buyerEmail)) {
+                                setEmailError(
+                                  "Please enter a valid email address to pay with card"
+                                );
+                                return;
+                              }
+                              setEmailError("");
+                              handleFormSubmit((data) =>
+                                onFormSubmit(
+                                  data,
+                                  isSingleSeller
+                                    ? squareCardEligible && !isStripeMerchant
+                                      ? "square"
+                                      : "stripe"
+                                    : allSellersHaveStripe
+                                      ? "stripe"
+                                      : "multicard"
+                                )
+                              )();
+                            }}
+                            startContent={
+                              <span
+                                aria-hidden="true"
+                                className="text-2xl leading-none"
+                              >
+                                💳️
+                              </span>
+                            }
+                          >
+                            Pay with Card: {formattedCardCost}
+                            {getDiscountLabel(stripeDiscountPct)}
+                          </Button>
+                        ) : null,
+                      fiat:
+                        !hasActiveSubscription &&
+                        (isSingleSeller
+                          ? Object.keys(fiatPaymentOptions).length > 0
+                          : isMultiFiatAvailable) ? (
+                          <Button
+                            key="fiat"
+                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                              !isFormValid || (!isLoggedIn && !buyerEmail)
+                                ? "cursor-not-allowed opacity-50"
+                                : ""
+                            }`}
+                            disabled={
+                              !isFormValid || (!isLoggedIn && !buyerEmail)
+                            }
+                            onClick={() => {
+                              handleFormSubmit((data) =>
+                                onFormSubmit(data, "fiat")
+                              )();
+                            }}
+                            startContent={
+                              <span
+                                aria-hidden="true"
+                                className="text-2xl leading-none"
+                              >
+                                💵
+                              </span>
+                            }
+                          >
+                            Pay with Cash or Payment App:{" "}
+                            {(() => {
+                              if (isSingleSeller) {
+                                const fiatKeys =
+                                  Object.keys(fiatPaymentOptions);
+                                const fiatDiscountVals = fiatKeys.map(
+                                  (k) => pmDiscounts[k] || 0
+                                );
+                                const allSame =
+                                  fiatDiscountVals.length > 0 &&
+                                  fiatDiscountVals.every(
+                                    (d) => d === fiatDiscountVals[0]
+                                  );
+                                if (allSame && fiatDiscountVals[0]! > 0) {
+                                  return `${getFormattedFiatCost(
+                                    fiatKeys[0]!
+                                  )}${getDiscountLabel(fiatDiscountVals[0]!)}`;
+                                }
+                              }
+                              return formatCartMethodCost(
+                                nativeTotalCost,
+                                totalCost,
+                                "card",
+                                { stripeFloor: true }
+                              );
+                            })()}
+                          </Button>
+                        ) : null,
+                    };
+
+                    return order.map((group) => groupNodes[group]);
+                  })()}
 
                   {!isSingleSeller &&
                     !allSellersHaveStripe &&

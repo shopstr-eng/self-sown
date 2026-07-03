@@ -381,6 +381,7 @@ export default function StorefrontLayout({
   const showCommunity = !!storefront.showCommunityPage;
   const showWallet = !!storefront.showWalletPage;
   const showBlog = !!storefront.showBlogPage;
+  const hideShop = !!storefront.hideShopLink;
   const isShopOwner = isLoggedIn && userPubkey === shopPubkey;
 
   const sellerCommunity = useMemo(() => {
@@ -403,16 +404,22 @@ export default function StorefrontLayout({
         (l) => l.href !== "my-listings" && l.href !== "/my-listings"
       );
     }
-    const alreadyHasShop = links.some(
-      (l) => l.href === "shop" || l.href === "/shop"
-    );
-    if (!alreadyHasShop) {
-      const homeIdx = links.findIndex((l) => l.href === "" || l.href === "/");
-      links.splice(homeIdx + 1, 0, {
-        label: "Stall",
-        href: "shop",
-        isPage: true,
-      });
+    if (hideShop) {
+      // Seller opted to hide the built-in Shop/Stall link entirely — drop any
+      // shop link they may have and skip the auto-injection below.
+      links = links.filter((l) => l.href !== "shop" && l.href !== "/shop");
+    } else {
+      const alreadyHasShop = links.some(
+        (l) => l.href === "shop" || l.href === "/shop"
+      );
+      if (!alreadyHasShop) {
+        const homeIdx = links.findIndex((l) => l.href === "" || l.href === "/");
+        links.splice(homeIdx + 1, 0, {
+          label: "Stall",
+          href: "shop",
+          isPage: true,
+        });
+      }
     }
     const alreadyHasOrders = links.some(
       (l) => l.href === "orders" || l.href === "/orders"
@@ -459,6 +466,7 @@ export default function StorefrontLayout({
     showCommunity,
     showWallet,
     showBlog,
+    hideShop,
     isShopOwner,
   ]);
 

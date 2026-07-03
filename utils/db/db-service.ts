@@ -1335,6 +1335,53 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
+    // Storefront email/contact captures (welcome-offer popup + subscription
+    // form). This table historically lived only in db/schema.sql, so bring it
+    // into the runtime bootstrap alongside every other table. CREATE IF NOT
+    // EXISTS is a no-op where it already exists.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS popup_email_captures (
+          id SERIAL PRIMARY KEY,
+          seller_pubkey TEXT NOT NULL,
+          email TEXT NOT NULL,
+          phone TEXT,
+          discount_code TEXT NOT NULL,
+          discount_percentage DECIMAL(5,2) NOT NULL,
+          source TEXT NOT NULL DEFAULT 'popup',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(seller_pubkey, email)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_popup_email_captures_seller ON popup_email_captures(seller_pubkey);
+      CREATE INDEX IF NOT EXISTS idx_popup_email_captures_email ON popup_email_captures(email);
+    `);
+
+    // Origin of each captured contact: 'popup' (welcome-offer popup, gets a
+    // discount code) vs 'subscription' (storefront subscription form, no code).
+    // The `source` column was added to popup_email_captures after it shipped and
+    // was only mirrored into db/schema.sql, never into this runtime path — so
+    // the hosted databases (which bootstrap here, not from schema.sql) never got
+    // it, and every popup/subscription capture 500'd with
+    // 'column "source" ... does not exist', silently dropping the contact and
+    // its welcome discount code. Backfill existing rows once when the column is
+    // first added: rows with an empty discount_code were subscription signups,
+    // everything else came from the popup. The column-existence guard keeps the
+    // backfill a one-time operation. Mirrors the DO block in db/schema.sql.
+    await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'popup_email_captures' AND column_name = 'source'
+        ) THEN
+          ALTER TABLE popup_email_captures ADD COLUMN source TEXT NOT NULL DEFAULT 'popup';
+          UPDATE popup_email_captures
+             SET source = 'subscription'
+           WHERE COALESCE(discount_code, '') = '';
+        END IF;
+      END $$;
+    `);
+
     await client.query(`
       DO $$
       BEGIN

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import {
   Modal,
@@ -48,6 +48,13 @@ export default function ProductListingView({
   topPaddingClass = "pt-20",
 }: ProductListingViewProps) {
   const router = useRouter();
+  // Keep the latest router in a ref so the post-payment redirect can fire
+  // without listing `router` as an effect dependency (its identity churns on
+  // every render, which previously re-armed the timer and looped the GIF).
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  // Guards the redirect so it is scheduled exactly once, immune to re-renders.
+  const redirectScheduledRef = useRef(false);
 
   const [showRawEventModal, setShowRawEventModal] = useState(false);
   const [showEventIdModal, setShowEventIdModal] = useState(false);
@@ -65,6 +72,8 @@ export default function ProductListingView({
   // of a "click X to dismiss" success modal.
   useEffect(() => {
     if (!fiatOrderIsPlaced && !invoiceIsPaid && !cashuPaymentSent) return;
+    if (redirectScheduledRef.current) return;
+    redirectScheduledRef.current = true;
     const timer = setTimeout(() => {
       setFiatOrderIsPlaced(false);
       setInvoiceIsPaid(false);
@@ -78,13 +87,13 @@ export default function ProductListingView({
           ? sessionStorage.getItem("sf_seller_pubkey")
           : null;
       if (sfPk && sfSlug) {
-        router.push(`/stall/${sfSlug}/order-confirmation`);
+        routerRef.current.push(`/stall/${sfSlug}/order-confirmation`);
       } else {
-        router.push("/order-summary");
+        routerRef.current.push("/order-summary");
       }
-    }, 2500);
+    }, 2100);
     return () => clearTimeout(timer);
-  }, [fiatOrderIsPlaced, invoiceIsPaid, cashuPaymentSent, router]);
+  }, [fiatOrderIsPlaced, invoiceIsPaid, cashuPaymentSent]);
 
   const sellerPubkey = productData?.pubkey || "";
 

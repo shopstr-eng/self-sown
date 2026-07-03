@@ -1,6 +1,7 @@
 import {
   buildSellerShopProfileContent,
   normalizeStorefrontSlug,
+  orderedPaymentMethodGroups,
   parseSellerShopProfileEvent,
   selectSellerListingSummaries,
   validateStorefrontBasicsDraft,
@@ -254,6 +255,70 @@ describe("seller domain helpers", () => {
       blogPostLimit: 3,
       blogPostIds: ["post-a", "post-b"],
     });
+  });
+
+  test("orderedPaymentMethodGroups fills, dedupes, and drops invalid groups", () => {
+    // No preference → default order.
+    expect(orderedPaymentMethodGroups()).toEqual(["bitcoin", "card", "fiat"]);
+    expect(orderedPaymentMethodGroups([])).toEqual(["bitcoin", "card", "fiat"]);
+    // Custom order is honored, missing groups are appended in default order.
+    expect(orderedPaymentMethodGroups(["fiat"])).toEqual([
+      "fiat",
+      "bitcoin",
+      "card",
+    ]);
+    // Duplicates and unknown groups are dropped.
+    expect(
+      orderedPaymentMethodGroups(["card", "card", "bogus" as never, "bitcoin"])
+    ).toEqual(["card", "bitcoin", "fiat"]);
+  });
+
+  test("normalizes storefront paymentMethodOrder and acceptBitcoin", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          paymentMethodOrder: ["fiat", "fiat", "bogus", "card"],
+          acceptBitcoin: false,
+        },
+      }),
+    });
+
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+    // Invalid/duplicate groups filtered; explicit opt-out preserved.
+    expect(storefront.paymentMethodOrder).toEqual(["fiat", "card"]);
+    expect(storefront.acceptBitcoin).toBe(false);
+  });
+
+  test("keeps acceptBitcoin absent when Bitcoin is accepted (byte-stable default)", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          acceptBitcoin: true,
+        },
+      }),
+    });
+
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+    expect(storefront).not.toHaveProperty("acceptBitcoin");
+    expect(storefront).not.toHaveProperty("paymentMethodOrder");
   });
 
   test("selects seller listing summaries from cached product events", () => {

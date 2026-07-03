@@ -275,6 +275,39 @@ export interface StorefrontSeoMeta {
   autoGenerate?: boolean;
 }
 
+// The checkout payment-method buttons are grouped into three seller-orderable
+// categories: "bitcoin" (Lightning / Cashu / NWC), "card" (Stripe / Square),
+// and "fiat" (cash / payment app).
+export type StorefrontPaymentMethodGroup = "bitcoin" | "card" | "fiat";
+
+export const DEFAULT_PAYMENT_METHOD_ORDER: StorefrontPaymentMethodGroup[] = [
+  "bitcoin",
+  "card",
+  "fiat",
+];
+
+// Returns a complete, de-duplicated ordering of the payment-method groups.
+// Unknown or duplicate entries are dropped, and any group the seller omitted is
+// appended in the default order — so partial configs (and any groups added in
+// the future) still render. Passing undefined yields the default order.
+export function orderedPaymentMethodGroups(
+  order?: StorefrontPaymentMethodGroup[]
+): StorefrontPaymentMethodGroup[] {
+  if (!order || order.length === 0) return [...DEFAULT_PAYMENT_METHOD_ORDER];
+  const seen = new Set<StorefrontPaymentMethodGroup>();
+  const result: StorefrontPaymentMethodGroup[] = [];
+  for (const group of order) {
+    if (DEFAULT_PAYMENT_METHOD_ORDER.includes(group) && !seen.has(group)) {
+      seen.add(group);
+      result.push(group);
+    }
+  }
+  for (const group of DEFAULT_PAYMENT_METHOD_ORDER) {
+    if (!seen.has(group)) result.push(group);
+  }
+  return result;
+}
+
 export interface StorefrontConfig {
   colorScheme?: StorefrontColorScheme;
   productLayout?: "grid" | "list" | "featured";
@@ -298,6 +331,9 @@ export interface StorefrontConfig {
   pages?: StorefrontPage[];
   footer?: StorefrontFooter;
   navLinks?: StorefrontNavLink[];
+  // Hide the built-in "Shop"/"Stall" link that is otherwise auto-injected into
+  // the storefront navigation. Undefined/false = shown (default, backward-compat).
+  hideShopLink?: boolean;
   showCommunityPage?: boolean;
   showWalletPage?: boolean;
   // When true, the storefront exposes a "Blog" page: a nav link to /blog plus
@@ -310,4 +346,14 @@ export interface StorefrontConfig {
   footerColors?: StorefrontFooterColors;
   seoMeta?: StorefrontSeoMeta;
   productPageDefaults?: StorefrontSection[];
+  // Seller-chosen order of the checkout payment-method buttons, by category:
+  // "bitcoin" (Lightning/Cashu/NWC), "card" (Stripe/Square), "fiat" (cash /
+  // payment app). Categories omitted here are appended in the default order
+  // (bitcoin, card, fiat). Undefined = default order.
+  paymentMethodOrder?: StorefrontPaymentMethodGroup[];
+  // When false, the storefront hides every Bitcoin checkout button (Lightning,
+  // Cashu, NWC). This is only honored at checkout when the seller actually has a
+  // card or fiat method available (fail-safe: a buyer is never left with no way
+  // to pay). Undefined/true = Bitcoin accepted (default, backward-compat).
+  acceptBitcoin?: boolean;
 }

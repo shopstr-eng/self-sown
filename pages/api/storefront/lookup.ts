@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getDbPool } from "@/utils/db/db-service";
+import {
+  getDbPool,
+  fetchShopProfileByPubkeyFromDb,
+} from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getMembershipView } from "@/utils/pro/membership";
 
@@ -28,9 +31,27 @@ export default async function handler(
   // misconfigured for the cache lifetime.
   res.setHeader("Cache-Control", "no-store, max-age=0");
 
-  const { slug, domain } = req.query;
+  const { slug, domain, pubkey } = req.query;
 
   try {
+    // Seed the seller's own stall settings form from the cached shop profile
+    // event (kind 30019). Its content is public (published to relays / rendered
+    // on the public storefront), so no auth is required. Returns the parsed
+    // config the settings form hydrates from — or null for a brand-new seller.
+    if (pubkey && typeof pubkey === "string") {
+      const event = await fetchShopProfileByPubkeyFromDb(pubkey);
+      if (!event) {
+        return res.status(200).json({ shopConfig: null });
+      }
+      let shopConfig: unknown = null;
+      try {
+        shopConfig = JSON.parse(event.content);
+      } catch {
+        shopConfig = null;
+      }
+      return res.status(200).json({ shopConfig });
+    }
+
     if (domain && typeof domain === "string") {
       const result = await pool.query(
         "SELECT pubkey, shop_slug FROM custom_domains WHERE domain = $1 AND verified = true",

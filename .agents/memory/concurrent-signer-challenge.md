@@ -36,6 +36,15 @@ direct single-call refresh sneaks back in.
 first load → hang. Fixed by one mount sequence: Stripe (+ tax if chargesEnabled)
 → Square, with `loadStatus` returning its `AccountStatus`.
 
-**Why not fixed at the provider:** a provider/signer-level challenge mutex/queue
-would fix this app-wide but has broad blast radius across all signing; left as a
-longer-term option. Per-page serialization is the targeted fix.
+**Source-level fix now in place:** `NostrNSecSigner._getPrivKey()` is now
+single-flight — it coalesces concurrent callers onto ONE in-flight
+`_getPrivKeyUncached()` promise (stored in `privKeyInFlight`, cleared in
+`.finally` on both resolve and reject). So concurrent `sign/encrypt/decrypt`
+during the not-yet-cached window now share ONE challenge instead of clobbering
+the resolver. This is what makes batched gift-wrap decryption (the Orders
+dashboard) safe. **Why still serialize per-page too:** the single-flight only
+coalesces calls that overlap the SAME in-flight unlock; sequential waves after
+the first resolve rely on the ~5s `inputPassphrase` cache, and if the user
+CANCELS the prompt nothing is cached, so a fresh wave re-prompts. Deterministic
+per-page sequencing (above) is still the belt-and-suspenders fix for mount-time
+signing. Do NOT remove the single-flight guard — it is the app-wide backstop.

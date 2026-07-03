@@ -8,11 +8,23 @@ description: The seller storefront form loads config from three racing sources; 
 `components/settings/shop-profile-form.tsx` hydrates the form from THREE sources
 that resolve in a non-deterministic order:
 
-1. **Fast path** — DB fetch (`/api/storefront/lookup`), applies via
+1. **Fast path** — DB fetch (`/api/storefront/lookup?pubkey=`), applies via
    `applyShopConfig`, clears the spinner (`isFetchingShop=false`). Guarded by
-   `contextLoadedRef`.
+   `contextLoadedRef`. That endpoint's `pubkey` branch returns the parsed
+   kind-30019 shop-profile content as `{shopConfig}` (public data; parsed shape ==
+   exactly what `applyShopConfig` consumes). If that branch is missing/returns no
+   `shopConfig`, the `.finally` clears the spinner instantly → empty-default flash
+   until the slow path arrives (this WAS the bug: endpoint only handled
+   slug/domain). Same fast path backs `product-page-template-form.tsx`.
 2. **Slow path** — authoritative relay/`ShopMapContext` data; runs `reset()` +
-   all setters to OVERRIDE the fast path. Guarded only by `hasLoadedShopRef`.
+   all setters to OVERRIDE the fast path. Sets `hasLoadedShopRef` AND must set
+   `contextLoadedRef.current = true` at its hydration point. **Arming
+   `contextLoadedRef` in the slow path is mandatory:** once the fast path returns
+   real config, a late DB response would otherwise re-run `applyShopConfig` and
+   clobber the relay-hydrated form (and any keystrokes typed meanwhile) on
+   client-side nav where `ShopMapContext` is already populated. The three
+   `contextLoadedRef` guards in the fast path are inert unless the slow path arms
+   this flag.
 3. **Safety valve** — 12s timeout that just clears the spinner.
 
 **The gotcha:** any effect that writes form state _after_ load (e.g. the

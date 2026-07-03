@@ -29,6 +29,11 @@ export class NostrNSecSigner implements NostrSigner {
   private inputPassphrase?: string;
   private inputPassphraseClearer?: any;
   private isNip49Format: boolean = false;
+  // Single-flight guard: concurrent callers (parallel gift-wrap decryption and
+  // NIP-98 auth signs at /orders mount) share ONE passphrase unlock. Without
+  // it, each caller spawns a competing challenge and clobbers the provider's
+  // single challengeResolver, hanging all but the last one.
+  private privKeyInFlight?: Promise<Uint8Array>;
 
   public static getEncryptedNSEC(
     privKey: Uint8Array | string,
@@ -143,6 +148,15 @@ export class NostrNSecSigner implements NostrSigner {
   }
 
   public async _getPrivKey(): Promise<Uint8Array> {
+    // Coalesce concurrent unlocks into a single passphrase prompt.
+    if (this.privKeyInFlight) return this.privKeyInFlight;
+    this.privKeyInFlight = this._getPrivKeyUncached().finally(() => {
+      this.privKeyInFlight = undefined;
+    });
+    return this.privKeyInFlight;
+  }
+
+  private async _getPrivKeyUncached(): Promise<Uint8Array> {
     let error: Error | undefined;
 
     let aborted = false;

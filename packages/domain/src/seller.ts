@@ -1,5 +1,8 @@
 import { CATEGORIES } from "./constants";
-import type { StorefrontConfig } from "./storefront";
+import type {
+  StorefrontConfig,
+  StorefrontPaymentMethodGroup,
+} from "./storefront";
 
 export interface NostrEventRecord {
   id: string;
@@ -571,6 +574,17 @@ function normalizeStorefrontConfig(
         .filter((page) => page.id && page.title && page.slug)
     : undefined;
 
+  const paymentMethodOrder = Array.isArray(value.paymentMethodOrder)
+    ? (value.paymentMethodOrder.filter(
+        (group, index, arr) =>
+          (group === "bitcoin" || group === "card" || group === "fiat") &&
+          arr.indexOf(group) === index
+      ) as StorefrontPaymentMethodGroup[])
+    : undefined;
+
+  const acceptBitcoin =
+    typeof value.acceptBitcoin === "boolean" ? value.acceptBitcoin : undefined;
+
   const normalized: StorefrontConfig = {
     ...(colorScheme ? { colorScheme } : {}),
     ...(typeof value.productLayout === "string" &&
@@ -620,6 +634,12 @@ function normalizeStorefrontConfig(
       ? { showBlogPage: value.showBlogPage }
       : {}),
     ...(blogPage && blogPage.sections.length > 0 ? { blogPage } : {}),
+    ...(paymentMethodOrder && paymentMethodOrder.length > 0
+      ? { paymentMethodOrder }
+      : {}),
+    // Only persist when explicitly disabled; undefined/true stays absent so the
+    // default (Bitcoin accepted) is preserved and events stay byte-stable.
+    ...(acceptBitcoin === false ? { acceptBitcoin: false } : {}),
   };
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;

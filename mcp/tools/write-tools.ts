@@ -782,6 +782,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Shop-wide defaults for every product detail page. Individual products can override these by setting their own page_config tag. Stored as storefront.productPageDefaults on the kind 30019 event."
         ),
+      storefrontPaymentMethodOrder: z
+        .array(z.enum(["bitcoin", "card", "fiat"]))
+        .optional()
+        .describe(
+          "Order of the checkout payment-method buttons by category: 'bitcoin' (Lightning/Cashu/NWC), 'card' (Stripe/Square), 'fiat' (cash / payment app). Categories omitted are appended in the default order (bitcoin, card, fiat)."
+        ),
+      storefrontAcceptBitcoin: z
+        .boolean()
+        .optional()
+        .describe(
+          "Whether the storefront accepts Bitcoin (Lightning/Cashu/NWC) at checkout. Set false to hide all Bitcoin buttons — only honored when a card or fiat method is also available (a buyer is never left with no way to pay). Omit/true = accepted (default)."
+        ),
     },
     async (params) => {
       const startTime = Date.now();
@@ -873,6 +885,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.showBlogPage = params.showBlogPage;
         if (params.productPageDefaults)
           storefront.productPageDefaults = params.productPageDefaults;
+        if (params.storefrontPaymentMethodOrder)
+          storefront.paymentMethodOrder = params.storefrontPaymentMethodOrder;
+        if (params.storefrontAcceptBitcoin !== undefined)
+          storefront.acceptBitcoin = params.storefrontAcceptBitcoin;
         if (Object.keys(storefront).length > 0) content.storefront = storefront;
 
         const eventTemplate: EventTemplate = {

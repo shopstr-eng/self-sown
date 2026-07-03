@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Input, Button } from "@heroui/react";
-import { SignerContext } from "@/components/utility-components/nostr-context-provider";
-import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { copyToClipboard } from "@/utils/clipboard";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 
 type ContactSource = "popup" | "subscription";
 
-interface PopupContact {
+export interface PopupContact {
   email: string;
   phone: string | null;
   discountCode: string;
@@ -71,49 +69,20 @@ function toCsv(contacts: PopupContact[]): string {
   return [header.join(","), ...rows].join("\n");
 }
 
-export default function ContactsDashboard() {
-  const { signer, isLoggedIn } = useContext(SignerContext);
-  const [contacts, setContacts] = useState<PopupContact[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export default function ContactsDashboard({
+  contacts,
+  loading,
+  error,
+  onRefresh,
+}: {
+  contacts: PopupContact[] | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => void;
+}) {
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
-
-  const loadContacts = useCallback(async () => {
-    if (!signer) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const url = `${window.location.origin}/api/storefront/popup-contacts`;
-      const authHeader = await createNip98AuthorizationHeader(
-        signer,
-        url,
-        "GET"
-      );
-      const res = await fetch("/api/storefront/popup-contacts", {
-        method: "GET",
-        headers: { Authorization: authHeader },
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Request failed (${res.status})`);
-      }
-      const data = await res.json();
-      setContacts(data.contacts || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load contacts");
-      setContacts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [signer]);
-
-  useEffect(() => {
-    if (isLoggedIn && signer) {
-      void loadContacts();
-    }
-  }, [isLoggedIn, signer, loadContacts]);
 
   const filtered = useMemo(() => {
     if (!contacts) return [];
@@ -170,14 +139,6 @@ export default function ContactsDashboard() {
       setTimeout(() => setCopiedEmail(null), 1500);
     }
   };
-
-  if (!isLoggedIn) {
-    return (
-      <div className="px-4 py-8 text-center text-sm text-gray-500">
-        Sign in to view your captured contacts.
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-[98vw] min-w-0 bg-white px-4 pb-12 sm:py-2">
@@ -245,7 +206,7 @@ export default function ContactsDashboard() {
           />
           <div className="grid w-full min-w-0 grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-row sm:flex-nowrap">
             <Button
-              onPress={() => void loadContacts()}
+              onPress={() => onRefresh()}
               isDisabled={loading}
               variant="bordered"
               className="rounded-lg border-2 border-black bg-white text-black"

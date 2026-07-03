@@ -11,6 +11,7 @@ export type {
   StorefrontColorScheme,
   StorefrontComparisonColumn,
   StorefrontConfig,
+  StorefrontPaymentMethodGroup,
   StorefrontNavColors,
   StorefrontFooterColors,
   StorefrontEmailPopup,
