@@ -1,6 +1,7 @@
 import type {
   StorefrontColorScheme,
   StorefrontNavColors,
+  StorefrontNavLayout,
   StorefrontFooterColors,
   StorefrontSection,
   StorefrontSocialLink,
@@ -56,6 +57,13 @@ const FONT_SUBSTITUTIONS: Record<string, string> = {
   avenir: "Nunito",
 };
 
+export interface ImportedSampleProduct {
+  title: string;
+  image?: string;
+  price?: number;
+  currency?: string;
+}
+
 export interface ExtractedSiteSignals {
   url: string;
   siteName?: string;
@@ -74,11 +82,18 @@ export interface ExtractedSiteSignals {
   // come only from deterministic extraction — the LLM never sees or emits them.
   images: { url: string; alt?: string }[];
   contentBlocks: { heading: string; body: string }[];
+  // schema.org Product cards scraped from JSON-LD (deterministic — never the
+  // LLM). Preview-only: never written to a StorefrontConfig.
+  products?: ImportedSampleProduct[];
+  // Conservative nav-layout hint (v1: centered logo only) applied to the
+  // imported storefront so the preview mirrors the source's nav.
+  navLayout?: StorefrontNavLayout;
 }
 
 export interface ImportedStorefrontDraft {
   colorScheme?: StorefrontColorScheme;
   navColors?: StorefrontNavColors;
+  navLayout?: StorefrontNavLayout;
   footerColors?: StorefrontFooterColors;
   fontHeading?: string;
   fontBody?: string;
@@ -111,6 +126,9 @@ export interface ImportedStoreDesign {
   about?: string;
   logoUrl?: string;
   bannerUrl?: string;
+  // Preview-only placeholder product cards scraped from the source's JSON-LD.
+  // NOT part of the storefront draft — never saved to a StorefrontConfig.
+  sampleProducts?: ImportedSampleProduct[];
   storefront: ImportedStorefrontDraft;
   aiApplied: boolean;
   warnings: string[];
@@ -276,14 +294,17 @@ export function pickColorScheme(
   };
 }
 
-function buildHeroSection(signals: ExtractedSiteSignals): StorefrontSection {
+function buildHeroSection(
+  signals: ExtractedSiteSignals,
+  bannerUrl?: string
+): StorefrontSection {
   return {
     id: "imported-hero",
     type: "hero",
     enabled: true,
     heading: capText(signals.siteName || signals.title, 80) || "Welcome",
     subheading: capText(signals.description, 160) || undefined,
-    image: signals.ogImage || undefined,
+    image: bannerUrl || undefined,
     ctaText: "Shop now",
     ctaLink: "#products",
   };
@@ -318,13 +339,22 @@ export function buildExtractionDraft(
       .filter((f): f is string => !!f)
       .find((f) => f !== fontHeading) ?? fontHeading;
 
-  const sections: StorefrontSection[] = [buildHeroSection(signals)];
+  // Prefer the social/OG banner; when the source has none, fall back to the
+  // first real on-page content image so the imported hero still shows the
+  // site's own banner. Byte-identical to before whenever ogImage exists.
+  const heroBanner = signals.ogImage || signals.images[0]?.url;
+  const bannerFromContent = !signals.ogImage && !!signals.images[0];
+  const contentImages = bannerFromContent
+    ? signals.images.slice(1)
+    : signals.images;
+
+  const sections: StorefrontSection[] = [buildHeroSection(signals, heroBanner)];
 
   const about = buildAboutSection(signals);
   let aboutImageUsed = false;
   if (about) {
-    if (signals.images[0]) {
-      about.image = signals.images[0].url;
+    if (contentImages[0]) {
+      about.image = contentImages[0].url;
       aboutImageUsed = true;
     }
     sections.push(about);
@@ -340,7 +370,7 @@ export function buildExtractionDraft(
     const bodyLc = b.body.toLowerCase();
     return bodyLc.length > 0 && !aboutBodyLc.includes(bodyLc.slice(0, 60));
   });
-  const extraImages = signals.images.slice(aboutImageUsed ? 1 : 0);
+  const extraImages = contentImages.slice(aboutImageUsed ? 1 : 0);
 
   // Always have a real caption fallback so the preview never fills in a fake
   // placeholder caption under a real imported image.
@@ -403,7 +433,11 @@ export function buildExtractionDraft(
     name: capText(signals.siteName || signals.title, 80) || undefined,
     about: capText(signals.aboutText || signals.description, 800) || undefined,
     logoUrl: signals.logoUrl || signals.faviconUrl || undefined,
-    bannerUrl: signals.ogImage || undefined,
+    bannerUrl: heroBanner,
+    sampleProducts:
+      signals.products && signals.products.length > 0
+        ? signals.products
+        : undefined,
     storefront: {
       colorScheme,
       navColors,
@@ -411,6 +445,7 @@ export function buildExtractionDraft(
       fontHeading,
       fontBody,
       landingPageStyle: "hero",
+      navLayout: signals.navLayout,
       sections,
       footer:
         signals.socialLinks.length > 0

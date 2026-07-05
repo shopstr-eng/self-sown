@@ -50,6 +50,7 @@ import {
   sanitizeStorefrontNavHref,
 } from "@/utils/storefront-links";
 import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
+import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import {
   applyCustomDomainHref,
   useIsCustomDomain,
@@ -293,6 +294,13 @@ export default function StorefrontLayout({
   const navBg = storefront.navColors?.background || colors.secondary;
   const navText = storefront.navColors?.text || colors.background;
   const navAccent = storefront.navColors?.accent || colors.primary;
+  const navLayoutResolved = resolveNavLayout(storefront.navLayout);
+  // Stacked (logo above/below) needs a taller bar on desktop; the content offset
+  // below the fixed nav must grow in lockstep. Mobile always stays single-row.
+  const navHeightClass =
+    navLayoutResolved.mode === "stacked" ? "h-14 lg:h-24" : "h-14";
+  const navPadClass =
+    navLayoutResolved.mode === "stacked" ? "pt-14 lg:pt-24" : "pt-14";
 
   const activeSections = useMemo(() => {
     if (currentPage === "blog") {
@@ -604,6 +612,144 @@ export default function StorefrontLayout({
     return null;
   }
 
+  // --- Nav clusters (shared across inline / stacked layouts) ---------------
+  const desktopNavLinkItems = defaultNavLinks.map((link, idx) => {
+    const href = applyCustomDomainHref(
+      sanitizeStorefrontNavHref(link, shopSlug, homeHref),
+      shopSlug,
+      isCustomDomain
+    );
+    const isActive = currentPage
+      ? link.href === currentPage
+      : link.href === "" || link.href === "/";
+    const linkStyle = { color: isActive ? navAccent : navText + "CC" };
+    const linkClass =
+      "rounded-md px-3 py-2 text-sm font-medium transition-colors";
+    if (isExternalStorefrontHref(href)) {
+      return (
+        <a
+          key={idx}
+          href={href}
+          target={href.startsWith("http") ? "_blank" : undefined}
+          rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+          className={linkClass}
+          style={linkStyle}
+        >
+          {link.label}
+        </a>
+      );
+    }
+    return (
+      <Link key={idx} href={href} className={linkClass} style={linkStyle}>
+        {link.label}
+      </Link>
+    );
+  });
+
+  const logoNode = (
+    <Link href={homeHref} className="flex items-center gap-2">
+      {pictureUrl && (
+        <img
+          src={sanitizeUrl(pictureUrl)}
+          alt={shopName}
+          className="h-8 w-8 rounded-full object-cover"
+          fetchPriority="high"
+        />
+      )}
+      <span
+        className="font-heading text-lg font-bold"
+        style={{ color: navText }}
+      >
+        {shopName}
+      </span>
+    </Link>
+  );
+
+  const utilityNode = (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => router.push("/cart")}
+        className="relative rounded-md p-2 transition-colors"
+        style={{ color: navText }}
+      >
+        <ShoppingCartIcon className="h-5 w-5" />
+        {cartQuantity > 0 && (
+          <span
+            className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
+            style={{
+              backgroundColor: navAccent,
+              color: navBg,
+            }}
+          >
+            {cartQuantity}
+          </span>
+        )}
+      </button>
+
+      <div className="hidden md:flex">
+        {isLoggedIn && userPubkey ? (
+          <ProfileWithDropdown
+            pubkey={userPubkey}
+            baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
+            dropDownKeys={[
+              "shop_profile",
+              "user_profile",
+              "settings",
+              "logout",
+            ]}
+            nameClassname="lg:block text-white"
+            bg="dark"
+          />
+        ) : (
+          <button
+            onClick={onOpen}
+            className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: navAccent,
+              color: navBg,
+            }}
+          >
+            Sign In
+          </button>
+        )}
+      </div>
+
+      <button
+        className="flex h-8 w-8 items-center justify-center rounded md:hidden"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        style={{ color: navText }}
+      >
+        {mobileMenuOpen ? (
+          <XMarkIcon className="h-6 w-6" />
+        ) : (
+          <Bars3Icon className="h-6 w-6" />
+        )}
+      </button>
+    </div>
+  );
+
+  // One row of the stacked (logo above/below) desktop layout.
+  const renderStackedRow = (row: "top" | "bottom") => {
+    const isLogoRow = navLayoutResolved.logoRow === row;
+    const hasUtility = navLayoutResolved.utilityRow === row;
+    return (
+      <div className="flex items-center">
+        {isLogoRow ? (
+          <div className="flex flex-1 items-center">{logoNode}</div>
+        ) : (
+          <div
+            className={`flex flex-1 items-center ${navLayoutResolved.linkGapClass} ${
+              navLayoutResolved.linkJustifyClass || "justify-center"
+            }`}
+          >
+            {desktopNavLinkItems}
+          </div>
+        )}
+        {hasUtility && utilityNode}
+      </div>
+    );
+  };
+
   return (
     <>
       <Head>
@@ -799,139 +945,50 @@ export default function StorefrontLayout({
         }}
       >
         <nav
-          className="fixed top-0 right-0 left-0 z-50 h-14 border-b"
+          className={`fixed top-0 right-0 left-0 z-50 ${navHeightClass} border-b`}
           style={{
             backgroundColor: navBg,
             borderColor: navAccent + "33",
           }}
         >
-          <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 md:px-6">
-            <Link href={homeHref} className="flex items-center gap-2">
-              {pictureUrl && (
-                <img
-                  src={sanitizeUrl(pictureUrl)}
-                  alt={shopName}
-                  className="h-8 w-8 rounded-full object-cover"
-                  fetchPriority="high"
-                />
-              )}
-              <span
-                className="font-heading text-lg font-bold"
-                style={{ color: navText }}
-              >
-                {shopName}
-              </span>
-            </Link>
-
-            {defaultNavLinks.length > 0 && (
-              <div className="hidden items-center gap-1 lg:flex">
-                {defaultNavLinks.map((link, idx) => {
-                  const href = applyCustomDomainHref(
-                    sanitizeStorefrontNavHref(link, shopSlug, homeHref),
-                    shopSlug,
-                    isCustomDomain
-                  );
-                  const isActive = currentPage
-                    ? link.href === currentPage
-                    : link.href === "" || link.href === "/";
-                  const linkStyle = {
-                    color: isActive ? navAccent : navText + "CC",
-                  };
-                  const linkClass =
-                    "rounded-md px-3 py-2 text-sm font-medium transition-colors";
-                  if (isExternalStorefrontHref(href)) {
-                    return (
-                      <a
-                        key={idx}
-                        href={href}
-                        target={href.startsWith("http") ? "_blank" : undefined}
-                        rel={
-                          href.startsWith("http")
-                            ? "noopener noreferrer"
-                            : undefined
-                        }
-                        className={linkClass}
-                        style={linkStyle}
-                      >
-                        {link.label}
-                      </a>
-                    );
-                  }
-                  return (
-                    <Link
-                      key={idx}
-                      href={href}
-                      className={linkClass}
-                      style={linkStyle}
-                    >
-                      {link.label}
-                    </Link>
-                  );
-                })}
+          {navLayoutResolved.mode === "stacked" ? (
+            <div className="mx-auto h-full max-w-6xl px-4 md:px-6">
+              {/* Mobile keeps the classic single row (logo + utility + toggle) */}
+              <div className="flex h-full items-center justify-between lg:hidden">
+                {logoNode}
+                {utilityNode}
               </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => router.push("/cart")}
-                className="relative rounded-md p-2 transition-colors"
-                style={{ color: navText }}
-              >
-                <ShoppingCartIcon className="h-5 w-5" />
-                {cartQuantity > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold"
-                    style={{
-                      backgroundColor: navAccent,
-                      color: navBg,
-                    }}
-                  >
-                    {cartQuantity}
-                  </span>
-                )}
-              </button>
-
-              <div className="hidden md:flex">
-                {isLoggedIn && userPubkey ? (
-                  <ProfileWithDropdown
-                    pubkey={userPubkey}
-                    baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
-                    dropDownKeys={[
-                      "shop_profile",
-                      "user_profile",
-                      "settings",
-                      "logout",
-                    ]}
-                    nameClassname="lg:block text-white"
-                    bg="dark"
-                  />
-                ) : (
-                  <button
-                    onClick={onOpen}
-                    className="rounded-md px-4 py-1.5 text-sm font-medium transition-colors"
-                    style={{
-                      backgroundColor: navAccent,
-                      color: navBg,
-                    }}
-                  >
-                    Sign In
-                  </button>
-                )}
+              {/* Desktop: logo stacked above/below the nav links */}
+              <div className="hidden h-full flex-col justify-center gap-0.5 py-1.5 lg:flex">
+                {renderStackedRow("top")}
+                {renderStackedRow("bottom")}
               </div>
-
-              <button
-                className="flex h-8 w-8 items-center justify-center rounded md:hidden"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                style={{ color: navText }}
-              >
-                {mobileMenuOpen ? (
-                  <XMarkIcon className="h-6 w-6" />
-                ) : (
-                  <Bars3Icon className="h-6 w-6" />
-                )}
-              </button>
             </div>
-          </div>
+          ) : navLayoutResolved.logoPosition === "center" ? (
+            <div className="mx-auto grid h-full max-w-6xl grid-cols-3 items-center px-4 md:px-6">
+              <div
+                className={`hidden items-center ${navLayoutResolved.linkGapClass} lg:flex ${
+                  navLayoutResolved.linkJustifyClass || "justify-start"
+                }`}
+              >
+                {desktopNavLinkItems}
+              </div>
+              <div className="flex justify-center">{logoNode}</div>
+              <div className="flex justify-end">{utilityNode}</div>
+            </div>
+          ) : (
+            <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 md:px-6">
+              {logoNode}
+              {defaultNavLinks.length > 0 && (
+                <div
+                  className={`hidden items-center ${navLayoutResolved.linkGapClass} lg:flex ${navLayoutResolved.linkJustifyClass}`}
+                >
+                  {desktopNavLinkItems}
+                </div>
+              )}
+              {utilityNode}
+            </div>
+          )}
 
           {mobileMenuOpen && (
             <div
@@ -1022,7 +1079,7 @@ export default function StorefrontLayout({
             />
           </div>
         ) : currentPage === "order-confirmation" ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             <StorefrontOrderConfirmation
               colors={colors}
               shopName={shopName}
@@ -1031,15 +1088,15 @@ export default function StorefrontLayout({
             />
           </div>
         ) : currentPage === "my-listings" ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             <StorefrontMyListings shopPubkey={shopPubkey} colors={colors} />
           </div>
         ) : currentPage === "orders" ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             <StorefrontOrders colors={colors} shopPubkey={shopPubkey} />
           </div>
         ) : currentPage === "wallet" ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             {showWallet ? (
               <StorefrontWallet colors={colors} />
             ) : (
@@ -1060,7 +1117,7 @@ export default function StorefrontLayout({
             )}
           </div>
         ) : currentPage === "community" ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             {showCommunity ? (
               <StorefrontCommunity
                 shopPubkey={shopPubkey}
@@ -1086,7 +1143,7 @@ export default function StorefrontLayout({
             )}
           </div>
         ) : currentPage === "blog" && !showBlog ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             <div className="flex min-h-screen flex-col items-center justify-center py-24 text-center">
               <h2
                 className="font-heading text-2xl font-bold"
@@ -1100,7 +1157,7 @@ export default function StorefrontLayout({
             </div>
           </div>
         ) : policyPageData ? (
-          <div className="pt-14">
+          <div className={navPadClass}>
             <StorefrontPolicyPage policy={policyPageData} colors={colors} />
           </div>
         ) : !currentPage &&
@@ -1111,10 +1168,12 @@ export default function StorefrontLayout({
               productData={landingProductMatch.productData}
               rawEvent={landingProductMatch.rawEvent}
               isZapsnag={false}
-              topPaddingClass="pt-14"
+              topPaddingClass={navPadClass}
             />
           ) : (
-            <div className="flex min-h-[60vh] items-center justify-center pt-14">
+            <div
+              className={`flex min-h-[60vh] items-center justify-center ${navPadClass}`}
+            >
               <MilkMarketSpinner />
             </div>
           )
@@ -1123,7 +1182,7 @@ export default function StorefrontLayout({
             {!currentPage && landingStyle !== "hero" && (
               <>
                 {landingStyle === "classic" && (
-                  <div className="pt-14">
+                  <div className={navPadClass}>
                     {bannerUrl && (
                       <div className="w-full">
                         <img
@@ -1205,7 +1264,7 @@ export default function StorefrontLayout({
               <div
                 className={
                   hasNav && (currentPage || activeSections[0]?.type === "hero")
-                    ? "pt-14"
+                    ? navPadClass
                     : ""
                 }
               >
@@ -1228,7 +1287,7 @@ export default function StorefrontLayout({
             ) : (
               <div
                 className={`mx-auto max-w-6xl px-4 py-8 md:px-6 ${
-                  landingStyle === "hero" ? "pt-14" : ""
+                  landingStyle === "hero" ? navPadClass : ""
                 }`}
               >
                 <StorefrontProductGrid

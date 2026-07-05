@@ -34,7 +34,9 @@ import {
   rehostProductPageImages,
 } from "@/utils/migrations/rehost-storefront-images";
 import type { StorefrontColorScheme } from "@/utils/types/types";
-import StorefrontPreviewPanel from "@/components/settings/storefront/storefront-preview-panel";
+import StorefrontPreviewPanel, {
+  sampleProductsToPreview,
+} from "@/components/settings/storefront/storefront-preview-panel";
 import StorefrontPreviewFrame from "@/components/storefront/storefront-preview-frame";
 import SectionRenderer from "@/components/storefront/section-renderer";
 import { PLACEHOLDER_PRODUCT } from "@/utils/storefront/placeholder-product";
@@ -429,6 +431,10 @@ export default function ImportDesignModal({
                     pages={[]}
                     footer={design.storefront.footer || {}}
                     navLinks={[]}
+                    navLayout={design.storefront.navLayout}
+                    realProducts={sampleProductsToPreview(
+                      design.sampleProducts
+                    )}
                     navColors={design.storefront.navColors}
                     footerColors={design.storefront.footerColors}
                     shopSlug="preview"

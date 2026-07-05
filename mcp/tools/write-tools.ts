@@ -494,6 +494,35 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Custom colors for the storefront top navigation bar (separate from the main color scheme)"
         ),
+      storefrontNavLayout: z
+        .object({
+          logoPosition: z
+            .enum(["left", "center", "above", "below"])
+            .optional()
+            .describe(
+              "Where the logo sits: 'left' (default), 'center', 'above' the nav links, or 'below' them ('above'/'below' stack the logo on its own row)"
+            ),
+          linkAlignment: z
+            .enum(["left", "center", "right"])
+            .optional()
+            .describe(
+              "How the nav shortcut links are aligned within their row"
+            ),
+          linkSpacing: z
+            .enum(["compact", "normal", "spacious"])
+            .optional()
+            .describe("Gap between nav shortcut links (default 'normal')"),
+          utilityPosition: z
+            .enum(["top", "bottom"])
+            .optional()
+            .describe(
+              "When the logo is stacked ('above'/'below'), which row holds the cart + sign-in cluster; defaults to the logo's row"
+            ),
+        })
+        .optional()
+        .describe(
+          "Top navigation bar layout: logo position, link alignment/spacing, and (when the logo is stacked) which row holds the cart + sign-in cluster. Cart + account always stay right-justified."
+        ),
       storefrontFooterColors: z
         .object({
           background: z.string().describe("Footer background color hex"),
@@ -866,6 +895,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.neoShadows = params.storefrontNeoShadows;
         if (params.storefrontNavColors)
           storefront.navColors = params.storefrontNavColors;
+        if (params.storefrontNavLayout)
+          storefront.navLayout = params.storefrontNavLayout;
         if (params.storefrontFooterColors)
           storefront.footerColors = params.storefrontFooterColors;
         if (params.storefrontSeoMeta)

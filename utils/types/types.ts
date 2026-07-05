@@ -13,6 +13,7 @@ export type {
   StorefrontConfig,
   StorefrontPaymentMethodGroup,
   StorefrontNavColors,
+  StorefrontNavLayout,
   StorefrontFooterColors,
   StorefrontEmailPopup,
   StorefrontSeoMeta,

@@ -109,6 +109,15 @@ const STOREFRONT_PRODUCT_LAYOUTS = new Set(["grid", "list", "featured"]);
 const STOREFRONT_LANDING_PAGE_STYLES = new Set(["classic", "hero", "minimal"]);
 const STOREFRONT_LANDING_PAGE_MODES = new Set(["default", "product"]);
 const STOREFRONT_IMAGE_POSITIONS = new Set(["left", "right"]);
+const STOREFRONT_NAV_LOGO_POSITIONS = new Set([
+  "left",
+  "center",
+  "above",
+  "below",
+]);
+const STOREFRONT_NAV_LINK_ALIGNMENTS = new Set(["left", "center", "right"]);
+const STOREFRONT_NAV_LINK_SPACINGS = new Set(["compact", "normal", "spacious"]);
+const STOREFRONT_NAV_UTILITY_POSITIONS = new Set(["top", "bottom"]);
 const STOREFRONT_SECTION_TYPES = new Set([
   "hero",
   "about",
@@ -350,6 +359,47 @@ function normalizeStorefrontConfig(
           ...(typeof link.isPage === "boolean" ? { isPage: link.isPage } : {}),
         }))
         .filter((link) => link.label && link.href)
+    : undefined;
+
+  const navLayout = isRecord(value.navLayout)
+    ? {
+        ...(typeof value.navLayout.logoPosition === "string" &&
+        STOREFRONT_NAV_LOGO_POSITIONS.has(value.navLayout.logoPosition)
+          ? {
+              logoPosition: value.navLayout.logoPosition as
+                | "left"
+                | "center"
+                | "above"
+                | "below",
+            }
+          : {}),
+        ...(typeof value.navLayout.linkAlignment === "string" &&
+        STOREFRONT_NAV_LINK_ALIGNMENTS.has(value.navLayout.linkAlignment)
+          ? {
+              linkAlignment: value.navLayout.linkAlignment as
+                | "left"
+                | "center"
+                | "right",
+            }
+          : {}),
+        ...(typeof value.navLayout.linkSpacing === "string" &&
+        STOREFRONT_NAV_LINK_SPACINGS.has(value.navLayout.linkSpacing)
+          ? {
+              linkSpacing: value.navLayout.linkSpacing as
+                | "compact"
+                | "normal"
+                | "spacious",
+            }
+          : {}),
+        ...(typeof value.navLayout.utilityPosition === "string" &&
+        STOREFRONT_NAV_UTILITY_POSITIONS.has(value.navLayout.utilityPosition)
+          ? {
+              utilityPosition: value.navLayout.utilityPosition as
+                | "top"
+                | "bottom",
+            }
+          : {}),
+      }
     : undefined;
 
   const footer = isRecord(value.footer)
@@ -624,6 +674,7 @@ function normalizeStorefrontConfig(
     ...(pages && pages.length > 0 ? { pages } : {}),
     ...(footer && Object.keys(footer).length > 0 ? { footer } : {}),
     ...(navLinks && navLinks.length > 0 ? { navLinks } : {}),
+    ...(navLayout && Object.keys(navLayout).length > 0 ? { navLayout } : {}),
     ...(typeof value.showCommunityPage === "boolean"
       ? { showCommunityPage: value.showCommunityPage }
       : {}),

@@ -6,6 +6,7 @@ import {
   StorefrontFooter,
   StorefrontNavLink,
   StorefrontNavColors,
+  StorefrontNavLayout,
   StorefrontFooterColors,
 } from "@/utils/types/types";
 import StorefrontPreviewPanel from "./storefront-preview-panel";
@@ -28,6 +29,7 @@ interface StorefrontPreviewModalProps {
   navLinks: StorefrontNavLink[];
   hideShopLink?: boolean;
   navColors?: StorefrontNavColors;
+  navLayout?: StorefrontNavLayout;
   footerColors?: StorefrontFooterColors;
   shopSlug: string;
   currentPreviewPage?: string;
@@ -51,6 +53,7 @@ export default function StorefrontPreviewModal({
   navLinks,
   hideShopLink,
   navColors,
+  navLayout,
   footerColors,
   shopSlug,
 }: StorefrontPreviewModalProps) {
@@ -92,6 +95,7 @@ export default function StorefrontPreviewModal({
         pages={pages}
         footer={footer}
         navLinks={navLinks}
+        navLayout={navLayout}
         hideShopLink={hideShopLink}
         navColors={navColors}
         footerColors={footerColors}

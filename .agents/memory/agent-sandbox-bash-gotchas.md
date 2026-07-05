@@ -31,3 +31,16 @@ log freezes at "Creating an optimized production build" with no EXIT marker, the
 kernel OOM-killer reaped it — that is the documented cold-build OOM (see
 upstream-parity-and-dev-oom.md), not a code regression. Verify via tsc+lint+jest
 instead and note the boot limitation.
+
+## `tsc --noEmit` is unreliable + very slow here — prefer LSP diagnostics
+
+Full-project `tsc --noEmit` on this large Next 16 repo is pathologically slow on a
+throttled box (12+ min, sometimes never completing), AND the detached process is
+reaped across bash tool-call boundaries even with `setsid … </dev/null >/dev/null 2>&1 &`
+(log stays 0 bytes with no EXIT marker — not an OOM, the process is simply gone,
+so you poll forever).
+**How to apply:** for a post-edit type check, don't fight full tsc. Use the
+diagnostics skill's `getLatestLspDiagnostics({filePath})` per touched file — the
+`tsserver` LSP is already running, so it returns type errors for those exact files
+in seconds. Reserve full tsc for when you truly need whole-graph checking and can
+babysit it in the foreground.

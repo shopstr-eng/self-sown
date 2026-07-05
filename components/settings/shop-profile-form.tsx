@@ -64,6 +64,7 @@ import {
   StorefrontFooter,
   StorefrontNavLink,
   StorefrontNavColors,
+  StorefrontNavLayout,
   StorefrontFooterColors,
   StorefrontEmailPopup,
   StorefrontSeoMeta,
@@ -357,6 +358,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     text: "",
     accent: "",
   });
+  const [navLayout, setNavLayout] = useState<StorefrontNavLayout>({});
   const [footerColors, setFooterColors] = useState<StorefrontFooterColors>({
     background: "",
     text: "",
@@ -468,6 +470,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         if (sf.footer) setFooter(sf.footer);
         if (sf.navLinks) setNavLinks(sf.navLinks);
         if (sf.navColors) setNavColors(sf.navColors);
+        if (sf.navLayout) setNavLayout(sf.navLayout);
         if (sf.footerColors) setFooterColors(sf.footerColors);
         if (typeof sf.hideShopLink === "boolean")
           setHideShopLink(sf.hideShopLink);
@@ -597,6 +600,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       if (sf.footer) setFooter(sf.footer);
       if (sf.navLinks) setNavLinks(sf.navLinks);
       if (sf.navColors) setNavColors(sf.navColors);
+      if (sf.navLayout) setNavLayout(sf.navLayout);
       if (sf.footerColors) setFooterColors(sf.footerColors);
       if (typeof sf.hideShopLink === "boolean")
         setHideShopLink(sf.hideShopLink);
@@ -669,6 +673,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     if (sf.fontHeading) setFontHeading(sf.fontHeading);
     if (sf.fontBody) setFontBody(sf.fontBody);
     if (sf.navColors) setNavColors((prev) => ({ ...prev, ...sf.navColors }));
+    if (sf.navLayout) setNavLayout((prev) => ({ ...prev, ...sf.navLayout }));
     if (sf.footerColors)
       setFooterColors((prev) => ({ ...prev, ...sf.footerColors }));
     if (sf.footer?.socialLinks)
@@ -954,6 +959,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         footer,
         navLinks,
         navColors,
+        navLayout,
         footerColors,
         hideShopLink,
         showCommunityPage,
@@ -988,6 +994,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       footer,
       navLinks,
       navColors,
+      navLayout,
       footerColors,
       hideShopLink,
       showCommunityPage,
@@ -1098,6 +1105,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
           navColors.background || navColors.text || navColors.accent
             ? navColors
             : undefined,
+        navLayout: Object.values(navLayout).some((v) => v)
+          ? navLayout
+          : undefined,
         footerColors:
           footerColors.background || footerColors.text || footerColors.accent
             ? footerColors
@@ -2424,6 +2434,108 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             blogPageSections={blogPageSections}
                             onBlogPageSectionsChange={setBlogPageSections}
                           />
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="mb-2 block text-base font-bold text-black">
+                            Navigation Layout
+                          </label>
+                          <p className="mb-3 text-sm text-gray-500">
+                            Control where your logo sits, how your shortcut
+                            links are aligned and spaced, and (when the logo is
+                            stacked) which row holds the cart and sign-in
+                            buttons. Cart and account always stay
+                            right-justified.
+                          </p>
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <label className="mb-1 block text-sm font-bold text-black">
+                                Logo position
+                              </label>
+                              <select
+                                value={navLayout.logoPosition || ""}
+                                onChange={(e) =>
+                                  setNavLayout((prev) => ({
+                                    ...prev,
+                                    logoPosition: (e.target.value ||
+                                      undefined) as StorefrontNavLayout["logoPosition"],
+                                  }))
+                                }
+                                className="w-full rounded-lg border-2 border-black bg-white p-2 text-sm text-black"
+                              >
+                                <option value="">Left (default)</option>
+                                <option value="center">Centered</option>
+                                <option value="above">Above shortcuts</option>
+                                <option value="below">Below shortcuts</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-sm font-bold text-black">
+                                Shortcut alignment
+                              </label>
+                              <select
+                                value={navLayout.linkAlignment || ""}
+                                onChange={(e) =>
+                                  setNavLayout((prev) => ({
+                                    ...prev,
+                                    linkAlignment: (e.target.value ||
+                                      undefined) as StorefrontNavLayout["linkAlignment"],
+                                  }))
+                                }
+                                className="w-full rounded-lg border-2 border-black bg-white p-2 text-sm text-black"
+                              >
+                                <option value="">Default</option>
+                                <option value="left">Left</option>
+                                <option value="center">Center</option>
+                                <option value="right">Right</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-sm font-bold text-black">
+                                Shortcut spacing
+                              </label>
+                              <select
+                                value={navLayout.linkSpacing || ""}
+                                onChange={(e) =>
+                                  setNavLayout((prev) => ({
+                                    ...prev,
+                                    linkSpacing: (e.target.value ||
+                                      undefined) as StorefrontNavLayout["linkSpacing"],
+                                  }))
+                                }
+                                className="w-full rounded-lg border-2 border-black bg-white p-2 text-sm text-black"
+                              >
+                                <option value="">Normal (default)</option>
+                                <option value="compact">Compact</option>
+                                <option value="spacious">Spacious</option>
+                              </select>
+                            </div>
+                            {(navLayout.logoPosition === "above" ||
+                              navLayout.logoPosition === "below") && (
+                              <div>
+                                <label className="mb-1 block text-sm font-bold text-black">
+                                  Cart &amp; sign-in row
+                                </label>
+                                <select
+                                  value={navLayout.utilityPosition || ""}
+                                  onChange={(e) =>
+                                    setNavLayout((prev) => ({
+                                      ...prev,
+                                      utilityPosition: (e.target.value ||
+                                        undefined) as StorefrontNavLayout["utilityPosition"],
+                                    }))
+                                  }
+                                  className="w-full rounded-lg border-2 border-black bg-white p-2 text-sm text-black"
+                                >
+                                  <option value="">
+                                    Logo&apos;s row (default)
+                                  </option>
+                                  <option value="top">Top row</option>
+                                  <option value="bottom">Bottom row</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                         <div className="mb-6">
@@ -3778,6 +3890,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                         pages={pages}
                         footer={footer}
                         navLinks={navLinks}
+                        navLayout={navLayout}
                         hideShopLink={hideShopLink}
                         navColors={
                           navColors.background ||
@@ -3880,6 +3993,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                     pages={pages}
                     footer={footer}
                     navLinks={navLinks}
+                    navLayout={navLayout}
                     hideShopLink={hideShopLink}
                     navColors={
                       navColors.background || navColors.text || navColors.accent
@@ -3990,6 +4104,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         pages={pages}
         footer={footer}
         navLinks={navLinks}
+        navLayout={navLayout}
         hideShopLink={hideShopLink}
         navColors={
           navColors.background || navColors.text || navColors.accent

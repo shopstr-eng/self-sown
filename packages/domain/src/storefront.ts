@@ -12,6 +12,24 @@ export interface StorefrontNavColors {
   accent: string;
 }
 
+export type StorefrontNavLogoPosition = "left" | "center" | "above" | "below";
+export type StorefrontNavLinkAlignment = "left" | "center" | "right";
+export type StorefrontNavLinkSpacing = "compact" | "normal" | "spacious";
+export type StorefrontNavUtilityPosition = "top" | "bottom";
+
+// Controls the layout of the storefront's top navigation bar. All fields are
+// optional; an absent field falls back to the historical default render
+// (logo left, links right, single row) so existing published events stay
+// byte-stable. logoPosition "above"/"below" stack the logo on its own row
+// above/below the nav links; utilityPosition then selects which row the
+// (always right-justified) cart + profile/sign-in cluster sits on.
+export interface StorefrontNavLayout {
+  logoPosition?: StorefrontNavLogoPosition;
+  linkAlignment?: StorefrontNavLinkAlignment;
+  linkSpacing?: StorefrontNavLinkSpacing;
+  utilityPosition?: StorefrontNavUtilityPosition;
+}
+
 export interface StorefrontFooterColors {
   background: string;
   text: string;
@@ -343,6 +361,7 @@ export interface StorefrontConfig {
   blogPage?: StorefrontBlogPage;
   emailPopup?: StorefrontEmailPopup;
   navColors?: StorefrontNavColors;
+  navLayout?: StorefrontNavLayout;
   footerColors?: StorefrontFooterColors;
   seoMeta?: StorefrontSeoMeta;
   productPageDefaults?: StorefrontSection[];

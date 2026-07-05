@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, type ReactNode } from "react";
+import { ShoppingCartIcon } from "@heroicons/react/24/outline";
 import {
   StorefrontColorScheme,
   StorefrontSection,
@@ -6,9 +7,12 @@ import {
   StorefrontFooter,
   StorefrontNavLink,
   StorefrontNavColors,
+  StorefrontNavLayout,
   StorefrontFooterColors,
 } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import type { ImportedSampleProduct } from "@/utils/migrations/site-design";
+import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import SectionRenderer from "@/components/storefront/section-renderer";
 import StorefrontFooterComponent from "@/components/storefront/storefront-footer";
 import FormattedText from "@/components/storefront/formatted-text";
@@ -402,6 +406,30 @@ export const MOCK_PRODUCTS: ProductData[] = [
   },
 ];
 
+// Maps deterministic scraped JSON-LD products from a URL import into the
+// ProductData shape the preview renders. Preview-only — the ids/pubkey are
+// synthetic and never touch Nostr or a StorefrontConfig; falls back to the
+// built-in placeholder art when a scraped product has no usable image.
+export function sampleProductsToPreview(
+  products: ImportedSampleProduct[] | undefined
+): ProductData[] {
+  if (!products || products.length === 0) return [];
+  return products.slice(0, PLACEHOLDER_IMAGES.length * 2).map((p, i) => ({
+    id: `imported-preview-${i + 1}`,
+    pubkey: "preview",
+    createdAt: 0,
+    title: p.title,
+    summary: "",
+    publishedAt: "",
+    images: [p.image || PLACEHOLDER_IMAGES[i % PLACEHOLDER_IMAGES.length]!],
+    categories: [],
+    location: "",
+    price: typeof p.price === "number" ? p.price : 0,
+    currency: p.currency || "USD",
+    totalCost: typeof p.price === "number" ? p.price : 0,
+  }));
+}
+
 export const GOOGLE_FONT_OPTIONS = [
   "Inter",
   "Roboto",
@@ -455,6 +483,7 @@ interface StorefrontPreviewPanelProps {
   navLinks: StorefrontNavLink[];
   hideShopLink?: boolean;
   navColors?: StorefrontNavColors;
+  navLayout?: StorefrontNavLayout;
   footerColors?: StorefrontFooterColors;
   shopSlug: string;
   compact?: boolean;
@@ -483,6 +512,7 @@ export default function StorefrontPreviewPanel({
   navLinks,
   hideShopLink,
   navColors,
+  navLayout,
   footerColors,
   shopSlug,
   compact,
@@ -848,6 +878,7 @@ export default function StorefrontPreviewPanel({
                 pictureUrl={displayPicture}
                 colors={colors}
                 navColors={navColors}
+                navLayout={navLayout}
                 navLinks={previewNavLinks}
                 currentPage={previewPage}
                 onNavClick={handleNavClick}
@@ -1040,6 +1071,7 @@ function PreviewNav({
   pictureUrl,
   colors,
   navColors,
+  navLayout,
   navLinks,
   currentPage,
   onNavClick,
@@ -1048,6 +1080,7 @@ function PreviewNav({
   pictureUrl: string;
   colors: StorefrontColorScheme;
   navColors?: StorefrontNavColors;
+  navLayout?: StorefrontNavLayout;
   navLinks: StorefrontNavLink[];
   currentPage: string;
   onNavClick: (link: StorefrontNavLink) => void;
@@ -1055,6 +1088,114 @@ function PreviewNav({
   const bg = navColors?.background || colors.secondary;
   const text = navColors?.text || colors.background;
   const accent = navColors?.accent || colors.primary;
+  const resolved = resolveNavLayout(navLayout);
+
+  const logoNode = (
+    <div className="flex items-center gap-3">
+      {pictureUrl && (
+        <img
+          src={pictureUrl}
+          alt={shopName}
+          className="h-8 w-8 rounded-full object-cover"
+        />
+      )}
+      <span className="font-heading text-lg font-bold" style={{ color: text }}>
+        {shopName}
+      </span>
+    </div>
+  );
+
+  const linkItems = navLinks.map((link, idx) => {
+    const isActive = currentPage
+      ? link.href === currentPage
+      : link.href === "" || link.href === "/";
+    return (
+      <button
+        key={idx}
+        type="button"
+        onClick={() => onNavClick(link)}
+        className="rounded-md px-3 py-2 text-sm font-medium transition-colors"
+        style={{ color: isActive ? accent : text + "CC" }}
+      >
+        {link.label}
+      </button>
+    );
+  });
+
+  // Mock utility cluster (cart + sign-in) so the seller can see where these
+  // right-justified controls land under each layout. Non-interactive preview.
+  const utilityNode = (
+    <div className="flex items-center gap-2">
+      <div className="rounded-md p-2" style={{ color: text }}>
+        <ShoppingCartIcon className="h-5 w-5" />
+      </div>
+      <span
+        className="rounded-md px-4 py-1.5 text-sm font-medium"
+        style={{ backgroundColor: accent, color: bg }}
+      >
+        Sign In
+      </span>
+    </div>
+  );
+
+  const renderStackedRow = (row: "top" | "bottom") => {
+    const isLogoRow = resolved.logoRow === row;
+    const hasUtility = resolved.utilityRow === row;
+    return (
+      <div className="flex items-center">
+        {isLogoRow ? (
+          <div className="flex flex-1 items-center">{logoNode}</div>
+        ) : (
+          <div
+            className={`flex flex-1 items-center ${resolved.linkGapClass} ${
+              resolved.linkJustifyClass || "justify-center"
+            }`}
+          >
+            {linkItems}
+          </div>
+        )}
+        {hasUtility && utilityNode}
+      </div>
+    );
+  };
+
+  let inner: ReactNode;
+  if (resolved.mode === "stacked") {
+    inner = (
+      <div className="mx-auto flex max-w-6xl flex-col gap-0.5 px-4 py-2 md:px-6">
+        {renderStackedRow("top")}
+        {renderStackedRow("bottom")}
+      </div>
+    );
+  } else if (resolved.logoPosition === "center") {
+    inner = (
+      <div className="mx-auto grid max-w-6xl grid-cols-3 items-center px-4 py-2 md:px-6">
+        <div
+          className={`flex items-center ${resolved.linkGapClass} ${
+            resolved.linkJustifyClass || "justify-start"
+          }`}
+        >
+          {linkItems}
+        </div>
+        <div className="flex justify-center">{logoNode}</div>
+        <div className="flex justify-end">{utilityNode}</div>
+      </div>
+    );
+  } else {
+    inner = (
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 md:px-6">
+        {logoNode}
+        {navLinks.length > 0 && (
+          <div
+            className={`flex items-center ${resolved.linkGapClass} ${resolved.linkJustifyClass}`}
+          >
+            {linkItems}
+          </div>
+        )}
+        {utilityNode}
+      </div>
+    );
+  }
 
   return (
     <nav
@@ -1065,44 +1206,7 @@ function PreviewNav({
         position: "sticky",
       }}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 md:px-6">
-        <div className="flex items-center gap-3">
-          {pictureUrl && (
-            <img
-              src={pictureUrl}
-              alt={shopName}
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          )}
-          <span
-            className="font-heading text-lg font-bold"
-            style={{ color: text }}
-          >
-            {shopName}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {navLinks.map((link, idx) => {
-            const isActive = currentPage
-              ? link.href === currentPage
-              : link.href === "" || link.href === "/";
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => onNavClick(link)}
-                className="rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                style={{
-                  color: isActive ? accent : text + "CC",
-                }}
-              >
-                {link.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      {inner}
     </nav>
   );
 }

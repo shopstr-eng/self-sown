@@ -3,7 +3,10 @@ import {
   normalizeHexColor,
   type ExtractedSiteSignals,
 } from "@/utils/migrations/site-design";
-import type { StorefrontSocialLink } from "@/utils/types/types";
+import type {
+  StorefrontSocialLink,
+  StorefrontNavLayout,
+} from "@/utils/types/types";
 
 // Server-only: fetches a seller's existing website + a few of its stylesheets
 // (all SSRF-guarded via safeFetch) and pulls out the raw design signals we can
@@ -248,6 +251,7 @@ async function readCapped(
 
 const MAX_CONTENT_IMAGES = 5;
 const MAX_CONTENT_BLOCKS = 4;
+const MAX_JSONLD_PRODUCTS = 8;
 
 // Junk we never want to promote into a storefront section image: logos, icons,
 // tracking pixels and UI chrome. Matched against the whole <img> tag (src +
@@ -403,6 +407,135 @@ function extractContentBlocks(
   return blocks.slice(0, MAX_CONTENT_BLOCKS);
 }
 
+/**
+ * Pull product cards from the page's schema.org JSON-LD (Product / ItemList).
+ * Deterministic and best-effort — malformed JSON blocks are skipped. Values are
+ * used only to render placeholder product cards in the import preview; they are
+ * never written to a StorefrontConfig, so this never leaks URLs into saved data.
+ */
+function extractJsonLdProducts(
+  html: string,
+  base: URL
+): { title: string; image?: string; price?: number; currency?: string }[] {
+  const out: {
+    title: string;
+    image?: string;
+    price?: number;
+    currency?: string;
+  }[] = [];
+  const seen = new Set<string>();
+
+  const asRecord = (v: unknown): Record<string, unknown> | null =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? (v as Record<string, unknown>)
+      : null;
+
+  const firstImage = (img: unknown): string | undefined => {
+    if (typeof img === "string") return img;
+    if (Array.isArray(img)) {
+      const first = img[0];
+      if (typeof first === "string") return first;
+      const rec = asRecord(first);
+      return typeof rec?.url === "string" ? rec.url : undefined;
+    }
+    const rec = asRecord(img);
+    return typeof rec?.url === "string" ? rec.url : undefined;
+  };
+
+  const isProductType = (t: unknown): boolean => {
+    if (typeof t === "string") return t.toLowerCase() === "product";
+    if (Array.isArray(t))
+      return t.some((x) => String(x).toLowerCase() === "product");
+    return false;
+  };
+
+  const pushProduct = (rec: Record<string, unknown>): void => {
+    if (out.length >= MAX_JSONLD_PRODUCTS) return;
+    if (!isProductType(rec["@type"])) return;
+    const title =
+      typeof rec.name === "string"
+        ? cleanInlineText(rec.name).slice(0, 120)
+        : "";
+    if (title.length < 2) return;
+    const key = title.toLowerCase();
+    if (seen.has(key)) return;
+
+    const imageRaw = firstImage(rec.image);
+    const image = imageRaw
+      ? absolute(decodeEntities(imageRaw), base)
+      : undefined;
+
+    let price: number | undefined;
+    let currency: string | undefined;
+    const offers = asRecord(
+      Array.isArray(rec.offers) ? rec.offers[0] : rec.offers
+    );
+    if (offers) {
+      const p = offers.price ?? offers.lowPrice ?? offers.highPrice;
+      const parsed =
+        typeof p === "number" ? p : parseFloat(String(p ?? "").trim());
+      if (Number.isFinite(parsed) && parsed >= 0) price = parsed;
+      if (typeof offers.priceCurrency === "string")
+        currency = offers.priceCurrency.trim().slice(0, 8).toUpperCase();
+    }
+
+    seen.add(key);
+    out.push({ title, image: image || undefined, price, currency });
+  };
+
+  const walk = (node: unknown, depth: number): void => {
+    if (out.length >= MAX_JSONLD_PRODUCTS || depth > 6) return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item, depth + 1);
+      return;
+    }
+    const rec = asRecord(node);
+    if (!rec) return;
+    pushProduct(rec);
+    walk(rec["@graph"], depth + 1);
+    walk(rec.itemListElement, depth + 1);
+    walk(rec.item, depth + 1);
+    walk(rec.mainEntity, depth + 1);
+  };
+
+  const scripts =
+    html.match(
+      /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    ) || [];
+  for (const block of scripts) {
+    if (out.length >= MAX_JSONLD_PRODUCTS) break;
+    const jsonText = block
+      .replace(/^<script\b[^>]*>/i, "")
+      .replace(/<\/script>\s*$/i, "")
+      .trim();
+    if (!jsonText) continue;
+    try {
+      walk(JSON.parse(jsonText), 0);
+    } catch {
+      // Malformed JSON-LD — skip, best effort.
+    }
+  }
+
+  return out;
+}
+
+/**
+ * Best-effort, conservative nav-layout detection. v1 only recognizes a CENTERED
+ * logo from explicit class hints in the header/nav markup; anything else (and
+ * any ambiguity) falls through to the historical left-aligned default. We never
+ * emit "above"/"below" — those need layout metrics static HTML can't give
+ * without false positives.
+ */
+function detectNavLayout(html: string): StorefrontNavLayout | undefined {
+  const region =
+    html.match(/<header\b[^>]*>[\s\S]*?<\/header>/i)?.[0] ||
+    html.match(/<nav\b[^>]*>[\s\S]*?<\/nav>/i)?.[0];
+  if (!region) return undefined;
+  const centeredHint =
+    /\b(?:logo[-_]?cent(?:er|re)d?|cent(?:er|re)d?[-_]?logo|centered[-_]?(?:logo|nav|header|menu)|(?:logo|nav|header|menu)[-_]?centered|(?:header|nav)--cent(?:er|re)d?)\b/i;
+  return centeredHint.test(region) ? { logoPosition: "center" } : undefined;
+}
+
 export async function extractSiteSignals(
   inputUrl: string
 ): Promise<ExtractedSiteSignals> {
@@ -512,6 +645,8 @@ export async function extractSiteSignals(
   }
   const images = extractContentImages(html, base, usedImageUrls);
   const contentBlocks = extractContentBlocks(html);
+  const products = extractJsonLdProducts(html, base);
+  const navLayout = detectNavLayout(html);
 
   return {
     url: base.toString(),
@@ -528,6 +663,8 @@ export async function extractSiteSignals(
     socialLinks,
     images,
     contentBlocks,
+    products,
+    navLayout,
   };
 }
 
