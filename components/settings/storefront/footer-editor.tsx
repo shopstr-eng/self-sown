@@ -214,6 +214,21 @@ export default function FooterEditor({
     });
   };
 
+  const newsletter = footer.newsletter || {};
+  const layout = footer.layout || {};
+
+  const updateNewsletter = (
+    fields: Partial<NonNullable<StorefrontFooter["newsletter"]>>
+  ) => {
+    onChange({ ...footer, newsletter: { ...newsletter, ...fields } });
+  };
+
+  const updateLayout = (
+    fields: Partial<NonNullable<StorefrontFooter["layout"]>>
+  ) => {
+    onChange({ ...footer, layout: { ...layout, ...fields } });
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -440,6 +455,172 @@ export default function FooterEditor({
         >
           + Add Link
         </button>
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-bold text-gray-700">
+          Newsletter Signup
+        </label>
+        <p className="mb-3 text-xs text-gray-500">
+          Show an email capture form in your footer. New subscribers are added
+          to your email list.
+        </p>
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={newsletter.enabled || false}
+            onChange={(e) => updateNewsletter({ enabled: e.target.checked })}
+          />
+          Enable newsletter signup
+        </label>
+        {newsletter.enabled && (
+          <div className="space-y-2">
+            <Input
+              label="Headline"
+              classNames={{ inputWrapper: inputWrapperClass }}
+              variant="bordered"
+              value={newsletter.headline || ""}
+              onChange={(e) => updateNewsletter({ headline: e.target.value })}
+              placeholder="Join our newsletter"
+            />
+            <Input
+              label="Subtext"
+              classNames={{ inputWrapper: inputWrapperClass }}
+              variant="bordered"
+              value={newsletter.subtext || ""}
+              onChange={(e) => updateNewsletter({ subtext: e.target.value })}
+              placeholder="Get farm updates and special offers"
+            />
+            <div className="flex items-center gap-2">
+              <Input
+                label="Button Text"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={newsletter.buttonText || ""}
+                onChange={(e) =>
+                  updateNewsletter({ buttonText: e.target.value })
+                }
+                placeholder="Subscribe"
+                className="flex-1"
+              />
+              <Input
+                label="Email Placeholder"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={newsletter.placeholder || ""}
+                onChange={(e) =>
+                  updateNewsletter({ placeholder: e.target.value })
+                }
+                placeholder="you@example.com"
+                className="flex-1"
+              />
+            </div>
+            <Input
+              label="Success Message"
+              classNames={{ inputWrapper: inputWrapperClass }}
+              variant="bordered"
+              value={newsletter.successMessage || ""}
+              onChange={(e) =>
+                updateNewsletter({ successMessage: e.target.value })
+              }
+              placeholder="Thanks for subscribing!"
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={newsletter.collectPhone || false}
+                onChange={(e) =>
+                  updateNewsletter({ collectPhone: e.target.checked })
+                }
+              />
+              Also collect a phone number
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-bold text-gray-700">
+          Footer Layout
+        </label>
+        <p className="mb-3 text-xs text-gray-500">
+          Control how your footer content is aligned and arranged, just like
+          your navigation bar.
+        </p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Select
+            label="Alignment"
+            classNames={selectClassNames}
+            variant="bordered"
+            selectedKeys={[layout.alignment || "left"]}
+            onChange={(e) => {
+              if (e.target.value)
+                updateLayout({
+                  alignment: e.target.value as NonNullable<
+                    StorefrontFooter["layout"]
+                  >["alignment"],
+                });
+            }}
+            aria-label="Footer alignment"
+          >
+            <SelectItem key="left" className="text-black">
+              Left
+            </SelectItem>
+            <SelectItem key="center" className="text-black">
+              Center
+            </SelectItem>
+            <SelectItem key="right" className="text-black">
+              Right
+            </SelectItem>
+          </Select>
+          <Select
+            label="Link Spacing"
+            classNames={selectClassNames}
+            variant="bordered"
+            selectedKeys={[layout.linkSpacing || "normal"]}
+            onChange={(e) => {
+              if (e.target.value)
+                updateLayout({
+                  linkSpacing: e.target.value as NonNullable<
+                    StorefrontFooter["layout"]
+                  >["linkSpacing"],
+                });
+            }}
+            aria-label="Footer link spacing"
+          >
+            <SelectItem key="compact" className="text-black">
+              Compact
+            </SelectItem>
+            <SelectItem key="normal" className="text-black">
+              Normal
+            </SelectItem>
+            <SelectItem key="spacious" className="text-black">
+              Spacious
+            </SelectItem>
+          </Select>
+          <Select
+            label="Column Layout"
+            classNames={selectClassNames}
+            variant="bordered"
+            selectedKeys={[layout.columnLayout || "spread"]}
+            onChange={(e) => {
+              if (e.target.value)
+                updateLayout({
+                  columnLayout: e.target.value as NonNullable<
+                    StorefrontFooter["layout"]
+                  >["columnLayout"],
+                });
+            }}
+            aria-label="Footer column layout"
+          >
+            <SelectItem key="spread" className="text-black">
+              Spread (multi-column)
+            </SelectItem>
+            <SelectItem key="stacked" className="text-black">
+              Stacked (single centered column)
+            </SelectItem>
+          </Select>
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm">

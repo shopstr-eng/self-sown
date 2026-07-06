@@ -118,6 +118,7 @@ const STOREFRONT_NAV_LOGO_POSITIONS = new Set([
 const STOREFRONT_NAV_LINK_ALIGNMENTS = new Set(["left", "center", "right"]);
 const STOREFRONT_NAV_LINK_SPACINGS = new Set(["compact", "normal", "spacious"]);
 const STOREFRONT_NAV_UTILITY_POSITIONS = new Set(["top", "bottom"]);
+const STOREFRONT_FOOTER_COLUMN_LAYOUTS = new Set(["spread", "stacked"]);
 const STOREFRONT_SECTION_TYPES = new Set([
   "hero",
   "about",
@@ -129,6 +130,7 @@ const STOREFRONT_SECTION_TYPES = new Set([
   "comparison",
   "text",
   "image",
+  "banner_carousel",
   "contact",
   "contact_form",
   "reviews",
@@ -210,6 +212,7 @@ function sanitizeFullSection(section: Record<string, unknown>) {
             | "comparison"
             | "text"
             | "image"
+            | "banner_carousel"
             | "contact"
             | "contact_form"
             | "reviews"
@@ -323,6 +326,34 @@ function sanitizeFullSection(section: Record<string, unknown>) {
     ...(typeof section.blogPostMode === "string" &&
     STOREFRONT_BLOG_MODES.has(section.blogPostMode)
       ? { blogPostMode: section.blogPostMode as "latest" | "selected" }
+      : {}),
+    ...(Array.isArray(section.bannerSlides)
+      ? {
+          bannerSlides: section.bannerSlides
+            .filter(isRecord)
+            .map((slide) => ({
+              image: typeof slide.image === "string" ? slide.image : "",
+              ...(typeof slide.heading === "string"
+                ? { heading: slide.heading }
+                : {}),
+              ...(typeof slide.subheading === "string"
+                ? { subheading: slide.subheading }
+                : {}),
+              ...(typeof slide.ctaText === "string"
+                ? { ctaText: slide.ctaText }
+                : {}),
+              ...(typeof slide.ctaLink === "string"
+                ? { ctaLink: slide.ctaLink }
+                : {}),
+            }))
+            .filter((slide) => slide.image),
+        }
+      : {}),
+    ...(typeof section.bannerAutoplay === "boolean"
+      ? { bannerAutoplay: section.bannerAutoplay }
+      : {}),
+    ...(typeof section.bannerInterval === "number"
+      ? { bannerInterval: section.bannerInterval }
       : {}),
   };
 }
@@ -499,6 +530,73 @@ function normalizeStorefrontConfig(
                         content:
                           value.footer.policies.cancellationPolicy.content,
                       },
+                    }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(isRecord(value.footer.newsletter)
+          ? {
+              newsletter: {
+                ...(typeof value.footer.newsletter.enabled === "boolean"
+                  ? { enabled: value.footer.newsletter.enabled }
+                  : {}),
+                ...(typeof value.footer.newsletter.headline === "string"
+                  ? { headline: value.footer.newsletter.headline }
+                  : {}),
+                ...(typeof value.footer.newsletter.subtext === "string"
+                  ? { subtext: value.footer.newsletter.subtext }
+                  : {}),
+                ...(typeof value.footer.newsletter.buttonText === "string"
+                  ? { buttonText: value.footer.newsletter.buttonText }
+                  : {}),
+                ...(typeof value.footer.newsletter.placeholder === "string"
+                  ? { placeholder: value.footer.newsletter.placeholder }
+                  : {}),
+                ...(typeof value.footer.newsletter.successMessage === "string"
+                  ? {
+                      successMessage: value.footer.newsletter.successMessage,
+                    }
+                  : {}),
+                ...(typeof value.footer.newsletter.collectPhone === "boolean"
+                  ? { collectPhone: value.footer.newsletter.collectPhone }
+                  : {}),
+              },
+            }
+          : {}),
+        ...(isRecord(value.footer.layout)
+          ? {
+              layout: {
+                ...(typeof value.footer.layout.alignment === "string" &&
+                STOREFRONT_NAV_LINK_ALIGNMENTS.has(
+                  value.footer.layout.alignment
+                )
+                  ? {
+                      alignment: value.footer.layout.alignment as
+                        | "left"
+                        | "center"
+                        | "right",
+                    }
+                  : {}),
+                ...(typeof value.footer.layout.linkSpacing === "string" &&
+                STOREFRONT_NAV_LINK_SPACINGS.has(
+                  value.footer.layout.linkSpacing
+                )
+                  ? {
+                      linkSpacing: value.footer.layout.linkSpacing as
+                        | "compact"
+                        | "normal"
+                        | "spacious",
+                    }
+                  : {}),
+                ...(typeof value.footer.layout.columnLayout === "string" &&
+                STOREFRONT_FOOTER_COLUMN_LAYOUTS.has(
+                  value.footer.layout.columnLayout
+                )
+                  ? {
+                      columnLayout: value.footer.layout.columnLayout as
+                        | "spread"
+                        | "stacked",
                     }
                   : {}),
               },

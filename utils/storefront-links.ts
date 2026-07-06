@@ -134,6 +134,18 @@ function sanitizeSection(section: StorefrontSection): StorefrontSection {
     };
   }
 
+  if (updated.bannerSlides && updated.bannerSlides.length > 0) {
+    updated = {
+      ...updated,
+      bannerSlides: updated.bannerSlides.map((slide) => ({
+        ...slide,
+        ...(slide.ctaLink
+          ? { ctaLink: sanitizeStorefrontSectionLink(slide.ctaLink) }
+          : {}),
+      })),
+    };
+  }
+
   return updated;
 }
 

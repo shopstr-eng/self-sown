@@ -587,6 +587,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
                 "contact",
                 "contact_form",
                 "reviews",
+                "banner_carousel",
               ])
               .describe("Section type"),
             enabled: z
@@ -604,7 +605,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             fullWidth: z
               .boolean()
               .optional()
-              .describe("Full-width toggle for image sections"),
+              .describe(
+                "Full-width/full-bleed toggle for image and banner_carousel sections"
+              ),
             ctaText: z
               .string()
               .optional()
@@ -616,19 +619,19 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             overlayOpacity: z
               .number()
               .optional()
-              .describe("Hero overlay opacity 0-1"),
+              .describe("Hero/banner overlay opacity 0-1"),
             headingColor: z
               .string()
               .optional()
-              .describe("Hero overlay heading text color (hex)"),
+              .describe("Hero/banner overlay heading text color (hex)"),
             subheadingColor: z
               .string()
               .optional()
-              .describe("Hero overlay subheading text color (hex)"),
+              .describe("Hero/banner overlay subheading text color (hex)"),
             textOutlineColor: z
               .string()
               .optional()
-              .describe("Hero overlay text outline color (hex)"),
+              .describe("Hero/banner overlay text outline color (hex)"),
             items: z
               .array(z.object({ question: z.string(), answer: z.string() }))
               .optional()
@@ -717,6 +720,28 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
                 "Show the optional Message input on a contact-form section (default true)"
               ),
             caption: z.string().optional().describe("Image caption"),
+            bannerSlides: z
+              .array(
+                z.object({
+                  image: z.string(),
+                  heading: z.string().optional(),
+                  subheading: z.string().optional(),
+                  ctaText: z.string().optional(),
+                  ctaLink: z.string().optional(),
+                })
+              )
+              .optional()
+              .describe("Slides for banner_carousel sections"),
+            bannerAutoplay: z
+              .boolean()
+              .optional()
+              .describe("Auto-advance slides in a banner_carousel section"),
+            bannerInterval: z
+              .number()
+              .optional()
+              .describe(
+                "Milliseconds between banner_carousel slides when autoplay is on"
+              ),
           })
         )
         .optional()
@@ -775,6 +800,30 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             .boolean()
             .optional()
             .describe("Show 'Powered by Milk Market' in footer"),
+          newsletter: z
+            .object({
+              enabled: z.boolean().optional(),
+              headline: z.string().optional(),
+              subtext: z.string().optional(),
+              buttonText: z.string().optional(),
+              placeholder: z.string().optional(),
+              successMessage: z.string().optional(),
+              collectPhone: z.boolean().optional(),
+            })
+            .optional()
+            .describe(
+              "Footer newsletter / email-capture block (subscribers are added to the seller's email list)"
+            ),
+          layout: z
+            .object({
+              alignment: z.enum(["left", "center", "right"]).optional(),
+              linkSpacing: z.enum(["compact", "normal", "spacious"]).optional(),
+              columnLayout: z.enum(["spread", "stacked"]).optional(),
+            })
+            .optional()
+            .describe(
+              "Footer layout: link alignment, spacing, and spread vs stacked (single-column, centered) arrangement"
+            ),
         })
         .optional()
         .describe("Footer configuration"),

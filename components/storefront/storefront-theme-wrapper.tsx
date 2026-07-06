@@ -618,6 +618,7 @@ function StorefrontThemeWrapperInner({
             footerColors={storefront?.footerColors}
             shopName={shopName}
             shopSlug={shopSlug}
+            shopPubkey={sellerPubkey}
           />
         </div>
         <SignInModal

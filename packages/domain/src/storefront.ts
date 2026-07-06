@@ -69,12 +69,40 @@ export interface StorefrontPolicies {
   cancellationPolicy?: StorefrontPolicy;
 }
 
+export type StorefrontFooterAlignment = "left" | "center" | "right";
+export type StorefrontFooterColumnLayout = "spread" | "stacked";
+
+// Layout controls for the storefront footer, mirroring StorefrontNavLayout for
+// the top nav. All fields optional; an absent field falls back to the historical
+// render (spread row, centered on mobile) so existing published events stay
+// byte-stable. columnLayout "stacked" centers every block in a single column.
+export interface StorefrontFooterLayout {
+  alignment?: StorefrontFooterAlignment;
+  linkSpacing?: StorefrontNavLinkSpacing;
+  columnLayout?: StorefrontFooterColumnLayout;
+}
+
+// Optional email/newsletter capture rendered in the footer. Submissions POST to
+// the same /api/storefront/subscribe endpoint the contact-form subscription mode
+// uses (adds the visitor to the seller's list + enrolls the welcome series).
+export interface StorefrontFooterNewsletter {
+  enabled?: boolean;
+  headline?: string;
+  subtext?: string;
+  buttonText?: string;
+  placeholder?: string;
+  successMessage?: string;
+  collectPhone?: boolean;
+}
+
 export interface StorefrontFooter {
   text?: string;
   socialLinks?: StorefrontSocialLink[];
   navLinks?: StorefrontNavLink[];
   showPoweredBy?: boolean;
   policies?: StorefrontPolicies;
+  newsletter?: StorefrontFooterNewsletter;
+  layout?: StorefrontFooterLayout;
 }
 
 export interface StorefrontTestimonial {
@@ -119,6 +147,7 @@ export type StorefrontSectionType =
   | "comparison"
   | "text"
   | "image"
+  | "banner_carousel"
   | "contact"
   | "contact_form"
   | "reviews"
@@ -151,6 +180,18 @@ export interface StorefrontSocialPost {
 export interface StorefrontSpecificationItem {
   label: string;
   value: string;
+}
+
+// A single slide in a banner_carousel section. Each slide has its own image and
+// optional text overlay (heading/subheading/CTA). Overlay styling (opacity,
+// colors, outline) and full-bleed vs contained are section-level and shared
+// across all slides, mirroring the hero section's text-over-image treatment.
+export interface StorefrontBannerSlide {
+  image: string;
+  heading?: string;
+  subheading?: string;
+  ctaText?: string;
+  ctaLink?: string;
 }
 
 export interface StorefrontSection {
@@ -214,6 +255,13 @@ export interface StorefrontSection {
   // the rest are appended — cut off at blogPostLimit. "selected" shows ONLY the
   // posts listed in blogPostIds, in that order, cut off at blogPostLimit.
   blogPostMode?: "latest" | "selected";
+  // Banner carousel section: a set of rotating slides, each with its own image
+  // and optional text overlay. Reuses fullWidth (full-bleed vs contained) and
+  // overlayOpacity/headingColor/subheadingColor/textOutlineColor for the
+  // text-over-image styling shared with the hero section.
+  bannerSlides?: StorefrontBannerSlide[];
+  bannerAutoplay?: boolean;
+  bannerInterval?: number;
 }
 
 export interface StorefrontProductPageConfig {

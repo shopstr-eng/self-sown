@@ -23,6 +23,10 @@ across many surfaces. The compiler catches some; others fail silently.
 - Option lists + filters in `page-editor.tsx` and `shop-profile-form.tsx` (the "add section"
   menus) — a type omitted here can't be added by the seller.
 - Body-text allowlist in `section-editor.tsx` if the type has an editable body.
+- `SECTION_PLACEHOLDERS` in `components/settings/storefront/storefront-preview-panel.tsx`:
+  a type with no entry previews BLANK the moment it's added (before the seller fills any
+  field). Add a placeholder entry (reuse the file's `PLACEHOLDER_*` image consts) so the
+  add-to-preview isn't empty.
 
 **How to apply:** when adding a section type, grep for an existing type name (e.g. "reviews")
 across the repo and mirror every hit; lean on the compiler for the two enforced maps but

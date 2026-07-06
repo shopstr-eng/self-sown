@@ -49,6 +49,23 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
     ctaLink: "#products",
     overlayOpacity: 0.6,
   },
+  banner_carousel: {
+    overlayOpacity: 0.4,
+    bannerSlides: [
+      {
+        image: PLACEHOLDER_BANNER,
+        heading: "Fresh From Our Farm",
+        subheading: "Real food, direct from our family to yours.",
+        ctaText: "Shop Now",
+        ctaLink: "#products",
+      },
+      {
+        image: PLACEHOLDER_SECTION_IMAGE,
+        heading: "Pasture Raised",
+        subheading: "Happy animals, honest food.",
+      },
+    ],
+  },
   about: {
     heading: "About Our Farm",
     body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our raw milk and farmstead cheeses to our pasture-raised eggs and grass-fed meats. We believe in food freedom: your right to choose real, nutrient-dense food direct from the source.",
@@ -287,6 +304,9 @@ export function fillFooterPlaceholders(
   shopName: string
 ): StorefrontFooter {
   return {
+    // Spread first so newsletter/layout/policies (and any future footer field)
+    // survive into the preview; only text/socialLinks get placeholder fallbacks.
+    ...footer,
     text:
       footer.text ||
       `${
@@ -308,8 +328,6 @@ export function fillFooterPlaceholders(
               label: "Email",
             },
           ],
-    navLinks: footer.navLinks,
-    showPoweredBy: footer.showPoweredBy,
   };
 }
 
@@ -1057,6 +1075,7 @@ export default function StorefrontPreviewPanel({
                 footerColors={footerColors}
                 shopName={displayName}
                 shopSlug={shopSlug || "preview"}
+                isPreview
               />
             </div>
           </div>

@@ -257,6 +257,129 @@ describe("seller domain helpers", () => {
     });
   });
 
+  test("preserves banner_carousel sections and drops slides without an image", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          sections: [
+            {
+              id: "banner-home",
+              type: "banner_carousel",
+              enabled: true,
+              fullWidth: true,
+              bannerAutoplay: true,
+              bannerInterval: 6000,
+              overlayOpacity: 0.5,
+              headingColor: "#ffffff",
+              subheadingColor: "#eeeeee",
+              textOutlineColor: "#000000",
+              bannerSlides: [
+                {
+                  image: "https://cdn.example.com/1.jpg",
+                  heading: "Slide 1",
+                  subheading: "Sub 1",
+                  ctaText: "Shop",
+                  ctaLink: "#products",
+                },
+                { heading: "No image slide" },
+                { image: "https://cdn.example.com/2.jpg" },
+              ],
+            },
+          ],
+        },
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+
+    expect(storefront.sections[0]).toEqual({
+      id: "banner-home",
+      type: "banner_carousel",
+      enabled: true,
+      fullWidth: true,
+      bannerAutoplay: true,
+      bannerInterval: 6000,
+      overlayOpacity: 0.5,
+      headingColor: "#ffffff",
+      subheadingColor: "#eeeeee",
+      textOutlineColor: "#000000",
+      bannerSlides: [
+        {
+          image: "https://cdn.example.com/1.jpg",
+          heading: "Slide 1",
+          subheading: "Sub 1",
+          ctaText: "Shop",
+          ctaLink: "#products",
+        },
+        { image: "https://cdn.example.com/2.jpg" },
+      ],
+    });
+  });
+
+  test("preserves footer newsletter and layout, dropping invalid layout values", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          footer: {
+            text: "Thanks for visiting",
+            newsletter: {
+              enabled: true,
+              headline: "Stay in the loop",
+              subtext: "Get farm updates",
+              buttonText: "Subscribe",
+              placeholder: "you@example.com",
+              successMessage: "You're in!",
+              collectPhone: true,
+            },
+            layout: {
+              alignment: "center",
+              linkSpacing: "spacious",
+              columnLayout: "bogus",
+            },
+          },
+        },
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+
+    expect(storefront.footer.newsletter).toEqual({
+      enabled: true,
+      headline: "Stay in the loop",
+      subtext: "Get farm updates",
+      buttonText: "Subscribe",
+      placeholder: "you@example.com",
+      successMessage: "You're in!",
+      collectPhone: true,
+    });
+
+    // Invalid columnLayout is stripped; valid alignment/linkSpacing survive.
+    expect(storefront.footer.layout).toEqual({
+      alignment: "center",
+      linkSpacing: "spacious",
+    });
+  });
+
   test("orderedPaymentMethodGroups fills, dedupes, and drops invalid groups", () => {
     // No preference → default order.
     expect(orderedPaymentMethodGroups()).toEqual(["bitcoin", "card", "fiat"]);

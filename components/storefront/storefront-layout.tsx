@@ -1307,6 +1307,7 @@ export default function StorefrontLayout({
           footerColors={storefront.footerColors}
           shopName={shopName}
           shopSlug={shopSlug}
+          shopPubkey={shopPubkey}
         />
       </div>
       <SignInModal

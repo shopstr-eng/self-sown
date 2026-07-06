@@ -20,6 +20,7 @@ import {
   applyCustomDomainHref,
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
+import StorefrontFooterNewsletter from "./storefront-footer-newsletter";
 
 interface StorefrontFooterProps {
   footer: StorefrontFooter;
@@ -27,6 +28,8 @@ interface StorefrontFooterProps {
   footerColors?: StorefrontFooterColors;
   shopName: string;
   shopSlug: string;
+  shopPubkey?: string;
+  isPreview?: boolean;
 }
 
 const SOCIAL_IMAGE_ICONS: Record<string, string> = {
@@ -57,6 +60,8 @@ export default function StorefrontFooterComponent({
   footerColors,
   shopName,
   shopSlug,
+  shopPubkey,
+  isPreview,
 }: StorefrontFooterProps) {
   const isCustomDomain = useIsCustomDomain();
   const socialLinks = footer.socialLinks || [];
@@ -75,6 +80,47 @@ export default function StorefrontFooterComponent({
     return policy && policy.enabled;
   });
 
+  // Footer layout controls, mirroring the top-nav's navLayout. All optional; an
+  // absent field preserves the historical render (centered mobile, spread
+  // desktop row) so previously published storefronts stay pixel-stable.
+  const layout = footer.layout || {};
+  const newsletter = footer.newsletter || {};
+  const alignment = layout.alignment;
+  const columnLayout = layout.columnLayout || "spread";
+  const linkSpacing = layout.linkSpacing || "normal";
+
+  const alignItemsClass =
+    alignment === "left"
+      ? "items-start"
+      : alignment === "right"
+        ? "items-end"
+        : "items-center";
+  const rowClass =
+    columnLayout === "stacked"
+      ? `flex flex-col ${alignItemsClass} gap-8`
+      : `flex flex-col ${alignItemsClass} gap-8 md:flex-row md:items-start md:justify-between`;
+  const brandTextClass = alignment
+    ? alignment === "left"
+      ? "text-left"
+      : alignment === "right"
+        ? "text-right"
+        : "text-center"
+    : columnLayout === "stacked"
+      ? "text-center"
+      : "text-center md:text-left";
+  const linkSpacingClass =
+    linkSpacing === "compact"
+      ? "gap-x-4 gap-y-2"
+      : linkSpacing === "spacious"
+        ? "gap-x-10 gap-y-3"
+        : "gap-x-6 gap-y-2";
+  const newsletterJustify =
+    alignment === "left"
+      ? "justify-start"
+      : alignment === "right"
+        ? "justify-end"
+        : "justify-center";
+
   return (
     <footer
       className="border-t px-4 py-12 md:px-6"
@@ -85,8 +131,24 @@ export default function StorefrontFooterComponent({
       }}
     >
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-col items-center gap-8 md:flex-row md:items-start md:justify-between">
-          <div className="text-center md:text-left">
+        {newsletter.enabled && (
+          <div
+            className={`mb-8 flex ${newsletterJustify} border-b pb-8`}
+            style={{ borderColor: text + "11" }}
+          >
+            <StorefrontFooterNewsletter
+              config={newsletter}
+              shopPubkey={shopPubkey}
+              isPreview={isPreview}
+              textColor={text}
+              accentColor={accent}
+              bgColor={bg}
+              align={alignment || "center"}
+            />
+          </div>
+        )}
+        <div className={rowClass}>
+          <div className={brandTextClass}>
             <FormattedText
               as="h3"
               className="font-heading text-lg font-bold"
@@ -102,7 +164,9 @@ export default function StorefrontFooterComponent({
           </div>
 
           {navLinks.length > 0 && (
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+            <div
+              className={`flex flex-wrap justify-center ${linkSpacingClass}`}
+            >
               {navLinks.map((link, idx) => {
                 const href = applyCustomDomainHref(
                   sanitizeStorefrontNavHref(link, shopSlug),

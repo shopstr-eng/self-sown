@@ -4,6 +4,7 @@ import { Input, Textarea, Select, SelectItem } from "@heroui/react";
 import {
   StorefrontSection,
   StorefrontSectionType,
+  StorefrontBannerSlide,
   StorefrontFaqItem,
   StorefrontTestimonial,
   StorefrontIngredientItem,
@@ -53,6 +54,7 @@ const SECTION_LABELS: Record<StorefrontSectionType, string> = {
   comparison: "Comparison",
   text: "Text Block",
   image: "Image",
+  banner_carousel: "Banner Carousel",
   contact: "Contact",
   contact_form: "Contact Form",
   reviews: "Customer Reviews",
@@ -454,6 +456,167 @@ export default function SectionEditor({
                 />
                 Full width
               </label>
+            </>
+          )}
+
+          {section.type === "banner_carousel" && (
+            <>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={section.fullWidth || false}
+                  onChange={(e) => update({ fullWidth: e.target.checked })}
+                />
+                Full-bleed (edge to edge; off = contained with borders)
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={section.bannerAutoplay || false}
+                  onChange={(e) => update({ bannerAutoplay: e.target.checked })}
+                />
+                Auto-advance slides
+              </label>
+              {section.bannerAutoplay && (
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">
+                    Seconds per slide:{" "}
+                    {Math.round((section.bannerInterval ?? 5000) / 1000)}s
+                  </label>
+                  <input
+                    type="range"
+                    min="2"
+                    max="15"
+                    value={Math.round((section.bannerInterval ?? 5000) / 1000)}
+                    onChange={(e) =>
+                      update({
+                        bannerInterval: parseInt(e.target.value) * 1000,
+                      })
+                    }
+                    className="w-full"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Overlay Opacity:{" "}
+                  {Math.round((section.overlayOpacity ?? 0.4) * 100)}%
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round((section.overlayOpacity ?? 0.4) * 100)}
+                  onChange={(e) =>
+                    update({ overlayOpacity: parseInt(e.target.value) / 100 })
+                  }
+                  className="w-full"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Heading Text Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Heading text color"
+                    value={section.headingColor || "#ffffff"}
+                    onChange={(e) => update({ headingColor: e.target.value })}
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.headingColor || ""}
+                    onChange={(e) =>
+                      update({ headingColor: e.target.value || undefined })
+                    }
+                    placeholder="Default (theme background)"
+                  />
+                  {section.headingColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ headingColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Subheading Text Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Subheading text color"
+                    value={section.subheadingColor || "#ffffff"}
+                    onChange={(e) =>
+                      update({ subheadingColor: e.target.value })
+                    }
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.subheadingColor || ""}
+                    onChange={(e) =>
+                      update({ subheadingColor: e.target.value || undefined })
+                    }
+                    placeholder="Default (theme background)"
+                  />
+                  {section.subheadingColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ subheadingColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Text Outline Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Text outline color"
+                    value={section.textOutlineColor || "#000000"}
+                    onChange={(e) =>
+                      update({ textOutlineColor: e.target.value })
+                    }
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.textOutlineColor || ""}
+                    onChange={(e) =>
+                      update({ textOutlineColor: e.target.value || undefined })
+                    }
+                    placeholder="None (no outline)"
+                  />
+                  {section.textOutlineColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ textOutlineColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <BannerSlidesEditor
+                slides={section.bannerSlides || []}
+                onChange={(bannerSlides) => update({ bannerSlides })}
+              />
             </>
           )}
 
@@ -1172,6 +1335,143 @@ function TestimonialEditor({
         className="text-sm font-bold text-blue-600 hover:underline"
       >
         + Add Testimonial
+      </button>
+    </div>
+  );
+}
+
+function BannerSlidesEditor({
+  slides,
+  onChange,
+}: {
+  slides: StorefrontBannerSlide[];
+  onChange: (slides: StorefrontBannerSlide[]) => void;
+}) {
+  const add = () => onChange([...slides, { image: "" }]);
+  const remove = (idx: number) => onChange(slides.filter((_, i) => i !== idx));
+  const edit = (idx: number, fields: Partial<StorefrontBannerSlide>) => {
+    const updated = [...slides];
+    updated[idx] = { ...updated[idx]!, ...fields };
+    onChange(updated);
+  };
+  const move = (idx: number, dir: -1 | 1) => {
+    const target = idx + dir;
+    if (target < 0 || target >= slides.length) return;
+    const updated = [...slides];
+    const [item] = updated.splice(idx, 1);
+    updated.splice(target, 0, item!);
+    onChange(updated);
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="block text-sm font-bold text-gray-700">Slides</label>
+      {slides.map((slide, idx) => (
+        <div
+          key={idx}
+          className="space-y-2 rounded-lg border border-gray-200 p-3"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-gray-500">
+              Slide {idx + 1}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => move(idx, -1)}
+                disabled={idx === 0}
+                className="text-xs text-gray-400 hover:text-black disabled:opacity-30"
+                aria-label="Move slide up"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => move(idx, 1)}
+                disabled={idx === slides.length - 1}
+                className="text-xs text-gray-400 hover:text-black disabled:opacity-30"
+                aria-label="Move slide down"
+              >
+                ▼
+              </button>
+              <button
+                type="button"
+                onClick={() => remove(idx)}
+                className="text-xs text-red-500"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          {slide.image && (
+            <img
+              src={slide.image}
+              alt=""
+              className="h-24 w-full rounded-md object-cover"
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              label="Image URL"
+              size="sm"
+              classNames={{ inputWrapper: inputWrapperClass }}
+              variant="bordered"
+              value={slide.image}
+              onChange={(e) => edit(idx, { image: e.target.value })}
+              className="flex-1"
+            />
+            <FileUploaderButton
+              className="rounded-lg border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black"
+              imgCallbackOnUpload={(url) => edit(idx, { image: url })}
+            >
+              Upload
+            </FileUploaderButton>
+          </div>
+          <Input
+            label="Heading (optional)"
+            size="sm"
+            classNames={{ inputWrapper: inputWrapperClass }}
+            variant="bordered"
+            value={slide.heading || ""}
+            onChange={(e) => edit(idx, { heading: e.target.value })}
+          />
+          <Input
+            label="Subheading (optional)"
+            size="sm"
+            classNames={{ inputWrapper: inputWrapperClass }}
+            variant="bordered"
+            value={slide.subheading || ""}
+            onChange={(e) => edit(idx, { subheading: e.target.value })}
+          />
+          <div className="flex items-center gap-2">
+            <Input
+              label="Button Text (optional)"
+              size="sm"
+              classNames={{ inputWrapper: inputWrapperClass }}
+              variant="bordered"
+              value={slide.ctaText || ""}
+              onChange={(e) => edit(idx, { ctaText: e.target.value })}
+              className="flex-1"
+            />
+            <Input
+              label="Button Link"
+              size="sm"
+              classNames={{ inputWrapper: inputWrapperClass }}
+              variant="bordered"
+              value={slide.ctaLink || ""}
+              onChange={(e) => edit(idx, { ctaLink: e.target.value })}
+              placeholder="#products"
+              className="flex-1"
+            />
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={add}
+        className="text-sm font-bold text-blue-600 hover:underline"
+      >
+        + Add Slide
       </button>
     </div>
   );

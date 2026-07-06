@@ -608,6 +608,17 @@ export default function StandaloneLanding() {
             Discover products or list your own. Free to start, no mandatory
             fees, ever.
           </p>
+
+          <p className="mt-3 text-sm font-bold text-zinc-700">
+            Thinking about selling?{" "}
+            <Link
+              href="/stall-preview"
+              className="underline decoration-2 underline-offset-2 hover:text-black"
+            >
+              Preview how your current website would convert as a stall
+            </Link>{" "}
+            first — no signup needed.
+          </p>
         </div>
       </section>
 
@@ -624,11 +635,19 @@ export default function StandaloneLanding() {
                 Open a stall in minutes, set your prices, and get paid directly
                 with no platform fees.
               </p>
-              <Link href="/onboarding/new-account" className="mt-auto">
-                <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
-                  Start Selling
-                </button>
-              </Link>
+              <div className="mt-auto">
+                <Link href="/onboarding/new-account">
+                  <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
+                    Start Selling
+                  </button>
+                </Link>
+                <Link
+                  href="/stall-preview"
+                  className="mt-3 block text-center text-sm font-bold text-zinc-600 underline decoration-2 underline-offset-2 hover:text-black"
+                >
+                  Not ready? Test how your site would convert first →
+                </Link>
+              </div>
             </div>
 
             {/* Buy funnel */}

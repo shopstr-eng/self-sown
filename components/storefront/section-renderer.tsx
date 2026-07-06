@@ -10,6 +10,7 @@ import SectionIngredients from "./sections/section-ingredients";
 import SectionComparison from "./sections/section-comparison";
 import SectionText from "./sections/section-text";
 import SectionImage from "./sections/section-image";
+import SectionBannerCarousel from "./sections/section-banner-carousel";
 import SectionContact from "./sections/section-contact";
 import SectionContactForm from "./sections/section-contact-form";
 import SectionReviews from "./sections/section-reviews";
@@ -83,6 +84,8 @@ export default function SectionRenderer({
       return <SectionText section={section} colors={colors} />;
     case "image":
       return <SectionImage section={section} colors={colors} />;
+    case "banner_carousel":
+      return <SectionBannerCarousel section={section} colors={colors} />;
     case "contact":
       return <SectionContact section={section} colors={colors} />;
     case "contact_form":

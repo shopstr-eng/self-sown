@@ -3750,6 +3750,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     desc: "Full or contained image with caption",
                                   },
                                   {
+                                    type: "banner_carousel" as StorefrontSectionType,
+                                    label: "Banner Carousel",
+                                    icon: "🎞",
+                                    desc: "Rotating image slides with text overlays",
+                                  },
+                                  {
                                     type: "contact" as StorefrontSectionType,
                                     label: "Contact",
                                     icon: "📬",
@@ -4454,6 +4460,36 @@ function SectionPreviewSvg({ type }: { type: string }) {
           <polygon points="30,38 50,20 70,38" fill="#94A3B8" />
           <polygon points="60,38 72,26 84,38" fill="#B0BEC5" />
           <rect x="20" y="48" width="60" height="3" rx="1" fill="#94A3B8" />
+        </svg>
+      );
+    case "banner_carousel":
+      return (
+        <svg
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          fill="none"
+          className="rounded"
+        >
+          <rect width={w} height={h} rx="3" fill="#94A3B8" />
+          <circle cx="26" cy="22" r="6" fill="#B0BEC5" />
+          <polygon points="30,40 50,22 70,40" fill="#B0BEC5" />
+          <polygon points="60,40 74,28 88,40" fill="#CBD5E1" />
+          <path
+            d="M12 28 l-5 4 l5 4"
+            stroke="#fff"
+            strokeWidth="2"
+            fill="none"
+          />
+          <path
+            d="M88 28 l5 4 l-5 4"
+            stroke="#fff"
+            strokeWidth="2"
+            fill="none"
+          />
+          <circle cx="44" cy="50" r="2" fill="#fff" />
+          <circle cx="52" cy="50" r="2" fill="rgba(255,255,255,0.5)" />
+          <circle cx="60" cy="50" r="2" fill="rgba(255,255,255,0.5)" />
         </svg>
       );
     case "contact":
