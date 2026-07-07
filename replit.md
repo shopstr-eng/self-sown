@@ -10,7 +10,7 @@ Preferred communication style: Simple, everyday language.
 
 - **Frontend**: Next.js 16 (App Router) + TypeScript v4, React 19, HeroUI, Tailwind, Framer Motion, PWA. State via React Context per domain; localStorage for prefs/auth; service worker caching.
 - **Backend**: Next.js API routes, PostgreSQL, Formidable uploads.
-- **Runtime**: Node `>=22.4.0` (`.nvmrc` = `22`); `@cashu/cashu-ts` pinned to `4.1.0`.
+- **Runtime**: Node `>=22.4.0` (`.nvmrc` = `22`); `@cashu/cashu-ts` pinned to `4.5.1`.
 - **Routing**: Friendly slugs for listings + profiles with pubkey disambiguation; naddr/npub URLs redirect to slugs (`utils/url-slugs.ts`).
 - **SSR OpenGraph**: `/listing/`, `/shop/`, `/marketplace/`, `/communities/` fetch from PostgreSQL in `getServerSideProps` and inject meta via `pageProps.ogMeta` → `DynamicHead` (`_app.tsx`).
 

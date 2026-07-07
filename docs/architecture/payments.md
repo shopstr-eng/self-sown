@@ -3,7 +3,7 @@
 ## Lightning & Cashu
 
 - **Lightning**: Direct invoice gen + verify.
-- **Cashu**: `@cashu/cashu-ts` v4.1.0 (`Mint`/`Wallet`/`Keyset`, bolt11-suffixed quote helpers, `Amount` boundary type with `.toNumber()`, `KeyChain.getKeysets()`, explicit `await wallet.loadMint()`, `getDecodedToken(token, keysetIds)` requires the second arg).
+- **Cashu**: `@cashu/cashu-ts` v4.5.1 (`Mint`/`Wallet`/`Keyset`, bolt11-suffixed quote helpers, `Amount` boundary type with `.toNumber()`, `KeyChain.getKeysets()`, explicit `await wallet.loadMint()` — REQUIRED on a freshly constructed wallet before `createMintQuoteBolt11()`/`mintProofsBolt11()` or the mint throws "Mint info not initialized", `getDecodedToken(token, keysetIds)` requires the second arg).
 - **Proof amount JSON gotcha**: Proofs in `localStorage["tokens"]` lose the `Amount` wrapper on JSON round-trip and come back as plain `number`. Code reading `getLocalStorageData().tokens` must use `proofAmountToNumber` / `sumProofAmounts` from `utils/cashu/proof-amount.ts`, not `.amount.toNumber()`.
 - **Hardening utilities** (`utils/cashu/`): `mint-retry-service` (`withMintRetry`), `swap-retry-service` (`safeSwap`), `melt-retry-service` (`safeMeltProofs`), `pending-mint-operations` (DB-backed `pending_mint_quotes` for orphan recovery), `wallet-recovery` (boot reconciler via `components/utility-components/mint-recovery-boot.tsx`). All cashu call sites use these wrappers and check melt/swap status before treating ops as successful.
 

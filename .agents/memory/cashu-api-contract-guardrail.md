@@ -24,3 +24,17 @@ Send/Mint flow starts calling a new library method, add it to the contract test.
 The methods currently guarded: loadMint, send, checkProofsStates,
 createMintQuoteBolt11, checkMintQuoteBolt11, mintProofsBolt11, the keyChain
 getter, KeyChain.getKeysets, and getEncodedToken.
+
+**Blind spot — method-EXISTS ≠ method-CALLED:** the contract test only asserts the
+library methods exist; it can't see whether a call site actually invokes them in
+the right order. cashu-ts v4 requires `await wallet.loadMint()` on a freshly
+constructed `CashuWallet` BEFORE `createMintQuoteBolt11()`, or the mint quote
+throws "Mint info not initialized; call loadMint or loadMintFromCache first". The
+buyer checkout invoice cards (`product-invoice-card.tsx` +
+`cart-invoice-card.tsx`) forgot that call in their Lightning + NWC handlers, so
+Bitcoin invoices silently failed to generate (handler catch → `invoiceGenerationFailed`)
+for perfectly valid price/currency — past the green contract test. Guarded now by
+a source-invariant test (`__tests__/components/invoice-card-loadmint-invariant.test.ts`)
+asserting every `createMintQuoteBolt11(` in those cards is preceded by a
+`.loadMint(` on the wallet it was built from. Wallet buttons + the UCP/MCP
+order-service path already loadMint correctly; the checkout cards were the gap.

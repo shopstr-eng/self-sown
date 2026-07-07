@@ -2987,6 +2987,7 @@ export default function CartInvoiceCard({
       validatePaymentData(convertedPrice, data);
 
       const wallet = new CashuWallet(new CashuMint(mints[0]!));
+      await wallet.loadMint();
       const { request: pr, quote: hash } =
         await wallet.createMintQuoteBolt11(convertedPrice);
       recordPendingMintQuote({
@@ -4688,6 +4689,7 @@ export default function CartInvoiceCard({
 
       setShowInvoiceCard(true);
       const wallet = new CashuWallet(new CashuMint(mints[0]!));
+      await wallet.loadMint();
 
       const { request: pr, quote: hash } =
         await wallet.createMintQuoteBolt11(convertedPrice);
