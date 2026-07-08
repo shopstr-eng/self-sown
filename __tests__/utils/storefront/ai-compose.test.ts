@@ -121,6 +121,19 @@ describe("composeStoreDesignWithAI copy precedence", () => {
     expect(merged!.storefront.colorScheme?.primary).toBe("#123456");
   });
 
+  test("dark source header keeps the deterministic dark nav even without extracted brand colors", async () => {
+    mockLLM.mockResolvedValue({
+      ...AI_RESPONSE,
+      navColors: { background: "#fafafa", text: "#0a0a0a", accent: "#123456" },
+    });
+    const s = signals({ colors: [], headerTheme: "dark" });
+    const base = buildExtractionDraft(s);
+    const merged = await composeStoreDesignWithAI(s, base);
+
+    expect(base.storefront.navColors!.background).toBe("#111111");
+    expect(merged!.storefront.navColors).toEqual(base.storefront.navColors);
+  });
+
   test("never rewrites the imported banner_carousel overlay", async () => {
     const s = signals({ hero: { image: "https://farm.example/hero.jpg" } });
     const merged = await composeStoreDesignWithAI(s, buildExtractionDraft(s));

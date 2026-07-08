@@ -108,6 +108,95 @@ describe("buildExtractionDraft imported hero", () => {
   });
 });
 
+describe("buildExtractionDraft dark header", () => {
+  test("an explicitly dark source header yields a dark nav", () => {
+    const draft = buildExtractionDraft(baseSignals({ headerTheme: "dark" }));
+    expect(draft.storefront.navColors).toMatchObject({
+      background: "#111111",
+      text: "#ffffff",
+    });
+  });
+
+  test("nav follows page colors when the header is not dark", () => {
+    const draft = buildExtractionDraft(baseSignals());
+    expect(draft.storefront.navColors!.background).not.toBe("#111111");
+  });
+});
+
+describe("buildExtractionDraft testimonials + source order", () => {
+  test("builds a testimonials section from extracted quotes with the source heading", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        testimonials: {
+          heading: "Customer Reviews",
+          quotes: [
+            { quote: "Best milk ever, truly.", author: "Alice" },
+            { quote: "We drive an hour for this." },
+          ],
+          pos: 500,
+        },
+      })
+    );
+    const t = draft.storefront.sections!.find(
+      (s) => s.type === "testimonials"
+    )!;
+    expect(t).toBeDefined();
+    expect(t.id).toBe("imported-testimonials");
+    expect(t.heading).toBe("Customer Reviews");
+    expect(t.testimonials).toEqual([
+      { quote: "Best milk ever, truly.", author: "Alice" },
+      { quote: "We drive an hour for this.", author: "" },
+    ]);
+  });
+
+  test("skips the testimonials section for fewer than two quotes", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        testimonials: { quotes: [{ quote: "Only one quote here." }] },
+      })
+    );
+    expect(
+      draft.storefront.sections!.some((s) => s.type === "testimonials")
+    ).toBe(false);
+  });
+
+  test("orders text/image/testimonial sections by their source position", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        hero: { image: "https://farm.example/hero.jpg" },
+        aboutText: "A long about text that fills the about section nicely.",
+        contentBlocks: [
+          { heading: "Late Block", body: "B".repeat(60), pos: 900 },
+          { heading: "Early Block", body: "A".repeat(60), pos: 100 },
+        ],
+        images: [
+          { url: "https://farm.example/one.jpg", pos: 50 },
+          { url: "https://farm.example/two.jpg", pos: 950 },
+        ],
+        testimonials: {
+          heading: "Reviews",
+          quotes: [
+            { quote: "So good we moved closer." },
+            { quote: "Five stars from our family." },
+          ],
+          pos: 500,
+        },
+      })
+    );
+    // one.jpg is consumed as the about-section image; the remaining pieces
+    // are ordered by pos: Early(100) < Reviews(500) < Late(900) < two.jpg(950).
+    const rest = draft.storefront.sections!.filter((s) =>
+      ["text", "image", "testimonials"].includes(s.type)
+    );
+    expect(rest.map((s) => s.heading ?? s.image)).toEqual([
+      "Early Block",
+      "Reviews",
+      "Late Block",
+      "https://farm.example/two.jpg",
+    ]);
+  });
+});
+
 describe("buildProductPageDraft lead image", () => {
   test("leads with the hero-region image and dedups it from the content images", () => {
     const draft = buildProductPageDraft(

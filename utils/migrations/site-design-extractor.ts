@@ -284,14 +284,41 @@ async function readCapped(
 }
 
 const MAX_CONTENT_IMAGES = 5;
-const MAX_CONTENT_BLOCKS = 4;
+const MAX_CONTENT_BLOCKS = 6;
 const MAX_JSONLD_PRODUCTS = 8;
+const MAX_TESTIMONIALS = 6;
+
+// Blank out non-content markup while PRESERVING string offsets (equal-length
+// space runs), so positions measured in the cleaned string line up with
+// positions measured in the raw HTML (used to order imported sections the way
+// the source page orders them).
+function stripNonContent(html: string): string {
+  const blank = (m: string) => " ".repeat(m.length);
+  return html
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, blank)
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, blank)
+    .replace(/<(nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, blank);
+}
 
 // Junk we never want to promote into a storefront section image: logos, icons,
-// tracking pixels and UI chrome. Matched against the whole <img> tag (src +
-// class + id) plus its alt text, so a hit anywhere disqualifies the image.
+// tracking pixels and UI chrome. Matched against the image URL's path plus
+// its alt text ONLY — never the whole tag, because lazy-load frameworks put
+// words like "loader"/"placeholder" in class names on every real photo
+// (Squarespace does), which junk-filtered entire sites' imagery.
 const JUNK_IMAGE_RE =
   /logo|icon|favicon|sprite|pixel|tracking|beacon|avatar|badge|emoji|spinner|loader|placeholder|1x1|blank|arrow|chevron|bullet|thumb/i;
+
+// True when the image's own identity (URL path + alt text) marks it as
+// chrome/junk rather than page content.
+function isJunkImage(url: string, alt: string | undefined): boolean {
+  let name = url;
+  try {
+    name = decodeURIComponent(new URL(url, "https://x.invalid").pathname);
+  } catch {
+    // keep raw url as the haystack
+  }
+  return JUNK_IMAGE_RE.test(`${name} ${alt ?? ""}`.toLowerCase());
+}
 
 // Boilerplate headings/paragraphs that aren't real page content and shouldn't
 // become a storefront text section.
@@ -367,30 +394,35 @@ function extractContentImages(
   html: string,
   base: URL,
   exclude: Set<string>
-): { url: string; alt?: string }[] {
-  const tags = html.match(/<img\b[^>]*>/gi) || [];
-  const out: { url: string; alt?: string }[] = [];
+): { url: string; alt?: string; pos?: number }[] {
+  const tagRe = /<img\b[^>]*>/gi;
+  const out: { url: string; alt?: string; pos?: number }[] = [];
   const seen = new Set<string>(exclude);
-  for (const tag of tags) {
+  let m: RegExpExecArray | null;
+  while ((m = tagRe.exec(html)) !== null) {
     if (out.length >= MAX_CONTENT_IMAGES) break;
+    const tag = m[0];
     const raw = pickImageSrc(tag);
     if (!raw) continue;
     const decoded = decodeEntities(raw);
     if (/^data:/i.test(decoded)) continue;
     const altRaw = tag.match(/\balt=["']([^"']*)["']/i)?.[1];
     const alt = altRaw ? decodeEntities(altRaw) : undefined;
-    const hay = `${tag} ${alt ?? ""}`.toLowerCase();
-    if (JUNK_IMAGE_RE.test(hay)) continue;
-    if (imageAttrTooSmall(tag)) continue;
     const absRaw = absolute(decoded, base);
     if (!absRaw) continue;
+    if (isJunkImage(absRaw, alt)) continue;
+    if (imageAttrTooSmall(tag)) continue;
     if (/\.svg(\?|#|$)/i.test(absRaw)) continue;
     // Upgrade CDN thumbnails to the full-resolution original for best quality.
     const abs = stripImageSizeSuffix(absRaw);
     const key = abs.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ url: abs, alt: alt && alt.length > 0 ? alt : undefined });
+    out.push({
+      url: abs,
+      alt: alt && alt.length > 0 ? alt : undefined,
+      pos: m.index,
+    });
   }
   return out;
 }
@@ -403,22 +435,21 @@ function extractContentImages(
  */
 function extractContentBlocks(
   html: string
-): { heading: string; body: string }[] {
-  const cleaned = html
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
-    .replace(/<(nav|header|footer)\b[^>]*>[\s\S]*?<\/\1>/gi, " ");
+): { heading: string; body: string; pos?: number }[] {
+  const cleaned = stripNonContent(html);
 
   const tokenRe =
-    /<(h[1-3])\b[^>]*>([\s\S]*?)<\/\1>|<p\b[^>]*>([\s\S]*?)<\/p>/gi;
-  const blocks: { heading: string; body: string }[] = [];
+    /<(h[1-4])\b[^>]*>([\s\S]*?)<\/\1>|<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  const blocks: { heading: string; body: string; pos?: number }[] = [];
   let heading: string | null = null;
+  let headingPos = 0;
   let body: string[] = [];
 
   const flush = () => {
     if (heading) {
       const text = body.join("\n\n").trim();
-      if (text.length >= 40) blocks.push({ heading, body: text.slice(0, 800) });
+      if (text.length >= 40)
+        blocks.push({ heading, body: text.slice(0, 800), pos: headingPos });
     }
     heading = null;
     body = [];
@@ -429,8 +460,16 @@ function extractContentBlocks(
     if (match[1]) {
       flush();
       const h = cleanInlineText(match[2] || "");
+      // Quote-leading headings are testimonial pull-quotes, not section
+      // headings — they're extracted separately by extractTestimonials.
       heading =
-        h.length >= 3 && h.length <= 80 && !JUNK_TEXT_RE.test(h) ? h : null;
+        h.length >= 3 &&
+        h.length <= 80 &&
+        !/^["'\u201c\u201d\u2018\u2019\u00ab]/.test(h) &&
+        !JUNK_TEXT_RE.test(h)
+          ? h
+          : null;
+      headingPos = match.index;
     } else if (heading) {
       const p = cleanInlineText(match[3] || "");
       if (p.length >= 20 && !JUNK_TEXT_RE.test(p) && !isBoilerplateText(p))
@@ -440,6 +479,101 @@ function extractContentBlocks(
   flush();
 
   return blocks.slice(0, MAX_CONTENT_BLOCKS);
+}
+
+// Headings that mark a customer-quotes region of the page.
+const TESTIMONIAL_HEADING_RE =
+  /review|testimonial|customers? say|what (people|our|they)|love|feedback/i;
+
+/**
+ * Pull customer pull-quotes from the page: heading/blockquote elements whose
+ * text STARTS with a quote character (the way review walls are typically
+ * marked up). Requires at least two quotes so a lone quoted heading can't
+ * fabricate a reviews section. The surrounding quote marks are stripped —
+ * the storefront testimonial renderer adds its own.
+ */
+function extractTestimonials(html: string):
+  | {
+      heading?: string;
+      quotes: { quote: string; author?: string }[];
+      pos?: number;
+    }
+  | undefined {
+  const cleaned = stripNonContent(html);
+  const tokenRe = /<(h[1-6]|blockquote)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+  const quotes: { quote: string; author?: string }[] = [];
+  const seen = new Set<string>();
+  let heading: string | undefined;
+  let lastHeading: string | undefined;
+  let firstPos: number | undefined;
+  let m: RegExpExecArray | null;
+  while (
+    (m = tokenRe.exec(cleaned)) !== null &&
+    quotes.length < MAX_TESTIMONIALS
+  ) {
+    const text = cleanInlineText(m[2] || "");
+    if (!text) continue;
+    const isQuote =
+      /^["'\u201c\u2018\u00ab]/.test(text) ||
+      m[1]!.toLowerCase() === "blockquote";
+    if (!isQuote) {
+      if (/^h[1-3]$/i.test(m[1]!) && text.length <= 80) lastHeading = text;
+      continue;
+    }
+    // Trailing attribution ("… ” —Alice") becomes the author; requires the
+    // closing quote before the dash so a dash INSIDE a quote never splits it.
+    let quoteText = text;
+    let author: string | undefined;
+    const attribution = text.match(
+      /^(.*["\u201d\u2019\u00bb])\s*[—–-]\s*([^"\u201c\u201d]{2,60})$/s
+    );
+    if (attribution) {
+      quoteText = attribution[1]!;
+      author = attribution[2]!.trim();
+    }
+    const stripped = quoteText
+      .replace(/^["'\u201c\u201d\u2018\u2019\u00ab\s]+/, "")
+      .replace(/["'\u201c\u201d\u2018\u2019\u00bb\s]+$/, "")
+      .trim();
+    if (stripped.length < 20 || stripped.length > 400) continue;
+    if (JUNK_TEXT_RE.test(stripped) || isBoilerplateText(stripped)) continue;
+    const key = stripped.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (quotes.length === 0) {
+      firstPos = m.index;
+      if (lastHeading && TESTIMONIAL_HEADING_RE.test(lastHeading))
+        heading = lastHeading;
+    }
+    quotes.push({ quote: stripped, author });
+  }
+  if (quotes.length < 2) return undefined;
+  return { heading, quotes, pos: firstPos };
+}
+
+// Detect an explicitly DARK site header so the imported nav can match it.
+// Conservative: only trusts the platform's own theme attribute
+// (data-section-theme="black|black-bold|dark", Squarespace) or an explicit
+// dark inline background-color on the <header>/<nav> open tag. CSS variables
+// are deliberately NOT parsed — they routinely contradict the rendered header.
+function extractHeaderTheme(html: string): "dark" | undefined {
+  const tag =
+    html.match(/<header\b[^>]*>/i)?.[0] || html.match(/<nav\b[^>]*>/i)?.[0];
+  if (!tag) return undefined;
+  const theme = tag.match(/\bdata-section-theme=["']([^"']*)["']/i)?.[1];
+  if (theme && /\b(black|dark)\b/i.test(theme)) return "dark";
+  const style = tag.match(/\bstyle=["']([^"']*)["']/i)?.[1];
+  const bg = style?.match(/background(?:-color)?\s*:\s*([^;]+)/i)?.[1];
+  if (bg) {
+    const hex = normalizeHexColor(bg.trim());
+    if (hex) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      if ((r * 299 + g * 587 + b * 114) / 1000 < 90) return "dark";
+    }
+  }
+  return undefined;
 }
 
 // Class/id hints that mark a page's hero/banner region, plus exclusions for
@@ -458,10 +592,10 @@ function heroImageFromSlice(slice: string, base: URL): string | undefined {
     const decoded = decodeEntities(raw);
     if (/^data:/i.test(decoded)) continue;
     const alt = tag.match(/\balt=["']([^"']*)["']/i)?.[1] || "";
-    if (JUNK_IMAGE_RE.test(`${tag} ${alt}`.toLowerCase())) continue;
-    if (imageAttrTooSmall(tag)) continue;
     const abs = absolute(decoded, base);
     if (!abs || /\.svg(\?|#|$)/i.test(abs)) continue;
+    if (isJunkImage(abs, alt)) continue;
+    if (imageAttrTooSmall(tag)) continue;
     return stripImageSizeSuffix(abs);
   }
   // CSS background heroes: inline style="background-image:url(...)".
@@ -759,10 +893,18 @@ export async function extractSiteSignals(
     collectColors(attr, colorCounts);
   }
 
-  // A few linked stylesheets.
+  // A few linked stylesheets. Shared PLATFORM stylesheets (Squarespace
+  // universal/commerce CSS + component definitions + versioned template CSS
+  // ("?nocustom=true" — its dominant colors are editor chrome, not the site),
+  // Wix platform CSS, Shopify platform bundles) carry the platform's colors,
+  // not this site's brand — they polluted palettes with identical colors
+  // across unrelated sites. Site-specific CSS (same-origin, Squarespace
+  // /static/custom-css/, Shopify /s/files, Google Fonts) still passes.
+  const PLATFORM_STYLESHEET_RE =
+    /\/\/(assets\.squarespace\.com|[^/]*\.sqspcdn\.com|[^/]*\.parastorage\.com)\/|\/\/cdn\.shopify\.com\/shopifycloud\/|\/\/static1\.squarespace\.com\/static\/(versioned-site-css|vta)\//i;
   const sheetHrefs = extractStylesheetHrefs(html)
     .map((href) => absolute(href, base))
-    .filter((u): u is string => !!u)
+    .filter((u): u is string => !!u && !PLATFORM_STYLESHEET_RE.test(u))
     .slice(0, MAX_STYLESHEETS);
   for (const href of sheetHrefs) {
     try {
@@ -802,6 +944,8 @@ export async function extractSiteSignals(
   const contentBlocks = extractContentBlocks(html);
   const products = extractJsonLdProducts(html, base);
   const navLayout = detectNavLayout(html);
+  const headerTheme = extractHeaderTheme(html);
+  const testimonials = extractTestimonials(html);
 
   return {
     url: base.toString(),
@@ -822,6 +966,8 @@ export async function extractSiteSignals(
     navLayout,
     hero,
     videos: videos.length > 0 ? videos : undefined,
+    headerTheme,
+    testimonials,
   };
 }
 

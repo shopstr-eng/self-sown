@@ -80,8 +80,10 @@ export interface ExtractedSiteSignals {
   // Extra content pulled from the page body (beyond hero/about): real banner /
   // feature images and heading+paragraph copy blocks, in document order. Both
   // come only from deterministic extraction — the LLM never sees or emits them.
-  images: { url: string; alt?: string }[];
-  contentBlocks: { heading: string; body: string }[];
+  // `pos` is the element's character offset in the source HTML, used to order
+  // the imported sections the way the source page orders them.
+  images: { url: string; alt?: string; pos?: number }[];
+  contentBlocks: { heading: string; body: string; pos?: number }[];
   // schema.org Product cards scraped from JSON-LD (deterministic — never the
   // LLM). Preview-only: never written to a StorefrontConfig.
   products?: ImportedSampleProduct[];
@@ -97,6 +99,18 @@ export interface ExtractedSiteSignals {
   // YouTube video URLs found on the page (iframe embeds or watch links),
   // deterministically extracted + canonicalized. Never seen by the LLM.
   videos?: string[];
+  // "dark" when the source header explicitly declares a dark theme
+  // (platform theme attribute or explicit dark inline background) so the
+  // imported nav can match it.
+  headerTheme?: "dark";
+  // Customer pull-quotes found on the page (quote-leading headings /
+  // blockquotes), with the reviews-wall heading when one was found and any
+  // trailing "—Author" attributions split out.
+  testimonials?: {
+    heading?: string;
+    quotes: { quote: string; author?: string }[];
+    pos?: number;
+  };
 }
 
 export interface ImportedStorefrontDraft {
@@ -450,16 +464,23 @@ export function buildExtractionDraft(
     siteHost = undefined;
   }
 
+  // Assemble the extra sections in the SOURCE PAGE's order when we know each
+  // piece's position in the HTML (sort is stable, so pieces without a position
+  // keep the legacy text/image alternation among themselves at the end).
+  const ordered: { pos: number; section: StorefrontSection }[] = [];
   const richSectionCount = Math.max(extraBlocks.length, extraImages.length);
   for (let i = 0; i < richSectionCount; i++) {
     const block = extraBlocks[i];
     if (block) {
-      sections.push({
-        id: `imported-text-${i + 1}`,
-        type: "text",
-        enabled: true,
-        heading: capText(block.heading, 80),
-        body: capText(block.body, 600),
+      ordered.push({
+        pos: block.pos ?? Number.MAX_SAFE_INTEGER,
+        section: {
+          id: `imported-text-${i + 1}`,
+          type: "text",
+          enabled: true,
+          heading: capText(block.heading, 80),
+          body: capText(block.body, 600),
+        },
       });
     }
     const image = extraImages[i];
@@ -469,25 +490,60 @@ export function buildExtractionDraft(
         capText(signals.siteName || signals.title, 80) ||
         siteHost ||
         undefined;
-      sections.push({
-        id: `imported-image-${i + 1}`,
-        type: "image",
-        enabled: true,
-        image: image.url,
-        caption,
-        fullWidth: true,
+      ordered.push({
+        pos: image.pos ?? Number.MAX_SAFE_INTEGER,
+        section: {
+          id: `imported-image-${i + 1}`,
+          type: "image",
+          enabled: true,
+          image: image.url,
+          caption,
+          fullWidth: true,
+        },
       });
     }
   }
 
+  // The source page's customer quotes become a real testimonials section,
+  // placed where the review wall sits on the source page.
+  const quotes = signals.testimonials?.quotes ?? [];
+  if (quotes.length >= 2) {
+    ordered.push({
+      pos: signals.testimonials?.pos ?? Number.MAX_SAFE_INTEGER,
+      section: {
+        id: "imported-testimonials",
+        type: "testimonials",
+        enabled: true,
+        heading:
+          capText(signals.testimonials?.heading, 80) || "What customers say",
+        testimonials: quotes.map((q) => ({
+          quote: q.quote.slice(0, 400),
+          author: (q.author ?? "").slice(0, 60),
+        })),
+      },
+    });
+  }
+
+  ordered.sort((a, b) => a.pos - b.pos);
+  for (const entry of ordered) sections.push(entry.section);
+
   const videosSection = buildVideosSection(signals);
   if (videosSection) sections.push(videosSection);
 
-  const navColors: StorefrontNavColors = {
-    background: colorScheme.background,
-    text: colorScheme.text,
-    accent: colorScheme.primary,
-  };
+  // A source site with an explicitly dark header keeps a dark nav; otherwise
+  // the nav follows the extracted page colors.
+  const navColors: StorefrontNavColors =
+    signals.headerTheme === "dark"
+      ? {
+          background: "#111111",
+          text: "#ffffff",
+          accent: colorScheme.primary,
+        }
+      : {
+          background: colorScheme.background,
+          text: colorScheme.text,
+          accent: colorScheme.primary,
+        };
   const footerColors: StorefrontFooterColors = {
     background: colorScheme.primary,
     text: contrastText(colorScheme.primary),

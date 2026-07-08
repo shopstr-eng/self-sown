@@ -191,9 +191,13 @@ export async function composeStoreDesignWithAI(
     storefront: {
       ...baseDraft.storefront,
       colorScheme,
-      navColors: keepExtractedPalette
-        ? baseDraft.storefront.navColors
-        : mergeTriColors(baseDraft.storefront.navColors, ai.navColors),
+      // An explicitly dark source header is a direct observation of the real
+      // site — keep the deterministic dark nav even when the palette itself
+      // came from the AI.
+      navColors:
+        keepExtractedPalette || signals.headerTheme === "dark"
+          ? baseDraft.storefront.navColors
+          : mergeTriColors(baseDraft.storefront.navColors, ai.navColors),
       footerColors: keepExtractedPalette
         ? baseDraft.storefront.footerColors
         : mergeTriColors(baseDraft.storefront.footerColors, ai.footerColors),
