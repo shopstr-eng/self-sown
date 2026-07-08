@@ -2,6 +2,7 @@ import {
   IMPORT_FONT_ALLOWLIST,
   isValidHexColor,
   capText,
+  hasExtractedBrandColors,
   type ExtractedSiteSignals,
   type ImportedStoreDesign,
 } from "@/utils/migrations/site-design";
@@ -175,23 +176,29 @@ export async function composeStoreDesignWithAI(
 
   const ai = raw as AiDesignResponse;
 
+  // When the site yielded real brand colors, the extracted palette (and the
+  // nav/footer colors derived from it) is authoritative — the AI only invents
+  // a palette for sites where extraction found nothing brand-like.
+  const keepExtractedPalette = hasExtractedBrandColors(signals);
   const baseScheme = baseDraft.storefront.colorScheme;
-  const colorScheme = baseScheme
-    ? mergeColorScheme(baseScheme, ai.colorScheme)
-    : baseScheme;
+  const colorScheme =
+    baseScheme && !keepExtractedPalette
+      ? mergeColorScheme(baseScheme, ai.colorScheme)
+      : baseScheme;
 
   const merged: ImportedStoreDesign = {
     ...baseDraft,
     storefront: {
       ...baseDraft.storefront,
       colorScheme,
-      navColors: mergeTriColors(baseDraft.storefront.navColors, ai.navColors),
-      footerColors: mergeTriColors(
-        baseDraft.storefront.footerColors,
-        ai.footerColors
-      ),
-      fontHeading: safeFont(ai.fontHeading) ?? baseDraft.storefront.fontHeading,
-      fontBody: safeFont(ai.fontBody) ?? baseDraft.storefront.fontBody,
+      navColors: keepExtractedPalette
+        ? baseDraft.storefront.navColors
+        : mergeTriColors(baseDraft.storefront.navColors, ai.navColors),
+      footerColors: keepExtractedPalette
+        ? baseDraft.storefront.footerColors
+        : mergeTriColors(baseDraft.storefront.footerColors, ai.footerColors),
+      fontHeading: baseDraft.storefront.fontHeading ?? safeFont(ai.fontHeading),
+      fontBody: baseDraft.storefront.fontBody ?? safeFont(ai.fontBody),
       sections: applyCopyToSections(baseDraft.storefront.sections, ai),
       seoMeta: {
         ...baseDraft.storefront.seoMeta,

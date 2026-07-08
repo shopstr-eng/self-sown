@@ -135,22 +135,56 @@ function extractSocialLinks(html: string, base: URL): StorefrontSocialLink[] {
   return Array.from(seen.values());
 }
 
+// Headings that mark a genuine "about" region of the page.
+const ABOUT_HEADING_RE =
+  /\babout\b|our story|who we are|our (farm|family|mission|herd|history)/i;
+// Legal / regulatory boilerplate that must never become the shop's about copy
+// (e.g. FDA interstate-commerce disclaimers on raw-milk sites are often the
+// longest paragraph on the page).
+const BOILERPLATE_TEXT_RE =
+  /interstate commerce|evaluated by the (fda|food and drug)|disclaimer|liabilit|warrant(y|ies)|indemnif|hold harmless|\bingredients\s*:/i;
+
+// Product-label / legal copy that shouldn't become landing-page prose:
+// matches the boilerplate patterns or paragraphs that are mostly SHOUTING
+// (ingredient panels, compliance notices).
+function isBoilerplateText(text: string): boolean {
+  if (BOILERPLATE_TEXT_RE.test(text)) return true;
+  // Product-label lines like "Sweet Cream | 4.85 oz" aren't prose.
+  if (/\|\s*\d+(\.\d+)?\s*(oz|lb|lbs|g|kg|ml|l|gal|ct|pack)\b/i.test(text))
+    return true;
+  const letters = text.replace(/[^a-zA-Z]/g, "");
+  if (letters.length >= 40) {
+    const upper = letters.replace(/[^A-Z]/g, "").length;
+    if (upper / letters.length > 0.6) return true;
+  }
+  return false;
+}
+
 function extractAboutText(html: string): string | undefined {
-  // Strip script/style, then find the longest paragraph's text as a rough
-  // "about" candidate. Meta description is a better default and is handled by
-  // the caller; this is a fallback for richer copy.
+  // Prefer a paragraph under an "about"-style heading; otherwise fall back to
+  // the longest real paragraph — skipping legal/nav/cookie boilerplate either
+  // way so a disclaimer can't become the shop's about copy.
   const cleaned = html
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
     .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ");
-  const paragraphs = cleaned.match(/<p\b[^>]*>([\s\S]*?)<\/p>/gi) || [];
+  const tokenRe =
+    /<(h[1-6])\b[^>]*>([\s\S]*?)<\/\1>|<p\b[^>]*>([\s\S]*?)<\/p>/gi;
+  let inAbout = false;
+  let aboutBest = "";
   let best = "";
-  for (const p of paragraphs) {
-    const text = decodeEntities(
-      p.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ")
-    );
-    if (text.length > best.length && text.length <= 1200) best = text;
+  let m: RegExpExecArray | null;
+  while ((m = tokenRe.exec(cleaned)) !== null) {
+    if (m[1]) {
+      inAbout = ABOUT_HEADING_RE.test(cleanInlineText(m[2] || ""));
+      continue;
+    }
+    const text = cleanInlineText(m[3] || "");
+    if (text.length < 40 || text.length > 1200) continue;
+    if (JUNK_TEXT_RE.test(text) || isBoilerplateText(text)) continue;
+    if (inAbout && text.length > aboutBest.length) aboutBest = text;
+    if (text.length > best.length) best = text;
   }
-  return best.length >= 40 ? best : undefined;
+  return aboutBest || best || undefined;
 }
 
 function collectColors(css: string, counts: Map<string, number>): void {
@@ -399,7 +433,8 @@ function extractContentBlocks(
         h.length >= 3 && h.length <= 80 && !JUNK_TEXT_RE.test(h) ? h : null;
     } else if (heading) {
       const p = cleanInlineText(match[3] || "");
-      if (p.length >= 20 && !JUNK_TEXT_RE.test(p)) body.push(p);
+      if (p.length >= 20 && !JUNK_TEXT_RE.test(p) && !isBoilerplateText(p))
+        body.push(p);
     }
   }
   flush();

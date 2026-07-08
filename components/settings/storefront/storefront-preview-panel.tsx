@@ -238,6 +238,10 @@ export function fillSectionPlaceholders(
   section: StorefrontSection,
   shopName: string
 ): StorefrontSection {
+  // Sections built by the website importer carry ONLY real extracted content —
+  // never dilute them with fake farm copy/stock photos (an imported about
+  // section with no photo must stay photo-less, not show someone else's cows).
+  if (section.id?.startsWith("imported-")) return section;
   const placeholders = SECTION_PLACEHOLDERS[section.type];
   if (!placeholders) return section;
 

@@ -303,6 +303,19 @@ export function pickColorScheme(
   };
 }
 
+// True when the site yielded at least one real brand color — in that case the
+// extracted palette is authoritative and AI must not repaint it.
+export function hasExtractedBrandColors(
+  signals: ExtractedSiteSignals
+): boolean {
+  const themeColor = signals.themeColor
+    ? normalizeHexColor(signals.themeColor)
+    : null;
+  return [themeColor, ...signals.colors.map((c) => normalizeHexColor(c))].some(
+    (c) => !!c && isBrandColor(c)
+  );
+}
+
 // Imported "hero": a single-slide full-bleed banner carousel showing the
 // source site's real banner image cleanly — no shop icon, no gradient tint,
 // no fabricated subtext (the hero section type can't do that: it always

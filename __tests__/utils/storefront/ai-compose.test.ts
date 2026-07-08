@@ -78,6 +78,49 @@ describe("composeStoreDesignWithAI copy precedence", () => {
     );
   });
 
+  test("extracted brand colors win over the AI palette", async () => {
+    mockLLM.mockResolvedValue({
+      ...AI_RESPONSE,
+      colorScheme: {
+        primary: "#123456",
+        secondary: "#234567",
+        accent: "#345678",
+        background: "#f0f0f0",
+        text: "#0a0a0a",
+      },
+      navColors: { background: "#111111", text: "#eeeeee", accent: "#123456" },
+      fontHeading: "Playfair Display",
+    });
+    const s = signals({ colors: ["#bd0000", "#fafafa"], fonts: ["Oswald"] });
+    const base = buildExtractionDraft(s);
+    const merged = await composeStoreDesignWithAI(s, base);
+
+    expect(merged!.storefront.colorScheme).toEqual(base.storefront.colorScheme);
+    expect(merged!.storefront.navColors).toEqual(base.storefront.navColors);
+    expect(merged!.storefront.footerColors).toEqual(
+      base.storefront.footerColors
+    );
+    // Extracted (mapped) font also beats the AI's pick.
+    expect(merged!.storefront.fontHeading).toBe(base.storefront.fontHeading);
+  });
+
+  test("AI palette applies only when extraction found no brand colors", async () => {
+    mockLLM.mockResolvedValue({
+      ...AI_RESPONSE,
+      colorScheme: {
+        primary: "#123456",
+        secondary: "#234567",
+        accent: "#345678",
+        background: "#f0f0f0",
+        text: "#0a0a0a",
+      },
+    });
+    const s = signals({ colors: [] });
+    const merged = await composeStoreDesignWithAI(s, buildExtractionDraft(s));
+
+    expect(merged!.storefront.colorScheme?.primary).toBe("#123456");
+  });
+
   test("never rewrites the imported banner_carousel overlay", async () => {
     const s = signals({ hero: { image: "https://farm.example/hero.jpg" } });
     const merged = await composeStoreDesignWithAI(s, buildExtractionDraft(s));
