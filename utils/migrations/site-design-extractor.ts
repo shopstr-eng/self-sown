@@ -407,6 +407,124 @@ function extractContentBlocks(
   return blocks.slice(0, MAX_CONTENT_BLOCKS);
 }
 
+// Class/id hints that mark a page's hero/banner region, plus exclusions for
+// the false-positive "banner" uses (cookie banners, announcement bars).
+const HERO_HINT_RE = /\b(hero|banner|masthead|jumbotron|slideshow)\b/i;
+const HERO_EXCLUDE_RE =
+  /cookie|consent|announc|promo[-_]?bar|top[-_]?bar|alert|gdpr|popup|modal/i;
+const HERO_SLICE_CHARS = 15000;
+const MAX_HERO_CANDIDATES = 6;
+
+function heroImageFromSlice(slice: string, base: URL): string | undefined {
+  const imgTags = slice.match(/<img\b[^>]*>/gi) || [];
+  for (const tag of imgTags) {
+    const raw = pickImageSrc(tag);
+    if (!raw) continue;
+    const decoded = decodeEntities(raw);
+    if (/^data:/i.test(decoded)) continue;
+    const alt = tag.match(/\balt=["']([^"']*)["']/i)?.[1] || "";
+    if (JUNK_IMAGE_RE.test(`${tag} ${alt}`.toLowerCase())) continue;
+    if (imageAttrTooSmall(tag)) continue;
+    const abs = absolute(decoded, base);
+    if (!abs || /\.svg(\?|#|$)/i.test(abs)) continue;
+    return stripImageSizeSuffix(abs);
+  }
+  // CSS background heroes: inline style="background-image:url(...)".
+  const bg = slice.match(
+    /background(?:-image)?\s*:[^;"']*url\(\s*(?:&quot;|["'])?([^"')]+?)(?:&quot;|["'])?\s*\)/i
+  )?.[1];
+  if (bg) {
+    const decoded = decodeEntities(bg.trim());
+    if (!/^data:/i.test(decoded)) {
+      const abs = absolute(decoded, base);
+      if (abs && !/\.svg(\?|#|$)/i.test(abs)) return stripImageSizeSuffix(abs);
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Parse the page's hero/banner region deterministically: find the first
+ * element whose class/id says "hero", and pull its feature image plus any real
+ * text overlay (first h1/h2 + the paragraph after it) from INSIDE that region.
+ * When the source hero has no DOM text (text baked into the image), heading /
+ * subheading stay undefined so the imported banner is a clean image.
+ */
+function extractHeroRegion(
+  html: string,
+  base: URL
+): { image?: string; heading?: string; subheading?: string } | undefined {
+  const openTagRe = /<(section|div|header|main|figure|aside)\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+  let candidates = 0;
+  while (
+    (match = openTagRe.exec(html)) !== null &&
+    candidates < MAX_HERO_CANDIDATES
+  ) {
+    const tag = match[0];
+    const attrs =
+      (tag.match(/\bclass=["']([^"']*)["']/i)?.[1] || "") +
+      " " +
+      (tag.match(/\bid=["']([^"']*)["']/i)?.[1] || "");
+    if (!HERO_HINT_RE.test(attrs) || HERO_EXCLUDE_RE.test(attrs)) continue;
+    candidates++;
+
+    const slice = html.slice(match.index, match.index + HERO_SLICE_CHARS);
+    const image = heroImageFromSlice(slice, base);
+
+    const headingMatch =
+      slice.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i) ||
+      slice.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i);
+    let heading: string | undefined;
+    let subheading: string | undefined;
+    if (headingMatch) {
+      const h = cleanInlineText(headingMatch[1] || "");
+      if (h.length >= 3 && h.length <= 120 && !JUNK_TEXT_RE.test(h)) {
+        heading = h;
+        const after = slice.slice(
+          (headingMatch.index ?? 0) + headingMatch[0].length
+        );
+        const p = after.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i);
+        if (p) {
+          const text = cleanInlineText(p[1] || "");
+          if (
+            text.length >= 10 &&
+            text.length <= 300 &&
+            !JUNK_TEXT_RE.test(text)
+          ) {
+            subheading = text;
+          }
+        }
+      }
+    }
+
+    if (image || heading) return { image, heading, subheading };
+  }
+  return undefined;
+}
+
+const MAX_VIDEOS = 3;
+
+/**
+ * Deterministically collect YouTube video URLs from the page (iframe embeds,
+ * shorts/watch/youtu.be links), deduped by video id and canonicalized to
+ * watch URLs that the storefront social-posts embed resolver understands.
+ */
+function extractVideoUrls(html: string): string[] {
+  const re =
+    /(?:youtube(?:-nocookie)?\.com\/(?:embed\/|shorts\/|live\/|v\/|watch\?(?:[^"'\s>]*&(?:amp;)?)?v=)|youtu\.be\/)([A-Za-z0-9_-]{6,})/gi;
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null && ids.length < MAX_VIDEOS) {
+    const id = m[1];
+    if (seen.has(id)) continue;
+    seen.add(id);
+    ids.push(id);
+  }
+  return ids.map((id) => `https://www.youtube.com/watch?v=${id}`);
+}
+
 /**
  * Pull product cards from the page's schema.org JSON-LD (Product / ItemList).
  * Deterministic and best-effort — malformed JSON blocks are skipped. Values are
@@ -636,11 +754,13 @@ export async function extractSiteSignals(
 
   const socialLinks = extractSocialLinks(html, base);
   const aboutText = extractAboutText(html);
+  const hero = extractHeroRegion(html, base);
+  const videos = extractVideoUrls(html);
 
   // Images already spoken for elsewhere shouldn't be repeated as content
   // sections.
   const usedImageUrls = new Set<string>();
-  for (const u of [ogImage, logoUrl, faviconUrl]) {
+  for (const u of [ogImage, logoUrl, faviconUrl, hero?.image]) {
     if (u) usedImageUrls.add(u.toLowerCase());
   }
   const images = extractContentImages(html, base, usedImageUrls);
@@ -665,6 +785,8 @@ export async function extractSiteSignals(
     contentBlocks,
     products,
     navLayout,
+    hero,
+    videos: videos.length > 0 ? videos : undefined,
   };
 }
 

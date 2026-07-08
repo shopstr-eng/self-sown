@@ -131,11 +131,23 @@ const STOREFRONT_SECTION_TYPES = new Set([
   "text",
   "image",
   "banner_carousel",
+  "social_posts",
   "contact",
   "contact_form",
   "reviews",
   "blog",
 ]);
+const STOREFRONT_SOCIAL_POST_PLATFORMS = new Set([
+  "instagram",
+  "x",
+  "facebook",
+  "youtube",
+  "tiktok",
+  "telegram",
+  "website",
+  "other",
+]);
+const STOREFRONT_SOCIAL_POSTS_LAYOUTS = new Set(["grid", "carousel"]);
 const STOREFRONT_BLOG_LAYOUTS = new Set(["featured", "grid", "list"]);
 const STOREFRONT_BLOG_MODES = new Set(["latest", "selected"]);
 const STOREFRONT_CONTACT_FORM_MODES = new Set(["contact", "subscription"]);
@@ -213,6 +225,7 @@ function sanitizeFullSection(section: Record<string, unknown>) {
             | "text"
             | "image"
             | "banner_carousel"
+            | "social_posts"
             | "contact"
             | "contact_form"
             | "reviews"
@@ -354,6 +367,46 @@ function sanitizeFullSection(section: Record<string, unknown>) {
       : {}),
     ...(typeof section.bannerInterval === "number"
       ? { bannerInterval: section.bannerInterval }
+      : {}),
+    ...(Array.isArray(section.socialPosts)
+      ? {
+          socialPosts: section.socialPosts
+            .filter(isRecord)
+            .map((post) => ({
+              platform:
+                typeof post.platform === "string" &&
+                STOREFRONT_SOCIAL_POST_PLATFORMS.has(post.platform)
+                  ? (post.platform as
+                      | "instagram"
+                      | "x"
+                      | "facebook"
+                      | "youtube"
+                      | "tiktok"
+                      | "telegram"
+                      | "website"
+                      | "other")
+                  : ("other" as const),
+              url: typeof post.url === "string" ? post.url : "",
+              ...(typeof post.caption === "string"
+                ? { caption: post.caption }
+                : {}),
+              ...(typeof post.image === "string" ? { image: post.image } : {}),
+              ...(typeof post.author === "string"
+                ? { author: post.author }
+                : {}),
+            }))
+            .filter((post) => post.url),
+        }
+      : {}),
+    ...(typeof section.socialPostsLayout === "string" &&
+    STOREFRONT_SOCIAL_POSTS_LAYOUTS.has(section.socialPostsLayout)
+      ? { socialPostsLayout: section.socialPostsLayout as "grid" | "carousel" }
+      : {}),
+    ...(typeof section.socialPostsAutoplay === "boolean"
+      ? { socialPostsAutoplay: section.socialPostsAutoplay }
+      : {}),
+    ...(typeof section.socialPostsSpeed === "number"
+      ? { socialPostsSpeed: section.socialPostsSpeed }
       : {}),
   };
 }

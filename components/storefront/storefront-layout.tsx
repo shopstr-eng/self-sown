@@ -1263,7 +1263,10 @@ export default function StorefrontLayout({
             {activeSections.length > 0 ? (
               <div
                 className={
-                  hasNav && (currentPage || activeSections[0]?.type === "hero")
+                  hasNav &&
+                  (currentPage ||
+                    activeSections[0]?.type === "hero" ||
+                    activeSections[0]?.type === "banner_carousel")
                     ? navPadClass
                     : ""
                 }

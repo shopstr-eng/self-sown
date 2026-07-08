@@ -326,6 +326,63 @@ describe("seller domain helpers", () => {
     });
   });
 
+  test("preserves social_posts sections, coercing bad platforms and dropping url-less posts", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          sections: [
+            {
+              id: "videos-home",
+              type: "social_posts",
+              enabled: true,
+              socialPostsLayout: "grid",
+              socialPostsAutoplay: false,
+              socialPostsSpeed: 4000,
+              socialPosts: [
+                {
+                  platform: "youtube",
+                  url: "https://www.youtube.com/watch?v=abc123def",
+                  caption: "Farm tour",
+                },
+                { platform: "myspace", url: "https://example.com/post" },
+                { platform: "x" },
+              ],
+            },
+          ],
+        },
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+
+    expect(storefront.sections[0]).toEqual({
+      id: "videos-home",
+      type: "social_posts",
+      enabled: true,
+      socialPostsLayout: "grid",
+      socialPostsAutoplay: false,
+      socialPostsSpeed: 4000,
+      socialPosts: [
+        {
+          platform: "youtube",
+          url: "https://www.youtube.com/watch?v=abc123def",
+          caption: "Farm tour",
+        },
+        { platform: "other", url: "https://example.com/post" },
+      ],
+    });
+  });
+
   test("preserves footer newsletter and layout, dropping invalid layout values", () => {
     const result = parseSellerShopProfileEvent({
       id: "shop-event",

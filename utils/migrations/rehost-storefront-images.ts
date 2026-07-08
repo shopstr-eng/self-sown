@@ -43,6 +43,9 @@ export async function rehostStorefrontDesignImages(
     urls.add(design.storefront.seoMeta.ogImage);
   for (const section of design.storefront.sections ?? []) {
     if (section.image) urls.add(section.image);
+    for (const slide of section.bannerSlides ?? []) {
+      if (slide.image) urls.add(slide.image);
+    }
   }
 
   if (urls.size === 0) {
@@ -71,9 +74,21 @@ export async function rehostStorefrontDesignImages(
     bannerUrl: remap(design.bannerUrl),
     storefront: {
       ...design.storefront,
-      sections: design.storefront.sections?.map((s) =>
-        s.image ? { ...s, image: remap(s.image) } : s
-      ),
+      sections: design.storefront.sections?.map((s) => {
+        let next = s;
+        if (next.image) next = { ...next, image: remap(next.image) };
+        if (next.bannerSlides?.length) {
+          next = {
+            ...next,
+            bannerSlides: next.bannerSlides.map((slide) =>
+              slide.image
+                ? { ...slide, image: remap(slide.image) as string }
+                : slide
+            ),
+          };
+        }
+        return next;
+      }),
       seoMeta: design.storefront.seoMeta
         ? {
             ...design.storefront.seoMeta,

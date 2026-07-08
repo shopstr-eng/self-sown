@@ -130,20 +130,24 @@ function applyCopyToSections(
   ai: AiDesignResponse
 ): StorefrontSection[] | undefined {
   if (!sections) return sections;
+  // Extracted copy wins: AI text only gap-fills fields the source page didn't
+  // provide, so the import stays faithful to the site's real words.
+  // banner_carousel (the imported hero) is deliberately untouched — its
+  // overlay text comes only from the parsed source hero region.
   return sections.map((section) => {
     if (section.type === "hero") {
       return {
         ...section,
-        heading: capText(ai.heroHeading, 80) || section.heading,
-        subheading: capText(ai.heroSubheading, 160) || section.subheading,
-        ctaText: capText(ai.heroCtaText, 24) || section.ctaText,
+        heading: section.heading || capText(ai.heroHeading, 80),
+        subheading: section.subheading || capText(ai.heroSubheading, 160),
+        ctaText: section.ctaText || capText(ai.heroCtaText, 24),
       };
     }
     if (section.type === "about") {
       return {
         ...section,
-        heading: capText(ai.aboutHeading, 60) || section.heading,
-        body: capText(ai.aboutBody, 800) || section.body,
+        heading: section.heading || capText(ai.aboutHeading, 60),
+        body: section.body || capText(ai.aboutBody, 800),
       };
     }
     return section;
@@ -192,10 +196,10 @@ export async function composeStoreDesignWithAI(
       seoMeta: {
         ...baseDraft.storefront.seoMeta,
         metaTitle:
-          capText(ai.metaTitle, 70) || baseDraft.storefront.seoMeta?.metaTitle,
+          baseDraft.storefront.seoMeta?.metaTitle || capText(ai.metaTitle, 70),
         metaDescription:
-          capText(ai.metaDescription, 160) ||
-          baseDraft.storefront.seoMeta?.metaDescription,
+          baseDraft.storefront.seoMeta?.metaDescription ||
+          capText(ai.metaDescription, 160),
       },
     },
     aiApplied: true,

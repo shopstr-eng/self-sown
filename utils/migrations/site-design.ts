@@ -88,6 +88,15 @@ export interface ExtractedSiteSignals {
   // Conservative nav-layout hint (v1: centered logo only) applied to the
   // imported storefront so the preview mirrors the source's nav.
   navLayout?: StorefrontNavLayout;
+  // The source page's hero/banner region, parsed deterministically from the
+  // DOM (never the LLM): its background/feature image and any real text
+  // overlay (h1 + adjacent paragraph) found INSIDE that region. When the
+  // overlay text is baked into the image there is simply no DOM text, so the
+  // imported banner stays a clean image — exactly like the source.
+  hero?: { image?: string; heading?: string; subheading?: string };
+  // YouTube video URLs found on the page (iframe embeds or watch links),
+  // deterministically extracted + canonicalized. Never seen by the LLM.
+  videos?: string[];
 }
 
 export interface ImportedStorefrontDraft {
@@ -294,19 +303,61 @@ export function pickColorScheme(
   };
 }
 
-function buildHeroSection(
+// Imported "hero": a single-slide full-bleed banner carousel showing the
+// source site's real banner image cleanly — no shop icon, no gradient tint,
+// no fabricated subtext (the hero section type can't do that: it always
+// renders the shop avatar + a gradient fade, and previews placeholder-fill a
+// missing subheading). Text is overlaid ONLY when the source page had real
+// DOM text inside its hero region; text baked into the image ships as-is.
+function buildBannerSection(
   signals: ExtractedSiteSignals,
-  bannerUrl?: string
+  bannerUrl: string
 ): StorefrontSection {
+  const heading = capText(signals.hero?.heading, 80) || undefined;
+  const subheading = heading
+    ? capText(signals.hero?.subheading, 160) || undefined
+    : undefined;
+  return {
+    id: "imported-banner",
+    type: "banner_carousel",
+    enabled: true,
+    fullWidth: true,
+    ...(heading ? { overlayOpacity: 0.35 } : {}),
+    bannerSlides: [
+      {
+        image: bannerUrl,
+        ...(heading ? { heading } : {}),
+        ...(subheading ? { subheading } : {}),
+      },
+    ],
+  };
+}
+
+// Fallback when the source has no usable banner image at all: a text hero
+// built from the site's own name/description (no AI copy, no fake CTA).
+function buildHeroSection(signals: ExtractedSiteSignals): StorefrontSection {
   return {
     id: "imported-hero",
     type: "hero",
     enabled: true,
     heading: capText(signals.siteName || signals.title, 80) || "Welcome",
     subheading: capText(signals.description, 160) || undefined,
-    image: bannerUrl || undefined,
     ctaText: "Shop now",
     ctaLink: "#products",
+  };
+}
+
+function buildVideosSection(
+  signals: ExtractedSiteSignals
+): StorefrontSection | null {
+  const videos = (signals.videos ?? []).slice(0, 3);
+  if (videos.length === 0) return null;
+  return {
+    id: "imported-videos",
+    type: "social_posts",
+    enabled: true,
+    socialPostsLayout: "grid",
+    socialPosts: videos.map((url) => ({ platform: "youtube" as const, url })),
   };
 }
 
@@ -339,16 +390,21 @@ export function buildExtractionDraft(
       .filter((f): f is string => !!f)
       .find((f) => f !== fontHeading) ?? fontHeading;
 
-  // Prefer the social/OG banner; when the source has none, fall back to the
-  // first real on-page content image so the imported hero still shows the
-  // site's own banner. Byte-identical to before whenever ogImage exists.
-  const heroBanner = signals.ogImage || signals.images[0]?.url;
-  const bannerFromContent = !signals.ogImage && !!signals.images[0];
+  // Prefer the parsed hero-region image (what the source actually shows at the
+  // top), then the social/OG banner, then the first real on-page content image.
+  const heroBanner =
+    signals.hero?.image || signals.ogImage || signals.images[0]?.url;
+  const bannerFromContent =
+    !signals.hero?.image && !signals.ogImage && !!signals.images[0];
   const contentImages = bannerFromContent
     ? signals.images.slice(1)
     : signals.images;
 
-  const sections: StorefrontSection[] = [buildHeroSection(signals, heroBanner)];
+  const sections: StorefrontSection[] = [
+    heroBanner
+      ? buildBannerSection(signals, heroBanner)
+      : buildHeroSection(signals),
+  ];
 
   const about = buildAboutSection(signals);
   let aboutImageUsed = false;
@@ -410,6 +466,9 @@ export function buildExtractionDraft(
       });
     }
   }
+
+  const videosSection = buildVideosSection(signals);
+  if (videosSection) sections.push(videosSection);
 
   const navColors: StorefrontNavColors = {
     background: colorScheme.background,
@@ -488,7 +547,15 @@ export function buildProductPageDraft(
     const bodyLc = b.body.toLowerCase();
     return bodyLc.length > 0 && !usedBody.includes(bodyLc.slice(0, 60));
   });
-  const images = signals.images;
+  // Lead with the page's hero-region image (or OG image) so the imported
+  // product page opens on the same visual the source page does.
+  const leadImage = signals.hero?.image || signals.ogImage;
+  const images = leadImage
+    ? [
+        { url: leadImage, alt: signals.hero?.heading },
+        ...signals.images.filter((img) => img.url !== leadImage),
+      ]
+    : signals.images;
 
   let siteHost: string | undefined;
   try {

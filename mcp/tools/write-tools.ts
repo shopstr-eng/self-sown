@@ -588,6 +588,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
                 "contact_form",
                 "reviews",
                 "banner_carousel",
+                "social_posts",
               ])
               .describe("Section type"),
             enabled: z
@@ -741,6 +742,45 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               .optional()
               .describe(
                 "Milliseconds between banner_carousel slides when autoplay is on"
+              ),
+            socialPosts: z
+              .array(
+                z.object({
+                  platform: z.enum([
+                    "instagram",
+                    "x",
+                    "facebook",
+                    "youtube",
+                    "tiktok",
+                    "telegram",
+                    "website",
+                    "other",
+                  ]),
+                  url: z.string(),
+                  caption: z.string().optional(),
+                  image: z.string().optional(),
+                  author: z.string().optional(),
+                })
+              )
+              .optional()
+              .describe(
+                "Posts/videos to embed in a social_posts section (public post URLs; YouTube/X/Instagram/TikTok/Facebook/Telegram embed inline)"
+              ),
+            socialPostsLayout: z
+              .enum(["grid", "carousel"])
+              .optional()
+              .describe("Layout for a social_posts section (default grid)"),
+            socialPostsAutoplay: z
+              .boolean()
+              .optional()
+              .describe(
+                "Auto-advance a social_posts carousel (carousel layout only)"
+              ),
+            socialPostsSpeed: z
+              .number()
+              .optional()
+              .describe(
+                "Milliseconds between social_posts carousel slides when autoplay is on"
               ),
           })
         )
