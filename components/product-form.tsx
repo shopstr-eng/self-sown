@@ -41,7 +41,12 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
-import { ProductContext, ProfileMapContext } from "../utils/context/context";
+import {
+  ProductContext,
+  ProfileMapContext,
+  ShopMapContext,
+} from "../utils/context/context";
+import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 import {
   ProductData,
   LabReport,
@@ -122,6 +127,7 @@ export default function ProductForm({
   >(null);
   const productEventContext = useContext(ProductContext);
   const profileContext = useContext(ProfileMapContext);
+  const shopContext = useContext(ShopMapContext);
   const {
     signer,
     isLoggedIn,
@@ -3249,21 +3255,27 @@ export default function ProductForm({
                 <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 flex-shrink-0 text-black" />
                 <p className="text-xs text-black">
                   Your payment preference is set to{" "}
-                  {profileContext.profileData.get(pubkey)?.content
-                    ?.payment_preference === "lightning"
-                    ? "Lightning"
-                    : profileContext.profileData.get(pubkey)?.content
-                          ?.payment_preference === "fiat"
-                      ? "Fiat"
-                      : "Cashu"}
-                  . You can modify this in your{" "}
+                  {(() => {
+                    const derived = derivePaymentPreference(
+                      profileContext.profileData.get(pubkey)?.content?.lud16,
+                      shopContext.shopData.get(pubkey)?.content?.storefront
+                        ?.acceptBitcoin !== false
+                    );
+                    return derived === "lightning"
+                      ? "Lightning"
+                      : derived === "fiat"
+                        ? "Fiat"
+                        : "Cashu";
+                  })()}
+                  . This is set automatically by your{" "}
                   <span
                     className="cursor-pointer underline hover:text-blue-600"
                     onClick={() => router.push("/settings/market-profile")}
                   >
                     profile settings
-                  </span>
-                  .
+                  </span>{" "}
+                  — Lightning when you have a Lightning address, Cashu when not,
+                  and Fiat when Bitcoin payments are turned off.
                 </p>
               </div>
             </ModalBody>

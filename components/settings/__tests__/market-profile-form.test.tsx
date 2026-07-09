@@ -216,24 +216,20 @@ describe("MarketProfileForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("updates payment preference and milk market donation", async () => {
+  test("derives payment preference from the lightning address on save", async () => {
     mockCreateNostrProfileEvent.mockResolvedValue({});
     const user = userEvent.setup();
     renderWithProviders(<MarketProfileForm />);
     await screen.findByPlaceholderText("Add your display name...");
 
-    const paymentSelect = screen.getByRole("button", {
-      name: /Local Currency \(Fiat\)/i,
-    });
-    await user.click(paymentSelect);
-    const lightningOption = await screen.findByRole("option", {
-      name: "Lightning (Bitcoin)",
-    });
-    await user.click(lightningOption);
+    // Read-only display: Cashu without a lightning address.
+    expect(screen.getByText("Cashu (Bitcoin)")).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    });
+    await user.type(
+      screen.getByPlaceholderText("Add your Lightning address..."),
+      "me@getalby.com"
+    );
+    expect(screen.getByText("Lightning (Bitcoin)")).toBeInTheDocument();
 
     const donationInput = screen.getByRole("spinbutton");
     await user.clear(donationInput);
@@ -253,5 +249,23 @@ describe("MarketProfileForm", () => {
         expect.stringContaining('"mm_donation":"5.5"')
       );
     });
+  });
+
+  test("shows fiat preference when the storefront turns Bitcoin off", async () => {
+    (global.fetch as jest.Mock).mockImplementation((url: string) =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(
+            String(url).includes("/api/storefront/lookup")
+              ? { shopConfig: { storefront: { acceptBitcoin: false } } }
+              : {}
+          ),
+      })
+    );
+    renderWithProviders(<MarketProfileForm />);
+    expect(
+      await screen.findByText("Local Currency (Fiat)")
+    ).toBeInTheDocument();
   });
 });

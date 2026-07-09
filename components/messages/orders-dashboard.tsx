@@ -111,6 +111,7 @@ interface OrderData {
   productTitle?: string;
   quantity?: number;
   paymentTag?: string;
+  paymentReference?: string;
   paymentProof?: string;
   subject?: string;
   reviewRating?: number;
@@ -588,6 +589,7 @@ const OrdersDashboard = ({
               productTitle,
               quantity,
               paymentTag,
+              paymentReference: paymentReference || undefined,
               paymentProof,
               subject,
               isSale,
@@ -767,6 +769,9 @@ const OrdersDashboard = ({
               order.paymentMethod !== "Not specified"
                 ? order.paymentMethod
                 : existing.paymentMethod,
+            paymentTag: order.paymentTag || existing.paymentTag,
+            paymentReference:
+              order.paymentReference || existing.paymentReference,
             productTitle:
               order.productTitle !== "Unknown Product"
                 ? order.productTitle
@@ -2349,6 +2354,16 @@ const OrdersDashboard = ({
                           ) : (
                             <span className="text-black">
                               {order.paymentMethod}
+                              {order.paymentTag === "lightning" &&
+                                order.paymentReference &&
+                                order.paymentReference.includes("@") && (
+                                  <span
+                                    className="block max-w-[16rem] truncate text-xs text-gray-600"
+                                    title={`Paid to ${order.paymentReference}`}
+                                  >
+                                    Paid to {order.paymentReference}
+                                  </span>
+                                )}
                             </span>
                           )}
                         </td>

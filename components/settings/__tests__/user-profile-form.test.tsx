@@ -205,6 +205,17 @@ describe("UserProfileForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      })
+    ) as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    (global.fetch as jest.Mock).mockRestore?.();
+    localStorage.clear();
   });
 
   test("passes anchored badge props to the avatar uploader", async () => {
@@ -298,15 +309,20 @@ describe("UserProfileForm", () => {
     expect(newProfileImage).toHaveAttribute("src", "https://new.image/url");
   });
 
-  test("updates payment preference and donation", async () => {
+  test("derives payment preference from the lightning address on save", async () => {
     mockCreateNostrProfileEvent.mockResolvedValue({});
     const user = userEvent.setup();
     renderWithProviders(<UserProfileForm />);
     await screen.findByLabelText("Display name");
 
-    // Downstream labels: "Bitcoin payment preference" and "Shopstr donation (%)".
-    const paymentSelect = screen.getByLabelText(/Bitcoin payment preference/i);
-    await user.selectOptions(paymentSelect, "lightning");
+    // Read-only display: Cashu without a lightning address.
+    expect(screen.getByText("Cashu (Bitcoin)")).toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText("Lightning address"),
+      "me@getalby.com"
+    );
+    expect(screen.getByText("Lightning (Bitcoin)")).toBeInTheDocument();
 
     const donationInput = screen.getByLabelText(/Shopstr donation/i);
     await user.clear(donationInput);

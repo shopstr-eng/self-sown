@@ -264,11 +264,14 @@ describe("CartInvoiceCard multi-currency FX conversion", () => {
     expect(totalRow).toHaveTextContent("3,000 sats");
     expect(totalRow.textContent ?? "").not.toMatch(/NaN/);
 
-    // Both resilient helpers were exercised by the EUR cross-currency line.
+    // The EUR cross-currency line exercised the sat-value helper. With it
+    // returning null (outage), the component short-circuits the fiat leg —
+    // there is no satoshi value to convert — so getFiatValueResilient is
+    // deliberately NOT called on this path.
     await waitFor(() => {
       expect(getSatoshiValueResilientMock).toHaveBeenCalled();
-      expect(getFiatValueResilientMock).toHaveBeenCalled();
     });
+    expect(getFiatValueResilientMock).not.toHaveBeenCalled();
 
     // The card button surfaces the same native USD total — no NaN, no crash.
     const cardButton = await screen.findByText(/Pay with Card:/);

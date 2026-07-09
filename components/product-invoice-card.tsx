@@ -83,6 +83,12 @@ import {
   saveAddress,
 } from "@/utils/nostr/nostr-helper-functions";
 import { LightningAddress } from "@getalby/lightning-tools";
+import {
+  derivePaymentPreference,
+  isDirectLightningCandidate,
+  requestDirectLightningInvoice,
+  DirectLightningInvoice,
+} from "@/utils/lightning/direct-lnurl";
 import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
@@ -1456,6 +1462,45 @@ export default function ProductInvoiceCard({
         validatePaymentData(convertedPrice);
       }
 
+      // Direct seller-LNURL path (NWC): the wallet returns a preimage we can
+      // validate against the invoice, so LUD-21 verify support isn't needed.
+      // Failures before the payment attempt fall through to the mint flow;
+      // failures after it surface via handleNWCError (the wallet may have
+      // actually paid, so falling back would risk a double charge).
+      const directLud16 =
+        profileContext.profileData.get(productData.pubkey)?.content?.lud16 ||
+        "";
+      if (isDirectLightningCandidate(directLud16)) {
+        const direct = await requestDirectLightningInvoice(
+          directLud16,
+          convertedPrice,
+          { requireVerify: false }
+        );
+        if (direct) {
+          const { nwcString: directNwcString } = getLocalStorageData();
+          if (!directNwcString) throw new Error("NWC connection not found.");
+          nwc = new NostrWebLNProvider({
+            nostrWalletConnectUrl: directNwcString,
+          });
+          await nwc.enable();
+          const response = await nwc.sendPayment(direct.invoice.paymentRequest);
+          const preimage = response?.preimage;
+          if (!preimage || !direct.invoice.validatePreimage(preimage)) {
+            throw new Error(
+              "Your wallet returned an invalid payment preimage. Please check your wallet before retrying."
+            );
+          }
+          await sendDirectLightningOrderMessages(
+            direct.lnurl,
+            convertedPrice,
+            data,
+            preimage
+          );
+          finalizeDirectLightningSuccess();
+          return;
+        }
+      }
+
       const wallet = new CashuWallet(new CashuMint(mints[0]!));
       await wallet.loadMint();
       const { request: pr, quote: hash } =
@@ -2056,6 +2101,25 @@ export default function ProductInvoiceCard({
         validatePaymentData(convertedPrice);
       }
 
+      // Direct seller-LNURL path: when the seller has a lightning address,
+      // fetch the invoice straight from it for the FULL amount (no mint
+      // quote, no donation/beef splits). Requires LUD-21 verify support so
+      // we can confirm the payment client-side; any failure before the
+      // invoice is shown falls through to the existing mint flow.
+      const directLud16 =
+        profileContext.profileData.get(productData.pubkey)?.content?.lud16 ||
+        "";
+      if (isDirectLightningCandidate(directLud16)) {
+        const direct = await requestDirectLightningInvoice(
+          directLud16,
+          convertedPrice
+        );
+        if (direct) {
+          await handleDirectLightningPayment(direct, convertedPrice, data);
+          return;
+        }
+      }
+
       setShowInvoiceCard(true);
       const wallet = new CashuWallet(new CashuMint(mints[0]!));
       await wallet.loadMint();
@@ -2116,6 +2180,404 @@ export default function ProductInvoiceCard({
       setShowInvoiceCard(false);
       setInvoice("");
       setQrCodeUrl(null);
+    }
+  };
+
+  // Shared success tail for both direct-LNURL payment paths (QR/WebLN and
+  // NWC). Mirrors the mint-flow success block minus mint-quote bookkeeping
+  // (there is no quote — funds went straight to the seller).
+  const finalizeDirectLightningSuccess = () => {
+    flushPendingOrderEmail();
+    setPaymentConfirmed(true);
+    setQrCodeUrl(null);
+    if (discountCode && productData.pubkey && shouldRedeemDiscountCode()) {
+      fetch("/api/db/discount-code-used", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: discountCode,
+          pubkey: productData.pubkey,
+        }),
+      }).catch(() => {});
+    }
+    recordPendingAffiliateReferral("lightning");
+    setInvoiceIsPaid(true);
+  };
+
+  // Direct seller-LNURL QR/WebLN path: show the seller's own invoice and
+  // poll its LUD-21 verify URL until settled. There are NO proofs anywhere
+  // in this flow, so on timeout we surface a distinct terminal message
+  // (never the wallet-recovery modal — there is nothing to recover).
+  const handleDirectLightningPayment = async (
+    direct: DirectLightningInvoice,
+    convertedPrice: number,
+    data: any
+  ) => {
+    const { invoice: lnInvoice, lnurl } = direct;
+    const pr = lnInvoice.paymentRequest;
+    setShowInvoiceCard(true);
+    setInvoice(pr);
+
+    QRCode.toDataURL(pr)
+      .then((url: string) => {
+        setQrCodeUrl(url);
+      })
+      .catch((err: unknown) => {
+        console.error("ERROR", err);
+      });
+
+    if (typeof window.webln !== "undefined") {
+      try {
+        await window.webln.enable();
+        const isEnabled = await window.webln.isEnabled();
+        if (!isEnabled) {
+          throw new Error("WebLN is not enabled");
+        }
+        try {
+          const res = await window.webln.sendPayment(pr);
+          if (!res) {
+            throw new Error("Payment failed");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    let retryCount = 0;
+    const maxRetries = 150;
+    const pollIntervalMs = 2100;
+    setPollDeadlineMs(Date.now() + maxRetries * pollIntervalMs);
+    let handledTerminalOutcome = false;
+
+    try {
+      while (retryCount < maxRetries) {
+        // verifyPayment() catches its own fetch errors and returns false,
+        // so every iteration advances retryCount — no branch can spin
+        // forever without backing off.
+        const settled = await lnInvoice.verifyPayment();
+        if (settled) {
+          await sendDirectLightningOrderMessages(
+            lnurl,
+            convertedPrice,
+            data,
+            lnInvoice.preimage ?? undefined
+          );
+          finalizeDirectLightningSuccess();
+          handledTerminalOutcome = true;
+          break;
+        }
+        retryCount++;
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
+
+      if (!handledTerminalOutcome) {
+        setShowInvoiceCard(false);
+        setInvoice("");
+        setQrCodeUrl(null);
+        setFailureText(
+          "We couldn't confirm the Lightning payment in time. If your wallet shows the payment as sent, it went directly to the seller's Lightning address (" +
+            lnurl +
+            ") — please contact the seller to confirm your order before paying again."
+        );
+        setShowFailureModal(true);
+      }
+    } finally {
+      setPollDeadlineMs(null);
+    }
+  };
+
+  // Messaging sequence for a direct seller-LNURL payment. The seller already
+  // received the FULL amount at their lightning address, so there are no
+  // tokens to attach and no donation/beef splits. Mirrors the sendTokens
+  // message sequence; each side-effect is isolated in its own try/catch so
+  // one failure can't silently skip the rest (and never throws — the
+  // payment has already settled by the time this runs).
+  const sendDirectLightningOrderMessages = async (
+    lnurl: string,
+    amountSats: number,
+    data: any,
+    preimage?: string
+  ) => {
+    const orderId = uuidv4();
+
+    if (pendingOrderEmailRef.current && !pendingOrderEmailRef.current.orderId) {
+      pendingOrderEmailRef.current.orderId = orderId;
+    }
+
+    if (affiliateMeta) {
+      pendingAffiliateOrderRef.current = {
+        orderId,
+        grossSmallest: computeAffiliateGrossSmallest(
+          currentPrice + shippingCostToAdd,
+          productData.currency
+        ),
+        currency: productData.currency,
+      };
+    }
+
+    let productDetails = "";
+    if (selectedSize) {
+      productDetails += " in size " + selectedSize;
+    }
+    if (selectedVolume) {
+      if (productDetails) {
+        productDetails += " and a " + selectedVolume;
+      } else {
+        productDetails += " in a " + selectedVolume;
+      }
+    }
+    if (selectedWeight) {
+      if (productDetails) {
+        productDetails += " and weighing " + selectedWeight;
+      } else {
+        productDetails += " weighing " + selectedWeight;
+      }
+    }
+    if (selectedVariant) {
+      productDetails +=
+        " (" + (variantLabel || "Option") + ": " + selectedVariant + ")";
+    }
+    if (selectedBulkOption) {
+      productDetails += " (bulk: " + selectedBulkOption + " units)";
+    }
+    if (selectedPickupLocation) {
+      productDetails += " (pickup at: " + selectedPickupLocation + ")";
+    }
+
+    // Step 1: payment message to the seller (drives the orders dashboard).
+    try {
+      const paymentMessage =
+        "You have received a payment from " +
+        (userNPub || "a guest buyer") +
+        " for your " +
+        productData.title +
+        " listing" +
+        productDetails +
+        " on Milk Market! Check your Lightning address (" +
+        lnurl +
+        ") for your sats.";
+      await sendPaymentAndContactMessage(
+        productData.pubkey,
+        paymentMessage,
+        true,
+        false,
+        false,
+        false,
+        orderId,
+        "lightning",
+        lnurl,
+        preimage,
+        amountSats,
+        undefined,
+        undefined,
+        selectedPickupLocation || undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        // amountSats is in sats — tag accordingly so the orders dashboard
+        // doesn't render it as the product's fiat currency.
+        "sats"
+      );
+    } catch (error) {
+      console.error("Failed to send direct Lightning payment message:", error);
+    }
+
+    // Step 2: additional customer info.
+    if (data.additionalInfo) {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await sendPaymentAndContactMessage(
+          productData.pubkey,
+          "Additional customer information: " + data.additionalInfo,
+          false,
+          false,
+          false,
+          false,
+          orderId
+        );
+      } catch (error) {
+        console.error("Failed to send additional info message:", error);
+      }
+    }
+
+    // Step 3: herdshare agreement to the buyer.
+    if (productData.herdshareAgreement && userPubkey) {
+      try {
+        const herdshareMessage =
+          "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+          productData.herdshareAgreement;
+        await sendPaymentAndContactMessage(
+          userPubkey,
+          herdshareMessage,
+          false,
+          false,
+          false,
+          true,
+          orderId
+        );
+      } catch (error) {
+        console.error("Failed to send herdshare message:", error);
+      }
+    }
+
+    // Step 4: shipping/contact details + buyer receipt.
+    try {
+      if (
+        data.shippingName &&
+        data.shippingAddress &&
+        data.shippingCity &&
+        data.shippingPostalCode &&
+        data.shippingState &&
+        data.shippingCountry &&
+        (productData.shippingType === "Added Cost" ||
+          productData.shippingType === "Free" ||
+          productData.shippingType === "Free/Pickup" ||
+          productData.shippingType === "Added Cost/Pickup")
+      ) {
+        const addressTagForShipping = data.shippingUnitNo
+          ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+          : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`;
+        const contactMessage =
+          "Please ship the product" +
+          productDetails +
+          " to " +
+          data.shippingName +
+          " at " +
+          data.shippingAddress +
+          (data.shippingUnitNo ? " " + data.shippingUnitNo : "") +
+          ", " +
+          data.shippingCity +
+          ", " +
+          data.shippingPostalCode +
+          ", " +
+          data.shippingState +
+          ", " +
+          data.shippingCountry +
+          ".";
+        await sendPaymentAndContactMessage(
+          productData.pubkey,
+          contactMessage,
+          false,
+          false,
+          false,
+          false,
+          orderId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          addressTagForShipping
+        );
+
+        if (userPubkey) {
+          const receiptMessage =
+            "Your order for " +
+            productData.title +
+            productDetails +
+            " was processed successfully! If applicable, you should be receiving delivery information from " +
+            nip19.npubEncode(productData.pubkey) +
+            " as soon as they review your order.";
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await sendPaymentAndContactMessage(
+            userPubkey,
+            receiptMessage,
+            false,
+            true,
+            false,
+            false,
+            orderId,
+            "lightning",
+            lnurl,
+            preimage,
+            amountSats,
+            undefined,
+            addressTagForShipping,
+            selectedPickupLocation || undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            "sats"
+          );
+        }
+      } else if (
+        productData.shippingType === "N/A" ||
+        productData.shippingType === "Pickup" ||
+        productData.shippingType === "Free/Pickup"
+      ) {
+        await sendInquiryDM(productData.pubkey, productData.title);
+
+        if (userPubkey) {
+          const receiptMessage =
+            "Your order for " +
+            productData.title +
+            productDetails +
+            " was processed successfully! If applicable, you should be receiving delivery information from " +
+            nip19.npubEncode(productData.pubkey) +
+            " as soon as they review your order.";
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await sendPaymentAndContactMessage(
+            userPubkey,
+            receiptMessage,
+            false,
+            true,
+            false,
+            false,
+            orderId,
+            "lightning",
+            lnurl,
+            preimage,
+            amountSats,
+            undefined,
+            undefined,
+            selectedPickupLocation || undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            "sats"
+          );
+        }
+      } else if (userPubkey) {
+        const receiptMessage =
+          "Thank you for your purchase of " +
+          productData.title +
+          productDetails +
+          " from " +
+          nip19.npubEncode(productData.pubkey) +
+          ".";
+        await sendPaymentAndContactMessage(
+          userPubkey,
+          receiptMessage,
+          false,
+          true,
+          false,
+          false,
+          orderId,
+          "lightning",
+          lnurl,
+          preimage,
+          amountSats,
+          undefined,
+          undefined,
+          selectedPickupLocation || undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          "sats"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Failed to send shipping/receipt messages for direct Lightning payment:",
+        error
+      );
     }
   };
 
@@ -2486,8 +2948,12 @@ export default function ProductInvoiceCard({
         };
       }
 
-      const paymentPreference =
-        sellerProfile?.content?.payment_preference || "ecash";
+      // Derive the preference live (stored kind:0 values can be stale/legacy).
+      const paymentPreference = derivePaymentPreference(
+        sellerProfile?.content?.lud16,
+        shopContext.shopData.get(productData.pubkey)?.content?.storefront
+          ?.acceptBitcoin !== false
+      );
       const lnurl = sellerProfile?.content?.lud16 || "";
 
       // Step 1: Send payment message

@@ -72,6 +72,12 @@ import {
   saveAddress,
 } from "@/utils/nostr/nostr-helper-functions";
 import { LightningAddress } from "@getalby/lightning-tools";
+import {
+  derivePaymentPreference,
+  isDirectLightningCandidate,
+  requestDirectLightningInvoice,
+  DirectLightningInvoice,
+} from "@/utils/lightning/direct-lnurl";
 import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
@@ -118,23 +124,29 @@ import {
   getFiatValueResilient,
 } from "@/utils/stripe/currency";
 
+// Identity-stable default for omitted object props. Inline `= {}` defaults
+// mint a NEW object on every render, which churns the dependency arrays of
+// effects/memos that list these props — the FX-total effect below sets state
+// each run, so unstable deps turn it into an infinite render loop.
+const STABLE_EMPTY_OBJECT = Object.freeze({});
+
 export default function CartInvoiceCard({
   products,
   quantities,
   shippingTypes,
   totalCostsInSats,
   subtotalCost,
-  appliedDiscounts = {},
-  appliedShippingDiscounts = {},
-  discountCodes = {},
-  affiliateMetaBySeller = {},
+  appliedDiscounts = STABLE_EMPTY_OBJECT,
+  appliedShippingDiscounts = STABLE_EMPTY_OBJECT,
+  discountCodes = STABLE_EMPTY_OBJECT,
+  affiliateMetaBySeller = STABLE_EMPTY_OBJECT,
   shopProfiles,
   onBackToCart,
   setInvoiceIsPaid,
   setInvoiceGenerationFailed,
   setCashuPaymentSent,
   setCashuPaymentFailed,
-  subscriptionSelections = {},
+  subscriptionSelections = STABLE_EMPTY_OBJECT,
 }: {
   products: ProductData[];
   quantities: { [key: string]: number };
@@ -2986,6 +2998,43 @@ export default function CartInvoiceCard({
     try {
       validatePaymentData(convertedPrice, data);
 
+      // Direct seller-LNURL path (NWC, single-seller carts only): the
+      // wallet returns a preimage we can validate against the invoice, so
+      // LUD-21 verify support isn't needed. Failures before the payment
+      // attempt fall through to the mint flow; failures after it surface
+      // via handleNWCError (the wallet may have actually paid, so falling
+      // back would risk a double charge).
+      const directLud16 = getDirectCartLud16();
+      if (isDirectLightningCandidate(directLud16)) {
+        const direct = await requestDirectLightningInvoice(
+          directLud16,
+          convertedPrice,
+          { requireVerify: false }
+        );
+        if (direct) {
+          const { nwcString: directNwcString } = getLocalStorageData();
+          if (!directNwcString) throw new Error("NWC connection not found.");
+          nwc = new NostrWebLNProvider({
+            nostrWalletConnectUrl: directNwcString,
+          });
+          await nwc.enable();
+          const response = await nwc.sendPayment(direct.invoice.paymentRequest);
+          const preimage = response?.preimage;
+          if (!preimage || !direct.invoice.validatePreimage(preimage)) {
+            throw new Error(
+              "Your wallet returned an invalid payment preimage. Please check your wallet before retrying."
+            );
+          }
+          await sendDirectCartLightningOrderMessages(
+            direct.lnurl,
+            data,
+            preimage
+          );
+          finalizeDirectCartLightningSuccess();
+          return;
+        }
+      }
+
       const wallet = new CashuWallet(new CashuMint(mints[0]!));
       await wallet.loadMint();
       const { request: pr, quote: hash } =
@@ -4683,9 +4732,409 @@ export default function CartInvoiceCard({
     }
   };
 
+  // Resolve the seller's lightning address for the direct-LNURL path. Only
+  // single-seller carts qualify — one Lightning payment can't be split
+  // across multiple sellers' lightning addresses.
+  const getDirectCartLud16 = (): string => {
+    if (!isSingleSeller || !singleSellerPubkey) return "";
+    return (
+      profileContext.profileData.get(singleSellerPubkey)?.content?.lud16 || ""
+    );
+  };
+
+  // Shared success tail for both direct-LNURL cart payment paths (QR/WebLN
+  // and NWC). Mirrors the mint-flow success block minus mint-quote
+  // bookkeeping (there is no quote — funds went straight to the seller).
+  const finalizeDirectCartLightningSuccess = () => {
+    clearPurchasedFromCart();
+    flushPendingOrderEmails();
+    setPaymentConfirmed(true);
+    if (discountCodes) {
+      Object.entries(discountCodes).forEach(([pubkey, code]) => {
+        if (code && shouldRedeemCodeForSeller(pubkey)) {
+          fetch("/api/db/discount-code-used", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, pubkey }),
+          }).catch(() => {});
+        }
+      });
+    }
+    if (setInvoiceIsPaid) {
+      setInvoiceIsPaid(true);
+    }
+    setQrCodeUrl(null);
+  };
+
+  // Direct seller-LNURL QR/WebLN path for single-seller carts: show the
+  // seller's own invoice and poll its LUD-21 verify URL until settled.
+  // There are NO proofs anywhere in this flow, so on timeout we surface a
+  // distinct terminal message (never the wallet-recovery modal — there is
+  // nothing to recover).
+  const handleDirectCartLightningPayment = async (
+    direct: DirectLightningInvoice,
+    data: any
+  ) => {
+    const { invoice: lnInvoice, lnurl } = direct;
+    const pr = lnInvoice.paymentRequest;
+    setShowInvoiceCard(true);
+    setInvoice(pr);
+
+    QRCode.toDataURL(pr)
+      .then((url: string) => {
+        setQrCodeUrl(url);
+      })
+      .catch((err: unknown) => {
+        console.error("ERROR", err);
+      });
+
+    if (typeof window.webln !== "undefined") {
+      try {
+        await window.webln.enable();
+        const isEnabled = await window.webln.isEnabled();
+        if (!isEnabled) {
+          throw new Error("WebLN is not enabled");
+        }
+        try {
+          const res = await window.webln.sendPayment(pr);
+          if (!res) {
+            throw new Error("Payment failed");
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    let retryCount = 0;
+    const maxRetries = 150;
+    const pollIntervalMs = 2100;
+    setPollDeadlineMs(Date.now() + maxRetries * pollIntervalMs);
+    let handledTerminalOutcome = false;
+
+    try {
+      while (retryCount < maxRetries) {
+        // verifyPayment() catches its own fetch errors and returns false,
+        // so every iteration advances retryCount — no branch can spin
+        // forever without backing off.
+        const settled = await lnInvoice.verifyPayment();
+        if (settled) {
+          await sendDirectCartLightningOrderMessages(
+            lnurl,
+            data,
+            lnInvoice.preimage ?? undefined
+          );
+          finalizeDirectCartLightningSuccess();
+          handledTerminalOutcome = true;
+          break;
+        }
+        retryCount++;
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
+
+      if (!handledTerminalOutcome) {
+        setShowInvoiceCard(false);
+        setInvoice("");
+        setQrCodeUrl(null);
+        setFailureText(
+          "We couldn't confirm the Lightning payment in time. If your wallet shows the payment as sent, it went directly to the seller's Lightning address (" +
+            lnurl +
+            ") — please contact the seller to confirm your order before paying again."
+        );
+        setShowFailureModal(true);
+      }
+    } finally {
+      setPollDeadlineMs(null);
+    }
+  };
+
+  // Messaging sequence for a direct seller-LNURL cart payment (single-seller
+  // carts only). The seller already received the FULL amount at their
+  // lightning address, so there are no tokens to attach and no donation/beef
+  // splits. Each side-effect is isolated in its own try/catch so one failure
+  // can't silently skip the rest (and never throws — the payment has already
+  // settled by the time this runs).
+  const sendDirectCartLightningOrderMessages = async (
+    lnurl: string,
+    data: any,
+    preimage?: string
+  ) => {
+    const orderId = uuidv4();
+
+    if (pendingOrderEmailRef.current) {
+      pendingOrderEmailRef.current.forEach((entry) => {
+        if (!entry.orderId) entry.orderId = orderId;
+      });
+    }
+
+    const sellerPubkey = singleSellerPubkey || products[0]?.pubkey || "";
+    const addressTag =
+      data.shippingName && data.shippingAddress
+        ? data.shippingUnitNo
+          ? `${data.shippingName}, ${data.shippingAddress}, ${data.shippingUnitNo}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+          : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
+        : undefined;
+    const productTitles = products
+      .map((p: any) => p.title || p.productName)
+      .join(", ");
+
+    // Step 1: payment message per product (drives the orders dashboard).
+    const paymentMessage =
+      "You have received a payment from " +
+      (userNPub || "a guest buyer") +
+      " for your cart order (" +
+      productTitles +
+      ") on Milk Market! Check your Lightning address (" +
+      lnurl +
+      ") for your sats.";
+    for (const product of products) {
+      try {
+        const satsAmount =
+          totalCostsInSats[product.id] || totalCostsInSats[product.pubkey] || 0;
+        // Reporting-only: fold the seller's discounted shipping into the
+        // amount tag once (first product), matching the fiat cart flow.
+        const reportShipSats =
+          product === products[0]
+            ? shippingCostsInSats[product.pubkey] || 0
+            : 0;
+        await sendPaymentAndContactMessage(
+          sellerPubkey,
+          paymentMessage,
+          product,
+          true,
+          false,
+          false,
+          false,
+          orderId,
+          "lightning",
+          lnurl,
+          preimage,
+          satsAmount + reportShipSats,
+          quantities[product.id] || 1,
+          undefined,
+          addressTag,
+          selectedPickupLocations[product.id] || undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          // Amounts are in sats — tag accordingly so the orders dashboard
+          // doesn't render them as the cart's fiat currency.
+          "sats"
+        );
+      } catch (error) {
+        console.error(
+          "Failed to send direct Lightning payment message:",
+          error
+        );
+      }
+    }
+
+    // Step 2: additional customer info.
+    if (data.additionalInfo) {
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await sendPaymentAndContactMessage(
+          sellerPubkey,
+          "Additional customer information: " + data.additionalInfo,
+          products[0]!,
+          false,
+          false,
+          false,
+          false,
+          orderId
+        );
+      } catch (error) {
+        console.error("Failed to send additional info message:", error);
+      }
+    }
+
+    // Step 3: herdshare agreements to the buyer.
+    if (userPubkey) {
+      for (const product of products) {
+        if (!product.herdshareAgreement) continue;
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await sendPaymentAndContactMessage(
+            userPubkey,
+            "To finalize your purchase, sign and send the following herdshare agreement for the dairy: " +
+              product.herdshareAgreement,
+            product,
+            false,
+            false,
+            false,
+            true,
+            orderId
+          );
+        } catch (error) {
+          console.error("Failed to send herdshare message:", error);
+        }
+      }
+    }
+
+    // Step 4: shipping details + buyer receipts.
+    try {
+      if (data.shippingName && data.shippingAddress) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const contactMessage = data.shippingUnitNo
+          ? "Please ship the products to " +
+            data.shippingName +
+            " at " +
+            data.shippingAddress +
+            " " +
+            data.shippingUnitNo +
+            ", " +
+            data.shippingCity +
+            ", " +
+            data.shippingPostalCode +
+            ", " +
+            data.shippingState +
+            ", " +
+            data.shippingCountry +
+            "."
+          : "Please ship the products to " +
+            data.shippingName +
+            " at " +
+            data.shippingAddress +
+            ", " +
+            data.shippingCity +
+            ", " +
+            data.shippingPostalCode +
+            ", " +
+            data.shippingState +
+            ", " +
+            data.shippingCountry +
+            ".";
+        await sendPaymentAndContactMessage(
+          sellerPubkey,
+          contactMessage,
+          products[0]!,
+          false,
+          false,
+          false,
+          false,
+          orderId,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          addressTag
+        );
+
+        if (userPubkey) {
+          const receiptMessage =
+            "Your cart order (" +
+            productTitles +
+            ") was processed successfully via Lightning. You should be receiving delivery information from " +
+            nip19.npubEncode(sellerPubkey) +
+            " as soon as they review your order.";
+          for (const product of products) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            await sendPaymentAndContactMessage(
+              userPubkey,
+              receiptMessage,
+              product,
+              false,
+              true,
+              false,
+              false,
+              orderId,
+              "lightning",
+              lnurl,
+              preimage,
+              totalCostsInSats[product.id] ||
+                totalCostsInSats[product.pubkey] ||
+                0,
+              quantities[product.id] || 1,
+              undefined,
+              addressTag,
+              selectedPickupLocations[product.id] || undefined,
+              undefined,
+              undefined,
+              undefined,
+              undefined,
+              "sats"
+            );
+          }
+        }
+      } else if (userPubkey) {
+        for (const product of products) {
+          const receiptMessage =
+            "Thank you for your purchase of " +
+            (product.title || "") +
+            " from " +
+            nip19.npubEncode(sellerPubkey) +
+            ".";
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          await sendPaymentAndContactMessage(
+            userPubkey,
+            receiptMessage,
+            product,
+            false,
+            true,
+            false,
+            false,
+            orderId,
+            "lightning",
+            lnurl,
+            preimage,
+            totalCostsInSats[product.id] ||
+              totalCostsInSats[product.pubkey] ||
+              0,
+            quantities[product.id] || 1,
+            undefined,
+            undefined,
+            selectedPickupLocations[product.id] || undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            "sats"
+          );
+        }
+      }
+    } catch (error) {
+      console.error(
+        "Failed to send shipping/receipt messages for direct Lightning payment:",
+        error
+      );
+    }
+
+    // Product inquiry DMs to the seller (matches the fiat/Stripe cart flows).
+    for (const product of products) {
+      try {
+        await sendInquiryDM(product.pubkey, product.title);
+      } catch (error) {
+        console.error("Failed to send inquiry DM:", error);
+      }
+    }
+  };
+
   const handleLightningPayment = async (convertedPrice: number, data: any) => {
     try {
       validatePaymentData(convertedPrice, data);
+
+      // Direct seller-LNURL path (single-seller carts only): fetch the
+      // invoice straight from the seller's lightning address for the FULL
+      // cart amount (no mint quote, no donation/beef splits). Requires
+      // LUD-21 verify support so we can confirm the payment client-side;
+      // any failure before the invoice is shown falls through to the
+      // existing mint flow.
+      const directLud16 = getDirectCartLud16();
+      if (isDirectLightningCandidate(directLud16)) {
+        const direct = await requestDirectLightningInvoice(
+          directLud16,
+          convertedPrice
+        );
+        if (direct) {
+          await handleDirectCartLightningPayment(direct, data);
+          return;
+        }
+      }
 
       setShowInvoiceCard(true);
       const wallet = new CashuWallet(new CashuMint(mints[0]!));
@@ -5077,8 +5526,12 @@ export default function CartInvoiceCard({
           // silent return here would mark the order as success and lose funds.
           throw new Error("Failed to generate new keys for messages");
         }
-        const paymentPreference =
-          sellerProfile?.content?.payment_preference || "ecash";
+        // Derive the preference live (stored kind:0 values can be stale/legacy).
+        const paymentPreference = derivePaymentPreference(
+          sellerProfile?.content?.lud16,
+          shopContext.shopData.get(pubkey)?.content?.storefront
+            ?.acceptBitcoin !== false
+        );
         const lnurl = sellerProfile?.content?.lud16 || "";
 
         // Construct address string for order-info type
@@ -8461,8 +8914,10 @@ export default function CartInvoiceCard({
               <div className="mb-6 space-y-4">
                 <button
                   onClick={async () => {
+                    // The selector stays visible as a persistent toggle so the
+                    // buyer can flip the preference back and forth; the form
+                    // below reacts to the change.
                     setShippingPickupPreference("shipping");
-                    setShowFreePickupSelection(false);
                     let shippingTotal = 0;
                     const processedSellers = new Set<string>();
 
@@ -8540,7 +8995,6 @@ export default function CartInvoiceCard({
                     // total correct immediately and avoids a handler-vs-effect
                     // race that could briefly re-add the dropped shipping.
                     setShippingPickupPreference("contact");
-                    setShowFreePickupSelection(false);
                     setTotalCost(subtotalCost);
                   }}
                   className={`shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
@@ -8555,50 +9009,11 @@ export default function CartInvoiceCard({
                   </div>
                 </button>
               </div>
-
-              {/* Show pickup location selection for products with pickup locations */}
-              {productsWithPickupLocations.length > 0 &&
-                shippingPickupPreference === "contact" && (
-                  <div className="space-y-6">
-                    <h3 className="text-lg font-semibold">
-                      Select Pickup Locations
-                    </h3>
-                    {productsWithPickupLocations.map((product) => (
-                      <div key={product.id} className="space-y-2">
-                        <h4 className="font-medium">{product.title}</h4>
-                        <Select
-                          classNames={{
-                            trigger:
-                              "border-2 border-black rounded-md shadow-neo !bg-white hover:!bg-white data-[hover=true]:!bg-white data-[focus=true]:!bg-white",
-                            value: "!text-black",
-                            label: "text-gray-600",
-                            popoverContent:
-                              "border-2 border-black rounded-md bg-white",
-                            listbox: "!text-black",
-                          }}
-                          label="Select pickup location"
-                          placeholder="Choose a pickup location"
-                          value={selectedPickupLocations[product.id] || ""}
-                          onChange={(e) => {
-                            setSelectedPickupLocations((prev) => ({
-                              ...prev,
-                              [product.id]: e.target.value,
-                            }));
-                          }}
-                        >
-                          {(product.pickupLocations || []).map((location) => (
-                            <SelectItem key={location}>{location}</SelectItem>
-                          ))}
-                        </Select>
-                      </div>
-                    ))}
-                  </div>
-                )}
             </>
           )}
 
           {/* Contact/Shipping Form */}
-          {formType && !showFreePickupSelection && (
+          {formType && (
             <>
               {formType === "shipping" && (
                 <h2 className="mb-6 text-2xl font-bold">

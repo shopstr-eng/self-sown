@@ -28,6 +28,7 @@ import {
 import dns from "dns";
 import { promisify } from "util";
 import { registerTool } from "./register-tool";
+import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 import {
   canActorSendShippingUpdate,
   canActorUpdateMcpOrderStatus,
@@ -319,10 +320,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Fiat payment handles: object mapping method names (venmo, cashapp, zelle, etc.) to usernames/handles"
         ),
-      payment_preference: z
-        .enum(["ecash", "lightning", "fiat"])
-        .optional()
-        .describe("Preferred payment method (ecash, lightning, or fiat)"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -353,8 +350,25 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         if (params.nip05) content.nip05 = params.nip05;
         if (params.website) content.website = params.website;
         if (params.fiat_options) content.fiat_options = params.fiat_options;
-        if (params.payment_preference)
-          content.payment_preference = params.payment_preference;
+        // payment_preference is derived, never set manually (mirrors the
+        // settings UI): fiat when the storefront turns Bitcoin off,
+        // lightning when a usable lightning address is set, else ecash.
+        let acceptBitcoin = true;
+        try {
+          const shopEvents = await fetchCachedEvents(30019, {
+            pubkey,
+            limit: 1,
+          });
+          const rawShopContent = shopEvents[0]?.content;
+          if (rawShopContent) {
+            const shopContent = JSON.parse(rawShopContent);
+            acceptBitcoin = shopContent?.storefront?.acceptBitcoin !== false;
+          }
+        } catch {}
+        content.payment_preference = derivePaymentPreference(
+          content.lud16,
+          acceptBitcoin
+        );
 
         const eventTemplate: EventTemplate = {
           created_at: Math.floor(Date.now() / 1000),

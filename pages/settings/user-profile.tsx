@@ -2,14 +2,7 @@ import { useEffect, useState, useContext, useMemo } from "react";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import { ProfileMapContext } from "@/utils/context/context";
 import { useForm, Controller } from "react-hook-form";
-import {
-  Button,
-  Textarea,
-  Input,
-  Image,
-  Select,
-  SelectItem,
-} from "@heroui/react";
+import { Button, Textarea, Input, Image } from "@heroui/react";
 import {
   AVATARBADGEBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
@@ -28,6 +21,7 @@ import {
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 import ProtectedRoute from "@/components/utility-components/protected-route";
+import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
 const UserProfilePage = () => {
   const { nostr } = useContext(NostrContext);
@@ -53,7 +47,6 @@ const UserProfilePage = () => {
       about: "",
       website: "",
       lud16: "", // Lightning address
-      payment_preference: "ecash",
       shopstr_donation: 2.1,
     },
   });
@@ -69,6 +62,19 @@ const UserProfilePage = () => {
   }, [userPubkey]);
 
   const profileImageSrc = watchPicture || defaultImage;
+
+  // Whether the seller's storefront accepts Bitcoin — drives the derived
+  // (read-only) payment preference. Defaults to true like checkout does.
+  const [acceptBitcoin, setAcceptBitcoin] = useState(true);
+  useEffect(() => {
+    if (!userPubkey) return;
+    fetch(`/api/storefront/lookup?pubkey=${encodeURIComponent(userPubkey)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setAcceptBitcoin(data?.shopConfig?.storefront?.acceptBitcoin !== false);
+      })
+      .catch(() => {});
+  }, [userPubkey]);
 
   useEffect(() => {
     if (!userPubkey || profileContext.isLoading) return;
@@ -134,10 +140,15 @@ const UserProfilePage = () => {
         ? profileMap.get(userPubkey)?.content
         : {};
 
-      const updatedData = {
+      const updatedData: Record<string, unknown> = {
         ...existingProfile,
         ...data,
       };
+      // The payment preference is derived, never chosen manually.
+      updatedData.payment_preference = derivePaymentPreference(
+        typeof data.lud16 === "string" ? data.lud16 : "",
+        acceptBitcoin
+      );
 
       try {
         localStorage.setItem(
@@ -517,38 +528,30 @@ const UserProfilePage = () => {
                     );
                   }}
                 />
-                <Controller
-                  name="payment_preference"
-                  control={control}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <Select
-                      className="text-light-text dark:text-dark-text pb-4"
-                      classNames={{
-                        label: "text-light-text dark:text-dark-text text-lg",
-                      }}
-                      variant="bordered"
-                      fullWidth={true}
-                      label="Bitcoin payment preference"
-                      labelPlacement="outside"
-                      selectedKeys={value ? [value] : []}
-                      onChange={(e) => onChange(e.target.value)}
-                      onBlur={onBlur}
-                    >
-                      <SelectItem
-                        key="ecash"
-                        className="text-light-text dark:text-dark-text"
-                      >
-                        Cashu (Bitcoin)
-                      </SelectItem>
-                      <SelectItem
-                        key="lightning"
-                        className="text-light-text dark:text-dark-text"
-                      >
-                        Lightning (Bitcoin)
-                      </SelectItem>
-                    </Select>
-                  )}
-                />
+                <div className="pb-4">
+                  <label className="text-light-text dark:text-dark-text block pb-2 text-lg">
+                    Payment preference
+                  </label>
+                  <div className="text-light-text dark:text-dark-text border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium">
+                    {(() => {
+                      const derived = derivePaymentPreference(
+                        watch("lud16"),
+                        acceptBitcoin
+                      );
+                      return derived === "lightning"
+                        ? "Lightning (Bitcoin)"
+                        : derived === "fiat"
+                          ? "Local Currency (Fiat)"
+                          : "Cashu (Bitcoin)";
+                    })()}
+                  </div>
+                  <p className="text-light-text dark:text-dark-text mt-2 text-sm font-medium opacity-70">
+                    This is set automatically: Lightning when you have a
+                    Lightning address, Cashu when no address is set, and Local
+                    Currency (Fiat) when Bitcoin payments are turned off in your
+                    shop settings.
+                  </p>
+                </div>
 
                 <Controller
                   name="shopstr_donation"
@@ -573,6 +576,12 @@ const UserProfilePage = () => {
                     />
                   )}
                 />
+                {watch("lud16") ? (
+                  <p className="text-light-text dark:text-dark-text mb-4 text-sm font-medium opacity-70">
+                    Note: Lightning payments go directly to your Lightning
+                    address, so this donation doesn&apos;t apply to them.
+                  </p>
+                ) : null}
 
                 <Button
                   className={`mb-10 w-full ${PRIMARYBUTTONCLASSNAMES}`}

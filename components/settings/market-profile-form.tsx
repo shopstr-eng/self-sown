@@ -1,15 +1,7 @@
 import { useEffect, useRef, useState, useContext, useMemo } from "react";
 import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
-import {
-  Button,
-  Input,
-  Image,
-  Select,
-  SelectItem,
-  Checkbox,
-  Tooltip,
-} from "@heroui/react";
+import { Button, Input, Image, Checkbox, Tooltip } from "@heroui/react";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import { ProfileMapContext } from "@/utils/context/context";
 import { FiatOptionsType } from "@/utils/types/types";
@@ -29,6 +21,7 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
 interface MarketProfileFormProps {
   isOnboarding?: boolean;
@@ -54,7 +47,6 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
       about: "",
       website: "",
       lud16: "",
-      payment_preference: "fiat",
       fiat_options: {} as FiatOptionsType,
       mm_donation: 0,
     },
@@ -63,6 +55,19 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
   const watchPicture = watch("picture");
   const defaultImage = useMemo(() => {
     return "https://robohash.org/" + userPubkey;
+  }, [userPubkey]);
+
+  // Whether the seller's storefront accepts Bitcoin — drives the derived
+  // (read-only) payment preference. Defaults to true like checkout does.
+  const [acceptBitcoin, setAcceptBitcoin] = useState(true);
+  useEffect(() => {
+    if (!userPubkey) return;
+    fetch(`/api/storefront/lookup?pubkey=${encodeURIComponent(userPubkey)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setAcceptBitcoin(data?.shopConfig?.storefront?.acceptBitcoin !== false);
+      })
+      .catch(() => {});
   }, [userPubkey]);
 
   const contextLoadedRef = useRef(false);
@@ -140,6 +145,11 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
       if ("shopstr_donation" in updatedData) {
         delete updatedData.shopstr_donation;
       }
+      // The payment preference is derived, never chosen manually.
+      updatedData.payment_preference = derivePaymentPreference(
+        typeof data.lud16 === "string" ? data.lud16 : "",
+        acceptBitcoin
+      );
 
       try {
         localStorage.setItem(
@@ -381,41 +391,29 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
           </div>
         )}
 
-        {/* Payment Preference */}
+        {/* Payment Preference (derived, read-only) */}
         <div className="space-y-2">
           <label className="block text-base font-bold text-black">
             Payment preference
           </label>
-          <Controller
-            name="payment_preference"
-            control={control}
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Select
-                classNames={{
-                  trigger:
-                    "!bg-white border-3 border-black rounded-md shadow-none hover:!bg-white data-[hover=true]:!bg-white data-[hover=true]:border-black data-[focus=true]:border-3 data-[focus=true]:border-black data-[focus=true]:!bg-white h-12 transition-none",
-                  popoverContent: "bg-white border-3 border-black rounded-md",
-                  value: "text-base !text-black font-medium",
-                  listboxWrapper: "text-black",
-                  listbox: "text-black",
-                }}
-                fullWidth={true}
-                selectedKeys={value ? [value] : []}
-                onChange={(e) => onChange(e.target.value)}
-                onBlur={onBlur}
-              >
-                <SelectItem key="ecash" className="font-medium text-black">
-                  Cashu (Bitcoin)
-                </SelectItem>
-                <SelectItem key="lightning" className="font-medium text-black">
-                  Lightning (Bitcoin)
-                </SelectItem>
-                <SelectItem key="fiat" className="font-medium text-black">
-                  Local Currency (Fiat)
-                </SelectItem>
-              </Select>
-            )}
-          />
+          <div className="flex h-12 items-center rounded-md border-3 border-black bg-gray-100 px-3 text-base font-medium text-black">
+            {(() => {
+              const derived = derivePaymentPreference(
+                watch("lud16"),
+                acceptBitcoin
+              );
+              return derived === "lightning"
+                ? "Lightning (Bitcoin)"
+                : derived === "fiat"
+                  ? "Local Currency (Fiat)"
+                  : "Cashu (Bitcoin)";
+            })()}
+          </div>
+          <p className="text-sm font-medium text-gray-600">
+            This is set automatically: Lightning when you have a Lightning
+            address, Cashu when no address is set, and Local Currency (Fiat)
+            when Bitcoin payments are turned off in your shop settings.
+          </p>
         </div>
 
         {/* Fiat Payment Options */}
@@ -529,6 +527,12 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
               />
             )}
           />
+          {watch("lud16") ? (
+            <p className="text-sm font-medium text-gray-600">
+              Note: Lightning payments go directly to your Lightning address, so
+              this donation doesn&apos;t apply to them.
+            </p>
+          ) : null}
         </div>
 
         {/* Submit Button */}
