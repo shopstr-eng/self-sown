@@ -330,6 +330,58 @@ export default function StorefrontLayout({
     storefront.blogPage,
   ]);
 
+  // Transparent nav only ever applies on the landing view when it leads with
+  // full-bleed imagery (hero/banner_carousel) — everywhere else the nav stays
+  // solid + padded so content is never hidden under a see-through bar. The
+  // "hero" landing style check matters: classic/minimal styles render a
+  // padded header BEFORE the sections, so the hero isn't actually at the top.
+  const transparentNav =
+    navLayoutResolved.transparent &&
+    !currentPage &&
+    (storefront.landingPageStyle || "hero") === "hero" &&
+    (activeSections[0]?.type === "hero" ||
+      activeSections[0]?.type === "banner_carousel");
+
+  // Scroll-driven nav state. Initial values are constants (never
+  // window-derived) so server and client render identically.
+  const [navHidden, setNavHidden] = useState(false);
+  const [scrolledPastTop, setScrolledPastTop] = useState(false);
+  const navScrollActive = navLayoutResolved.hideOnScroll || transparentNav;
+  useEffect(() => {
+    if (!navScrollActive) {
+      setNavHidden(false);
+      setScrolledPastTop(false);
+      return;
+    }
+    let lastY = window.scrollY;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const y = window.scrollY;
+      setScrolledPastTop(y > 24);
+      if (navLayoutResolved.hideOnScroll) {
+        if (y <= 64) setNavHidden(false);
+        else if (y > lastY) setNavHidden(true);
+        else if (y < lastY) setNavHidden(false);
+      }
+      lastY = y;
+    };
+    update();
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [navScrollActive, navLayoutResolved.hideOnScroll]);
+  // The open mobile menu lives inside the nav: keep the bar visible and solid
+  // while it's open so the menu can't slide away or sit on a see-through bar.
+  const navTransparentNow =
+    transparentNav && !scrolledPastTop && !mobileMenuOpen;
+  const navHiddenNow = navHidden && !mobileMenuOpen;
+
   const policyPageData = useMemo(() => {
     if (!currentPage) return null;
     const footerPolicies = storefront.footer?.policies || {};
@@ -945,10 +997,12 @@ export default function StorefrontLayout({
         }}
       >
         <nav
-          className={`fixed top-0 right-0 left-0 z-50 ${navHeightClass} border-b`}
+          className={`fixed top-0 right-0 left-0 z-50 ${navHeightClass} border-b transition-[background-color,border-color,transform] duration-300 ${
+            navHiddenNow ? "-translate-y-full" : ""
+          }`}
           style={{
-            backgroundColor: navBg,
-            borderColor: navAccent + "33",
+            backgroundColor: navTransparentNow ? "transparent" : navBg,
+            borderColor: navTransparentNow ? "transparent" : navAccent + "33",
           }}
         >
           {navLayoutResolved.mode === "stacked" ? (
@@ -1264,6 +1318,7 @@ export default function StorefrontLayout({
               <div
                 className={
                   hasNav &&
+                  !transparentNav &&
                   (currentPage ||
                     activeSections[0]?.type === "hero" ||
                     activeSections[0]?.type === "banner_carousel")

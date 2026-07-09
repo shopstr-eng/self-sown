@@ -518,10 +518,22 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             .describe(
               "When the logo is stacked ('above'/'below'), which row holds the cart + sign-in cluster; defaults to the logo's row"
             ),
+          transparent: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true the nav bar is transparent over the top of the landing page (only when it starts with a hero or banner section) and turns solid once the visitor scrolls"
+            ),
+          hideOnScroll: z
+            .boolean()
+            .optional()
+            .describe(
+              "When true the nav bar slides away while the visitor scrolls down and returns when they scroll back up"
+            ),
         })
         .optional()
         .describe(
-          "Top navigation bar layout: logo position, link alignment/spacing, and (when the logo is stacked) which row holds the cart + sign-in cluster. Cart + account always stay right-justified."
+          "Top navigation bar layout: logo position, link alignment/spacing, and (when the logo is stacked) which row holds the cart + sign-in cluster. Cart + account always stay right-justified. Also holds the transparent-over-hero and hide-on-scroll behavior flags."
         ),
       storefrontFooterColors: z
         .object({

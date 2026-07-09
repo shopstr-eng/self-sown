@@ -576,6 +576,17 @@ export default function StorefrontPreviewPanel({
     return () => ro.disconnect();
   }, []);
 
+  // Mirrors the live storefront's scroll-driven transparent-nav solidify.
+  const [previewScrolled, setPreviewScrolled] = useState(false);
+  useEffect(() => {
+    const el = previewAreaRef.current;
+    if (!el) return;
+    const onScroll = () => setPreviewScrolled(el.scrollTop > 24);
+    onScroll();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
   const displayName = shopName || "Your Stall";
   const displayAbout =
     shopAbout ||
@@ -666,6 +677,15 @@ export default function StorefrontPreviewPanel({
     }
     return raw.map((s) => fillSectionPlaceholders(s, displayName));
   })();
+
+  // Mirror the live renderer's transparent-nav gate (storefront-layout.tsx):
+  // landing view + "hero" landing style + leading hero/banner section.
+  const previewNavOverlay =
+    resolveNavLayout(navLayout).transparent &&
+    !previewPage &&
+    landingPageStyle === "hero" &&
+    (activeSections[0]?.type === "hero" ||
+      activeSections[0]?.type === "banner_carousel");
 
   const previewFooter = fillFooterPlaceholders(footer, displayName);
 
@@ -904,6 +924,8 @@ export default function StorefrontPreviewPanel({
                 navLinks={previewNavLinks}
                 currentPage={previewPage}
                 onNavClick={handleNavClick}
+                overlayHero={previewNavOverlay}
+                scrolled={previewScrolled}
               />
 
               {previewPage === STALL_SENTINEL && (
@@ -1098,6 +1120,8 @@ function PreviewNav({
   navLinks,
   currentPage,
   onNavClick,
+  overlayHero,
+  scrolled,
 }: {
   shopName: string;
   pictureUrl: string;
@@ -1107,6 +1131,8 @@ function PreviewNav({
   navLinks: StorefrontNavLink[];
   currentPage: string;
   onNavClick: (link: StorefrontNavLink) => void;
+  overlayHero?: boolean;
+  scrolled?: boolean;
 }) {
   const bg = navColors?.background || colors.secondary;
   const text = navColors?.text || colors.background;
@@ -1220,17 +1246,26 @@ function PreviewNav({
     );
   }
 
-  return (
+  // When the transparent-over-hero setting is active on this view, a
+  // zero-height sticky wrapper lets the nav overlay the hero (mirroring the
+  // live fixed nav) while still solidifying + sticking once scrolled.
+  const seeThrough = overlayHero && !scrolled;
+  const navEl = (
     <nav
-      className="top-0 right-0 left-0 z-40 border-b"
+      className="top-0 right-0 left-0 z-40 border-b transition-colors duration-300"
       style={{
-        backgroundColor: bg,
-        borderColor: accent + "33",
-        position: "sticky",
+        backgroundColor: seeThrough ? "transparent" : bg,
+        borderColor: seeThrough ? "transparent" : accent + "33",
+        ...(overlayHero ? {} : { position: "sticky" as const }),
       }}
     >
       {inner}
     </nav>
+  );
+  return overlayHero ? (
+    <div className="sticky top-0 z-40 h-0 overflow-visible">{navEl}</div>
+  ) : (
+    navEl
   );
 }
 

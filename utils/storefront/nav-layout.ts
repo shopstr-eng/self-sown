@@ -21,6 +21,11 @@ export interface ResolvedNavLayout {
   linkJustifyClass: string;
   // Gap class between individual nav links (defaults to today's gap-1).
   linkGapClass: string;
+  // Style/behavior flags (default false = historical solid, always-visible
+  // nav). transparent only takes effect when the rendered view leads with a
+  // hero/banner_carousel — the renderer decides that.
+  transparent: boolean;
+  hideOnScroll: boolean;
 }
 
 export function resolveNavLayout(
@@ -65,5 +70,7 @@ export function resolveNavLayout(
     utilityRow,
     linkJustifyClass,
     linkGapClass,
+    transparent: navLayout?.transparent === true,
+    hideOnScroll: navLayout?.hideOnScroll === true,
   };
 }

@@ -483,6 +483,10 @@ function normalizeStorefrontConfig(
                 | "bottom",
             }
           : {}),
+        ...(value.navLayout.transparent === true ? { transparent: true } : {}),
+        ...(value.navLayout.hideOnScroll === true
+          ? { hideOnScroll: true }
+          : {}),
       }
     : undefined;
 

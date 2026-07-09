@@ -2536,6 +2536,53 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                               </div>
                             )}
                           </div>
+                          <div className="mt-3 space-y-3">
+                            <div>
+                              <label className="flex items-center gap-3 text-sm font-bold text-black">
+                                <input
+                                  type="checkbox"
+                                  checked={navLayout.transparent === true}
+                                  onChange={(e) =>
+                                    setNavLayout((prev) => ({
+                                      ...prev,
+                                      transparent:
+                                        e.target.checked || undefined,
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-gray-300"
+                                />
+                                Transparent over top banner
+                              </label>
+                              <p className="ml-7 text-xs text-gray-500">
+                                Blends the nav bar into your landing page&apos;s
+                                opening banner or hero, turning solid as
+                                visitors scroll. Only applies when your landing
+                                page starts with a banner or hero section.
+                              </p>
+                            </div>
+                            <div>
+                              <label className="flex items-center gap-3 text-sm font-bold text-black">
+                                <input
+                                  type="checkbox"
+                                  checked={navLayout.hideOnScroll === true}
+                                  onChange={(e) =>
+                                    setNavLayout((prev) => ({
+                                      ...prev,
+                                      hideOnScroll:
+                                        e.target.checked || undefined,
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-gray-300"
+                                />
+                                Hide while scrolling down
+                              </label>
+                              <p className="ml-7 text-xs text-gray-500">
+                                Slides the nav bar out of the way as visitors
+                                scroll down; it returns the moment they scroll
+                                back up.
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="mb-6">

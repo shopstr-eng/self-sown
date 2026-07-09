@@ -28,6 +28,12 @@ export interface StorefrontNavLayout {
   linkAlignment?: StorefrontNavLinkAlignment;
   linkSpacing?: StorefrontNavLinkSpacing;
   utilityPosition?: StorefrontNavUtilityPosition;
+  // Style/behavior flags, only ever persisted as true. transparent: the nav
+  // bleeds into a leading hero/banner at the top of the landing page and
+  // solidifies on scroll. hideOnScroll: the nav slides away scrolling down
+  // and returns scrolling up. Absent = historical solid, always-visible nav.
+  transparent?: boolean;
+  hideOnScroll?: boolean;
 }
 
 export interface StorefrontFooterColors {

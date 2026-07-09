@@ -478,6 +478,35 @@ describe("seller domain helpers", () => {
     expect(storefront.acceptBitcoin).toBe(false);
   });
 
+  test("navLayout transparent/hideOnScroll persist only literal true", () => {
+    const parse = (navLayout: unknown) => {
+      const result = parseSellerShopProfileEvent({
+        id: "shop-event",
+        pubkey: "seller-pubkey",
+        created_at: 1710000000,
+        kind: 30019,
+        sig: "sig",
+        tags: [["d", "seller-pubkey"]],
+        content: JSON.stringify({
+          name: "Fresh Farm",
+          storefront: { shopSlug: "fresh-farm", navLayout },
+        }),
+      });
+      return (result as { content: { storefront: any } }).content.storefront
+        .navLayout;
+    };
+
+    // Literal true is kept.
+    expect(parse({ transparent: true, hideOnScroll: true })).toEqual({
+      transparent: true,
+      hideOnScroll: true,
+    });
+    // false / truthy junk are dropped so existing events stay byte-stable.
+    expect(
+      parse({ transparent: false, hideOnScroll: "yes", logoPosition: "center" })
+    ).toEqual({ logoPosition: "center" });
+  });
+
   test("keeps acceptBitcoin absent when Bitcoin is accepted (byte-stable default)", () => {
     const result = parseSellerShopProfileEvent({
       id: "shop-event",
