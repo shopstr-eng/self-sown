@@ -8,29 +8,26 @@ jest.mock("next-themes", () => ({
 }));
 
 jest.mock("@heroui/react", () => ({
-  Spinner: (props: { color: string; size: string }) => (
-    <div data-testid="spinner" data-color={props.color}></div>
+  Spinner: (props: { classNames?: { circle1?: string }; size: string }) => (
+    <div
+      data-testid="spinner"
+      data-circle-class={props.classNames?.circle1}
+    ></div>
   ),
 }));
 
 const mockedUseTheme = useTheme as jest.Mock;
 
 describe("MilkMarketSpinner", () => {
-  it('should render with the "warning" color in dark mode', () => {
-    mockedUseTheme.mockReturnValue({ theme: "dark" });
-
-    render(<MilkMarketSpinner />);
-
-    const spinner = screen.getByTestId("spinner");
-    expect(spinner).toHaveAttribute("data-color", "warning");
-  });
-
-  it('should render with the "secondary" color in light mode', () => {
+  it("renders with the primary-yellow spinner styling", () => {
     mockedUseTheme.mockReturnValue({ theme: "light" });
 
     render(<MilkMarketSpinner />);
 
     const spinner = screen.getByTestId("spinner");
-    expect(spinner).toHaveAttribute("data-color", "secondary");
+    expect(spinner).toHaveAttribute(
+      "data-circle-class",
+      "border-b-primary-yellow"
+    );
   });
 });

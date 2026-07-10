@@ -44,6 +44,14 @@ jest.mock("@/components/utility-components/mm-spinner", () => () => null);
 
 jest.mock("../storefront/storefront-preview-panel", () => () => null);
 
+jest.mock("@/components/utility-components/pro-membership-context", () => ({
+  useProMembership: () => ({
+    membership: { isPro: false, isReadOnly: false },
+    isPro: false,
+    loading: false,
+  }),
+}));
+
 const mockUserPubkey = "test_pubkey";
 const mockShopData = new Map([
   [
@@ -171,7 +179,9 @@ describe("ShopProfileForm", () => {
       "Add your shop's name..."
     );
     const slugInput = await screen.findByPlaceholderText("my-farm-shop");
-    const saveButton = screen.getByRole("button", { name: /Save Stall/i });
+    const saveButton = await screen.findByRole("button", {
+      name: /Save Stall/i,
+    });
 
     await user.type(shopNameInput, "New Shop Name");
     await user.type(slugInput, "new-shop");
@@ -215,7 +225,9 @@ describe("ShopProfileForm", () => {
       shopNameInput,
       "This is a very long shop name that is definitely over fifty characters long for sure."
     );
-    await user.click(screen.getByRole("button", { name: /Save Stall/i }));
+    await user.click(
+      await screen.findByRole("button", { name: /Save Stall/i })
+    );
 
     expect(
       await screen.findByText("This input exceed maxLength of 50.")
@@ -236,7 +248,9 @@ describe("ShopProfileForm", () => {
       await screen.findByPlaceholderText("my-farm-shop"),
       "my-shop"
     );
-    const saveButton = screen.getByRole("button", { name: /Save Stall/i });
+    const saveButton = await screen.findByRole("button", {
+      name: /Save Stall/i,
+    });
 
     saveButton.focus();
     await user.keyboard("{Enter}");

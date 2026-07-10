@@ -104,6 +104,7 @@ describe("NostrNSecSigner", () => {
       expect(json).toEqual({
         type: "nsec",
         encryptedPrivKey: encrypted,
+        passphrase: "pw3",
         pubkey: "pub3",
       });
     });

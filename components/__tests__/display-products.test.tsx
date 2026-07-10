@@ -42,6 +42,15 @@ jest.mock("@/utils/url-slugs", () => ({
 }));
 
 describe("DisplayProducts search filtering", () => {
+  beforeEach(() => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ pubkeys: ["seller-pubkey"] }),
+      })
+    ) as unknown as typeof fetch;
+  });
+
   it("matches literal special characters in search queries", async () => {
     render(
       <SignerContext.Provider

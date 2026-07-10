@@ -157,7 +157,7 @@ describe("sendProManualReceiptEmail — manual recurring renewal receipt content
     // expires" copy.
     expect(body).not.toContain("Wrangler");
     expect(body).not.toContain("never expires");
-    expect(subject).toBe("Milk Market — payment receipt ($15.00)");
+    expect(subject).toBe("Milk Market - payment receipt ($15.00)");
   });
 
   it("emails a Fiat YEARLY renewal receipt: amount from amount_usd_cents, fiat method, yearly term, lifetime false", async () => {
@@ -204,7 +204,7 @@ describe("sendProManualReceiptEmail — manual recurring renewal receipt content
     expect(body).not.toContain("Herd (Monthly)");
     expect(body).not.toContain("Wrangler");
     expect(body).not.toContain("never expires");
-    expect(subject).toBe("Milk Market — payment receipt ($150.00)");
+    expect(subject).toBe("Milk Market - payment receipt ($150.00)");
   });
 
   it("DMs the renewal receipt even when no notification email is on file (Nostr-first seller)", async () => {

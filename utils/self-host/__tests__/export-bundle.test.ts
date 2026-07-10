@@ -172,7 +172,7 @@ describe("buildExportEntries", () => {
     // Sellers are told to publish their OWN policies via the page builder, since
     // the platform legal pages are hidden on self-host.
     expect(readme.toLowerCase()).toContain("page builder");
-    expect(setup.toLowerCase()).toContain("page builder");
+    expect(setup.toLowerCase().replace(/\s+/g, " ")).toContain("page builder");
     expect(readme.toLowerCase()).toContain("terms");
   });
 

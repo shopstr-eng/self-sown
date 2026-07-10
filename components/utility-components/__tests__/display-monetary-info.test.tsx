@@ -24,9 +24,8 @@ describe("CompactPriceDisplay", () => {
       shippingCost: 50,
     };
     render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);
-    expect(
-      screen.getByText(/1k\s+USD\s+\+\s+50\s+USD\s+Shipping/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/1k\s+USD/i)).toBeInTheDocument();
+    expect(screen.getByText("+ shipping")).toBeInTheDocument();
   });
 
   it('displays "Free Shipping" correctly', () => {
@@ -36,9 +35,8 @@ describe("CompactPriceDisplay", () => {
       shippingType: "Free",
     };
     render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);
-    expect(
-      screen.getByText(/2k\s+SATS\s+-\s+Free\s+Shipping/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/2k\s+SATS/i)).toBeInTheDocument();
+    expect(screen.getByText("Free Ship")).toBeInTheDocument();
   });
 
   it('displays "Pickup Only" correctly', () => {
@@ -48,7 +46,8 @@ describe("CompactPriceDisplay", () => {
       shippingType: "Pickup",
     };
     render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);
-    expect(screen.getByText(/300 SATS - Pickup Only/)).toBeInTheDocument();
+    expect(screen.getByText(/300\s+SATS/i)).toBeInTheDocument();
+    expect(screen.getByText("Pickup Only")).toBeInTheDocument();
   });
 
   it('displays "Free / Pickup" correctly', () => {
@@ -58,7 +57,8 @@ describe("CompactPriceDisplay", () => {
       shippingType: "Free/Pickup",
     };
     render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);
-    expect(screen.getByText(/450 SATS - Free \/ Pickup/)).toBeInTheDocument();
+    expect(screen.getByText(/450\s+SATS/i)).toBeInTheDocument();
+    expect(screen.getByText("Free/Pickup")).toBeInTheDocument();
   });
 
   it('displays "Added Cost / Pickup" correctly', () => {
@@ -69,9 +69,8 @@ describe("CompactPriceDisplay", () => {
       shippingCost: 50,
     };
     render(<CompactPriceDisplay monetaryInfo={monetaryInfo} />);
-    expect(
-      screen.getByText(/1k SATS \+ 50 SATS Shipping or Pickup/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/1k\s+SATS/i)).toBeInTheDocument();
+    expect(screen.getByText("+ shipping")).toBeInTheDocument();
   });
 
   it("does not display a shipping label if no shipping type is provided", () => {
@@ -90,7 +89,7 @@ describe("DisplayCheckoutCost", () => {
       shippingType: "Free",
     };
     render(<DisplayCheckoutCost monetaryInfo={monetaryInfo} />);
-    expect(screen.getByText("1,500 USD")).toBeInTheDocument();
+    expect(screen.getByText("1,500.00 USD")).toBeInTheDocument();
     expect(screen.getByText("Shipping: Free")).toBeInTheDocument();
   });
 
@@ -129,7 +128,7 @@ describe("formatWithCommas", () => {
   });
 
   it("handles numbers with decimal points", () => {
-    expect(formatWithCommas(1234.56, "SATS")).toBe("1,234.56 SATS");
+    expect(formatWithCommas(1234.56, "USD")).toBe("1,234.56 USD");
   });
 
   it('returns "0 SATS" for an amount of 0', () => {

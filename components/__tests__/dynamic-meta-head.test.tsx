@@ -59,7 +59,7 @@ describe("DynamicHead", () => {
     );
     await waitFor(() => {
       expect(document.title).toBe(
-        "Milk Market - Farm-Fresh Dairy Direct from Local Farmers"
+        "Milk Market - Sell Local Products Online. Zero Platform Fees."
       );
     });
   });
@@ -136,7 +136,7 @@ describe("DynamicHead", () => {
       );
       await waitFor(() =>
         expect(document.title).toBe(
-          "Milk Market - Farm-Fresh Dairy Direct from Local Farmers"
+          "Milk Market - Sell Local Products Online. Zero Platform Fees."
         )
       );
       expect(getMetaContent("og:url")).toBe(

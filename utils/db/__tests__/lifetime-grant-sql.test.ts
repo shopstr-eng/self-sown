@@ -23,18 +23,31 @@ describe("LIFETIME_GRANT_SQL via grantLifetimeMembership", () => {
       .mockResolvedValue({ query: queryMock, release: releaseMock });
   });
 
-  function lastSql(): string {
-    return queryMock.mock.calls[0][0] as string;
+  // The grant now runs inside a transaction (BEGIN → cancel in-flight manual
+  // invoices → LIFETIME_GRANT_SQL upsert → COMMIT), so locate the grant call by
+  // its SQL rather than assuming it is the first statement.
+  function grantCall(): unknown[] {
+    const call = queryMock.mock.calls.find(
+      (c) => typeof c[0] === "string" && c[0].includes("ON CONFLICT (pubkey)")
+    );
+    if (!call) throw new Error("LIFETIME_GRANT_SQL was never executed");
+    return call;
   }
 
-  it("runs exactly one statement and releases the client", async () => {
+  function lastSql(): string {
+    return grantCall()[0] as string;
+  }
+
+  it("wraps the grant in a transaction and releases the client", async () => {
     await grantLifetimeMembership({
       pubkey: "seller-pubkey",
       billingMethod: "stripe",
       customerId: "cus_1",
     });
 
-    expect(queryMock).toHaveBeenCalledTimes(1);
+    const statements = queryMock.mock.calls.map((c) => c[0]);
+    expect(statements[0]).toBe("BEGIN");
+    expect(statements[statements.length - 1]).toBe("COMMIT");
     expect(releaseMock).toHaveBeenCalledTimes(1);
   });
 
@@ -45,11 +58,7 @@ describe("LIFETIME_GRANT_SQL via grantLifetimeMembership", () => {
       customerId: "cus_1",
     });
 
-    expect(queryMock.mock.calls[0][1]).toEqual([
-      "seller-pubkey",
-      "stripe",
-      "cus_1",
-    ]);
+    expect(grantCall()[1]).toEqual(["seller-pubkey", "stripe", "cus_1"]);
   });
 
   it("defaults a missing customer id to null", async () => {
@@ -58,11 +67,7 @@ describe("LIFETIME_GRANT_SQL via grantLifetimeMembership", () => {
       billingMethod: "manual",
     });
 
-    expect(queryMock.mock.calls[0][1]).toEqual([
-      "seller-pubkey",
-      "manual",
-      null,
-    ]);
+    expect(grantCall()[1]).toEqual(["seller-pubkey", "manual", null]);
   });
 
   it("upserts on the pubkey conflict and marks the row lifetime", async () => {

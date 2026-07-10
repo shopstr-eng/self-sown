@@ -78,8 +78,12 @@ describe("CreateCommunityForm", () => {
     render(
       <CreateCommunityForm existingCommunity={null} onSave={onSaveMock} />
     );
-    expect(screen.getByLabelText(/Community Name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Description/i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Enter community name/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Describe your community/i)
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Upload Image/i })
     ).toBeInTheDocument();
@@ -114,10 +118,10 @@ describe("CreateCommunityForm", () => {
       />
     );
 
-    expect(screen.getByLabelText(/Community Name/i)).toHaveValue(
+    expect(screen.getByPlaceholderText(/Enter community name/i)).toHaveValue(
       "Test Community"
     );
-    expect(screen.getByLabelText(/Description/i)).toHaveValue(
+    expect(screen.getByPlaceholderText(/Describe your community/i)).toHaveValue(
       "A community for testing."
     );
     expect(screen.getByAltText(/Community image preview/i)).toHaveAttribute(
@@ -138,10 +142,10 @@ describe("CreateCommunityForm", () => {
       />
     );
 
-    fireEvent.change(screen.getByLabelText(/Community Name/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Enter community name/i), {
       target: { value: "New Awesome Community" },
     });
-    fireEvent.change(screen.getByLabelText(/Description/i), {
+    fireEvent.change(screen.getByPlaceholderText(/Describe your community/i), {
       target: { value: "This is a description." },
     });
     fireEvent.click(screen.getByRole("button", { name: /Upload Image/i }));

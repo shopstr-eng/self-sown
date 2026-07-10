@@ -6,6 +6,10 @@ jest.mock("node:https", () => ({
   request: jest.fn(),
 }));
 
+jest.mock("@/utils/rate-limit", () => ({
+  applyRateLimit: jest.fn(() => true),
+}));
+
 import { EventEmitter } from "node:events";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { lookup } from "node:dns/promises";

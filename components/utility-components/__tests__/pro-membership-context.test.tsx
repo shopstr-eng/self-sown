@@ -593,7 +593,7 @@ describe("ProMembershipProvider — requireAuth", () => {
       expect(result.current.membership).toEqual(freeMembershipView(""))
     );
 
-    const expected = "You must be signed in to manage your Pro membership.";
+    const expected = "You must be signed in to manage your Herd membership.";
     await expect(result.current.cancel()).rejects.toThrow(expected);
     await expect(result.current.syncStripe()).rejects.toThrow(expected);
     await expect(result.current.verifyManualInvoice("inv_1")).rejects.toThrow(

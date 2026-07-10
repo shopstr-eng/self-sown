@@ -46,6 +46,9 @@ jest.mock("@heroicons/react/24/outline", () => ({
   ...jest.requireActual("@heroicons/react/24/outline"),
   Bars3Icon: () => <div data-testid="bars3-icon-mock">Open Menu</div>,
 }));
+jest.mock("@/components/utility-components/pro-membership-context", () => ({
+  useProMembership: () => ({ isPro: false, loading: false }),
+}));
 
 import StallPage from "../stall-page";
 
@@ -194,7 +197,7 @@ describe("StallPage", () => {
       );
 
       fireEvent.click(screen.getAllByRole("button", { name: "Orders" })[0]!);
-      expect(mockRouterPush).toHaveBeenCalledWith("/my-listings/orders");
+      expect(mockRouterPush).toHaveBeenCalledWith("/orders");
     });
   });
 

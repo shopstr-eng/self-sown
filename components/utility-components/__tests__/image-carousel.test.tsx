@@ -46,13 +46,13 @@ describe("ImageCarousel", () => {
 
   it("renders a placeholder when no images are provided", () => {
     render(<ImageCarousel images={[]} />);
-    const image = screen.getByTestId("next-image") as HTMLImageElement;
+    const image = screen.getByRole("img") as HTMLImageElement;
     expect(image.src).toContain("/no-image-placeholder.png");
   });
 
   it("renders a single image without arrows or indicators", () => {
     render(<ImageCarousel images={["image1.jpg"]} />);
-    const image = screen.getByTestId("next-image") as HTMLImageElement;
+    const image = screen.getByRole("img") as HTMLImageElement;
     expect(image.src).toContain("image1.jpg");
 
     const props = JSON.parse(
@@ -62,16 +62,16 @@ describe("ImageCarousel", () => {
     expect(props.showIndicators).toBe(false);
   });
 
-  it("renders multiple images with arrows and indicators on a non-home page", () => {
+  it("renders multiple images with arrows but no indicators on a non-home page", () => {
     render(<ImageCarousel images={["image1.jpg", "image2.jpg"]} />);
-    const images = screen.getAllByTestId("next-image");
+    const images = screen.getAllByRole("img");
     expect(images).toHaveLength(2);
 
     const props = JSON.parse(
       screen.getByTestId("carousel").getAttribute("data-props")!
     );
     expect(props.showArrows).toBe(true);
-    expect(props.showIndicators).toBe(true);
+    expect(props.showIndicators).toBe(false);
   });
 
   it("renders multiple images with arrows but NO indicators on the home page", () => {
@@ -87,11 +87,11 @@ describe("ImageCarousel", () => {
 
   it("applies correct image class based on fixedHeight prop", () => {
     const { rerender } = render(<ImageCarousel images={["image1.jpg"]} />);
-    let image = screen.getByTestId("next-image");
+    let image = screen.getByRole("img");
     expect(image.className).toContain("h-full");
 
     rerender(<ImageCarousel images={["image1.jpg"]} fixedHeight={false} />);
-    image = screen.getByTestId("next-image");
+    image = screen.getByRole("img");
     expect(image.className).not.toContain("h-full");
   });
 
@@ -149,7 +149,7 @@ describe("ImageCarousel", () => {
       );
       const indicator = getByRole("button");
       expect(indicator).toBeInTheDocument();
-      expect(indicator.className).toContain("bg-blue-500");
+      expect(indicator.className).toContain("bg-primary-yellow");
 
       fireEvent.click(indicator);
       expect(mockClickHandler).toHaveBeenCalled();

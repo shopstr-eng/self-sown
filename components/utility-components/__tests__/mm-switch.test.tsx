@@ -18,12 +18,12 @@ jest.mock("@heroui/react", () => ({
   Switch: (props: {
     onValueChange: (value: boolean) => void;
     isSelected: boolean;
-    color: string;
+    classNames?: { wrapper?: string };
   }) => (
     <button
       role="switch"
       onClick={() => props.onValueChange(!props.isSelected)}
-      data-color={props.color}
+      data-wrapper-class={props.classNames?.wrapper}
     />
   ),
 }));
@@ -58,24 +58,16 @@ describe("MilkMarketSwitch", () => {
     expect(mockRouterPush).toHaveBeenCalledWith("/settings/account");
   });
 
-  it('should have the "secondary" color in light mode', () => {
+  it("applies the primary-yellow selected wrapper styling", () => {
     render(
       <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
     );
 
     const switchControl = screen.getByRole("switch");
 
-    expect(switchControl).toHaveAttribute("data-color", "secondary");
-  });
-
-  it('should have the "warning" color in dark mode', () => {
-    mockUseTheme.theme = "dark";
-    render(
-      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+    expect(switchControl).toHaveAttribute(
+      "data-wrapper-class",
+      "bg-gray-300 group-data-[selected=true]:bg-primary-yellow"
     );
-
-    const switchControl = screen.getByRole("switch");
-
-    expect(switchControl).toHaveAttribute("data-color", "warning");
   });
 });

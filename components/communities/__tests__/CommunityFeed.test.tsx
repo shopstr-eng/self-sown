@@ -28,7 +28,6 @@ jest.mock("../../utility-components/profile/profile-dropdown", () => ({
 
 const mockedFetchService = fetchService as jest.Mocked<typeof fetchService>;
 const mockedNostrHelper = nostrHelper as jest.Mocked<typeof nostrHelper>;
-const alertSpy = jest.spyOn(window, "alert").mockImplementation(() => {});
 const consoleErrorSpy = jest
   .spyOn(console, "error")
   .mockImplementation(() => {});
@@ -243,11 +242,19 @@ describe("CommunityFeed", () => {
         );
       });
 
-      expect(alertSpy).toHaveBeenCalledWith(
-        "Your reply has been submitted for approval. It will appear once a moderator approves it."
-      );
+      expect(
+        await screen.findByText(
+          "Your reply has been submitted for approval. It will appear once a moderator approves it."
+        )
+      ).toBeInTheDocument();
 
-      fireEvent.click(replyButton!);
+      // Dismiss the success modal so the underlying feed is interactive again.
+      fireEvent.click(screen.getByRole("button", { name: "Close" }));
+
+      const reopenReplyButton = (
+        await screen.findAllByRole("button", { name: "Reply" })
+      )[0];
+      fireEvent.click(reopenReplyButton!);
       const cancelButton = await screen.findByRole("button", {
         name: "Cancel",
       });
@@ -307,9 +314,11 @@ describe("CommunityFeed", () => {
           "A new announcement!"
         );
       });
-      expect(alertSpy).toHaveBeenCalledWith(
-        "Your post has been submitted for approval. It will appear once a moderator approves it."
-      );
+      expect(
+        await screen.findByText(
+          "Your post has been submitted for approval. It will appear once a moderator approves it."
+        )
+      ).toBeInTheDocument();
     });
 
     it("allows a moderator to approve a pending post and a pending reply", async () => {
@@ -404,8 +413,10 @@ describe("CommunityFeed", () => {
           "Failed to create post",
           expect.any(Error)
         );
-        expect(alertSpy).toHaveBeenCalledWith("Failed to create post.");
       });
+      expect(
+        await screen.findByText("Failed to create post.")
+      ).toBeInTheDocument();
     });
 
     it("handles failure when submitting a reply", async () => {
@@ -427,8 +438,10 @@ describe("CommunityFeed", () => {
           "Failed to submit reply",
           expect.any(Error)
         );
-        expect(alertSpy).toHaveBeenCalledWith("Failed to submit reply.");
       });
+      expect(
+        await screen.findByText("Failed to submit reply.")
+      ).toBeInTheDocument();
     });
 
     it("handles failure when approving a post", async () => {
@@ -448,8 +461,10 @@ describe("CommunityFeed", () => {
           "Failed to approve post",
           expect.any(Error)
         );
-        expect(alertSpy).toHaveBeenCalledWith("Failed to approve post.");
       });
+      expect(
+        await screen.findByText("Failed to approve post.")
+      ).toBeInTheDocument();
     });
 
     it("handles failure when retracting approval", async () => {
@@ -469,8 +484,10 @@ describe("CommunityFeed", () => {
           "Failed to retract approval",
           expect.any(Error)
         );
-        expect(alertSpy).toHaveBeenCalledWith("Failed to retract approval.");
       });
+      expect(
+        await screen.findByText("Failed to retract approval.")
+      ).toBeInTheDocument();
     });
   });
 });

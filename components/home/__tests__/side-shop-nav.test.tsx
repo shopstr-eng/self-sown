@@ -132,14 +132,14 @@ describe("SideShopNav Component", () => {
   });
 
   describe("Editing Mode", () => {
-    it("should render 'Add Listing' and 'Edit Shop' buttons", () => {
+    it("should render 'Add Listing' and 'Edit Stall' buttons", () => {
       renderComponent({ isEditingShop: true });
 
       expect(
         screen.getByRole("button", { name: "Add Listing" })
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Edit Shop" })
+        screen.getByRole("button", { name: "Edit Stall" })
       ).toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "Message seller" })
@@ -168,10 +168,10 @@ describe("SideShopNav Component", () => {
       expect(mockOnOpen).toHaveBeenCalled();
     });
 
-    it("should navigate to the shop profile settings when 'Edit Shop' is clicked", async () => {
+    it("should navigate to the shop profile settings when 'Edit Stall' is clicked", async () => {
       const { mockRouterPush } = renderComponent({ isEditingShop: true });
 
-      await userEvent.click(screen.getByText("Edit Shop"));
+      await userEvent.click(screen.getByText("Edit Stall"));
 
       expect(mockRouterPush).toHaveBeenCalledWith(
         "/settings/stall?tab=storefront"

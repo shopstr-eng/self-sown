@@ -221,16 +221,16 @@ describe("MarketplacePage Component", () => {
     expect(nip19.decode).toHaveBeenCalledWith(validNpub.trim());
   });
 
-  it("calls setSelectedSection when Reviews and About tabs are clicked", async () => {
+  it("calls setSelectedSection when Reviews and Stall tabs are clicked", async () => {
     const { setSelectedSection } = renderComponent({ focusedPubkey: "shop1" });
 
     // Reviews
     await userEvent.click(screen.getByRole("button", { name: "Reviews" }));
     expect(setSelectedSection).toHaveBeenCalledWith("reviews");
 
-    // About
-    await userEvent.click(screen.getByRole("button", { name: "About" }));
-    expect(setSelectedSection).toHaveBeenCalledWith("about");
+    // Stall
+    await userEvent.click(screen.getByRole("button", { name: "Stall" }));
+    expect(setSelectedSection).toHaveBeenCalledWith("shop");
   });
 
   it("navigates to orders when clicking Message as logged-in user", async () => {

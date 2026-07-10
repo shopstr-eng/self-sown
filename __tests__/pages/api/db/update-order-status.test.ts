@@ -18,6 +18,7 @@ function createResponse() {
   return {
     statusCode: 200,
     jsonBody: undefined as unknown,
+    setHeader: jest.fn(),
     status(code: number) {
       this.statusCode = code;
       return this;

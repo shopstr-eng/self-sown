@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import CommunityCard from "../CommunityCard";
 import { Community } from "@/utils/types/types";
@@ -68,16 +68,14 @@ describe("CommunityCard", () => {
     expect(mockedSanitizeUrl).toHaveBeenCalledWith(mockCommunity.image);
   });
 
-  it('navigates to the correct community page on "Visit" button click', () => {
+  it('links to the correct community page via the "Visit" link', () => {
     const mockNaddr = "naddr1mockencodedstring";
     mockedNip19.naddrEncode.mockReturnValue(mockNaddr);
 
     render(<CommunityCard community={mockCommunity} />);
 
-    const visitButton = screen.getByRole("button", { name: /visit/i });
-    expect(visitButton).toBeInTheDocument();
-
-    fireEvent.click(visitButton);
+    const visitLink = screen.getByRole("link", { name: /visit/i });
+    expect(visitLink).toBeInTheDocument();
 
     expect(mockedNip19.naddrEncode).toHaveBeenCalledWith({
       identifier: mockCommunity.d,
@@ -85,6 +83,6 @@ describe("CommunityCard", () => {
       kind: 34550,
     });
 
-    expect(mockPush).toHaveBeenCalledWith(`/communities/${mockNaddr}`);
+    expect(visitLink).toHaveAttribute("href", `/communities/${mockNaddr}`);
   });
 });

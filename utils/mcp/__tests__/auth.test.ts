@@ -33,10 +33,10 @@ describe("MCP auth helpers", () => {
   });
 
   describe("generateApiKey", () => {
-    it("returns an sk_-prefixed key and matching prefix", () => {
+    it("returns an mm_-prefixed key and matching prefix", () => {
       const { key, prefix } = generateApiKey();
 
-      expect(key.startsWith("sk_")).toBe(true);
+      expect(key.startsWith("mm_")).toBe(true);
       expect(prefix).toHaveLength(10);
       expect(prefix).toBe(key.substring(0, 10));
     });

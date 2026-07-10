@@ -55,6 +55,10 @@ jest.mock("@/components/utility-components/nostr-context-provider", () => {
   };
 });
 
+jest.mock("@/components/utility-components/pro-membership-context", () => ({
+  useProMembership: () => ({ isPro: false }),
+}));
+
 jest.mock("@/components/framer", () => ({
   Framer: {
     Tabs: () => <div data-testid="framer-tabs">Mocked Tabs</div>,
@@ -68,6 +72,7 @@ const mockRouterEvents: { on: jest.Mock; off: jest.Mock } = {
 jest.mock("next/router", () => ({
   useRouter: jest.fn(() => ({
     events: mockRouterEvents,
+    query: {},
   })),
 }));
 

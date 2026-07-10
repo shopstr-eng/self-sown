@@ -25,7 +25,7 @@ jest.mock("@heroui/react", () => ({
       <div
         data-testid="slider"
         data-max-value={props.maxValue}
-        data-color={props.color}
+        data-thumb-class={props.classNames?.thumb}
       >
         {props.label}
       </div>
@@ -71,22 +71,11 @@ describe("MilkMarketSlider", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("sets slider color based on the theme", () => {
-    const { rerender } = renderWithContext(defaultFollowsContext);
+  it("applies the primary-blue thumb styling", () => {
+    renderWithContext(defaultFollowsContext);
     expect(screen.getByTestId("slider")).toHaveAttribute(
-      "data-color",
-      "secondary"
-    );
-
-    mockUseTheme.theme = "dark";
-    rerender(
-      <FollowsContext.Provider value={defaultFollowsContext}>
-        <MilkMarketSlider />
-      </FollowsContext.Provider>
-    );
-    expect(screen.getByTestId("slider")).toHaveAttribute(
-      "data-color",
-      "warning"
+      "data-thumb-class",
+      "bg-primary-blue"
     );
   });
 

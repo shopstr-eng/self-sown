@@ -73,7 +73,7 @@ describe("HomeFeed Component", () => {
     expect(screen.getByText("Marketplace for:")).toBeInTheDocument();
 
     // Check that the shop banner is not rendered
-    expect(screen.queryByAltText("Shop Banner")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Stall Banner")).not.toBeInTheDocument();
   });
 
   it("should render the banner when a valid focusedPubkey is provided and data exists in context", async () => {
@@ -95,7 +95,7 @@ describe("HomeFeed Component", () => {
 
     // The banner should appear after the useEffect hook runs
     await waitFor(() => {
-      const bannerImage = screen.getByAltText("Shop Banner");
+      const bannerImage = screen.getByAltText("Stall Banner");
       expect(bannerImage).toBeInTheDocument();
       expect(bannerImage).toHaveAttribute(
         "src",
@@ -124,7 +124,7 @@ describe("HomeFeed Component", () => {
     );
 
     // The banner should not be rendered
-    expect(screen.queryByAltText("Shop Banner")).not.toBeInTheDocument();
+    expect(screen.queryByAltText("Stall Banner")).not.toBeInTheDocument();
 
     // MarketplacePage should still be rendered
     expect(screen.getByTestId("mock-marketplace")).toBeInTheDocument();

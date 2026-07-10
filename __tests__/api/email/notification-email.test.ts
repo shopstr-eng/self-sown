@@ -20,6 +20,7 @@ function createMockResponse() {
   const response = {
     statusCode: 200,
     body: undefined as unknown,
+    setHeader: jest.fn(),
     status(code: number) {
       response.statusCode = code;
       return response;

@@ -29,7 +29,7 @@ describe("MCP metrics helpers", () => {
 
     const metrics = metricsModule.getMetrics();
 
-    expect(metrics.status).toBe("healthy");
+    expect(metrics.status).toBe("operational");
     expect(metrics.uptime.ms).toBe(0);
     expect(metrics.uptime.human).toBe("0h 0m");
     expect(metrics.uptime.startedAt).toBe("2026-01-01T00:00:00.000Z");

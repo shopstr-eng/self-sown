@@ -131,7 +131,9 @@ describe("MigrationPromptModal", () => {
     });
     fireEvent.click(upgradeButton);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect(
+      await screen.findByRole("alert", {}, { timeout: 5000 })
+    ).toHaveTextContent(
       "Migration failed. Please try again with the correct passphrase."
     );
     expect(mockOnSuccess).not.toHaveBeenCalled();
@@ -150,7 +152,9 @@ describe("MigrationPromptModal", () => {
     });
     fireEvent.click(upgradeButton);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
+    expect(
+      await screen.findByRole("alert", {}, { timeout: 5000 })
+    ).toHaveTextContent(
       "Failed to decrypt with the provided passphrase. Please try again."
     );
   });

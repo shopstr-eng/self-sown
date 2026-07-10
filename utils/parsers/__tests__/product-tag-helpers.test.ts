@@ -9,6 +9,7 @@ describe("parseShippingTag", () => {
     expect(parseShippingTag(["shipping", "Added Cost", "10", "USD"])).toEqual({
       shippingType: "Added Cost",
       shippingCost: 10,
+      shippingCurrency: "USD",
     });
   });
 
@@ -91,6 +92,7 @@ describe("parseShippingFromTags", () => {
     ).toEqual({
       shippingType: "Added Cost",
       shippingCost: 12,
+      shippingCurrency: "USD",
     });
   });
 
@@ -106,6 +108,7 @@ describe("parseShippingFromTags", () => {
     ).toEqual({
       shippingType: "Added Cost",
       shippingCost: 15,
+      shippingCurrency: "USD",
     });
   });
 });

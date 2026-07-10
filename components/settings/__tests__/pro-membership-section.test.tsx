@@ -154,7 +154,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     expect(mockFetchHistory).not.toHaveBeenCalled();
     expect(screen.queryByText("Billing history")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText("Upgrade to Pro"));
+    fireEvent.click(screen.getByText("Upgrade to Herd"));
     expect(mockRouterPush).toHaveBeenCalledWith("/pro");
   });
 
@@ -181,7 +181,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     render(<ProMembershipSection />);
     await settleHistory();
 
-    expect(screen.getByText("Pro · Monthly")).toBeInTheDocument();
+    expect(screen.getByText("Herd · Monthly")).toBeInTheDocument();
     expect(screen.getByTestId("pro-badge")).toHaveTextContent("active");
     expect(screen.getByText(/Your membership renews on/)).toBeInTheDocument();
     expect(screen.getByText("Cancel membership")).toBeInTheDocument();
@@ -229,7 +229,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     render(<ProMembershipSection />);
     await settleHistory();
 
-    expect(screen.getByText(/Your Pro plan has lapsed/)).toBeInTheDocument();
+    expect(screen.getByText(/Your Herd plan has lapsed/)).toBeInTheDocument();
     expect(screen.getByText("Re-subscribe")).toBeInTheDocument();
     expect(screen.queryByText("Cancel membership")).not.toBeInTheDocument();
 
@@ -249,7 +249,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     render(<ProMembershipSection />);
     await settleHistory();
 
-    expect(screen.getByText(/your Pro content is hidden/)).toBeInTheDocument();
+    expect(screen.getByText(/your Herd content is hidden/)).toBeInTheDocument();
     expect(screen.getByText("Re-subscribe")).toBeInTheDocument();
   });
 
@@ -279,7 +279,7 @@ describe("ProMembershipSection — cancel flow", () => {
     fireEvent.click(screen.getByText("Cancel membership"));
     const dialog = screen.getByRole("dialog");
     expect(
-      within(dialog).getByText("Cancel Pro membership?")
+      within(dialog).getByText("Cancel Herd membership?")
     ).toBeInTheDocument();
 
     // Confirm inside the modal footer.

@@ -149,7 +149,7 @@ describe("applyStripeLifetimePayment — Wrangler lifetime receipt content", () 
     expect(body).toContain(`Date: ${PAID_AT_DISPLAY}`);
     // A lifetime purchase carries no recurring term, so no Herd plan line leaks.
     expect(body).not.toContain("Herd");
-    expect(subject).toBe("Milk Market — payment receipt ($2100.00)");
+    expect(subject).toBe("Milk Market - payment receipt ($2100.00)");
   });
 
   it("DMs the receipt even when no notification email is on file (Nostr-first seller)", async () => {

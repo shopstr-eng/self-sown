@@ -51,6 +51,13 @@ describe("recoverProofsToBuyerWallet", () => {
   });
 
   it("preserves existing wallet contents", async () => {
+    // persistReceivedTokens reads existing proofs from REAL localStorage via
+    // getStoredTokens(), not the getLocalStorageData mock — seed both so the
+    // test reflects the actual runtime source of truth.
+    window.localStorage.setItem(
+      "tokens",
+      JSON.stringify([mkProof("existing", 1)])
+    );
     helpers.getLocalStorageData.mockReturnValue({
       tokens: [mkProof("existing", 1)],
       history: [{ type: 3, amount: 1, date: 1 }],

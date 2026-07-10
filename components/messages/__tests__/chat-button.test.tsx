@@ -88,7 +88,7 @@ describe("ChatButton Component", () => {
     ).toBeUndefined();
 
     const container = avatar.closest("div.cursor-pointer");
-    expect(container).not.toHaveClass("bg-[#ccccccb9]");
+    expect(container).not.toHaveClass("bg-primary-yellow");
   });
 
   test("displays unread count when it is greater than 0", () => {
@@ -103,7 +103,7 @@ describe("ChatButton Component", () => {
 
     const unreadBadge = screen.getByText("3");
     expect(unreadBadge).toBeInTheDocument();
-    expect(unreadBadge).toHaveClass("rounded-full bg-dark-fg");
+    expect(unreadBadge).toHaveClass("rounded-full bg-black");
   });
 
   test("applies active styles when it is the opened chat", () => {
@@ -116,7 +116,7 @@ describe("ChatButton Component", () => {
     const container = screen
       .getByTestId("profile-avatar")
       .closest("div.cursor-pointer");
-    expect(container).toHaveClass("bg-[#ccccccb9]");
+    expect(container).toHaveClass("bg-primary-yellow shadow-neo");
   });
 
   test("calls handleClickChat with the correct pubkey on click", () => {
@@ -145,10 +145,10 @@ describe("ChatButton Component", () => {
     };
     render(<ChatButton {...propsNoMessages} />);
 
-    expect(screen.getByText("No messages yet")).toBeInTheDocument();
+    expect(screen.getByText("No messages yet.")).toBeInTheDocument();
 
     const timeContainer = screen
-      .getByText("No messages yet")
+      .getByText("No messages yet.")
       .closest(".flex")
       ?.querySelector(".text-right > div:last-child > span");
     expect(timeContainer).toBeInTheDocument();
@@ -177,10 +177,10 @@ describe("ChatButton Component", () => {
     };
     render(<ChatButton {...propsUndefinedChat} />);
 
-    expect(screen.getByText("No messages yet")).toBeInTheDocument();
+    expect(screen.getByText("No messages yet.")).toBeInTheDocument();
 
     const timeContainer = screen
-      .getByText("No messages yet")
+      .getByText("No messages yet.")
       .closest(".flex")
       ?.querySelector(".text-right > div:last-child > span");
     expect(timeContainer).toBeInTheDocument();
