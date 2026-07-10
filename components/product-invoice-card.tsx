@@ -2876,7 +2876,7 @@ export default function ProductInvoiceCard({
         __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
         sellerProofs = send;
         sellerToken = getEncodedToken({
-          mint: mints[0]!,
+          mint: spendMint,
           proofs: send,
         });
         remainingProofs = keep;
@@ -2899,7 +2899,7 @@ export default function ProductInvoiceCard({
         __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
         donationProofs = send;
         donationToken = getEncodedToken({
-          mint: mints[0]!,
+          mint: spendMint,
           proofs: send,
         });
         remainingProofs = keep;
@@ -2922,7 +2922,7 @@ export default function ProductInvoiceCard({
         __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
         beefDonationProofs = send;
         beefDonationToken = getEncodedToken({
-          mint: mints[0]!,
+          mint: spendMint,
           proofs: send,
         });
         remainingProofs = keep;
@@ -3097,7 +3097,7 @@ export default function ProductInvoiceCard({
               await new Promise((resolve) => setTimeout(resolve, 500));
 
               const encodedChange = getEncodedToken({
-                mint: mints[0]!,
+                mint: spendMint,
                 proofs: changeProofs,
               });
               const changeMessage = "Overpaid fee change: " + encodedChange;
@@ -3140,7 +3140,7 @@ export default function ProductInvoiceCard({
                   )
                 : 0;
             const unusedToken = getEncodedToken({
-              mint: mints[0]!,
+              mint: spendMint,
               proofs: unusedProofs,
             });
             let productDetails = "";

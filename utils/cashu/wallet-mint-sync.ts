@@ -80,55 +80,122 @@ export function persistMints(orderedMints: string[]): string[] {
  * (the independent nostr-relay/Postgres backup of every "in" we've ever
  * published). Used as a manual recovery when local tokens have been lost or
  * mis-pruned. Merges by secret with whatever is already in localStorage —
- * never deletes existing proofs.
+ * never deletes existing proofs. Each candidate proof is verified UNSPENT
+ * against its own mint first; proofs from a mint that can't be probed are
+ * skipped (fail-closed) so a restore can't resurrect spent tokens as
+ * phantom balance.
  *
- * Returns the count and total sats restored (newly added secrets only).
+ * Returns the count/sats restored (newly added, verified-unspent secrets)
+ * plus how many proofs were skipped because their mint was unreachable.
  */
-export function restoreTokensFromProofEvents(proofEvents: ProofEventLike[]): {
+export async function restoreTokensFromProofEvents(
+  proofEvents: ProofEventLike[]
+): Promise<{
   restoredCount: number;
   restoredSats: number;
   mints: string[];
-} {
+  skippedCount: number;
+  skippedMints: string[];
+}> {
   if (typeof window === "undefined")
-    return { restoredCount: 0, restoredSats: 0, mints: [] };
+    return {
+      restoredCount: 0,
+      restoredSats: 0,
+      mints: [],
+      skippedCount: 0,
+      skippedMints: [],
+    };
 
   const existing = getStoredTokens();
   const seen = new Set<string>(existing.map((p) => p.secret));
-  const additions: Proof[] = [];
-  const mintsSeen: string[] = [];
-  const mintsSeenSet = new Set<string>();
 
+  // Group candidate additions (new secrets only) by the mint that issued
+  // them, so each proof can be verified against its own mint before restore.
+  const additionsByMint = new Map<string, Proof[]>();
   for (const ev of proofEvents || []) {
-    if (!ev || !Array.isArray(ev.proofs)) continue;
-    if (ev.mint && !mintsSeenSet.has(ev.mint)) {
-      mintsSeenSet.add(ev.mint);
-      mintsSeen.push(ev.mint);
-    }
+    if (!ev || !Array.isArray(ev.proofs) || !ev.mint) continue;
     for (const p of ev.proofs) {
       if (!p || !p.secret) continue;
       if (seen.has(p.secret)) continue;
       seen.add(p.secret);
-      additions.push(p);
+      const list = additionsByMint.get(ev.mint) || [];
+      list.push(p);
+      additionsByMint.set(ev.mint, list);
+    }
+  }
+
+  if (additionsByMint.size === 0)
+    return {
+      restoredCount: 0,
+      restoredSats: 0,
+      mints: getStoredMints(),
+      skippedCount: 0,
+      skippedMints: [],
+    };
+
+  // Verify each mint's candidates are actually UNSPENT before restoring.
+  // Fail-closed: if a mint can't be probed (unreachable), skip its proofs
+  // rather than re-introduce potentially-spent tokens as phantom balance —
+  // the backup stays on relays/Postgres for a later retry. Proofs the mint
+  // reports SPENT are dropped silently (that's the whole point of restore).
+  const additions: Proof[] = [];
+  const contributingMints: string[] = [];
+  let skippedCount = 0;
+  const skippedMints: string[] = [];
+  for (const [mint, candidateProofs] of additionsByMint) {
+    const { unspent, checked } = await filterUnspentProofs(
+      mint,
+      candidateProofs
+    );
+    if (!checked) {
+      skippedCount += candidateProofs.length;
+      if (!skippedMints.includes(mint)) skippedMints.push(mint);
+      continue;
+    }
+    if (unspent.length > 0) {
+      additions.push(...unspent);
+      if (!contributingMints.includes(mint)) contributingMints.push(mint);
     }
   }
 
   if (additions.length === 0)
-    return { restoredCount: 0, restoredSats: 0, mints: getStoredMints() };
+    return {
+      restoredCount: 0,
+      restoredSats: 0,
+      mints: getStoredMints(),
+      skippedCount,
+      skippedMints,
+    };
 
-  const merged = [...existing, ...additions];
+  // Re-read localStorage in case a concurrent write landed during the async
+  // mint probes, and dedupe by secret so we never clobber or double-add.
+  const current = getStoredTokens();
+  const currentSecrets = new Set(current.map((p) => p.secret));
+  const freshAdditions = additions.filter((p) => !currentSecrets.has(p.secret));
+
+  if (freshAdditions.length === 0)
+    return {
+      restoredCount: 0,
+      restoredSats: 0,
+      mints: getStoredMints(),
+      skippedCount,
+      skippedMints,
+    };
+
+  const merged = [...current, ...freshAdditions];
   localStorage.setItem(TOKENS_KEY, JSON.stringify(merged));
 
-  // Make sure every mint that contributed proofs is in the configured list
-  // so the wallet UI can attribute and spend them.
+  // Make sure every mint that contributed restored proofs is in the
+  // configured list so the wallet UI can attribute and spend them.
   const currentMints = getStoredMints();
   const mergedMints = [
     ...currentMints,
-    ...mintsSeen.filter((m) => !currentMints.includes(m)),
+    ...contributingMints.filter((m) => !currentMints.includes(m)),
   ];
   const finalMints = persistMints(mergedMints);
 
   dispatchStorageChange();
-  const restoredSats = additions.reduce(
+  const restoredSats = freshAdditions.reduce(
     (acc, p) => acc + proofAmountToNumber(p),
     0
   );
@@ -143,8 +210,8 @@ export function restoreTokensFromProofEvents(proofEvents: ProofEventLike[]): {
           type: 5,
           amount: restoredSats,
           date: Math.floor(Date.now() / 1000),
-          note: `Restored ${additions.length} proof${
-            additions.length === 1 ? "" : "s"
+          note: `Restored ${freshAdditions.length} proof${
+            freshAdditions.length === 1 ? "" : "s"
           } from nostr backup`,
         },
         ...history,
@@ -154,9 +221,11 @@ export function restoreTokensFromProofEvents(proofEvents: ProofEventLike[]): {
     /* ignore history write errors */
   }
   return {
-    restoredCount: additions.length,
+    restoredCount: freshAdditions.length,
     restoredSats,
     mints: finalMints,
+    skippedCount,
+    skippedMints,
   };
 }
 

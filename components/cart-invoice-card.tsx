@@ -45,6 +45,7 @@ import { safeSwap } from "@/utils/cashu/swap-retry-service";
 import { pickMintForPayment } from "@/utils/cashu/wallet-mint-sync";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
+import { allocateSellerAmounts } from "@/utils/cashu/allocate-seller-amounts";
 import {
   RecoverableProofTracker,
   SendTokensRecoverableError,
@@ -135,6 +136,7 @@ export default function CartInvoiceCard({
   quantities,
   shippingTypes,
   totalCostsInSats,
+  satPrices = STABLE_EMPTY_OBJECT,
   subtotalCost,
   appliedDiscounts = STABLE_EMPTY_OBJECT,
   appliedShippingDiscounts = STABLE_EMPTY_OBJECT,
@@ -152,6 +154,12 @@ export default function CartInvoiceCard({
   quantities: { [key: string]: number };
   shippingTypes: { [key: string]: string };
   totalCostsInSats: { [key: string]: number };
+  // Per-PRODUCT (product.id) sat price of the items, reliable and set in
+  // pages/cart. Used to weight the distribution of the actually-minted
+  // proofs across products (fixes the pubkey-keyed last-write-wins /
+  // pm-discount overcharge in totalCostsInSats). `null` marks a failed
+  // currency conversion — Cashu checkout aborts before minting in that case.
+  satPrices?: { [key: string]: number | null };
   subtotalCost: number;
   appliedDiscounts?: { [key: string]: number };
   // Per-seller shipping discount carried by the buyer's redeemed discount
@@ -5462,16 +5470,61 @@ export default function CartInvoiceCard({
       // ecash proof amounts (sellerAmount) below are untouched.
       const cashuShipReported = new Set<string>();
 
+      // Distribute the ACTUAL minted proofs across products by sat weight.
+      // `availableTotal` is the real proof sum the buyer paid (pm-discounted
+      // items + shipping), NOT the undiscounted display totals — so the
+      // per-seller ecash swaps below can never exceed what was minted (the
+      // root cause of discounted-Bitcoin checkouts failing "insufficient").
+      // The pubkey-keyed `totalCostsInSats` also last-write-wins across a
+      // seller's products, which over-charged multi-product sellers N×; this
+      // per-product weighting replaces that as the fund basis. Shipping (when
+      // charged) is folded into each seller's FIRST product's weight so the
+      // shipping portion is distributed instead of dropped. The undiscounted
+      // per-product DISPLAY amount still comes from `satPrices` (see
+      // `reportedOrderAmount`). See utils/cashu/allocate-seller-amounts.ts.
+      const availableTotal = proofs.reduce(
+        (acc, p: Proof) => acc + p.amount.toNumber(),
+        0
+      );
+      const cashuIncludesShipping =
+        formType === "shipping" || formType === "combined";
+      const shippingWeightCounted = new Set<string>();
+      const rawWeightByProduct: { [productId: string]: number } = {};
       for (const product of products) {
+        let weight = satPrices[product.id] ?? 0;
+        if (
+          cashuIncludesShipping &&
+          !shippingWeightCounted.has(product.pubkey)
+        ) {
+          weight += shippingCostsInSats[product.pubkey] || 0;
+          shippingWeightCounted.add(product.pubkey);
+        }
+        rawWeightByProduct[product.id] = weight;
+      }
+      const allocByProduct = allocateSellerAmounts(
+        rawWeightByProduct,
+        availableTotal
+      );
+
+      let __productLoopIndex = -1;
+      for (const product of products) {
+        __productLoopIndex++;
+        const isTerminalProduct = __productLoopIndex === products.length - 1;
         const title = product.title;
         const pubkey = product.pubkey;
         const required = product.required;
-        const tokenAmount = totalCostsInSats[pubkey];
+        // Fund basis = this product's share of the actually-minted proofs.
+        const tokenAmount = allocByProduct[product.id] ?? 0;
         const reportedShipSats = cashuShipReported.has(pubkey)
           ? 0
           : shippingCostsInSats[pubkey] || 0;
         cashuShipReported.add(pubkey);
-        const reportedOrderAmount = (tokenAmount || 0) + reportedShipSats;
+        // Reported (display-only) order total the seller/buyer see in DMs +
+        // dashboard: undiscounted items (satPrices) + discounted shipping.
+        // Intentionally separate from the funds actually sent (sellerAmount),
+        // which reflect the pm-discount. See memory: reported-vs-charged.
+        const reportedOrderAmount =
+          (satPrices[product.id] ?? 0) + reportedShipSats;
         let sellerToken;
         let donationToken;
         let beefDonationToken;
@@ -5481,14 +5534,16 @@ export default function CartInvoiceCard({
           product.beefinit_donation_percentage || 0;
 
         const donationAmount = Math.ceil(
-          (tokenAmount! * donationPercentage) / 100
+          (tokenAmount * donationPercentage) / 100
         );
         const beefDonationAmount =
           beefDonationPercentage > 0
-            ? Math.ceil((tokenAmount! * beefDonationPercentage) / 100)
+            ? Math.ceil((tokenAmount * beefDonationPercentage) / 100)
             : 0;
 
-        const sellerAmount = tokenAmount! - donationAmount - beefDonationAmount;
+        // `let` because the terminal product overwrites this with the actual
+        // swept-proof sum below.
+        let sellerAmount = tokenAmount - donationAmount - beefDonationAmount;
         let sellerProofs: Proof[] = [];
         let donationProofs: Proof[] = [];
         let beefDonationProofs: Proof[] = [];
@@ -5560,7 +5615,7 @@ export default function CartInvoiceCard({
         if (addressString) {
           orderInfoTags.push(["address", addressString]);
         }
-        if (tokenAmount) {
+        if (reportedOrderAmount > 0) {
           orderInfoTags.push(["amount", reportedOrderAmount.toString()]);
         }
         if (donationAmount > 0) {
@@ -5576,7 +5631,69 @@ export default function CartInvoiceCard({
         let paymentMessageText;
         let paymentTags;
 
-        if (sellerAmount > 0) {
+        // Carve the donation + beef-initiative cuts FIRST (exact amounts) so
+        // the terminal product's seller can sweep ALL remaining proofs below
+        // — cumulative swap fees + largest-remainder rounding land in the
+        // seller's amount instead of being burned. Order matters: these must
+        // run before the seller sweep.
+        if (donationAmount > 0) {
+          const __swapOutcomeA_1 = await safeSwap(
+            wallet,
+            donationAmount,
+            remainingProofs,
+            { sendConfig: { includeFees: true } }
+          );
+          if (__swapOutcomeA_1.status !== "swapped") {
+            throw new Error(
+              __swapOutcomeA_1.errorMessage ??
+                `Swap did not complete (${__swapOutcomeA_1.status})`
+            );
+          }
+          const { keep, send } = __swapOutcomeA_1;
+          __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
+          donationProofs = send;
+          donationToken = getEncodedToken({
+            mint: spendMint,
+            proofs: send,
+          });
+          remainingProofs = keep;
+        }
+
+        if (beefDonationAmount > 0) {
+          const __swapOutcomeA_2 = await safeSwap(
+            wallet,
+            beefDonationAmount,
+            remainingProofs,
+            { sendConfig: { includeFees: true } }
+          );
+          if (__swapOutcomeA_2.status !== "swapped") {
+            throw new Error(
+              __swapOutcomeA_2.errorMessage ??
+                `Swap did not complete (${__swapOutcomeA_2.status})`
+            );
+          }
+          const { keep, send } = __swapOutcomeA_2;
+          __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
+          beefDonationProofs = send;
+          beefDonationToken = getEncodedToken({
+            mint: spendMint,
+            proofs: send,
+          });
+          remainingProofs = keep;
+        }
+
+        // Seller cut. The terminal (last) product sweeps ALL remaining proofs
+        // directly — no swap — so accumulated fees/rounding stay with the
+        // seller rather than being dropped. Non-terminal products swap their
+        // exact allocated amount.
+        if (isTerminalProduct) {
+          sellerProofs = remainingProofs;
+          remainingProofs = [];
+          sellerAmount = sellerProofs.reduce(
+            (acc, cur: Proof) => acc + cur.amount.toNumber(),
+            0
+          );
+        } else if (sellerAmount > 0) {
           const __swapOutcomeA_0 = await safeSwap(
             wallet,
             sellerAmount,
@@ -5592,11 +5709,19 @@ export default function CartInvoiceCard({
           const { keep, send } = __swapOutcomeA_0;
           __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
           sellerProofs = send;
-          sellerToken = getEncodedToken({
-            mint: mints[0]!,
-            proofs: send,
-          });
           remainingProofs = keep;
+        } else {
+          sellerAmount = 0;
+        }
+
+        // Emit the seller payment token whenever we actually hold proofs for
+        // them — even if the computed allocation rounded to 0 — so terminal
+        // leftovers are never burned.
+        if (sellerProofs.length > 0) {
+          sellerToken = getEncodedToken({
+            mint: spendMint,
+            proofs: sellerProofs,
+          });
 
           // Construct payment message with cashu token tag
           paymentMessageText = await constructMessageGiftWrap(
@@ -5624,60 +5749,13 @@ export default function CartInvoiceCard({
           paymentMessageText.tags = paymentTags;
         }
 
-        // Handle donation if applicable
-        if (donationAmount > 0) {
-          const __swapOutcomeA_1 = await safeSwap(
-            wallet,
-            donationAmount,
-            remainingProofs,
-            { sendConfig: { includeFees: true } }
-          );
-          if (__swapOutcomeA_1.status !== "swapped") {
-            throw new Error(
-              __swapOutcomeA_1.errorMessage ??
-                `Swap did not complete (${__swapOutcomeA_1.status})`
-            );
-          }
-          const { keep, send } = __swapOutcomeA_1;
-          __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
-          donationProofs = send;
-          donationToken = getEncodedToken({
-            mint: mints[0]!,
-            proofs: send,
-          });
-          remainingProofs = keep;
-        }
-
-        if (beefDonationAmount > 0) {
-          const __swapOutcomeA_2 = await safeSwap(
-            wallet,
-            beefDonationAmount,
-            remainingProofs,
-            { sendConfig: { includeFees: true } }
-          );
-          if (__swapOutcomeA_2.status !== "swapped") {
-            throw new Error(
-              __swapOutcomeA_2.errorMessage ??
-                `Swap did not complete (${__swapOutcomeA_2.status})`
-            );
-          }
-          const { keep, send } = __swapOutcomeA_2;
-          __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
-          beefDonationProofs = send;
-          beefDonationToken = getEncodedToken({
-            mint: mints[0]!,
-            proofs: send,
-          });
-          remainingProofs = keep;
-        }
-
         // Step 1: Send payment message (if applicable)
         if (
           paymentPreference === "lightning" &&
           lnurl &&
           lnurl !== "" &&
           !lnurl.includes("@zeuspay.com") &&
-          sellerProofs
+          sellerProofs.length > 0
         ) {
           const newAmount = Math.floor(sellerAmount * 0.98 - 2);
           const ln = new LightningAddress(lnurl);
@@ -5849,7 +5927,7 @@ export default function CartInvoiceCard({
                 await new Promise((resolve) => setTimeout(resolve, 500));
 
                 const encodedChange = getEncodedToken({
-                  mint: mints[0]!,
+                  mint: spendMint,
                   proofs: changeProofs,
                 });
                 const changeMessage = "Overpaid fee change: " + encodedChange;
@@ -5895,7 +5973,7 @@ export default function CartInvoiceCard({
                     )
                   : 0;
               const unusedToken = getEncodedToken({
-                mint: mints[0]!,
+                mint: spendMint,
                 proofs: unusedProofs,
               });
               let productDetails = "";
@@ -7372,6 +7450,18 @@ export default function CartInvoiceCard({
       }
 
       validatePaymentData(price, data);
+
+      // Fail closed before minting: if any product's item price failed to
+      // convert to sats (null / missing), the proof allocator would weight it
+      // 0 and mis-split the buyer's funds. Abort rather than mis-charge.
+      const unpricedProduct = products.find(
+        (p) => satPrices[p.id] === null || satPrices[p.id] === undefined
+      );
+      if (unpricedProduct) {
+        throw new Error(
+          "Could not determine the sat price for one or more items. Please refresh and try again."
+        );
+      }
 
       // Pick the mint that actually holds enough proofs to cover `price`
       // instead of blindly using mints[0]. Without this, a stale or wrongly-

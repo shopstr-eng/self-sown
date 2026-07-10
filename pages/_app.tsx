@@ -1037,10 +1037,21 @@ function MilkMarket({ props }: { props: AppProps }) {
                 "mints",
                 JSON.stringify(walletResult.cashuMints)
               );
-              localStorage.setItem(
-                "tokens",
-                JSON.stringify(walletResult.cashuProofs)
-              );
+              // Empty-result guard: never clobber a non-empty local wallet with
+              // an empty/stale fetch result (a send/melt during
+              // fetchCashuWallet's async window may have written fresh change
+              // proofs). The self-heal sweep prunes genuinely-spent proofs.
+              const currentTokens = getLocalStorageData().tokens;
+              if (
+                walletResult.cashuProofs.length > 0 ||
+                !currentTokens ||
+                currentTokens.length === 0
+              ) {
+                localStorage.setItem(
+                  "tokens",
+                  JSON.stringify(walletResult.cashuProofs)
+                );
+              }
             }
 
             if (!isLoggedIn) {
@@ -1244,10 +1255,20 @@ function MilkMarket({ props }: { props: AppProps }) {
             "mints",
             JSON.stringify(walletResult.cashuMints)
           );
-          localStorage.setItem(
-            "tokens",
-            JSON.stringify(walletResult.cashuProofs)
-          );
+          // Empty-result guard: never clobber a non-empty local wallet with an
+          // empty/stale fetch result (a send/melt during fetchCashuWallet's
+          // async window may have written fresh change proofs).
+          const currentTokens = getLocalStorageData().tokens;
+          if (
+            walletResult.cashuProofs.length > 0 ||
+            !currentTokens ||
+            currentTokens.length === 0
+          ) {
+            localStorage.setItem(
+              "tokens",
+              JSON.stringify(walletResult.cashuProofs)
+            );
+          }
         }
 
         await runTask("retrying relay publishes", async () => {
@@ -1476,7 +1497,16 @@ function MilkMarket({ props }: { props: AppProps }) {
               );
               if (cashuMints.length !== 0 && cashuProofs) {
                 localStorage.setItem("mints", JSON.stringify(cashuMints));
-                localStorage.setItem("tokens", JSON.stringify(cashuProofs));
+                // Empty-result guard: don't clobber a non-empty local wallet
+                // with an empty/stale fetch result.
+                const currentTokens = getLocalStorageData().tokens;
+                if (
+                  cashuProofs.length > 0 ||
+                  !currentTokens ||
+                  currentTokens.length === 0
+                ) {
+                  localStorage.setItem("tokens", JSON.stringify(cashuProofs));
+                }
               }
             } catch (error) {
               console.error("Error fetching wallet:", error);

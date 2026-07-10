@@ -197,9 +197,7 @@ const PayButton = () => {
         // (remove from balance) and surface an actionable error.
         const remainingProofsAfterMelt = tokens.filter(
           (p: Proof) =>
-            !mintKeySetIds?.some(
-              (keysetId: MintKeyset) => keysetId.id === p.id
-            ) || !send.some((s) => s.secret === p.secret)
+            !mintKeySetIds?.some((keysetId: MintKeyset) => keysetId.id === p.id)
         ) as Proof[];
         const quarantineProofArray = [...remainingProofsAfterMelt, ...keep];
         localStorage.setItem("tokens", JSON.stringify(quarantineProofArray));

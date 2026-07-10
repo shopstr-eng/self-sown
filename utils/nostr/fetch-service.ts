@@ -1673,6 +1673,10 @@ export const fetchCashuWallet = async (
       const cashuMintSet: Set<string> = new Set();
       let cashuProofs: Proof[] = [...tokens]; // Start with existing tokens
       const incomingSpendingHistory: [][] = [];
+      // Secrets we positively determine SPENT during this run (mint state +
+      // spending history). Used by the pre-resolve localStorage delta-merge so
+      // a proof spent here can never be re-introduced as phantom balance.
+      const spentSecrets = new Set<string>();
 
       // Load wallet events from database first
       try {
@@ -1985,6 +1989,12 @@ export const fetchCashuWallet = async (
               return true;
             });
 
+            // Record spent secrets so the pre-resolve localStorage delta-merge
+            // below can never re-introduce them as phantom balance.
+            mintProofs.forEach((mp, idx) => {
+              if (spentYs.has(Ys[idx]!)) spentSecrets.add(mp.secret);
+            });
+
             // Mark fully spent proof events for deletion
             for (const proofEvent of proofEvents) {
               if (proofEvent.mint === mint) {
@@ -2043,6 +2053,11 @@ export const fetchCashuWallet = async (
             )
         );
 
+        // Track history-destroyed secrets for the pre-resolve delta-merge.
+        destroyedProofs.forEach((d: Proof) => {
+          if (d?.secret) spentSecrets.add(d.secret);
+        });
+
         // Add back proofs that were created but not spent
         const proofIdsToAddBack = inProofIds.filter(
           (id) => !outProofIds.includes(id)
@@ -2082,6 +2097,35 @@ export const fetchCashuWallet = async (
 
       // Final deduplication
       cashuProofs = getUniqueProofs(cashuProofs);
+
+      // Delta-merge with the CURRENT localStorage tokens before publishing.
+      // This run snapshotted localStorage at the top and then did seconds of
+      // async work (DB/relay fetch + per-mint checkProofsStates + deleteEvent).
+      // If a send/melt completed during that window it spent the old proofs and
+      // wrote fresh change proofs to localStorage that this run never saw. Add
+      // back any current-localStorage proof we did NOT prove spent, so resolving
+      // can't clobber fresh post-send change with a stale/empty set.
+      try {
+        const { tokens: freshTokens } = getLocalStorageData();
+        if (Array.isArray(freshTokens) && freshTokens.length > 0) {
+          const known = new Set(cashuProofs.map((p) => p.secret));
+          const additions = freshTokens.filter(
+            (p: Proof) =>
+              p &&
+              p.secret &&
+              !known.has(p.secret) &&
+              !spentSecrets.has(p.secret)
+          );
+          if (additions.length > 0) {
+            cashuProofs = getUniqueProofs([...cashuProofs, ...additions]);
+          }
+        }
+      } catch (mergeError) {
+        console.error(
+          "Failed to delta-merge localStorage tokens before resolve:",
+          mergeError
+        );
+      }
 
       editCashuWalletContext(proofEvents, cashuMints, cashuProofs, false);
 

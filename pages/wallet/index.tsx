@@ -169,20 +169,29 @@ const Wallet = () => {
   };
 
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
-  const handleRestore = () => {
+  const handleRestore = async () => {
     try {
-      const { restoredCount, restoredSats } = restoreTokensFromProofEvents(
-        walletContext.proofEvents || []
-      );
-      if (restoredCount === 0) {
+      const { restoredCount, restoredSats, skippedCount } =
+        await restoreTokensFromProofEvents(walletContext.proofEvents || []);
+      if (restoredCount === 0 && skippedCount === 0) {
         setRestoreStatus(
           "Nothing to restore. Your local wallet already matches your nostr backup."
+        );
+      } else if (restoredCount === 0 && skippedCount > 0) {
+        setRestoreStatus(
+          `Couldn't verify ${skippedCount} proof${
+            skippedCount === 1 ? "" : "s"
+          } — a mint was unreachable. Try again in a moment.`
         );
       } else {
         setRestoreStatus(
           `Restored ${restoredCount} proof${
             restoredCount === 1 ? "" : "s"
-          } (${restoredSats} sats) from nostr backup.`
+          } (${restoredSats} sats) from nostr backup.${
+            skippedCount > 0
+              ? ` ${skippedCount} skipped (mint unreachable) — try again.`
+              : ""
+          }`
         );
       }
     } catch (err) {

@@ -1657,6 +1657,7 @@ export default function Component() {
                 quantities={quantities}
                 shippingTypes={shippingTypes}
                 totalCostsInSats={totalCostsInSats}
+                satPrices={satPrices}
                 subtotalCost={subtotal}
                 appliedDiscounts={appliedDiscounts}
                 appliedShippingDiscounts={appliedShippingDiscounts}
