@@ -353,6 +353,7 @@ export default function AddressPicker({
                 >
                   <Button
                     isIconOnly
+                    aria-label="Set as default address"
                     size="sm"
                     variant="light"
                     onClick={(e) => handleSetDefault(addr.id, e)}
@@ -362,6 +363,7 @@ export default function AddressPicker({
                   </Button>
                   <Button
                     isIconOnly
+                    aria-label="Delete address"
                     size="sm"
                     variant="light"
                     color="danger"

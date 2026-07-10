@@ -556,7 +556,7 @@ export default function Affiliates() {
                     onClick={createAffiliate}
                     isDisabled={!newName}
                   >
-                    Add affiliate
+                    Add Affiliate
                   </Button>
                 </CardBody>
               </Card>
@@ -636,7 +636,7 @@ export default function Affiliates() {
                                 className="text-black"
                                 onClick={() => regenerateInviteToken(a.id)}
                               >
-                                Regenerate invite link
+                                Regenerate Invite Link
                               </Button>
                               {a.payouts_enabled === false ? (
                                 <Button
@@ -653,7 +653,7 @@ export default function Affiliates() {
                                   className="text-black"
                                   onClick={() => setPayoutsEnabled(a.id, false)}
                                 >
-                                  Pause payouts
+                                  Pause Payouts
                                 </Button>
                               )}
                             </div>
@@ -773,7 +773,7 @@ export default function Affiliates() {
                     onClick={createCode}
                     isDisabled={!codeAffiliateId || !codeText || !rebateValue}
                   >
-                    Add code
+                    Add Code
                   </Button>
                 </CardBody>
               </Card>
@@ -873,7 +873,7 @@ export default function Affiliates() {
                           onClick={() => markPaid(b)}
                           isDisabled={Number(b.payable_smallest) <= 0}
                         >
-                          Mark paid
+                          Mark Paid
                         </Button>
                       </div>
                     </CardBody>

@@ -229,6 +229,7 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
           </div>
           <FileUploaderButton
             isIconOnly={true}
+            ariaLabel="Upload profile picture"
             className={`absolute right-0 bottom-0 z-20 !h-10 !w-10 !min-w-10 ${WHITEBUTTONCLASSNAMES}`}
             imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
           />

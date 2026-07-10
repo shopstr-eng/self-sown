@@ -399,7 +399,7 @@ export default function StorefrontEmailPopupComponent({
                             className="mt-4 block w-full text-center text-xs"
                             style={{ color: text + "55" }}
                           >
-                            No thanks
+                            No Thanks
                           </button>
                         </motion.div>
                       ) : (
@@ -478,7 +478,7 @@ export default function StorefrontEmailPopupComponent({
                             className="mt-3 block w-full text-center text-xs"
                             style={{ color: text + "55" }}
                           >
-                            No thanks
+                            No Thanks
                           </button>
                         </motion.div>
                       )}

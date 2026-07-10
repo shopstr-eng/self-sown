@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { useContext, useEffect, useMemo, useState, useRef } from "react";
+import { useContext, useEffect, useMemo, useState, useRef, useId } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import {
@@ -54,16 +54,23 @@ function QuantitySelector({
   min,
   max,
 }: QuantitySelectorProps) {
+  const quantityInputId = useId();
   return (
     <div className="mt-2 flex items-center space-x-2">
+      <label htmlFor={quantityInputId} className="sr-only">
+        Quantity
+      </label>
       <button
+        type="button"
         onClick={onDecrease}
         disabled={value <= min}
+        aria-label="Decrease quantity"
         className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-black bg-white text-black transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <MinusIcon className="h-4 w-4" />
       </button>
       <input
+        id={quantityInputId}
         type="number"
         value={value}
         onChange={(e) => {
@@ -75,8 +82,10 @@ function QuantitySelector({
         className="w-16 rounded-md border-2 border-black bg-white px-2 py-1 text-center font-semibold text-black outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <button
+        type="button"
         onClick={onIncrease}
         disabled={value >= max}
+        aria-label="Increase quantity"
         className="flex h-8 w-8 items-center justify-center rounded-md border-2 border-black bg-white text-black transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
       >
         <PlusIcon className="h-4 w-4" />

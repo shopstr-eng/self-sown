@@ -417,7 +417,8 @@ const ChatMessage = ({
             blobToDownload = await viewEncryptedAgreement(
               herdsharePdfUrl,
               sellerNpub,
-              usePeerToPeerDecryption ? signer : undefined
+              usePeerToPeerDecryption ? signer : undefined,
+              signer
             );
 
             if (!blobToDownload || blobToDownload.size === 0) {
@@ -521,10 +522,13 @@ const ChatMessage = ({
 
             const sellerNpub = getSellerNpubFromTags();
 
-            // Always use server-side decryption for review and sign - don't pass signer
+            // Always use server-side (system-key) decryption for review and sign.
+            // Pass the signer only as NIP-98 auth, not for peer-to-peer decryption.
             const decryptedBlob = await viewEncryptedAgreement(
               herdsharePdfUrl,
-              sellerNpub
+              sellerNpub,
+              undefined,
+              signer
             );
 
             if (!decryptedBlob || decryptedBlob.size === 0) {

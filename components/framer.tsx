@@ -2,7 +2,7 @@ import { type ReactElement } from "react";
 
 import { Tab } from "@/components/hooks/use-tabs";
 import classNames from "classnames";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 const tapTransition = {
   type: "tween",
@@ -21,6 +21,7 @@ const Tabs = ({
   selectedTabIndex,
   setSelectedTab,
 }: Props): ReactElement => {
+  const prefersReducedMotion = useReducedMotion();
   return (
     <nav
       role="tablist"
@@ -35,7 +36,7 @@ const Tabs = ({
             type="button"
             role="tab"
             aria-selected={isActive}
-            whileTap={{ y: 2 }}
+            whileTap={prefersReducedMotion ? undefined : { y: 2 }}
             transition={tapTransition}
             onClick={() => {
               setSelectedTab([i, i > selectedTabIndex ? 1 : -1]);

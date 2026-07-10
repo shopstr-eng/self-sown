@@ -2,6 +2,7 @@
 
 const applyRateLimitMock = jest.fn();
 const claimStripeEventMock = jest.fn();
+const finalizeStripeEventMock = jest.fn();
 const releaseStripeEventMock = jest.fn();
 const constructEventMock = jest.fn();
 const isProMembershipSubscriptionMock = jest.fn();
@@ -15,6 +16,7 @@ jest.mock("@/utils/rate-limit", () => ({
 
 jest.mock("@/utils/stripe/processed-events", () => ({
   claimStripeEvent: (...args: unknown[]) => claimStripeEventMock(...args),
+  finalizeStripeEvent: (...args: unknown[]) => finalizeStripeEventMock(...args),
   releaseStripeEvent: (...args: unknown[]) => releaseStripeEventMock(...args),
 }));
 
@@ -84,6 +86,7 @@ describe("/api/pro/stripe-webhook lifetime payment guard", () => {
   beforeEach(() => {
     applyRateLimitMock.mockReset().mockReturnValue(true);
     claimStripeEventMock.mockReset().mockResolvedValue(true);
+    finalizeStripeEventMock.mockReset().mockResolvedValue(undefined);
     releaseStripeEventMock.mockReset().mockResolvedValue(undefined);
     constructEventMock.mockReset();
     isProMembershipSubscriptionMock.mockReset().mockReturnValue(false);
@@ -116,6 +119,7 @@ describe("/api/pro/stripe-webhook lifetime payment guard", () => {
     expect(res.statusCode).toBe(200);
     expect(applyStripeLifetimePaymentMock).toHaveBeenCalledTimes(1);
     expect(applyStripeLifetimePaymentMock).toHaveBeenCalledWith(pi);
+    expect(finalizeStripeEventMock).toHaveBeenCalledWith("evt_test");
   });
 
   it("ignores a PaymentIntent missing the mmProPubkey tag", async () => {

@@ -97,7 +97,8 @@ async function decryptFileWithSigner(
 export async function viewEncryptedAgreement(
   encryptedFileUrl: string,
   sellerNpub: string,
-  signer?: any
+  signer?: any,
+  authSigner?: any
 ): Promise<Blob> {
   try {
     // Fetch the encrypted file
@@ -145,8 +146,13 @@ export async function viewEncryptedAgreement(
         signer
       );
     } else {
-      // Fall back to server-side encryption approach
-      decryptedBytes = await decryptFileWithNip44(encryptedData, sellerNpub);
+      // Fall back to server-side (system-key) decryption. The system key stays
+      // on the server; a NIP-98 signature (authSigner) authenticates the caller.
+      decryptedBytes = await decryptFileWithNip44(
+        encryptedData,
+        sellerNpub,
+        authSigner ?? signer
+      );
     }
 
     // Validate that we got valid PDF data

@@ -131,6 +131,9 @@ export default function SellerView({
 }: MarketplacePageProps) {
   return (
     <>
+      <h1 className="sr-only">
+        Milk Market — raw milk &amp; farm-fresh dairy marketplace
+      </h1>
       {!focusedPubkey && (
         <div className="flex h-auto w-full items-center justify-center bg-black bg-cover bg-center pt-20">
           <img

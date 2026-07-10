@@ -1247,6 +1247,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             </div>
             <FileUploaderButton
               isIconOnly={true}
+              ariaLabel="Upload stall logo"
               className={`absolute right-0 bottom-0 z-20 !h-10 !w-10 !min-w-10 ${WHITEBUTTONCLASSNAMES}`}
               imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
             />

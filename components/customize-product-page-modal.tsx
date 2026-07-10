@@ -521,14 +521,14 @@ export default function CustomizeProductPageModal({
                           onClick={handleStartFromDefaults}
                           className="rounded border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:border-black hover:text-black"
                         >
-                          Start from defaults
+                          Start From Defaults
                         </button>
                         <button
                           type="button"
                           onClick={handleStartFromScratch}
                           className="rounded border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:border-black hover:text-black"
                         >
-                          Start from scratch
+                          Start From Scratch
                         </button>
                       </div>
                     </div>
@@ -761,7 +761,7 @@ export default function CustomizeProductPageModal({
                               setBulkSelectedIds(next);
                             }}
                           >
-                            Toggle all visible
+                            Toggle All Visible
                           </button>
                           <span className="text-gray-500">
                             {otherSellerProducts.length} other product
@@ -902,7 +902,7 @@ export default function CustomizeProductPageModal({
                   onPress={handleRevertToShopDefaults}
                   isDisabled={saving}
                 >
-                  Revert to shop defaults
+                  Revert To Shop Defaults
                 </Button>
               )}
             <Button

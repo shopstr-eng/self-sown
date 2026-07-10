@@ -43,6 +43,24 @@ function dispatchStorageChange() {
   }
 }
 
+// Cross-tab lock name for any read-modify-write of localStorage["tokens"].
+// Multiple open tabs share the same wallet storage, so a "re-read fresh then
+// write" section that spans no `await` is still only atomic within one tab.
+// Serializing those sections across tabs with the Web Locks API closes the
+// residual race where one tab's write clobbers a proof another tab just spent.
+const TOKENS_LOCK_NAME = "mm-cashu-tokens-write";
+
+async function withTokensLock<T>(fn: () => T | Promise<T>): Promise<T> {
+  if (typeof navigator !== "undefined") {
+    const locks = (navigator as any).locks;
+    if (locks && typeof locks.request === "function") {
+      return locks.request(TOKENS_LOCK_NAME, async () => fn());
+    }
+  }
+  // Web Locks unavailable (SSR / older browsers): best-effort, run inline.
+  return fn();
+}
+
 /**
  * Write a deduplicated, ordered list of mints to localStorage. The first
  * element becomes the wallet's default mint. No-op if the list would be
@@ -167,66 +185,73 @@ export async function restoreTokensFromProofEvents(
       skippedMints,
     };
 
-  // Re-read localStorage in case a concurrent write landed during the async
-  // mint probes, and dedupe by secret so we never clobber or double-add.
-  const current = getStoredTokens();
-  const currentSecrets = new Set(current.map((p) => p.secret));
-  const freshAdditions = additions.filter((p) => !currentSecrets.has(p.secret));
+  // Serialize the read-modify-write across tabs (Web Locks) and re-read inside
+  // the lock, so a concurrent send/melt in another tab can't be clobbered and
+  // we never write back a stale base.
+  return withTokensLock(() => {
+    // Re-read localStorage in case a concurrent write landed during the async
+    // mint probes, and dedupe by secret so we never clobber or double-add.
+    const current = getStoredTokens();
+    const currentSecrets = new Set(current.map((p) => p.secret));
+    const freshAdditions = additions.filter(
+      (p) => !currentSecrets.has(p.secret)
+    );
 
-  if (freshAdditions.length === 0)
+    if (freshAdditions.length === 0)
+      return {
+        restoredCount: 0,
+        restoredSats: 0,
+        mints: getStoredMints(),
+        skippedCount,
+        skippedMints,
+      };
+
+    const merged = [...current, ...freshAdditions];
+    localStorage.setItem(TOKENS_KEY, JSON.stringify(merged));
+
+    // Make sure every mint that contributed restored proofs is in the
+    // configured list so the wallet UI can attribute and spend them.
+    const currentMints = getStoredMints();
+    const mergedMints = [
+      ...currentMints,
+      ...contributingMints.filter((m) => !currentMints.includes(m)),
+    ];
+    const finalMints = persistMints(mergedMints);
+
+    dispatchStorageChange();
+    const restoredSats = freshAdditions.reduce(
+      (acc, p) => acc + proofAmountToNumber(p),
+      0
+    );
+    try {
+      const history = JSON.parse(
+        localStorage.getItem("history") || "[]"
+      ) as Array<Record<string, unknown>>;
+      localStorage.setItem(
+        "history",
+        JSON.stringify([
+          {
+            type: 5,
+            amount: restoredSats,
+            date: Math.floor(Date.now() / 1000),
+            note: `Restored ${freshAdditions.length} proof${
+              freshAdditions.length === 1 ? "" : "s"
+            } from nostr backup`,
+          },
+          ...history,
+        ])
+      );
+    } catch {
+      /* ignore history write errors */
+    }
     return {
-      restoredCount: 0,
-      restoredSats: 0,
-      mints: getStoredMints(),
+      restoredCount: freshAdditions.length,
+      restoredSats,
+      mints: finalMints,
       skippedCount,
       skippedMints,
     };
-
-  const merged = [...current, ...freshAdditions];
-  localStorage.setItem(TOKENS_KEY, JSON.stringify(merged));
-
-  // Make sure every mint that contributed restored proofs is in the
-  // configured list so the wallet UI can attribute and spend them.
-  const currentMints = getStoredMints();
-  const mergedMints = [
-    ...currentMints,
-    ...contributingMints.filter((m) => !currentMints.includes(m)),
-  ];
-  const finalMints = persistMints(mergedMints);
-
-  dispatchStorageChange();
-  const restoredSats = freshAdditions.reduce(
-    (acc, p) => acc + proofAmountToNumber(p),
-    0
-  );
-  try {
-    const history = JSON.parse(
-      localStorage.getItem("history") || "[]"
-    ) as Array<Record<string, unknown>>;
-    localStorage.setItem(
-      "history",
-      JSON.stringify([
-        {
-          type: 5,
-          amount: restoredSats,
-          date: Math.floor(Date.now() / 1000),
-          note: `Restored ${freshAdditions.length} proof${
-            freshAdditions.length === 1 ? "" : "s"
-          } from nostr backup`,
-        },
-        ...history,
-      ])
-    );
-  } catch {
-    /* ignore history write errors */
-  }
-  return {
-    restoredCount: freshAdditions.length,
-    restoredSats,
-    mints: finalMints,
-    skippedCount,
-    skippedMints,
-  };
+  });
 }
 
 export function persistReceivedTokens(
@@ -496,45 +521,48 @@ export async function sweepSpentProofs(
     if (confirmedSpentSecrets.size === 0)
       return { removedSats: 0, removedCount: 0 };
 
-    // Merge-safe write: re-read current tokens and remove only the secrets
-    // we confirmed SPENT. Newly added proofs (e.g. a receive that landed
-    // mid-probe) are preserved untouched.
-    const latest = getStoredTokens();
-    const removed = latest.filter((p) => confirmedSpentSecrets.has(p.secret));
-    if (removed.length === 0) return { removedSats: 0, removedCount: 0 };
-    const survivors = latest.filter(
-      (p) => !confirmedSpentSecrets.has(p.secret)
-    );
-    const removedSats = removed.reduce(
-      (acc, p) => acc + proofAmountToNumber(p),
-      0
-    );
-    const removedCount = removed.length;
-
-    localStorage.setItem(TOKENS_KEY, JSON.stringify(survivors));
-    try {
-      const history = JSON.parse(
-        localStorage.getItem("history") || "[]"
-      ) as Array<Record<string, unknown>>;
-      localStorage.setItem(
-        "history",
-        JSON.stringify([
-          {
-            type: 4,
-            amount: removedSats,
-            date: Math.floor(Date.now() / 1000),
-            note: `Removed ${removedCount} already-spent proof${
-              removedCount === 1 ? "" : "s"
-            } during wallet sync`,
-          },
-          ...history,
-        ])
+    // Merge-safe write, serialized across tabs (Web Locks): re-read current
+    // tokens inside the lock and remove only the secrets we confirmed SPENT.
+    // Newly added proofs (e.g. a receive that landed mid-probe, possibly in
+    // another tab) are preserved untouched.
+    return withTokensLock(() => {
+      const latest = getStoredTokens();
+      const removed = latest.filter((p) => confirmedSpentSecrets.has(p.secret));
+      if (removed.length === 0) return { removedSats: 0, removedCount: 0 };
+      const survivors = latest.filter(
+        (p) => !confirmedSpentSecrets.has(p.secret)
       );
-    } catch {
-      /* ignore history write errors — tokens are the source of truth */
-    }
-    dispatchStorageChange();
-    return { removedSats, removedCount };
+      const removedSats = removed.reduce(
+        (acc, p) => acc + proofAmountToNumber(p),
+        0
+      );
+      const removedCount = removed.length;
+
+      localStorage.setItem(TOKENS_KEY, JSON.stringify(survivors));
+      try {
+        const history = JSON.parse(
+          localStorage.getItem("history") || "[]"
+        ) as Array<Record<string, unknown>>;
+        localStorage.setItem(
+          "history",
+          JSON.stringify([
+            {
+              type: 4,
+              amount: removedSats,
+              date: Math.floor(Date.now() / 1000),
+              note: `Removed ${removedCount} already-spent proof${
+                removedCount === 1 ? "" : "s"
+              } during wallet sync`,
+            },
+            ...history,
+          ])
+        );
+      } catch {
+        /* ignore history write errors — tokens are the source of truth */
+      }
+      dispatchStorageChange();
+      return { removedSats, removedCount };
+    });
   })().finally(() => {
     sweepInFlight = null;
   });

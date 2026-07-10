@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { applyRateLimit } from "@/utils/rate-limit";
 import {
   claimStripeEvent,
+  finalizeStripeEvent,
   releaseStripeEvent,
 } from "@/utils/stripe/processed-events";
 import {
@@ -118,6 +119,17 @@ export default async function handler(
         break;
     }
 
+    // Processing succeeded. Marking the claim 'done' is bookkeeping only — if it
+    // fails, DON'T release/500, because the business side effects already ran and
+    // a retry would double-process (e.g. a duplicate receipt email). The claim
+    // stays 'processing' with a fresh timestamp, so retries stay deduped until
+    // the stale window elapses.
+    await finalizeStripeEvent(event.id).catch((finalizeErr) =>
+      console.error(
+        "pro stripe-webhook finalize failed (processing already succeeded):",
+        finalizeErr
+      )
+    );
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error("pro stripe-webhook handler error:", error);

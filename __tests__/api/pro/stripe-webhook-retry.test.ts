@@ -2,6 +2,7 @@
 
 const applyRateLimitMock = jest.fn();
 const claimStripeEventMock = jest.fn();
+const finalizeStripeEventMock = jest.fn();
 const releaseStripeEventMock = jest.fn();
 const constructEventMock = jest.fn();
 const isProMembershipSubscriptionMock = jest.fn();
@@ -15,6 +16,7 @@ jest.mock("@/utils/rate-limit", () => ({
 
 jest.mock("@/utils/stripe/processed-events", () => ({
   claimStripeEvent: (...args: unknown[]) => claimStripeEventMock(...args),
+  finalizeStripeEvent: (...args: unknown[]) => finalizeStripeEventMock(...args),
   releaseStripeEvent: (...args: unknown[]) => releaseStripeEventMock(...args),
 }));
 
@@ -76,6 +78,7 @@ describe("/api/pro/stripe-webhook release-on-failure retry", () => {
   beforeEach(() => {
     applyRateLimitMock.mockReset().mockReturnValue(true);
     claimStripeEventMock.mockReset().mockResolvedValue(true);
+    finalizeStripeEventMock.mockReset().mockResolvedValue(undefined);
     releaseStripeEventMock.mockReset().mockResolvedValue(undefined);
     constructEventMock.mockReset();
     isProMembershipSubscriptionMock.mockReset().mockReturnValue(false);
@@ -152,6 +155,29 @@ describe("/api/pro/stripe-webhook release-on-failure retry", () => {
     const res = createResponse();
     await handler(createRequest(), res as any);
 
+    expect(res.statusCode).toBe(200);
+    expect(applyStripeLifetimePaymentMock).toHaveBeenCalledTimes(1);
+    expect(releaseStripeEventMock).not.toHaveBeenCalled();
+    expect(finalizeStripeEventMock).toHaveBeenCalledWith("evt_ok");
+  });
+
+  it("still responds 200 and does NOT release the claim when finalize fails after successful processing", async () => {
+    const pi = {
+      id: "pi_test",
+      metadata: { proLifetime: "true", mmProPubkey: "seller-pubkey" },
+    };
+    constructEventMock.mockReturnValue({
+      id: "evt_finalize_fail",
+      type: "payment_intent.succeeded",
+      data: { object: pi },
+    });
+    // The business side effects ran, but the bookkeeping "mark done" write fails.
+    finalizeStripeEventMock.mockRejectedValue(new Error("finalize db down"));
+
+    const res = createResponse();
+    await handler(createRequest(), res as any);
+
+    // Releasing + 500 here would make Stripe retry and double-process the event.
     expect(res.statusCode).toBe(200);
     expect(applyStripeLifetimePaymentMock).toHaveBeenCalledTimes(1);
     expect(releaseStripeEventMock).not.toHaveBeenCalled();

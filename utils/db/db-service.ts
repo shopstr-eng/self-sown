@@ -3291,6 +3291,31 @@ export async function getOrderParticipants(orderId: string): Promise<{
 //
 // Returns the number of rows updated so callers can tell whether anything
 // actually persisted.
+// Order lifecycle is forward-only: pending → confirmed → shipped → completed,
+// plus a buyer cancel from an early state. Returning the set of statuses a row
+// may currently hold for the target to be a legal (non-regressing) transition
+// lets us enforce the state machine in the UPDATE's WHERE clause, so a valid
+// actor — or an out-of-order retry — can never move a status backward
+// (completed → confirmed) or resurrect a terminal state (canceled → shipped).
+// An unset (NULL) status is always the initial stamp and is handled separately.
+function allowedPreviousOrderStatuses(status: string): string[] {
+  switch (status) {
+    case "pending":
+      return ["pending"];
+    case "confirmed":
+      return ["pending", "confirmed"];
+    case "shipped":
+      return ["pending", "confirmed", "shipped"];
+    case "completed":
+      return ["pending", "confirmed", "shipped", "completed"];
+    case "canceled":
+      // A buyer may cancel only before the order ships; re-canceling is a no-op.
+      return ["pending", "confirmed", "canceled"];
+    default:
+      return [];
+  }
+}
+
 export async function updateOrderStatus(
   orderId: string,
   status: string,
@@ -3300,6 +3325,7 @@ export async function updateOrderStatus(
   const dbPool = getDbPool();
   let client;
   let rowsAffected = 0;
+  const allowedPrev = allowedPreviousOrderStatuses(status);
 
   try {
     client = await dbPool.connect();
@@ -3308,13 +3334,15 @@ export async function updateOrderStatus(
       // Locate the cached gift wrap by its event id, verify ownership via the
       // `p` tag, and stamp order_id while setting the status. Only (re)stamp
       // order_id when it is still NULL or already equals this order, so a
-      // recipient can't repoint someone else's already-tagged row.
+      // recipient can't repoint someone else's already-tagged row. The
+      // order_status guard makes the transition forward-only.
       const byId = await client.query(
         `UPDATE message_events
          SET order_status = $1,
              order_id = $3
          WHERE id = $2
          AND (order_id IS NULL OR order_id = $3)
+         AND (order_status IS NULL OR order_status = ANY($5))
          AND (
            pubkey = $4
            OR EXISTS (
@@ -3323,17 +3351,20 @@ export async function updateOrderStatus(
              WHERE elem->>0 = 'p' AND elem->>1 = $4
            )
          )`,
-        [status, messageId, orderId, pubkey]
+        [status, messageId, orderId, pubkey, allowedPrev]
       );
       rowsAffected += byId.rowCount ?? 0;
     }
 
     // Propagate the status to any sibling rows already tagged with this order_id
     // (multi-message orders). Harmless on the first write when nothing is tagged.
+    // The same forward-only guard prevents regressing a sibling that already
+    // holds a more-advanced status.
     const byOrderId = await client.query(
       `UPDATE message_events
        SET order_status = $1
        WHERE order_id = $2
+       AND (order_status IS NULL OR order_status = ANY($4))
        AND (
          pubkey = $3
          OR EXISTS (
@@ -3342,7 +3373,7 @@ export async function updateOrderStatus(
            WHERE elem->>0 = 'p' AND elem->>1 = $3
          )
        )`,
-      [status, orderId, pubkey]
+      [status, orderId, pubkey, allowedPrev]
     );
     rowsAffected += byOrderId.rowCount ?? 0;
 

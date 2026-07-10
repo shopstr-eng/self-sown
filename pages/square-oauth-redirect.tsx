@@ -93,7 +93,7 @@ const SquareOAuthRedirect = () => {
               className="bg-primary-yellow border-2 border-black font-semibold text-black"
               onPress={() => router.replace("/settings/payments")}
             >
-              Back to payment settings
+              Back To Payment Settings
             </Button>
           </div>
         )}

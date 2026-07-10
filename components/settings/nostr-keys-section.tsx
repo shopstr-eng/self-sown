@@ -87,6 +87,7 @@ const NostrKeysSection = () => {
         >
           <Button
             isIconOnly
+            aria-label={isNPubCopied ? "npub copied" : "Copy npub"}
             variant="light"
             className="h-6 w-6 min-w-0 flex-shrink-0 p-0 text-black"
             onClick={async () => {
@@ -118,6 +119,7 @@ const NostrKeysSection = () => {
             >
               <Button
                 isIconOnly
+                aria-label={isNSecVisible ? "Hide nsec" : "Show nsec"}
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
                 onClick={async () => {
@@ -144,6 +146,7 @@ const NostrKeysSection = () => {
             >
               <Button
                 isIconOnly
+                aria-label={isNSecCopied ? "nsec copied" : "Copy nsec"}
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
                 onClick={async () => {
@@ -180,6 +183,9 @@ const NostrKeysSection = () => {
             >
               <Button
                 isIconOnly
+                aria-label={
+                  isNcryptsecVisible ? "Hide ncryptsec" : "Show ncryptsec"
+                }
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
                 onClick={() => {
@@ -205,6 +211,9 @@ const NostrKeysSection = () => {
             >
               <Button
                 isIconOnly
+                aria-label={
+                  isNcryptsecCopied ? "ncryptsec copied" : "Copy ncryptsec"
+                }
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
                 onClick={async () => {

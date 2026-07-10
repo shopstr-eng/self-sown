@@ -25,19 +25,19 @@ export default function Custom404() {
             className={BLUEBUTTONCLASSNAMES}
             onClick={() => router.back()}
           >
-            Go back
+            Go Back
           </Button>
 
           <Link href="/" passHref>
-            <Button className={BLUEBUTTONCLASSNAMES}>View landing page</Button>
+            <Button className={BLUEBUTTONCLASSNAMES}>View Landing Page</Button>
           </Link>
 
           <Link href="/marketplace" passHref>
-            <Button className={BLUEBUTTONCLASSNAMES}>View marketplace</Button>
+            <Button className={BLUEBUTTONCLASSNAMES}>View Marketplace</Button>
           </Link>
 
           <Link href="/orders" passHref>
-            <Button className={BLUEBUTTONCLASSNAMES}>View orders</Button>
+            <Button className={BLUEBUTTONCLASSNAMES}>View Orders</Button>
           </Link>
         </div>
       </div>

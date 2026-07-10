@@ -235,7 +235,7 @@ export default function SquareCardForm({
         onClick={onCancel}
         className="mt-3 w-full text-center text-sm font-bold text-black underline hover:text-gray-700"
       >
-        Cancel and return to checkout
+        Cancel And Return To Checkout
       </button>
     </form>
   );

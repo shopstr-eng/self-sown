@@ -222,7 +222,7 @@ const StallPage = () => {
             setIsMobileMenuOpen(false);
           }}
         >
-          Import design from website
+          Import Design From Website
         </Button>
       </div>
     </div>
@@ -348,7 +348,7 @@ const StallPage = () => {
             startContent={<GlobeAltIcon className="h-4 w-4" />}
             onClick={handleOpenImportDesign}
           >
-            Import design from website
+            Import Design From Website
           </Button>
         </div>
 
@@ -418,7 +418,7 @@ const StallPage = () => {
                 startContent={<GlobeAltIcon className="h-4 w-4" />}
                 onClick={handleOpenImportDesign}
               >
-                Import design from website
+                Import Design From Website
               </Button>
             </div>
           </div>

@@ -24,6 +24,7 @@ const config: Config = {
         white: "#FFFFFF",
         "dark-bg": "#212121",
         "dark-fg": "#4d4c4e",
+        "dark-modal": "#292f46",
         "light-bg": "#e8e8e8",
         "light-fg": "#f5f5f5",
         "shopstr-purple": "#a438ba",
@@ -39,6 +40,7 @@ const config: Config = {
       // Define the hard-edged shadow for buttons and cards
       boxShadow: {
         neo: "4px 4px 0px #000000",
+        "neo-hover": "8px 8px 0px #000000",
       },
       // Add a modern, bold font suitable for the design
       fontFamily: {

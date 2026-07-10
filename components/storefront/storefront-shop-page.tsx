@@ -257,7 +257,7 @@ export default function StorefrontShopPage({
             className="text-sm font-medium underline"
             style={{ color: colors.primary }}
           >
-            Clear filters
+            Clear Filters
           </button>
         </div>
       )}
@@ -276,7 +276,7 @@ export default function StorefrontShopPage({
               className="mt-3 text-sm font-medium underline"
               style={{ color: colors.primary }}
             >
-              Clear all filters
+              Clear All Filters
             </button>
           )}
         </div>

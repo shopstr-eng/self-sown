@@ -80,6 +80,7 @@ const SubscriptionManagement = ({
   const [guestSubId, setGuestSubId] = useState("");
   const [isGuestMode, setIsGuestMode] = useState(false);
   const [guestLookupDone, setGuestLookupDone] = useState(false);
+  const [guestLookupError, setGuestLookupError] = useState<string | null>(null);
 
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelSubscription, setCancelSubscription] =
@@ -156,6 +157,7 @@ const SubscriptionManagement = ({
     if (!guestEmail) return;
     setIsLoading(true);
     setGuestLookupDone(true);
+    setGuestLookupError(null);
     try {
       let url = `/api/stripe/get-subscriptions?email=${encodeURIComponent(
         guestEmail
@@ -173,9 +175,16 @@ const SubscriptionManagement = ({
         }
         setSubscriptions(subs);
         setIsGuestMode(true);
+      } else {
+        setGuestLookupError(
+          "We couldn't look up your subscriptions right now. Please try again."
+        );
       }
     } catch (error) {
       console.error("Failed to fetch guest subscriptions:", error);
+      setGuestLookupError(
+        "We couldn't look up your subscriptions right now. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -482,11 +491,19 @@ const SubscriptionManagement = ({
               >
                 Look Up Subscriptions
               </Button>
-              {guestLookupDone && subscriptions.length === 0 && !isLoading && (
-                <p className="text-center text-sm text-gray-500">
-                  No subscriptions found for this email.
+              {guestLookupError && !isLoading && (
+                <p className="text-center text-sm text-red-600">
+                  {guestLookupError}
                 </p>
               )}
+              {guestLookupDone &&
+                !guestLookupError &&
+                subscriptions.length === 0 &&
+                !isLoading && (
+                  <p className="text-center text-sm text-gray-500">
+                    No subscriptions found for this email.
+                  </p>
+                )}
             </div>
           </div>
         </div>

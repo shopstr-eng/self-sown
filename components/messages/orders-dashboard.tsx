@@ -1640,7 +1640,9 @@ const OrdersDashboard = ({
         : "";
       const decryptedBlob = await viewEncryptedAgreement(
         order.unsignedHerdshareUrl,
-        sellerNpub
+        sellerNpub,
+        undefined,
+        signer
       );
 
       if (!decryptedBlob || decryptedBlob.size === 0) {
@@ -2546,7 +2548,7 @@ const OrdersDashboard = ({
                   }
                   onClick={() => setDeliveryMode("days")}
                 >
-                  Number of days
+                  Number Of Days
                 </Button>
                 <Button
                   type="button"
@@ -2559,7 +2561,7 @@ const OrdersDashboard = ({
                   }
                   onClick={() => setDeliveryMode("date")}
                 >
-                  Exact date
+                  Exact Date
                 </Button>
               </div>
               {deliveryMode === "days" ? (

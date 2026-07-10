@@ -480,7 +480,15 @@ function registerPurchaseTools(
         let content: any = {};
         try {
           content = JSON.parse(profile.content);
-        } catch {}
+        } catch {
+          // Distinguish "parse failed" from "no discounts": on malformed
+          // profile content we log and fall back to defaults (lud16/discounts
+          // null) rather than silently reporting wrong payment metadata.
+          console.warn(
+            "MCP get_payment_methods: failed to parse profile content; " +
+              "returning default payment metadata (lud16/discounts null)"
+          );
+        }
 
         const methods: any[] = [];
 

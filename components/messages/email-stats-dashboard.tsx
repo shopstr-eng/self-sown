@@ -143,7 +143,7 @@ const EmailStatsDashboard = () => {
           onClick={load}
         >
           <ArrowPathIcon className="h-4 w-4" />
-          Try again
+          Try Again
         </Button>
       </div>
     );

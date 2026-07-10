@@ -177,6 +177,22 @@ export async function deductStock(
     }
 
     const currentQty = result.rows[0].quantity;
+
+    // Idempotency: if this order already deducted this product/variant, treat the
+    // repeat as a successful no-op. The FOR UPDATE lock above serializes concurrent
+    // callers so a double-submit / client retry / keepalive resend can't double-
+    // deduct the same sale.
+    const alreadyDeducted = await client.query(
+      `SELECT 1 FROM inventory_log
+         WHERE product_id = $1 AND variant_key = $2 AND order_id = $3
+           AND reason = 'order_deduction' LIMIT 1`,
+      [productId, variantKey, orderId]
+    );
+    if (alreadyDeducted.rows.length > 0) {
+      await client.query("COMMIT");
+      return { success: true, previous: currentQty, current: currentQty };
+    }
+
     if (currentQty < amount) {
       await client.query("COMMIT");
       return {
@@ -240,6 +256,20 @@ export async function restoreStock(
     }
 
     const currentQty = result.rows[0].quantity;
+
+    // Idempotency: a given order can only restore this product/variant once, so a
+    // repeated cancel/refund can't inflate stock. Serialized by the FOR UPDATE lock.
+    const alreadyRestored = await client.query(
+      `SELECT 1 FROM inventory_log
+         WHERE product_id = $1 AND variant_key = $2 AND order_id = $3
+           AND reason = 'order_cancellation_restore' LIMIT 1`,
+      [productId, variantKey, orderId]
+    );
+    if (alreadyRestored.rows.length > 0) {
+      await client.query("COMMIT");
+      return { success: true, previous: currentQty, current: currentQty };
+    }
+
     const newQty = currentQty + amount;
 
     await client.query(

@@ -94,7 +94,7 @@ const ShippoOAuthRedirect = () => {
               className="bg-primary-yellow border-2 border-black font-semibold text-black"
               onPress={() => router.replace("/settings/shipping")}
             >
-              Back to shipping settings
+              Back To Shipping Settings
             </Button>
           </div>
         )}

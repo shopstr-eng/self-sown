@@ -28,6 +28,7 @@ import {
 import dns from "dns";
 import { promisify } from "util";
 import { registerTool } from "./register-tool";
+import { setStock } from "@/utils/db/inventory-service";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 import {
   canActorSendShippingUpdate,
@@ -5735,27 +5736,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
       try {
         const sellerPubkey = signer.getPubKey();
-        const res = await fetch(`${baseUrl}/api/inventory`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "set",
-            productId: params.productId,
-            sellerPubkey,
-            quantity: params.quantity,
-            variantKey: params.variantKey,
-            source: params.source ?? "seller_override",
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          return errorResponse(
-            "Failed to set stock",
-            data.error || "Unknown error",
-            startTime
-          );
-        }
-        return successResponse(data, startTime);
+        // Call the inventory service directly (server-side). The seller pubkey
+        // comes from the authenticated agent signer, so an API key can only ever
+        // set its OWN inventory. (The HTTP endpoint additionally requires a
+        // NIP-98 signature with a matching pubkey for any external caller.)
+        const result = await setStock(
+          params.productId,
+          sellerPubkey,
+          params.quantity,
+          params.variantKey ?? "_default",
+          params.source ?? "seller_override"
+        );
+        return successResponse({ success: true, ...result }, startTime);
       } catch (error) {
         return errorResponse(
           "Failed to set stock",

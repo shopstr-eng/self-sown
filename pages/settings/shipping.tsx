@@ -638,7 +638,7 @@ const ShippingSettingsPage = () => {
                         onPress={handleSaveDefaults}
                         isLoading={savingDefaults}
                       >
-                        Save defaults
+                        Save Defaults
                       </Button>
                       {defaultsToast && (
                         <span className="text-sm text-gray-700">
@@ -741,7 +741,7 @@ const ShippingSettingsPage = () => {
                           !Number(newTemplate.weightOz)
                         }
                       >
-                        Save template
+                        Save Template
                       </Button>
                     </div>
 
@@ -769,7 +769,7 @@ const ShippingSettingsPage = () => {
                                 className="border-2 border-black bg-white font-semibold text-black"
                                 onPress={() => openApplyModal(t)}
                               >
-                                Apply to listings
+                                Apply To Listings
                               </Button>
                               <Button
                                 variant="light"
@@ -906,7 +906,7 @@ const ShippingSettingsPage = () => {
                         )
                       }
                     >
-                      Select all
+                      Select All
                     </button>
                     <button
                       type="button"

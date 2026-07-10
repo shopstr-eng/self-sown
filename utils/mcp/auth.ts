@@ -2,7 +2,6 @@ import { pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { PoolClient } from "pg";
 import { getDbPool } from "@/utils/db/db-service";
-import { verifyEvent } from "nostr-tools";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
 
 // Shared "Pro required" message for MCP authentication failures so REST and
@@ -39,40 +38,13 @@ export interface AuthenticatedRequest extends NextApiRequest {
   apiKey?: ApiKeyRecord;
 }
 
-const AUTH_EVENT_KIND = 27235;
-const MAX_EVENT_AGE_SECONDS = 120;
-
-export function verifyNostrAuth(
-  signedEvent: any,
-  expectedPubkey?: string
-): { valid: boolean; pubkey: string; error?: string } {
-  if (!signedEvent || typeof signedEvent !== "object") {
-    return { valid: false, pubkey: "", error: "Missing signed auth event" };
-  }
-
-  if (signedEvent.kind !== AUTH_EVENT_KIND) {
-    return { valid: false, pubkey: "", error: "Invalid auth event kind" };
-  }
-
-  if (!verifyEvent(signedEvent)) {
-    return { valid: false, pubkey: "", error: "Invalid event signature" };
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - signedEvent.created_at) > MAX_EVENT_AGE_SECONDS) {
-    return { valid: false, pubkey: "", error: "Auth event has expired" };
-  }
-
-  if (expectedPubkey && signedEvent.pubkey !== expectedPubkey) {
-    return {
-      valid: false,
-      pubkey: signedEvent.pubkey,
-      error: "Pubkey mismatch",
-    };
-  }
-
-  return { valid: true, pubkey: signedEvent.pubkey };
-}
+// NOTE: A generic, unbound `verifyNostrAuth` (kind-27235 + signature +
+// created_at window, but no method/path binding) used to live here. It was
+// retired because an unbound signed event is replayable across endpoints
+// within its freshness window. All authenticated MCP/Nostr write paths now go
+// through the single-use, bound proof (`verifyAndConsumeSignedRequestProof` in
+// `utils/nostr/request-auth`) or the `expectedBinding{method,path}` variant in
+// `utils/stripe/verify-nostr-auth`. Do not reintroduce an unbound verifier.
 
 export function hashApiKey(key: string): string {
   const salt = randomBytes(16);

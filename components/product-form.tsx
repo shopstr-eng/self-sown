@@ -828,9 +828,9 @@ export default function ProductForm({
         onClose={handleModalToggle}
         classNames={{
           body: "py-6 bg-dark-fg",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+          backdrop: "bg-dark-modal/50 backdrop-opacity-60",
+          header: "border-b-[1px] border-dark-modal bg-dark-fg rounded-t-lg",
+          footer: "border-t-[1px] border-dark-modal bg-dark-fg rounded-b-lg",
           closeButton: "hover:bg-black/5 active:bg-white/10",
         }}
         scrollBehavior={"outside"}
@@ -971,6 +971,7 @@ export default function ProductForm({
                             <div onClick={(e) => e.stopPropagation()}>
                               <FileUploaderButton
                                 isIconOnly
+                                ariaLabel="Replace this image"
                                 imgCallbackOnUpload={replaceImage(index)}
                                 className="!h-10 !w-10 !min-w-10 !rounded-full !p-0"
                               />
@@ -1629,6 +1630,7 @@ export default function ProductForm({
                             {value.length > 1 && (
                               <Button
                                 isIconOnly
+                                aria-label="Remove pickup location"
                                 color="danger"
                                 variant="light"
                                 onClick={() => {
@@ -2206,7 +2208,7 @@ export default function ProductForm({
                                         : "bg-white text-black"
                                     }`}
                                   >
-                                    Selectable buttons
+                                    Selectable Buttons
                                   </Button>
                                   <Button
                                     type="button"
@@ -2596,6 +2598,7 @@ export default function ProductForm({
                                     />
                                     <Button
                                       isIconOnly
+                                      aria-label="Remove pricing tier"
                                       color="danger"
                                       variant="light"
                                       onClick={() => handleRemoveTier(units)}
@@ -2796,6 +2799,7 @@ export default function ProductForm({
                                           />
                                           <Button
                                             isIconOnly
+                                            aria-label="Remove pricing tier"
                                             color="danger"
                                             variant="light"
                                             onClick={() =>

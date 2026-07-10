@@ -16,6 +16,19 @@ body {
   color: #000000;
 }
 
+/* Honor the OS "reduce motion" setting app-wide: near-instant transitions and
+   animations for vestibular-sensitive users, without removing functionality. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Chrome, Edge, and Safari */
 *::-webkit-scrollbar {
   width: 7px;
@@ -42,6 +55,18 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
+}
+
+/* Accessibility (WCAG 2.2 — 2.4.7 Focus Visible): guarantee a visible
+   keyboard-focus indicator everywhere, including components that reset the
+   browser outline with `focus:outline-none`. Only applies to keyboard / AT
+   focus (:focus-visible), so pointer clicks stay visually clean. Written
+   unlayered so it reliably wins over Tailwind's layered `outline-none`
+   utilities regardless of selector specificity. */
+:focus-visible {
+  outline: 2px solid #000000;
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .text-xxs {

@@ -197,13 +197,13 @@ export default function ProductListingView({
                   className={BLUEBUTTONCLASSNAMES}
                   onPress={() => router.back()}
                 >
-                  Go back
+                  Go Back
                 </Button>
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
                   onPress={() => router.push("/marketplace")}
                 >
-                  View marketplace
+                  View Marketplace
                 </Button>
               </div>
             </div>

@@ -434,7 +434,7 @@ export default function ProCheckout({
           } w-full justify-center disabled:opacity-50`}
         >
           <CreditCardIcon className="mr-2 h-5 w-5" />
-          Pay with card
+          Pay With Card
         </button>
         <button
           type="button"
@@ -452,7 +452,7 @@ export default function ProCheckout({
           className="shadow-neo flex w-full items-center justify-center rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 disabled:opacity-50"
         >
           <BanknotesIcon className="mr-2 h-5 w-5" />
-          Request a manual invoice
+          Request A Manual Invoice
         </button>
       </div>
 

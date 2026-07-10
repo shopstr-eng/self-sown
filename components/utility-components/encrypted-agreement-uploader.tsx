@@ -41,6 +41,12 @@ export function EncryptedAgreementUploaderButton({
       return;
     }
 
+    if (!signer) {
+      setFailureText("Please log in to upload agreements.");
+      setShowFailureModal(true);
+      return;
+    }
+
     setIsUploading(true);
 
     try {
@@ -51,7 +57,7 @@ export function EncryptedAgreementUploaderButton({
         file,
         sellerNpub,
         false,
-        undefined // Always use server-side encryption for uploads
+        signer // NIP-98 auth for the server-side (system-key) encryption endpoint
       );
 
       // Get blossom servers from local storage

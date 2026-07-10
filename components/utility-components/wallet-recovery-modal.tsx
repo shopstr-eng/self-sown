@@ -154,7 +154,7 @@ export default function WalletRecoveryModal({
             </Button>
             {isLoggedIn ? (
               <Button className={BLACKBUTTONCLASSNAMES} onPress={goToWallet}>
-                Go to wallet
+                Go To Wallet
               </Button>
             ) : (
               <Button

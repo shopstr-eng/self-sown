@@ -296,7 +296,7 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
               onClick={save}
               isLoading={saving}
             >
-              Save payout details
+              Save Payout Details
             </Button>
             <Button
               variant="light"

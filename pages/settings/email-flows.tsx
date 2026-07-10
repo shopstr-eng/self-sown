@@ -731,7 +731,7 @@ const EmailFlowsPage = () => {
             className="mb-4 flex items-center gap-1 text-sm font-bold text-gray-600 hover:text-black"
           >
             <ArrowLeftIcon className="h-4 w-4" />
-            Back to flows
+            Back To Flows
           </button>
 
           {error && (

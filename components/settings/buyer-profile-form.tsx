@@ -116,6 +116,7 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
         <div className="relative h-24 w-24 overflow-visible">
           <FileUploaderButton
             isIconOnly
+            ariaLabel="Upload profile picture"
             className={AVATARBADGEBUTTONCLASSNAMES}
             containerClassName="absolute right-[-0.5rem] bottom-[-0.5rem] z-20"
             imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}

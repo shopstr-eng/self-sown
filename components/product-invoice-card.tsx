@@ -5666,7 +5666,7 @@ export default function ProductInvoiceCard({
                           });
                         }}
                       >
-                        Use suggested address
+                        Use Suggested Address
                       </button>
                     )}
                   </div>
@@ -6426,7 +6426,7 @@ export default function ProductInvoiceCard({
                         className="text-primary-blue underline"
                         onClick={onOpen}
                       >
-                        Sign in
+                        Sign In
                       </button>
                     </p>
                   </div>

@@ -201,10 +201,10 @@ export default function ProductCard({
           <>
             {/* Title row with actions */}
             <div className="flex items-start justify-between gap-2">
-              <h2 className="line-clamp-2 min-w-0 flex-1 text-xl leading-snug font-bold text-black">
+              <h3 className="line-clamp-2 min-w-0 flex-1 text-xl leading-snug font-bold text-black">
                 {productData.title}
-              </h2>
-              <div className="flex flex-shrink-0 items-center gap-1">
+              </h3>
+              <div className="relative z-10 flex flex-shrink-0 items-center gap-1">
                 {isZapsnag && productData.pubkey === userPubkey && (
                   <button
                     onClick={handleNjumpClick}
@@ -226,6 +226,7 @@ export default function ProductCard({
                     <DropdownTrigger>
                       <Button
                         isIconOnly
+                        aria-label="Event actions"
                         variant="light"
                         size="sm"
                         className="shadow-neo h-8 min-w-8 rounded-md border-2 border-black bg-white"
@@ -321,7 +322,7 @@ export default function ProductCard({
 
         {/* Vendor – supporting text */}
         <div
-          className="mb-2"
+          className="relative z-10 mb-2"
           data-profile-dropdown
           onClick={(e) => {
             e.stopPropagation();
@@ -360,32 +361,40 @@ export default function ProductCard({
     </div>
   );
 
-  const content = href ? (
+  // Block-link pattern: the card itself is a NON-interactive container. A single
+  // stretched primary link/button (sibling of the content, not a parent of the
+  // nested dropdown/profile/carousel controls) sits above the static content via
+  // z-index, while the nested interactive controls are elevated above it. This
+  // keeps the whole card clickable without nesting interactives inside an <a> /
+  // role="button" (invalid HTML that confuses assistive tech).
+  const primaryControlLabel = productData.title || "View listing";
+  const primaryControl = !isCardInteractive ? null : href ? (
     <a
       href={href}
-      className={isCardInteractive ? "cursor-pointer" : ""}
-      onClickCapture={isCardInteractive ? handleCardClickCapture : undefined}
-      onClick={isCardInteractive ? handleCardClick : undefined}
-      onKeyDown={isCardInteractive ? handleCardKeyDown : undefined}
+      aria-label={primaryControlLabel}
+      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-none focus-visible:ring-inset"
+      onClickCapture={handleCardClickCapture}
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
-      {contentBody}
+      <span className="sr-only">{primaryControlLabel}</span>
     </a>
   ) : (
-    <div
-      className={isCardInteractive ? "cursor-pointer" : ""}
-      onClickCapture={isCardInteractive ? handleCardClickCapture : undefined}
-      onClick={isCardInteractive ? handleCardClick : undefined}
-      onKeyDown={isCardInteractive ? handleCardKeyDown : undefined}
-      role={isCardInteractive ? "button" : undefined}
-      tabIndex={isCardInteractive ? 0 : undefined}
+    <button
+      type="button"
+      aria-label={primaryControlLabel}
+      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-none focus-visible:ring-inset"
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
     >
-      {contentBody}
-    </div>
+      <span className="sr-only">{primaryControlLabel}</span>
+    </button>
   );
 
   return (
-    <div className="shadow-neo active:shadow-neo flex w-full max-w-full min-w-0 cursor-pointer flex-col overflow-hidden rounded-md border-4 border-black bg-white transition-transform duration-200 hover:-translate-y-1 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 sm:max-w-sm">
-      <div className="w-full overflow-hidden rounded-2xl">{content}</div>
+    <article className="shadow-neo active:shadow-neo hover:shadow-neo-hover relative flex w-full max-w-full min-w-0 flex-col overflow-hidden rounded-md border-4 border-black bg-white transition-transform duration-200 hover:-translate-y-1 active:translate-y-0 sm:max-w-sm">
+      {contentBody}
+      {primaryControl}
       <RawEventModal
         isOpen={showRawEventModal}
         onClose={() => setShowRawEventModal(false)}
@@ -398,6 +407,6 @@ export default function ProductCard({
       />
       <SignInModal isOpen={isSignInOpen} onClose={onSignInClose} />
       {reportFlowUi}
-    </div>
+    </article>
   );
 }

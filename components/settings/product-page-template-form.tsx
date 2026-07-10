@@ -217,7 +217,7 @@ const ProductPageTemplateForm = () => {
           onClick={() => setShowImport(true)}
           isDisabled={!membership.isPro}
         >
-          Build product page from a website
+          Build Product Page From A Website
         </Button>
       </div>
 

@@ -735,7 +735,7 @@ const BlogSettingsPage = () => {
             className="mb-4 flex items-center gap-1 text-sm font-bold text-gray-600 hover:text-black"
           >
             <ArrowLeftIcon className="h-4 w-4" />
-            Back to posts
+            Back To Posts
           </button>
 
           {banner}
@@ -925,7 +925,7 @@ const BlogSettingsPage = () => {
                   }
                 >
                   <DocumentTextIcon className="h-4 w-4" />
-                  Save draft
+                  Save Draft
                 </Button>
               )}
               <Button className={WHITEBUTTONCLASSNAMES} onClick={closeEditor}>
@@ -1091,7 +1091,7 @@ const BlogSettingsPage = () => {
             <h2 className="text-2xl font-bold text-black">Your posts</h2>
             <Button className={BLACKBUTTONCLASSNAMES} onClick={openCreate}>
               <PlusIcon className="h-4 w-4" />
-              New post
+              New Post
             </Button>
           </div>
 
@@ -1109,7 +1109,7 @@ const BlogSettingsPage = () => {
               </p>
               <Button className={BLUEBUTTONCLASSNAMES} onClick={openCreate}>
                 <PlusIcon className="h-4 w-4" />
-                Write your first post
+                Write Your First Post
               </Button>
             </div>
           ) : (

@@ -2,6 +2,7 @@
 
 const applyRateLimitMock = jest.fn();
 const claimStripeEventMock = jest.fn();
+const finalizeStripeEventMock = jest.fn();
 const releaseStripeEventMock = jest.fn();
 const constructEventMock = jest.fn();
 const isProMembershipSubscriptionMock = jest.fn();
@@ -15,6 +16,7 @@ jest.mock("@/utils/rate-limit", () => ({
 
 jest.mock("@/utils/stripe/processed-events", () => ({
   claimStripeEvent: (...args: unknown[]) => claimStripeEventMock(...args),
+  finalizeStripeEvent: (...args: unknown[]) => finalizeStripeEventMock(...args),
   releaseStripeEvent: (...args: unknown[]) => releaseStripeEventMock(...args),
 }));
 
@@ -76,6 +78,7 @@ describe("/api/pro/stripe-webhook dedup short-circuit", () => {
   beforeEach(() => {
     applyRateLimitMock.mockReset().mockReturnValue(true);
     claimStripeEventMock.mockReset().mockResolvedValue(true);
+    finalizeStripeEventMock.mockReset().mockResolvedValue(undefined);
     releaseStripeEventMock.mockReset().mockResolvedValue(undefined);
     constructEventMock.mockReset();
     isProMembershipSubscriptionMock.mockReset().mockReturnValue(false);

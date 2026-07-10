@@ -227,11 +227,14 @@ const TopNav = ({
   );
 
   return (
-    <div
+    <header
       data-main-nav
       className="bg-primary-blue fixed top-0 z-50 w-full border-b-2 border-black shadow-lg"
     >
-      <div className="flex items-center justify-between py-2 pr-4">
+      <nav
+        aria-label="Primary"
+        className="flex items-center justify-between py-2 pr-4"
+      >
         <div className="flex flex-shrink-0 items-center">
           <Button
             as={NextLink}
@@ -254,6 +257,8 @@ const TopNav = ({
         <div className="ml-auto flex flex-row items-center md:hidden">
           <Button
             className="bg-transparent"
+            aria-label={isMobileMenuOpen ? "Close main menu" : "Open main menu"}
+            aria-expanded={isMobileMenuOpen}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             <Bars4Icon className="h-6 w-6 text-white" />
@@ -396,10 +401,10 @@ const TopNav = ({
             </Button>
           )}
         </div>
-      </div>
+      </nav>
       {isMobileMenuOpen && <MobileMenu />}
       <SignInModal isOpen={isOpen} onClose={onClose} />
-    </div>
+    </header>
   );
 };
 

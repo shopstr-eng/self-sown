@@ -21,7 +21,11 @@ export const config = {
   },
 };
 import { applyRateLimit } from "@/utils/rate-limit";
-import { claimStripeEvent } from "@/utils/stripe/processed-events";
+import {
+  claimStripeEvent,
+  finalizeStripeEvent,
+  releaseStripeEvent,
+} from "@/utils/stripe/processed-events";
 import { markPendingPaymentByIntent } from "@/utils/stripe/pending-payments";
 import { reverseReferralsForOrder } from "@/utils/db/affiliates";
 
@@ -263,9 +267,24 @@ export default async function handler(
         break;
     }
 
+    // Processing succeeded. Marking the claim 'done' is bookkeeping only — if it
+    // fails, DON'T release/500, because the business side effects already ran and
+    // a retry would double-process. The claim stays 'processing' with a fresh
+    // timestamp, so retries stay deduped until the stale window elapses.
+    await finalizeStripeEvent(event.id).catch((finalizeErr) =>
+      console.error(
+        "stripe webhook finalize failed (processing already succeeded):",
+        finalizeErr
+      )
+    );
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error("Webhook handler error:", error);
+    // Release the claim so Stripe's retry can reprocess immediately — otherwise
+    // the un-finalized claim would only be reclaimable after the stale window.
+    await releaseStripeEvent(event.id).catch((releaseErr) =>
+      console.error("stripe webhook claim release failed:", releaseErr)
+    );
     return res.status(500).json({ error: "Webhook handler error" });
   }
 }

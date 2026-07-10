@@ -100,7 +100,7 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/signup",
   "/api/validate-password",
   "/api/validate-password-auth",
-  "/api/get-encryption-nsec",
+  "/api/encryption/",
   "/api/health",
 ];
 

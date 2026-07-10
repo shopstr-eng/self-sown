@@ -117,7 +117,7 @@ describe("ProductCard", () => {
           onProductClick={mockOnClick}
         />
       );
-      fireEvent.click(screen.getByTestId("image-carousel").parentElement!);
+      fireEvent.click(screen.getByRole("button", { name: /test product/i }));
       expect(mockOnClick).toHaveBeenCalledWith(
         mockProductData,
         expect.any(Object)
@@ -129,7 +129,7 @@ describe("ProductCard", () => {
         <ProductCard productData={mockProductData} href="/listing/test-slug" />
       );
 
-      fireEvent.click(screen.getByTestId("image-carousel").parentElement!);
+      fireEvent.click(screen.getByRole("link"));
       expect(mockRouter.push).toHaveBeenCalledWith("/listing/test-slug");
     });
 
@@ -164,7 +164,7 @@ describe("ProductCard", () => {
         />
       );
 
-      fireEvent.click(screen.getByTestId("image-carousel").parentElement!);
+      fireEvent.click(screen.getByRole("link"));
       expect(onProductClick).toHaveBeenCalled();
       expect(mockRouter.push).not.toHaveBeenCalled();
     });

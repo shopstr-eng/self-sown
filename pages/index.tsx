@@ -592,14 +592,14 @@ export default function StandaloneLanding() {
               <button
                 className={`${PRIMARYBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
-                List your own
+                List Your Own
               </button>
             </Link>
             <Link href="/marketplace" className="w-full sm:w-auto">
               <button
                 className={`${WHITEBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
-                Discover products
+                Discover Products
               </button>
             </Link>
           </div>
@@ -705,7 +705,7 @@ export default function StandaloneLanding() {
           <div className="mt-8 text-center">
             <Link href="/marketplace">
               <button className={PRIMARYBUTTONCLASSNAMES}>
-                Discover products
+                Discover Products
               </button>
             </Link>
           </div>
@@ -883,7 +883,7 @@ export default function StandaloneLanding() {
               <div className="mt-6">
                 <Link href="/onboarding/new-account">
                   <button className={`${PRIMARYBUTTONCLASSNAMES} w-full`}>
-                    List your own
+                    List Your Own
                   </button>
                 </Link>
               </div>
@@ -942,7 +942,7 @@ export default function StandaloneLanding() {
               <div className="mt-6">
                 <Link href="/marketplace">
                   <button className={`${WHITEBUTTONCLASSNAMES} w-full`}>
-                    Discover products
+                    Discover Products
                   </button>
                 </Link>
               </div>
@@ -1515,14 +1515,14 @@ export default function StandaloneLanding() {
               <button
                 className={`${PRIMARYBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
-                List your own
+                List Your Own
               </button>
             </Link>
             <Link href="/marketplace" className="w-full sm:w-auto">
               <button
                 className={`${WHITEBUTTONCLASSNAMES} w-full px-8 py-4 text-lg sm:w-auto`}
               >
-                Discover products
+                Discover Products
               </button>
             </Link>
           </div>

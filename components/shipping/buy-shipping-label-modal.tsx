@@ -237,6 +237,10 @@ export default function BuyShippingLabelModal({
   };
 
   const handleBuy = async () => {
+    // Guard against a fast double-click firing two purchases before the button
+    // re-renders disabled (the server also dedupes via a single-use signed proof
+    // + atomic shipment claim, so this is belt-and-suspenders).
+    if (buying) return;
     if (!signer?.sign || !pubkey) {
       setError("Sign in with your Nostr key to buy a label.");
       return;

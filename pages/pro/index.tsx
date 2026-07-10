@@ -95,13 +95,13 @@ const ProUpgradePage = () => {
                       className={BLUEBUTTONCLASSNAMES}
                       onClick={() => router.push("/settings/stall")}
                     >
-                      Customize my stall
+                      Customize My Stall
                     </Button>
                     <Button
                       className="shadow-neo rounded-md border-2 border-black bg-white font-bold text-black"
                       onClick={() => router.push("/settings/account")}
                     >
-                      Manage membership
+                      Manage Membership
                     </Button>
                   </div>
                 </div>

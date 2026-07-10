@@ -417,7 +417,12 @@ export default async function handler(
                       affiliateName: after.name,
                       reason,
                       unsubscribeUrl: unsubUrlFor(affiliateId),
-                    }).catch(() => {});
+                    }).catch((e) =>
+                      console.warn(
+                        `affiliate ${affiliateId} paused-notice to affiliate failed:`,
+                        e
+                      )
+                    );
                   }
                   const sellerEmail = await getSellerEmailForPubkey(
                     after.seller_pubkey
@@ -427,7 +432,12 @@ export default async function handler(
                       affiliateName: after.name,
                       reason,
                       failureCount: after.payout_failure_count,
-                    }).catch(() => {});
+                    }).catch((e) =>
+                      console.warn(
+                        `affiliate ${affiliateId} paused-notice to seller failed:`,
+                        e
+                      )
+                    );
                   }
                 }
               } catch (notifyErr) {

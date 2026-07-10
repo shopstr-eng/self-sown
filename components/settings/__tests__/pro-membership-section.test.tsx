@@ -184,7 +184,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     expect(screen.getByText("Herd · Monthly")).toBeInTheDocument();
     expect(screen.getByTestId("pro-badge")).toHaveTextContent("active");
     expect(screen.getByText(/Your membership renews on/)).toBeInTheDocument();
-    expect(screen.getByText("Cancel membership")).toBeInTheDocument();
+    expect(screen.getByText("Cancel Membership")).toBeInTheDocument();
     expect(screen.getByText("View plans")).toBeInTheDocument();
     expect(screen.queryByText("Re-subscribe")).not.toBeInTheDocument();
   });
@@ -197,7 +197,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     expect(
       screen.getByText(/Your membership is set to cancel/)
     ).toBeInTheDocument();
-    expect(screen.queryByText("Cancel membership")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cancel Membership")).not.toBeInTheDocument();
   });
 
   it("shows grace-period copy and still allows cancelling", async () => {
@@ -213,7 +213,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     expect(
       screen.getByText(/Your last payment didn't go through/)
     ).toBeInTheDocument();
-    expect(screen.getByText("Cancel membership")).toBeInTheDocument();
+    expect(screen.getByText("Cancel Membership")).toBeInTheDocument();
   });
 
   it("renders a read-only lapsed membership with a re-subscribe button", async () => {
@@ -231,7 +231,7 @@ describe("ProMembershipSection — status line and buttons", () => {
 
     expect(screen.getByText(/Your Herd plan has lapsed/)).toBeInTheDocument();
     expect(screen.getByText("Re-subscribe")).toBeInTheDocument();
-    expect(screen.queryByText("Cancel membership")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cancel Membership")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Re-subscribe"));
     expect(mockRouterPush).toHaveBeenCalledWith("/pro");
@@ -264,7 +264,7 @@ describe("ProMembershipSection — status line and buttons", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Renew membership")).toBeInTheDocument();
     // Cancel is Stripe-only.
-    expect(screen.queryByText("Cancel membership")).not.toBeInTheDocument();
+    expect(screen.queryByText("Cancel Membership")).not.toBeInTheDocument();
   });
 });
 
@@ -276,14 +276,14 @@ describe("ProMembershipSection — cancel flow", () => {
     await settleHistory();
 
     // Open the modal from the card button.
-    fireEvent.click(screen.getByText("Cancel membership"));
+    fireEvent.click(screen.getByText("Cancel Membership"));
     const dialog = screen.getByRole("dialog");
     expect(
       within(dialog).getByText("Cancel Herd membership?")
     ).toBeInTheDocument();
 
     // Confirm inside the modal footer.
-    fireEvent.click(within(dialog).getByText("Cancel membership"));
+    fireEvent.click(within(dialog).getByText("Cancel Membership"));
 
     await waitFor(() =>
       expect(screen.getByTestId("success-modal")).toBeInTheDocument()
@@ -302,9 +302,9 @@ describe("ProMembershipSection — cancel flow", () => {
     render(<ProMembershipSection />);
     await settleHistory();
 
-    fireEvent.click(screen.getByText("Cancel membership"));
+    fireEvent.click(screen.getByText("Cancel Membership"));
     const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByText("Cancel membership"));
+    fireEvent.click(within(dialog).getByText("Cancel Membership"));
 
     await waitFor(() =>
       expect(screen.getByTestId("failure-modal")).toBeInTheDocument()
@@ -320,9 +320,9 @@ describe("ProMembershipSection — cancel flow", () => {
     render(<ProMembershipSection />);
     await settleHistory();
 
-    fireEvent.click(screen.getByText("Cancel membership"));
+    fireEvent.click(screen.getByText("Cancel Membership"));
     const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByText("Keep membership"));
+    fireEvent.click(within(dialog).getByText("Keep Membership"));
 
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
@@ -367,7 +367,7 @@ describe("ProMembershipSection — billing history", () => {
 
     // Retrying re-invokes fetchHistory (now succeeds → empty state).
     mockFetchHistory.mockResolvedValueOnce([]);
-    fireEvent.click(screen.getByText("Try again"));
+    fireEvent.click(screen.getByText("Try Again"));
     await waitFor(() => expect(mockFetchHistory).toHaveBeenCalledTimes(2));
     expect(await screen.findByText(/No charges yet/)).toBeInTheDocument();
   });

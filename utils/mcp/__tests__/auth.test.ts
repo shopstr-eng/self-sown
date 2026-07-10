@@ -1,9 +1,3 @@
-const verifyEventMock = jest.fn();
-
-jest.mock("nostr-tools", () => ({
-  verifyEvent: (event: unknown) => verifyEventMock(event),
-}));
-
 jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
 }));
@@ -14,17 +8,14 @@ import {
   generateApiKey,
   hashApiKey,
   verifyApiKey,
-  verifyNostrAuth,
 } from "@/utils/mcp/auth";
 
 const FIXED_NOW_MS = Date.UTC(2026, 0, 1, 0, 0, 0);
-const FIXED_NOW_SECONDS = Math.floor(FIXED_NOW_MS / 1000);
 
 describe("MCP auth helpers", () => {
   let dateNowSpy: jest.SpyInstance<number, []>;
 
   beforeEach(() => {
-    verifyEventMock.mockReset();
     dateNowSpy = jest.spyOn(Date, "now").mockReturnValue(FIXED_NOW_MS);
   });
 
@@ -92,100 +83,6 @@ describe("MCP auth helpers", () => {
       } as NextApiRequest;
 
       expect(extractBearerToken(req)).toBeNull();
-    });
-  });
-
-  describe("verifyNostrAuth", () => {
-    const baseAuthEvent = {
-      kind: 27235,
-      pubkey: "f".repeat(64),
-      created_at: FIXED_NOW_SECONDS,
-    };
-
-    it("rejects missing signed events", () => {
-      expect(verifyNostrAuth(undefined)).toEqual({
-        valid: false,
-        pubkey: "",
-        error: "Missing signed auth event",
-      });
-    });
-
-    it("rejects events with the wrong auth kind", () => {
-      expect(
-        verifyNostrAuth({
-          ...baseAuthEvent,
-          kind: 1,
-        })
-      ).toEqual({
-        valid: false,
-        pubkey: "",
-        error: "Invalid auth event kind",
-      });
-    });
-
-    it("rejects events with invalid signatures", () => {
-      verifyEventMock.mockReturnValue(false);
-
-      expect(verifyNostrAuth(baseAuthEvent)).toEqual({
-        valid: false,
-        pubkey: "",
-        error: "Invalid event signature",
-      });
-    });
-
-    it("rejects expired auth events", () => {
-      verifyEventMock.mockReturnValue(true);
-
-      const result = verifyNostrAuth({
-        ...baseAuthEvent,
-        pubkey: "c".repeat(64),
-        created_at: FIXED_NOW_SECONDS - 3600,
-      });
-
-      expect(result).toEqual({
-        valid: false,
-        pubkey: "",
-        error: "Auth event has expired",
-      });
-    });
-
-    it("rejects auth events when the expected pubkey does not match", () => {
-      verifyEventMock.mockReturnValue(true);
-
-      const result = verifyNostrAuth(
-        {
-          ...baseAuthEvent,
-          pubkey: "d".repeat(64),
-        },
-        "e".repeat(64)
-      );
-
-      expect(result).toEqual({
-        valid: false,
-        pubkey: "d".repeat(64),
-        error: "Pubkey mismatch",
-      });
-    });
-
-    it("propagates unexpected verification errors", () => {
-      verifyEventMock.mockImplementation(() => {
-        throw new Error("verification exploded");
-      });
-
-      expect(() => verifyNostrAuth(baseAuthEvent)).toThrow(
-        "verification exploded"
-      );
-    });
-
-    it("accepts fresh valid auth events", () => {
-      verifyEventMock.mockReturnValue(true);
-
-      const result = verifyNostrAuth(baseAuthEvent);
-
-      expect(result).toEqual({
-        valid: true,
-        pubkey: "f".repeat(64),
-      });
     });
   });
 });

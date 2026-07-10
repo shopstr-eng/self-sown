@@ -487,7 +487,7 @@ export default function ShopifyMigrationModal({
 
           {step === "publish" && (
             <Button className={WHITEBUTTONCLASSNAMES} onClick={cancelPublish}>
-              Stop after current
+              Stop After Current
             </Button>
           )}
 

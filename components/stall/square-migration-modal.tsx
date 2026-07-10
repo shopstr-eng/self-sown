@@ -505,7 +505,7 @@ function FetchStep({
               className={WHITEBUTTONCLASSNAMES}
               onClick={onRetry}
             >
-              Try again
+              Try Again
             </Button>
           </div>
         </div>

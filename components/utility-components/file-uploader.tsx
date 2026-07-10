@@ -43,6 +43,7 @@ async function withConcurrency<T, R>(
 export const FileUploaderButton = ({
   disabled,
   isIconOnly,
+  ariaLabel,
   className,
   containerClassName,
   children,
@@ -52,6 +53,7 @@ export const FileUploaderButton = ({
 }: {
   disabled?: boolean;
   isIconOnly?: boolean;
+  ariaLabel?: string;
   className?: string;
   containerClassName?: string;
   children?: React.ReactNode;
@@ -488,6 +490,7 @@ export const FileUploaderButton = ({
           /* Full-width upload button - only show when not in placeholder mode */
           <Button
             type="button"
+            aria-label={ariaLabel}
             isLoading={loading}
             onClick={handleClick}
             isIconOnly={isIconOnly || loading}

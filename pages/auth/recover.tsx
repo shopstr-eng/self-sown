@@ -292,7 +292,7 @@ export default function RecoverPage() {
                 setEmailSent(false);
               }}
             >
-              Request a new recovery link
+              Request A New Recovery Link
             </button>
           </div>
         )}

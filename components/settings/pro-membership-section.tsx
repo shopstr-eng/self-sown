@@ -278,7 +278,7 @@ const ProMembershipSection = () => {
                 variant="light"
                 onClick={() => setShowCancelModal(true)}
               >
-                Cancel membership
+                Cancel Membership
               </Button>
             )}
             {membership.isLifetime ? null : showResubscribe ? (
@@ -337,7 +337,7 @@ const ProMembershipSection = () => {
                   className={`${WHITEBUTTONCLASSNAMES} w-fit`}
                   onClick={() => void loadHistory()}
                 >
-                  Try again
+                  Try Again
                 </Button>
               </div>
             ) : history.length === 0 ? (
@@ -471,14 +471,14 @@ const ProMembershipSection = () => {
               onClick={() => setShowCancelModal(false)}
               isDisabled={isCancelling}
             >
-              Keep membership
+              Keep Membership
             </Button>
             <Button
               className={BLACKBUTTONCLASSNAMES}
               onClick={handleCancel}
               isLoading={isCancelling}
             >
-              {isCancelling ? "Canceling…" : "Cancel membership"}
+              {isCancelling ? "Canceling…" : "Cancel Membership"}
             </Button>
           </ModalFooter>
         </ModalContent>

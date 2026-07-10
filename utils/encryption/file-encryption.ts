@@ -1,41 +1,35 @@
-import { nip44, nip19 } from "nostr-tools";
+import { nip19 } from "nostr-tools";
+import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 
-export interface EncryptionKeys {
-  encryptionPubkey: string;
-  encryptionNsec: string;
+function buildEncryptedFile(
+  encryptedData: unknown,
+  originalFileName: string
+): File {
+  const jsonString = JSON.stringify(encryptedData);
+  const encoder = new TextEncoder();
+  const binaryData = encoder.encode(jsonString);
+  const blob = new Blob([binaryData], { type: "application/octet-stream" });
+
+  // Use .enc extension to indicate it's encrypted
+  return new File(
+    [blob],
+    `encrypted-${originalFileName.replace(".pdf", ".enc")}`,
+    { type: "application/octet-stream" }
+  );
 }
 
-export async function getEncryptionKeys(
-  encryptionNpub: string
-): Promise<EncryptionKeys> {
-  // Get user's pubkey from npub or use as pubkey directly if it's already in hex format
-  let encryptionPubkey: string;
-  if (encryptionNpub.startsWith("npub1")) {
-    const { data } = nip19.decode(encryptionNpub);
-    encryptionPubkey = data as string;
-  } else {
-    // Assume it's already a hex pubkey
-    encryptionPubkey = encryptionNpub;
-  }
-
-  // Fetch encryption nsec from API
-  const response = await fetch("/api/get-encryption-nsec", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove the data URL prefix (data:application/pdf;base64,)
+      const base64 = result.split(",")[1];
+      resolve(base64 as string);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to get encryption key");
-  }
-
-  const { value: encryptionNsec } = await response.json();
-
-  return {
-    encryptionPubkey,
-    encryptionNsec,
-  };
 }
 
 export async function encryptFileWithNip44(
@@ -45,93 +39,81 @@ export async function encryptFileWithNip44(
   signer?: any
 ): Promise<File> {
   try {
-    // Convert to base64 safely using FileReader
-    const base64Data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove the data URL prefix (data:application/pdf;base64,)
-        const base64 = result.split(",")[1];
-        resolve(base64 as string);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
+    const base64Data = await fileToBase64(file);
 
-    // Encrypt in chunks due to NIP-44 size limits (max ~65KB per message)
-    const maxChunkSize = 60000; // Use 60KB to be safe with base64 encoding overhead
-    const encryptedChunks: string[] = [];
-
-    let encryptedMetadata: string;
-
-    if (isSigned) {
+    if (!isSigned) {
+      // System-key encryption. The system private key never leaves the server:
+      // the file is encrypted server-side and only the ciphertext is returned.
+      // A NIP-98 signature proves the caller is an authenticated Nostr user.
       if (!signer) {
-        throw new Error("No signer provided for signed file encryption");
+        throw new Error("No signer provided for server-side file encryption");
       }
 
-      // Get seller's pubkey
-      let sellerPubkey: string;
-      if (encryptionNpub.startsWith("npub1")) {
-        const { data } = nip19.decode(encryptionNpub);
-        sellerPubkey = data as string;
-      } else {
-        sellerPubkey = encryptionNpub;
-      }
-
-      // Encrypt chunks using signer's encrypt method
-      for (let i = 0; i < base64Data.length; i += maxChunkSize) {
-        const chunk = base64Data.slice(i, i + maxChunkSize);
-        const encryptedChunk = await signer.encrypt(sellerPubkey, chunk);
-        encryptedChunks.push(encryptedChunk);
-      }
-
-      // Create metadata for reconstruction
-      const metadata = {
-        totalChunks: encryptedChunks.length,
+      const body = JSON.stringify({
+        fileBase64: base64Data,
+        encryptionNpub,
         originalFileName: file.name,
         originalSize: file.size,
-        chunkSize: maxChunkSize,
-      };
+      });
 
-      encryptedMetadata = await signer.encrypt(
-        sellerPubkey,
-        JSON.stringify(metadata)
-      );
-    } else {
-      // Original encryption logic using ENCRYPTION_NSEC
-      const { encryptionPubkey, encryptionNsec } =
-        await getEncryptionKeys(encryptionNpub);
-
-      // Decode the encryption private key
-      const { data: encryptionPrivKey } = nip19.decode(encryptionNsec);
-
-      // Generate conversation key
-      const conversationKey = nip44.getConversationKey(
-        encryptionPrivKey as Uint8Array,
-        encryptionPubkey
+      const authHeader = await createNip98AuthorizationHeader(
+        signer,
+        `${window.location.origin}/api/encryption/encrypt-file`,
+        "POST",
+        body
       );
 
-      for (let i = 0; i < base64Data.length; i += maxChunkSize) {
-        const chunk = base64Data.slice(i, i + maxChunkSize);
-        const encryptedChunk = nip44.encrypt(chunk, conversationKey);
-        encryptedChunks.push(encryptedChunk);
+      const response = await fetch("/api/encryption/encrypt-file", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+        body,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to encrypt file");
       }
 
-      // Create metadata for reconstruction
-      const metadata = {
-        totalChunks: encryptedChunks.length,
-        originalFileName: file.name,
-        originalSize: file.size,
-        chunkSize: maxChunkSize,
-      };
-
-      encryptedMetadata = nip44.encrypt(
-        JSON.stringify(metadata),
-        conversationKey
-      );
+      const { encryptedData } = await response.json();
+      return buildEncryptedFile(encryptedData, file.name);
     }
 
-    // Create a structured format for the encrypted data
+    // Signed (peer-to-peer) path — uses the user's own signer and stays
+    // fully client-side; the server never sees the plaintext or the key.
+    if (!signer) {
+      throw new Error("No signer provided for signed file encryption");
+    }
+
+    let sellerPubkey: string;
+    if (encryptionNpub.startsWith("npub1")) {
+      const { data } = nip19.decode(encryptionNpub);
+      sellerPubkey = data as string;
+    } else {
+      sellerPubkey = encryptionNpub;
+    }
+
+    // Encrypt in chunks due to NIP-44 size limits (max ~65KB per message)
+    const maxChunkSize = 60000;
+    const encryptedChunks: string[] = [];
+    for (let i = 0; i < base64Data.length; i += maxChunkSize) {
+      const chunk = base64Data.slice(i, i + maxChunkSize);
+      const encryptedChunk = await signer.encrypt(sellerPubkey, chunk);
+      encryptedChunks.push(encryptedChunk);
+    }
+
+    const metadata = {
+      totalChunks: encryptedChunks.length,
+      originalFileName: file.name,
+      originalSize: file.size,
+      chunkSize: maxChunkSize,
+    };
+    const encryptedMetadata = await signer.encrypt(
+      sellerPubkey,
+      JSON.stringify(metadata)
+    );
+
     const encryptedData = {
       header: "Encrypted Herdshare Agreement",
       metadata: encryptedMetadata,
@@ -140,21 +122,7 @@ export async function encryptFileWithNip44(
       timestamp: new Date().toISOString(),
     };
 
-    // Convert to JSON string and then to binary
-    const jsonString = JSON.stringify(encryptedData);
-    const encoder = new TextEncoder();
-    const binaryData = encoder.encode(jsonString);
-
-    const blob = new Blob([binaryData], { type: "application/octet-stream" });
-
-    // Create new file with encrypted content - use .enc extension to indicate it's encrypted
-    const encryptedFile = new File(
-      [blob],
-      `encrypted-${file.name.replace(".pdf", ".enc")}`,
-      { type: "application/octet-stream" }
-    );
-
-    return encryptedFile;
+    return buildEncryptedFile(encryptedData, file.name);
   } catch (error) {
     console.error("Error encrypting file:", error);
     throw new Error("Failed to encrypt file");
@@ -163,110 +131,57 @@ export async function encryptFileWithNip44(
 
 export async function decryptFileWithNip44(
   encryptedData: string | ArrayBuffer,
-  encryptionNpub: string
+  encryptionNpub: string,
+  signer?: any
 ): Promise<Uint8Array> {
   try {
-    // Get encryption keys
-    const { encryptionPubkey, encryptionNsec } =
-      await getEncryptionKeys(encryptionNpub);
+    // System-key decryption happens server-side so the private key never leaves
+    // the server. A NIP-98 signature proves the caller is an authenticated user.
+    if (!signer) {
+      throw new Error("No signer provided for server-side file decryption");
+    }
 
-    // Decode the encryption private key
-    const { data: encryptionPrivKey } = nip19.decode(encryptionNsec);
+    const encryptedContent =
+      typeof encryptedData === "string"
+        ? encryptedData
+        : new TextDecoder().decode(encryptedData);
 
-    // Generate conversation key
-    const conversationKey = nip44.getConversationKey(
-      encryptionPrivKey as Uint8Array,
-      encryptionPubkey
+    const body = JSON.stringify({ encryptedContent, encryptionNpub });
+
+    const authHeader = await createNip98AuthorizationHeader(
+      signer,
+      `${window.location.origin}/api/encryption/decrypt-file`,
+      "POST",
+      body
     );
 
-    let parsedData;
+    const response = await fetch("/api/encryption/decrypt-file", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+      },
+      body,
+    });
 
-    // Handle both binary and text formats for backwards compatibility
-    if (typeof encryptedData === "string") {
-      // Old text-based format
-      const lines = encryptedData.split("\n");
-      const metadataLine = lines.find((line) => line.startsWith("Metadata: "));
-      const chunkLines = lines.filter((line) => line.startsWith("Chunk-"));
-
-      if (!metadataLine || chunkLines.length === 0) {
-        throw new Error("Invalid encrypted file format");
-      }
-
-      const encryptedMetadata = metadataLine.replace("Metadata: ", "");
-      const metadataJson = nip44.decrypt(encryptedMetadata, conversationKey);
-      const metadata = JSON.parse(metadataJson);
-
-      const chunks = [];
-      for (let i = 0; i < metadata.totalChunks; i++) {
-        const chunkLine = chunkLines.find((line) =>
-          line.startsWith(`Chunk-${i}: `)
-        );
-        if (!chunkLine) {
-          throw new Error(`Missing chunk ${i}`);
-        }
-        const encryptedChunk = chunkLine.replace(`Chunk-${i}: `, "");
-        chunks.push(encryptedChunk);
-      }
-
-      parsedData = { metadata: encryptedMetadata, chunks };
-    } else {
-      // New binary format
-      const decoder = new TextDecoder();
-      const jsonString = decoder.decode(encryptedData);
-      parsedData = JSON.parse(jsonString);
+    if (!response.ok) {
+      throw new Error("Failed to decrypt file");
     }
 
-    // Decrypt and reconstruct chunks
-    let decryptedBase64 = "";
-    for (let i = 0; i < parsedData.chunks.length; i++) {
-      try {
-        const decryptedChunk = nip44.decrypt(
-          parsedData.chunks[i],
-          conversationKey
-        );
-        decryptedBase64 += decryptedChunk;
-      } catch (chunkError) {
-        console.error(`Failed to decrypt chunk ${i}:`, chunkError);
-        throw new Error(`Failed to decrypt chunk ${i}`);
-      }
-    }
+    const { base64 } = await response.json();
 
-    // Convert back from base64 to binary safely
-    try {
-      // Clean up the base64 string - remove any whitespace or invalid characters
-      const cleanBase64 = decryptedBase64.replace(/[^A-Za-z0-9+/=]/g, "");
-
-      // Validate base64 format
-      if (cleanBase64.length % 4 !== 0) {
-        console.error("Invalid base64 length:", cleanBase64.length);
-        throw new Error(`Invalid base64 length: ${cleanBase64.length}`);
-      }
-
-      // Test if base64 is valid by trying to decode a small portion first
-      try {
-        atob(cleanBase64.substring(0, Math.min(100, cleanBase64.length)));
-      } catch (testError) {
-        console.error("Base64 test decode failed:", testError);
-        throw new Error("Invalid base64 characters detected");
-      }
-
-      const binaryString = atob(cleanBase64);
-
-      const uint8Array = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        uint8Array[i] = binaryString.charCodeAt(i);
-      }
-
-      return uint8Array;
-    } catch (base64Error) {
-      console.error("Error decoding base64:", base64Error);
-      console.error("Base64 data length:", decryptedBase64.length);
-      console.error(
-        "First 100 chars of base64:",
-        decryptedBase64.substring(0, 100)
-      );
+    // Clean up the base64 string - remove any whitespace or invalid characters
+    const cleanBase64 = String(base64 ?? "").replace(/[^A-Za-z0-9+/=]/g, "");
+    if (cleanBase64.length === 0 || cleanBase64.length % 4 !== 0) {
       throw new Error("Invalid base64 data in encrypted content");
     }
+
+    const binaryString = atob(cleanBase64);
+    const uint8Array = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      uint8Array[i] = binaryString.charCodeAt(i);
+    }
+    return uint8Array;
   } catch (error) {
     console.error("Error decrypting file:", error);
     throw new Error("Failed to decrypt file");

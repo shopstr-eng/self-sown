@@ -696,6 +696,47 @@ export default function CartInvoiceCard({
       });
     }
 
+    // Best-effort buyer-side stock deduction. Authoritative deduction also runs
+    // server-side at order completion; deductStock is idempotent per orderId, so
+    // this can't double-deduct. Retry once and log on failure instead of silently
+    // swallowing, so a network blip / 500 doesn't quietly leave stock uncorrected.
+    const deductInventory = async (
+      productId: string,
+      amount: number,
+      orderId: string,
+      variantKey: string
+    ) => {
+      const body = JSON.stringify({
+        action: "deduct",
+        productId,
+        amount,
+        orderId,
+        variantKey,
+      });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const resp = await fetch("/api/inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            keepalive: true,
+            body,
+          });
+          // 200 = deducted (or idempotent no-op); 409 = insufficient stock, a real
+          // server state that a retry won't change. Either way we're done.
+          if (resp.ok || resp.status === 409) return;
+        } catch {
+          // Network error — fall through to retry once.
+        }
+      }
+      console.error(
+        `Inventory deduction request failed for product ${productId} (order ${orderId}); server-side deduction should reconcile.`
+      );
+    };
+
+    // One orderId for the whole flush so idempotency groups the cart correctly.
+    // Fall back to a fresh uuid (never a shared constant, which would make the
+    // first fallback deduct permanently no-op every later one for that product).
+    const deductOrderId = emailEntries[0]?.orderId || uuidv4();
     products.forEach((p: any) => {
       const qty = quantities[p.id] || 1;
       const bulkMultiplier = p.selectedBulkOption
@@ -703,18 +744,7 @@ export default function CartInvoiceCard({
         : 1;
       const effectiveQty = qty * (isNaN(bulkMultiplier) ? 1 : bulkMultiplier);
       const variantKey = p.selectedSize ? `size:${p.selectedSize}` : "_default";
-      fetch("/api/inventory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        keepalive: true,
-        body: JSON.stringify({
-          action: "deduct",
-          productId: p.id,
-          amount: effectiveQty,
-          orderId: emailEntries[0]?.orderId || "cart_order",
-          variantKey,
-        }),
-      }).catch(() => {});
+      void deductInventory(p.id, effectiveQty, deductOrderId, variantKey);
     });
 
     try {
@@ -916,15 +946,22 @@ export default function CartInvoiceCard({
   >(null);
   const [showOrderTypeSelection, setShowOrderTypeSelection] = useState(true);
 
-  const sendInquiryDM = async (sellerPubkey: string, productTitle: string) => {
-    if (!signer || !nostr) return;
+  const sendInquiryDM = async (
+    sellerPubkey: string,
+    productTitle: string
+  ): Promise<boolean> => {
+    if (!signer || !nostr) return false;
 
+    const actualUserPubkey = await signer.getPubKey?.();
+    if (!actualUserPubkey) return false;
+
+    const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
+
+    // 1) Seller-critical delivery FIRST, fully isolated. This is the copy the
+    //    seller actually needs; if it fails we must NOT report the inquiry as
+    //    sent, and a buyer-side failure below must never block it.
+    let sellerDelivered = false;
     try {
-      const actualUserPubkey = await signer.getPubKey?.();
-      if (!actualUserPubkey) return;
-
-      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
-
       const { nsec: nsecForSellerReceiver, npub: npubForSellerReceiver } =
         await generateKeys();
       const decodedRandomPubkeyForSellerReceiver = nip19.decode(
@@ -933,6 +970,40 @@ export default function CartInvoiceCard({
       const decodedRandomPrivkeyForSellerReceiver = nip19.decode(
         nsecForSellerReceiver
       );
+
+      const giftWrappedMessageEventForSeller = await constructGiftWrappedEvent(
+        actualUserPubkey,
+        sellerPubkey,
+        inquiryMessage,
+        "listing-inquiry"
+      );
+      const sealedEventForSeller = await constructMessageSeal(
+        signer,
+        giftWrappedMessageEventForSeller,
+        actualUserPubkey,
+        sellerPubkey
+      );
+      const giftWrappedEventForSeller = await constructMessageGiftWrap(
+        sealedEventForSeller,
+        decodedRandomPubkeyForSellerReceiver.data as string,
+        decodedRandomPrivkeyForSellerReceiver.data as Uint8Array,
+        sellerPubkey
+      );
+      await sendGiftWrappedMessageEvent(
+        nostr,
+        giftWrappedEventForSeller,
+        signer
+      );
+      sellerDelivered = true;
+    } catch (error) {
+      console.error("Failed to deliver inquiry DM to seller:", error);
+      return false;
+    }
+
+    // 2) Buyer's own copy + local UI feedback, isolated. A failure here is
+    //    non-critical (the seller already has the message) and must not undo
+    //    the confirmed seller delivery above.
+    try {
       const { nsec: nsecForBuyerReceiver, npub: npubForBuyerReceiver } =
         await generateKeys();
       const decodedRandomPubkeyForBuyerReceiver =
@@ -940,26 +1011,11 @@ export default function CartInvoiceCard({
       const decodedRandomPrivkeyForBuyerReceiver =
         nip19.decode(nsecForBuyerReceiver);
 
-      // Send to seller
-      const giftWrappedMessageEventForSeller = await constructGiftWrappedEvent(
-        actualUserPubkey,
-        sellerPubkey,
-        inquiryMessage,
-        "listing-inquiry"
-      );
-      // Also send a copy to the buyer
       const giftWrappedMessageEventForBuyer = await constructGiftWrappedEvent(
         actualUserPubkey,
         actualUserPubkey,
         inquiryMessage,
         "listing-inquiry"
-      );
-
-      const sealedEventForSeller = await constructMessageSeal(
-        signer,
-        giftWrappedMessageEventForSeller,
-        actualUserPubkey,
-        sellerPubkey
       );
       const sealedEventForBuyer = await constructMessageSeal(
         signer,
@@ -967,24 +1023,11 @@ export default function CartInvoiceCard({
         actualUserPubkey,
         actualUserPubkey
       );
-
-      const giftWrappedEventForSeller = await constructMessageGiftWrap(
-        sealedEventForSeller,
-        decodedRandomPubkeyForSellerReceiver.data as string,
-        decodedRandomPrivkeyForSellerReceiver.data as Uint8Array,
-        sellerPubkey
-      );
       const giftWrappedEventForBuyer = await constructMessageGiftWrap(
         sealedEventForBuyer,
         decodedRandomPubkeyForBuyerReceiver.data as string,
         decodedRandomPrivkeyForBuyerReceiver.data as Uint8Array,
         actualUserPubkey
-      );
-
-      await sendGiftWrappedMessageEvent(
-        nostr,
-        giftWrappedEventForSeller,
-        signer
       );
       await sendGiftWrappedMessageEvent(
         nostr,
@@ -1002,8 +1045,10 @@ export default function CartInvoiceCard({
         true
       );
     } catch (error) {
-      console.error("Failed to send inquiry DM:", error);
+      console.error("Failed to store buyer copy of inquiry DM:", error);
     }
+
+    return sellerDelivered;
   };
 
   const [showFailureModal, setShowFailureModal] = useState(false);
@@ -7919,7 +7964,7 @@ export default function CartInvoiceCard({
                           });
                         }}
                       >
-                        Use suggested address
+                        Use Suggested Address
                       </button>
                     )}
                   </div>
@@ -9161,7 +9206,7 @@ export default function CartInvoiceCard({
                         className="text-primary-blue underline"
                         onClick={onOpen}
                       >
-                        Sign in
+                        Sign In
                       </button>
                     </p>
                   </div>

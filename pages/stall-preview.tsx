@@ -238,7 +238,7 @@ export default function ConvertPage() {
                     : "bg-white text-black"
                 }`}
               >
-                Product page
+                Product Page
               </button>
             </div>
             <p className="text-center text-sm text-gray-600">
@@ -413,7 +413,7 @@ export default function ConvertPage() {
                       }
                       endContent={<ArrowLongRightIcon className="h-5 w-5" />}
                     >
-                      Create my store
+                      Create My Store
                     </Button>
                     <Button
                       className={WHITEBUTTONCLASSNAMES}
@@ -423,7 +423,7 @@ export default function ConvertPage() {
                       }}
                       startContent={<ArrowPathIcon className="h-5 w-5" />}
                     >
-                      Try another page
+                      Try Another Page
                     </Button>
                   </div>
                 </div>
@@ -454,7 +454,7 @@ export default function ConvertPage() {
                       }}
                       startContent={<ArrowPathIcon className="h-5 w-5" />}
                     >
-                      Try another site
+                      Try Another Site
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500">
