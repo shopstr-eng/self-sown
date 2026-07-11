@@ -131,6 +131,7 @@ const STOREFRONT_SECTION_TYPES = new Set([
   "text",
   "image",
   "banner_carousel",
+  "marquee",
   "social_posts",
   "contact",
   "contact_form",
@@ -148,6 +149,7 @@ const STOREFRONT_SOCIAL_POST_PLATFORMS = new Set([
   "other",
 ]);
 const STOREFRONT_SOCIAL_POSTS_LAYOUTS = new Set(["grid", "carousel"]);
+const STOREFRONT_MARQUEE_DIRECTIONS = new Set(["left", "right"]);
 const STOREFRONT_BLOG_LAYOUTS = new Set(["featured", "grid", "list"]);
 const STOREFRONT_BLOG_MODES = new Set(["latest", "selected"]);
 const STOREFRONT_CONTACT_FORM_MODES = new Set(["contact", "subscription"]);
@@ -225,6 +227,7 @@ function sanitizeFullSection(section: Record<string, unknown>) {
             | "text"
             | "image"
             | "banner_carousel"
+            | "marquee"
             | "social_posts"
             | "contact"
             | "contact_form"
@@ -407,6 +410,16 @@ function sanitizeFullSection(section: Record<string, unknown>) {
       : {}),
     ...(typeof section.socialPostsSpeed === "number"
       ? { socialPostsSpeed: section.socialPostsSpeed }
+      : {}),
+    ...(typeof section.marqueeBackgroundColor === "string"
+      ? { marqueeBackgroundColor: section.marqueeBackgroundColor }
+      : {}),
+    ...(typeof section.marqueeSpeed === "number"
+      ? { marqueeSpeed: section.marqueeSpeed }
+      : {}),
+    ...(typeof section.marqueeDirection === "string" &&
+    STOREFRONT_MARQUEE_DIRECTIONS.has(section.marqueeDirection)
+      ? { marqueeDirection: section.marqueeDirection as "left" | "right" }
       : {}),
   };
 }

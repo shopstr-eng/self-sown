@@ -615,6 +615,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
                 "contact_form",
                 "reviews",
                 "banner_carousel",
+                "marquee",
                 "social_posts",
               ])
               .describe("Section type"),
@@ -808,6 +809,24 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               .optional()
               .describe(
                 "Milliseconds between social_posts carousel slides when autoplay is on"
+              ),
+            marqueeBackgroundColor: z
+              .string()
+              .optional()
+              .describe(
+                "Background color of a marquee (moving banner) section (hex; defaults to the theme primary)"
+              ),
+            marqueeSpeed: z
+              .number()
+              .optional()
+              .describe(
+                "Seconds per full scroll loop for a marquee section (default 20)"
+              ),
+            marqueeDirection: z
+              .enum(["left", "right"])
+              .optional()
+              .describe(
+                "Scroll direction for a marquee section: 'left' (default) or 'right'"
               ),
           })
         )

@@ -154,6 +154,7 @@ export type StorefrontSectionType =
   | "text"
   | "image"
   | "banner_carousel"
+  | "marquee"
   | "contact"
   | "contact_form"
   | "reviews"
@@ -268,6 +269,16 @@ export interface StorefrontSection {
   bannerSlides?: StorefrontBannerSlide[];
   bannerAutoplay?: boolean;
   bannerInterval?: number;
+  // Marquee section: a full-width strip that continuously scrolls text and/or a
+  // logo. `heading` holds the banner text (falls back to the shop/brand name
+  // when empty); the shared `image` field holds an optional logo rendered inline
+  // with the text; `headingColor` is the text color and `marqueeBackgroundColor`
+  // the strip background (both default to the storefront theme). marqueeSpeed is
+  // seconds per full scroll loop; marqueeDirection is the scroll direction
+  // ("left" = default, content scrolls toward the left).
+  marqueeBackgroundColor?: string;
+  marqueeSpeed?: number;
+  marqueeDirection?: "left" | "right";
 }
 
 export interface StorefrontProductPageConfig {

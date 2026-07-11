@@ -55,6 +55,7 @@ const SECTION_LABELS: Record<StorefrontSectionType, string> = {
   text: "Text Block",
   image: "Image",
   banner_carousel: "Banner Carousel",
+  marquee: "Moving Banner",
   contact: "Contact",
   contact_form: "Contact Form",
   reviews: "Customer Reviews",
@@ -456,6 +457,141 @@ export default function SectionEditor({
                 />
                 Full width
               </label>
+            </>
+          )}
+
+          {section.type === "marquee" && (
+            <>
+              <p className="text-xs text-gray-500">
+                The banner scrolls your Heading text (above) across the full
+                width of your storefront. Leave the Heading blank to show your
+                shop name.
+              </p>
+              <div>
+                <div className="flex items-center gap-3">
+                  <Input
+                    label="Logo (optional)"
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.image || ""}
+                    onChange={(e) => update({ image: e.target.value })}
+                    className="flex-1"
+                  />
+                  <FileUploaderButton
+                    className="mt-5 rounded-lg border-2 border-black bg-white px-3 py-2 text-sm font-bold text-black"
+                    imgCallbackOnUpload={(url) => update({ image: url })}
+                  >
+                    Upload
+                  </FileUploaderButton>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Shown inline with the text. Recommended: a small, wide logo
+                  (e.g. 240 × 60 px).
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Background Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Banner background color"
+                    value={section.marqueeBackgroundColor || "#000000"}
+                    onChange={(e) =>
+                      update({ marqueeBackgroundColor: e.target.value })
+                    }
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.marqueeBackgroundColor || ""}
+                    onChange={(e) =>
+                      update({
+                        marqueeBackgroundColor: e.target.value || undefined,
+                      })
+                    }
+                    placeholder="Default (theme primary)"
+                  />
+                  {section.marqueeBackgroundColor && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        update({ marqueeBackgroundColor: undefined })
+                      }
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Text Color
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    aria-label="Banner text color"
+                    value={section.headingColor || "#ffffff"}
+                    onChange={(e) => update({ headingColor: e.target.value })}
+                    className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+                  />
+                  <Input
+                    classNames={{ inputWrapper: inputWrapperClass }}
+                    variant="bordered"
+                    value={section.headingColor || ""}
+                    onChange={(e) =>
+                      update({ headingColor: e.target.value || undefined })
+                    }
+                    placeholder="Default (theme secondary)"
+                  />
+                  {section.headingColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ headingColor: undefined })}
+                      className="shrink-0 text-xs text-gray-500 underline"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">
+                  Scroll Speed: {section.marqueeSpeed ?? 20}s per loop
+                </label>
+                <input
+                  type="range"
+                  min="5"
+                  max="60"
+                  value={section.marqueeSpeed ?? 20}
+                  onChange={(e) =>
+                    update({ marqueeSpeed: parseInt(e.target.value) })
+                  }
+                  className="w-full"
+                />
+              </div>
+              <Select
+                label="Direction"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.marqueeDirection || "left"]}
+                onChange={(e) =>
+                  update({
+                    marqueeDirection: e.target.value as "left" | "right",
+                  })
+                }
+              >
+                <SelectItem key="left" className="text-black">
+                  Scroll left ←
+                </SelectItem>
+                <SelectItem key="right" className="text-black">
+                  Scroll right →
+                </SelectItem>
+              </Select>
             </>
           )}
 

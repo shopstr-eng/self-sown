@@ -3804,6 +3804,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     desc: "Rotating image slides with text overlays",
                                   },
                                   {
+                                    type: "marquee" as StorefrontSectionType,
+                                    label: "Moving Banner",
+                                    icon: "📣",
+                                    desc: "Scrolling text/logo strip across the page",
+                                  },
+                                  {
                                     type: "contact" as StorefrontSectionType,
                                     label: "Contact",
                                     icon: "📬",
@@ -4538,6 +4544,29 @@ function SectionPreviewSvg({ type }: { type: string }) {
           <circle cx="44" cy="50" r="2" fill="#fff" />
           <circle cx="52" cy="50" r="2" fill="rgba(255,255,255,0.5)" />
           <circle cx="60" cy="50" r="2" fill="rgba(255,255,255,0.5)" />
+        </svg>
+      );
+    case "marquee":
+      return (
+        <svg
+          width={w}
+          height={h}
+          viewBox={`0 0 ${w} ${h}`}
+          fill="none"
+          className="rounded"
+        >
+          <rect width={w} height={h} rx="3" fill="#F8FAFC" />
+          <rect x="0" y="21" width={w} height="14" fill="#334155" />
+          <rect x="8" y="26" width="16" height="4" rx="1" fill="#fff" />
+          <rect x="30" y="26" width="16" height="4" rx="1" fill="#94A3B8" />
+          <rect x="52" y="26" width="16" height="4" rx="1" fill="#fff" />
+          <rect x="74" y="26" width="16" height="4" rx="1" fill="#94A3B8" />
+          <path
+            d="M90 24 l4 4 l-4 4"
+            stroke="#CBD5E1"
+            strokeWidth="1.5"
+            fill="none"
+          />
         </svg>
       );
     case "contact":

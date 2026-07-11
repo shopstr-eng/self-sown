@@ -326,6 +326,67 @@ describe("seller domain helpers", () => {
     });
   });
 
+  test("preserves marquee sections and drops an invalid scroll direction", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          sections: [
+            {
+              id: "marquee-home",
+              type: "marquee",
+              enabled: true,
+              heading: "Fresh milk daily",
+              image: "https://cdn.example.com/logo.png",
+              headingColor: "#ffffff",
+              marqueeBackgroundColor: "#111111",
+              marqueeSpeed: 25,
+              marqueeDirection: "right",
+            },
+            {
+              id: "marquee-bad-dir",
+              type: "marquee",
+              enabled: true,
+              heading: "Brand",
+              marqueeDirection: "diagonal",
+            },
+          ],
+        },
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+
+    expect(storefront.sections[0]).toEqual({
+      id: "marquee-home",
+      type: "marquee",
+      enabled: true,
+      heading: "Fresh milk daily",
+      image: "https://cdn.example.com/logo.png",
+      headingColor: "#ffffff",
+      marqueeBackgroundColor: "#111111",
+      marqueeSpeed: 25,
+      marqueeDirection: "right",
+    });
+
+    // An unrecognized direction is dropped (renderer falls back to "left").
+    expect(storefront.sections[1]).toEqual({
+      id: "marquee-bad-dir",
+      type: "marquee",
+      enabled: true,
+      heading: "Brand",
+    });
+  });
+
   test("preserves social_posts sections, coercing bad platforms and dropping url-less posts", () => {
     const result = parseSellerShopProfileEvent({
       id: "shop-event",
