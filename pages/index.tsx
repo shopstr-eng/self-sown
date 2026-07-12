@@ -152,7 +152,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
     url: "milk.market/stall/freemilk",
     href: "/stall/freemilk",
     image: "/stall-freemilk.png",
-    alt: "Free Milk stall on Milk Market showing real products: raw goat milk and cheddar cheese with prices",
+    alt: "Free Milk stall on Milk Market showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
   },
   {
     name: "Naughty Goat Co.",
