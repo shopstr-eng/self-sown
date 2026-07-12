@@ -3,35 +3,28 @@
 ## In scope
 
 - Public marketing pages
-- Marketplace discovery pages
-- Public listing pages
-- Public seller storefront pages
-- Public community pages
-- Machine-readable public SEO/GEO endpoints (`/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/rss.xml`, `/.well-known/**`)
+- Public marketplace, listing, storefront, blog, and community pages
+- Public machine-readable discovery files (`robots.txt`, `sitemap.xml`, `llms.txt`, RSS, relevant `/.well-known/*` endpoints)
 
 ## Out of scope
 
-- Authenticated dashboard and seller settings (`/settings/**`, `/wallet/**`, `/orders/**`)
-- Onboarding flows (`/onboarding/**`)
-- Auth and recovery pages (`/auth/**`)
-- Admin pages (`/admin/**`)
-- API endpoints except when they directly power public SEO/GEO files
+- Authenticated dashboard and settings pages (`/settings/**`, account-only flows)
+- Admin and operator pages
+- Checkout internals and non-public API endpoints except where they affect public crawlability or metadata
 
 ## Target audience
 
-- Buyers looking for raw milk and related local dairy products
-- Farmers and food producers who want direct-to-consumer storefronts
-- AI agents and developers discovering the marketplace via machine-readable endpoints
+- Buyers looking for raw milk, local food, herdshares, and related farm products
+- Sellers building storefronts for direct-to-consumer local food sales
+- AI agents and machine-readable commerce clients using Milk Market's public surfaces
 
 ## Primary keywords
 
 - raw milk marketplace
-- local dairy marketplace
-- buy raw milk near me
-- sell food online with Bitcoin
-- Nostr marketplace
-- Bitcoin marketplace
-- farm to table marketplace
+- local food marketplace
+- buy raw milk online
+- sell raw milk online
+- farm storefront
 
 ## Dismissed categories
 

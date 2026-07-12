@@ -7,6 +7,6 @@ export default function Sell() {
 export const getServerSideProps: GetServerSideProps = async () => ({
   redirect: {
     destination: "/producer-guide",
-    permanent: false,
+    permanent: true,
   },
 });

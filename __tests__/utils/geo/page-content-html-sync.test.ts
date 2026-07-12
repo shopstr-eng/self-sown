@@ -51,6 +51,14 @@ const htmlSource: Record<string, string> = {};
 for (const [name, file] of Object.entries(HTML_PAGE_FILES)) {
   htmlSource[name] = readFileSync(join(process.cwd(), file), "utf8");
 }
+// pages/index.tsx renders its FAQ accordion from the shared utils/homepage-faq.ts
+// source (a single source of truth shared with the JSON-LD schema). Append that
+// file so claim-checks against the "index" surface find the FAQ answer text.
+const homepageFaqSrc = readFileSync(
+  join(process.cwd(), "utils/homepage-faq.ts"),
+  "utf8"
+);
+htmlSource["index"] = htmlSource["index"] + "\n" + homepageFaqSrc;
 
 // The agent copy for a given path = title + description + markdown concatenated.
 function agentText(path: string): string {

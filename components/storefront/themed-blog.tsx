@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 import BlogMarkdown from "@/components/storefront/blog/blog-markdown";
@@ -22,6 +21,7 @@ interface ThemedBlogProps {
   sellerPubkey: string;
   shopSlug: string;
   postSlug?: string;
+  ssrPosts?: BlogPost[];
 }
 
 function formatDate(seconds: number): string {
@@ -40,11 +40,15 @@ export default function ThemedBlog({
   sellerPubkey,
   shopSlug,
   postSlug,
+  ssrPosts,
 }: ThemedBlogProps) {
-  const router = useRouter();
   const isCustomDomain = useIsCustomDomain();
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // Seed from SSR data when available so the initial render contains real
+  // content (visible to crawlers and bots that don't execute JavaScript).
+  const [posts, setPosts] = useState<BlogPost[]>(
+    ssrPosts ? dedupeLatestBlogPosts(ssrPosts) : []
+  );
+  const [loaded, setLoaded] = useState(!!ssrPosts);
 
   useEffect(() => {
     if (!sellerPubkey) {
@@ -114,13 +118,12 @@ export default function ThemedBlog({
             <p className="mt-3 opacity-70">
               This blog post doesn&apos;t exist or has been removed.
             </p>
-            <button
-              type="button"
-              onClick={() => router.push(blogHref)}
+            <a
+              href={blogHref}
               className="bg-primary-blue mt-6 rounded-lg px-6 py-3 font-bold text-white"
             >
               Back to Blog
-            </button>
+            </a>
           </div>
         );
       }
@@ -128,13 +131,12 @@ export default function ThemedBlog({
       const post = activePost;
       return (
         <article className="storefront-themed mx-auto min-h-screen max-w-3xl px-4 pt-24 pb-16 sm:px-6">
-          <button
-            type="button"
-            onClick={() => router.push(blogHref)}
+          <a
+            href={blogHref}
             className="font-body mb-6 text-sm font-semibold opacity-70 hover:opacity-100"
           >
             ← Back to Blog
-          </button>
+          </a>
           <h1 className="font-heading text-3xl font-bold sm:text-4xl">
             {post.title}
           </h1>
@@ -181,13 +183,12 @@ export default function ThemedBlog({
     // ---- Blog index view ----
     return (
       <div className="storefront-themed mx-auto min-h-screen max-w-6xl px-4 pt-24 pb-16 sm:px-6">
-        <button
-          type="button"
-          onClick={() => router.push(stallHref)}
+        <a
+          href={stallHref}
           className="font-body mb-6 text-sm font-semibold opacity-70 hover:opacity-100"
         >
           ← Back to Stall
-        </button>
+        </a>
         <h1 className="font-heading text-3xl font-bold sm:text-4xl">Blog</h1>
         {posts.length === 0 ? (
           <p className="font-body mt-6 opacity-60">No blog posts yet.</p>
@@ -200,10 +201,9 @@ export default function ThemedBlog({
                 isCustomDomain
               );
               return (
-                <button
-                  type="button"
+                <a
                   key={post.id}
-                  onClick={() => router.push(href)}
+                  href={href}
                   className="flex flex-col overflow-hidden rounded-xl border-2 border-black/10 text-left transition-shadow hover:shadow-lg"
                 >
                   {post.image && (
@@ -229,7 +229,7 @@ export default function ThemedBlog({
                       {formatDate(post.publishedAt)}
                     </span>
                   </div>
-                </button>
+                </a>
               );
             })}
           </div>

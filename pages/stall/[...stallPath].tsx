@@ -30,6 +30,8 @@ type ShopSubPageProps = {
   shopPubkey: string;
   ssrShopName: string;
   ssrShopAbout: string;
+  ssrStoreUrl: string;
+  ssrBlogPosts: import("@milk-market/domain").BlogPost[] | null;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
@@ -39,6 +41,24 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
   const pathParts = Array.isArray(stallPath) ? stallPath : [];
   const slug = pathParts[0] || "";
 
+  // Resolve canonical stall root URL (same logic as [slug].tsx) so structured
+  // data on sub-pages uses the correct origin on custom domains.
+  const rawHost = context.req.headers["x-mm-custom-domain-host"];
+  const customHost = (typeof rawHost === "string" ? rawHost : "")
+    .toLowerCase()
+    .trim()
+    .replace(/:\d+$/, "");
+  const rawOriginalPath = context.req.headers["x-mm-original-path"];
+  const originalPath =
+    typeof rawOriginalPath === "string" ? rawOriginalPath : "";
+  const stallOrigin = customHost
+    ? `https://${customHost}`
+    : "https://milk.market";
+  const stallRootPath = customHost
+    ? originalPath?.split("/").slice(0, 2).join("/") || "/"
+    : `/stall/${slug}`;
+  const canonicalStallUrl = `${stallOrigin}${stallRootPath === "/" ? "" : stallRootPath}`;
+
   if (!slug) {
     return {
       props: {
@@ -46,6 +66,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         shopPubkey: "",
         ssrShopName: "",
         ssrShopAbout: "",
+        ssrStoreUrl: "",
+        ssrBlogPosts: null,
       },
     };
   }
@@ -83,37 +105,85 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         } catch {}
       }
 
-      // Single blog post: serve the post's own OG meta + BlogPosting JSON-LD so
-      // social previews and crawlers see the article (not generic stall meta).
-      // The optional external link-out is NEVER fetched server-side — only the
-      // post's own cached tags/content are used. Pro-gated like other custom
-      // storefront SSR meta.
-      if (subPage === "blog" && pathParts[2] && membership.isPro) {
+      // Validate the subPage server-side for non-built-in paths so unknown
+      // /stall/<slug>/<anything> routes return a real 404 instead of a soft one.
+      const BUILTIN_SUBPAGES = new Set(["", "orders", "blog"]);
+      if (subPage && !BUILTIN_SUBPAGES.has(subPage)) {
+        let validCustomPage = false;
+        if (shopEvent) {
+          try {
+            const c = JSON.parse(shopEvent.content);
+            const pages = Array.isArray(c.pages) ? c.pages : [];
+            validCustomPage = pages.some(
+              (p: { id?: string }) => p.id === subPage
+            );
+          } catch {}
+        }
+        if (!validCustomPage) {
+          return { notFound: true };
+        }
+      }
+
+      // Blog routes: fetch posts server-side for ALL sellers (not just Pro) so
+      // the initial HTML contains the article body or archive links for crawlers,
+      // and so we can return a real 404 when the post slug doesn't resolve. Pro
+      // status only gates premium OG branding, not whether the content is served.
+      if (subPage === "blog") {
         try {
           const events = await fetchBlogPostsByPubkeyFromDb(pubkey);
           const parsed = events
             .map((e) => parseBlogPostEvent(e))
             .filter((p): p is BlogPost => p !== null);
-          const match = findBlogPostBySlug(pathParts[2], parsed);
-          if (match) {
-            const raw = events.find((e) => e.id === match.id);
-            if (raw) {
-              return {
-                props: {
-                  ogMeta: eventToBlogOgMeta(
-                    raw,
-                    `/stall/${pathParts.join("/")}`,
-                    ssrShopName ? { authorName: ssrShopName } : {}
-                  ),
-                  shopPubkey: pubkey,
-                  ssrShopName,
-                  ssrShopAbout,
-                },
-              };
+
+          if (pathParts[2]) {
+            // Single blog post.
+            const match = findBlogPostBySlug(pathParts[2], parsed);
+            if (match) {
+              const raw = events.find((e) => e.id === match.id);
+              if (raw) {
+                return {
+                  props: {
+                    ogMeta: eventToBlogOgMeta(
+                      raw,
+                      `/stall/${pathParts.join("/")}`,
+                      ssrShopName ? { authorName: ssrShopName } : {}
+                    ),
+                    shopPubkey: pubkey,
+                    ssrShopName,
+                    ssrShopAbout,
+                    ssrStoreUrl: canonicalStallUrl,
+                    ssrBlogPosts: parsed,
+                  },
+                };
+              }
             }
+            // Blog post slug not found — return a real 404 instead of a soft one.
+            return { notFound: true };
+          } else {
+            // Blog index: seed with SSR posts so crawlers see archive links in
+            // the first HTML response. The component routes this to ThemedBlog.
+            const ogTitle = ssrShopName
+              ? `${ssrShopName} Blog | Milk Market`
+              : "Milk Market Stall Blog";
+            return {
+              props: {
+                ogMeta: {
+                  ...DEFAULT_OG,
+                  title: ogTitle,
+                  description:
+                    ssrShopAbout || "Read the latest posts from this seller.",
+                  url: `/stall/${slug}/blog`,
+                },
+                shopPubkey: pubkey,
+                ssrShopName,
+                ssrShopAbout,
+                ssrStoreUrl: canonicalStallUrl,
+                ssrBlogPosts: parsed,
+              },
+            };
           }
         } catch (err) {
-          console.error("SSR blog post OG fetch error:", err);
+          console.error("SSR blog OG fetch error:", err);
         }
       }
 
@@ -148,23 +218,33 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             shopPubkey: pubkey,
             ssrShopName: branding.shopName || ssrShopName,
             ssrShopAbout: branding.about || ssrShopAbout,
+            ssrStoreUrl: canonicalStallUrl,
+            ssrBlogPosts: null,
           },
         };
       }
+      // Non-Pro sellers: still emit unique per-seller metadata so search
+      // engines can distinguish stall sub-pages from each other.
       return {
         props: {
           ogMeta: {
             ...DEFAULT_OG,
-            title: "Milk Market Stall",
-            description: "Check out this shop on Milk Market!",
+            title: ssrShopName
+              ? `${ssrShopName} | Milk Market`
+              : "Milk Market Stall",
+            description: ssrShopAbout || "Check out this shop on Milk Market!",
             url: `/stall/${pathParts.join("/")}`,
           },
           shopPubkey: pubkey,
           ssrShopName,
           ssrShopAbout,
+          ssrStoreUrl: canonicalStallUrl,
+          ssrBlogPosts: null,
         },
       };
     }
+    // Slug found no matching pubkey — this stall page doesn't exist.
+    return { notFound: true };
   } catch (error) {
     console.error("SSR OG fetch error for shop sub-page:", error);
   }
@@ -180,6 +260,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
       shopPubkey: "",
       ssrShopName: "",
       ssrShopAbout: "",
+      ssrStoreUrl: "",
+      ssrBlogPosts: null,
     },
   };
 };
@@ -188,6 +270,8 @@ export default function ShopSubPage({
   shopPubkey: ssrShopPubkey,
   ssrShopName,
   ssrShopAbout,
+  ssrStoreUrl,
+  ssrBlogPosts,
 }: ShopSubPageProps) {
   const router = useRouter();
   const { stallPath } = router.query;
@@ -252,16 +336,17 @@ export default function ShopSubPage({
     );
   }
 
-  // A single blog article (/blog/<slug>) renders the dedicated article view.
-  // The blog index (/blog) falls through to StorefrontLayout below so it renders
-  // the seller's editable blog page sections (currentPage="blog").
-  if (subPage === "blog" && pathParts[2]) {
+  // Both the blog index (/blog) and individual article (/blog/<slug>) render
+  // through ThemedBlog so the initial HTML is server-seeded with post content
+  // and archive links that crawlers can index without executing JavaScript.
+  if (subPage === "blog") {
     const postSlug = pathParts[2];
     return (
       <ThemedBlog
         sellerPubkey={shopPubkey}
         shopSlug={slug}
         postSlug={postSlug}
+        ssrPosts={ssrBlogPosts ?? undefined}
       />
     );
   }
@@ -272,6 +357,7 @@ export default function ShopSubPage({
       currentPage={subPage}
       ssrShopName={ssrShopName}
       ssrShopAbout={ssrShopAbout}
+      ssrStoreUrl={ssrStoreUrl || undefined}
     />
   );
 }

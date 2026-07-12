@@ -40,6 +40,15 @@ export interface BuildDiscoveryOpts {
   baseUrl: string;
   /** When set, the profile is scoped to this single seller. */
   seller?: UcpDiscoverySeller | null;
+  /**
+   * Platform base URL used for MCP/API endpoints that are platform-only and
+   * not proxied through seller custom domains. Defaults to `baseUrl` (correct
+   * for the platform host). Must be set to `https://milk.market` when building
+   * a seller-scoped profile served on a custom domain, so the advertised
+   * `/api/mcp`, `/api/mcp/onboard`, and OpenAPI spec links resolve correctly
+   * rather than pointing to blocked custom-domain paths.
+   */
+  platformUrl?: string;
 }
 
 /** Payment methods always available marketplace-wide. */
@@ -95,14 +104,19 @@ export function buildUcpDiscoveryProfile(
   const base = (opts.baseUrl || "").replace(/\/$/, "");
   const seller = opts.seller || null;
   const scoped = !!seller;
+  // On a seller custom domain the MCP endpoint, onboarding URL, and OpenAPI
+  // spec are not proxied through (they're platform-only paths). Use the
+  // explicit platformUrl for those — callers on a custom-domain host must set
+  // this to "https://milk.market" so agents aren't sent to blocked endpoints.
+  const platform = (opts.platformUrl || base).replace(/\/$/, "");
 
   // Every capability is reachable two ways: the UCP-native REST endpoints and
   // the vendor MCP server (same backing logic). Advertise both as transports so
   // an agent can pick whichever it already speaks.
   const mcpTransport = {
     type: "mcp",
-    endpoint: `${base}/api/mcp`,
-    manifest: `${base}/.well-known/agent.json`,
+    endpoint: `${platform}/api/mcp`,
+    manifest: `${platform}/.well-known/agent.json`,
   };
 
   const catalogEndpoints = {
@@ -118,13 +132,13 @@ export function buildUcpDiscoveryProfile(
       : "Search and look up products across the whole marketplace.",
     endpoints: catalogEndpoints,
     schema: `${base}/api/ucp/schemas/product.json`,
-    spec: `${base}/api/openapi.json`,
+    spec: `${platform}/api/openapi.json`,
     transports: [
       {
         type: "rest",
         endpoints: catalogEndpoints,
         schema: `${base}/api/ucp/schemas/product.json`,
-        spec: `${base}/api/openapi.json`,
+        spec: `${platform}/api/openapi.json`,
       },
       mcpTransport,
     ],
@@ -143,14 +157,14 @@ export function buildUcpDiscoveryProfile(
       "Create and track a checkout session that places an order through Milk Market's existing order pipeline.",
     endpoints: checkoutEndpoints,
     schema: `${base}/api/ucp/schemas/checkout-session.json`,
-    spec: `${base}/api/openapi.json`,
+    spec: `${platform}/api/openapi.json`,
     paymentMethods: BASE_PAYMENT_METHODS,
     transports: [
       {
         type: "rest",
         endpoints: checkoutEndpoints,
         schema: `${base}/api/ucp/schemas/checkout-session.json`,
-        spec: `${base}/api/openapi.json`,
+        spec: `${platform}/api/openapi.json`,
       },
       mcpTransport,
     ],
@@ -181,14 +195,14 @@ export function buildUcpDiscoveryProfile(
       type: "bearer",
       tokenPrefix: "sk_",
       scopes: ["read", "read_write", "full_access"],
-      onboarding: `${base}/api/mcp/onboard`,
+      onboarding: `${platform}/api/mcp/onboard`,
       description:
         "Browsing the catalog is open; placing an order requires a read_write API key. Account/stall management requires full_access.",
     },
     ext: {
       [UCP_VENDOR_NAMESPACE]: {
-        mcp: `${base}/api/mcp`,
-        agentManifest: `${base}/.well-known/agent.json`,
+        mcp: `${platform}/api/mcp`,
+        agentManifest: `${platform}/.well-known/agent.json`,
         l402: `${base}/.well-known/l402.json`,
         protocol: "nostr",
         eventKind: 30402,

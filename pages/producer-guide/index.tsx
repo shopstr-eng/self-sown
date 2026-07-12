@@ -257,11 +257,6 @@ const ProducerGuidePage = () => {
   return (
     <>
       <Head>
-        <title>Producer Guide: How to Sell on Milk Market</title>
-        <meta
-          name="description"
-          content="Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall."
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

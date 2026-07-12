@@ -52,22 +52,15 @@ export const getServerSideProps: GetServerSideProps<
           };
         }
       }
+      // naddr decoded but no community found — this community doesn't exist.
+      return { notFound: true };
     }
   } catch (error) {
     console.error("SSR OG fetch error for community:", error);
   }
 
-  return {
-    props: {
-      ogMeta: {
-        ...DEFAULT_OG,
-        title: "Milk Market Community",
-        description: "Check out this community on Milk Market!",
-        url: `/communities/${naddrStr}`,
-      },
-      community: null,
-    },
-  };
+  // Invalid naddr or decode error — treat as not found.
+  return { notFound: true };
 };
 
 const SingleCommunityPage = ({

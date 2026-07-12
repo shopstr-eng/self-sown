@@ -2,6 +2,7 @@ import { useState, useContext, useEffect } from "react";
 import type React from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { HOMEPAGE_FAQ } from "@/utils/homepage-faq";
 import { Image } from "@heroui/react";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
@@ -34,6 +35,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
     <div className="border-b-2 border-black last:border-b-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
         className="flex w-full items-center justify-between py-4 text-left font-bold transition-colors hover:text-zinc-600"
       >
         <span>{question}</span>
@@ -41,13 +43,15 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
           className={`h-5 w-5 transition-transform ${
             isOpen ? "rotate-180" : ""
           }`}
+          aria-hidden="true"
         />
       </button>
-      {isOpen && (
-        <div className="pb-4 text-zinc-600">
-          <p>{answer}</p>
-        </div>
-      )}
+      <div
+        className={`pb-4 text-zinc-600 ${isOpen ? "" : "hidden"}`}
+        aria-hidden={!isOpen}
+      >
+        <p>{answer}</p>
+      </div>
     </div>
   );
 }
@@ -1320,30 +1324,13 @@ export default function StandaloneLanding() {
           </div>
 
           <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
-            <FAQItem
-              question="What can I sell on Milk Market?"
-              answer="Food producers and local artisans can sell almost anything they make - raw milk and dairy, meat and eggs, produce, baked goods, preserves, honey, herdshares, and handmade goods. You set your own prices, pickup, delivery, and payment methods."
-            />
-            <FAQItem
-              question="How much does it cost to sell?"
-              answer="Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice."
-            />
-            <FAQItem
-              question="What happens if Milk Market shuts down or removes my account?"
-              answer="Yes. Milk Market is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you."
-            />
-            <FAQItem
-              question="How do payments work?"
-              answer="Buyers can pay with a card, Bitcoin (Lightning and Cashu ecash), or cash for local pickup. Sellers connect their own payout method and get paid directly - there's no middleman holding your money."
-            />
-            <FAQItem
-              question="Is my information private?"
-              answer="Yes. All your data is encrypted and private. We never sell user data or share it with third parties. The platform is built on Nostr, a decentralized protocol designed for privacy and ownership."
-            />
-            <FAQItem
-              question="I'm already on Shopify or Barn2Door. Can I switch?"
-              answer="Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your stall in minutes."
-            />
+            {HOMEPAGE_FAQ.map((item) => (
+              <FAQItem
+                key={item.question}
+                question={item.question}
+                answer={item.answer}
+              />
+            ))}
           </div>
         </div>
       </section>

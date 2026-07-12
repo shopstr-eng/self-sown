@@ -68,9 +68,9 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
         "Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace.",
     },
     "/producer-guide": {
-      title: "Producer Guide - Milk Market | Start Selling Local Food",
+      title: "Producer Guide: How to Sell on Milk Market",
       description:
-        "Learn how to become a producer on Milk Market. Step-by-step guide to selling local food (from raw milk and dairy to meat, eggs, produce, and baked goods) directly to customers.",
+        "Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall.",
     },
   };
 

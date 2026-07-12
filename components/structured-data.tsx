@@ -1,6 +1,7 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { HOMEPAGE_FAQ } from "@/utils/homepage-faq";
 
 const organizationSchema = {
   "@context": "https://schema.org",
@@ -71,56 +72,14 @@ const localBusinessSchema = {
 const homepageFaqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "What can I sell on Milk Market?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Food producers and local artisans can sell almost anything they make - raw milk and dairy, meat and eggs, produce, baked goods, preserves, honey, herdshares, and handmade goods. You set your own prices, pickup, delivery, and payment methods.",
-      },
+  mainEntity: HOMEPAGE_FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
     },
-    {
-      "@type": "Question",
-      name: "How much does it cost to sell?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year) and adds custom domains, advanced stall design, automated email flows, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. New sellers get a 30-day free trial of Herd, with no payment required up front. You can set an optional donation rate to support the platform, but that's always your choice.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What happens if Milk Market shuts down or removes my account?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. Milk Market is built on Nostr, an open and decentralized network. Your stall and customer relationships belong to you - not a single company. No one can freeze your account or deplatform you.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "How do payments work?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Buyers can pay with a card, Bitcoin (Lightning and Cashu ecash), or cash for local pickup. Sellers connect their own payout method and get paid directly - there's no middleman holding your money.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Is my information private?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. All your data is encrypted and private. We never sell user data or share it with third parties. The platform is built on Nostr, a decentralized protocol designed for privacy and ownership.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "I'm already on Shopify or Barn2Door. Can I switch?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes. You can migrate from Shopify in a few clicks and keep your products. Click 'Start Selling' or 'Migrate from Shopify' to bring your catalog over and open your stall in minutes.",
-      },
-    },
-  ],
+  })),
 };
 
 const websiteSchema = {

@@ -3,7 +3,7 @@ import {
   fetchShopPubkeyBySlug,
   fetchShopProfileByPubkeyFromDb,
   fetchProfileByPubkeyFromDb,
-  fetchAllProductsFromDb,
+  fetchProductsByPubkeyFromDb,
   fetchBlogPostsByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import { resolveStallBranding } from "@/utils/storefront/stall-branding";
@@ -105,11 +105,13 @@ export default async function handler(
       });
     }
 
-    const [shopEvent, profileEvent, allProducts, blogEvents] =
+    // Sitemap needs the full seller inventory; other surfaces are previews.
+    const isSitemap = format === "sitemap";
+    const [shopEvent, profileEvent, sellerEvents, blogEvents] =
       await Promise.all([
         fetchShopProfileByPubkeyFromDb(pubkey),
         fetchProfileByPubkeyFromDb(pubkey),
-        fetchAllProductsFromDb(500, 0),
+        fetchProductsByPubkeyFromDb(pubkey, isSitemap ? 100_000 : 500),
         fetchBlogPostsByPubkeyFromDb(pubkey),
       ]);
 
@@ -132,7 +134,6 @@ export default async function handler(
 
     const branding = resolveStallBranding(shopContent, profileContent);
 
-    const sellerEvents = allProducts.filter((e) => e.pubkey === pubkey);
     const sellerParsed = sellerEvents
       .map((event) => ({ event, data: parseTags(event) }))
       .filter(
@@ -145,16 +146,16 @@ export default async function handler(
       );
     const allSellerData = sellerParsed.map((e) => e.data);
 
-    const products: StallProductSummary[] = sellerParsed
-      .slice(0, 50)
-      .map(({ event, data }) => ({
-        title: data.title || "Untitled listing",
-        slug: getListingSlug(data, allSellerData) || event.id,
-        price: data.price ?? null,
-        currency: data.currency || "sats",
-        summary: data.summary || "",
-        image: data.images?.[0] || "",
-      }));
+    const products: StallProductSummary[] = (
+      isSitemap ? sellerParsed : sellerParsed.slice(0, 50)
+    ).map(({ event, data }) => ({
+      title: data.title || "Untitled listing",
+      slug: getListingSlug(data, allSellerData) || event.id,
+      price: data.price ?? null,
+      currency: data.currency || "sats",
+      summary: data.summary || "",
+      image: data.images?.[0] || "",
+    }));
 
     // Published blog posts (NIP-23), newest-first, with collision-resolved
     // readable slugs. The optional external link-out is never fetched here —
@@ -163,7 +164,9 @@ export default async function handler(
       .map((e) => parseBlogPostEvent(e))
       .filter((p): p is BlogPost => p !== null)
       .sort((a, b) => b.publishedAt - a.publishedAt);
-    const blogPosts: StallBlogSummary[] = parsedPosts.slice(0, 50).map((p) => ({
+    const blogPosts: StallBlogSummary[] = (
+      isSitemap ? parsedPosts : parsedPosts.slice(0, 50)
+    ).map((p) => ({
       title: p.title,
       slug: getBlogPostSlug(p, parsedPosts),
       summary: p.summary || "",

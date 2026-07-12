@@ -29,6 +29,7 @@ type ShopPageProps = {
   shopPubkey: string;
   ssrShopName: string;
   ssrShopAbout: string;
+  ssrStoreUrl: string;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
@@ -135,6 +136,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
                   shopPubkey: pubkey,
                   ssrShopName,
                   ssrShopAbout,
+                  ssrStoreUrl: canonicalStallUrl,
                 },
               };
             }
@@ -187,23 +189,32 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
             shopPubkey: pubkey,
             ssrShopName: branding.shopName || ssrShopName,
             ssrShopAbout: branding.about || ssrShopAbout,
+            ssrStoreUrl: canonicalStallUrl,
           },
         };
       }
+      // Non-Pro sellers: still emit unique per-seller metadata so search engines
+      // can distinguish stalls from each other (title/description based on the
+      // resolved shop name/about rather than generic placeholder copy).
       return {
         props: {
           ogMeta: {
             ...DEFAULT_OG,
-            title: "Milk Market Stall",
-            description: "Check out this shop on Milk Market!",
+            title: ssrShopName
+              ? `${ssrShopName} | Milk Market`
+              : "Milk Market Stall",
+            description: ssrShopAbout || "Check out this shop on Milk Market!",
             url: `/stall/${shopSlug}`,
           },
           shopPubkey: pubkey,
           ssrShopName,
           ssrShopAbout,
+          ssrStoreUrl: canonicalStallUrl,
         },
       };
     }
+    // Slug found no matching pubkey — this stall doesn't exist.
+    return { notFound: true };
   } catch (error) {
     console.error("SSR OG fetch error for shop:", error);
   }
@@ -219,6 +230,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       shopPubkey: "",
       ssrShopName: "",
       ssrShopAbout: "",
+      ssrStoreUrl: "",
     },
   };
 };
@@ -227,6 +239,7 @@ export default function ShopPage({
   shopPubkey: ssrShopPubkey,
   ssrShopName,
   ssrShopAbout,
+  ssrStoreUrl,
 }: ShopPageProps) {
   const router = useRouter();
   const { slug } = router.query;
@@ -281,6 +294,7 @@ export default function ShopPage({
       shopPubkey={state.pubkey}
       ssrShopName={ssrShopName}
       ssrShopAbout={ssrShopAbout}
+      ssrStoreUrl={ssrStoreUrl || undefined}
     />
   );
 }

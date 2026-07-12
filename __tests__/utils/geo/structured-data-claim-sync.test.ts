@@ -64,6 +64,8 @@ function sliceBetween(
   return src.slice(start, end);
 }
 
+const HOMEPAGE_FAQ_FILE = "utils/homepage-faq.ts";
+
 // The scoped structured-data blocks for each surface.
 const homepageJsonLdBlock = sliceBetween(
   read(STRUCTURED_DATA_FILE),
@@ -91,8 +93,14 @@ const producerGuideFaqBlock = sliceBetween(
   '"@type": "FAQPage"',
   "}),"
 );
-// The visible homepage FAQ lives in <FAQItem question="..." answer="..." />.
+// The visible homepage FAQ source. Pages/index.tsx renders the FAQ from the
+// shared HOMEPAGE_FAQ constant (imported from utils/homepage-faq.ts) so the
+// claim text lives there, not inline in the index file.
 const indexSource = read(INDEX_FILE);
+// The shared FAQ data source – both structured-data.tsx (JSON-LD schema) and
+// pages/index.tsx (visible accordion) now derive from this one file to prevent
+// drift between the two surfaces. Claim checks must include this source.
+const homepageFaqSource = read(HOMEPAGE_FAQ_FILE);
 
 // --- Q/A extraction ----------------------------------------------------------
 
@@ -114,9 +122,13 @@ function extractJsonLdFaq(block: string): QA[] {
   return out;
 }
 
-// Visible homepage <FAQItem question="..." answer="..." />.
-function extractFaqItems(src: string): QA[] {
-  const re = /<FAQItem\s+question="([^"]*)"\s+answer="([^"]*)"\s*\/>/g;
+// Extract Q/A pairs from the shared HOMEPAGE_FAQ array in utils/homepage-faq.ts.
+// The array uses `question:` / `answer:` keys; values are single- or
+// double-quoted strings (possibly multiline via template literals, but in
+// practice they're single-line strings so a simple [^"']+ capture is fine).
+function extractSharedFaqArray(src: string): QA[] {
+  // Match each { question: "...", answer: "..." } object in the exported array.
+  const re = /question:\s*"([^"]*)"\s*,\s*answer:\s*"([^"]*)"/g;
   const out: QA[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
@@ -125,37 +137,40 @@ function extractFaqItems(src: string): QA[] {
   return out;
 }
 
-const homepageJsonLdFaq = extractJsonLdFaq(homepageJsonLdBlock);
-const homepageVisibleFaq = extractFaqItems(indexSource);
+// The homepage FAQ Q/A pairs come from the shared source file. Both the
+// JSON-LD schema and the visible accordion derive from the same array so
+// there is exactly one copy — no drift possible between the two surfaces.
+const homepageJsonLdFaq = extractSharedFaqArray(homepageFaqSource);
+const homepageVisibleFaq = homepageJsonLdFaq; // same source, by construction
 const producerGuideFaq = extractJsonLdFaq(producerGuideFaqBlock);
 
-// --- Part A: homepage JSON-LD <-> visible <FAQItem> must agree verbatim -------
+// --- Part A: homepage FAQ unified into a single source of truth --------------
+//
+// Previously the homepage had TWO separate copies (structured-data.tsx JSON-LD
+// + pages/index.tsx visible FAQItem inline props) that drifted silently. They
+// were unified into utils/homepage-faq.ts; both consumers import from it.
+// This section verifies the unification is structural (not accidental).
 
 describe("homepage FAQ: JSON-LD copy vs visible <FAQItem> copy", () => {
-  it("extracts a non-empty FAQ from BOTH homepage surfaces", () => {
+  it("extracts a non-empty FAQ from the shared HOMEPAGE_FAQ source", () => {
     expect(homepageJsonLdFaq.length).toBeGreaterThan(0);
     expect(homepageVisibleFaq.length).toBeGreaterThan(0);
+  });
+
+  it("structured-data.tsx imports from utils/homepage-faq.ts (not hardcoded)", () => {
+    const src = read(STRUCTURED_DATA_FILE);
+    expect(src).toMatch(/homepage-faq/);
+    expect(src).toMatch(/HOMEPAGE_FAQ/);
+  });
+
+  it("pages/index.tsx imports from utils/homepage-faq.ts (not hardcoded)", () => {
+    expect(indexSource).toMatch(/homepage-faq/);
+    expect(indexSource).toMatch(/HOMEPAGE_FAQ/);
   });
 
   it("covers the same set of questions in both copies", () => {
     const jsonLdQs = homepageJsonLdFaq.map((q) => q.question).sort();
     const visibleQs = homepageVisibleFaq.map((q) => q.question).sort();
-    if (JSON.stringify(jsonLdQs) !== JSON.stringify(visibleQs)) {
-      const onlyJsonLd = jsonLdQs.filter((q) => !visibleQs.includes(q));
-      const onlyVisible = visibleQs.filter((q) => !jsonLdQs.includes(q));
-      throw new Error(
-        "DRIFT: the homepage FAQ questions differ between the JSON-LD copy " +
-          `(${STRUCTURED_DATA_FILE} homepageFaqSchema) and the visible <FAQItem> ` +
-          `copy (${INDEX_FILE}).\n` +
-          (onlyJsonLd.length
-            ? `Only in JSON-LD: ${JSON.stringify(onlyJsonLd)}\n`
-            : "") +
-          (onlyVisible.length
-            ? `Only in visible <FAQItem>: ${JSON.stringify(onlyVisible)}\n`
-            : "") +
-          "Keep both homepage FAQ copies in lockstep (see machine-readable-tier-surfaces.md)."
-      );
-    }
     expect(jsonLdQs).toEqual(visibleQs);
   });
 
@@ -164,21 +179,11 @@ describe("homepage FAQ: JSON-LD copy vs visible <FAQItem> copy", () => {
   );
 
   it.each(homepageJsonLdFaq.map((qa) => [qa.question, qa.answer]))(
-    'answer for "%s" matches verbatim between JSON-LD and visible <FAQItem>',
+    'answer for "%s" is non-empty in the shared FAQ source',
     (question, jsonLdAnswer) => {
       const visibleAnswer = visibleByQuestion.get(question);
-      if (visibleAnswer !== jsonLdAnswer) {
-        throw new Error(
-          `DRIFT: homepage FAQ answer for "${question}" differs between the ` +
-            `JSON-LD copy (${STRUCTURED_DATA_FILE} homepageFaqSchema) and the ` +
-            `visible <FAQItem> copy (${INDEX_FILE}).\n` +
-            `  JSON-LD:  ${JSON.stringify(jsonLdAnswer)}\n` +
-            `  visible:  ${JSON.stringify(visibleAnswer)}\n` +
-            "Update both homepage FAQ copies together — crawlers read the JSON-LD, " +
-            "humans read the visible answer (see machine-readable-tier-surfaces.md)."
-        );
-      }
       expect(visibleAnswer).toBe(jsonLdAnswer);
+      expect((jsonLdAnswer as string).length).toBeGreaterThan(0);
     }
   );
 });
@@ -215,9 +220,14 @@ const PRODUCER_GUIDE_FAQ_SURFACE =
   "producer-guide FAQPage JSON-LD (pages/producer-guide/index.tsx)";
 
 // Named structured-data surfaces, scoped to the JSON-LD / rich-result block.
+// The homepage FAQ claim text now lives in utils/homepage-faq.ts (single
+// source of truth for both the JSON-LD schema and the visible accordion),
+// so both homepage surfaces include homepageFaqSource for claim matching.
+// HOMEPAGE_VISIBLE also includes the full index source because some claims
+// (e.g. "No platform fees.") appear in page-level marketing copy, not the FAQ.
 const SURFACES: Record<string, string> = {
-  [HOMEPAGE_JSONLD]: homepageJsonLdBlock,
-  [HOMEPAGE_VISIBLE]: indexSource,
+  [HOMEPAGE_JSONLD]: homepageFaqSource,
+  [HOMEPAGE_VISIBLE]: indexSource + "\n" + homepageFaqSource,
   [FAQ_SURFACE]: faqBlock,
   [PRODUCER_GUIDE_HOWTO_SURFACE]: producerGuideHowToBlock,
   [PRODUCER_GUIDE_FAQ_SURFACE]: producerGuideFaqBlock,

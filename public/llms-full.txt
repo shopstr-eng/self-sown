@@ -25,7 +25,7 @@ Producers follow a guided onboarding (see the Producer Guide):
 2. Choose a membership: a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) which includes a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature, plus the option to self-host a private, single-tenant copy of your store on your own server.
 3. List a product with title, description, price, images, categories, shipping, pickup, variants, and bulk pricing.
 4. Manage orders and communicate with buyers through encrypted chat.
-5. (Herd) Customize a storefront at /shop/[slug]: colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
+5. (Herd) Customize a storefront at /stall/[slug]: colors, fonts, a page builder, SEO/OG meta, and a self-serve custom domain.
 6. (Herd) Automate email flows (welcome series, order follow-ups, and re-engagement) with open, click, and conversion analytics for every flow and one-time send, viewable in the orders dashboard or via the MCP get_email_analytics tool. Herd sellers can send these flow emails and order confirmations from their own authenticated email domain; if the domain is not verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no seller can see another seller's analytics, and the platform does not access or use an individual seller's raw email analytics (the platform runs its own storefront as an ordinary seller account with no special access).
 7. (Herd) Buy shipping labels through Shippo: connect your own Shippo account (Shippo bills you directly), then quote live rates, buy labels, and issue return labels from the orders dashboard.
 8. (Herd) Connect AI agents through the Model Context Protocol (MCP) so autonomous agents can manage listings and orders.
@@ -35,7 +35,7 @@ Sellers who connect a Stripe account can also turn on automatic US sales tax (fr
 
 ## Technology
 
-- Frontend: Next.js (App Router), React, TypeScript, HeroUI, Tailwind, PWA.
+- Frontend: Next.js (Pages Router), React, TypeScript, HeroUI, Tailwind, PWA.
 - Backend: Next.js API routes with PostgreSQL caching for server-side rendering, search, and analytics.
 - Protocol: Nostr for events, Blossom for media, NIP-05 for DNS-based identity verification. Implements 15+ NIPs.
 - Payments: Lightning, Cashu mints, Stripe Connect, Square, manual fiat.
@@ -51,7 +51,7 @@ Milk Market exposes a Model Context Protocol (MCP) server so AI agents can parti
 - Write tools (full_access): manage profiles, listings, reviews, community posts, messages, relays, media uploads, discount codes, and Cashu wallet operations.
 - Paid endpoints follow the L402 standard: a Lightning create_order responds with HTTP 402 and a `WWW-Authenticate: L402` challenge (macaroon + bolt11 invoice). See /.well-known/l402.json (facilitator-agnostic).
 - Universal Commerce Protocol (UCP): for agents that prefer plain REST over MCP's JSON-RPC, Milk Market also speaks UCP (the commerce standard backed by Google and Shopify), layered over the same catalog and order pipeline as MCP so the two never drift. Discovery at /.well-known/ucp advertises two capabilities: a catalog (GET /api/ucp/catalog/search with filters + pagination, and GET /api/ucp/catalog/lookup for a single product with live inventory; no key needed) and checkout (POST /api/ucp/checkout/sessions creates a session that places a Milk Market order, GET /api/ucp/checkout/sessions/{id} tracks its status; a read_write `sk_` API key is required). JSON Schemas for the product and checkout-session shapes are at /api/ucp/schemas/product.json and /api/ucp/schemas/checkout-session.json, and /openapi.json documents every endpoint.
-- Discovery: /.well-known/mcp.json (JSON-RPC), /.well-known/ucp (Universal Commerce Protocol), /.well-known/agent-card.json (Google A2A), /.well-known/l402.json (L402 payments), /api/.well-known/agent.json (legacy open-agents schema), /openapi.json (OpenAPI), /agents.txt (policies), /skill.md (agent skill).
+- Discovery: /.well-known/mcp.json (JSON-RPC), /.well-known/ucp (Universal Commerce Protocol), /.well-known/agent-card.json (Google A2A), /.well-known/l402.json (L402 payments), /.well-known/agent.json (legacy open-agents schema), /openapi.json (OpenAPI), /agents.txt (policies), /skill.md (agent skill).
 
 Custom seller storefronts (a seller's own domain or /stall/<slug>) serve the same tailored treatment: agents requesting markdown/JSON/plain-text get shop-specific content, and each storefront exposes its own /llms.txt, /robots.txt, and /rss.xml.
 

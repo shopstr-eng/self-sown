@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/router";
 import {
   StorefrontSection,
   StorefrontColorScheme,
@@ -65,7 +64,6 @@ export default function SectionBlog({
   shopSlug,
   isPreview,
 }: SectionBlogProps) {
-  const router = useRouter();
   const isCustomDomain = useIsCustomDomain();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -126,16 +124,13 @@ export default function SectionBlog({
     return limit ? ordered.slice(0, limit) : ordered;
   }, [posts, section.blogPostIds, section.blogPostLimit, section.blogPostMode]);
 
-  const slugFor = (post: BlogPost) => getBlogPostSlug(post, posts);
-
-  const goToPost = (post: BlogPost) => {
-    if (isPreview) return;
-    const href = applyCustomDomainHref(
-      `/stall/${shopSlug}/blog/${slugFor(post)}`,
+  const hrefFor = (post: BlogPost) => {
+    const slug = getBlogPostSlug(post, posts);
+    return applyCustomDomainHref(
+      `/stall/${shopSlug}/blog/${slug}`,
       shopSlug,
       isCustomDomain
     );
-    router.push(href);
   };
 
   // Nothing to show: stay quiet on the live storefront, but give sellers a hint
@@ -196,9 +191,8 @@ export default function SectionBlog({
       )}
 
       {featured && (
-        <button
-          type="button"
-          onClick={() => goToPost(featured)}
+        <a
+          href={isPreview ? undefined : hrefFor(featured)}
           className="group mb-8 block w-full overflow-hidden rounded-xl border-2 text-left transition-shadow hover:shadow-lg"
           style={{ borderColor: colors.primary + "33" }}
         >
@@ -231,7 +225,7 @@ export default function SectionBlog({
               </span>
             </div>
           </div>
-        </button>
+        </a>
       )}
 
       {rest.length > 0 && (
@@ -244,10 +238,9 @@ export default function SectionBlog({
         >
           {rest.map((post) =>
             layout === "list" ? (
-              <button
-                type="button"
+              <a
                 key={post.id}
-                onClick={() => goToPost(post)}
+                href={isPreview ? undefined : hrefFor(post)}
                 className="flex w-full gap-4 overflow-hidden rounded-xl border-2 p-4 text-left transition-shadow hover:shadow-md"
                 style={{ borderColor: colors.primary + "22" }}
               >
@@ -272,12 +265,11 @@ export default function SectionBlog({
                     {formatDate(post.publishedAt)}
                   </span>
                 </div>
-              </button>
+              </a>
             ) : (
-              <button
-                type="button"
+              <a
                 key={post.id}
-                onClick={() => goToPost(post)}
+                href={isPreview ? undefined : hrefFor(post)}
                 className="flex flex-col overflow-hidden rounded-xl border-2 text-left transition-shadow hover:shadow-lg"
                 style={{ borderColor: colors.primary + "22" }}
               >
@@ -304,7 +296,7 @@ export default function SectionBlog({
                     {formatDate(post.publishedAt)}
                   </span>
                 </div>
-              </button>
+              </a>
             )
           )}
         </div>

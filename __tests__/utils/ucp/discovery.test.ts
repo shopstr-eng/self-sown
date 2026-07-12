@@ -66,7 +66,7 @@ describe("buildUcpDiscoveryProfile — platform scope", () => {
   });
 });
 
-describe("buildUcpDiscoveryProfile — seller scope", () => {
+describe("buildUcpDiscoveryProfile — seller scope (no platformUrl)", () => {
   const seller = {
     pubkey: "abc123",
     npub: "npub1abc",
@@ -98,6 +98,62 @@ describe("buildUcpDiscoveryProfile — seller scope", () => {
       "rest",
       "mcp",
     ]);
+    expect(checkout.endpoints.complete_session).toBe(
+      "https://sunny.example/api/ucp/checkout/sessions/{id}/complete"
+    );
+  });
+});
+
+describe("buildUcpDiscoveryProfile — seller scope with platformUrl", () => {
+  const PLATFORM = "https://milk.market";
+  const seller = {
+    pubkey: "abc123",
+    npub: "npub1abc",
+    name: "Sunny Farm",
+    slug: "sunny-farm",
+  };
+  const profile = buildUcpDiscoveryProfile({
+    baseUrl: "https://sunny.example",
+    seller,
+    platformUrl: PLATFORM,
+  });
+
+  it("routes MCP transport endpoint to the platform host", () => {
+    for (const cap of profile.capabilities as Array<Record<string, any>>) {
+      const mcp = (cap.transports || []).find((t: any) => t.type === "mcp");
+      expect(mcp.endpoint).toBe(`${PLATFORM}/api/mcp`);
+      expect(mcp.manifest).toBe(`${PLATFORM}/.well-known/agent.json`);
+    }
+  });
+
+  it("routes spec links to the platform host", () => {
+    for (const cap of profile.capabilities as Array<Record<string, any>>) {
+      expect(cap.spec).toBe(`${PLATFORM}/api/openapi.json`);
+    }
+  });
+
+  it("routes authentication onboarding to the platform host", () => {
+    expect((profile.authentication as Record<string, any>).onboarding).toBe(
+      `${PLATFORM}/api/mcp/onboard`
+    );
+  });
+
+  it("routes ext.mcp to the platform host", () => {
+    const ext = profile.ext as Record<string, any>;
+    const vendor = Object.values(ext)[0] as Record<string, any>;
+    expect(vendor.mcp).toBe(`${PLATFORM}/api/mcp`);
+  });
+
+  it("keeps UCP catalog and checkout endpoints on the seller host", () => {
+    const catalog = profile.capabilities.find(
+      (c) => c.name === UCP_CATALOG_CAPABILITY
+    ) as Record<string, any>;
+    expect(catalog.endpoints.search).toBe(
+      "https://sunny.example/api/ucp/catalog/search"
+    );
+    const checkout = profile.capabilities.find(
+      (c) => c.name === UCP_CHECKOUT_CAPABILITY
+    ) as Record<string, any>;
     expect(checkout.endpoints.complete_session).toBe(
       "https://sunny.example/api/ucp/checkout/sessions/{id}/complete"
     );

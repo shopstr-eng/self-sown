@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { buildUcpDiscoveryProfile } from "@/utils/ucp/discovery";
 import { deriveBaseUrl, resolveHostScope } from "@/utils/ucp/seller-host";
+import { isSelfHost } from "@/utils/self-host/config";
 
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
@@ -47,7 +48,20 @@ export default async function handler(
         .json({ error: "No UCP profile is configured for this domain." });
     }
 
-    return res.status(200).json(buildUcpDiscoveryProfile({ baseUrl, seller }));
+    // On a seller custom domain the MCP endpoint, onboarding URL, and
+    // OpenAPI spec are not proxied through — redirect those to the platform.
+    // Self-host instances serve their own MCP directly, so platformUrl is not
+    // set for them; only custom-domain seller requests get the redirect.
+    const isCustomDomain =
+      !!seller && !isSelfHost() && !!req.headers["x-mm-custom-domain-host"];
+
+    return res.status(200).json(
+      buildUcpDiscoveryProfile({
+        baseUrl,
+        seller,
+        ...(isCustomDomain ? { platformUrl: "https://milk.market" } : {}),
+      })
+    );
   } catch (error) {
     console.error("UCP discovery profile error:", error);
     return res

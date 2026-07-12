@@ -99,6 +99,7 @@ interface StorefrontLayoutProps {
   currentPage?: string;
   ssrShopName?: string;
   ssrShopAbout?: string;
+  ssrStoreUrl?: string;
 }
 
 export default function StorefrontLayout({
@@ -106,6 +107,7 @@ export default function StorefrontLayout({
   currentPage,
   ssrShopName,
   ssrShopAbout,
+  ssrStoreUrl,
 }: StorefrontLayoutProps) {
   const shopMapContext = useContext(ShopMapContext);
   const productContext = useContext(ProductContext);
@@ -648,17 +650,34 @@ export default function StorefrontLayout({
 
   if (!shopDataReady) {
     if (ssrShopName) {
+      const ssrStoreSchema: Record<string, unknown> = {
+        "@context": "https://schema.org",
+        "@type": "Store",
+        name: ssrShopName,
+        url: ssrStoreUrl || `https://milk.market`,
+      };
+      if (ssrShopAbout) ssrStoreSchema.description = ssrShopAbout;
       return (
-        <div className="min-h-screen bg-white pt-20">
-          <div className="mx-auto max-w-4xl px-4 py-8">
-            <h1 className="mb-4 text-3xl font-bold text-black">
-              {ssrShopName}
-            </h1>
-            {ssrShopAbout && (
-              <p className="mt-2 text-lg text-gray-700">{ssrShopAbout}</p>
-            )}
+        <>
+          <Head>
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify(ssrStoreSchema),
+              }}
+            />
+          </Head>
+          <div className="min-h-screen bg-white pt-20">
+            <div className="mx-auto max-w-4xl px-4 py-8">
+              <h1 className="mb-4 text-3xl font-bold text-black">
+                {ssrShopName}
+              </h1>
+              {ssrShopAbout && (
+                <p className="mt-2 text-lg text-gray-700">{ssrShopAbout}</p>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       );
     }
     return null;
@@ -850,9 +869,13 @@ export default function StorefrontLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify(
               (() => {
-                const storeUrl = shopSlug
-                  ? `https://milk.market/stall/${shopSlug}`
-                  : "https://milk.market";
+                const storeUrl =
+                  ssrStoreUrl ||
+                  (isCustomDomain && typeof window !== "undefined"
+                    ? window.location.origin
+                    : shopSlug
+                      ? `https://milk.market/stall/${shopSlug}`
+                      : "https://milk.market");
                 const schema: Record<string, unknown> = {
                   "@context": "https://schema.org",
                   "@type": "Store",

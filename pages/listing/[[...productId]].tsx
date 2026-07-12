@@ -139,7 +139,9 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
   const identifier = getListingRouteIdentifier(productId);
 
   if (!identifier) {
-    return { props: { ogMeta: LISTING_FALLBACK, initialProductEvent: null } };
+    // No listing identifier at all — this is a bare /listing/ URL with nothing
+    // following it. Return a real 404 rather than a generic fallback page.
+    return { notFound: true };
   }
 
   const urlPath = `/listing/${identifier}`;
@@ -167,12 +169,8 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
           }
         }
       } catch {}
-      return {
-        props: {
-          ogMeta: { ...LISTING_FALLBACK, url: urlPath },
-          initialProductEvent: null,
-        },
-      };
+      // naddr decoded but no event found — this listing doesn't exist.
+      return { notFound: true };
     }
 
     const eventById = await fetchProductByIdFromDb(identifier);
@@ -202,6 +200,9 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
         },
       };
     }
+
+    // Identifier provided but no matching listing in the DB — hard 404.
+    return { notFound: true };
   } catch (error) {
     console.error("SSR OG fetch error for listing:", error);
   }
