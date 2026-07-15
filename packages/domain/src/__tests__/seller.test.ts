@@ -75,6 +75,44 @@ describe("seller domain helpers", () => {
     expect(normalizeStorefrontSlug(`${"a".repeat(62)}!!`)).toBe("a".repeat(62));
   });
 
+  test("preserves productPageDefaults (including product-scoped types) when parsing", () => {
+    const parsed = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          productPageDefaults: [
+            { id: "s1", type: "product_gallery", enabled: true },
+            { id: "s2", type: "marquee", heading: "Fresh raw milk" },
+            {
+              id: "s3",
+              type: "contact_form",
+              enabled: true,
+              contactFormMode: "subscription",
+            },
+            "not-a-section",
+          ],
+        },
+      }),
+    });
+    expect(parsed?.content.storefront?.productPageDefaults).toEqual([
+      { id: "s1", type: "product_gallery", enabled: true },
+      { id: "s2", type: "marquee", heading: "Fresh raw milk" },
+      {
+        id: "s3",
+        type: "contact_form",
+        enabled: true,
+        contactFormMode: "subscription",
+      },
+    ]);
+  });
+
   test("parses storefront config defensively from malformed profile content", () => {
     expect(
       parseSellerShopProfileEvent({

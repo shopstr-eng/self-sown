@@ -19,6 +19,7 @@ interface PreviewContext {
   colors: StorefrontColorScheme;
   sampleProduct?: ProductData;
   shopName?: string;
+  shopSlug?: string;
   shopPicture?: string;
   fontHeading?: string;
   fontBody?: string;
@@ -53,6 +54,16 @@ const PRODUCT_SECTION_TYPES: {
   { type: "story", label: "Story" },
   { type: "text", label: "Text Block" },
   { type: "image", label: "Image" },
+  { type: "hero", label: "Hero" },
+  { type: "about", label: "About" },
+  { type: "products", label: "Products" },
+  { type: "comparison", label: "Comparison" },
+  { type: "banner_carousel", label: "Banner Carousel" },
+  { type: "marquee", label: "Moving Banner" },
+  { type: "social_posts", label: "Social Posts" },
+  { type: "blog", label: "Blog" },
+  { type: "contact", label: "Contact" },
+  { type: "contact_form", label: "Contact Form" },
 ];
 
 const SIZE_WARN = 32 * 1024;
@@ -243,8 +254,10 @@ export default function ProductPageEditor({
                     shopName={preview?.shopName || "Stall"}
                     shopPicture={preview?.shopPicture || ""}
                     shopPubkey={shopPubkey || ""}
+                    shopSlug={preview!.shopSlug}
                     products={sellerProducts}
                     currentProduct={sampleProduct}
+                    isPreview
                   />
                 ))}
               </StorefrontPreviewFrame>

@@ -3,6 +3,7 @@
 import handler from "@/pages/api/storefront/subscribe";
 import {
   fetchShopProfileByPubkeyFromDb,
+  fetchProductsByPubkeyFromDb,
   saveSubscriberEmailCapture,
   getEmailFlows,
   getFlowEnrollments,
@@ -16,6 +17,7 @@ import { parseSellerShopProfileEvent } from "@milk-market/domain";
 
 jest.mock("@/utils/db/db-service", () => ({
   fetchShopProfileByPubkeyFromDb: jest.fn(),
+  fetchProductsByPubkeyFromDb: jest.fn(),
   saveSubscriberEmailCapture: jest.fn(),
   getEmailFlows: jest.fn(),
   getFlowEnrollments: jest.fn(),
@@ -35,6 +37,7 @@ jest.mock("@milk-market/domain", () => ({
 
 const mocked = {
   fetchShopProfileByPubkeyFromDb: fetchShopProfileByPubkeyFromDb as jest.Mock,
+  fetchProductsByPubkeyFromDb: fetchProductsByPubkeyFromDb as jest.Mock,
   saveSubscriberEmailCapture: saveSubscriberEmailCapture as jest.Mock,
   getEmailFlows: getEmailFlows as jest.Mock,
   getFlowEnrollments: getFlowEnrollments as jest.Mock,
@@ -91,6 +94,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   mocked.applyRateLimit.mockResolvedValue(true);
   mocked.fetchShopProfileByPubkeyFromDb.mockResolvedValue({ id: "evt" });
+  mocked.fetchProductsByPubkeyFromDb.mockResolvedValue([]);
   mocked.parseSellerShopProfileEvent.mockReturnValue(subscriptionStorefront());
   mocked.saveSubscriberEmailCapture.mockResolvedValue(undefined);
   mocked.isPubkeyProEntitled.mockResolvedValue(false);
@@ -163,6 +167,79 @@ describe("storefront subscribe api", () => {
       EMAIL,
       null
     );
+  });
+
+  test("accepts a subscription form enabled in product-page defaults", async () => {
+    mocked.parseSellerShopProfileEvent.mockReturnValue({
+      content: {
+        storefront: {
+          sections: [],
+          pages: [],
+          productPageDefaults: [
+            {
+              type: "contact_form",
+              enabled: true,
+              contactFormMode: "subscription",
+            },
+          ],
+        },
+      },
+    });
+    const res = await run({ sellerPubkey: PUBKEY, email: EMAIL });
+    expect(res.statusCode).toBe(200);
+    expect(mocked.saveSubscriberEmailCapture).toHaveBeenCalledWith(
+      PUBKEY,
+      EMAIL,
+      null
+    );
+  });
+
+  test("accepts a subscription form published in a per-product page_config", async () => {
+    mocked.parseSellerShopProfileEvent.mockReturnValue({
+      content: { storefront: { sections: [], pages: [] } },
+    });
+    mocked.fetchProductsByPubkeyFromDb.mockResolvedValue([
+      {
+        tags: [
+          [
+            "page_config",
+            JSON.stringify({
+              sections: [
+                {
+                  type: "contact_form",
+                  enabled: true,
+                  contactFormMode: "subscription",
+                },
+              ],
+            }),
+          ],
+        ],
+      },
+    ]);
+    const res = await run({ sellerPubkey: PUBKEY, email: EMAIL });
+    expect(res.statusCode).toBe(200);
+    expect(mocked.saveSubscriberEmailCapture).toHaveBeenCalled();
+  });
+
+  test("rejects when product pages only have contact-mode forms", async () => {
+    mocked.parseSellerShopProfileEvent.mockReturnValue({
+      content: { storefront: { sections: [], pages: [] } },
+    });
+    mocked.fetchProductsByPubkeyFromDb.mockResolvedValue([
+      {
+        tags: [
+          [
+            "page_config",
+            JSON.stringify({
+              sections: [{ type: "contact_form", enabled: true }],
+            }),
+          ],
+        ],
+      },
+    ]);
+    const res = await run({ sellerPubkey: PUBKEY, email: EMAIL });
+    expect(res.statusCode).toBe(403);
+    expect(mocked.saveSubscriberEmailCapture).not.toHaveBeenCalled();
   });
 
   test("saves the subscriber when the seller has no welcome series", async () => {

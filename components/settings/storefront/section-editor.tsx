@@ -882,6 +882,11 @@ export default function SectionEditor({
 
           {section.type === "contact_form" && (
             <>
+              <p className="rounded border border-yellow-300 bg-yellow-50 p-2 text-xs text-yellow-900">
+                Messages are delivered to your order notification email. Make
+                sure it&apos;s set under Settings &rarr; Shop Profile, or
+                visitors won&apos;t be able to submit this form.
+              </p>
               <Input
                 label="Button Text"
                 classNames={{ inputWrapper: inputWrapperClass }}

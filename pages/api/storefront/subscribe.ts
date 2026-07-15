@@ -9,6 +9,7 @@ import {
   cancelEnrollment,
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { sellerHasProductPageContactForm } from "@/utils/storefront/product-page-contact-form";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
 import {
   parseSellerShopProfileEvent,
@@ -43,6 +44,7 @@ function hasEnabledSubscriptionForm(
     s.enabled !== false &&
     s.contactFormMode === "subscription";
   if ((storefront.sections || []).some(enabled)) return true;
+  if ((storefront.productPageDefaults || []).some(enabled)) return true;
   return (storefront.pages || []).some((page) =>
     (page.sections || []).some(enabled)
   );
@@ -87,7 +89,10 @@ export default async function handler(
     const profile = profileEvent
       ? parseSellerShopProfileEvent(profileEvent)
       : null;
-    if (!hasEnabledSubscriptionForm(profile?.content?.storefront)) {
+    if (
+      !hasEnabledSubscriptionForm(profile?.content?.storefront) &&
+      !(await sellerHasProductPageContactForm(sellerPubkey, true))
+    ) {
       return res
         .status(403)
         .json({ error: "This seller is not accepting subscriptions" });

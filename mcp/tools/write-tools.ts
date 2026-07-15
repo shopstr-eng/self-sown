@@ -160,7 +160,12 @@ const PAGE_CONFIG_SECTION_TYPES = [
   "text",
   "image",
   "contact",
+  "contact_form",
   "reviews",
+  "banner_carousel",
+  "marquee",
+  "social_posts",
+  "blog",
   "product_description",
   "product_specifications",
   "product_shipping_returns",
@@ -234,6 +239,168 @@ const pageConfigSectionSchema = z
         })
       )
       .optional(),
+    headingColor: z
+      .string()
+      .optional()
+      .describe("Hero/banner overlay heading text color (hex)"),
+    subheadingColor: z
+      .string()
+      .optional()
+      .describe("Hero/banner overlay subheading text color (hex)"),
+    textOutlineColor: z
+      .string()
+      .optional()
+      .describe("Hero/banner overlay text outline color (hex)"),
+    ingredientItems: z
+      .array(
+        z.object({
+          name: z.string(),
+          description: z.string().optional(),
+          image: z.string().optional(),
+        })
+      )
+      .optional()
+      .describe("Ingredient items"),
+    comparisonFeatures: z
+      .array(z.string())
+      .optional()
+      .describe("Comparison row labels"),
+    comparisonColumns: z
+      .array(z.object({ heading: z.string(), values: z.array(z.string()) }))
+      .optional()
+      .describe("Comparison columns"),
+    timelineItems: z
+      .array(
+        z.object({
+          year: z.string().optional(),
+          heading: z.string(),
+          body: z.string(),
+          image: z.string().optional(),
+        })
+      )
+      .optional()
+      .describe("Timeline items for story sections"),
+    successMessage: z
+      .string()
+      .optional()
+      .describe("Success message shown after a contact-form submission"),
+    contactFormMode: z
+      .enum(["contact", "subscription"])
+      .optional()
+      .describe(
+        "Contact-form section behavior: 'contact' emails the seller (default); 'subscription' adds the visitor to the seller's email list and enrolls them in the active welcome series"
+      ),
+    showNameField: z
+      .boolean()
+      .optional()
+      .describe(
+        "Show the optional Name input on a contact-form section (default true)"
+      ),
+    showPhoneField: z
+      .boolean()
+      .optional()
+      .describe(
+        "Show the optional Phone input on a contact-form section (default true)"
+      ),
+    showMessageField: z
+      .boolean()
+      .optional()
+      .describe(
+        "Show the optional Message input on a contact-form section (default true)"
+      ),
+    bannerSlides: z
+      .array(
+        z.object({
+          image: z.string(),
+          heading: z.string().optional(),
+          subheading: z.string().optional(),
+          ctaText: z.string().optional(),
+          ctaLink: z.string().optional(),
+        })
+      )
+      .optional()
+      .describe("Slides for banner_carousel sections"),
+    bannerAutoplay: z
+      .boolean()
+      .optional()
+      .describe("Auto-advance slides in a banner_carousel section"),
+    bannerInterval: z
+      .number()
+      .optional()
+      .describe(
+        "Milliseconds between banner_carousel slides when autoplay is on"
+      ),
+    socialPosts: z
+      .array(
+        z.object({
+          platform: z.enum([
+            "instagram",
+            "x",
+            "facebook",
+            "youtube",
+            "tiktok",
+            "telegram",
+            "website",
+            "other",
+          ]),
+          url: z.string(),
+          caption: z.string().optional(),
+          image: z.string().optional(),
+          author: z.string().optional(),
+        })
+      )
+      .optional()
+      .describe(
+        "Posts/videos to embed in a social_posts section (public post URLs; YouTube/X/Instagram/TikTok/Facebook/Telegram embed inline)"
+      ),
+    socialPostsLayout: z
+      .enum(["grid", "carousel"])
+      .optional()
+      .describe("Layout for a social_posts section (default grid)"),
+    socialPostsAutoplay: z
+      .boolean()
+      .optional()
+      .describe("Auto-advance a social_posts carousel (carousel layout only)"),
+    socialPostsSpeed: z
+      .number()
+      .optional()
+      .describe(
+        "Milliseconds between social_posts carousel slides when autoplay is on"
+      ),
+    marqueeBackgroundColor: z
+      .string()
+      .optional()
+      .describe(
+        "Background color of a marquee (moving banner) section (hex; defaults to the theme primary)"
+      ),
+    marqueeSpeed: z
+      .number()
+      .optional()
+      .describe(
+        "Seconds per full scroll loop for a marquee section (default 20)"
+      ),
+    marqueeDirection: z
+      .enum(["left", "right"])
+      .optional()
+      .describe(
+        "Scroll direction for a marquee section: 'left' (default) or 'right'"
+      ),
+    blogLayout: z
+      .enum(["featured", "grid", "list"])
+      .optional()
+      .describe("Layout for a blog section"),
+    blogPostIds: z
+      .array(z.string())
+      .optional()
+      .describe("Specific blog post IDs to show in a blog section"),
+    blogPostLimit: z
+      .number()
+      .optional()
+      .describe("Max blog posts to show in a blog section"),
+    blogPostMode: z
+      .enum(["latest", "selected"])
+      .optional()
+      .describe("Blog section mode: 'latest' posts or 'selected' post IDs"),
   })
   .passthrough();
 
@@ -243,7 +410,7 @@ const productPageConfigSchema = z
       .array(pageConfigSectionSchema)
       .optional()
       .describe(
-        "Ordered sections for the product detail page. Include product-scoped types like 'product_description', 'product_specifications', 'product_shipping_returns', 'product_gallery', 'related_products', plus reusable types like 'reviews', 'text', 'image', 'faq'."
+        "Ordered sections for the product detail page. Include product-scoped types like 'product_description', 'product_specifications', 'product_shipping_returns', 'product_gallery', 'related_products', plus every storefront section type ('hero', 'about', 'products', 'comparison', 'banner_carousel', 'marquee', 'social_posts', 'blog', 'contact', 'contact_form', 'reviews', 'text', 'image', 'faq', 'testimonials', 'ingredients', 'story')."
       ),
     themeOverrides: z
       .object({

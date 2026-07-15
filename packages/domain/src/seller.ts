@@ -2,6 +2,7 @@ import { CATEGORIES } from "./constants";
 import type {
   StorefrontConfig,
   StorefrontPaymentMethodGroup,
+  StorefrontSection,
 } from "./storefront";
 
 export interface NostrEventRecord {
@@ -792,6 +793,17 @@ function normalizeStorefrontConfig(
         .filter((page) => page.id && page.title && page.slug)
     : undefined;
 
+  // Product-page default sections pass through as-is (they can contain
+  // product-scoped types like product_gallery that the homepage/page
+  // sanitizers would downgrade). Render paths read the raw config anyway;
+  // this keeps them visible to server consumers (e.g. the contact-form and
+  // subscribe anti-abuse gates) instead of silently dropping them.
+  const productPageDefaults = Array.isArray(value.productPageDefaults)
+    ? (value.productPageDefaults.filter(
+        isRecord
+      ) as unknown as StorefrontSection[])
+    : undefined;
+
   const paymentMethodOrder = Array.isArray(value.paymentMethodOrder)
     ? (value.paymentMethodOrder.filter(
         (group, index, arr) =>
@@ -853,6 +865,9 @@ function normalizeStorefrontConfig(
       ? { showBlogPage: value.showBlogPage }
       : {}),
     ...(blogPage && blogPage.sections.length > 0 ? { blogPage } : {}),
+    ...(productPageDefaults && productPageDefaults.length > 0
+      ? { productPageDefaults }
+      : {}),
     ...(paymentMethodOrder && paymentMethodOrder.length > 0
       ? { paymentMethodOrder }
       : {}),

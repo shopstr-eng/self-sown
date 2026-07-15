@@ -7,6 +7,7 @@ import {
   fetchShopProfileByPubkeyFromDb,
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { sellerHasProductPageContactForm } from "@/utils/storefront/product-page-contact-form";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import {
   parseSellerShopProfileEvent,
@@ -41,6 +42,7 @@ function hasEnabledContactForm(
   const enabled = (s: { type: string; enabled?: boolean }) =>
     s.type === "contact_form" && s.enabled !== false;
   if ((storefront.sections || []).some(enabled)) return true;
+  if ((storefront.productPageDefaults || []).some(enabled)) return true;
   return (storefront.pages || []).some((page) =>
     (page.sections || []).some(enabled)
   );
@@ -94,12 +96,17 @@ export default async function handler(
   try {
     // Anti-abuse: refuse to relay mail unless this seller actually published an
     // enabled contact_form section. Without this, anyone could POST any
-    // sellerPubkey and farm their inbox through the platform.
+    // sellerPubkey and farm their inbox through the platform. The section can
+    // live in the storefront config (homepage, custom pages, product-page
+    // defaults) or in a per-product page_config override.
     const profileEvent = await fetchShopProfileByPubkeyFromDb(sellerPubkey);
     const profile = profileEvent
       ? parseSellerShopProfileEvent(profileEvent)
       : null;
-    if (!hasEnabledContactForm(profile?.content?.storefront)) {
+    if (
+      !hasEnabledContactForm(profile?.content?.storefront) &&
+      !(await sellerHasProductPageContactForm(sellerPubkey, false))
+    ) {
       return res
         .status(403)
         .json({ error: "This seller is not accepting contact messages" });

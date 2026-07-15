@@ -109,6 +109,7 @@ export default function ProductPageRenderer({
           shopPubkey={sellerPubkey}
           products={sellerProducts}
           currentProduct={product}
+          shopSlug={storefront?.shopSlug}
         />
       ))}
     </div>
