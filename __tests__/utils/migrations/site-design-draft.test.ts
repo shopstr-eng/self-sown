@@ -33,6 +33,8 @@ describe("buildExtractionDraft imported hero", () => {
       type: "banner_carousel",
       enabled: true,
       fullWidth: true,
+      contentWidth: "full",
+      imageHeight: "auto",
       bannerSlides: [{ image: "https://farm.example/hero.jpg" }],
     });
     // Shop banner pre-fill follows the same image.
@@ -62,21 +64,55 @@ describe("buildExtractionDraft imported hero", () => {
     expect(first.overlayOpacity).toBeCloseTo(0.35);
   });
 
-  test("falls back to the OG image, then to a text hero when the site has no images", () => {
+  test("never fabricates a banner from the OG image — it only pre-fills the shop banner", () => {
     const ogDraft = buildExtractionDraft(
       baseSignals({ ogImage: "https://farm.example/og.jpg" })
     );
-    expect(ogDraft.storefront.sections![0].type).toBe("banner_carousel");
-    expect(ogDraft.storefront.sections![0].bannerSlides![0].image).toBe(
+    expect(
+      ogDraft.storefront.sections!.some((s) => s.type === "banner_carousel")
+    ).toBe(false);
+    expect(ogDraft.bannerUrl).toBe("https://farm.example/og.jpg");
+    expect(ogDraft.storefront.seoMeta?.ogImage).toBe(
       "https://farm.example/og.jpg"
     );
+  });
 
-    const bareDraft = buildExtractionDraft(baseSignals());
-    const first = bareDraft.storefront.sections![0];
+  test("recreates a text hero from the source hero region's own words when it has no image", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        hero: {
+          heading: "Milk Worth The Drive",
+          subheading: "From our pastures to your table.",
+        },
+      })
+    );
+    const first = draft.storefront.sections![0];
     expect(first.type).toBe("hero");
-    expect(first.heading).toBe("Green Valley Farm");
-    expect(first.subheading).toBe("Raw milk from pastured cows.");
-    expect(first.image).toBeUndefined();
+    expect(first.heading).toBe("Milk Worth The Drive");
+    expect(first.subheading).toBe("From our pastures to your table.");
+  });
+
+  test("a page with content but no hero region gets NO fabricated hero", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        contentBlocks: [
+          { heading: "Our Story", body: "B".repeat(80), pos: 100 },
+        ],
+      })
+    );
+    const types = draft.storefront.sections!.map((s) => s.type);
+    expect(types).not.toContain("hero");
+    expect(types).not.toContain("banner_carousel");
+  });
+
+  test("falls back to a minimal text hero only when the page yielded no sections at all", () => {
+    const bareDraft = buildExtractionDraft(
+      baseSignals({ aboutText: undefined, description: undefined })
+    );
+    const sections = bareDraft.storefront.sections!;
+    expect(sections).toHaveLength(1);
+    expect(sections[0].type).toBe("hero");
+    expect(sections[0].heading).toBe("Green Valley Farm");
   });
 
   test("turns extracted YouTube videos into a social_posts section", () => {
@@ -194,6 +230,92 @@ describe("buildExtractionDraft testimonials + source order", () => {
       "Late Block",
       "https://farm.example/two.jpg",
     ]);
+  });
+});
+
+describe("buildExtractionDraft layout fidelity", () => {
+  test("image sections go full-width only on explicit full-bleed evidence", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        hero: { image: "https://farm.example/hero.jpg" },
+        images: [
+          // First image gets consumed as the about-section photo.
+          { url: "https://farm.example/about.jpg", pos: 50 },
+          { url: "https://farm.example/wide.jpg", pos: 100, fullBleed: true },
+          { url: "https://farm.example/inline.jpg", pos: 200 },
+        ],
+      })
+    );
+    const imageSections = draft.storefront.sections!.filter(
+      (s) => s.type === "image"
+    );
+    const wide = imageSections.find(
+      (s) => s.image === "https://farm.example/wide.jpg"
+    )!;
+    expect(wide.fullWidth).toBe(true);
+    expect(wide.contentWidth).toBe("full");
+    expect(wide.imageHeight).toBe("auto");
+    const inline = imageSections.find(
+      (s) => s.image === "https://farm.example/inline.jpg"
+    )!;
+    expect(inline.fullWidth).toBeUndefined();
+    expect(inline.contentWidth).toBeUndefined();
+  });
+
+  test("text sections reproduce the source's color band with readable text", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        contentBlocks: [
+          {
+            heading: "Dark Band",
+            body: "C".repeat(80),
+            pos: 100,
+            backgroundColor: "#112233",
+          },
+          { heading: "Plain Block", body: "D".repeat(80), pos: 200 },
+        ],
+      })
+    );
+    const texts = draft.storefront.sections!.filter((s) => s.type === "text");
+    const dark = texts.find((s) => s.heading === "Dark Band")!;
+    expect(dark.backgroundColor).toBe("#112233");
+    expect(dark.textColor).toBe("#ffffff");
+    const plain = texts.find((s) => s.heading === "Plain Block")!;
+    expect(plain.backgroundColor).toBeUndefined();
+    expect(plain.textColor).toBeUndefined();
+  });
+
+  test("emits a real products section where the source's product grid sits", () => {
+    const draft = buildExtractionDraft(
+      baseSignals({
+        products: [
+          { title: "Raw Milk", price: 8, currency: "USD" },
+          { title: "Butter", price: 12, currency: "USD" },
+          { title: "Kefir", price: 9, currency: "USD" },
+        ],
+        productsPos: 150,
+        contentBlocks: [
+          { heading: "Early Block", body: "A".repeat(60), pos: 100 },
+          { heading: "Late Block", body: "B".repeat(60), pos: 900 },
+        ],
+      })
+    );
+    const sections = draft.storefront.sections!;
+    const idx = sections.findIndex((s) => s.type === "products");
+    expect(idx).toBeGreaterThan(-1);
+    expect(sections[idx].id).toBe("imported-products");
+    // Ordered by source position: Early(100) < products(150) < Late(900).
+    expect(sections[idx - 1]?.heading).toBe("Early Block");
+    expect(sections[idx + 1]?.heading).toBe("Late Block");
+    // Scraped cards stay preview-only sample products.
+    expect(draft.sampleProducts).toHaveLength(3);
+  });
+
+  test("omits the products section when no product cards were found", () => {
+    const draft = buildExtractionDraft(baseSignals());
+    expect(draft.storefront.sections!.some((s) => s.type === "products")).toBe(
+      false
+    );
   });
 });
 

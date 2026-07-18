@@ -5,21 +5,16 @@ import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import FormattedText from "../formatted-text";
 import { sanitizeStorefrontSectionLink } from "@/utils/storefront-links";
+import {
+  BANNER_HEIGHT_CLASSES,
+  imageFitClass,
+  safeCssColor as safeColor,
+} from "./section-style";
 
 interface SectionBannerCarouselProps {
   section: StorefrontSection;
   colors: StorefrontColorScheme;
 }
-
-// Only let recognizable CSS color tokens flow into inline styles (same guard the
-// hero section uses); a malformed seller/MCP value falls back to the theme.
-const CSS_COLOR_RE =
-  /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/]+\)|[a-z]+)$/i;
-
-const safeColor = (value?: string): string | undefined => {
-  const trimmed = value?.trim();
-  return trimmed && CSS_COLOR_RE.test(trimmed) ? trimmed : undefined;
-};
 
 const MIN_INTERVAL_MS = 1500;
 const DEFAULT_INTERVAL_MS = 5000;
@@ -81,7 +76,20 @@ export default function SectionBannerCarousel({
       }
     : {};
 
-  const isFullWidth = section.fullWidth === true;
+  const isFullWidth =
+    section.contentWidth === "full" ||
+    (section.fullWidth === true && section.contentWidth === undefined);
+
+  // Slide height: historical default is the fixed 320/460px band. "auto" sizes
+  // the container to the ACTIVE slide's intrinsic aspect ratio (the common case
+  // for imported single-slide banners that must match the source pixel-for-
+  // pixel); short/medium/tall pick a fixed band height.
+  const autoHeight = section.imageHeight === "auto";
+  const heightClass =
+    section.imageHeight && section.imageHeight !== "auto"
+      ? BANNER_HEIGHT_CLASSES[section.imageHeight]
+      : "h-[320px] md:h-[460px]";
+  const fitClass = imageFitClass(section);
 
   return (
     <div className={isFullWidth ? "" : "mx-auto max-w-6xl px-4 py-16 md:px-6"}>
@@ -92,7 +100,9 @@ export default function SectionBannerCarousel({
         style={isFullWidth ? undefined : { borderColor: colors.primary }}
         aria-roledescription="carousel"
       >
-        <div className="relative h-[320px] w-full md:h-[460px]">
+        <div
+          className={`relative w-full ${autoHeight ? "" : heightClass}`.trim()}
+        >
           {slides.map((slide, idx) => {
             const isActive = idx === current;
             const ctaHref = slide.ctaText
@@ -100,10 +110,18 @@ export default function SectionBannerCarousel({
               : undefined;
             const hasOverlayText =
               slide.heading || slide.subheading || slide.ctaText;
+            // With auto height the active slide renders in-flow (setting the
+            // container height from its intrinsic aspect ratio); inactive
+            // slides stay absolutely stacked for the crossfade.
+            const positionClass = autoHeight
+              ? isActive
+                ? "relative"
+                : "absolute inset-0"
+              : "absolute inset-0";
             return (
               <div
                 key={idx}
-                className={`absolute inset-0 transition-opacity duration-700 ${
+                className={`${positionClass} transition-opacity duration-700 ${
                   isActive ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}
                 aria-hidden={!isActive}
@@ -111,7 +129,11 @@ export default function SectionBannerCarousel({
                 <img
                   src={sanitizeUrl(slide.image)}
                   alt={slide.heading || ""}
-                  className="h-full w-full object-cover"
+                  className={
+                    autoHeight && isActive
+                      ? "h-auto w-full"
+                      : `h-full w-full ${fitClass}`
+                  }
                   loading={idx === 0 ? "eager" : "lazy"}
                   decoding="async"
                 />

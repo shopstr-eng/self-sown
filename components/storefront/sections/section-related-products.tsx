@@ -7,6 +7,7 @@ import {
   useIsCustomDomain,
   applyCustomDomainHref,
 } from "@/utils/storefront/custom-domain-context";
+import SectionElementFlow, { headingSizeClass } from "./section-elements";
 
 interface Props {
   section: StorefrontSection;
@@ -103,17 +104,30 @@ export default function SectionRelatedProducts({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12 md:px-6">
-      <h2
-        className="font-heading mb-6 text-2xl font-bold md:text-3xl"
-        style={{ color: colors.text }}
-      >
-        {heading}
-      </h2>
-      <StorefrontProductGrid
-        products={displayProducts}
-        layout={layout}
+      <SectionElementFlow
+        section={section}
         colors={colors}
-        shopSlug={shopSlug}
+        slots={{
+          heading: (
+            <h2
+              className={`font-heading mb-6 ${headingSizeClass(
+                section,
+                "text-2xl"
+              )} font-bold ${section.headingSize ? "" : "md:text-3xl"}`.trim()}
+              style={{ color: colors.text }}
+            >
+              {heading}
+            </h2>
+          ),
+          content: (
+            <StorefrontProductGrid
+              products={displayProducts}
+              layout={layout}
+              colors={colors}
+              shopSlug={shopSlug}
+            />
+          ),
+        }}
       />
     </div>
   );

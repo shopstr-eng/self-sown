@@ -62,6 +62,16 @@ function dbError(error: unknown, startTime: number) {
   };
 }
 
+export function pickLatestProfileEvent(
+  events: NostrEvent[],
+  kind: number,
+  pubkey: string
+): NostrEvent | undefined {
+  return events
+    .filter((e) => e.kind === kind && e.pubkey === pubkey)
+    .sort((a, b) => b.created_at - a.created_at)[0];
+}
+
 function getTagValue(tags: string[][], key: string): string | undefined {
   const tag = tags.find((t) => t[0] === key);
   return tag ? tag[1] : undefined;
@@ -558,13 +568,15 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
           "get_company_details"
         );
 
-        const shopProfile = profileEvents
-          .filter((e) => e.kind === 30019 && e.pubkey === pubkey)
-          .map(parseProfileEvent)[0];
+        const shopEvent = pickLatestProfileEvent(profileEvents, 30019, pubkey);
+        const shopProfile = shopEvent
+          ? parseProfileEvent(shopEvent)
+          : undefined;
 
-        const userProfile = profileEvents
-          .filter((e) => e.kind === 0 && e.pubkey === pubkey)
-          .map(parseProfileEvent)[0];
+        const userEvent = pickLatestProfileEvent(profileEvents, 0, pubkey);
+        const userProfile = userEvent
+          ? parseProfileEvent(userEvent)
+          : undefined;
 
         const products = productEvents
           .filter((e) => e.pubkey === pubkey)
@@ -760,13 +772,23 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
           "get_storefront"
         );
 
-        const shopProfile = profileEvents
-          .filter((e) => e.kind === 30019 && e.pubkey === resolvedPubkey)
-          .map(parseProfileEvent)[0];
+        const shopProfileEvent = pickLatestProfileEvent(
+          profileEvents,
+          30019,
+          resolvedPubkey!
+        );
+        const shopProfile = shopProfileEvent
+          ? parseProfileEvent(shopProfileEvent)
+          : undefined;
 
-        const userProfile = profileEvents
-          .filter((e) => e.kind === 0 && e.pubkey === resolvedPubkey)
-          .map(parseProfileEvent)[0];
+        const userProfileEvent = pickLatestProfileEvent(
+          profileEvents,
+          0,
+          resolvedPubkey!
+        );
+        const userProfile = userProfileEvent
+          ? parseProfileEvent(userProfileEvent)
+          : undefined;
 
         if (!shopProfile && !userProfile) {
           return {

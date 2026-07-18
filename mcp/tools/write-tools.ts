@@ -184,6 +184,78 @@ const pageConfigSectionSchema = z
     image: z.string().optional(),
     imagePosition: z.enum(["left", "right"]).optional(),
     fullWidth: z.boolean().optional(),
+    backgroundColor: z
+      .string()
+      .optional()
+      .describe("Section band background color (hex)"),
+    textColor: z.string().optional().describe("Section band text color (hex)"),
+    textAlign: z
+      .enum(["left", "center", "right"])
+      .optional()
+      .describe("Text alignment for heading/body copy"),
+    contentWidth: z
+      .enum(["narrow", "normal", "full"])
+      .optional()
+      .describe(
+        "Section content width: narrow, normal, or full (edge-to-edge); overrides fullWidth when set"
+      ),
+    imageHeight: z
+      .enum(["auto", "short", "medium", "tall"])
+      .optional()
+      .describe(
+        "Image/banner height for image and banner_carousel sections; auto = intrinsic aspect ratio"
+      ),
+    imageFit: z
+      .enum(["cover", "contain"])
+      .optional()
+      .describe("How images fill a fixed-height frame"),
+    elementOrder: z
+      .array(
+        z.enum(["heading", "subheading", "body", "image", "buttons", "content"])
+      )
+      .optional()
+      .describe(
+        "Render order of the section's elements; unsupported tokens for the section type are ignored"
+      ),
+    imagePlacement: z
+      .enum(["left", "right", "top", "bottom", "background"])
+      .optional()
+      .describe(
+        "Where the section image sits relative to the other elements (stacks on mobile)"
+      ),
+    headingSize: z
+      .enum(["sm", "md", "lg", "xl"])
+      .optional()
+      .describe("Heading size step (unset = section default)"),
+    bodySize: z
+      .enum(["sm", "md", "lg", "xl"])
+      .optional()
+      .describe("Body text size step (unset = section default)"),
+    imageWidth: z
+      .union([
+        z.literal(25),
+        z.literal(33),
+        z.literal(50),
+        z.literal(66),
+        z.literal(75),
+        z.literal(100),
+      ])
+      .optional()
+      .describe("Image width percent on desktop: 25, 33, 50, 66, 75, or 100"),
+    buttons: z
+      .array(
+        z.object({
+          label: z.string(),
+          href: z.string().optional(),
+          variant: z.enum(["primary", "secondary", "outline"]).optional(),
+          size: z.enum(["sm", "md", "lg"]).optional(),
+          align: z.enum(["left", "center", "right"]).optional(),
+        })
+      )
+      .optional()
+      .describe(
+        "Call-to-action buttons rendered at the 'buttons' position in the element order"
+      ),
     ctaText: z.string().optional(),
     ctaLink: z.string().optional(),
     overlayOpacity: z.number().optional(),
@@ -453,6 +525,416 @@ function pageConfigToTag(
   if (!hasContent) return null;
   return ["page_config", JSON.stringify(cfg)];
 }
+
+// Zod param schema for the set_email_popup tool. Exported for the
+// schema-parity drift-guard test
+// (__tests__/pages/api/mcp/email-popup-schema-parity.test.ts). Must cover
+// every field of the domain StorefrontEmailPopup type, or agents silently
+// can't set that field through MCP.
+export const emailPopupToolSchema = {
+  enabled: z
+    .boolean()
+    .describe("Enable or disable the email popup on the storefront"),
+  displayMode: z
+    .enum(["modal", "fullscreen"])
+    .optional()
+    .describe(
+      "How the popup is presented: 'modal' (default) shows a centered card over a dimmed page; 'fullscreen' covers the whole page with the content and optional background image"
+    ),
+  discountPercentage: z
+    .number()
+    .min(1)
+    .max(100)
+    .describe("Discount percentage to offer (e.g. 10 for 10% off)"),
+  shippingDiscountType: z
+    .enum(["none", "free", "percent", "fixed"])
+    .optional()
+    .describe(
+      "Optional shipping discount layered on the welcome code: 'none' (default) = product discount only, 'free' waives shipping, 'percent' = shippingDiscountValue % off shipping, 'fixed' = shippingDiscountValue units off shipping"
+    ),
+  shippingDiscountValue: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      "Shipping discount amount when shippingDiscountType is 'percent' (percentage) or 'fixed' (currency units)"
+    ),
+  headline: z
+    .string()
+    .optional()
+    .describe("Popup headline text (e.g. 'Get 10% Off Your First Order')"),
+  subtext: z.string().optional().describe("Popup subtext below the headline"),
+  collectPhone: z
+    .boolean()
+    .optional()
+    .describe("Show a phone number input field"),
+  requirePhone: z
+    .boolean()
+    .optional()
+    .describe("Make the phone number field required"),
+  buttonText: z
+    .string()
+    .optional()
+    .describe("Text on the submit button (default: 'Get My Discount')"),
+  successMessage: z
+    .string()
+    .optional()
+    .describe("Message shown after successful signup"),
+  style: z
+    .object({
+      backgroundColor: z.string().optional().describe("Background color hex"),
+      textColor: z.string().optional().describe("Text color hex"),
+      accentColor: z.string().optional().describe("Accent color hex"),
+      buttonColor: z.string().optional().describe("Button color hex"),
+      buttonTextColor: z.string().optional().describe("Button text color hex"),
+      backgroundImage: z.string().optional().describe("Background image URL"),
+      overlayOpacity: z
+        .number()
+        .min(0)
+        .max(1)
+        .optional()
+        .describe(
+          "Opacity of the dark overlay over the background image (0-1)"
+        ),
+      useCustomFonts: z
+        .boolean()
+        .optional()
+        .describe("Use the storefront's custom fonts in the popup"),
+    })
+    .optional()
+    .describe(
+      "Visual styling for the popup (colors, background image, overlay). Omit to preserve the existing style."
+    ),
+  flowSteps: z
+    .array(
+      z.object({
+        id: z.string().describe("Unique step id"),
+        question: z.string().describe("Question shown for this step"),
+        answers: z
+          .array(
+            z.object({
+              id: z.string().describe("Unique answer id"),
+              label: z.string().describe("Answer button label"),
+              nextStepId: z
+                .string()
+                .optional()
+                .describe(
+                  "Id of the step to show next; omit to finish the flow"
+                ),
+            })
+          )
+          .describe("Answer choices for this step"),
+      })
+    )
+    .optional()
+    .describe(
+      "Optional interactive multi-step question flow shown before the email form. Omit to preserve existing flow steps; pass an empty array to remove them."
+    ),
+};
+
+export const storefrontSectionSchema = z.object({
+  id: z.string().describe("Unique section ID"),
+  type: z
+    .enum([
+      "hero",
+      "about",
+      "story",
+      "products",
+      "testimonials",
+      "faq",
+      "ingredients",
+      "comparison",
+      "text",
+      "image",
+      "contact",
+      "contact_form",
+      "reviews",
+      "banner_carousel",
+      "marquee",
+      "social_posts",
+      "blog",
+    ])
+    .describe("Section type"),
+  enabled: z.boolean().optional().describe("Whether section is visible"),
+  heading: z.string().optional().describe("Section heading"),
+  subheading: z.string().optional().describe("Section subheading"),
+  body: z.string().optional().describe("Section body text"),
+  image: z.string().optional().describe("Section image URL"),
+  imagePosition: z
+    .enum(["left", "right"])
+    .optional()
+    .describe("Image position for about sections"),
+  fullWidth: z
+    .boolean()
+    .optional()
+    .describe(
+      "Full-width/full-bleed toggle for image and banner_carousel sections"
+    ),
+  backgroundColor: z
+    .string()
+    .optional()
+    .describe("Section band background color (hex)"),
+  textColor: z.string().optional().describe("Section band text color (hex)"),
+  textAlign: z
+    .enum(["left", "center", "right"])
+    .optional()
+    .describe("Text alignment for heading/body copy"),
+  contentWidth: z
+    .enum(["narrow", "normal", "full"])
+    .optional()
+    .describe(
+      "Section content width: narrow, normal, or full (edge-to-edge); overrides fullWidth when set"
+    ),
+  imageHeight: z
+    .enum(["auto", "short", "medium", "tall"])
+    .optional()
+    .describe(
+      "Image/banner height for image and banner_carousel sections; auto = intrinsic aspect ratio"
+    ),
+  imageFit: z
+    .enum(["cover", "contain"])
+    .optional()
+    .describe("How images fill a fixed-height frame"),
+  elementOrder: z
+    .array(
+      z.enum(["heading", "subheading", "body", "image", "buttons", "content"])
+    )
+    .optional()
+    .describe(
+      "Render order of the section's elements; unsupported tokens for the section type are ignored"
+    ),
+  imagePlacement: z
+    .enum(["left", "right", "top", "bottom", "background"])
+    .optional()
+    .describe(
+      "Where the section image sits relative to the other elements (stacks on mobile)"
+    ),
+  headingSize: z
+    .enum(["sm", "md", "lg", "xl"])
+    .optional()
+    .describe("Heading size step (unset = section default)"),
+  bodySize: z
+    .enum(["sm", "md", "lg", "xl"])
+    .optional()
+    .describe("Body text size step (unset = section default)"),
+  imageWidth: z
+    .union([
+      z.literal(25),
+      z.literal(33),
+      z.literal(50),
+      z.literal(66),
+      z.literal(75),
+      z.literal(100),
+    ])
+    .optional()
+    .describe("Image width percent on desktop: 25, 33, 50, 66, 75, or 100"),
+  buttons: z
+    .array(
+      z.object({
+        label: z.string(),
+        href: z.string().optional(),
+        variant: z.enum(["primary", "secondary", "outline"]).optional(),
+        size: z.enum(["sm", "md", "lg"]).optional(),
+        align: z.enum(["left", "center", "right"]).optional(),
+      })
+    )
+    .optional()
+    .describe(
+      "Call-to-action buttons rendered at the 'buttons' position in the element order"
+    ),
+  ctaText: z.string().optional().describe("Call-to-action button text"),
+  ctaLink: z.string().optional().describe("Call-to-action button link"),
+  overlayOpacity: z
+    .number()
+    .optional()
+    .describe("Hero/banner overlay opacity 0-1"),
+  headingColor: z
+    .string()
+    .optional()
+    .describe("Hero/banner overlay heading text color (hex)"),
+  subheadingColor: z
+    .string()
+    .optional()
+    .describe("Hero/banner overlay subheading text color (hex)"),
+  textOutlineColor: z
+    .string()
+    .optional()
+    .describe("Hero/banner overlay text outline color (hex)"),
+  items: z
+    .array(z.object({ question: z.string(), answer: z.string() }))
+    .optional()
+    .describe("FAQ items"),
+  testimonials: z
+    .array(
+      z.object({
+        quote: z.string(),
+        author: z.string(),
+        image: z.string().optional(),
+        rating: z.number().optional(),
+      })
+    )
+    .optional()
+    .describe("Testimonial items"),
+  ingredientItems: z
+    .array(
+      z.object({
+        name: z.string(),
+        description: z.string().optional(),
+        image: z.string().optional(),
+      })
+    )
+    .optional()
+    .describe("Ingredient items"),
+  comparisonFeatures: z
+    .array(z.string())
+    .optional()
+    .describe("Comparison row labels"),
+  comparisonColumns: z
+    .array(z.object({ heading: z.string(), values: z.array(z.string()) }))
+    .optional()
+    .describe("Comparison columns"),
+  timelineItems: z
+    .array(
+      z.object({
+        year: z.string().optional(),
+        heading: z.string(),
+        body: z.string(),
+        image: z.string().optional(),
+      })
+    )
+    .optional()
+    .describe("Timeline items for story sections"),
+  productLayout: z
+    .enum(["grid", "list", "featured"])
+    .optional()
+    .describe("Product layout for product sections"),
+  productLimit: z.number().optional().describe("Max products to show"),
+  email: z.string().optional().describe("Contact email"),
+  phone: z.string().optional().describe("Contact phone"),
+  address: z.string().optional().describe("Contact address"),
+  successMessage: z
+    .string()
+    .optional()
+    .describe("Success message shown after a contact-form submission"),
+  contactFormMode: z
+    .enum(["contact", "subscription"])
+    .optional()
+    .describe(
+      "Contact-form section behavior: 'contact' emails the seller (default); 'subscription' adds the visitor to the seller's email list and enrolls them in the active welcome series"
+    ),
+  showNameField: z
+    .boolean()
+    .optional()
+    .describe(
+      "Show the optional Name input on a contact-form section (default true)"
+    ),
+  showPhoneField: z
+    .boolean()
+    .optional()
+    .describe(
+      "Show the optional Phone input on a contact-form section (default true)"
+    ),
+  showMessageField: z
+    .boolean()
+    .optional()
+    .describe(
+      "Show the optional Message input on a contact-form section (default true)"
+    ),
+  caption: z.string().optional().describe("Image caption"),
+  bannerSlides: z
+    .array(
+      z.object({
+        image: z.string(),
+        heading: z.string().optional(),
+        subheading: z.string().optional(),
+        ctaText: z.string().optional(),
+        ctaLink: z.string().optional(),
+      })
+    )
+    .optional()
+    .describe("Slides for banner_carousel sections"),
+  bannerAutoplay: z
+    .boolean()
+    .optional()
+    .describe("Auto-advance slides in a banner_carousel section"),
+  bannerInterval: z
+    .number()
+    .optional()
+    .describe(
+      "Milliseconds between banner_carousel slides when autoplay is on"
+    ),
+  socialPosts: z
+    .array(
+      z.object({
+        platform: z.enum([
+          "instagram",
+          "x",
+          "facebook",
+          "youtube",
+          "tiktok",
+          "telegram",
+          "website",
+          "other",
+        ]),
+        url: z.string(),
+        caption: z.string().optional(),
+        image: z.string().optional(),
+        author: z.string().optional(),
+      })
+    )
+    .optional()
+    .describe(
+      "Posts/videos to embed in a social_posts section (public post URLs; YouTube/X/Instagram/TikTok/Facebook/Telegram embed inline)"
+    ),
+  socialPostsLayout: z
+    .enum(["grid", "carousel"])
+    .optional()
+    .describe("Layout for a social_posts section (default grid)"),
+  socialPostsAutoplay: z
+    .boolean()
+    .optional()
+    .describe("Auto-advance a social_posts carousel (carousel layout only)"),
+  socialPostsSpeed: z
+    .number()
+    .optional()
+    .describe(
+      "Milliseconds between social_posts carousel slides when autoplay is on"
+    ),
+  marqueeBackgroundColor: z
+    .string()
+    .optional()
+    .describe(
+      "Background color of a marquee (moving banner) section (hex; defaults to the theme primary)"
+    ),
+  marqueeSpeed: z
+    .number()
+    .optional()
+    .describe(
+      "Seconds per full scroll loop for a marquee section (default 20)"
+    ),
+  marqueeDirection: z
+    .enum(["left", "right"])
+    .optional()
+    .describe(
+      "Scroll direction for a marquee section: 'left' (default) or 'right'"
+    ),
+  blogLayout: z
+    .enum(["featured", "grid", "list"])
+    .optional()
+    .describe("Layout for a blog section"),
+  blogPostIds: z
+    .array(z.string())
+    .optional()
+    .describe("Specific blog post IDs to show in a blog section"),
+  blogPostLimit: z
+    .number()
+    .optional()
+    .describe("Max blog posts to show in a blog section"),
+  blogPostMode: z
+    .enum(["latest", "selected"])
+    .optional()
+    .describe("Blog section mode: 'latest' posts or 'selected' post IDs"),
+});
 
 export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
   const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
@@ -763,240 +1245,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           "Shop-wide SEO/Open Graph metadata for the storefront (kind 30019 storefront.seoMeta)"
         ),
       storefrontSections: z
-        .array(
-          z.object({
-            id: z.string().describe("Unique section ID"),
-            type: z
-              .enum([
-                "hero",
-                "about",
-                "story",
-                "products",
-                "testimonials",
-                "faq",
-                "ingredients",
-                "comparison",
-                "text",
-                "image",
-                "contact",
-                "contact_form",
-                "reviews",
-                "banner_carousel",
-                "marquee",
-                "social_posts",
-              ])
-              .describe("Section type"),
-            enabled: z
-              .boolean()
-              .optional()
-              .describe("Whether section is visible"),
-            heading: z.string().optional().describe("Section heading"),
-            subheading: z.string().optional().describe("Section subheading"),
-            body: z.string().optional().describe("Section body text"),
-            image: z.string().optional().describe("Section image URL"),
-            imagePosition: z
-              .enum(["left", "right"])
-              .optional()
-              .describe("Image position for about sections"),
-            fullWidth: z
-              .boolean()
-              .optional()
-              .describe(
-                "Full-width/full-bleed toggle for image and banner_carousel sections"
-              ),
-            ctaText: z
-              .string()
-              .optional()
-              .describe("Call-to-action button text"),
-            ctaLink: z
-              .string()
-              .optional()
-              .describe("Call-to-action button link"),
-            overlayOpacity: z
-              .number()
-              .optional()
-              .describe("Hero/banner overlay opacity 0-1"),
-            headingColor: z
-              .string()
-              .optional()
-              .describe("Hero/banner overlay heading text color (hex)"),
-            subheadingColor: z
-              .string()
-              .optional()
-              .describe("Hero/banner overlay subheading text color (hex)"),
-            textOutlineColor: z
-              .string()
-              .optional()
-              .describe("Hero/banner overlay text outline color (hex)"),
-            items: z
-              .array(z.object({ question: z.string(), answer: z.string() }))
-              .optional()
-              .describe("FAQ items"),
-            testimonials: z
-              .array(
-                z.object({
-                  quote: z.string(),
-                  author: z.string(),
-                  image: z.string().optional(),
-                  rating: z.number().optional(),
-                })
-              )
-              .optional()
-              .describe("Testimonial items"),
-            ingredientItems: z
-              .array(
-                z.object({
-                  name: z.string(),
-                  description: z.string().optional(),
-                  image: z.string().optional(),
-                })
-              )
-              .optional()
-              .describe("Ingredient items"),
-            comparisonFeatures: z
-              .array(z.string())
-              .optional()
-              .describe("Comparison row labels"),
-            comparisonColumns: z
-              .array(
-                z.object({ heading: z.string(), values: z.array(z.string()) })
-              )
-              .optional()
-              .describe("Comparison columns"),
-            timelineItems: z
-              .array(
-                z.object({
-                  year: z.string().optional(),
-                  heading: z.string(),
-                  body: z.string(),
-                  image: z.string().optional(),
-                })
-              )
-              .optional()
-              .describe("Timeline items for story sections"),
-            productLayout: z
-              .enum(["grid", "list", "featured"])
-              .optional()
-              .describe("Product layout for product sections"),
-            productLimit: z
-              .number()
-              .optional()
-              .describe("Max products to show"),
-            email: z.string().optional().describe("Contact email"),
-            phone: z.string().optional().describe("Contact phone"),
-            address: z.string().optional().describe("Contact address"),
-            successMessage: z
-              .string()
-              .optional()
-              .describe(
-                "Success message shown after a contact-form submission"
-              ),
-            contactFormMode: z
-              .enum(["contact", "subscription"])
-              .optional()
-              .describe(
-                "Contact-form section behavior: 'contact' emails the seller (default); 'subscription' adds the visitor to the seller's email list and enrolls them in the active welcome series"
-              ),
-            showNameField: z
-              .boolean()
-              .optional()
-              .describe(
-                "Show the optional Name input on a contact-form section (default true)"
-              ),
-            showPhoneField: z
-              .boolean()
-              .optional()
-              .describe(
-                "Show the optional Phone input on a contact-form section (default true)"
-              ),
-            showMessageField: z
-              .boolean()
-              .optional()
-              .describe(
-                "Show the optional Message input on a contact-form section (default true)"
-              ),
-            caption: z.string().optional().describe("Image caption"),
-            bannerSlides: z
-              .array(
-                z.object({
-                  image: z.string(),
-                  heading: z.string().optional(),
-                  subheading: z.string().optional(),
-                  ctaText: z.string().optional(),
-                  ctaLink: z.string().optional(),
-                })
-              )
-              .optional()
-              .describe("Slides for banner_carousel sections"),
-            bannerAutoplay: z
-              .boolean()
-              .optional()
-              .describe("Auto-advance slides in a banner_carousel section"),
-            bannerInterval: z
-              .number()
-              .optional()
-              .describe(
-                "Milliseconds between banner_carousel slides when autoplay is on"
-              ),
-            socialPosts: z
-              .array(
-                z.object({
-                  platform: z.enum([
-                    "instagram",
-                    "x",
-                    "facebook",
-                    "youtube",
-                    "tiktok",
-                    "telegram",
-                    "website",
-                    "other",
-                  ]),
-                  url: z.string(),
-                  caption: z.string().optional(),
-                  image: z.string().optional(),
-                  author: z.string().optional(),
-                })
-              )
-              .optional()
-              .describe(
-                "Posts/videos to embed in a social_posts section (public post URLs; YouTube/X/Instagram/TikTok/Facebook/Telegram embed inline)"
-              ),
-            socialPostsLayout: z
-              .enum(["grid", "carousel"])
-              .optional()
-              .describe("Layout for a social_posts section (default grid)"),
-            socialPostsAutoplay: z
-              .boolean()
-              .optional()
-              .describe(
-                "Auto-advance a social_posts carousel (carousel layout only)"
-              ),
-            socialPostsSpeed: z
-              .number()
-              .optional()
-              .describe(
-                "Milliseconds between social_posts carousel slides when autoplay is on"
-              ),
-            marqueeBackgroundColor: z
-              .string()
-              .optional()
-              .describe(
-                "Background color of a marquee (moving banner) section (hex; defaults to the theme primary)"
-              ),
-            marqueeSpeed: z
-              .number()
-              .optional()
-              .describe(
-                "Seconds per full scroll loop for a marquee section (default 20)"
-              ),
-            marqueeDirection: z
-              .enum(["left", "right"])
-              .optional()
-              .describe(
-                "Scroll direction for a marquee section: 'left' (default) or 'right'"
-              ),
-          })
-        )
+        .array(storefrontSectionSchema)
         .optional()
         .describe(
           "Ordered array of homepage sections for the section-based page builder"
@@ -1008,7 +1257,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             title: z.string().describe("Page title"),
             slug: z.string().describe("URL slug for the page"),
             sections: z
-              .array(z.any())
+              .array(storefrontSectionSchema)
               .describe(
                 "Array of sections (same schema as storefrontSections)"
               ),
@@ -4881,47 +5130,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
   registerTool(
     server,
     "set_email_popup",
-    "Configure the email popup for your storefront. When enabled, visitors see a popup offering a discount in exchange for their email address. This merges with your existing popup config: fields you omit are preserved, including styling (background image/colors) and any interactive flow steps set in the dashboard.",
-    {
-      enabled: z
-        .boolean()
-        .describe("Enable or disable the email popup on the storefront"),
-      displayMode: z
-        .enum(["modal", "fullscreen"])
-        .optional()
-        .describe(
-          "How the popup is presented: 'modal' (default) shows a centered card over a dimmed page; 'fullscreen' covers the whole page with the content and optional background image"
-        ),
-      discountPercentage: z
-        .number()
-        .min(1)
-        .max(100)
-        .describe("Discount percentage to offer (e.g. 10 for 10% off)"),
-      headline: z
-        .string()
-        .optional()
-        .describe("Popup headline text (e.g. 'Get 10% Off Your First Order')"),
-      subtext: z
-        .string()
-        .optional()
-        .describe("Popup subtext below the headline"),
-      collectPhone: z
-        .boolean()
-        .optional()
-        .describe("Show a phone number input field"),
-      requirePhone: z
-        .boolean()
-        .optional()
-        .describe("Make the phone number field required"),
-      buttonText: z
-        .string()
-        .optional()
-        .describe("Text on the submit button (default: 'Get My Discount')"),
-      successMessage: z
-        .string()
-        .optional()
-        .describe("Message shown after successful signup"),
-    },
+    "Configure the email popup for your storefront. When enabled, visitors see a popup offering a discount in exchange for their email address. This merges with your existing popup config: fields you omit are preserved, including styling (background image/colors) and any interactive flow steps set in the dashboard. Use get_email_popup first to inspect the current config before changing it.",
+    emailPopupToolSchema,
     async (params) => {
       const startTime = Date.now();
       if (apiKey.permissions !== "full_access") return permissionError();
@@ -4969,6 +5179,13 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           emailPopup.buttonText = params.buttonText;
         if (params.successMessage !== undefined)
           emailPopup.successMessage = params.successMessage;
+        if (params.shippingDiscountType !== undefined)
+          emailPopup.shippingDiscountType = params.shippingDiscountType;
+        if (params.shippingDiscountValue !== undefined)
+          emailPopup.shippingDiscountValue = params.shippingDiscountValue;
+        if (params.style !== undefined) emailPopup.style = params.style;
+        if (params.flowSteps !== undefined)
+          emailPopup.flowSteps = params.flowSteps;
 
         content.storefront.emailPopup = emailPopup;
 
@@ -4993,6 +5210,55 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       } catch (error) {
         return errorResponse(
           "Failed to set email popup",
+          error instanceof Error ? error.message : "Unknown error",
+          startTime
+        );
+      }
+    }
+  );
+
+  registerTool(
+    server,
+    "get_email_popup",
+    "Get the current email popup configuration for your storefront (enabled state, discount, headline, styling, flow steps, shipping discount). Use this before set_email_popup to read-modify-write deliberately instead of relying on merge behavior.",
+    {},
+    async () => {
+      const startTime = Date.now();
+      const signer = await getSigner(apiKey);
+      if (!signer) return noSignerError();
+
+      try {
+        const pubkey = signer.getPubKey();
+
+        const profileEvents = await fetchAllProfilesFromDb();
+        const existingProfile = profileEvents
+          .filter((e) => e.kind === 30019 && e.pubkey === pubkey)
+          .sort((a, b) => b.created_at - a.created_at)[0];
+
+        let content: Record<string, any> = {};
+        if (existingProfile) {
+          try {
+            content = JSON.parse(existingProfile.content);
+          } catch {}
+        }
+
+        const emailPopup =
+          content.storefront?.emailPopup &&
+          typeof content.storefront.emailPopup === "object"
+            ? content.storefront.emailPopup
+            : null;
+
+        return successResponse(
+          {
+            pubkey,
+            configured: emailPopup !== null,
+            emailPopup,
+          },
+          startTime
+        );
+      } catch (error) {
+        return errorResponse(
+          "Failed to get email popup",
           error instanceof Error ? error.message : "Unknown error",
           startTime
         );

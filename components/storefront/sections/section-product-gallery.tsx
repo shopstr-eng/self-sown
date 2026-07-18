@@ -1,5 +1,6 @@
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import SectionElementFlow, { headingSizeClass } from "./section-elements";
 
 interface Props {
   section: StorefrontSection;
@@ -27,30 +28,43 @@ export default function SectionProductGallery({
       style={{ backgroundColor: colors.secondary + "06" }}
     >
       <div className="mx-auto max-w-6xl">
-        {heading && (
-          <h2
-            className="font-heading mb-6 text-2xl font-bold md:text-3xl"
-            style={{ color: colors.text }}
-          >
-            {heading}
-          </h2>
-        )}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
-          {images.map((src, idx) => (
-            <div
-              key={`${src}-${idx}`}
-              className="aspect-square overflow-hidden rounded-lg border-2"
-              style={{ borderColor: colors.text + "20" }}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={src}
-                alt={`${product.title} gallery ${idx + 1}`}
-                className="h-full w-full object-cover transition-transform hover:scale-105"
-              />
-            </div>
-          ))}
-        </div>
+        <SectionElementFlow
+          section={section}
+          colors={colors}
+          slots={{
+            heading: heading && (
+              <h2
+                className={`font-heading mb-6 ${headingSizeClass(
+                  section,
+                  "text-2xl"
+                )} font-bold ${
+                  section.headingSize ? "" : "md:text-3xl"
+                }`.trim()}
+                style={{ color: colors.text }}
+              >
+                {heading}
+              </h2>
+            ),
+            content: (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                {images.map((src, idx) => (
+                  <div
+                    key={`${src}-${idx}`}
+                    className="aspect-square overflow-hidden rounded-lg border-2"
+                    style={{ borderColor: colors.text + "20" }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={src}
+                      alt={`${product.title} gallery ${idx + 1}`}
+                      className="h-full w-full object-cover transition-transform hover:scale-105"
+                    />
+                  </div>
+                ))}
+              </div>
+            ),
+          }}
+        />
       </div>
     </div>
   );

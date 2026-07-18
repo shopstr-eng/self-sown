@@ -82,11 +82,26 @@ export interface ExtractedSiteSignals {
   // come only from deterministic extraction — the LLM never sees or emits them.
   // `pos` is the element's character offset in the source HTML, used to order
   // the imported sections the way the source page orders them.
-  images: { url: string; alt?: string; pos?: number }[];
-  contentBlocks: { heading: string; body: string; pos?: number }[];
-  // schema.org Product cards scraped from JSON-LD (deterministic — never the
+  // `fullBleed` is set only on explicit evidence (declared width >= 1200px or
+  // a banner/full-width class hint) that the source renders the image edge to
+  // edge — images without evidence import as contained.
+  images: { url: string; alt?: string; pos?: number; fullBleed?: boolean }[];
+  // `backgroundColor` is the nearest enclosing inline background-color (hex),
+  // captured only from explicit style attributes so an imported text section
+  // can reproduce the source page's color band.
+  contentBlocks: {
+    heading: string;
+    body: string;
+    pos?: number;
+    backgroundColor?: string;
+  }[];
+  // schema.org Product cards scraped from JSON-LD, or — when a page has no
+  // JSON-LD — repeated HTML product-card markup (deterministic — never the
   // LLM). Preview-only: never written to a StorefrontConfig.
   products?: ImportedSampleProduct[];
+  // Character offset of the source page's product grid (first product card),
+  // so the imported `products` section can sit where the source page puts it.
+  productsPos?: number;
   // Conservative nav-layout hint (v1: centered logo only) applied to the
   // imported storefront so the preview mirrors the source's nav.
   navLayout?: StorefrontNavLayout;
@@ -349,6 +364,10 @@ function buildBannerSection(
     type: "banner_carousel",
     enabled: true,
     fullWidth: true,
+    contentWidth: "full",
+    // Match the source banner's own aspect ratio instead of cropping it into
+    // the fixed 320/460px band — the single biggest pixel-fidelity win.
+    imageHeight: "auto",
     ...(heading ? { overlayOpacity: 0.35 } : {}),
     bannerSlides: [
       {
@@ -360,15 +379,25 @@ function buildBannerSection(
   };
 }
 
-// Fallback when the source has no usable banner image at all: a text hero
-// built from the site's own name/description (no AI copy, no fake CTA).
+// Text/logo hero recreation: the source page HAS a hero region but its visual
+// is plain text (no usable image). Recreated with the source's own words —
+// never AI copy. Also the last-resort fallback for a page that yielded no
+// sections at all (an empty preview helps no one).
 function buildHeroSection(signals: ExtractedSiteSignals): StorefrontSection {
+  const heading =
+    capText(signals.hero?.heading, 80) ||
+    capText(signals.siteName || signals.title, 80) ||
+    "Welcome";
+  const subheading =
+    capText(signals.hero?.subheading, 160) ||
+    (signals.hero?.heading ? undefined : capText(signals.description, 160)) ||
+    undefined;
   return {
     id: "imported-hero",
     type: "hero",
     enabled: true,
-    heading: capText(signals.siteName || signals.title, 80) || "Welcome",
-    subheading: capText(signals.description, 160) || undefined,
+    heading,
+    subheading,
     ctaText: "Shop now",
     ctaLink: "#products",
   };
@@ -417,21 +446,21 @@ export function buildExtractionDraft(
       .filter((f): f is string => !!f)
       .find((f) => f !== fontHeading) ?? fontHeading;
 
-  // Prefer the parsed hero-region image (what the source actually shows at the
-  // top), then the social/OG banner, then the first real on-page content image.
-  const heroBanner =
-    signals.hero?.image || signals.ogImage || signals.images[0]?.url;
-  const bannerFromContent =
-    !signals.hero?.image && !signals.ogImage && !!signals.images[0];
-  const contentImages = bannerFromContent
-    ? signals.images.slice(1)
-    : signals.images;
+  // Hero fidelity: a banner section ONLY when the source page's hero region
+  // actually had an image; a text hero ONLY when the region existed with text
+  // but no image. A page with no detected hero region gets NO fabricated hero
+  // — its own images/copy blocks lead, exactly like the source. (The OG image
+  // is a social-share graphic, not page content — it no longer becomes a
+  // fabricated banner; it still pre-fills the shop banner + SEO meta below.)
+  const heroImage = signals.hero?.image;
+  const contentImages = signals.images;
 
-  const sections: StorefrontSection[] = [
-    heroBanner
-      ? buildBannerSection(signals, heroBanner)
-      : buildHeroSection(signals),
-  ];
+  const sections: StorefrontSection[] = [];
+  if (heroImage) {
+    sections.push(buildBannerSection(signals, heroImage));
+  } else if (signals.hero?.heading) {
+    sections.push(buildHeroSection(signals));
+  }
 
   const about = buildAboutSection(signals);
   let aboutImageUsed = false;
@@ -472,6 +501,14 @@ export function buildExtractionDraft(
   for (let i = 0; i < richSectionCount; i++) {
     const block = extraBlocks[i];
     if (block) {
+      // Reproduce the source's color band when the block sat on an explicit
+      // inline background; contrastText keeps the copy readable on it.
+      const band = block.backgroundColor
+        ? {
+            backgroundColor: block.backgroundColor,
+            textColor: contrastText(block.backgroundColor),
+          }
+        : {};
       ordered.push({
         pos: block.pos ?? Number.MAX_SAFE_INTEGER,
         section: {
@@ -480,6 +517,7 @@ export function buildExtractionDraft(
           enabled: true,
           heading: capText(block.heading, 80),
           body: capText(block.body, 600),
+          ...band,
         },
       });
     }
@@ -490,6 +528,15 @@ export function buildExtractionDraft(
         capText(signals.siteName || signals.title, 80) ||
         siteHost ||
         undefined;
+      // Full-bleed only on explicit evidence from the source markup; everything
+      // else imports contained at its intrinsic aspect ratio.
+      const layout = image.fullBleed
+        ? {
+            fullWidth: true,
+            contentWidth: "full" as const,
+            imageHeight: "auto" as const,
+          }
+        : {};
       ordered.push({
         pos: image.pos ?? Number.MAX_SAFE_INTEGER,
         section: {
@@ -498,10 +545,24 @@ export function buildExtractionDraft(
           enabled: true,
           image: image.url,
           caption,
-          fullWidth: true,
+          ...layout,
         },
       });
     }
+  }
+
+  // The source page's product grid becomes a REAL products section (rendering
+  // the seller's actual listings once live; the preview fills it with the
+  // scraped sampleProducts), placed where the grid sits on the source page.
+  if ((signals.products?.length ?? 0) > 0) {
+    ordered.push({
+      pos: signals.productsPos ?? Number.MAX_SAFE_INTEGER - 1,
+      section: {
+        id: "imported-products",
+        type: "products",
+        enabled: true,
+      },
+    });
   }
 
   // The source page's customer quotes become a real testimonials section,
@@ -529,6 +590,11 @@ export function buildExtractionDraft(
 
   const videosSection = buildVideosSection(signals);
   if (videosSection) sections.push(videosSection);
+
+  // A page that yielded nothing at all still gets a minimal text hero built
+  // from its own name/description — an empty preview helps no one. This is
+  // the ONLY case a hero is emitted without a detected hero region.
+  if (sections.length === 0) sections.push(buildHeroSection(signals));
 
   // A source site with an explicitly dark header keeps a dark nav; otherwise
   // the nav follows the extracted page colors.
@@ -561,7 +627,9 @@ export function buildExtractionDraft(
     name: capText(signals.siteName || signals.title, 80) || undefined,
     about: capText(signals.aboutText || signals.description, 800) || undefined,
     logoUrl: signals.logoUrl || signals.faviconUrl || undefined,
-    bannerUrl: heroBanner,
+    // Shop-banner pre-fill (a profile field, not a section) keeps the OG
+    // fallback — it's exactly what the site advertises as its share image.
+    bannerUrl: signals.hero?.image || signals.ogImage || undefined,
     sampleProducts:
       signals.products && signals.products.length > 0
         ? signals.products

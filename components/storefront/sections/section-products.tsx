@@ -2,6 +2,10 @@ import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import StorefrontProductGrid from "../storefront-product-grid";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import FormattedText from "../formatted-text";
+import SectionElementFlow, {
+  headingSizeClass,
+  bodySizeClass,
+} from "./section-elements";
 
 interface SectionProductsProps {
   section: StorefrontSection;
@@ -66,43 +70,59 @@ export default function SectionProducts({
       className="mx-auto box-border w-full max-w-6xl min-w-0 px-3 py-16 sm:px-4 md:px-6"
       style={{ maxWidth: "100vw" }}
     >
-      {section.heading && (
-        <h2
-          className="font-heading mb-4 max-w-full min-w-0 text-2xl font-bold break-words sm:text-3xl"
-          style={{
-            color: "var(--sf-text)",
-            overflowWrap: "anywhere",
-            wordBreak: "break-word",
-          }}
-        >
-          {section.heading}
-        </h2>
-      )}
-      {section.subheading && (
-        <p
-          className="font-body mb-8 max-w-full min-w-0 text-base break-words opacity-70 sm:text-lg"
-          style={{
-            overflowWrap: "anywhere",
-            wordBreak: "break-word",
-          }}
-        >
-          {section.subheading}
-        </p>
-      )}
-      {isPreview ? (
-        <PreviewProductGridInline
-          products={displayProducts}
-          layout={layout}
-          colors={colors}
-        />
-      ) : (
-        <StorefrontProductGrid
-          products={displayProducts}
-          layout={layout}
-          colors={colors}
-          shopSlug={shopSlug}
-        />
-      )}
+      <SectionElementFlow
+        section={section}
+        colors={colors}
+        slots={{
+          heading: section.heading && (
+            <h2
+              className={`font-heading mb-4 max-w-full min-w-0 ${headingSizeClass(
+                section,
+                "text-2xl"
+              )} font-bold break-words ${
+                section.headingSize ? "" : "sm:text-3xl"
+              }`.trim()}
+              style={{
+                color: "var(--sf-text)",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+              }}
+            >
+              {section.heading}
+            </h2>
+          ),
+          subheading: section.subheading && (
+            <p
+              className={`font-body mb-8 max-w-full min-w-0 ${bodySizeClass(
+                section,
+                "text-base"
+              )} break-words opacity-70 ${
+                section.bodySize ? "" : "sm:text-lg"
+              }`.trim()}
+              style={{
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+              }}
+            >
+              {section.subheading}
+            </p>
+          ),
+          content: isPreview ? (
+            <PreviewProductGridInline
+              products={displayProducts}
+              layout={layout}
+              colors={colors}
+            />
+          ) : (
+            <StorefrontProductGrid
+              products={displayProducts}
+              layout={layout}
+              colors={colors}
+              shopSlug={shopSlug}
+            />
+          ),
+        }}
+      />
     </div>
   );
 }

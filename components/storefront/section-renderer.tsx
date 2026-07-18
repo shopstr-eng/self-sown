@@ -23,6 +23,7 @@ import SectionProductGallery from "./sections/section-product-gallery";
 import SectionProductReviews from "./sections/section-product-reviews";
 import SectionRelatedProducts from "./sections/section-related-products";
 import SectionBlog from "./sections/section-blog";
+import { sectionBandStyle } from "./sections/section-style";
 
 interface SectionRendererProps {
   section: StorefrontSection;
@@ -49,6 +50,38 @@ export default function SectionRenderer({
 }: SectionRendererProps) {
   if (section.enabled === false) return null;
 
+  const body = renderSectionBody({
+    section,
+    colors,
+    shopName,
+    shopPicture,
+    shopPubkey,
+    products,
+    isPreview,
+    currentProduct,
+    shopSlug,
+  });
+  if (!body) return null;
+
+  // Optional per-section color band. Setting --sf-text re-points headings that
+  // explicitly use var(--sf-text); `color` covers inherited body text. Legacy
+  // sections (no custom colors) skip the wrapper entirely.
+  const bandStyle = sectionBandStyle(section);
+  if (!bandStyle) return body;
+  return <div style={bandStyle}>{body}</div>;
+}
+
+function renderSectionBody({
+  section,
+  colors,
+  shopName,
+  shopPicture,
+  shopPubkey,
+  products,
+  isPreview,
+  currentProduct,
+  shopSlug,
+}: SectionRendererProps) {
   switch (section.type) {
     case "hero":
       return (

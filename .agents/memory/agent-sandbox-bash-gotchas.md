@@ -44,3 +44,12 @@ diagnostics skill's `getLatestLspDiagnostics({filePath})` per touched file — t
 `tsserver` LSP is already running, so it returns type errors for those exact files
 in seconds. Reserve full tsc for when you truly need whole-graph checking and can
 babysit it in the foreground.
+
+**Caveat — empty LSP diagnostics can be a false clean.** `getLatestLspDiagnostics`
+returned `{diagnostics:{}}` for files that genuinely had missing imports and
+out-of-scope identifiers (tsserver hadn't analyzed those files; empty means "no
+data", not "no errors"). After a multi-file refactor, back the LSP check with a
+cheap structural audit: grep each touched file for the symbols it uses vs. what
+it imports, and node-parse function param destructures for props you pass (e.g.
+`colors={colors}` with no `colors` in the signature). External code review caught
+what LSP missed.

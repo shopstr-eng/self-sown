@@ -201,6 +201,79 @@ export interface StorefrontBannerSlide {
   ctaLink?: string;
 }
 
+// A call-to-action button carried by a section. Buttons render as one group
+// placed via the "buttons" token in elementOrder. Hrefs are sanitized at
+// render time (http(s)/relative/# only) since storefront events are
+// permissionless.
+export interface StorefrontSectionButton {
+  label: string;
+  href?: string;
+  variant?: "primary" | "secondary" | "outline";
+  size?: "sm" | "md" | "lg";
+  align?: "left" | "center" | "right";
+}
+
+// Element tokens for element-level layout inside a section. "content" is the
+// section's type-specific block (FAQ items, testimonials, timeline, product
+// grid, gallery, ...).
+export type StorefrontSectionElement =
+  | "heading"
+  | "subheading"
+  | "body"
+  | "image"
+  | "buttons"
+  | "content";
+
+// Which elements each section type supports for arranging, in the section's
+// historical default render order. Types not listed (marquee, banner_carousel)
+// are structural and don't support element-level arranging. Shared by the
+// Arrange editor UI and the renderers so they can't drift.
+export const STOREFRONT_SECTION_ELEMENTS: Partial<
+  Record<StorefrontSectionType, StorefrontSectionElement[]>
+> = {
+  hero: ["heading", "subheading", "buttons"],
+  about: ["heading", "body", "image", "buttons"],
+  story: ["heading", "body", "content", "buttons"],
+  products: ["heading", "subheading", "content", "buttons"],
+  testimonials: ["heading", "content", "buttons"],
+  faq: ["heading", "content", "buttons"],
+  ingredients: ["heading", "body", "content", "buttons"],
+  comparison: ["heading", "content", "buttons"],
+  text: ["heading", "body", "buttons"],
+  image: ["image", "buttons"],
+  contact: ["heading", "body", "content", "buttons"],
+  contact_form: ["heading", "body", "content", "buttons"],
+  reviews: ["heading", "content", "buttons"],
+  blog: ["heading", "subheading", "body", "content", "buttons"],
+  social_posts: ["heading", "subheading", "content", "buttons"],
+  product_description: ["heading", "content", "buttons"],
+  product_specifications: ["heading", "content", "buttons"],
+  product_shipping_returns: ["heading", "content", "buttons"],
+  product_gallery: ["heading", "content", "buttons"],
+  related_products: ["heading", "content", "buttons"],
+};
+
+// Effective element order for a section: the seller's (sanitized) elementOrder
+// intersected with the type's supported elements, with any missing supported
+// elements appended in default order. Safe for partial/legacy configs.
+export function resolveSectionElements(section: {
+  type: StorefrontSectionType;
+  elementOrder?: StorefrontSectionElement[];
+}): StorefrontSectionElement[] {
+  const available = STOREFRONT_SECTION_ELEMENTS[section.type];
+  if (!available) return [];
+  // Dedup here too: per-product pageConfig reaches renderers without the
+  // domain sanitizer, so raw input can carry duplicate tokens.
+  const ordered: StorefrontSectionElement[] = [];
+  for (const el of section.elementOrder || []) {
+    if (available.includes(el) && !ordered.includes(el)) ordered.push(el);
+  }
+  for (const el of available) {
+    if (!ordered.includes(el)) ordered.push(el);
+  }
+  return ordered;
+}
+
 export interface StorefrontSection {
   id: string;
   type: StorefrontSectionType;
@@ -279,6 +352,40 @@ export interface StorefrontSection {
   marqueeBackgroundColor?: string;
   marqueeSpeed?: number;
   marqueeDirection?: "left" | "right";
+  // Per-section layout/styling knobs (all optional; absent = the section's
+  // historical default rendering, so legacy configs are unchanged).
+  // backgroundColor/textColor paint the section as a full-width color band —
+  // used both by sellers (alternating band designs) and by the website importer
+  // to mirror a source page's section background colors.
+  backgroundColor?: string;
+  textColor?: string;
+  // Text alignment for heading/body copy in text-like sections.
+  textAlign?: "left" | "center" | "right";
+  // Content width: "narrow" (max-w-4xl), "normal" (max-w-6xl), "full"
+  // (edge-to-edge). Wins over the legacy boolean fullWidth when present.
+  contentWidth?: "narrow" | "normal" | "full";
+  // Image/banner height for image + banner_carousel sections. "auto" sizes to
+  // the image's intrinsic aspect ratio; short/medium/tall map to fixed banner
+  // heights (banner_carousel's historical default is "medium"-like 320/460px).
+  imageHeight?: "auto" | "short" | "medium" | "tall";
+  // How images fill their frame when a fixed height applies.
+  imageFit?: "cover" | "contain";
+  // Element-level layout (drag-and-drop layout builder). All optional; absent
+  // = the section's historical default layout so legacy configs are unchanged.
+  // elementOrder lists element tokens in render order; unknown/unsupported
+  // tokens are dropped and missing ones appended (resolveSectionElements).
+  elementOrder?: StorefrontSectionElement[];
+  // Where the section image sits relative to the other elements. Wins over
+  // the legacy about-only imagePosition when present. "background" renders the
+  // image behind the section content with an overlay for legibility.
+  imagePlacement?: "left" | "right" | "top" | "bottom" | "background";
+  // Text size steps; undefined = each section's historical classes.
+  headingSize?: "sm" | "md" | "lg" | "xl";
+  bodySize?: "sm" | "md" | "lg" | "xl";
+  // Image width as a percentage of the content area (allowlisted steps).
+  imageWidth?: 25 | 33 | 50 | 66 | 75 | 100;
+  // Call-to-action buttons rendered as one group at the "buttons" slot.
+  buttons?: StorefrontSectionButton[];
 }
 
 export interface StorefrontProductPageConfig {
@@ -346,6 +453,64 @@ export interface StorefrontEmailPopup {
   style?: PopupStyle;
   flowSteps?: PopupFlowStep[];
 }
+
+// Runtime field lists for the email popup config, compiler-checked against
+// the interfaces above. The MCP set_email_popup tool schema is verified
+// against these in a drift-guard test
+// (__tests__/pages/api/mcp/email-popup-schema-parity.test.ts): adding a field
+// to StorefrontEmailPopup/PopupStyle/PopupFlowStep/PopupFlowAnswer without
+// updating the list is a compile error here, and a list entry missing from
+// the MCP zod schema fails the test — so agent saves can never silently drop
+// a popup field.
+type ExhaustiveFieldList<T, L extends readonly (keyof T)[]> =
+  Exclude<keyof T, L[number]> extends never ? L : never;
+
+const emailPopupFields = [
+  "enabled",
+  "displayMode",
+  "discountPercentage",
+  "shippingDiscountType",
+  "shippingDiscountValue",
+  "headline",
+  "subtext",
+  "collectPhone",
+  "requirePhone",
+  "buttonText",
+  "successMessage",
+  "style",
+  "flowSteps",
+] as const;
+export const STOREFRONT_EMAIL_POPUP_FIELDS: ExhaustiveFieldList<
+  StorefrontEmailPopup,
+  typeof emailPopupFields
+> = emailPopupFields;
+
+const popupStyleFields = [
+  "backgroundColor",
+  "textColor",
+  "accentColor",
+  "buttonColor",
+  "buttonTextColor",
+  "backgroundImage",
+  "overlayOpacity",
+  "useCustomFonts",
+] as const;
+export const POPUP_STYLE_FIELDS: ExhaustiveFieldList<
+  PopupStyle,
+  typeof popupStyleFields
+> = popupStyleFields;
+
+const popupFlowStepFields = ["id", "question", "answers"] as const;
+export const POPUP_FLOW_STEP_FIELDS: ExhaustiveFieldList<
+  PopupFlowStep,
+  typeof popupFlowStepFields
+> = popupFlowStepFields;
+
+const popupFlowAnswerFields = ["id", "label", "nextStepId"] as const;
+export const POPUP_FLOW_ANSWER_FIELDS: ExhaustiveFieldList<
+  PopupFlowAnswer,
+  typeof popupFlowAnswerFields
+> = popupFlowAnswerFields;
 
 export interface StorefrontSeoMeta {
   metaTitle?: string;

@@ -170,6 +170,89 @@ describe("extractSiteSignals content blocks", () => {
   });
 });
 
+describe("extractSiteSignals full-bleed image evidence", () => {
+  test("flags images as full-bleed only with a wide declared width or banner class", async () => {
+    serve(
+      page(`
+        <img src="/wide-shot.jpg" width="1400" alt="Wide pasture">
+        <img src="/band-photo.jpg" class="section-banner" alt="Farm banner shot">
+        <img src="/inline-photo.jpg" width="600" alt="Inline photo">
+      `)
+    );
+    const signals = await extractSiteSignals(BASE);
+    const byUrl = (name: string) =>
+      signals.images.find((i) => i.url.includes(name));
+    expect(byUrl("wide-shot")!.fullBleed).toBe(true);
+    expect(byUrl("band-photo")!.fullBleed).toBe(true);
+    expect(byUrl("inline-photo")!.fullBleed).toBeUndefined();
+  });
+});
+
+describe("extractSiteSignals content-block band colors", () => {
+  test("captures the nearest enclosing inline background-color, skipping white", async () => {
+    serve(
+      page(`
+        <div style="background-color:#1a2b3c;padding:40px">
+          <h3>Dark Band Heading</h3>
+          <p>This block of copy sits on an explicitly dark inline background band.</p>
+        </div>
+        <div style="background:#ffffff">
+          <h3>White Band Heading</h3>
+          <p>This block sits on an explicit white band which is the default anyway.</p>
+        </div>
+        <h3>Plain Heading</h3>
+        <p>This block has no styled ancestor at all and stays without a band color.</p>
+      `)
+    );
+    const signals = await extractSiteSignals(BASE);
+    const find = (h: string) =>
+      signals.contentBlocks.find((b) => b.heading === h);
+    expect(find("Dark Band Heading")!.backgroundColor).toBe("#1a2b3c");
+    expect(find("White Band Heading")!.backgroundColor).toBeUndefined();
+    expect(find("Plain Heading")!.backgroundColor).toBeUndefined();
+  });
+});
+
+describe("extractSiteSignals HTML product cards", () => {
+  const card = (n: number) => `
+    <li class="grid__item product-card">
+      <img src="/products/item-${n}.jpg" alt="Product ${n} photo">
+      <h3>Farm Product ${n}</h3>
+      <span class="price">$${n}.50</span>
+    </li>`;
+
+  test("scrapes repeated product-card markup with titles, images and prices", async () => {
+    serve(page(`<ul>${card(1)}${card(2)}${card(3)}${card(4)}</ul>`));
+    const signals = await extractSiteSignals(BASE);
+    expect(signals.products).toHaveLength(4);
+    expect(signals.products![0]).toEqual({
+      title: "Farm Product 1",
+      image: `${BASE}products/item-1.jpg`,
+      price: 1.5,
+      currency: "USD",
+    });
+    expect(signals.productsPos).toBeGreaterThan(0);
+  });
+
+  test("fewer than three matching cards is not a product grid", async () => {
+    serve(page(`<ul>${card(1)}${card(2)}</ul>`));
+    const signals = await extractSiteSignals(BASE);
+    expect(signals.products).toHaveLength(0);
+  });
+
+  test("JSON-LD products win over HTML card scraping", async () => {
+    serve(
+      page(
+        `<ul>${card(1)}${card(2)}${card(3)}</ul>`,
+        `<script type="application/ld+json">{"@type":"Product","name":"Structured Milk","offers":{"price":"7.00","priceCurrency":"USD"}}</script>`
+      )
+    );
+    const signals = await extractSiteSignals(BASE);
+    expect(signals.products).toHaveLength(1);
+    expect(signals.products![0]!.title).toBe("Structured Milk");
+  });
+});
+
 describe("extractSiteSignals platform stylesheets", () => {
   test("never fetches shared platform CSS but still fetches site CSS", async () => {
     const siteCss = `${BASE}assets/site.css`;

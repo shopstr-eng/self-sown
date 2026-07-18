@@ -21,6 +21,10 @@ import {
   TikTokScriptEmbed,
   TwitterScriptEmbed,
 } from "./platform-script-embeds";
+import SectionElementFlow, {
+  headingSizeClass,
+  bodySizeClass,
+} from "./section-elements";
 
 interface SectionSocialPostsProps {
   section: StorefrontSection;
@@ -288,59 +292,73 @@ export default function SectionSocialPosts({
       }}
     >
       <div className="mx-auto box-border w-full max-w-6xl min-w-0">
-        {section.heading && (
-          <FormattedText
-            text={section.heading}
-            as="h2"
-            className="font-heading mb-3 text-center text-3xl font-bold"
-            style={{ color: "var(--sf-text)" }}
-          />
-        )}
-        {section.subheading && (
-          <FormattedText
-            text={section.subheading}
-            as="p"
-            className="font-body mb-10 text-center text-base opacity-70"
-            style={{ color: "var(--sf-text)" }}
-          />
-        )}
-
-        {layout === "grid" ? (
-          <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((post, idx) => (
-              <PostCard key={idx} post={post} colors={colors} />
-            ))}
-          </div>
-        ) : (
-          <div
-            className={`storefront-social-carousel relative mx-auto w-full max-w-full ${
-              autoplay ? "overflow-hidden" : "overflow-x-auto pb-2"
-            }`}
-            style={{ minWidth: 0 }}
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-          >
-            <div
-              ref={trackRef}
-              className={`flex items-stretch gap-6 ${
-                autoplay ? "storefront-social-carousel-track" : ""
-              }`}
-              style={{
-                animationPlayState: paused ? "paused" : "running",
-              }}
-            >
-              {(autoplay ? [...posts, ...posts] : posts).map((post, idx) => (
-                <div
-                  key={idx}
-                  className="storefront-social-carousel-item flex-shrink-0"
-                  style={{ scrollSnapAlign: "start" }}
-                >
-                  <PostCard post={post} colors={colors} />
+        <SectionElementFlow
+          section={section}
+          colors={colors}
+          slots={{
+            heading: section.heading && (
+              <FormattedText
+                text={section.heading}
+                as="h2"
+                className={`font-heading mb-3 text-center ${headingSizeClass(
+                  section,
+                  "text-3xl"
+                )} font-bold`}
+                style={{ color: "var(--sf-text)" }}
+              />
+            ),
+            subheading: section.subheading && (
+              <FormattedText
+                text={section.subheading}
+                as="p"
+                className={`font-body mb-10 text-center ${bodySizeClass(
+                  section,
+                  "text-base"
+                )} opacity-70`}
+                style={{ color: "var(--sf-text)" }}
+              />
+            ),
+            content:
+              layout === "grid" ? (
+                <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {posts.map((post, idx) => (
+                    <PostCard key={idx} post={post} colors={colors} />
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              ) : (
+                <div
+                  className={`storefront-social-carousel relative mx-auto w-full max-w-full ${
+                    autoplay ? "overflow-hidden" : "overflow-x-auto pb-2"
+                  }`}
+                  style={{ minWidth: 0 }}
+                  onMouseEnter={() => setPaused(true)}
+                  onMouseLeave={() => setPaused(false)}
+                >
+                  <div
+                    ref={trackRef}
+                    className={`flex items-stretch gap-6 ${
+                      autoplay ? "storefront-social-carousel-track" : ""
+                    }`}
+                    style={{
+                      animationPlayState: paused ? "paused" : "running",
+                    }}
+                  >
+                    {(autoplay ? [...posts, ...posts] : posts).map(
+                      (post, idx) => (
+                        <div
+                          key={idx}
+                          className="storefront-social-carousel-item flex-shrink-0"
+                          style={{ scrollSnapAlign: "start" }}
+                        >
+                          <PostCard post={post} colors={colors} />
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              ),
+          }}
+        />
       </div>
 
       <style jsx global>{`

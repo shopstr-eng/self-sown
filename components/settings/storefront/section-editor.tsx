@@ -18,6 +18,10 @@ import {
 import {
   parseBlogPostEvent,
   dedupeLatestBlogPosts,
+  resolveSectionElements,
+  STOREFRONT_SECTION_ELEMENTS,
+  type StorefrontSectionElement,
+  type StorefrontSectionButton,
   type BlogPost,
 } from "@milk-market/domain";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
@@ -1329,8 +1333,616 @@ export default function SectionEditor({
               }
             />
           )}
+
+          <LayoutStyleControls section={section} update={update} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Per-section layout & styling knobs (background/text color band, alignment,
+// width, image sizing). All optional — leaving a control at its default keeps
+// the section's historical rendering. The width/alignment/image controls only
+// appear for section types whose renderer honors them.
+const TEXT_ALIGN_TYPES = new Set(["text", "about"]);
+const CONTENT_WIDTH_TYPES = new Set(["text", "image", "banner_carousel"]);
+const IMAGE_SIZE_TYPES = new Set(["image", "banner_carousel", "about"]);
+
+function LayoutStyleControls({
+  section,
+  update,
+}: {
+  section: StorefrontSection;
+  update: (fields: Partial<StorefrontSection>) => void;
+}) {
+  const [open, setOpen] = useState(
+    Boolean(
+      section.backgroundColor ||
+      section.textColor ||
+      section.textAlign ||
+      section.contentWidth ||
+      section.imageHeight ||
+      section.imageFit ||
+      section.elementOrder?.length ||
+      section.imagePlacement ||
+      section.headingSize ||
+      section.bodySize ||
+      section.imageWidth ||
+      section.buttons?.length
+    )
+  );
+  const showTextAlign = TEXT_ALIGN_TYPES.has(section.type);
+  const showContentWidth = CONTENT_WIDTH_TYPES.has(section.type);
+  const showImageSize = IMAGE_SIZE_TYPES.has(section.type);
+  const arrangeElements = STOREFRONT_SECTION_ELEMENTS[section.type];
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 text-sm font-bold text-black"
+      >
+        <span className="text-xs">{open ? "▾" : "▸"}</span>
+        Layout &amp; Style
+      </button>
+      {open && (
+        <div className="mt-3 space-y-4">
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">
+              Background Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Section background color"
+                value={section.backgroundColor || "#ffffff"}
+                onChange={(e) => update({ backgroundColor: e.target.value })}
+                className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+              />
+              <Input
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={section.backgroundColor || ""}
+                onChange={(e) =>
+                  update({ backgroundColor: e.target.value || undefined })
+                }
+                placeholder="Default (theme background)"
+              />
+              {section.backgroundColor && (
+                <button
+                  type="button"
+                  onClick={() => update({ backgroundColor: undefined })}
+                  className="shrink-0 text-xs text-gray-500 underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">
+              Text Color
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Section text color"
+                value={section.textColor || "#000000"}
+                onChange={(e) => update({ textColor: e.target.value })}
+                className="h-10 w-12 shrink-0 cursor-pointer rounded-md border-2 border-black bg-white p-1"
+              />
+              <Input
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={section.textColor || ""}
+                onChange={(e) =>
+                  update({ textColor: e.target.value || undefined })
+                }
+                placeholder="Default (theme text)"
+              />
+              {section.textColor && (
+                <button
+                  type="button"
+                  onClick={() => update({ textColor: undefined })}
+                  className="shrink-0 text-xs text-gray-500 underline"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+          {showTextAlign && (
+            <Select
+              label="Text Alignment"
+              classNames={selectClassNames}
+              variant="bordered"
+              selectedKeys={[section.textAlign || "default"]}
+              onChange={(e) =>
+                update({
+                  textAlign:
+                    e.target.value === "default"
+                      ? undefined
+                      : (e.target.value as "left" | "center" | "right"),
+                })
+              }
+            >
+              <SelectItem key="default" className="text-black">
+                Default
+              </SelectItem>
+              <SelectItem key="left" className="text-black">
+                Left
+              </SelectItem>
+              <SelectItem key="center" className="text-black">
+                Center
+              </SelectItem>
+              <SelectItem key="right" className="text-black">
+                Right
+              </SelectItem>
+            </Select>
+          )}
+          {showContentWidth && (
+            <Select
+              label="Content Width"
+              classNames={selectClassNames}
+              variant="bordered"
+              selectedKeys={[section.contentWidth || "default"]}
+              onChange={(e) =>
+                update({
+                  contentWidth:
+                    e.target.value === "default"
+                      ? undefined
+                      : (e.target.value as "narrow" | "normal" | "full"),
+                })
+              }
+            >
+              <SelectItem key="default" className="text-black">
+                Default
+              </SelectItem>
+              <SelectItem key="narrow" className="text-black">
+                Narrow
+              </SelectItem>
+              <SelectItem key="normal" className="text-black">
+                Normal
+              </SelectItem>
+              <SelectItem key="full" className="text-black">
+                Full Width (edge to edge)
+              </SelectItem>
+            </Select>
+          )}
+          {showImageSize && (
+            <div className="flex gap-3">
+              <Select
+                label="Image Height"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.imageHeight || "default"]}
+                onChange={(e) =>
+                  update({
+                    imageHeight:
+                      e.target.value === "default"
+                        ? undefined
+                        : (e.target.value as
+                            | "auto"
+                            | "short"
+                            | "medium"
+                            | "tall"),
+                  })
+                }
+                className="flex-1"
+              >
+                <SelectItem key="default" className="text-black">
+                  Default
+                </SelectItem>
+                <SelectItem key="auto" className="text-black">
+                  Auto (match image shape)
+                </SelectItem>
+                <SelectItem key="short" className="text-black">
+                  Short
+                </SelectItem>
+                <SelectItem key="medium" className="text-black">
+                  Medium
+                </SelectItem>
+                <SelectItem key="tall" className="text-black">
+                  Tall
+                </SelectItem>
+              </Select>
+              <Select
+                label="Image Fit"
+                classNames={selectClassNames}
+                variant="bordered"
+                selectedKeys={[section.imageFit || "cover"]}
+                onChange={(e) =>
+                  update({
+                    imageFit:
+                      e.target.value === "cover"
+                        ? undefined
+                        : (e.target.value as "contain"),
+                  })
+                }
+                className="flex-1"
+              >
+                <SelectItem key="cover" className="text-black">
+                  Fill (crop to fit)
+                </SelectItem>
+                <SelectItem key="contain" className="text-black">
+                  Fit (show whole image)
+                </SelectItem>
+              </Select>
+            </div>
+          )}
+          {arrangeElements && (
+            <>
+              <div className="border-t border-gray-200 pt-3">
+                <label className="mb-1 block text-xs text-gray-500">
+                  Arrange Elements
+                </label>
+                <p className="mb-2 text-xs text-gray-400">
+                  Drag to change the order the pieces of this section appear in.
+                </p>
+                <ElementOrderList section={section} update={update} />
+              </div>
+              <div className="flex gap-3">
+                <Select
+                  label="Heading Size"
+                  classNames={selectClassNames}
+                  variant="bordered"
+                  selectedKeys={[section.headingSize || "default"]}
+                  onChange={(e) =>
+                    update({
+                      headingSize:
+                        e.target.value === "default"
+                          ? undefined
+                          : (e.target.value as "sm" | "md" | "lg" | "xl"),
+                    })
+                  }
+                  className="flex-1"
+                >
+                  <SelectItem key="default" className="text-black">
+                    Default
+                  </SelectItem>
+                  <SelectItem key="sm" className="text-black">
+                    Small
+                  </SelectItem>
+                  <SelectItem key="md" className="text-black">
+                    Medium
+                  </SelectItem>
+                  <SelectItem key="lg" className="text-black">
+                    Large
+                  </SelectItem>
+                  <SelectItem key="xl" className="text-black">
+                    Extra Large
+                  </SelectItem>
+                </Select>
+                <Select
+                  label="Text Size"
+                  classNames={selectClassNames}
+                  variant="bordered"
+                  selectedKeys={[section.bodySize || "default"]}
+                  onChange={(e) =>
+                    update({
+                      bodySize:
+                        e.target.value === "default"
+                          ? undefined
+                          : (e.target.value as "sm" | "md" | "lg" | "xl"),
+                    })
+                  }
+                  className="flex-1"
+                >
+                  <SelectItem key="default" className="text-black">
+                    Default
+                  </SelectItem>
+                  <SelectItem key="sm" className="text-black">
+                    Small
+                  </SelectItem>
+                  <SelectItem key="md" className="text-black">
+                    Medium
+                  </SelectItem>
+                  <SelectItem key="lg" className="text-black">
+                    Large
+                  </SelectItem>
+                  <SelectItem key="xl" className="text-black">
+                    Extra Large
+                  </SelectItem>
+                </Select>
+              </div>
+              {arrangeElements.includes("image") && (
+                <div className="flex gap-3">
+                  <Select
+                    label="Image Placement"
+                    classNames={selectClassNames}
+                    variant="bordered"
+                    selectedKeys={[section.imagePlacement || "default"]}
+                    onChange={(e) =>
+                      update({
+                        imagePlacement:
+                          e.target.value === "default"
+                            ? undefined
+                            : (e.target.value as
+                                | "left"
+                                | "right"
+                                | "top"
+                                | "bottom"
+                                | "background"),
+                      })
+                    }
+                    className="flex-1"
+                  >
+                    <SelectItem key="default" className="text-black">
+                      Default
+                    </SelectItem>
+                    <SelectItem key="left" className="text-black">
+                      Left of text
+                    </SelectItem>
+                    <SelectItem key="right" className="text-black">
+                      Right of text
+                    </SelectItem>
+                    <SelectItem key="top" className="text-black">
+                      Top
+                    </SelectItem>
+                    <SelectItem key="bottom" className="text-black">
+                      Bottom
+                    </SelectItem>
+                    <SelectItem key="background" className="text-black">
+                      Background
+                    </SelectItem>
+                  </Select>
+                  <Select
+                    label="Image Width"
+                    classNames={selectClassNames}
+                    variant="bordered"
+                    selectedKeys={[
+                      section.imageWidth
+                        ? String(section.imageWidth)
+                        : "default",
+                    ]}
+                    onChange={(e) =>
+                      update({
+                        imageWidth:
+                          e.target.value === "default"
+                            ? undefined
+                            : parseInt(e.target.value),
+                      })
+                    }
+                    className="flex-1"
+                  >
+                    <SelectItem key="default" className="text-black">
+                      Default
+                    </SelectItem>
+                    <SelectItem key="25" className="text-black">
+                      25%
+                    </SelectItem>
+                    <SelectItem key="33" className="text-black">
+                      33%
+                    </SelectItem>
+                    <SelectItem key="50" className="text-black">
+                      50%
+                    </SelectItem>
+                    <SelectItem key="66" className="text-black">
+                      66%
+                    </SelectItem>
+                    <SelectItem key="75" className="text-black">
+                      75%
+                    </SelectItem>
+                    <SelectItem key="100" className="text-black">
+                      100%
+                    </SelectItem>
+                  </Select>
+                </div>
+              )}
+              {arrangeElements.includes("buttons") && (
+                <SectionButtonsEditor
+                  buttons={section.buttons || []}
+                  onChange={(buttons) => update({ buttons })}
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ELEMENT_LABELS: Record<StorefrontSectionElement, string> = {
+  heading: "Heading",
+  subheading: "Subheading",
+  body: "Body Text",
+  image: "Image",
+  buttons: "Buttons",
+  content: "Content Block",
+};
+
+// Drag-reorderable list of the section's elements. Always shows the effective
+// order (seller's saved order merged with the type's supported elements) so
+// legacy sections start from their historical default order.
+function ElementOrderList({
+  section,
+  update,
+}: {
+  section: StorefrontSection;
+  update: (fields: Partial<StorefrontSection>) => void;
+}) {
+  const order = resolveSectionElements(section);
+  const { getItemProps } = useDragReorder(order, (next) =>
+    update({ elementOrder: next })
+  );
+
+  return (
+    <div className="space-y-1">
+      {order.map((el, idx) => {
+        const { rootProps, handleProps, isDragging, isDragOver } =
+          getItemProps(idx);
+        return (
+          <div
+            key={el}
+            {...rootProps}
+            className={`flex items-center gap-2 rounded border bg-white px-2 py-1.5 text-sm text-black ${
+              isDragOver ? "border-black" : "border-gray-200"
+            } ${isDragging ? "opacity-50" : ""}`}
+          >
+            <button
+              type="button"
+              {...handleProps}
+              className="text-gray-400 hover:text-black"
+            >
+              ⠿
+            </button>
+            {ELEMENT_LABELS[el]}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function SectionButtonsEditor({
+  buttons,
+  onChange,
+}: {
+  buttons: StorefrontSectionButton[];
+  onChange: (next: StorefrontSectionButton[] | undefined) => void;
+}) {
+  const set = (next: StorefrontSectionButton[]) =>
+    onChange(next.length > 0 ? next : undefined);
+  const edit = (idx: number, fields: Partial<StorefrontSectionButton>) => {
+    const next = [...buttons];
+    next[idx] = { ...next[idx]!, ...fields };
+    set(next);
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="block text-xs text-gray-500">Buttons</label>
+      {buttons.map((btn, idx) => (
+        <div
+          key={idx}
+          className="space-y-2 rounded border border-gray-200 bg-white p-2"
+        >
+          <div className="flex items-start gap-2">
+            <div className="flex-1 space-y-2">
+              <Input
+                label="Label"
+                size="sm"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={btn.label}
+                onChange={(e) => edit(idx, { label: e.target.value })}
+              />
+              <Input
+                label="Link"
+                size="sm"
+                classNames={{ inputWrapper: inputWrapperClass }}
+                variant="bordered"
+                value={btn.href || ""}
+                onChange={(e) =>
+                  edit(idx, { href: e.target.value || undefined })
+                }
+                placeholder="/marketplace or https://..."
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => set(buttons.filter((_, i) => i !== idx))}
+              className="text-xs text-red-500"
+              aria-label="Remove button"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <Select
+              label="Style"
+              size="sm"
+              classNames={selectClassNames}
+              variant="bordered"
+              selectedKeys={[btn.variant || "primary"]}
+              onChange={(e) =>
+                edit(idx, {
+                  variant:
+                    e.target.value === "primary"
+                      ? undefined
+                      : (e.target.value as "secondary" | "outline"),
+                })
+              }
+              className="flex-1"
+            >
+              <SelectItem key="primary" className="text-black">
+                Primary
+              </SelectItem>
+              <SelectItem key="secondary" className="text-black">
+                Secondary
+              </SelectItem>
+              <SelectItem key="outline" className="text-black">
+                Outline
+              </SelectItem>
+            </Select>
+            <Select
+              label="Size"
+              size="sm"
+              classNames={selectClassNames}
+              variant="bordered"
+              selectedKeys={[btn.size || "md"]}
+              onChange={(e) =>
+                edit(idx, {
+                  size:
+                    e.target.value === "md"
+                      ? undefined
+                      : (e.target.value as "sm" | "lg"),
+                })
+              }
+              className="flex-1"
+            >
+              <SelectItem key="sm" className="text-black">
+                Small
+              </SelectItem>
+              <SelectItem key="md" className="text-black">
+                Medium
+              </SelectItem>
+              <SelectItem key="lg" className="text-black">
+                Large
+              </SelectItem>
+            </Select>
+            <Select
+              label="Align"
+              size="sm"
+              classNames={selectClassNames}
+              variant="bordered"
+              selectedKeys={[btn.align || "default"]}
+              onChange={(e) =>
+                edit(idx, {
+                  align:
+                    e.target.value === "default"
+                      ? undefined
+                      : (e.target.value as "left" | "center" | "right"),
+                })
+              }
+              className="flex-1"
+            >
+              <SelectItem key="default" className="text-black">
+                Default
+              </SelectItem>
+              <SelectItem key="left" className="text-black">
+                Left
+              </SelectItem>
+              <SelectItem key="center" className="text-black">
+                Center
+              </SelectItem>
+              <SelectItem key="right" className="text-black">
+                Right
+              </SelectItem>
+            </Select>
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => set([...buttons, { label: "Learn More" }])}
+        className="text-xs font-bold text-black underline"
+      >
+        + Add Button
+      </button>
     </div>
   );
 }

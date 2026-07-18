@@ -295,6 +295,59 @@ describe("seller domain helpers", () => {
     });
   });
 
+  test("preserves blog section settings on custom page-builder pages", () => {
+    const result = parseSellerShopProfileEvent({
+      id: "shop-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30019,
+      sig: "sig",
+      tags: [["d", "seller-pubkey"]],
+      content: JSON.stringify({
+        name: "Fresh Farm",
+        storefront: {
+          shopSlug: "fresh-farm",
+          pages: [
+            {
+              id: "page-news",
+              title: "News",
+              slug: "news",
+              sections: [
+                {
+                  id: "blog-page",
+                  type: "blog",
+                  enabled: true,
+                  heading: "Farm News",
+                  blogLayout: "list",
+                  blogPostMode: "selected",
+                  blogPostLimit: 5,
+                  blogPostIds: ["post-a", "post-b", 42],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    });
+
+    expect(result).not.toBeNull();
+    const storefront = (result as { content: { storefront: any } }).content
+      .storefront;
+
+    // Custom-page sections must keep the full blog field set, matching the
+    // homepage sanitizer; non-string ids are filtered out of blogPostIds.
+    expect(storefront.pages[0].sections[0]).toEqual({
+      id: "blog-page",
+      type: "blog",
+      enabled: true,
+      heading: "Farm News",
+      blogLayout: "list",
+      blogPostMode: "selected",
+      blogPostLimit: 5,
+      blogPostIds: ["post-a", "post-b"],
+    });
+  });
+
   test("preserves banner_carousel sections and drops slides without an image", () => {
     const result = parseSellerShopProfileEvent({
       id: "shop-event",

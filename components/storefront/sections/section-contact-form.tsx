@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import FormattedText from "../formatted-text";
+import SectionElementFlow, {
+  headingSizeClass,
+  bodySizeClass,
+} from "./section-elements";
 
 interface SectionContactFormProps {
   section: StorefrontSection;
@@ -121,126 +125,147 @@ export default function SectionContactForm({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 md:px-6">
-      {section.heading && (
-        <FormattedText
-          text={section.heading}
-          as="h2"
-          className="font-heading mb-4 text-center text-3xl font-bold"
-          style={{ color: section.headingColor || "var(--sf-text)" }}
-        />
-      )}
-      {section.body && (
-        <FormattedText
-          text={section.body}
-          as="p"
-          className="font-body mx-auto mb-8 max-w-xl text-center text-lg opacity-70"
-        />
-      )}
-
-      <div
-        className="mx-auto max-w-md rounded-xl border p-6 md:p-8"
-        style={{ borderColor: colors.primary + "22" }}
-      >
-        {state === "success" ? (
-          <p
-            className="font-body py-8 text-center text-lg"
-            style={{ color: colors.accent }}
-          >
-            {successMessage}
-          </p>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            {showName && (
-              <div>
-                <label className={labelClass} htmlFor="contact-form-name">
-                  Name
-                </label>
-                <input
-                  id="contact-form-name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={100}
-                  className={inputClass}
-                  style={inputStyle}
-                  placeholder="Your name"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className={labelClass} htmlFor="contact-form-email">
-                Email<span style={{ color: colors.accent }}> *</span>
-              </label>
-              <input
-                id="contact-form-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                maxLength={254}
-                required
-                className={inputClass}
-                style={inputStyle}
-                placeholder="you@example.com"
-              />
-            </div>
-
-            {showPhone && (
-              <div>
-                <label className={labelClass} htmlFor="contact-form-phone">
-                  Phone
-                </label>
-                <input
-                  id="contact-form-phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  maxLength={50}
-                  className={inputClass}
-                  style={inputStyle}
-                  placeholder="(555) 555-5555"
-                />
-              </div>
-            )}
-
-            {showMessage && (
-              <div>
-                <label className={labelClass} htmlFor="contact-form-message">
-                  Message
-                </label>
-                <textarea
-                  id="contact-form-message"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  maxLength={2000}
-                  rows={4}
-                  className={`${inputClass} resize-y`}
-                  style={inputStyle}
-                  placeholder="How can we help?"
-                />
-              </div>
-            )}
-
-            {error && <p className="font-body text-sm text-red-600">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={state === "submitting"}
-              className="font-body w-full rounded-lg px-6 py-3 text-base font-bold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              style={{
-                backgroundColor: colors.primary,
-                color: colors.background,
-              }}
+      <SectionElementFlow
+        section={section}
+        colors={colors}
+        slots={{
+          heading: section.heading && (
+            <FormattedText
+              text={section.heading}
+              as="h2"
+              className={`font-heading mb-4 text-center ${headingSizeClass(
+                section,
+                "text-3xl"
+              )} font-bold`}
+              style={{ color: section.headingColor || "var(--sf-text)" }}
+            />
+          ),
+          body: section.body && (
+            <FormattedText
+              text={section.body}
+              as="p"
+              className={`font-body mx-auto mb-8 max-w-xl text-center ${bodySizeClass(
+                section,
+                "text-lg"
+              )} opacity-70`}
+            />
+          ),
+          content: (
+            <div
+              className="mx-auto max-w-md rounded-xl border p-6 md:p-8"
+              style={{ borderColor: colors.primary + "22" }}
             >
-              {state === "submitting"
-                ? isSubscription
-                  ? "Subscribing…"
-                  : "Sending…"
-                : buttonLabel}
-            </button>
-          </form>
-        )}
-      </div>
+              {state === "success" ? (
+                <p
+                  className="font-body py-8 text-center text-lg"
+                  style={{ color: colors.accent }}
+                >
+                  {successMessage}
+                </p>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                  {showName && (
+                    <div>
+                      <label className={labelClass} htmlFor="contact-form-name">
+                        Name
+                      </label>
+                      <input
+                        id="contact-form-name"
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        maxLength={100}
+                        className={inputClass}
+                        style={inputStyle}
+                        placeholder="Your name"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className={labelClass} htmlFor="contact-form-email">
+                      Email<span style={{ color: colors.accent }}> *</span>
+                    </label>
+                    <input
+                      id="contact-form-email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      maxLength={254}
+                      required
+                      className={inputClass}
+                      style={inputStyle}
+                      placeholder="you@example.com"
+                    />
+                  </div>
+
+                  {showPhone && (
+                    <div>
+                      <label
+                        className={labelClass}
+                        htmlFor="contact-form-phone"
+                      >
+                        Phone
+                      </label>
+                      <input
+                        id="contact-form-phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        maxLength={50}
+                        className={inputClass}
+                        style={inputStyle}
+                        placeholder="(555) 555-5555"
+                      />
+                    </div>
+                  )}
+
+                  {showMessage && (
+                    <div>
+                      <label
+                        className={labelClass}
+                        htmlFor="contact-form-message"
+                      >
+                        Message
+                      </label>
+                      <textarea
+                        id="contact-form-message"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        maxLength={2000}
+                        rows={4}
+                        className={`${inputClass} resize-y`}
+                        style={inputStyle}
+                        placeholder="How can we help?"
+                      />
+                    </div>
+                  )}
+
+                  {error && (
+                    <p className="font-body text-sm text-red-600">{error}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={state === "submitting"}
+                    className="font-body w-full rounded-lg px-6 py-3 text-base font-bold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    style={{
+                      backgroundColor: colors.primary,
+                      color: colors.background,
+                    }}
+                  >
+                    {state === "submitting"
+                      ? isSubscription
+                        ? "Subscribing…"
+                        : "Sending…"
+                      : buttonLabel}
+                  </button>
+                </form>
+              )}
+            </div>
+          ),
+        }}
+      />
     </div>
   );
 }

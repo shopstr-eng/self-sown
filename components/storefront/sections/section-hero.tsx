@@ -2,6 +2,12 @@ import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import FormattedText from "../formatted-text";
 import { sanitizeStorefrontSectionLink } from "@/utils/storefront-links";
+import { safeCssColor as safeColor } from "./section-style";
+import SectionElementFlow, {
+  SectionButtons,
+  headingSizeClass,
+  bodySizeClass,
+} from "./section-elements";
 
 interface SectionHeroProps {
   section: StorefrontSection;
@@ -9,18 +15,6 @@ interface SectionHeroProps {
   shopName: string;
   shopPicture?: string;
 }
-
-// Only let recognizable CSS color tokens (hex / rgb(a) / hsl(a) / named) flow
-// into inline styles. Seller-supplied colors come from a native color picker but
-// the field also accepts free text and MCP input, so a malformed value falls
-// back to the theme default instead of producing broken CSS.
-const CSS_COLOR_RE =
-  /^(#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(rgb|rgba|hsl|hsla)\([0-9.,%\s/]+\)|[a-z]+)$/i;
-
-const safeColor = (value?: string): string | undefined => {
-  const trimmed = value?.trim();
-  return trimmed && CSS_COLOR_RE.test(trimmed) ? trimmed : undefined;
-};
 
 export default function SectionHero({
   section,
@@ -84,34 +78,52 @@ export default function SectionHero({
           />
         )}
 
-        <FormattedText
-          text={section.heading || shopName}
-          as="h1"
-          className="font-heading text-4xl font-bold md:text-5xl"
-          style={{ color: headingColor, ...headingOutlineStyle }}
+        <SectionElementFlow
+          section={section}
+          colors={colors}
+          slots={{
+            heading: (
+              <FormattedText
+                text={section.heading || shopName}
+                as="h1"
+                className={`font-heading ${headingSizeClass(
+                  section,
+                  "text-4xl"
+                )} font-bold${section.headingSize ? "" : "md:text-5xl"}`}
+                style={{ color: headingColor, ...headingOutlineStyle }}
+              />
+            ),
+            subheading: section.subheading && (
+              <FormattedText
+                text={section.subheading}
+                as="p"
+                className={`font-body mt-4 max-w-xl ${bodySizeClass(
+                  section,
+                  "text-lg"
+                )}`}
+                style={{ color: subheadingColor, ...subheadingOutlineStyle }}
+              />
+            ),
+            buttons:
+              section.ctaText || section.buttons?.length ? (
+                <>
+                  {section.ctaText && (
+                    <a
+                      href={sanitizeStorefrontSectionLink(section.ctaLink)}
+                      className="mt-8 inline-block rounded-lg px-8 py-3 text-base font-bold transition-transform hover:-translate-y-0.5"
+                      style={{
+                        backgroundColor: colors.primary,
+                        color: colors.secondary,
+                      }}
+                    >
+                      {section.ctaText}
+                    </a>
+                  )}
+                  <SectionButtons section={section} colors={colors} />
+                </>
+              ) : undefined,
+          }}
         />
-
-        {section.subheading && (
-          <FormattedText
-            text={section.subheading}
-            as="p"
-            className="font-body mt-4 max-w-xl text-lg"
-            style={{ color: subheadingColor, ...subheadingOutlineStyle }}
-          />
-        )}
-
-        {section.ctaText && (
-          <a
-            href={sanitizeStorefrontSectionLink(section.ctaLink)}
-            className="mt-8 inline-block rounded-lg px-8 py-3 text-base font-bold transition-transform hover:-translate-y-0.5"
-            style={{
-              backgroundColor: colors.primary,
-              color: colors.secondary,
-            }}
-          >
-            {section.ctaText}
-          </a>
-        )}
       </div>
     </div>
   );

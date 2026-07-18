@@ -1,5 +1,6 @@
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import SectionElementFlow, { headingSizeClass } from "./section-elements";
 
 interface Props {
   section: StorefrontSection;
@@ -62,41 +63,56 @@ export default function SectionProductSpecifications({
       style={{ backgroundColor: colors.secondary + "08" }}
     >
       <div className="mx-auto max-w-4xl">
-        <h2
-          className="font-heading mb-6 text-2xl font-bold md:text-3xl"
-          style={{ color: colors.text }}
-        >
-          {heading}
-        </h2>
-        <dl
-          className="grid grid-cols-1 overflow-hidden rounded-lg border-2 sm:grid-cols-2"
-          style={{ borderColor: colors.text + "20" }}
-        >
-          {specs.map((spec, idx) => (
-            <div
-              key={`${spec.label}-${idx}`}
-              className="flex flex-col gap-1 p-4"
-              style={{
-                borderBottom: `1px solid ${colors.text}10`,
-                backgroundColor:
-                  idx % 2 === 0 ? "transparent" : colors.secondary + "06",
-              }}
-            >
-              <dt
-                className="font-body text-xs font-semibold tracking-wide uppercase opacity-60"
+        <SectionElementFlow
+          section={section}
+          colors={colors}
+          slots={{
+            heading: (
+              <h2
+                className={`font-heading mb-6 ${headingSizeClass(
+                  section,
+                  "text-2xl"
+                )} font-bold ${
+                  section.headingSize ? "" : "md:text-3xl"
+                }`.trim()}
                 style={{ color: colors.text }}
               >
-                {spec.label}
-              </dt>
-              <dd
-                className="font-body text-base"
-                style={{ color: colors.text }}
+                {heading}
+              </h2>
+            ),
+            content: (
+              <dl
+                className="grid grid-cols-1 overflow-hidden rounded-lg border-2 sm:grid-cols-2"
+                style={{ borderColor: colors.text + "20" }}
               >
-                {spec.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+                {specs.map((spec, idx) => (
+                  <div
+                    key={`${spec.label}-${idx}`}
+                    className="flex flex-col gap-1 p-4"
+                    style={{
+                      borderBottom: `1px solid ${colors.text}10`,
+                      backgroundColor:
+                        idx % 2 === 0 ? "transparent" : colors.secondary + "06",
+                    }}
+                  >
+                    <dt
+                      className="font-body text-xs font-semibold tracking-wide uppercase opacity-60"
+                      style={{ color: colors.text }}
+                    >
+                      {spec.label}
+                    </dt>
+                    <dd
+                      className="font-body text-base"
+                      style={{ color: colors.text }}
+                    >
+                      {spec.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ),
+          }}
+        />
       </div>
     </div>
   );

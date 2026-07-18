@@ -17,6 +17,10 @@ import {
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
 import FormattedText from "../formatted-text";
+import SectionElementFlow, {
+  headingSizeClass,
+  bodySizeClass,
+} from "./section-elements";
 
 interface SectionBlogProps {
   section: StorefrontSection;
@@ -162,145 +166,168 @@ export default function SectionBlog({
       className="mx-auto box-border w-full max-w-6xl min-w-0 px-3 py-16 sm:px-4 md:px-6"
       style={{ maxWidth: "100vw" }}
     >
-      {section.heading && (
-        <h2
-          className="font-heading mb-4 max-w-full min-w-0 text-2xl font-bold break-words sm:text-3xl"
-          style={{
-            color: section.headingColor || "var(--sf-text)",
-            overflowWrap: "anywhere",
-            wordBreak: "break-word",
-          }}
-        >
-          {section.heading}
-        </h2>
-      )}
-      {section.subheading && (
-        <p
-          className="font-body mb-8 max-w-full min-w-0 text-base break-words opacity-70 sm:text-lg"
-          style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
-        >
-          {section.subheading}
-        </p>
-      )}
-      {section.body && (
-        <FormattedText
-          as="div"
-          text={section.body}
-          className="font-body mb-8 max-w-3xl whitespace-pre-line opacity-80"
-        />
-      )}
-
-      {featured && (
-        <a
-          href={isPreview ? undefined : hrefFor(featured)}
-          className="group mb-8 block w-full overflow-hidden rounded-xl border-2 text-left transition-shadow hover:shadow-lg"
-          style={{ borderColor: colors.primary + "33" }}
-        >
-          <div className="md:flex">
-            {featured.image && (
-              <div className="md:w-1/2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={featured.image}
-                  alt={featured.title}
-                  className="h-64 w-full object-cover md:h-full"
-                />
-              </div>
-            )}
-            <div className="flex flex-col justify-center p-8 md:w-1/2">
-              <span
-                className="mb-2 text-sm font-semibold tracking-wider uppercase"
-                style={{ color: colors.accent }}
-              >
-                Latest
-              </span>
-              <h3 className="font-heading text-2xl font-bold md:text-3xl">
-                {featured.title}
-              </h3>
-              {featured.summary && (
-                <p className="font-body mt-3 opacity-70">{featured.summary}</p>
-              )}
-              <span className="font-body mt-4 text-sm opacity-50">
-                {formatDate(featured.publishedAt)}
-              </span>
-            </div>
-          </div>
-        </a>
-      )}
-
-      {rest.length > 0 && (
-        <div
-          className={
-            layout === "list"
-              ? "mx-auto max-w-3xl space-y-4"
-              : "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
-          }
-        >
-          {rest.map((post) =>
-            layout === "list" ? (
-              <a
-                key={post.id}
-                href={isPreview ? undefined : hrefFor(post)}
-                className="flex w-full gap-4 overflow-hidden rounded-xl border-2 p-4 text-left transition-shadow hover:shadow-md"
-                style={{ borderColor: colors.primary + "22" }}
-              >
-                {post.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={post.image}
-                    alt={post.title}
-                    className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
-                  />
-                )}
-                <div className="flex flex-1 flex-col justify-center">
-                  <h3 className="font-heading text-base font-bold">
-                    {post.title}
-                  </h3>
-                  {post.summary && (
-                    <p className="font-body mt-1 line-clamp-2 text-sm opacity-60">
-                      {post.summary}
-                    </p>
-                  )}
-                  <span className="font-body mt-2 text-xs opacity-50">
-                    {formatDate(post.publishedAt)}
-                  </span>
-                </div>
-              </a>
-            ) : (
-              <a
-                key={post.id}
-                href={isPreview ? undefined : hrefFor(post)}
-                className="flex flex-col overflow-hidden rounded-xl border-2 text-left transition-shadow hover:shadow-lg"
-                style={{ borderColor: colors.primary + "22" }}
-              >
-                {post.image && (
-                  <div className="aspect-video overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={post.image}
-                      alt={post.title}
-                      className="h-full w-full object-cover transition-transform hover:scale-105"
-                    />
+      <SectionElementFlow
+        section={section}
+        colors={colors}
+        slots={{
+          heading: section.heading && (
+            <h2
+              className={`font-heading mb-4 max-w-full min-w-0 ${headingSizeClass(
+                section,
+                "text-2xl"
+              )} font-bold break-words ${
+                section.headingSize ? "" : "sm:text-3xl"
+              }`.trim()}
+              style={{
+                color: section.headingColor || "var(--sf-text)",
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+              }}
+            >
+              {section.heading}
+            </h2>
+          ),
+          subheading: section.subheading && (
+            <p
+              className={`font-body mb-8 max-w-full min-w-0 ${bodySizeClass(
+                section,
+                "text-base"
+              )} break-words opacity-70 ${
+                section.bodySize ? "" : "sm:text-lg"
+              }`.trim()}
+              style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
+            >
+              {section.subheading}
+            </p>
+          ),
+          body: section.body && (
+            <FormattedText
+              as="div"
+              text={section.body}
+              className={`font-body mb-8 max-w-3xl whitespace-pre-line opacity-80${
+                section.bodySize ? ` ${bodySizeClass(section, "")}` : ""
+              }`}
+            />
+          ),
+          content: (
+            <>
+              {featured && (
+                <a
+                  href={isPreview ? undefined : hrefFor(featured)}
+                  className="group mb-8 block w-full overflow-hidden rounded-xl border-2 text-left transition-shadow hover:shadow-lg"
+                  style={{ borderColor: colors.primary + "33" }}
+                >
+                  <div className="md:flex">
+                    {featured.image && (
+                      <div className="md:w-1/2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={featured.image}
+                          alt={featured.title}
+                          className="h-64 w-full object-cover md:h-full"
+                        />
+                      </div>
+                    )}
+                    <div className="flex flex-col justify-center p-8 md:w-1/2">
+                      <span
+                        className="mb-2 text-sm font-semibold tracking-wider uppercase"
+                        style={{ color: colors.accent }}
+                      >
+                        Latest
+                      </span>
+                      <h3 className="font-heading text-2xl font-bold md:text-3xl">
+                        {featured.title}
+                      </h3>
+                      {featured.summary && (
+                        <p className="font-body mt-3 opacity-70">
+                          {featured.summary}
+                        </p>
+                      )}
+                      <span className="font-body mt-4 text-sm opacity-50">
+                        {formatDate(featured.publishedAt)}
+                      </span>
+                    </div>
                   </div>
-                )}
-                <div className="flex flex-1 flex-col p-4">
-                  <h3 className="font-heading line-clamp-2 text-base font-bold">
-                    {post.title}
-                  </h3>
-                  {post.summary && (
-                    <p className="font-body mt-1 line-clamp-3 flex-1 text-sm opacity-60">
-                      {post.summary}
-                    </p>
+                </a>
+              )}
+
+              {rest.length > 0 && (
+                <div
+                  className={
+                    layout === "list"
+                      ? "mx-auto max-w-3xl space-y-4"
+                      : "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                  }
+                >
+                  {rest.map((post) =>
+                    layout === "list" ? (
+                      <a
+                        key={post.id}
+                        href={isPreview ? undefined : hrefFor(post)}
+                        className="flex w-full gap-4 overflow-hidden rounded-xl border-2 p-4 text-left transition-shadow hover:shadow-md"
+                        style={{ borderColor: colors.primary + "22" }}
+                      >
+                        {post.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={post.image}
+                            alt={post.title}
+                            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
+                          />
+                        )}
+                        <div className="flex flex-1 flex-col justify-center">
+                          <h3 className="font-heading text-base font-bold">
+                            {post.title}
+                          </h3>
+                          {post.summary && (
+                            <p className="font-body mt-1 line-clamp-2 text-sm opacity-60">
+                              {post.summary}
+                            </p>
+                          )}
+                          <span className="font-body mt-2 text-xs opacity-50">
+                            {formatDate(post.publishedAt)}
+                          </span>
+                        </div>
+                      </a>
+                    ) : (
+                      <a
+                        key={post.id}
+                        href={isPreview ? undefined : hrefFor(post)}
+                        className="flex flex-col overflow-hidden rounded-xl border-2 text-left transition-shadow hover:shadow-lg"
+                        style={{ borderColor: colors.primary + "22" }}
+                      >
+                        {post.image && (
+                          <div className="aspect-video overflow-hidden">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={post.image}
+                              alt={post.title}
+                              className="h-full w-full object-cover transition-transform hover:scale-105"
+                            />
+                          </div>
+                        )}
+                        <div className="flex flex-1 flex-col p-4">
+                          <h3 className="font-heading line-clamp-2 text-base font-bold">
+                            {post.title}
+                          </h3>
+                          {post.summary && (
+                            <p className="font-body mt-1 line-clamp-3 flex-1 text-sm opacity-60">
+                              {post.summary}
+                            </p>
+                          )}
+                          <span className="font-body mt-3 text-xs opacity-50">
+                            {formatDate(post.publishedAt)}
+                          </span>
+                        </div>
+                      </a>
+                    )
                   )}
-                  <span className="font-body mt-3 text-xs opacity-50">
-                    {formatDate(post.publishedAt)}
-                  </span>
                 </div>
-              </a>
-            )
-          )}
-        </div>
-      )}
+              )}
+            </>
+          ),
+        }}
+      />
     </div>
   );
 }

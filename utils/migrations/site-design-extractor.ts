@@ -384,6 +384,28 @@ function imageAttrTooSmall(tag: string): boolean {
   return (w > 0 && w < 100) || (h > 0 && h < 100);
 }
 
+// Explicit evidence that the source renders an image edge to edge: a declared
+// width of at least 1200px (on the tag or as the largest srcset candidate) or
+// a banner/full-width class hint on the <img> itself. Anything without
+// evidence imports as a contained image — never guessed full-bleed.
+const FULL_BLEED_CLASS_RE = /\b(banner|full[-_]?(?:width|bleed)|hero)\b/i;
+
+function imageIsFullBleed(tag: string): boolean {
+  const w = Number(tag.match(/\bwidth=["']?(\d+)/i)?.[1] ?? "");
+  if (w >= 1200) return true;
+  const srcset =
+    tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1] ||
+    tag.match(/\bdata-srcset=["']([^"']+)["']/i)?.[1];
+  if (srcset) {
+    for (const part of srcset.split(",")) {
+      const d = part.trim().split(/\s+/)[1]?.toLowerCase();
+      if (d?.endsWith("w") && (parseInt(d, 10) || 0) >= 1600) return true;
+    }
+  }
+  const cls = tag.match(/\bclass=["']([^"']*)["']/i)?.[1] || "";
+  return FULL_BLEED_CLASS_RE.test(cls);
+}
+
 /**
  * Pull a handful of real content images (banners, feature graphics) from the
  * page in document order, skipping logos/icons/tracking pixels and anything we
@@ -394,9 +416,14 @@ function extractContentImages(
   html: string,
   base: URL,
   exclude: Set<string>
-): { url: string; alt?: string; pos?: number }[] {
+): { url: string; alt?: string; pos?: number; fullBleed?: boolean }[] {
   const tagRe = /<img\b[^>]*>/gi;
-  const out: { url: string; alt?: string; pos?: number }[] = [];
+  const out: {
+    url: string;
+    alt?: string;
+    pos?: number;
+    fullBleed?: boolean;
+  }[] = [];
   const seen = new Set<string>(exclude);
   let m: RegExpExecArray | null;
   while ((m = tagRe.exec(html)) !== null) {
@@ -422,9 +449,28 @@ function extractContentImages(
       url: abs,
       alt: alt && alt.length > 0 ? alt : undefined,
       pos: m.index,
+      ...(imageIsFullBleed(tag) ? { fullBleed: true } : {}),
     });
   }
   return out;
+}
+
+// Nearest enclosing inline background-color BEFORE a block's position:
+// the last <section>/<div> open tag in the preceding window that declares an
+// explicit background(-color) in its style attribute. Only inline styles are
+// trusted (stylesheet cascade can't be resolved without a real DOM); white is
+// dropped because it's already the default band.
+function nearestBandColor(html: string, pos: number): string | undefined {
+  const windowStart = Math.max(0, pos - 1500);
+  const slice = html.slice(windowStart, pos);
+  const re =
+    /<(?:section|div)\b[^>]*\bstyle=["'][^"']*background(?:-color)?\s*:\s*([^;"']+)/gi;
+  let last: string | undefined;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(slice)) !== null) last = m[1];
+  if (!last) return undefined;
+  const hex = normalizeHexColor(last.trim());
+  return hex && hex !== "#ffffff" ? hex : undefined;
 }
 
 /**
@@ -433,14 +479,22 @@ function extractContentImages(
  * that have BOTH a real heading and a substantial paragraph, so we never
  * fabricate headings or ship nav/cookie boilerplate.
  */
-function extractContentBlocks(
-  html: string
-): { heading: string; body: string; pos?: number }[] {
+function extractContentBlocks(html: string): {
+  heading: string;
+  body: string;
+  pos?: number;
+  backgroundColor?: string;
+}[] {
   const cleaned = stripNonContent(html);
 
   const tokenRe =
     /<(h[1-4])\b[^>]*>([\s\S]*?)<\/\1>|<p\b[^>]*>([\s\S]*?)<\/p>/gi;
-  const blocks: { heading: string; body: string; pos?: number }[] = [];
+  const blocks: {
+    heading: string;
+    body: string;
+    pos?: number;
+    backgroundColor?: string;
+  }[] = [];
   let heading: string | null = null;
   let headingPos = 0;
   let body: string[] = [];
@@ -448,8 +502,15 @@ function extractContentBlocks(
   const flush = () => {
     if (heading) {
       const text = body.join("\n\n").trim();
-      if (text.length >= 40)
-        blocks.push({ heading, body: text.slice(0, 800), pos: headingPos });
+      if (text.length >= 40) {
+        const backgroundColor = nearestBandColor(cleaned, headingPos);
+        blocks.push({
+          heading,
+          body: text.slice(0, 800),
+          pos: headingPos,
+          ...(backgroundColor ? { backgroundColor } : {}),
+        });
+      }
     }
     heading = null;
     body = [];
@@ -806,6 +867,131 @@ function extractJsonLdProducts(
   return out;
 }
 
+// Repeated HTML product-card detection for pages without JSON-LD. A "card" is
+// an element whose class says product/collection-item etc. containing an image,
+// a short title, and a visible price. Requires at least 3 cards so a lone
+// "product" div can't fabricate a product grid; capped at MAX_JSONLD_PRODUCTS.
+const PRODUCT_CARD_CLASS_RE =
+  /\b(product[-_]?(card|item|tile|block|grid[-_]?item)?|grid__item|collection[-_]?item|shop[-_]?item|item[-_]?card)\b/i;
+const CARD_SLICE_CHARS = 3000;
+const MAX_PRODUCT_CARD_CANDIDATES = 60;
+
+const PRICE_SYMBOL_CURRENCY: Record<string, string> = {
+  $: "USD",
+  "€": "EUR",
+  "£": "GBP",
+};
+
+function parseCardPrice(
+  slice: string
+): { price: number; currency: string } | undefined {
+  const text = cleanInlineText(slice);
+  const sym = text.match(/([$€£])\s?(\d{1,6}(?:[.,]\d{2})?)/);
+  if (sym) {
+    const price = parseFloat(sym[2]!.replace(",", "."));
+    if (Number.isFinite(price) && price > 0)
+      return { price, currency: PRICE_SYMBOL_CURRENCY[sym[1]!] || "USD" };
+  }
+  const code = text.match(/(\d{1,6}(?:[.,]\d{2})?)\s?(USD|EUR|GBP|CAD|AUD)\b/i);
+  if (code) {
+    const price = parseFloat(code[1]!.replace(",", "."));
+    if (Number.isFinite(price) && price > 0)
+      return { price, currency: code[2]!.toUpperCase() };
+  }
+  return undefined;
+}
+
+function cardTitle(slice: string, imgAlt?: string): string | undefined {
+  const heading =
+    slice.match(/<h[2-6]\b[^>]*>([\s\S]*?)<\/h[2-6]>/i)?.[1] ||
+    slice.match(
+      /<a\b[^>]*(?:class=["'][^"']*(?:title|name)[^"']*["'])[^>]*>([\s\S]*?)<\/a>/i
+    )?.[1];
+  const candidates = [heading, imgAlt];
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const text = cleanInlineText(raw);
+    if (
+      text.length >= 2 &&
+      text.length <= 120 &&
+      !JUNK_TEXT_RE.test(text) &&
+      !/^[$€£]?\s?\d/.test(text)
+    )
+      return text;
+  }
+  return undefined;
+}
+
+function extractHtmlProductCards(
+  html: string,
+  base: URL
+): {
+  products: {
+    title: string;
+    image?: string;
+    price?: number;
+    currency?: string;
+  }[];
+  pos?: number;
+} {
+  const cleaned = stripNonContent(html);
+  const openTagRe = /<(li|div|article)\b[^>]*>/gi;
+  const products: {
+    title: string;
+    image?: string;
+    price?: number;
+    currency?: string;
+  }[] = [];
+  const seenCards = new Set<string>();
+  let firstPos: number | undefined;
+  let candidates = 0;
+  let m: RegExpExecArray | null;
+  while (
+    (m = openTagRe.exec(cleaned)) !== null &&
+    products.length < MAX_JSONLD_PRODUCTS &&
+    candidates < MAX_PRODUCT_CARD_CANDIDATES
+  ) {
+    const tag = m[0];
+    const cls =
+      (tag.match(/\bclass=["']([^"']*)["']/i)?.[1] || "") +
+      " " +
+      (tag.match(/\bid=["']([^"']*)["']/i)?.[1] || "");
+    if (!PRODUCT_CARD_CLASS_RE.test(cls)) continue;
+    candidates++;
+
+    const slice = cleaned.slice(m.index, m.index + CARD_SLICE_CHARS);
+    const imgTag = slice.match(/<img\b[^>]*>/i)?.[0];
+    if (!imgTag) continue;
+    const rawSrc = pickImageSrc(imgTag);
+    const alt = imgTag.match(/\balt=["']([^"']*)["']/i)?.[1];
+    const image = rawSrc ? absolute(decodeEntities(rawSrc), base) : undefined;
+    if (!image || /^data:/i.test(image) || /\.svg(\?|#|$)/i.test(image))
+      continue;
+
+    const title = cardTitle(slice, alt ? decodeEntities(alt) : undefined);
+    if (!title) continue;
+    const priced = parseCardPrice(slice);
+    if (!priced) continue;
+
+    // Nested product-classed wrappers around the same card produce the same
+    // title+image pair — dedup on the pair (not either alone, so distinct
+    // products sharing a placeholder photo or a repeated name survive).
+    const key = `${title.toLowerCase()}|${image.toLowerCase()}`;
+    if (seenCards.has(key)) continue;
+    seenCards.add(key);
+    if (firstPos === undefined) firstPos = m.index;
+    products.push({
+      title: title.slice(0, 120),
+      image: stripImageSizeSuffix(image),
+      price: priced.price,
+      currency: priced.currency,
+    });
+  }
+  // Fewer than 3 matching blocks isn't a product grid — don't fabricate one.
+  if (products.length < 3) return { products: [] };
+  return { products, pos: firstPos };
+}
+
 /**
  * Best-effort, conservative nav-layout detection. v1 only recognizes a CENTERED
  * logo from explicit class hints in the header/nav markup; anything else (and
@@ -942,7 +1128,15 @@ export async function extractSiteSignals(
   }
   const images = extractContentImages(html, base, usedImageUrls);
   const contentBlocks = extractContentBlocks(html);
-  const products = extractJsonLdProducts(html, base);
+  // JSON-LD is authoritative when present; repeated HTML product-card markup
+  // is the fallback for pages without structured data. The HTML scan also
+  // supplies the grid's position so the imported products section can sit
+  // where the source page puts it.
+  const jsonLdProducts = extractJsonLdProducts(html, base);
+  const htmlCards = extractHtmlProductCards(html, base);
+  const products =
+    jsonLdProducts.length > 0 ? jsonLdProducts : htmlCards.products;
+  const productsPos = htmlCards.pos;
   const navLayout = detectNavLayout(html);
   const headerTheme = extractHeaderTheme(html);
   const testimonials = extractTestimonials(html);
@@ -963,6 +1157,7 @@ export async function extractSiteSignals(
     images,
     contentBlocks,
     products,
+    productsPos,
     navLayout,
     hero,
     videos: videos.length > 0 ? videos : undefined,

@@ -124,6 +124,16 @@ function sanitizeSection(section: StorefrontSection): StorefrontSection {
     };
   }
 
+  if (updated.buttons && updated.buttons.length > 0) {
+    updated = {
+      ...updated,
+      buttons: updated.buttons.map((btn) => ({
+        ...btn,
+        ...(btn.href ? { href: sanitizeStorefrontSectionLink(btn.href) } : {}),
+      })),
+    };
+  }
+
   if (updated.socialPosts && updated.socialPosts.length > 0) {
     updated = {
       ...updated,

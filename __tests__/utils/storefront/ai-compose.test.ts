@@ -18,6 +18,12 @@ const signals = (
   siteName: "Green Valley Farm",
   description: "Raw milk from pastured cows.",
   aboutText: "We are a small family farm selling raw milk and cheese.",
+  // A text-only source hero region: drafts only get a hero section when the
+  // source page actually had one.
+  hero: {
+    heading: "Green Valley Farm",
+    subheading: "Raw milk from pastured cows.",
+  },
   colors: [],
   fonts: [],
   socialLinks: [],
@@ -67,6 +73,7 @@ describe("composeStoreDesignWithAI copy precedence", () => {
       siteName: "Green Valley Farm",
       description: undefined,
       aboutText: undefined,
+      hero: { heading: "Green Valley Farm" },
     });
     const merged = await composeStoreDesignWithAI(s, buildExtractionDraft(s));
 

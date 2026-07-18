@@ -12,9 +12,21 @@ data in **two separate places**:
   hero fields (heading, subheading, image, overlayOpacity, headingColor,
   subheadingColor, textOutlineColor, items, etc.).
 - **`pages[].sections[]`** — custom builder pages. Deliberately preserves only a
-  minimal subset (id/type/heading/body). Most hero-specific fields — including
-  `image`, `subheading`, `overlayOpacity`, and the color/outline fields — are
-  **stripped on save/reload** here.
+  reduced subset (id/type/heading/subheading/body/ctaText/headingColor plus the
+  contact-form fields and the FULL blog field set:
+  blogLayout/blogPostIds/blogPostLimit/blogPostMode). Most hero-specific fields —
+  including `image`, `overlayOpacity`, and the outline/color extras — are
+  **stripped on save/reload** here. Exception: the six layout/style fields
+  (backgroundColor/textColor/textAlign/contentWidth/imageHeight/imageFit) ARE
+  now carried by BOTH sanitizers, because LayoutStyleControls in the shared
+  editor exposes them on every section type. Enum values come from the
+  `STOREFRONT_*` Sets near the top of seller.ts — check them before assuming
+  (imageHeight is auto/short/medium/tall, NOT small/large).
+
+MCP `set_shop_profile` now uses one shared `storefrontSectionSchema` (zod) for
+BOTH `storefrontSections` and `storefrontPages[].sections` (was `z.any()`), so
+unknown keys are stripped at the tool boundary too; the write path stores what
+the schema passes, and fidelity is ultimately decided by the sanitizers above.
 
 `SectionEditor` (components/settings/storefront/section-editor.tsx) is the SAME
 component used by both the homepage section editor and `PageEditor`. So a field

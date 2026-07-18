@@ -1,6 +1,7 @@
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import FormattedText from "../formatted-text";
+import SectionElementFlow, { headingSizeClass } from "./section-elements";
 
 interface SectionTestimonialsProps {
   section: StorefrontSection;
@@ -21,59 +22,72 @@ export default function SectionTestimonials({
       style={{ backgroundColor: colors.secondary + "08" }}
     >
       <div className="mx-auto max-w-6xl">
-        {section.heading && (
-          <FormattedText
-            text={section.heading}
-            as="h2"
-            className="font-heading mb-12 text-center text-3xl font-bold"
-            style={{ color: "var(--sf-text)" }}
-          />
-        )}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {testimonials.map((t, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl border p-6"
-              style={{
-                borderColor: colors.primary + "22",
-                backgroundColor: colors.background,
-              }}
-            >
-              {t.rating && (
-                <div className="mb-3 flex gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        color:
-                          i < t.rating! ? colors.primary : colors.text + "22",
-                      }}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-              )}
-              <p className="font-body mb-4 italic opacity-80">
-                &ldquo;
-                <FormattedText text={t.quote || ""} />
-                &rdquo;
-              </p>
-              <div className="flex items-center gap-3">
-                {t.image && (
-                  <img
-                    src={sanitizeUrl(t.image)}
-                    alt={t.author}
-                    className="h-10 w-10 rounded-full object-cover"
-                  />
-                )}
-                <span className="font-heading text-sm font-bold">
-                  {t.author}
-                </span>
+        <SectionElementFlow
+          section={section}
+          colors={colors}
+          slots={{
+            heading: section.heading && (
+              <FormattedText
+                text={section.heading}
+                as="h2"
+                className={`font-heading mb-12 text-center ${headingSizeClass(
+                  section,
+                  "text-3xl"
+                )} font-bold`}
+                style={{ color: "var(--sf-text)" }}
+              />
+            ),
+            content: (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {testimonials.map((t, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-xl border p-6"
+                    style={{
+                      borderColor: colors.primary + "22",
+                      backgroundColor: colors.background,
+                    }}
+                  >
+                    {t.rating && (
+                      <div className="mb-3 flex gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span
+                            key={i}
+                            style={{
+                              color:
+                                i < t.rating!
+                                  ? colors.primary
+                                  : colors.text + "22",
+                            }}
+                          >
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="font-body mb-4 italic opacity-80">
+                      &ldquo;
+                      <FormattedText text={t.quote || ""} />
+                      &rdquo;
+                    </p>
+                    <div className="flex items-center gap-3">
+                      {t.image && (
+                        <img
+                          src={sanitizeUrl(t.image)}
+                          alt={t.author}
+                          className="h-10 w-10 rounded-full object-cover"
+                        />
+                      )}
+                      <span className="font-heading text-sm font-bold">
+                        {t.author}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
+            ),
+          }}
+        />
       </div>
     </div>
   );

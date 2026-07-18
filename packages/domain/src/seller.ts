@@ -3,6 +3,8 @@ import type {
   StorefrontConfig,
   StorefrontPaymentMethodGroup,
   StorefrontSection,
+  StorefrontSectionButton,
+  StorefrontSectionElement,
 } from "./storefront";
 
 export interface NostrEventRecord {
@@ -151,6 +153,29 @@ const STOREFRONT_SOCIAL_POST_PLATFORMS = new Set([
 ]);
 const STOREFRONT_SOCIAL_POSTS_LAYOUTS = new Set(["grid", "carousel"]);
 const STOREFRONT_MARQUEE_DIRECTIONS = new Set(["left", "right"]);
+const STOREFRONT_TEXT_ALIGNS = new Set(["left", "center", "right"]);
+const STOREFRONT_CONTENT_WIDTHS = new Set(["narrow", "normal", "full"]);
+const STOREFRONT_IMAGE_HEIGHTS = new Set(["auto", "short", "medium", "tall"]);
+const STOREFRONT_IMAGE_FITS = new Set(["cover", "contain"]);
+const STOREFRONT_SECTION_ELEMENT_TOKENS = new Set([
+  "heading",
+  "subheading",
+  "body",
+  "image",
+  "buttons",
+  "content",
+]);
+const STOREFRONT_IMAGE_PLACEMENTS = new Set([
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "background",
+]);
+const STOREFRONT_TEXT_SIZES = new Set(["sm", "md", "lg", "xl"]);
+const STOREFRONT_IMAGE_WIDTHS = new Set([25, 33, 50, 66, 75, 100]);
+const STOREFRONT_BUTTON_VARIANTS = new Set(["primary", "secondary", "outline"]);
+const STOREFRONT_BUTTON_SIZES = new Set(["sm", "md", "lg"]);
 const STOREFRONT_BLOG_LAYOUTS = new Set(["featured", "grid", "list"]);
 const STOREFRONT_BLOG_MODES = new Set(["latest", "selected"]);
 const STOREFRONT_CONTACT_FORM_MODES = new Set(["contact", "subscription"]);
@@ -205,6 +230,74 @@ export function normalizeStorefrontSlug(input: string): string {
     .replace(/-+/g, "-")
     .slice(0, 63)
     .replace(/^-|-$/g, "");
+}
+
+// Element-level layout fields shared by the full section sanitizer AND the
+// reduced custom-pages sanitizer. All fields are optional and omitted when
+// invalid/absent so legacy configs serialize byte-identical.
+function sanitizeSectionLayoutFields(section: Record<string, unknown>) {
+  const elementOrder = Array.isArray(section.elementOrder)
+    ? (section.elementOrder.filter(
+        (el, idx, arr): el is StorefrontSectionElement =>
+          typeof el === "string" &&
+          STOREFRONT_SECTION_ELEMENT_TOKENS.has(el) &&
+          arr.indexOf(el) === idx
+      ) as StorefrontSectionElement[])
+    : [];
+  const buttons = Array.isArray(section.buttons)
+    ? section.buttons
+        .filter(isRecord)
+        .map(
+          (btn): StorefrontSectionButton => ({
+            label: typeof btn.label === "string" ? btn.label : "",
+            ...(typeof btn.href === "string" ? { href: btn.href } : {}),
+            ...(typeof btn.variant === "string" &&
+            STOREFRONT_BUTTON_VARIANTS.has(btn.variant)
+              ? {
+                  variant: btn.variant as "primary" | "secondary" | "outline",
+                }
+              : {}),
+            ...(typeof btn.size === "string" &&
+            STOREFRONT_BUTTON_SIZES.has(btn.size)
+              ? { size: btn.size as "sm" | "md" | "lg" }
+              : {}),
+            ...(typeof btn.align === "string" &&
+            STOREFRONT_TEXT_ALIGNS.has(btn.align)
+              ? { align: btn.align as "left" | "center" | "right" }
+              : {}),
+          })
+        )
+        .filter((btn) => btn.label)
+    : [];
+  return {
+    ...(elementOrder.length > 0 ? { elementOrder } : {}),
+    ...(typeof section.imagePlacement === "string" &&
+    STOREFRONT_IMAGE_PLACEMENTS.has(section.imagePlacement)
+      ? {
+          imagePlacement: section.imagePlacement as
+            | "left"
+            | "right"
+            | "top"
+            | "bottom"
+            | "background",
+        }
+      : {}),
+    ...(typeof section.headingSize === "string" &&
+    STOREFRONT_TEXT_SIZES.has(section.headingSize)
+      ? { headingSize: section.headingSize as "sm" | "md" | "lg" | "xl" }
+      : {}),
+    ...(typeof section.bodySize === "string" &&
+    STOREFRONT_TEXT_SIZES.has(section.bodySize)
+      ? { bodySize: section.bodySize as "sm" | "md" | "lg" | "xl" }
+      : {}),
+    ...(typeof section.imageWidth === "number" &&
+    STOREFRONT_IMAGE_WIDTHS.has(section.imageWidth)
+      ? {
+          imageWidth: section.imageWidth as 25 | 33 | 50 | 66 | 75 | 100,
+        }
+      : {}),
+    ...(buttons.length > 0 ? { buttons } : {}),
+  };
 }
 
 // Full storefront-section sanitizer shared by the homepage `sections[]` and the
@@ -422,6 +515,38 @@ function sanitizeFullSection(section: Record<string, unknown>) {
     STOREFRONT_MARQUEE_DIRECTIONS.has(section.marqueeDirection)
       ? { marqueeDirection: section.marqueeDirection as "left" | "right" }
       : {}),
+    // Per-section layout/styling knobs. Colors are stored as-is (like
+    // headingColor above) — renderers gate them through a CSS-color allowlist
+    // before they reach inline styles.
+    ...(typeof section.backgroundColor === "string"
+      ? { backgroundColor: section.backgroundColor }
+      : {}),
+    ...(typeof section.textColor === "string"
+      ? { textColor: section.textColor }
+      : {}),
+    ...(typeof section.textAlign === "string" &&
+    STOREFRONT_TEXT_ALIGNS.has(section.textAlign)
+      ? { textAlign: section.textAlign as "left" | "center" | "right" }
+      : {}),
+    ...(typeof section.contentWidth === "string" &&
+    STOREFRONT_CONTENT_WIDTHS.has(section.contentWidth)
+      ? { contentWidth: section.contentWidth as "narrow" | "normal" | "full" }
+      : {}),
+    ...(typeof section.imageHeight === "string" &&
+    STOREFRONT_IMAGE_HEIGHTS.has(section.imageHeight)
+      ? {
+          imageHeight: section.imageHeight as
+            | "auto"
+            | "short"
+            | "medium"
+            | "tall",
+        }
+      : {}),
+    ...(typeof section.imageFit === "string" &&
+    STOREFRONT_IMAGE_FITS.has(section.imageFit)
+      ? { imageFit: section.imageFit as "cover" | "contain" }
+      : {}),
+    ...sanitizeSectionLayoutFields(section),
   };
 }
 
@@ -787,6 +912,45 @@ function normalizeStorefrontConfig(
                         | "selected",
                     }
                   : {}),
+                ...(typeof section.backgroundColor === "string"
+                  ? { backgroundColor: section.backgroundColor }
+                  : {}),
+                ...(typeof section.textColor === "string"
+                  ? { textColor: section.textColor }
+                  : {}),
+                ...(typeof section.textAlign === "string" &&
+                STOREFRONT_TEXT_ALIGNS.has(section.textAlign)
+                  ? {
+                      textAlign: section.textAlign as
+                        | "left"
+                        | "center"
+                        | "right",
+                    }
+                  : {}),
+                ...(typeof section.contentWidth === "string" &&
+                STOREFRONT_CONTENT_WIDTHS.has(section.contentWidth)
+                  ? {
+                      contentWidth: section.contentWidth as
+                        | "narrow"
+                        | "normal"
+                        | "full",
+                    }
+                  : {}),
+                ...(typeof section.imageHeight === "string" &&
+                STOREFRONT_IMAGE_HEIGHTS.has(section.imageHeight)
+                  ? {
+                      imageHeight: section.imageHeight as
+                        | "auto"
+                        | "short"
+                        | "medium"
+                        | "tall",
+                    }
+                  : {}),
+                ...(typeof section.imageFit === "string" &&
+                STOREFRONT_IMAGE_FITS.has(section.imageFit)
+                  ? { imageFit: section.imageFit as "cover" | "contain" }
+                  : {}),
+                ...sanitizeSectionLayoutFields(section),
               }))
             : [],
         }))
