@@ -40,6 +40,7 @@ import {
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { safeSwap } from "@/utils/cashu/swap-retry-service";
 import { persistReceivedTokens } from "@/utils/cashu/wallet-mint-sync";
+import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
 import { formatWithCommas } from "./display-monetary-info";
 import {
   NostrContext,
@@ -248,6 +249,11 @@ export default function ClaimButton({ token }: { token: string }) {
     setIsRedeeming(true);
     const newAmount = Math.floor(tokenAmount * 0.98 - 2);
     const ln = new LightningAddress(lnurl);
+    // Once the claimed token's proofs are swapped, the original token is
+    // SPENT at the mint — the swap/melt outputs are the only live value. If
+    // anything after the swap throws without stashing them, the claim
+    // silently evaporates (same failure class as the wallet Send loss).
+    let postSwapRecovery: { mintUrl: string; proofs: Proof[] } | null = null;
     try {
       if (wallet) {
         await wallet.loadMint();
@@ -270,12 +276,29 @@ export default function ClaimButton({ token }: { token: string }) {
             );
           }
           const { keep, send } = swapOutcome;
+          postSwapRecovery = {
+            mintUrl: tokenMint,
+            proofs: [...keep, ...send],
+          };
           const meltOutcome = await safeMeltProofs(wallet, meltQuote, send);
           if (meltOutcome.status !== "paid") {
+            if (
+              meltOutcome.status === "pending" ||
+              meltOutcome.status === "unknown"
+            ) {
+              // The mint may still pay the melt, so `send` can't be safely
+              // re-credited; only `keep` is certain to be recoverable.
+              postSwapRecovery = { mintUrl: tokenMint, proofs: keep };
+            }
             throw new Error(
               meltOutcome.errorMessage ?? `Melt outcome ${meltOutcome.status}`
             );
           }
+          // Melt paid: `send` is spent for real; keep + change remain live.
+          postSwapRecovery = {
+            mintUrl: tokenMint,
+            proofs: [...keep, ...meltOutcome.changeProofs],
+          };
           const changeProofs = [...keep, ...meltOutcome.changeProofs];
           const changeAmount =
             Array.isArray(changeProofs) && changeProofs.length > 0
@@ -329,6 +352,9 @@ export default function ClaimButton({ token }: { token: string }) {
               true
             );
           }
+          // Change (if any) was delivered via the gift-wrapped message
+          // above; nothing further is recoverable client-side.
+          postSwapRecovery = null;
           setIsPaid(true);
           setOpenRedemptionModal(true);
           setIsRedeeming(false);
@@ -337,6 +363,11 @@ export default function ClaimButton({ token }: { token: string }) {
         throw new Error("Wallet not initialized");
       }
     } catch {
+      if (postSwapRecovery && postSwapRecovery.proofs.length > 0) {
+        stashProofsLocally(postSwapRecovery.proofs, postSwapRecovery.mintUrl, {
+          note: "Recovered from failed token claim",
+        });
+      }
       setIsPaid(false);
       setOpenRedemptionModal(true);
       setIsRedeeming(false);

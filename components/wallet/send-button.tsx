@@ -39,6 +39,7 @@ import {
 } from "@cashu/cashu-ts";
 import { safeSwap } from "@/utils/cashu/swap-retry-service";
 import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
+import { recordOutgoingSendToken } from "@/utils/cashu/outgoing-send-tokens";
 import { copyToClipboard } from "@/utils/clipboard";
 import { CashuWalletContext } from "../../utils/context/context";
 import {
@@ -176,6 +177,16 @@ const SendButton = () => {
       const encodedSendToken = getEncodedToken({
         mint: sendMint,
         proofs: send,
+      });
+      // Durably record the outgoing token BEFORE displaying it, so a closed
+      // tab or lost clipboard can never lose the funds — the Sent Tokens
+      // section on the wallet page can re-copy or reclaim it later. If this
+      // write throws, the catch below re-stashes `send` into the wallet, so
+      // we never display a token that has no recoverable record.
+      recordOutgoingSendToken({
+        token: encodedSendToken,
+        mintUrl: sendMint,
+        amount: sendTotal,
       });
       setShowTokenCard(true);
       setNewToken(encodedSendToken);

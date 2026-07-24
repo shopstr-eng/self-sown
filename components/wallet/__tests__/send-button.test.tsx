@@ -188,6 +188,85 @@ describe("SendButton", () => {
     });
   });
 
+  test("durably records the outgoing token before displaying it", async () => {
+    const mockSendResult = {
+      keep: [{ id: "keyset_id_1", amount: 900, secret: "keep_s", C: "CK" }],
+      send: [{ id: "keyset_id_1", amount: 100, secret: "send_s", C: "CS" }],
+    };
+    mockSend.mockResolvedValue(mockSendResult);
+    mockGetEncodedToken.mockReturnValue("cashuA_recorded_token");
+
+    renderWithProviders(<SendButton />);
+    await userEvent.click(screen.getByRole("button", { name: /Send/i }));
+    const modal = await screen.findByRole("dialog");
+    await userEvent.type(
+      within(modal).getByLabelText(/Token amount in sats/i),
+      "100"
+    );
+    await userEvent.click(within(modal).getByRole("button", { name: /Send/i }));
+
+    await screen.findByText("New token string is ready to be copied and sent!");
+
+    const recordCall = setItemSpy.mock.calls
+      .filter((call) => call[0] === "milkmarket.outgoingSendTokens")
+      .pop();
+    expect(recordCall).toBeDefined();
+    const entries = JSON.parse(recordCall![1]);
+    expect(
+      entries.find(
+        (e: { token: string }) => e.token === "cashuA_recorded_token"
+      )
+    ).toMatchObject({
+      mintUrl: "https://legend.lnbits.com/cashu/api/v1/4_sadf7asdf78",
+      amount: 100,
+      status: "unclaimed",
+    });
+  });
+
+  test("fails closed and stashes send proofs when the token record cannot be written", async () => {
+    const mockSendResult = {
+      keep: [{ id: "keyset_id_1", amount: 900, secret: "keep_s2", C: "CK2" }],
+      send: [{ id: "keyset_id_1", amount: 100, secret: "send_s2", C: "CS2" }],
+    };
+    mockSend.mockResolvedValue(mockSendResult);
+    mockGetEncodedToken.mockReturnValue("cashuA_unrecordable_token");
+
+    setItemSpy.mockRestore();
+    const originalSetItem = Storage.prototype.setItem;
+    setItemSpy = jest
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(function (this: Storage, key: string, value: string) {
+        if (key === "milkmarket.outgoingSendTokens") {
+          throw new Error("quota exceeded");
+        }
+        return originalSetItem.call(this, key, value);
+      });
+
+    renderWithProviders(<SendButton />);
+    await userEvent.click(screen.getByRole("button", { name: /Send/i }));
+    const modal = await screen.findByRole("dialog");
+    await userEvent.type(
+      within(modal).getByLabelText(/Token amount in sats/i),
+      "100"
+    );
+    await userEvent.click(within(modal).getByRole("button", { name: /Send/i }));
+
+    expect(await screen.findByText("Send failed!")).toBeVisible();
+    expect(
+      screen.queryByText("New token string is ready to be copied and sent!")
+    ).not.toBeInTheDocument();
+
+    // The send proofs must have been re-stashed into the wallet history.
+    const stashHistoryCall = setItemSpy.mock.calls
+      .filter((call) => call[0] === "history")
+      .map((call) => JSON.parse(call[1]))
+      .find(
+        (entries) => entries[0]?.note === "Recovered from failed wallet send"
+      );
+    expect(stashHistoryCall).toBeDefined();
+    expect(stashHistoryCall![0]).toMatchObject({ type: 4, amount: 100 });
+  });
+
   test("handles send with no change proofs", async () => {
     const mockSendResult = {
       keep: [],

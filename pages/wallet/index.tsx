@@ -5,6 +5,7 @@ import ReceiveButton from "../../components/wallet/receive-button";
 import SendButton from "../../components/wallet/send-button";
 import PayButton from "../../components/wallet/pay-button";
 import Transactions from "../../components/wallet/transactions";
+import SentTokens from "../../components/wallet/sent-tokens";
 import {
   Mint as CashuMint,
   Wallet as CashuWallet,
@@ -246,6 +247,10 @@ const Wallet = () => {
               <p className="text-center text-xs text-white">{restoreStatus}</p>
             ) : null}
           </div>
+
+          {/* Sent cashu tokens — durable record of every Send-generated
+              token, with self-serve status check + reclaim. */}
+          <SentTokens />
 
           {/* Transactions Card with Neo-brutalist Design */}
           <div className="bg-primary-blue overflow-hidden rounded-md border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
