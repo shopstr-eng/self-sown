@@ -454,10 +454,9 @@ function registerPurchaseTools(
         const { fetchAllProfilesFromDb } =
           await import("@/utils/db/db-service");
         const profiles = await fetchAllProfilesFromDb();
-        const profile = profiles.find(
-          (p: any) =>
-            p.pubkey === sellerPubkey && (p.kind === 0 || p.kind === 30019)
-        );
+        const { pickLatestSellerProfileEvent } =
+          await import("@/mcp/tools/read-tools");
+        const profile = pickLatestSellerProfileEvent(profiles, sellerPubkey);
 
         if (!profile) {
           return {

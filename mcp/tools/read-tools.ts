@@ -72,6 +72,38 @@ export function pickLatestProfileEvent(
     .sort((a, b) => b.created_at - a.created_at)[0];
 }
 
+/**
+ * Pick the seller profile event to trust for a lookup that accepts BOTH
+ * kind 0 and kind 30019: the newest kind-30019 (shop) event wins; only when
+ * the seller has no shop profile at all do we fall back to the newest kind-0.
+ * profile_events keeps every version, so callers must never .find() an
+ * arbitrary row.
+ */
+export function pickLatestSellerProfileEvent(
+  events: NostrEvent[],
+  pubkey: string
+): NostrEvent | undefined {
+  return (
+    pickLatestProfileEvent(events, 30019, pubkey) ||
+    pickLatestProfileEvent(events, 0, pubkey)
+  );
+}
+
+export function dedupLatestProfileEvents(
+  events: NostrEvent[],
+  kind: number
+): NostrEvent[] {
+  const latestByPubkey = new Map<string, NostrEvent>();
+  for (const event of events) {
+    if (event.kind !== kind) continue;
+    const existing = latestByPubkey.get(event.pubkey);
+    if (!existing || event.created_at > existing.created_at) {
+      latestByPubkey.set(event.pubkey, event);
+    }
+  }
+  return Array.from(latestByPubkey.values());
+}
+
 function getTagValue(tags: string[][], key: string): string | undefined {
   const tag = tags.find((t) => t[0] === key);
   return tag ? tag[1] : undefined;
@@ -506,9 +538,9 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
           DB_TIMEOUT_MS,
           "fetchAllProfilesFromDb"
         );
-        const shopProfiles = events
-          .filter((e) => e.kind === 30019)
-          .map(parseProfileEvent);
+        const shopProfiles = dedupLatestProfileEvents(events, 30019).map(
+          parseProfileEvent
+        );
 
         const results = limit ? shopProfiles.slice(0, limit) : shopProfiles;
 

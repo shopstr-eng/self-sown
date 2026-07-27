@@ -6,6 +6,7 @@ import {
   fetchCachedEvents,
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { dedupLatestProfileEvents } from "@/mcp/tools/read-tools";
 
 // Status hits the DB; per-IP cap prevents an unauthenticated client from
 // pinning a connection-pool slot on this endpoint.
@@ -28,7 +29,7 @@ export default async function handler(
       fetchCachedEvents(31555),
     ]);
 
-    const shopProfiles = profiles.filter((p) => p.kind === 30019);
+    const shopProfiles = dedupLatestProfileEvents(profiles, 30019);
 
     const latestProduct = products.reduce(
       (max, p) => (Number(p.created_at) > max ? Number(p.created_at) : max),

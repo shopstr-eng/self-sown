@@ -14,6 +14,7 @@ import {
   type McpOrder,
 } from "@/mcp/tools/purchase-tools";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
+import { pickLatestSellerProfileEvent } from "@/mcp/tools/read-tools";
 import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { isBitcoinCurrency, SATS_PER_BTC } from "@/utils/ucp/money";
 
@@ -118,9 +119,7 @@ export function generateMcpOrderId(): string {
 
 export async function getSellerProfile(sellerPubkey: string) {
   const profiles = await fetchAllProfilesFromDb();
-  const profile = profiles.find(
-    (p) => p.pubkey === sellerPubkey && (p.kind === 0 || p.kind === 30019)
-  );
+  const profile = pickLatestSellerProfileEvent(profiles, sellerPubkey);
   if (!profile) return null;
   try {
     return JSON.parse(profile.content);
