@@ -611,38 +611,56 @@ const PaymentsSettingsPage = () => {
                   </div>
 
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-white p-4">
+                    <div className="flex flex-col gap-3 rounded-md border-2 border-black bg-white p-4">
                       <div className="flex items-center gap-2">
                         <CreditCardIcon className="text-primary-blue h-6 w-6" />
                         <p className="font-bold text-black">Stripe</p>
                       </div>
-                      <p className="flex-1 text-sm text-gray-700">
+                      <p className="text-sm text-gray-700">
                         Card payments, payouts to your bank, and optional sales
-                        tax / VAT collection.
+                        tax / VAT collection. Two ways to get started:
                       </p>
-                      <Button
-                        className={BLUEBUTTONCLASSNAMES}
-                        startContent={
-                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                        }
-                        onClick={onOpen}
-                      >
-                        Set Up Stripe
-                      </Button>
-                      <Button
-                        className={WHITEBUTTONCLASSNAMES}
-                        startContent={
-                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-                        }
-                        isLoading={standardAction}
-                        onClick={handleConnectStandard}
-                      >
-                        Connect Your Stripe Account
-                      </Button>
-                      <p className="text-xs text-gray-500">
-                        Already have a Stripe account (or want the full Stripe
-                        dashboard)? Connect it directly.
-                      </p>
+
+                      <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-gray-50 p-3">
+                        <p className="text-sm font-bold text-black">
+                          New to Stripe — quick setup
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          We create a Stripe account for you in a few minutes.
+                          You manage payouts from a simplified dashboard without
+                          leaving Milk Market.
+                        </p>
+                        <Button
+                          className={BLUEBUTTONCLASSNAMES}
+                          startContent={
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                          }
+                          onClick={onOpen}
+                        >
+                          Set Up Stripe
+                        </Button>
+                      </div>
+
+                      <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-gray-50 p-3">
+                        <p className="text-sm font-bold text-black">
+                          Have a Stripe account — connect it
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Link your existing Stripe account and keep the full
+                          Stripe dashboard. You can also create a full Stripe
+                          account during this setup.
+                        </p>
+                        <Button
+                          className={WHITEBUTTONCLASSNAMES}
+                          startContent={
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                          }
+                          isLoading={standardAction}
+                          onClick={handleConnectStandard}
+                        >
+                          Connect Your Stripe Account
+                        </Button>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-white p-4">

@@ -141,8 +141,8 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
         </ModalHeader>
         <ModalBody className="text-black">
           <p className="text-base font-medium">
-            Connect your Stripe account to accept credit card payments from
-            buyers on Milk Market.
+            Quick setup: we&apos;ll create a new Stripe account for you so you
+            can accept credit card payments from buyers on Milk Market.
           </p>
           <div className="mt-3">
             <Select
