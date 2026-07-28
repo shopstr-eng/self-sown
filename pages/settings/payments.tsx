@@ -3,6 +3,8 @@ import { useRouter } from "next/router";
 import {
   Button,
   Input,
+  Select,
+  SelectItem,
   Switch,
   useDisclosure,
   Modal,
@@ -35,11 +37,17 @@ import {
   buildMcpRequestProofTemplate,
   buildStripeAccountStatusProof,
   buildStripeManageLinkProof,
+  buildStripeStandardStartProof,
   buildStripeTaxSettingsProof,
   buildStripeDisconnectProof,
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import {
+  STRIPE_CONNECT_COUNTRIES,
+  COUNTRIES_WITH_REGIONAL_TAX,
+  isValidTaxRegion,
+} from "@/utils/stripe/connect-countries";
 import {
   fetchSquareConnectionStatus,
   startSquareOAuth,
@@ -53,6 +61,7 @@ interface AccountStatus {
   onboardingComplete: boolean;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
+  accountType?: "express" | "standard" | null;
 }
 
 interface TaxRegistration {
@@ -112,6 +121,8 @@ const PaymentsSettingsPage = () => {
   const [taxLoading, setTaxLoading] = useState(false);
   const [taxBusy, setTaxBusy] = useState<string | null>(null);
   const [newState, setNewState] = useState("");
+  const [newTaxCountry, setNewTaxCountry] = useState("US");
+  const [standardAction, setStandardAction] = useState(false);
   const [taxError, setTaxError] = useState<string | null>(null);
   const [taxInfo, setTaxInfo] = useState<string | null>(null);
 
@@ -236,8 +247,45 @@ const PaymentsSettingsPage = () => {
       setInfo("Stripe details updated. Status refreshed.");
     } else if (router.query.stripe === "refresh") {
       setInfo("Stripe link expired. Please try again.");
+    } else if (router.query.stripe === "standard-success") {
+      setInfo("Your Stripe account is connected.");
+    } else if (router.query.stripe === "standard-declined") {
+      setError("Stripe connection was cancelled before it finished.");
+    } else if (router.query.stripe === "standard-error") {
+      setError("Stripe connection failed. Please try again.");
     }
   }, [router.query.stripe]);
+
+  // Standard Connect (OAuth): link the seller's OWN full Stripe account. The
+  // callback replaces any existing linkage, so this is also the Express ->
+  // Standard migration path.
+  const handleConnectStandard = async () => {
+    if (!pubkey || !signer?.sign) return;
+    setStandardAction(true);
+    setError(null);
+    setInfo(null);
+    try {
+      const signedEvent = await signer.sign(
+        buildMcpRequestProofTemplate(buildStripeStandardStartProof(pubkey))
+      );
+      const res = await fetch("/api/stripe/connect/standard/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pubkey, signedEvent }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to start Stripe connection");
+      }
+      window.open(data.url, "_blank", "noopener");
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Failed to start Stripe connection"
+      );
+    } finally {
+      setStandardAction(false);
+    }
+  };
 
   const openManageLink = async (mode: "dashboard" | "update") => {
     if (!pubkey || !signer?.sign || !status?.accountId) return;
@@ -324,7 +372,12 @@ const PaymentsSettingsPage = () => {
   // combined status, so we always refresh local state from the response.
   const postTaxSettings = async (
     action: TaxAction,
-    extra?: { state?: string; registrationId?: string }
+    extra?: {
+      state?: string;
+      country?: string;
+      region?: string;
+      registrationId?: string;
+    }
   ) => {
     if (!pubkey || !signer?.sign) return;
     const signedEvent = await signer.sign(
@@ -385,21 +438,32 @@ const PaymentsSettingsPage = () => {
   };
 
   const handleAddRegistration = async () => {
-    const st = newState.trim().toUpperCase();
-    if (!/^[A-Z]{2}$/.test(st)) {
-      setTaxError("Enter a valid 2-letter US state code (e.g. CA).");
+    const country = newTaxCountry;
+    const needsRegion = COUNTRIES_WITH_REGIONAL_TAX.has(country);
+    const region = newState.trim().toUpperCase();
+    if (needsRegion && !isValidTaxRegion(country, region)) {
+      setTaxError(
+        country === "US"
+          ? "Enter a valid 2-letter US state code (e.g. CA)."
+          : "Enter a valid 2-letter Canadian province code (e.g. ON)."
+      );
       return;
     }
     setTaxBusy("add");
     setTaxError(null);
     setTaxInfo(null);
     try {
-      await postTaxSettings("add_registration", { state: st });
+      await postTaxSettings("add_registration", {
+        country,
+        ...(needsRegion ? { region } : {}),
+      });
       setNewState("");
-      setTaxInfo(`Registered to collect tax in ${st}.`);
+      setTaxInfo(
+        `Registered to collect tax in ${needsRegion ? region : country}.`
+      );
     } catch (e) {
       setTaxError(
-        e instanceof Error ? e.message : "Failed to add state registration"
+        e instanceof Error ? e.message : "Failed to add registration"
       );
     } finally {
       setTaxBusy(null);
@@ -553,8 +617,8 @@ const PaymentsSettingsPage = () => {
                         <p className="font-bold text-black">Stripe</p>
                       </div>
                       <p className="flex-1 text-sm text-gray-700">
-                        Card payments, payouts to your bank, and optional US
-                        sales tax collection.
+                        Card payments, payouts to your bank, and optional sales
+                        tax / VAT collection.
                       </p>
                       <Button
                         className={BLUEBUTTONCLASSNAMES}
@@ -565,6 +629,20 @@ const PaymentsSettingsPage = () => {
                       >
                         Set Up Stripe
                       </Button>
+                      <Button
+                        className={WHITEBUTTONCLASSNAMES}
+                        startContent={
+                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                        }
+                        isLoading={standardAction}
+                        onClick={handleConnectStandard}
+                      >
+                        Connect Your Stripe Account
+                      </Button>
+                      <p className="text-xs text-gray-500">
+                        Already have a Stripe account (or want the full Stripe
+                        dashboard)? Connect it directly.
+                      </p>
                     </div>
 
                     <div className="flex flex-col gap-2 rounded-md border-2 border-black bg-white p-4">
@@ -609,17 +687,67 @@ const PaymentsSettingsPage = () => {
                     <StatusPill label="Payouts" ok={status.payoutsEnabled} />
                   </div>
 
+                  {status.accountType === "express" && (
+                    <div className="space-y-2 rounded-md border-2 border-black bg-blue-50 p-3 text-sm text-black">
+                      <p className="font-bold">
+                        Want the full Stripe experience?
+                      </p>
+                      <p>
+                        You&apos;re connected with Stripe Express, which offers
+                        a simplified dashboard. Switch to Standard Connect to
+                        link your own Stripe account — full Stripe dashboard,
+                        detailed reporting, and granular control. Your current
+                        account keeps working until you finish switching.
+                      </p>
+                      <Button
+                        className={WHITEBUTTONCLASSNAMES}
+                        startContent={
+                          <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                        }
+                        isLoading={standardAction}
+                        onClick={handleConnectStandard}
+                      >
+                        Switch to Standard Connect
+                      </Button>
+                    </div>
+                  )}
+
                   {!status.onboardingComplete && (
                     <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-sm text-black">
-                      Your Stripe onboarding isn&apos;t finished yet. Use
-                      &quot;Finish Stripe Setup&quot; below to complete the
-                      remaining steps. Once onboarding is complete, you&apos;ll
-                      be able to open the full Stripe Express dashboard.
+                      {status.accountType === "standard"
+                        ? "Your Stripe account setup isn't finished yet. Complete the remaining steps in your Stripe dashboard."
+                        : "Your Stripe onboarding isn't finished yet. Use \"Finish Stripe Setup\" below to complete the remaining steps. Once onboarding is complete, you'll be able to open the full Stripe Express dashboard."}
                     </div>
                   )}
 
                   <div className="space-y-3">
-                    {status.onboardingComplete ? (
+                    {status.accountType === "standard" ? (
+                      <div>
+                        <p className="font-bold text-black">
+                          Your Stripe Dashboard
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          You connected your own Stripe account. Manage
+                          payments, payouts, reports, and settings in the full
+                          Stripe dashboard.
+                        </p>
+                        <Button
+                          className={`${BLUEBUTTONCLASSNAMES} mt-2`}
+                          startContent={
+                            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+                          }
+                          onClick={() =>
+                            window.open(
+                              "https://dashboard.stripe.com",
+                              "_blank",
+                              "noopener"
+                            )
+                          }
+                        >
+                          Open Stripe Dashboard
+                        </Button>
+                      </div>
+                    ) : status.onboardingComplete ? (
                       <div>
                         <p className="font-bold text-black">
                           Stripe Express Dashboard
@@ -674,10 +802,10 @@ const PaymentsSettingsPage = () => {
                           <div>
                             <p className="font-bold text-black">Sales Tax</p>
                             <p className="text-sm text-gray-700">
-                              Automatically calculate and collect US sales tax
-                              at checkout, based on your buyer&apos;s shipping
-                              address. Only applies to single-seller card
-                              (Stripe) checkouts.
+                              Automatically calculate and collect sales tax (or
+                              VAT) at checkout, based on your buyer&apos;s
+                              shipping address. Only applies to single-seller
+                              card (Stripe) checkouts.
                             </p>
                           </div>
                         </div>
@@ -701,21 +829,21 @@ const PaymentsSettingsPage = () => {
                         taxStatus?.taxEnabled && (
                           <div className="space-y-3">
                             <div className="rounded-md border-2 border-yellow-500 bg-yellow-50 p-3 text-xs text-black">
-                              Only collect tax in states where you&apos;re
-                              registered with the tax authority. You are
-                              responsible for filing and remitting the tax you
-                              collect. Add each state where you&apos;re
-                              registered below.
+                              Only collect tax in jurisdictions where
+                              you&apos;re registered with the tax authority. You
+                              are responsible for filing and remitting the tax
+                              you collect. Add each jurisdiction where
+                              you&apos;re registered below.
                             </div>
 
                             <div>
                               <p className="mb-2 text-sm font-bold text-black">
-                                Registered states
+                                Registered jurisdictions
                               </p>
                               {taxStatus.registrations.length === 0 ? (
                                 <p className="text-sm text-gray-600">
-                                  No states added yet. Tax won&apos;t be charged
-                                  until you add at least one state.
+                                  No jurisdictions added yet. Tax won&apos;t be
+                                  charged until you add at least one.
                                 </p>
                               ) : (
                                 <ul className="space-y-2">
@@ -746,20 +874,47 @@ const PaymentsSettingsPage = () => {
                               )}
                             </div>
 
-                            <div className="flex items-end gap-2">
-                              <Input
-                                label="Add state"
-                                placeholder="e.g. CA"
-                                value={newState}
-                                onValueChange={(v) =>
-                                  setNewState(v.toUpperCase().slice(0, 2))
+                            <div className="flex flex-wrap items-end gap-2">
+                              <Select
+                                label="Country"
+                                selectedKeys={[newTaxCountry]}
+                                onChange={(e) =>
+                                  setNewTaxCountry(e.target.value || "US")
                                 }
-                                className="max-w-[140px]"
+                                className="max-w-[220px]"
                                 classNames={{
-                                  inputWrapper:
-                                    "border-2 border-black rounded-md",
+                                  trigger: "border-2 border-black rounded-md",
                                 }}
-                              />
+                              >
+                                {STRIPE_CONNECT_COUNTRIES.map((c) => (
+                                  <SelectItem key={c.code}>{c.name}</SelectItem>
+                                ))}
+                              </Select>
+                              {COUNTRIES_WITH_REGIONAL_TAX.has(
+                                newTaxCountry
+                              ) && (
+                                <Input
+                                  label={
+                                    newTaxCountry === "US"
+                                      ? "State"
+                                      : "Province"
+                                  }
+                                  placeholder={
+                                    newTaxCountry === "US"
+                                      ? "e.g. CA"
+                                      : "e.g. ON"
+                                  }
+                                  value={newState}
+                                  onValueChange={(v) =>
+                                    setNewState(v.toUpperCase().slice(0, 2))
+                                  }
+                                  className="max-w-[140px]"
+                                  classNames={{
+                                    inputWrapper:
+                                      "border-2 border-black rounded-md",
+                                  }}
+                                />
+                              )}
                               <Button
                                 className={BLUEBUTTONCLASSNAMES}
                                 startContent={<PlusIcon className="h-4 w-4" />}

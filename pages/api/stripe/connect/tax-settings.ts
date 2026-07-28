@@ -10,6 +10,10 @@ import {
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
+import {
+  isStripeConnectCountry,
+  isValidTaxRegion,
+} from "@/utils/stripe/connect-countries";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { withStripeRetry } from "@/utils/stripe/retry-service";
 
@@ -41,9 +45,14 @@ function summarizeRegistrations(
 ): RegistrationSummary[] {
   return list.map((reg) => {
     const us = reg.country_options?.us as { state?: string } | undefined;
+    const ca = reg.country_options?.ca as
+      | { province_standard?: { province?: string } }
+      | undefined;
     return {
       id: reg.id,
-      state: us?.state ?? null,
+      // Subdivision code for regional registrations (US state / CA province);
+      // null for whole-country (e.g. VAT) registrations.
+      state: us?.state ?? ca?.province_standard?.province ?? null,
       country: reg.country,
       status: reg.status,
       activeFrom: reg.active_from ?? null,
@@ -113,11 +122,15 @@ export default async function handler(
       pubkey,
       action,
       state,
+      country,
+      region,
       registrationId,
     }: {
       pubkey?: string;
       action?: Action;
       state?: string;
+      country?: string;
+      region?: string;
       registrationId?: string;
     } = req.body || {};
 
@@ -186,11 +199,42 @@ export default async function handler(
     } else if (action === "disable") {
       await setStripeTaxEnabled(normalizedPubkey, false);
     } else if (action === "add_registration") {
-      const st = (state || "").trim().toUpperCase();
-      if (!/^[A-Z]{2}$/.test(st)) {
+      // `state` alone implies US (legacy clients). New clients send `country`
+      // plus `region` for the two regional-tax countries (US state, CA
+      // province); every other supported country registers whole-country.
+      const regCountry = (country || (state ? "US" : "")).trim().toUpperCase();
+      const regRegion = (region || state || "").trim().toUpperCase();
+      if (!regCountry || !isStripeConnectCountry(regCountry)) {
         return res
           .status(400)
-          .json({ error: "A valid US state code is required" });
+          .json({ error: "A supported country is required" });
+      }
+      let countryOptions: Stripe.Tax.RegistrationCreateParams.CountryOptions;
+      if (regCountry === "US") {
+        if (!isValidTaxRegion("US", regRegion)) {
+          return res
+            .status(400)
+            .json({ error: "A valid US state code is required" });
+        }
+        countryOptions = {
+          us: { state: regRegion, type: "state_sales_tax" },
+        };
+      } else if (regCountry === "CA") {
+        if (!isValidTaxRegion("CA", regRegion)) {
+          return res
+            .status(400)
+            .json({ error: "A valid Canadian province code is required" });
+        }
+        countryOptions = {
+          ca: {
+            type: "province_standard",
+            province_standard: { province: regRegion },
+          },
+        };
+      } else {
+        countryOptions = {
+          [regCountry.toLowerCase()]: { type: "standard" },
+        } as Stripe.Tax.RegistrationCreateParams.CountryOptions;
       }
       // Tax is on by default, so sellers can reach this without ever clicking
       // enable. Make sure the Stripe Tax origin is configured first, or the
@@ -207,10 +251,8 @@ export default async function handler(
         await withStripeRetry(() =>
           stripe.tax.registrations.create(
             {
-              country: "US",
-              country_options: {
-                us: { state: st, type: "state_sales_tax" },
-              },
+              country: regCountry,
+              country_options: countryOptions,
               active_from: "now",
             },
             stripeOptions
@@ -218,7 +260,10 @@ export default async function handler(
         );
       } catch (err: any) {
         const msg = err?.raw?.message || err?.message || "Unknown error";
-        return res.status(400).json({ error: `Could not add ${st}: ${msg}` });
+        const label = regRegion || regCountry;
+        return res
+          .status(400)
+          .json({ error: `Could not add ${label}: ${msg}` });
       }
     } else if (action === "remove_registration") {
       if (!registrationId || typeof registrationId !== "string") {
@@ -265,9 +310,7 @@ export default async function handler(
       const regList = await withStripeRetry(() =>
         stripe.tax.registrations.list({ status: "active" }, stripeOptions)
       );
-      registrations = summarizeRegistrations(regList.data).filter(
-        (r) => r.country === "US"
-      );
+      registrations = summarizeRegistrations(regList.data);
     } catch {
       registrations = [];
     }

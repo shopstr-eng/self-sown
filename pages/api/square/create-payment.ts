@@ -3,7 +3,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import {
   isCrypto,
   toSmallestUnit,
-  satsToUSD,
+  satsToFiat,
   isExchangeRateError,
   EXCHANGE_RATE_ERROR_CODE,
 } from "@/utils/stripe/currency";
@@ -92,21 +92,17 @@ export default async function handler(
     }
 
     // Currency guard + conversion to the smallest unit in the LOCATION currency.
-    // Crypto (sats/BTC) is only chargeable when the location settles in USD.
+    // Crypto (sats/BTC) carts are converted to the seller's settlement currency
+    // at the current rate, so non-USD locations (GBP, EUR, ...) can take
+    // Bitcoin-denominated orders on card too.
     let amountSmallest: number;
     let chargeCurrency: string;
     if (isCrypto(currency)) {
-      if (locationCurrency !== "USD") {
-        return res.status(400).json({
-          error: "This seller can't accept Bitcoin on card",
-          code: "currency_mismatch",
-        });
-      }
       const sats =
         currency.toLowerCase() === "btc" ? amount * 100000000 : amount;
-      const usdAmount = await satsToUSD(sats);
-      amountSmallest = Math.ceil(usdAmount * 100);
-      chargeCurrency = "USD";
+      const fiatAmount = await satsToFiat(sats, locationCurrency);
+      amountSmallest = toSmallestUnit(fiatAmount, locationCurrency);
+      chargeCurrency = locationCurrency;
     } else {
       if (currency.toUpperCase() !== locationCurrency) {
         return res.status(400).json({

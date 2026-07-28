@@ -55,7 +55,54 @@ export interface RegisterStorefrontSlugResponse {
 export interface StripeAuthPayload {
   pubkey: string;
   signedEvent: unknown;
+  /** Seller's Stripe account country (ISO 3166-1 alpha-2). Required by
+   *  create-account: an Express account's country can't be changed later. */
+  country?: string;
 }
+
+/** Countries sellers can pick for their Stripe Connect account. Mirrors
+ *  utils/stripe/connect-countries.ts in the web app (kept separate so this
+ *  package stays free of web-app imports). */
+export const STRIPE_CONNECT_COUNTRIES: { code: string; name: string }[] = [
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "IE", name: "Ireland" },
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "BG", name: "Bulgaria" },
+  { code: "HR", name: "Croatia" },
+  { code: "CY", name: "Cyprus" },
+  { code: "CZ", name: "Czechia" },
+  { code: "DK", name: "Denmark" },
+  { code: "EE", name: "Estonia" },
+  { code: "FI", name: "Finland" },
+  { code: "FR", name: "France" },
+  { code: "DE", name: "Germany" },
+  { code: "GR", name: "Greece" },
+  { code: "HU", name: "Hungary" },
+  { code: "IT", name: "Italy" },
+  { code: "LV", name: "Latvia" },
+  { code: "LT", name: "Lithuania" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "MT", name: "Malta" },
+  { code: "NL", name: "Netherlands" },
+  { code: "PL", name: "Poland" },
+  { code: "PT", name: "Portugal" },
+  { code: "RO", name: "Romania" },
+  { code: "SK", name: "Slovakia" },
+  { code: "SI", name: "Slovenia" },
+  { code: "ES", name: "Spain" },
+  { code: "SE", name: "Sweden" },
+  { code: "NO", name: "Norway" },
+  { code: "CH", name: "Switzerland" },
+  { code: "CA", name: "Canada" },
+  { code: "AU", name: "Australia" },
+  { code: "NZ", name: "New Zealand" },
+  { code: "JP", name: "Japan" },
+  { code: "SG", name: "Singapore" },
+  { code: "HK", name: "Hong Kong" },
+  { code: "MX", name: "Mexico" },
+];
 
 export interface CreateStripeConnectAccountResponse {
   accountId: string;

@@ -27,6 +27,7 @@ import {
   isAtStripeFloor,
   convertToSmallestUnit,
   satsToUSD,
+  satsToFiat,
   getSatoshiValueResilient,
   getFiatValueResilient,
   exchangeRateRetryConfig,
@@ -194,6 +195,36 @@ describe("satsToUSD", () => {
   it("rejects a non-number rate result (garbage response)", async () => {
     getFiatValueMock.mockResolvedValue("12.34" as unknown as number);
     await expect(satsToUSD(10000)).rejects.toThrow(/exchange rate/i);
+  });
+});
+
+describe("satsToFiat", () => {
+  it("delegates to getFiatValue with the requested settlement currency", async () => {
+    getFiatValueMock.mockResolvedValue(9.87);
+    await expect(satsToFiat(5000, "EUR")).resolves.toBe(9.87);
+    expect(getFiatValueMock).toHaveBeenCalledWith({
+      satoshi: 5000,
+      currency: "eur",
+    });
+  });
+
+  it("keeps per-currency last-good caches separate", async () => {
+    getFiatValueMock.mockImplementation(
+      async ({ currency }: { currency: string }) =>
+        currency === "gbp" ? 7.5 : 9.5
+    );
+    await expect(satsToFiat(1000, "GBP")).resolves.toBe(7.5);
+    await expect(satsToFiat(1000, "EUR")).resolves.toBe(9.5);
+
+    // Feed goes down: each currency falls back to its OWN cached rate.
+    getFiatValueMock.mockRejectedValue(new Error("feed down"));
+    await expect(satsToFiat(2000, "GBP")).resolves.toBe(15);
+    await expect(satsToFiat(2000, "EUR")).resolves.toBe(19);
+  });
+
+  it("fails closed when the feed is down and no cached rate exists", async () => {
+    getFiatValueMock.mockRejectedValue(new Error("feed down"));
+    await expect(satsToFiat(1000, "CHF")).rejects.toThrow(/feed down/i);
   });
 });
 

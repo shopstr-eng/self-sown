@@ -73,6 +73,7 @@ export default async function handler(
         onboardingComplete: false,
         chargesEnabled: false,
         payoutsEnabled: false,
+        accountType: null,
       });
     }
 
@@ -98,6 +99,7 @@ export default async function handler(
       onboardingComplete,
       chargesEnabled,
       payoutsEnabled,
+      accountType: connectAccount.account_type ?? "express",
     });
   } catch (error) {
     console.error("Stripe Connect account status error:", error);

@@ -6417,8 +6417,15 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     server,
     "create_stripe_connect_account",
     "Create a Stripe Connect Express account for your shop. Returns the new (or existing) Stripe account id. Follow up with create_stripe_onboarding_link to get the onboarding URL.",
-    {},
-    async () => {
+    {
+      country: z
+        .string()
+        .length(2)
+        .describe(
+          "The seller's home country as an ISO 3166-1 alpha-2 code (e.g. US, GB, DE). A Stripe account's country cannot be changed after creation, so confirm this with the seller."
+        ),
+    },
+    async ({ country }) => {
       const startTime = Date.now();
       if (apiKey.permissions !== "full_access") return permissionError();
       const signer = await getSigner(apiKey);
@@ -6437,7 +6444,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               "Content-Type": "application/json",
               [MCP_SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent),
             },
-            body: JSON.stringify({ pubkey }),
+            body: JSON.stringify({ pubkey, country: country.toUpperCase() }),
           }
         );
         const data = await res.json();

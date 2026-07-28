@@ -10,6 +10,7 @@ import {
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
+import { isStripeConnectCountry } from "@/utils/stripe/connect-countries";
 import { hasSquareConnection } from "@/utils/db/square-service";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
@@ -39,12 +40,34 @@ export default async function handler(
     return;
 
   try {
-    const { pubkey } = req.body || {};
+    const { pubkey, country } = req.body || {};
 
     if (!pubkey || typeof pubkey !== "string" || !pubkey.trim()) {
       return res.status(400).json({ error: "pubkey is required" });
     }
     const normalizedPubkey = pubkey.trim();
+
+    // Seller's home country for the Connect account. Stripe Express accounts
+    // can't change country after creation, and omitting it silently defaults
+    // the account to the platform's country (US) — which would force a non-US
+    // seller through US-only onboarding (SSN, US bank, US address) with no way
+    // back. Because the choice is irreversible, fail closed: every client must
+    // state the country explicitly rather than risk creating the wrong one.
+    const accountCountry =
+      typeof country === "string" ? country.trim().toUpperCase() : "";
+    if (!accountCountry) {
+      return res.status(400).json({
+        error:
+          "country is required (your Stripe account's country can't be changed later)",
+        code: "country_required",
+      });
+    }
+    if (!isStripeConnectCountry(accountCountry)) {
+      return res.status(400).json({
+        error: "Unsupported country for Stripe Connect",
+        code: "unsupported_country",
+      });
+    }
 
     const signedEvent = extractSignedEventFromRequest(req);
     const proofResult = await verifyAndConsumeSignedRequestProof(
@@ -89,6 +112,7 @@ export default async function handler(
 
     const account = await stripe.accounts.create({
       type: "express",
+      country: accountCountry,
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },

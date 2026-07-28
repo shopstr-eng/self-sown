@@ -135,28 +135,40 @@ export const exchangeRateRetryConfig = {
   cacheMaxAgeMs: 60_000,
 };
 
-type CachedExchangeRate = { usdPerSat: number; fetchedAt: number };
+type CachedExchangeRate = { fiatPerSat: number; fetchedAt: number };
 
 /**
- * Module-level last-good rate. Persists across requests within a server process
- * so a transient outage can fall back to a very recently observed rate. Reset
- * via `_resetExchangeRateCache` in tests.
+ * Module-level last-good rates, keyed by fiat currency. Persist across requests
+ * within a server process so a transient outage can fall back to a very
+ * recently observed rate. Reset via `_resetExchangeRateCache` in tests.
  */
-let cachedExchangeRate: CachedExchangeRate | null = null;
+const cachedExchangeRates = new Map<string, CachedExchangeRate>();
 
 /** Test-only: clear the in-process last-good rate cache between cases. */
 export const _resetExchangeRateCache = (): void => {
-  cachedExchangeRate = null;
+  cachedExchangeRates.clear();
 };
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-/** A finite, positive USD amount from the feed, or null if the value is junk. */
-const validUsdOrNull = (value: unknown): number | null =>
+/** A finite, positive fiat amount from the feed, or null if the value is junk. */
+const validFiatOrNull = (value: unknown): number | null =>
   typeof value === "number" && isFinite(value) && value > 0 ? value : null;
 
-export const satsToUSD = async (sats: number): Promise<number> => {
+/**
+ * Sats -> fiat conversion for CHARGE math. Fail-closed: retries a degraded
+ * feed, reuses a very recently cached rate within a strict freshness bound,
+ * and throws ExchangeRateError on persistent failure so a nonsensical value
+ * can never flow into a charge. `currency` is the settlement fiat (e.g. the
+ * seller's Stripe/Square account currency), not necessarily USD.
+ */
+export const satsToFiat = async (
+  sats: number,
+  currency: string
+): Promise<number> => {
+  const fiatCurrency = currency.toLowerCase();
+  const cacheKey = fiatCurrency.toUpperCase();
   const attempts = Math.max(1, exchangeRateRetryConfig.maxAttempts);
   const cacheable = isFinite(sats) && sats > 0;
   let lastError: unknown;
@@ -167,25 +179,26 @@ export const satsToUSD = async (sats: number): Promise<number> => {
       await sleep(exchangeRateRetryConfig.retryBaseMs * 2 ** (attempt - 1));
     }
     try {
-      const usdAmount = validUsdOrNull(
-        await getFiatValue({ satoshi: sats, currency: "usd" })
+      const fiatAmount = validFiatOrNull(
+        await getFiatValue({ satoshi: sats, currency: fiatCurrency })
       );
       // A degraded feed can resolve to NaN/Infinity/0/non-number; treat that
       // like a transient failure (retry), and fail closed if it never recovers,
       // so a nonsensical value never flows into the charge math.
-      if (usdAmount === null) {
+      if (fiatAmount === null) {
         lastError = new ExchangeRateError();
         continue;
       }
-      // Success: refresh the short-lived last-good rate (USD per sat is linear,
-      // so it can be reapplied to any sats amount within the freshness window).
+      // Success: refresh the short-lived last-good rate (fiat per sat is
+      // linear, so it can be reapplied to any sats amount within the freshness
+      // window).
       if (cacheable) {
-        cachedExchangeRate = {
-          usdPerSat: usdAmount / sats,
+        cachedExchangeRates.set(cacheKey, {
+          fiatPerSat: fiatAmount / sats,
           fetchedAt: Date.now(),
-        };
+        });
       }
-      return usdAmount;
+      return fiatAmount;
     } catch (err) {
       // The upstream rate feed threw (network down, timeout, etc). Remember it
       // and retry; the original message is preserved for server-side debugging.
@@ -196,15 +209,15 @@ export const satsToUSD = async (sats: number): Promise<number> => {
   // Every attempt failed. As a last resort reuse a very recently cached rate so
   // a brief outage doesn't fail an otherwise-valid checkout — but only within a
   // strict freshness bound, so a stale rate can never silently mis-charge.
+  const cached = cachedExchangeRates.get(cacheKey);
   if (
     cacheable &&
-    cachedExchangeRate &&
-    Date.now() - cachedExchangeRate.fetchedAt <=
-      exchangeRateRetryConfig.cacheMaxAgeMs
+    cached &&
+    Date.now() - cached.fetchedAt <= exchangeRateRetryConfig.cacheMaxAgeMs
   ) {
-    const usdAmount = validUsdOrNull(cachedExchangeRate.usdPerSat * sats);
-    if (usdAmount !== null) {
-      return usdAmount;
+    const fiatAmount = validFiatOrNull(cached.fiatPerSat * sats);
+    if (fiatAmount !== null) {
+      return fiatAmount;
     }
   }
 
@@ -214,6 +227,9 @@ export const satsToUSD = async (sats: number): Promise<number> => {
     lastError instanceof Error ? lastError.message : EXCHANGE_RATE_BUYER_MESSAGE
   );
 };
+
+export const satsToUSD = async (sats: number): Promise<number> =>
+  satsToFiat(sats, "usd");
 
 /**
  * Per-currency last-good FX rate cache for the BUYER-FACING display path. The
@@ -254,7 +270,7 @@ const resilientDisplayRate = async (
       await sleep(exchangeRateRetryConfig.retryBaseMs * 2 ** (attempt - 1));
     }
     try {
-      const value = validUsdOrNull(await fetchValue());
+      const value = validFiatOrNull(await fetchValue());
       // A degraded feed can resolve to NaN/Infinity/0/non-number; treat that
       // like a transient failure (retry), and fall back to cache / null if it
       // never recovers, so a nonsensical value never reaches the display.
@@ -280,7 +296,7 @@ const resilientDisplayRate = async (
       cached &&
       Date.now() - cached.fetchedAt <= exchangeRateRetryConfig.cacheMaxAgeMs
     ) {
-      return validUsdOrNull(cached.ratio * input);
+      return validFiatOrNull(cached.ratio * input);
     }
   }
 

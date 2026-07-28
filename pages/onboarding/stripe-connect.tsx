@@ -1,6 +1,14 @@
 import { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/router";
-import { Card, CardBody, Button, Image, Spinner } from "@heroui/react";
+import {
+  Card,
+  CardBody,
+  Button,
+  Image,
+  Spinner,
+  Select,
+  SelectItem,
+} from "@heroui/react";
 import {
   ArrowLeftEndOnRectangleIcon,
   CreditCardIcon,
@@ -19,6 +27,7 @@ import {
   buildStripeCreateAccountLinkProof,
 } from "@/utils/mcp/request-proof";
 import { hasPendingImportDraft } from "@/utils/migrations/site-design";
+import { STRIPE_CONNECT_COUNTRIES } from "@/utils/stripe/connect-countries";
 
 const OnboardingStripeConnect = () => {
   const router = useRouter();
@@ -27,6 +36,7 @@ const OnboardingStripeConnect = () => {
   const [error, setError] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [country, setCountry] = useState("US");
 
   const isSuccess = router.query.success === "true";
   const isRefresh = router.query.refresh === "true";
@@ -79,7 +89,11 @@ const OnboardingStripeConnect = () => {
       const createRes = await fetch("/api/stripe/connect/create-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pubkey, signedEvent: createSignedEvent }),
+        body: JSON.stringify({
+          pubkey,
+          country,
+          signedEvent: createSignedEvent,
+        }),
       });
 
       if (!createRes.ok) {
@@ -239,6 +253,22 @@ const OnboardingStripeConnect = () => {
                       </span>
                     </div>
                   </div>
+                </div>
+
+                <div className="mb-6">
+                  <Select
+                    label="Your country"
+                    description="This sets your Stripe account's country and can't be changed later. Stripe will ask for the tax and bank details that match it."
+                    selectedKeys={[country]}
+                    onChange={(e) => setCountry(e.target.value || "US")}
+                    classNames={{
+                      trigger: "border-2 border-black rounded-md bg-white",
+                    }}
+                  >
+                    {STRIPE_CONNECT_COUNTRIES.map((c) => (
+                      <SelectItem key={c.code}>{c.name}</SelectItem>
+                    ))}
+                  </Select>
                 </div>
 
                 {error && (

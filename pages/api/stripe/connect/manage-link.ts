@@ -97,6 +97,16 @@ export default async function handler(
         .json({ error: "Account does not belong to this user" });
     }
 
+    // Express-only: login/account links don't exist for seller-owned Standard
+    // accounts — those sellers use the full Stripe dashboard directly.
+    if (connectAccount.account_type === "standard") {
+      return res.status(400).json({
+        error:
+          "Your Stripe account is managed in the full Stripe dashboard. Open https://dashboard.stripe.com directly.",
+        code: "standard_account",
+      });
+    }
+
     const baseUrl =
       process.env.NEXT_PUBLIC_BASE_URL ||
       (process.env.REPLIT_DEV_DOMAIN

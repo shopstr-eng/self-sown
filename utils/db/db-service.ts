@@ -629,6 +629,11 @@ async function initializeTables(): Promise<void> {
       -- adds the US states they're registered in (Stripe returns zero without nexus).
       ALTER TABLE stripe_connect_accounts ADD COLUMN IF NOT EXISTS tax_enabled BOOLEAN DEFAULT TRUE;
 
+      -- Account type: 'express' accounts are platform-hosted (Stripe Express
+      -- dashboard); 'standard' accounts are seller-owned full Stripe accounts
+      -- linked via OAuth. Rows predating this column are all Express.
+      ALTER TABLE stripe_connect_accounts ADD COLUMN IF NOT EXISTS account_type TEXT NOT NULL DEFAULT 'express';
+
       -- One-time migration to flip the feature from opt-in to on-by-default: while
       -- the column still carries the old FALSE default, enable existing accounts and
       -- switch the default to TRUE. Guarded by the current default so app restarts
@@ -4418,6 +4423,7 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   charges_enabled: boolean;
   payouts_enabled: boolean;
   tax_enabled: boolean;
+  account_type: "express" | "standard";
 } | null> {
   const dbPool = getDbPool();
   let client;
@@ -4425,7 +4431,7 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   try {
     client = await dbPool.connect();
     const result = await client.query(
-      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, COALESCE(tax_enabled, TRUE) AS tax_enabled FROM stripe_connect_accounts WHERE pubkey = $1`,
+      `SELECT stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, COALESCE(tax_enabled, TRUE) AS tax_enabled, COALESCE(account_type, 'express') AS account_type FROM stripe_connect_accounts WHERE pubkey = $1`,
       [pubkey]
     );
     if (result.rows.length === 0) return null;
@@ -4491,7 +4497,11 @@ export async function upsertStripeConnectAccount(
   stripeAccountId: string,
   onboardingComplete: boolean = false,
   chargesEnabled: boolean = false,
-  payoutsEnabled: boolean = false
+  payoutsEnabled: boolean = false,
+  // Only pass when CREATING/replacing the linkage (express creation, standard
+  // OAuth callback). Status refresh callers omit it so the existing type is
+  // preserved (COALESCE below).
+  accountType?: "express" | "standard"
 ): Promise<void> {
   const dbPool = getDbPool();
   let client;
@@ -4499,13 +4509,14 @@ export async function upsertStripeConnectAccount(
   try {
     client = await dbPool.connect();
     await client.query(
-      `INSERT INTO stripe_connect_accounts (pubkey, stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, updated_at)
-       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+      `INSERT INTO stripe_connect_accounts (pubkey, stripe_account_id, onboarding_complete, charges_enabled, payouts_enabled, account_type, updated_at)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'express'), CURRENT_TIMESTAMP)
        ON CONFLICT (pubkey) DO UPDATE SET
          stripe_account_id = EXCLUDED.stripe_account_id,
          onboarding_complete = EXCLUDED.onboarding_complete,
          charges_enabled = EXCLUDED.charges_enabled,
          payouts_enabled = EXCLUDED.payouts_enabled,
+         account_type = COALESCE($6, stripe_connect_accounts.account_type),
          updated_at = CURRENT_TIMESTAMP`,
       [
         pubkey,
@@ -4513,6 +4524,7 @@ export async function upsertStripeConnectAccount(
         onboardingComplete,
         chargesEnabled,
         payoutsEnabled,
+        accountType ?? null,
       ] as any[]
     );
   } catch (error) {

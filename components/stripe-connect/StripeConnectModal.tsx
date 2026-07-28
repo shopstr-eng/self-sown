@@ -7,11 +7,14 @@ import {
   ModalBody,
   ModalFooter,
   Button,
+  Select,
+  SelectItem,
 } from "@heroui/react";
 import {
   BLUEBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { STRIPE_CONNECT_COUNTRIES } from "@/utils/stripe/connect-countries";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import {
   buildMcpRequestProofTemplate,
@@ -36,6 +39,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [country, setCountry] = useState("US");
   const { signer } = useContext(SignerContext);
 
   const handleSetupStripe = async () => {
@@ -55,7 +59,11 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
       const createRes = await fetch("/api/stripe/connect/create-account", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pubkey, signedEvent: createSignedEvent }),
+        body: JSON.stringify({
+          pubkey,
+          country,
+          signedEvent: createSignedEvent,
+        }),
       });
 
       if (!createRes.ok) {
@@ -136,6 +144,21 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
             Connect your Stripe account to accept credit card payments from
             buyers on Milk Market.
           </p>
+          <div className="mt-3">
+            <Select
+              label="Your country"
+              description="This sets your Stripe account's country and can't be changed later. Stripe will ask for the tax and bank details that match it."
+              selectedKeys={[country]}
+              onChange={(e) => setCountry(e.target.value || "US")}
+              classNames={{
+                trigger: "border-2 border-black rounded-md bg-white",
+              }}
+            >
+              {STRIPE_CONNECT_COUNTRIES.map((c) => (
+                <SelectItem key={c.code}>{c.name}</SelectItem>
+              ))}
+            </Select>
+          </div>
           <div className="mt-3 space-y-2">
             <div className="flex items-start gap-2">
               <span className="text-primary-blue mt-0.5 text-lg font-bold">

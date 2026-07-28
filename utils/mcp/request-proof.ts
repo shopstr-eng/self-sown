@@ -208,6 +208,15 @@ export function buildStripeCreateAccountLinkProof({
   };
 }
 
+export function buildStripeStandardStartProof(pubkey: string): McpRequestProof {
+  return {
+    action: "stripe_standard_start",
+    method: "POST",
+    path: "/api/stripe/connect/standard/start",
+    pubkey,
+  };
+}
+
 export function buildStripeAccountStatusProof(pubkey: string): McpRequestProof {
   return {
     action: "stripe_account_status",

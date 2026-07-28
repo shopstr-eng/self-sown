@@ -1,9 +1,17 @@
 import * as WebBrowser from "expo-web-browser";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { createSignedStripeConnectAuthEvent } from "@milk-market/nostr";
+import { STRIPE_CONNECT_COUNTRIES } from "@milk-market/api-client";
 
 import {
   ActionButton,
@@ -42,6 +50,8 @@ export default function DashboardScreen() {
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
   const [stripeActionError, setStripeActionError] = useState("");
   const [stripeActionMessage, setStripeActionMessage] = useState("");
+  const [stripeCountry, setStripeCountry] = useState("US");
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
   if (!session) {
     return null;
@@ -191,6 +201,7 @@ export default function DashboardScreen() {
       const account = await mobileApiClient.createStripeConnectAccount({
         pubkey: session.pubkey,
         signedEvent: createAccountSignedEvent,
+        country: stripeCountry,
       });
       const createLinkSignedEvent = createSignedStripeConnectAuthEvent(
         session,
@@ -399,6 +410,54 @@ export default function DashboardScreen() {
         {stripeActionMessage ? (
           <Text style={styles.successText}>{stripeActionMessage}</Text>
         ) : null}
+        {!stripeStatus?.chargesEnabled && !stripeStatusErrorMessage ? (
+          <>
+            <Pressable
+              style={styles.rowBetween}
+              onPress={() => setCountryPickerOpen(true)}
+            >
+              <Text style={styles.checkLabel}>Account country</Text>
+              <Text style={styles.metaValue}>
+                {STRIPE_CONNECT_COUNTRIES.find(
+                  (country) => country.code === stripeCountry
+                )?.name ?? stripeCountry}
+              </Text>
+            </Pressable>
+            <Text style={styles.metaLabel}>
+              This sets your Stripe account&apos;s country and can&apos;t be
+              changed later.
+            </Text>
+            <Modal
+              visible={countryPickerOpen}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setCountryPickerOpen(false)}
+            >
+              <Pressable
+                style={styles.pickerBackdrop}
+                onPress={() => setCountryPickerOpen(false)}
+              >
+                <View style={styles.pickerSheet}>
+                  <FlatList
+                    data={STRIPE_CONNECT_COUNTRIES}
+                    keyExtractor={(item) => item.code}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        style={styles.pickerOption}
+                        onPress={() => {
+                          setStripeCountry(item.code);
+                          setCountryPickerOpen(false);
+                        }}
+                      >
+                        <Text style={styles.pickerOptionText}>{item.name}</Text>
+                      </Pressable>
+                    )}
+                  />
+                </View>
+              </Pressable>
+            </Modal>
+          </>
+        ) : null}
         <ActionButton
           label={
             stripeStatusErrorMessage
@@ -472,5 +531,26 @@ const styles = StyleSheet.create({
     color: sellerThemeTokens.success,
     fontSize: 14,
     lineHeight: 20,
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    padding: 24,
+  },
+  pickerSheet: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    maxHeight: "70%",
+    overflow: "hidden",
+  },
+  pickerOption: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  pickerOptionText: {
+    color: sellerThemeTokens.text,
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

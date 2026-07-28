@@ -10,8 +10,8 @@
 //      and any other non-COMPLETED status — must return 402 and NOT report
 //      success, never confirming an order against uncaptured funds.
 //   2. The currency guard rejects a cart currency that differs from the seller's
-//      Square location settlement currency, and rejects sats/BTC unless the
-//      location settles USD.
+//      Square location settlement currency; sats/BTC carts are converted into
+//      whatever currency the location settles (not just USD).
 //   3. The seller's Square connection (token + location) is resolved
 //      server-side from the pubkey; any client-supplied token/location in the
 //      body is ignored — only the resolved access drives the charge.
@@ -25,7 +25,7 @@ const applyRateLimitMock = jest.fn();
 const getValidSquareAccessTokenMock = jest.fn();
 const createSquarePaymentMock = jest.fn();
 const isSquareConfiguredMock = jest.fn();
-const satsToUSDMock = jest.fn();
+const satsToFiatMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -49,7 +49,7 @@ jest.mock("@/utils/stripe/currency", () => {
   return {
     __esModule: true,
     ...actual,
-    satsToUSD: (...args: unknown[]) => satsToUSDMock(...args),
+    satsToFiat: (...args: unknown[]) => satsToFiatMock(...args),
   };
 });
 
@@ -96,7 +96,7 @@ beforeEach(() => {
   createSquarePaymentMock
     .mockReset()
     .mockResolvedValue({ id: "sqpay_1", status: "COMPLETED" });
-  satsToUSDMock.mockReset();
+  satsToFiatMock.mockReset();
 });
 
 describe("POST /api/square/create-payment — only COMPLETED confirms an order", () => {
@@ -164,7 +164,8 @@ describe("POST /api/square/create-payment — currency guard", () => {
     expect(createSquarePaymentMock).not.toHaveBeenCalled();
   });
 
-  it("rejects sats when the location does NOT settle USD", async () => {
+  it("converts sats to the location currency when it is NOT USD", async () => {
+    satsToFiatMock.mockResolvedValue(9.876); // → ceil(987.6) = 988 cents
     getValidSquareAccessTokenMock.mockResolvedValue(
       usdAccess({ locationCurrency: "EUR" })
     );
@@ -174,14 +175,15 @@ describe("POST /api/square/create-payment — currency guard", () => {
       currency: "sats",
       sellerPubkey: SELLER,
     });
-    expect(res.statusCode).toBe(400);
-    expect((res.body as any).code).toBe("currency_mismatch");
-    expect(satsToUSDMock).not.toHaveBeenCalled();
-    expect(createSquarePaymentMock).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(satsToFiatMock).toHaveBeenCalledWith(1000, "EUR");
+    const charge = createSquarePaymentMock.mock.calls[0][1] as any;
+    expect(charge.amount).toBe(988);
+    expect(charge.currency).toBe("EUR");
   });
 
   it("accepts sats when the location settles USD, converting to USD cents", async () => {
-    satsToUSDMock.mockResolvedValue(1.231); // → ceil(123.1) = 124 cents
+    satsToFiatMock.mockResolvedValue(1.231); // → ceil(123.1) = 124 cents
     getValidSquareAccessTokenMock.mockResolvedValue(
       usdAccess({ locationCurrency: "USD" })
     );
@@ -192,7 +194,7 @@ describe("POST /api/square/create-payment — currency guard", () => {
       sellerPubkey: SELLER,
     });
     expect(res.statusCode).toBe(200);
-    expect(satsToUSDMock).toHaveBeenCalledWith(10000);
+    expect(satsToFiatMock).toHaveBeenCalledWith(10000, "USD");
     const charge = createSquarePaymentMock.mock.calls[0][1] as any;
     expect(charge.amount).toBe(124);
     expect(charge.currency).toBe("USD");
@@ -256,9 +258,9 @@ describe("POST /api/square/create-payment — seller resolved server-side", () =
 });
 
 describe("POST /api/square/create-payment — fail closed on a stale/unavailable exchange rate", () => {
-  it("returns 503 with EXCHANGE_RATE_UNAVAILABLE and NEVER charges when satsToUSD throws an exchange-rate error", async () => {
+  it("returns 503 with EXCHANGE_RATE_UNAVAILABLE and NEVER charges when satsToFiat throws an exchange-rate error", async () => {
     const { ExchangeRateError } = jest.requireActual("@/utils/stripe/currency");
-    satsToUSDMock.mockRejectedValue(new ExchangeRateError());
+    satsToFiatMock.mockRejectedValue(new ExchangeRateError());
     getValidSquareAccessTokenMock.mockResolvedValue(
       usdAccess({ locationCurrency: "USD" })
     );
