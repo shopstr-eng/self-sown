@@ -106,7 +106,6 @@ function MarketplacePage({
   );
   const [isFetchingReviews, setIsFetchingReviews] = useState(false);
 
-  const [shopBannerURL, setShopBannerURL] = useState("");
   const [isFetchingShop, setIsFetchingShop] = useState(false);
   const [rawEvent, setRawEvent] = useState<Event | undefined>(undefined);
   const [showRawEventModal, setShowRawEventModal] = useState(false);
@@ -232,7 +231,6 @@ function MarketplacePage({
       const shopProfile: ShopProfile | undefined =
         shopMapContext.shopData.get(focusedPubkey);
       if (shopProfile) {
-        setShopBannerURL(shopProfile.content.ui.banner);
         setRawEvent(shopProfile.event);
       }
     }
@@ -425,107 +423,112 @@ function MarketplacePage({
     <div className="mx-auto w-full bg-white">
       {/* Filter Bar Section */}
       <div className="flex max-w-[100%] flex-col bg-white px-6 py-6">
-        {shopBannerURL != "" && focusedPubkey != "" && !isFetchingShop ? (
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div
-              ref={searchBarRef}
-              className="w-full sm:order-2 sm:w-auto sm:flex-1"
-            >
-              <Input
-                classNames={{
-                  input: "bg-white !text-black placeholder:!text-gray-500",
-                  inputWrapper:
-                    "bg-white border-4 border-black rounded-md shadow-neo h-12 data-[hover=true]:bg-white data-[focus=true]:bg-white data-[focus-visible=true]:bg-white group-data-[focus=true]:bg-white",
-                  innerWrapper: "bg-white",
-                  mainWrapper: "bg-white",
-                }}
-                isClearable
-                placeholder="Search by name, price, or seller"
-                value={selectedSearch}
-                startContent={
-                  <MagnifyingGlassIcon className="h-5 w-5 text-black" />
-                }
-                endContent={
-                  <Tooltip
-                    content="You can also search by Nostr identifier (naddr1… or npub1…)"
-                    placement="bottom"
-                  >
-                    <InformationCircleIcon className="h-4 w-4 cursor-default text-black" />
-                  </Tooltip>
-                }
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setSelectedSearch(value);
-                }}
-                onClear={() => setSelectedSearch("")}
-              />
-            </div>
+        {focusedPubkey != "" && !isFetchingShop ? (
+          <div className="flex flex-col gap-4">
+            <h2 className="text-2xl font-bold text-black sm:text-3xl">
+              {sellerName}
+            </h2>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                ref={searchBarRef}
+                className="w-full sm:order-2 sm:w-auto sm:flex-1"
+              >
+                <Input
+                  classNames={{
+                    input: "bg-white !text-black placeholder:!text-gray-500",
+                    inputWrapper:
+                      "bg-white border-4 border-black rounded-md shadow-neo h-12 data-[hover=true]:bg-white data-[focus=true]:bg-white data-[focus-visible=true]:bg-white group-data-[focus=true]:bg-white",
+                    innerWrapper: "bg-white",
+                    mainWrapper: "bg-white",
+                  }}
+                  isClearable
+                  placeholder="Search by name, price, or seller"
+                  value={selectedSearch}
+                  startContent={
+                    <MagnifyingGlassIcon className="h-5 w-5 text-black" />
+                  }
+                  endContent={
+                    <Tooltip
+                      content="You can also search by Nostr identifier (naddr1… or npub1…)"
+                      placement="bottom"
+                    >
+                      <InformationCircleIcon className="h-4 w-4 cursor-default text-black" />
+                    </Tooltip>
+                  }
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setSelectedSearch(value);
+                  }}
+                  onClear={() => setSelectedSearch("")}
+                />
+              </div>
 
-            <div className="flex flex-wrap gap-2 sm:order-1">
-              <Button
-                className="hover:text-primary-yellow bg-transparent text-lg font-bold text-black sm:text-xl"
-                onClick={() => {
-                  setSelectedCategories(new Set<string>([]));
-                  setSelectedLocation("");
-                  setSelectedSearch("");
-                  setSelectedSection("shop");
-                }}
-              >
-                Stall
-              </Button>
-              <Button
-                className="hover:text-primary-yellow bg-transparent text-lg font-bold text-black sm:text-xl"
-                onClick={() => {
-                  setSelectedSection("reviews");
-                }}
-              >
-                Reviews
-              </Button>
-              <Button
-                className="hover:text-primary-yellow bg-transparent text-lg font-bold text-black sm:text-xl"
-                onClick={() => handleSendMessage(focusedPubkey)}
-              >
-                Message
-              </Button>
-              {(() => {
-                const shopData = shopMapContext.shopData.get(focusedPubkey);
-                const shopSlug = shopData?.content?.storefront?.shopSlug;
-                return shopSlug ? (
-                  <Button
-                    className="text-primary-blue hover:text-primary-yellow bg-transparent text-lg font-bold sm:text-xl"
-                    onClick={() => router.push(`/stall/${shopSlug}`)}
-                  >
-                    Stall ↗
-                  </Button>
-                ) : null;
-              })()}
-              {rawEvent && (
-                <Dropdown>
-                  <DropdownTrigger>
+              <div className="flex flex-wrap gap-2 sm:order-1">
+                <Button
+                  className="hover:text-primary-yellow bg-transparent text-lg font-bold text-black sm:text-xl"
+                  onClick={() => {
+                    setSelectedCategories(new Set<string>([]));
+                    setSelectedLocation("");
+                    setSelectedSearch("");
+                    setSelectedSection("shop");
+                  }}
+                >
+                  Stall
+                </Button>
+                <Button
+                  className="hover:text-primary-yellow bg-transparent text-lg font-bold text-black sm:text-xl"
+                  onClick={() => {
+                    setSelectedSection("reviews");
+                  }}
+                >
+                  Reviews
+                </Button>
+                <Button
+                  className="hover:text-primary-yellow bg-transparent text-lg font-bold text-black sm:text-xl"
+                  onClick={() => handleSendMessage(focusedPubkey)}
+                >
+                  Message
+                </Button>
+                {(() => {
+                  const shopData = shopMapContext.shopData.get(focusedPubkey);
+                  const shopSlug = shopData?.content?.storefront?.shopSlug;
+                  return shopSlug ? (
                     <Button
-                      isIconOnly
-                      variant="light"
-                      className="hover:text-accent-white/10 text-white"
+                      className="text-primary-blue hover:text-primary-yellow bg-transparent text-lg font-bold sm:text-xl"
+                      onClick={() => router.push(`/stall/${shopSlug}`)}
                     >
-                      <EllipsisVerticalIcon className="h-6 w-6" />
+                      Stall ↗
                     </Button>
-                  </DropdownTrigger>
-                  <DropdownMenu aria-label="Event Actions">
-                    <DropdownItem
-                      key="view-raw"
-                      onPress={() => setShowRawEventModal(true)}
-                    >
-                      View Raw Event
-                    </DropdownItem>
-                    <DropdownItem
-                      key="view-id"
-                      onPress={() => setShowEventIdModal(true)}
-                    >
-                      View Event ID
-                    </DropdownItem>
-                  </DropdownMenu>
-                </Dropdown>
-              )}
+                  ) : null;
+                })()}
+                {rawEvent && (
+                  <Dropdown>
+                    <DropdownTrigger>
+                      <Button
+                        isIconOnly
+                        variant="light"
+                        className="hover:text-accent-white/10 text-white"
+                      >
+                        <EllipsisVerticalIcon className="h-6 w-6" />
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu aria-label="Event Actions">
+                      <DropdownItem
+                        key="view-raw"
+                        onPress={() => setShowRawEventModal(true)}
+                      >
+                        View Raw Event
+                      </DropdownItem>
+                      <DropdownItem
+                        key="view-id"
+                        onPress={() => setShowEventIdModal(true)}
+                      >
+                        View Event ID
+                      </DropdownItem>
+                    </DropdownMenu>
+                  </Dropdown>
+                )}
+              </div>
             </div>
           </div>
         ) : (
@@ -652,7 +655,7 @@ function MarketplacePage({
 
       {/* Main Content Area */}
       <div className="flex bg-white">
-        {focusedPubkey && shopBannerURL && (
+        {focusedPubkey && !isFetchingShop && (
           <SideShopNav
             focusedPubkey={focusedPubkey}
             categories={categories}

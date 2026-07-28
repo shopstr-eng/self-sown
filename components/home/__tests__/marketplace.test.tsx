@@ -63,6 +63,9 @@ const renderComponent = ({
   followList = [],
   firstDegreeFollowsLength = 0,
   isFollowsLoading = false,
+  shopBanner = "test-banner.jpg",
+  shopName = "Test Shop",
+  hasShopProfile = true,
 }: {
   focusedPubkey?: string;
   routerQuery?: any;
@@ -70,6 +73,9 @@ const renderComponent = ({
   followList?: string[];
   firstDegreeFollowsLength?: number;
   isFollowsLoading?: boolean;
+  shopBanner?: string;
+  shopName?: string;
+  hasShopProfile?: boolean;
 }) => {
   const mockRouterPush = jest.fn();
   const mockRouterReplace = jest.fn();
@@ -99,11 +105,12 @@ const renderComponent = ({
   });
 
   const mockShopData = new Map<string, any>();
-  if (focusedPubkey) {
+  if (focusedPubkey && hasShopProfile) {
     mockShopData.set(focusedPubkey, {
       content: {
+        name: shopName,
         about: "This is a test shop.",
-        ui: { banner: "test-banner.jpg" },
+        ui: { banner: shopBanner },
       },
     });
   }
@@ -198,6 +205,21 @@ describe("MarketplacePage Component", () => {
   it("renders shop-specific view when a shop is focused", () => {
     renderComponent({ focusedPubkey: "shop1" });
     expect(screen.getByTestId("mock-side-shop-nav")).toBeInTheDocument();
+  });
+
+  it("renders shop-specific view for a vendor without a stall banner", () => {
+    renderComponent({ focusedPubkey: "shop1", shopBanner: "" });
+    expect(screen.getByTestId("mock-side-shop-nav")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Message" })).toBeInTheDocument();
+    expect(screen.getByText("Test Shop")).toBeInTheDocument();
+  });
+
+  it("renders shop-specific view for a vendor with no shop profile at all", () => {
+    renderComponent({ focusedPubkey: "shop1", hasShopProfile: false });
+    expect(screen.getByTestId("mock-side-shop-nav")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reviews" })).toBeInTheDocument();
+    expect(screen.getByText("Seller Stall")).toBeInTheDocument();
   });
 
   it("calls setFocusedPubkey when npub appears in URL", () => {

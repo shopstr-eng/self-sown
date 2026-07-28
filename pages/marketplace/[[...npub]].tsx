@@ -1,4 +1,5 @@
 import HomeFeed from "@/components/home/home-feed";
+import { useEffect } from "react";
 import { GetServerSideProps } from "next";
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { nip19 } from "nostr-tools";
@@ -116,18 +117,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     }
 
     const shopEvent = await fetchShopProfileByPubkeyFromDb(pubkey);
-    if (!shopEvent) {
-      // Pubkey exists but no shop profile — nothing to show.
-      return { notFound: true };
-    }
 
     let ssrSellerName = "";
     let ssrSellerAbout = "";
-    try {
-      const c = JSON.parse(shopEvent.content);
-      ssrSellerName = c.name || "";
-      ssrSellerAbout = c.about || "";
-    } catch {}
+    if (shopEvent) {
+      try {
+        const c = JSON.parse(shopEvent.content);
+        ssrSellerName = c.name || "";
+        ssrSellerAbout = c.about || "";
+      } catch {}
+    }
 
     // Fetch a slice of the seller's products for the SSR HTML so crawlers
     // and bots that don't run JavaScript see real listing links immediately.
@@ -145,6 +144,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       // Non-fatal: SSR product slice is best-effort.
     }
 
+    // Vendors without a shop profile still get a vendor page when they have
+    // listings — the client renders the filtered vendor view for them. With
+    // no shop profile AND no listings, there is nothing to show.
+    if (!shopEvent && ssrProducts.length === 0) {
+      return { notFound: true };
+    }
+
     // Use the canonical slug in ogMeta.url so the canonical tag always
     // points at the slug URL regardless of which identifier was requested.
     const canonicalSlug = identifier.startsWith("npub1") ? null : identifier;
@@ -153,7 +159,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       : urlPath;
     return {
       props: {
-        ogMeta: shopEventToOgMeta(shopEvent, canonicalUrl),
+        ogMeta: shopEvent
+          ? shopEventToOgMeta(shopEvent, canonicalUrl)
+          : ({
+              ...DEFAULT_OG,
+              title: "Milk Market Stall",
+              description: "Check out this shop on Milk Market!",
+              url: canonicalUrl,
+            } as OgMetaProps),
         initialFocusedPubkey: pubkey,
         ssrSellerName,
         ssrSellerAbout,
@@ -190,6 +203,25 @@ export default function SellerView({
   ssrProducts = [],
   initialFocusedPubkey = "",
 }: MarketplacePageProps) {
+  // Seed the client focus from the SSR-resolved pubkey. The client-side
+  // slug→pubkey resolution in MarketplacePage depends on the seller's profile
+  // being present in the relay-loaded profile map, which vendors without a
+  // kind:0 profile (or with relays still loading) never satisfy — leaving
+  // focusedPubkey empty and the grid showing the full unfiltered marketplace
+  // (other sellers' products). The server already resolved the pubkey
+  // authoritatively, so trust it.
+  useEffect(() => {
+    if (initialFocusedPubkey && initialFocusedPubkey !== focusedPubkey) {
+      setFocusedPubkey(initialFocusedPubkey);
+      setSelectedSection("shop");
+    }
+  }, [
+    initialFocusedPubkey,
+    focusedPubkey,
+    setFocusedPubkey,
+    setSelectedSection,
+  ]);
+
   const isSeller = !!(focusedPubkey || initialFocusedPubkey);
   return (
     <>

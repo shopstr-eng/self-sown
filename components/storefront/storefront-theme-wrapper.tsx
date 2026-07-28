@@ -161,7 +161,20 @@ function StorefrontThemeWrapperInner({
     return () => clearInterval(interval);
   }, [sellerPubkey]);
 
+  const hasCustomStorefront = !!storefront && entitled;
+
   useEffect(() => {
+    // Only mark the body storefront-themed when the seller's chrome will
+    // actually render. `body.sf-active` hides the Milk Market TopNav via
+    // globals.css (`body.sf-active [data-main-nav]`), so setting it for a
+    // seller with no custom storefront (or a lapsed/non-Pro seller) strips
+    // the platform navbar and leaves the page with no nav at all. Custom
+    // domain / self-host visits keep the eager neutral paint below to avoid
+    // the unstyled flash while the config loads — the platform TopNav is
+    // suppressed there regardless of sf-active.
+    if (!hasCustomStorefront && !isCustomDomain && !forceSelfHostChrome) {
+      return;
+    }
     document.body.classList.add("sf-active");
     // While the seller's storefront config is still loading from relays,
     // paint a neutral background + text color immediately. Without this
@@ -193,9 +206,14 @@ function StorefrontThemeWrapperInner({
         document.body.style.removeProperty(k);
       }
     };
-  }, [storefront, colors]);
+  }, [
+    storefront,
+    colors,
+    hasCustomStorefront,
+    isCustomDomain,
+    forceSelfHostChrome,
+  ]);
 
-  const hasCustomStorefront = !!storefront && entitled;
   const hasFooter = !!storefront?.footer;
 
   const navBg = storefront?.navColors?.background || colors.secondary;
