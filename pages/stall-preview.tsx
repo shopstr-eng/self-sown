@@ -183,12 +183,16 @@ export default function ConvertPage() {
           name="description"
           content="Paste your website address and instantly preview how your shop would look as a Milk Market stall. No account needed."
         />
+        {/* key="..." matches DynamicHead's keyed tags so next/head dedupes to
+            one og:title/og:description on this page (these win). */}
         <meta
           property="og:title"
+          key="og:title"
           content="See your website as a Milk Market stall"
         />
         <meta
           property="og:description"
+          key="og:description"
           content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
         />
         {/* key="og:image" matches DynamicHead's globally-rendered tag so

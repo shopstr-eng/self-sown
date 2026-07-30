@@ -852,7 +852,11 @@ export default function StorefrontLayout({
           <meta name="keywords" content={storefront.seoMeta.keywords} />
         )}
         {storefront.seoMeta?.locale && (
-          <meta property="og:locale" content={storefront.seoMeta.locale} />
+          <meta
+            property="og:locale"
+            content={storefront.seoMeta.locale}
+            key="og:locale"
+          />
         )}
         {storefront.seoMeta?.locationRegion && (
           <meta name="geo.region" content={storefront.seoMeta.locationRegion} />
@@ -863,16 +867,21 @@ export default function StorefrontLayout({
             content={storefront.seoMeta.locationCity}
           />
         )}
-        <meta property="og:type" content="business.business" />
-        <meta property="og:site_name" content={shopName} />
+        {/* key="..." on each og tag matches DynamicHead's keyed copies so
+            next/head dedupes to exactly one of each (these page-level values
+            win over DynamicHead's, same approach as the og:image fix). */}
+        <meta property="og:type" content="business.business" key="og:type" />
+        <meta property="og:site_name" content={shopName} key="og:site_name" />
         <meta
           property="og:title"
           content={storefront.seoMeta?.metaTitle || shopName}
+          key="og:title"
         />
         {storefront.seoMeta?.metaDescription && (
           <meta
             property="og:description"
             content={storefront.seoMeta.metaDescription}
+            key="og:description"
           />
         )}
         {/* key="og:image" matches DynamicHead's tag so next/head dedupes to a
