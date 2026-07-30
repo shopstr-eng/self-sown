@@ -875,8 +875,11 @@ export default function StorefrontLayout({
             content={storefront.seoMeta.metaDescription}
           />
         )}
+        {/* key="og:image" matches DynamicHead's tag so next/head dedupes to a
+            single og:image (this one wins when the storefront image resolves;
+            otherwise DynamicHead's SSR image stands). */}
         {optimizedOgImage && (
-          <meta property="og:image" content={optimizedOgImage} />
+          <meta property="og:image" content={optimizedOgImage} key="og:image" />
         )}
         <script
           type="application/ld+json"

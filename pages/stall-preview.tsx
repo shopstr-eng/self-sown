@@ -191,8 +191,11 @@ export default function ConvertPage() {
           property="og:description"
           content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
         />
+        {/* key="og:image" matches DynamicHead's globally-rendered tag so
+            next/head dedupes to a single og:image on this page. */}
         <meta
           property="og:image"
+          key="og:image"
           content={toOptimizedOgImageUrl(
             "https://milk.market/milk-market.png",
             "https://milk.market"
