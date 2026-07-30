@@ -21,3 +21,30 @@ export function toOptimizedOgImageUrl(
   if (!base) return absoluteImageUrl;
   return `${base}/api/og-image?url=${encodeURIComponent(absoluteImageUrl)}`;
 }
+
+/**
+ * Pick the origin the proxied og:image URL should live on. On seller custom
+ * domains this must be the seller's own domain (domain purity) — the SSR
+ * store URL already canonicalizes to it, so its origin is the server-safe
+ * source for the initial HTML. Client-side without an SSR URL we fall back to
+ * the live origin; anything else gets the platform base. Never derived from
+ * the request Host header.
+ */
+export function resolveOgImageOrigin(
+  ssrStoreUrl: string | undefined,
+  isCustomDomain: boolean,
+  fallbackOrigin = "https://milk.market"
+): string {
+  if (ssrStoreUrl) {
+    try {
+      const { origin } = new URL(ssrStoreUrl);
+      if (origin && origin !== "null") return origin;
+    } catch {
+      // Unparseable — fall through to the client/platform fallbacks.
+    }
+  }
+  if (isCustomDomain && typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return fallbackOrigin;
+}

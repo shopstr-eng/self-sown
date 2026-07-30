@@ -1,4 +1,7 @@
-import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
+import {
+  toOptimizedOgImageUrl,
+  resolveOgImageOrigin,
+} from "@/utils/og/optimize-og-image";
 
 describe("toOptimizedOgImageUrl", () => {
   it("wraps an absolute https image URL in the og-image proxy", () => {
@@ -38,6 +41,36 @@ describe("toOptimizedOgImageUrl", () => {
       )
     ).toBe(
       "https://milk.market/api/og-image?url=https%3A%2F%2Fcdn.example.com%2Fa.png"
+    );
+  });
+});
+
+describe("resolveOgImageOrigin", () => {
+  it("uses the seller's domain from the SSR store URL on custom domains", () => {
+    expect(resolveOgImageOrigin("https://naughtygoat.co/products", true)).toBe(
+      "https://naughtygoat.co"
+    );
+  });
+
+  it("uses the platform origin from a platform stall URL", () => {
+    expect(resolveOgImageOrigin("https://milk.market/stall/farm", false)).toBe(
+      "https://milk.market"
+    );
+  });
+
+  it("falls back to the live origin on custom domains without an SSR URL", () => {
+    // jsdom provides window.location.origin.
+    expect(resolveOgImageOrigin(undefined, true)).toBe(window.location.origin);
+  });
+
+  it("falls back to the platform base otherwise", () => {
+    expect(resolveOgImageOrigin(undefined, false)).toBe("https://milk.market");
+    expect(resolveOgImageOrigin("", false)).toBe("https://milk.market");
+  });
+
+  it("ignores an unparseable SSR store URL", () => {
+    expect(resolveOgImageOrigin("not a url", false)).toBe(
+      "https://milk.market"
     );
   });
 });
