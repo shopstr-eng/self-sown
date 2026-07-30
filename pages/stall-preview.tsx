@@ -212,6 +212,27 @@ export default function ConvertPage() {
           content="summary_large_image"
           key="twitter:card"
         />
+        {/* Keyed twitter:* overrides mirror the og:* overrides above so
+            X/Twitter previews show the same custom copy as other platforms
+            (dedupes against DynamicHead's keyed twitter tags). */}
+        <meta
+          name="twitter:title"
+          key="twitter:title"
+          content="See your website as a Milk Market stall"
+        />
+        <meta
+          name="twitter:description"
+          key="twitter:description"
+          content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
+        />
+        <meta
+          name="twitter:image"
+          key="twitter:image"
+          content={toOptimizedOgImageUrl(
+            "https://milk.market/milk-market.png",
+            "https://milk.market"
+          )}
+        />
       </Head>
 
       <div className="min-h-screen bg-white font-sans text-black">
