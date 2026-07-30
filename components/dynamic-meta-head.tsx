@@ -344,18 +344,27 @@ const DynamicHead = ({
       <meta property="og:image" content={optimizedImage} key="og:image" />
       <meta property="og:site_name" content={ogSiteName} key="og:site_name" />
       <meta property="og:locale" content={ogLocale} key="og:locale" />
-      <meta name="twitter:card" content="summary_large_image" />
+      <meta
+        name="twitter:card"
+        content="summary_large_image"
+        key="twitter:card"
+      />
       <meta
         property="twitter:domain"
+        key="twitter:domain"
         content={
           displayOrigin.replace(/^https?:\/\//, "").split("/")[0] ||
           "milk.market"
         }
       />
-      <meta property="twitter:url" content={metaTags.url} />
-      <meta name="twitter:title" content={metaTags.title} />
-      <meta name="twitter:description" content={metaTags.description} />
-      <meta name="twitter:image" content={optimizedImage} />
+      <meta property="twitter:url" content={metaTags.url} key="twitter:url" />
+      <meta name="twitter:title" content={metaTags.title} key="twitter:title" />
+      <meta
+        name="twitter:description"
+        content={metaTags.description}
+        key="twitter:description"
+      />
+      <meta name="twitter:image" content={optimizedImage} key="twitter:image" />
       <meta name="keywords" content={keywords} key="keywords" />
       {geoRegion && (
         <meta name="geo.region" content={geoRegion} key="geo.region" />

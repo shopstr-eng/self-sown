@@ -205,7 +205,13 @@ export default function ConvertPage() {
             "https://milk.market"
           )}
         />
-        <meta name="twitter:card" content="summary_large_image" />
+        {/* key matches DynamicHead's twitter:card so next/head dedupes to a
+            single twitter:card on this page. */}
+        <meta
+          name="twitter:card"
+          content="summary_large_image"
+          key="twitter:card"
+        />
       </Head>
 
       <div className="min-h-screen bg-white font-sans text-black">
