@@ -84,6 +84,7 @@
     "react-markdown": "10.1.0",
     "react-responsive-carousel": "3.2.23",
     "remark-gfm": "4.0.1",
+    "sharp": "0.34.5",
     "stripe": "19.0.0",
     "tailwindcss": "4.3.0",
     "uuid": "14.0.0",

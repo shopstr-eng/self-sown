@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { Button, Input, Spinner } from "@heroui/react";
+import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
 import {
   GlobeAltIcon,
   SparklesIcon,
@@ -192,7 +193,10 @@ export default function ConvertPage() {
         />
         <meta
           property="og:image"
-          content="https://milk.market/milk-market.png"
+          content={toOptimizedOgImageUrl(
+            "https://milk.market/milk-market.png",
+            "https://milk.market"
+          )}
         />
         <meta name="twitter:card" content="summary_large_image" />
       </Head>

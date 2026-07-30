@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState, useMemo } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
 import { useDisclosure } from "@heroui/react";
 import {
   ShoppingCartIcon,
@@ -821,6 +822,19 @@ export default function StorefrontLayout({
     );
   };
 
+  // Serve crawlers a compressed, right-sized copy of the OG image via the
+  // /api/og-image proxy instead of the raw uploaded original. DynamicHead
+  // covers the main seam; this layout renders its own og:image for storefront
+  // chrome, so it must go through the same optimizer.
+  const ogImageSource = storefront.seoMeta?.ogImage || bannerUrl || pictureUrl;
+  const ogImageOrigin =
+    isCustomDomain && typeof window !== "undefined"
+      ? window.location.origin
+      : "https://milk.market";
+  const optimizedOgImage = ogImageSource
+    ? toOptimizedOgImageUrl(ogImageSource, ogImageOrigin)
+    : "";
+
   return (
     <>
       <Head>
@@ -858,11 +872,8 @@ export default function StorefrontLayout({
             content={storefront.seoMeta.metaDescription}
           />
         )}
-        {(storefront.seoMeta?.ogImage || bannerUrl || pictureUrl) && (
-          <meta
-            property="og:image"
-            content={storefront.seoMeta?.ogImage || bannerUrl || pictureUrl}
-          />
+        {optimizedOgImage && (
+          <meta property="og:image" content={optimizedOgImage} />
         )}
         <script
           type="application/ld+json"

@@ -177,7 +177,7 @@ describe("DynamicHead", () => {
       );
       await waitFor(() =>
         expect(getMetaContent("og:image")).toBe(
-          "https://milk.market/milk-market.png"
+          "https://milk.market/api/og-image?url=https%3A%2F%2Fmilk.market%2Fmilk-market.png"
         )
       );
     });
@@ -265,7 +265,7 @@ describe("DynamicHead", () => {
       );
       await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
       expect(getMetaContent("og:image")).toBe(
-        "https://milk.market/milk-market.png"
+        "https://milk.market/api/og-image?url=https%3A%2F%2Fmilk.market%2Fmilk-market.png"
       );
     });
 

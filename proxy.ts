@@ -95,6 +95,11 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   // default Milk Market look even when the seller is fully entitled.
   "/api/pro/status",
   "/api/og-preview",
+  // Compressed og:image proxy. DynamicHead points social-card image URLs at
+  // this route on the page's canonical origin, so on a seller custom domain
+  // the crawler fetches it through that domain — without passthrough the
+  // proxy would 403 every custom-domain og:image.
+  "/api/og-image",
   "/api/sitemap.xml",
   "/api/auth/",
   "/api/signup",

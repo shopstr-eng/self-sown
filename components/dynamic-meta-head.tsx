@@ -19,6 +19,7 @@ import {
 } from "@/utils/url-slugs";
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
 
 type MetaTagsType = {
   title: string;
@@ -253,6 +254,10 @@ const DynamicHead = ({
         profileData
       );
 
+  // Serve crawlers a compressed, right-sized copy of the OG image via the
+  // /api/og-image proxy instead of the (often multi-MB) uploaded original.
+  const optimizedImage = toOptimizedOgImageUrl(metaTags.image, canonicalOrigin);
+
   // For custom stalls and custom domains, prefer the seller's storefront logo
   // as the browser tab favicon (and apple-touch-icon) so the tab matches their
   // brand instead of showing the Milk Market icon.
@@ -336,7 +341,7 @@ const DynamicHead = ({
         content={metaTags.description}
         key="og:description"
       />
-      <meta property="og:image" content={metaTags.image} key="og:image" />
+      <meta property="og:image" content={optimizedImage} key="og:image" />
       <meta property="og:site_name" content={ogSiteName} key="og:site_name" />
       <meta property="og:locale" content={ogLocale} key="og:locale" />
       <meta name="twitter:card" content="summary_large_image" />
@@ -350,7 +355,7 @@ const DynamicHead = ({
       <meta property="twitter:url" content={metaTags.url} />
       <meta name="twitter:title" content={metaTags.title} />
       <meta name="twitter:description" content={metaTags.description} />
-      <meta name="twitter:image" content={metaTags.image} />
+      <meta name="twitter:image" content={optimizedImage} />
       <meta name="keywords" content={keywords} key="keywords" />
       {geoRegion && (
         <meta name="geo.region" content={geoRegion} key="geo.region" />
