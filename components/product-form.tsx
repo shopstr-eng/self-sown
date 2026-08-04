@@ -39,6 +39,7 @@ import {
   finalizeAndSendNostrEvent,
   buildParcelTag,
 } from "@/utils/nostr/nostr-helper-functions";
+import { buildHandlingTimeTag } from "@/utils/parsers/product-tag-helpers";
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import {
@@ -212,6 +213,11 @@ export default function ProductForm({
           "Package Height In": oldValues.packageHeightIn
             ? String(oldValues.packageHeightIn)
             : "",
+          // 0 is a valid value (ships same day), so don't truthy-check.
+          "Handling Time Days":
+            oldValues.handlingTimeDays !== undefined
+              ? String(oldValues.handlingTimeDays)
+              : "",
         }
       : {
           Currency: "USD",
@@ -421,6 +427,14 @@ export default function ProductForm({
       "";
     if (shipFromZip) {
       tags.push(["ship_from_zip", shipFromZip, shipFromCountry || "US"]);
+    }
+
+    // Optional "ships out in X days" promise shown to buyers. 0 = same day.
+    const handlingTimeTag = buildHandlingTimeTag(
+      data["Handling Time Days"] as string | undefined
+    );
+    if (handlingTimeTag) {
+      tags.push(handlingTimeTag);
     }
 
     const parcelTag = buildParcelTag({
@@ -1411,6 +1425,30 @@ export default function ProductForm({
                           label="Ship From ZIP"
                           labelPlacement="outside"
                           placeholder="e.g. 90210"
+                          value={(value as string) || ""}
+                          onChange={onChange}
+                          onBlur={onBlur}
+                        />
+                      )}
+                    />
+                    <Controller
+                      name="Handling Time Days"
+                      control={control}
+                      render={({ field: { onChange, onBlur, value } }) => (
+                        <Input
+                          classNames={{
+                            input: "text-base !text-black",
+                            inputWrapper:
+                              "border-2 border-black rounded-md shadow-none h-12 !bg-white",
+                          }}
+                          variant="flat"
+                          type="number"
+                          step="1"
+                          min="0"
+                          aria-label="Ships Out In (days)"
+                          label="Ships Out In (days)"
+                          labelPlacement="outside"
+                          placeholder="e.g. 2 (0 = same day)"
                           value={(value as string) || ""}
                           onChange={onChange}
                           onBlur={onBlur}

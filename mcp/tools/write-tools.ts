@@ -7,6 +7,7 @@ import {
 } from "@/utils/mcp/nostr-signing";
 import { ApiKeyRecord, getAgentSigner } from "@/utils/mcp/auth";
 import { EventTemplate } from "nostr-tools";
+import { buildHandlingTimeTag } from "@/utils/parsers/product-tag-helpers";
 import {
   cacheEvent,
   fetchAllProfilesFromDb,
@@ -1658,6 +1659,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe("Shipping cost as string (default '0')"),
+      handlingTimeDays: z
+        .string()
+        .optional()
+        .describe(
+          "Days until the order ships out ('0' = same day, '1' = next day). Shown to buyers on the product and checkout pages."
+        ),
       quantity: z.string().optional().describe("Available quantity"),
       condition: z
         .string()
@@ -1765,6 +1772,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             params.currency,
           ],
         ];
+
+        // Blank/invalid means "unset" (Number("") would coerce to 0).
+        const handlingTimeTag = buildHandlingTimeTag(params.handlingTimeDays);
+        if (handlingTimeTag) {
+          tags.push(handlingTimeTag);
+        }
 
         if (params.images) {
           for (const img of params.images) {
@@ -1941,6 +1954,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       location: z.string().optional().describe("Updated location"),
       shippingOption: z.string().optional().describe("Updated shipping type"),
       shippingCost: z.string().optional().describe("Updated shipping cost"),
+      handlingTimeDays: z
+        .string()
+        .optional()
+        .describe(
+          "Updated ship-out promise in days ('0' = same day, '1' = next day). Omit to keep the existing value."
+        ),
       quantity: z.string().optional().describe("Updated quantity"),
       condition: z.string().optional().describe("Updated condition"),
       status: z.string().optional().describe("Updated status"),
@@ -2073,6 +2092,13 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             params.shippingCost || existingShipping?.[2] || "0",
             fallbackCurrency,
           ]);
+        }
+        // Blank or invalid means "keep existing": only strip+replace when a
+        // valid value is supplied.
+        const handlingTimeTag = buildHandlingTimeTag(params.handlingTimeDays);
+        if (handlingTimeTag) {
+          stripKeys(["handling_time"]);
+          baseTags.push(handlingTimeTag);
         }
         if (params.images) {
           stripKeys(["image"]);

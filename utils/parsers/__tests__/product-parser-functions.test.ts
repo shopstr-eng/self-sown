@@ -61,6 +61,31 @@ describe("parseTags", () => {
     expect(result.summary).toBe("Fallback summary");
   });
 
+  it("parses the handling_time tag into whole days", () => {
+    const event = { ...baseEvent, tags: [["handling_time", "3"]] };
+    expect(parseTags(event)!.handlingTimeDays).toBe(3);
+  });
+
+  it("keeps handling_time 0 (same day) and floors fractional days", () => {
+    expect(
+      parseTags({ ...baseEvent, tags: [["handling_time", "0"]] })!
+        .handlingTimeDays
+    ).toBe(0);
+    expect(
+      parseTags({ ...baseEvent, tags: [["handling_time", "2.9"]] })!
+        .handlingTimeDays
+    ).toBe(2);
+  });
+
+  it("ignores invalid handling_time values", () => {
+    for (const bad of ["-1", "abc", ""]) {
+      expect(
+        parseTags({ ...baseEvent, tags: [["handling_time", bad]] })!
+          .handlingTimeDays
+      ).toBeUndefined();
+    }
+  });
+
   it("should fallback to summary tag when content is only whitespace", () => {
     const event = {
       ...baseEvent,

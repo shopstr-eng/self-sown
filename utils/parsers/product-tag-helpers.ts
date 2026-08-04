@@ -99,3 +99,40 @@ export function getEffectiveShippingCost(
 
   return shippingCost;
 }
+
+// Buyer-facing label for the optional per-product "handling_time" tag
+// (seller's ship-out promise, in whole days).
+export function formatHandlingTime(days: number): string {
+  if (days <= 0) return "Ships out same day";
+  if (days === 1) return "Ships out next day";
+  return `Ships out in ${days} days`;
+}
+
+// Builds ["handling_time", wholeDays] from raw user/agent input, shared by the
+// product form and both MCP write tools. Blank or invalid input returns
+// undefined, meaning "unset" (create) / "keep existing" (update).
+// NOTE: Number("") coerces to 0, so blank must be rejected before Number().
+export function buildHandlingTimeTag(
+  raw: string | number | undefined | null
+): string[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const str = String(raw).trim();
+  if (str === "") return undefined;
+  const days = Number(str);
+  if (!Number.isFinite(days) || days < 0) return undefined;
+  return ["handling_time", String(Math.floor(days))];
+}
+
+// Returns the shared ship-out promise only when every item has the same
+// defined handling time; undefined when items differ or any item lacks one.
+// Used to decide between one cart-level line and per-product lines.
+export function getUniformHandlingTimeDays(
+  products: { handlingTimeDays?: number }[]
+): number | undefined {
+  if (products.length === 0) return undefined;
+  const first = products[0]?.handlingTimeDays;
+  if (first === undefined) return undefined;
+  return products.every((p) => p.handlingTimeDays === first)
+    ? first
+    : undefined;
+}

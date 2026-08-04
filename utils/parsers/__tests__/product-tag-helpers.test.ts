@@ -1,5 +1,8 @@
 import {
+  buildHandlingTimeTag,
+  formatHandlingTime,
   getEffectiveShippingCost,
+  getUniformHandlingTimeDays,
   parseShippingFromTags,
   parseShippingTag,
 } from "../product-tag-helpers";
@@ -110,5 +113,61 @@ describe("parseShippingFromTags", () => {
       shippingCost: 15,
       shippingCurrency: "USD",
     });
+  });
+});
+
+describe("formatHandlingTime", () => {
+  it("labels 0 as same day and 1 as next day", () => {
+    expect(formatHandlingTime(0)).toBe("Ships out same day");
+    expect(formatHandlingTime(1)).toBe("Ships out next day");
+  });
+
+  it("labels 2+ as ships out in X days", () => {
+    expect(formatHandlingTime(2)).toBe("Ships out in 2 days");
+    expect(formatHandlingTime(7)).toBe("Ships out in 7 days");
+  });
+});
+
+describe("buildHandlingTimeTag", () => {
+  it("returns undefined for unset, blank, and invalid input", () => {
+    expect(buildHandlingTimeTag(undefined)).toBeUndefined();
+    expect(buildHandlingTimeTag(null)).toBeUndefined();
+    expect(buildHandlingTimeTag("")).toBeUndefined();
+    expect(buildHandlingTimeTag("   ")).toBeUndefined();
+    expect(buildHandlingTimeTag("abc")).toBeUndefined();
+    expect(buildHandlingTimeTag("-1")).toBeUndefined();
+  });
+
+  it("builds whole-day tags, keeping 0 and flooring fractions", () => {
+    expect(buildHandlingTimeTag("0")).toEqual(["handling_time", "0"]);
+    expect(buildHandlingTimeTag("3")).toEqual(["handling_time", "3"]);
+    expect(buildHandlingTimeTag("2.9")).toEqual(["handling_time", "2"]);
+    expect(buildHandlingTimeTag(5)).toEqual(["handling_time", "5"]);
+  });
+});
+
+describe("getUniformHandlingTimeDays", () => {
+  it("returns the shared value when every item agrees", () => {
+    expect(
+      getUniformHandlingTimeDays([
+        { handlingTimeDays: 2 },
+        { handlingTimeDays: 2 },
+      ])
+    ).toBe(2);
+    expect(getUniformHandlingTimeDays([{ handlingTimeDays: 0 }])).toBe(0);
+  });
+
+  it("returns undefined when items differ or any item lacks a value", () => {
+    expect(
+      getUniformHandlingTimeDays([
+        { handlingTimeDays: 1 },
+        { handlingTimeDays: 3 },
+      ])
+    ).toBeUndefined();
+    expect(
+      getUniformHandlingTimeDays([{ handlingTimeDays: 2 }, {}])
+    ).toBeUndefined();
+    expect(getUniformHandlingTimeDays([{}, {}])).toBeUndefined();
+    expect(getUniformHandlingTimeDays([])).toBeUndefined();
   });
 });

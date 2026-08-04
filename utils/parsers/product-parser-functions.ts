@@ -69,6 +69,7 @@ export type ProductData = {
   packageLengthIn?: number;
   packageWidthIn?: number;
   packageHeightIn?: number;
+  handlingTimeDays?: number;
   rawEvent?: NostrEvent;
 };
 
@@ -309,6 +310,14 @@ export const parseTags = (productEvent: NostrEvent) => {
           if (Number.isFinite(ph) && ph > 0) parsedData.packageHeightIn = ph;
         }
         break;
+      case "handling_time": {
+        // ["handling_time", days] — seller's ship-out promise in whole days.
+        const hd = values[0] ? Number(values[0]) : NaN;
+        if (Number.isFinite(hd) && hd >= 0) {
+          parsedData.handlingTimeDays = Math.floor(hd);
+        }
+        break;
+      }
       case "page_config":
         if (values[0]) {
           try {

@@ -5,6 +5,7 @@ import { Event, nip19 } from "nostr-tools";
 import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
+import { formatHandlingTime } from "@/utils/parsers/product-tag-helpers";
 import { getListingSlug } from "@/utils/url-slugs";
 import { ProfileWithDropdown } from "./profile/profile-dropdown";
 import { DisplayCheckoutCost } from "./display-monetary-info";
@@ -975,6 +976,12 @@ export default function CheckoutCard({
                       <BeefInitiativeBadge size="md" />
                     </div>
                   )}
+
+                {productData.handlingTimeDays != null && (
+                  <p className="mt-2 text-sm font-bold text-green-700">
+                    {formatHandlingTime(productData.handlingTimeDays)}
+                  </p>
+                )}
 
                 {/* Description */}
                 <div>

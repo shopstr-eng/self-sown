@@ -27,6 +27,10 @@ import {
   ShippingOptionsType,
 } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import {
+  formatHandlingTime,
+  getUniformHandlingTimeDays,
+} from "@/utils/parsers/product-tag-helpers";
 import CartInvoiceCard from "../../components/cart-invoice-card";
 import { getSatoshiValue, getFiatValue } from "@getalby/lightning-tools";
 import currencySelection from "../../public/currencySelection.json";
@@ -238,6 +242,17 @@ export default function Component() {
   const sellerPubkeyKey = useMemo(
     () => uniqueSellerPubkeys.sort().join(","),
     [uniqueSellerPubkeys]
+  );
+
+  // One shared "ships out" line under the checkout CTA only for single-seller
+  // carts (stall/custom-domain carts are always single-seller) where every
+  // item promises the same handling time; otherwise each row shows its own.
+  const uniformHandlingDays = useMemo(
+    () =>
+      uniqueSellerPubkeys.length === 1
+        ? getUniformHandlingTimeDays(products)
+        : undefined,
+    [uniqueSellerPubkeys, products]
   );
 
   useEffect(() => {
@@ -1217,6 +1232,14 @@ export default function Component() {
                                     Bundle: {product.selectedBulkOption} units
                                   </p>
                                 )}
+                                {uniformHandlingDays === undefined &&
+                                  product.handlingTimeDays !== undefined && (
+                                    <p className="mt-1 text-sm font-bold text-green-700">
+                                      {formatHandlingTime(
+                                        product.handlingTimeDays
+                                      )}
+                                    </p>
+                                  )}
                                 {product.quantity && (
                                   <div className="mt-2">
                                     <p className="mb-2 text-sm font-semibold text-green-600">
@@ -1626,6 +1649,11 @@ export default function Component() {
                     >
                       Proceed To Checkout
                     </Button>
+                    {uniformHandlingDays !== undefined && (
+                      <p className="text-sm font-bold text-green-700">
+                        {formatHandlingTime(uniformHandlingDays)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </>

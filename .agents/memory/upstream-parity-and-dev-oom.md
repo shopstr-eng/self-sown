@@ -42,3 +42,5 @@ To preview without the dev OOM, the `dev` script does a memory-bumped production
 **Why:** the 2GB-heap prod build competes for RAM with the IDE's TypeScript language servers (`node .../typescript/lib/tsserver.js`), which can hold ~2GB+ combined. With only ~2.5GB free the native worker dies; it fails deterministically while memory stays starved (looks like a code bug but isn't).
 
 **How to apply:** check `free -h`. If available RAM is low and tsserver is large, `pkill -f "typescript/lib/tsserver.js"` (IDE respawns them lazily, no code/data impact) frees ~2GB, then restart the workflow — it builds cleanly.
+
+If the Turbopack globals.css/PostCSS panic PERSISTS after freeing tsserver RAM, it may be masking a later real error: clear `.next` (a mid-flight-killed build corrupts the cache) and run one FOREGROUND manual `npx next build` (timeout ~285s) — the panic is transient memory pressure, and the clean build either passes or surfaces the true compile error past the CSS stage. Also: LSP (partial-semantic mode here) can report clean on a file importing a symbol the module doesn't export — trust the build over LSP for import correctness.

@@ -53,3 +53,5 @@ cheap structural audit: grep each touched file for the symbols it uses vs. what
 it imports, and node-parse function param destructures for props you pass (e.g.
 `colors={colors}` with no `colors` in the signature). External code review caught
 what LSP missed.
+
+`pgrep -f "tsserver.js"` also matches your OWN wrapper shell's command line (bash -c "...tsserver.js..."), so `kill $(pgrep -f tsserver.js)` kills your own shell mid-command (exit -1). Anchor the pattern to the process start instead: `pgrep -f "^/nix/store.*tsserver.js" | xargs -r kill`, or kill listed PIDs excluding $$.

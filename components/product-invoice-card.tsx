@@ -10,6 +10,7 @@ import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
 } from "@milk-market/domain";
+import { formatHandlingTime } from "@/utils/parsers/product-tag-helpers";
 import {
   CashuWalletContext,
   ChatsContext,
@@ -5795,6 +5796,12 @@ export default function ProductInvoiceCard({
                 )}
                 <p className="mb-1 text-gray-600">Quantity: 1</p>
 
+                {productData.handlingTimeDays != null && (
+                  <p className="mb-1 font-medium text-green-700">
+                    {formatHandlingTime(productData.handlingTimeDays)}
+                  </p>
+                )}
+
                 {isSubscription && subscriptionFrequency && (
                   <div className="mt-3 rounded-md border-2 border-purple-300 bg-purple-50 p-3">
                     <div className="flex items-center gap-2">
@@ -6161,6 +6168,11 @@ export default function ProductInvoiceCard({
                 </p>
               )}
               <p className="mb-1 text-gray-600">Quantity: 1</p>
+              {productData.handlingTimeDays != null && (
+                <p className="mb-1 font-medium text-green-700">
+                  {formatHandlingTime(productData.handlingTimeDays)}
+                </p>
+              )}
             </div>
 
             <div className="border-t pt-4">
