@@ -15,7 +15,7 @@ import {
 } from "@/utils/mcp/auth";
 import { recordRequest } from "@/utils/mcp/metrics";
 import { registerWriteTools } from "@/mcp/tools/write-tools";
-import { applyRateLimit } from "@/utils/rate-limit";
+import { applyRateLimit, getRequestIp } from "@/utils/rate-limit";
 import { wrapWithAudit, type ToolCb } from "@/mcp/audit-log";
 
 // MCP protocol entry — high per-IP cap for legitimate session traffic, with
@@ -23,6 +23,13 @@ import { wrapWithAudit, type ToolCb } from "@/mcp/audit-log";
 // the connection pool.
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 const PER_KEY_LIMIT = { limit: 300, windowMs: 60 * 1000 };
+// Keyless initialize is public (the discovery documents advertise it), so it
+// gets its own tighter budget plus a per-IP concurrent-session cap: without
+// these, one source could retain a transport per initialize for the full
+// 30-minute TTL (600 req/min would allow ~18k retained sessions per IP per
+// window).
+const UNAUTH_INIT_LIMIT = { limit: 30, windowMs: 60 * 1000 };
+const MAX_UNAUTH_SESSIONS_PER_IP = 5;
 
 let tablesReady = false;
 
@@ -38,12 +45,35 @@ const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 
 interface McpSession {
   transport: StreamableHTTPServerTransport;
-  apiKey: ApiKeyRecord;
+  // Null for unauthenticated sessions (initialize handshake + public read
+  // tools only, as advertised by /.well-known/mcp.json).
+  apiKey: ApiKeyRecord | null;
   createdAt: number;
   lastActivityAt: number;
+  // Set on keyless sessions so the per-IP concurrency cap can be enforced.
+  anonIp?: string;
 }
 
 const sessions = new Map<string, McpSession>();
+const anonSessionIdsByIp = new Map<string, Set<string>>();
+
+// Removes a session from every index (the main map plus the per-IP anonymous
+// index) and closes its transport. All teardown paths go through here.
+function dropSession(sessionId: string) {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+  try {
+    session.transport.close?.();
+  } catch {}
+  sessions.delete(sessionId);
+  if (session.anonIp) {
+    const ids = anonSessionIdsByIp.get(session.anonIp);
+    if (ids) {
+      ids.delete(sessionId);
+      if (ids.size === 0) anonSessionIdsByIp.delete(session.anonIp);
+    }
+  }
+}
 
 function rejectSessionMismatch(res: NextApiResponse) {
   return res.status(403).json({
@@ -55,10 +85,7 @@ function rejectSessionMismatch(res: NextApiResponse) {
 
 function evictIfExpired(sessionId: string, session: McpSession): boolean {
   if (Date.now() - session.lastActivityAt > SESSION_TTL_MS) {
-    try {
-      session.transport.close?.();
-    } catch {}
-    sessions.delete(sessionId);
+    dropSession(sessionId);
     return true;
   }
   return false;
@@ -68,10 +95,7 @@ setInterval(() => {
   const now = Date.now();
   for (const [sid, session] of sessions) {
     if (now - session.lastActivityAt > SESSION_TTL_MS) {
-      try {
-        session.transport.close?.();
-      } catch {}
-      sessions.delete(sid);
+      dropSession(sid);
     }
   }
 }, SWEEP_INTERVAL_MS);
@@ -798,52 +822,48 @@ export default async function handler(
 
   await ensureTables();
 
+  // Authentication is OPTIONAL for the protocol handshake: an agent must be
+  // able to initialize a session, list tools/resources, and call the public
+  // read tools without a key — /.well-known/mcp.json advertises exactly that.
+  // A presented-but-invalid key still hard-fails, and purchase/write tools
+  // are only registered on sessions bound to a valid key.
   const token = extractBearerToken(req);
-  if (!token) {
-    recordRequest(Date.now() - requestStart, false);
-    return res.status(401).json({
-      jsonrpc: "2.0",
-      error: {
-        code: -32000,
-        message: "Missing API key. Use Authorization: Bearer <key>",
-      },
-      id: null,
-    });
-  }
+  let apiKey: ApiKeyRecord | null = null;
+  if (token) {
+    apiKey = await validateApiKey(token);
+    if (!apiKey) {
+      recordRequest(Date.now() - requestStart, false);
+      return res.status(401).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Invalid or revoked API key" },
+        id: null,
+      });
+    }
 
-  const apiKey = await validateApiKey(token);
-  if (!apiKey) {
-    recordRequest(Date.now() - requestStart, false);
-    return res.status(401).json({
-      jsonrpc: "2.0",
-      error: { code: -32000, message: "Invalid or revoked API key" },
-      id: null,
-    });
-  }
+    // Keyed MCP usage is Pro-only. Reject keys whose owning seller is no
+    // longer entitled so access tracks the membership lifecycle even for
+    // keys minted while the seller was on Pro.
+    if (!(await isApiKeyOwnerProEntitled(apiKey))) {
+      recordRequest(Date.now() - requestStart, false);
+      return res.status(403).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: MCP_PRO_REQUIRED_MESSAGE },
+        id: null,
+      });
+    }
 
-  // MCP usage is Pro-only. Reject keys whose owning seller is no longer
-  // entitled so access tracks the membership lifecycle even for keys minted
-  // while the seller was on Pro.
-  if (!(await isApiKeyOwnerProEntitled(apiKey))) {
-    recordRequest(Date.now() - requestStart, false);
-    return res.status(403).json({
-      jsonrpc: "2.0",
-      error: { code: -32000, message: MCP_PRO_REQUIRED_MESSAGE },
-      id: null,
-    });
-  }
-
-  if (
-    !(await applyRateLimit(
-      req,
-      res,
-      "mcp-protocol:key",
-      PER_KEY_LIMIT,
-      String(apiKey.id)
-    ))
-  ) {
-    recordRequest(Date.now() - requestStart, false);
-    return;
+    if (
+      !(await applyRateLimit(
+        req,
+        res,
+        "mcp-protocol:key",
+        PER_KEY_LIMIT,
+        String(apiKey.id)
+      ))
+    ) {
+      recordRequest(Date.now() - requestStart, false);
+      return;
+    }
   }
 
   res.setHeader("X-Response-Time-Start", requestStart.toString());
@@ -868,7 +888,8 @@ export default async function handler(
           id: null,
         });
       }
-      if (apiKey.id !== session.apiKey.id) return rejectSessionMismatch(res);
+      if ((session.apiKey?.id ?? null) !== (apiKey?.id ?? null))
+        return rejectSessionMismatch(res);
       session.lastActivityAt = Date.now();
       await session.transport.handleRequest(req as any, res as any, req.body);
       return;
@@ -879,6 +900,58 @@ export default async function handler(
       body && !Array.isArray(body) && body.method === "initialize";
 
     if (isInitialize || !sessionId) {
+      // Keyless initialize is public, so admission is rate-limited AND
+      // concurrency-capped per IP (keyed sessions are already bounded by the
+      // per-key limit and the Pro gate). The pending slot is reserved
+      // SYNCHRONOUSLY, before any await, so parallel initializes from one IP
+      // can't all observe a sub-cap count; it is released on every failure
+      // path and swapped for the real session id in onsessioninitialized.
+      // Responses written here pass through the res.end metrics wrapper.
+      let anonIp: string | undefined;
+      let pendingSlotId: string | undefined;
+      if (!apiKey && isInitialize) {
+        anonIp = getRequestIp(req);
+        pendingSlotId = `pending:${randomUUID()}`;
+        const ids = anonSessionIdsByIp.get(anonIp) ?? new Set<string>();
+        ids.add(pendingSlotId);
+        anonSessionIdsByIp.set(anonIp, ids);
+      }
+      const releasePendingSlot = () => {
+        if (!anonIp || !pendingSlotId) return;
+        const ids = anonSessionIdsByIp.get(anonIp);
+        if (ids) {
+          ids.delete(pendingSlotId);
+          if (ids.size === 0) anonSessionIdsByIp.delete(anonIp);
+        }
+        pendingSlotId = undefined;
+      };
+      if (anonIp && pendingSlotId) {
+        if (
+          anonSessionIdsByIp.get(anonIp)!.size > MAX_UNAUTH_SESSIONS_PER_IP
+        ) {
+          releasePendingSlot();
+          // REST error shape, matching applyRateLimit's 429 contract
+          // (components.responses.RateLimited in openapi.json).
+          res.setHeader("Retry-After", "60");
+          return res.status(429).json({
+            error:
+              "Too many active unauthenticated sessions. Reuse an existing mcp-session-id or wait for one to expire.",
+            code: "rate_limited",
+            retryAfterSeconds: 60,
+          });
+        }
+        if (
+          !(await applyRateLimit(
+            req,
+            res,
+            "mcp-protocol:anon-init",
+            UNAUTH_INIT_LIMIT
+          ))
+        ) {
+          releasePendingSlot();
+          return;
+        }
+      }
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: (sid) => {
@@ -888,21 +961,39 @@ export default async function handler(
             apiKey,
             createdAt: now,
             lastActivityAt: now,
+            ...(anonIp ? { anonIp } : {}),
           });
+          if (anonIp) {
+            const ids = anonSessionIdsByIp.get(anonIp) ?? new Set<string>();
+            // Swap the pending reservation for the real session id.
+            if (pendingSlotId) ids.delete(pendingSlotId);
+            ids.add(sid);
+            anonSessionIdsByIp.set(anonIp, ids);
+          }
         },
       });
 
-      const server = createMcpServer({
-        apiKeyId: apiKey.id,
-        pubkey: apiKey.pubkey,
-      });
-      registerPurchaseTools(server, apiKey, token);
-      if (apiKey.permissions === "full_access") {
-        registerWriteTools(server, apiKey);
+      // Unauthenticated sessions (no Bearer key) get the public read tools
+      // and resources only; purchase/write tools require a valid key.
+      const server = createMcpServer(
+        apiKey ? { apiKeyId: apiKey.id, pubkey: apiKey.pubkey } : undefined
+      );
+      if (apiKey && token) {
+        registerPurchaseTools(server, apiKey, token);
+        if (apiKey.permissions === "full_access") {
+          registerWriteTools(server, apiKey);
+        }
       }
 
-      await server.connect(transport);
-      await transport.handleRequest(req as any, res as any, req.body);
+      try {
+        await server.connect(transport);
+        await transport.handleRequest(req as any, res as any, req.body);
+      } catch (err) {
+        // Initialization never completed — release the reserved slot so a
+        // failed handshake can't permanently count against the IP's cap.
+        releasePendingSlot();
+        throw err;
+      }
       return;
     }
 
@@ -927,7 +1018,8 @@ export default async function handler(
           id: null,
         });
       }
-      if (apiKey.id !== session.apiKey.id) return rejectSessionMismatch(res);
+      if ((session.apiKey?.id ?? null) !== (apiKey?.id ?? null))
+        return rejectSessionMismatch(res);
       session.lastActivityAt = Date.now();
       await session.transport.handleRequest(req as any, res as any);
       return;
@@ -953,9 +1045,10 @@ export default async function handler(
           id: null,
         });
       }
-      if (apiKey.id !== session.apiKey.id) return rejectSessionMismatch(res);
+      if ((session.apiKey?.id ?? null) !== (apiKey?.id ?? null))
+        return rejectSessionMismatch(res);
       await session.transport.handleRequest(req as any, res as any);
-      sessions.delete(sessionId);
+      dropSession(sessionId);
       return;
     }
     return res.status(404).json({

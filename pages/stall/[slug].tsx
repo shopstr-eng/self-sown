@@ -23,6 +23,7 @@ import { getMembershipView } from "@/utils/pro/membership";
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 import { buildItemListJsonLd } from "@/utils/geo/product-jsonld";
+import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -56,6 +57,18 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
     : "https://milk.market";
   const stallPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
   const canonicalStallUrl = `${stallOrigin}${stallPath === "/" ? "" : stallPath}`;
+
+  // Content-negotiated 404: agents asking for markdown/JSON get a structured
+  // body with discovery hints (on custom domains the message names the public
+  // path, not the internal /stall/* rewrite); browsers fall through to the
+  // standard HTML 404 page.
+  const stallNotFound = () => {
+    const notFoundPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
+    if (tryWriteAgentNotFound(context.req, context.res, notFoundPath)) {
+      return { props: {} as ShopPageProps };
+    }
+    return { notFound: true } as const;
+  };
 
   if (!shopSlug) {
     return {
@@ -214,7 +227,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
       };
     }
     // Slug found no matching pubkey — this stall doesn't exist.
-    return { notFound: true };
+    return stallNotFound();
   } catch (error) {
     console.error("SSR OG fetch error for shop:", error);
   }

@@ -57,6 +57,7 @@ export default async function handler(
     { url: "/about", changefreq: "monthly", priority: "0.7" },
     { url: "/contact", changefreq: "monthly", priority: "0.7" },
     { url: "/faq", changefreq: "weekly", priority: "0.6" },
+    { url: "/developers", changefreq: "monthly", priority: "0.6" },
     { url: "/terms", changefreq: "monthly", priority: "0.3" },
     { url: "/privacy", changefreq: "monthly", priority: "0.3" },
     { url: "/communities", changefreq: "daily", priority: "0.7" },

@@ -1573,6 +1573,9 @@ export default function StandaloneLanding() {
               <Link href="/producer-guide" className="text-sm hover:underline">
                 Producer Guide
               </Link>
+              <Link href="/developers" className="text-sm hover:underline">
+                Developers
+              </Link>
               <Link
                 href="/onboarding/new-account?migrate=shopify"
                 className="text-sm hover:underline"

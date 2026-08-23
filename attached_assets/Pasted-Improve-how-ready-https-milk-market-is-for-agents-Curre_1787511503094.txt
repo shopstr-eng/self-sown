@@ -1,0 +1,78 @@
+Improve how ready https://milk.market is for agents.
+
+Current Is Agentic score: 90/100 (Is Agentic readiness model based on Ora audit evidence).
+
+Implement the following fixes in priority order (failures first, then warnings):
+
+1. Agent-friendly 404s (Essential, Partial)
+Evidence: Nonexistent paths return a real HTTP 404. For full credit, include a short markdown body (site map links, where to look next) so agents can recover.
+Recommended fix: Return a real HTTP 404 (or 410) status for nonexistent paths - never a 200 with your app shell, which makes agents believe every path exists. For full credit, give the 404 response a short markdown body pointing agents at your sitemap, llms.txt, or docs index. Verify with `curl -s -o /dev/null -w "%{http_code}" https://yourdomain.com/some-path-that-does-not-exist` - it must print 404.
+Current result: Partial (50%).
+
+2. Developer resource discoverability (Recommended, Failed)
+Evidence: Agent searched for "milk.market" developer resources but found nothing relevant
+Recommended fix: Make your developer resources (API docs, OpenAPI spec, auth docs, webhooks, MCP server) discoverable by name. Publish them at predictable URLs, list them in llms.txt, and include your product name in page titles and headings so search engines surface them for name-based queries.
+Current result: Failed.
+
+3. Brand name discoverability (Recommended, Failed)
+Evidence: "Milk Market" search returned 7 results but domain did not appear - brand may be too generic or not indexed
+Recommended fix: Make sure a clean search for your brand name returns your own domain in the top results. If it does not, your brand may be too generic, conflict with a more established term, or not yet indexed. Strengthen brand-name search by claiming consistent NAP across listings, earning press mentions that link to the canonical domain, and avoiding redirect chains that mask the apex domain in search results.
+Current result: Failed.
+
+4. Developer portal (Recommended, Failed)
+Evidence: No developer portal found
+Recommended fix: Create a developer portal at /developers with API keys, documentation, quickstart guides, and a sandbox environment.
+Current result: Failed.
+
+5. REST typed error model (Recommended, Failed)
+Evidence: No typed error model found in OpenAPI spec
+Recommended fix: Document your error responses in your OpenAPI spec: give 4xx and 5xx responses a typed error schema (or use RFC 9457 application/problem+json). A consistent error object with a machine-readable code and a human-readable message lets agents handle failures without guessing.
+Current result: Failed.
+
+6. REST versioning / deprecation policy (Recommended, Failed)
+Evidence: No API versioning strategy found - add URL path versioning (/v1/, /v2/) or a versioned header parameter in your OpenAPI spec
+Recommended fix: Declare a versioning policy agents can rely on: version your API (in the URL path or a version header) and publish how you signal deprecation (a Sunset/Deprecation header or a documented timeline). Agents avoid integrating against a surface that can change without warning.
+Current result: Failed.
+
+7. Public API/docs linked from homepage (Recommended, Failed)
+Evidence: No public API or documentation page linked from homepage
+Recommended fix: Publish API documentation at a discoverable URL (/docs, /api, /developers). Include authentication, endpoints, and example requests.
+Current result: Failed.
+
+8. Agent instruction / when-to-use (Recommended, Failed)
+Evidence: No agent instruction file with when-to-use guidance found
+Recommended fix: Tell agents when to reach for you: add a 'when to use this' section to your llms.txt (or a dedicated agent-instructions file) that names your best-fit use cases and how an agent should call you. Be specific about the jobs you are right for - generic marketing copy does not read as guidance.
+Current result: Failed.
+
+9. REST response schema coverage (Recommended, Failed)
+Evidence: Only 6% of operations define typed response schemas - agents cannot predict response shapes
+Recommended fix: Define typed JSON response schemas for every endpoint in your OpenAPI spec. Agents rely on these to know what fields they will get back; missing or partial schemas force trial-and-error.
+Current result: Failed.
+
+10. Public API with reachable endpoints (Recommended, Partial)
+Evidence: API described in documentation at https://milk.market/producer-guide but no machine-verifiable API surface confirmed. Best-of-protocols score: 3/7.
+Recommended fix: Expose a public REST or GraphQL API. AI agents need programmatic access  - not just a web UI  - to integrate with your product.
+Current result: Partial (43%).
+
+11. MCP server / manifest (Recommended, Partial)
+Evidence: MCP manifest found at /.well-known/mcp.json but protocol handshake failed
+Recommended fix: Build an MCP (Model Context Protocol) server exposing your API as tools. Use Streamable HTTP transport for full score. This lets Claude, ChatGPT, and other AI agents call your product natively.
+Current result: Partial (50%).
+
+12. API schema complexity analysis (Recommended, Partial)
+Evidence: REST: schema found (17 operations) but only 41% of operations are described
+Recommended fix: Make your API spec self-describing: a unique operationId and a description on every operation, typed parameters, and response schemas. For GraphQL, a fully typed schema with a documented cost or rate limit reads best.
+Current result: Partial (50%).
+
+13. Function calling compatibility (Recommended, Partial)
+Evidence: Partial compatibility: 17/17 operationIds, 3/17 typed schemas
+Recommended fix: Ensure API endpoints have unique operation IDs, typed schemas, and descriptions compatible with LLM function-calling formats.
+Current result: Partial (50%).
+
+Requirements:
+- Inspect the existing codebase before changing files.
+- Follow each published protocol or file format exactly.
+- Preserve existing product behavior and visual design.
+- Add or update tests for every behavior you change.
+- Verify every public endpoint and machine-readable file after implementation.
+- Finish with a concise change summary, verification results, and any remaining recommendations that require product decisions or credentials.

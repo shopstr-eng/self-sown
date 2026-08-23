@@ -17,7 +17,11 @@ import {
 } from "@/utils/url-slugs";
 import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
 import { applyRateLimit } from "@/utils/rate-limit";
-import { sendAgentError } from "@/utils/api/agent-error";
+import {
+  sendAgentError,
+  acceptsMarkdown,
+  buildAgentNotFoundMarkdown,
+} from "@/utils/api/agent-error";
 import {
   buildStallMarkdown,
   buildStallJson,
@@ -96,6 +100,18 @@ export default async function handler(
   try {
     const pubkey = await fetchShopPubkeyBySlug(slug);
     if (!pubkey) {
+      // Content-negotiated 404: markdown for agents that ask for it (parity
+      // with the site-wide catch-all), structured JSON otherwise.
+      if (acceptsMarkdown(req)) {
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+        return res.end(
+          buildAgentNotFoundMarkdown(
+            siteUrl,
+            `No shop matches the slug "${slug}".`
+          )
+        );
+      }
       return sendAgentError(res, {
         status: 404,
         error: "Shop not found",
@@ -182,6 +198,16 @@ export default async function handler(
     if (postSlug) {
       const match = findBlogPostBySlug(postSlug, parsedPosts);
       if (!match) {
+        if (acceptsMarkdown(req)) {
+          res.statusCode = 404;
+          res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+          return res.end(
+            buildAgentNotFoundMarkdown(
+              `${siteUrl}/blog/${postSlug}`,
+              `No blog post matches the slug "${postSlug}" in shop "${slug}".`
+            )
+          );
+        }
         return sendAgentError(res, {
           status: 404,
           error: "Blog post not found",

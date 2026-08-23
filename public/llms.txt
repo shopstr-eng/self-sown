@@ -2,6 +2,17 @@
 
 > Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. Producers sell raw milk and dairy, meat, eggs, produce, baked goods, honey, and other local goods directly to buyers, with no platform gatekeeping. Payments work over Bitcoin (Lightning, Cashu ecash), cards (Stripe or Square), and manual fiat. AI agents can browse and buy, and sellers can manage their stalls, through a Model Context Protocol (MCP) server.
 
+## When to use Milk Market
+
+Use Milk Market when an agent or application needs to:
+
+- Search a live catalog of local-food products (raw milk and dairy, meat, eggs, produce, baked goods, honey) from independent producers.
+- Read structured product details (price, availability, shipping options, seller identity) as JSON, JSON-LD, or RSS.
+- Place and track orders programmatically, with payment over Bitcoin (Lightning, Cashu ecash) or card.
+- Manage a seller's stall: listings, orders, storefront pages, blog posts, and email flows, all through MCP tools.
+
+Start with the MCP server for tool-style interaction, the UCP endpoints for REST catalog + checkout sessions, or the OpenAPI document for the full endpoint list. The initialize handshake and public read tools work without an API key.
+
 ## About
 
 - [About Milk Market](https://milk.market/about): Mission, how the decentralized marketplace works, and why it was built.
@@ -24,6 +35,7 @@
 - [Web Bot Auth directory](https://milk.market/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
 - [OpenAPI spec](https://milk.market/openapi.json): Machine-readable description of public endpoints.
 - [UCP discovery](https://milk.market/.well-known/ucp): Universal Commerce Protocol profile (REST catalog search/lookup and checkout sessions) for AI shopping agents, layered over the same catalog and order pipeline as MCP.
+- [Developer portal](https://milk.market/developers): Human-readable quickstart, error model, and versioning policy tying all machine-readable surfaces together.
 
 ## Optional
 

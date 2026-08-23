@@ -24,6 +24,7 @@ import {
   buildStallOgMeta,
 } from "@/utils/storefront/stall-branding";
 import { getMembershipView } from "@/utils/pro/membership";
+import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 
 type ShopSubPageProps = {
   ogMeta: OgMetaProps;
@@ -58,6 +59,20 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
     ? originalPath?.split("/").slice(0, 2).join("/") || "/"
     : `/stall/${slug}`;
   const canonicalStallUrl = `${stallOrigin}${stallRootPath === "/" ? "" : stallRootPath}`;
+
+  // Content-negotiated 404: agents asking for markdown/JSON get a structured
+  // body with discovery hints (on custom domains the message names the public
+  // path, not the internal /stall/* rewrite); browsers fall through to the
+  // standard HTML 404 page.
+  const stallNotFound = () => {
+    const notFoundPath = customHost
+      ? originalPath || "/"
+      : `/stall/${pathParts.join("/")}`;
+    if (tryWriteAgentNotFound(context.req, context.res, notFoundPath)) {
+      return { props: {} as ShopSubPageProps };
+    }
+    return { notFound: true } as const;
+  };
 
   if (!slug) {
     return {
@@ -120,7 +135,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           } catch {}
         }
         if (!validCustomPage) {
-          return { notFound: true };
+          return stallNotFound();
         }
       }
 
@@ -158,7 +173,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
               }
             }
             // Blog post slug not found — return a real 404 instead of a soft one.
-            return { notFound: true };
+            return stallNotFound();
           } else {
             // Blog index: seed with SSR posts so crawlers see archive links in
             // the first HTML response. The component routes this to ThemedBlog.
@@ -244,7 +259,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
       };
     }
     // Slug found no matching pubkey — this stall page doesn't exist.
-    return { notFound: true };
+    return stallNotFound();
   } catch (error) {
     console.error("SSR OG fetch error for shop sub-page:", error);
   }

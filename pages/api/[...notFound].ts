@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { sendAgentError } from "@/utils/api/agent-error";
+import { sendAgentError, tryWriteAgentNotFound } from "@/utils/api/agent-error";
 
 // Catch-all for unknown /api/* routes so agents and clients receive a
 // structured JSON 404 (with discovery hints) instead of Next.js's default
@@ -15,6 +15,13 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const path = `/api/${segments.join("/")}`;
 
   res.setHeader("Cache-Control", "no-store");
+  // API routes have no HTML 404 page, so even browser-shaped requests get JSON;
+  // markdown is served only when explicitly requested.
+  if (
+    tryWriteAgentNotFound(req, res, path, `No API endpoint matches ${path}.`)
+  ) {
+    return;
+  }
   sendAgentError(res, {
     status: 404,
     error: "Not found",
