@@ -1,10 +1,11 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import { deleteEvent } from "@/utils/nostr/nostr-helper-functions";
 import { NostrEvent } from "../utils/types/types";
 import {
   ProductContext,
   FollowsContext,
   RelaysContext,
+  ReportsContext,
 } from "../utils/context/context";
 import ProductCard from "./utility-components/product-card";
 import DisplayProductModal from "./display-product-modal";
@@ -27,6 +28,17 @@ import {
   fetchNip50ProductSearch,
   getProductEventKey,
 } from "@/utils/nostr/fetch-service";
+import {
+  getDirectFollowPubkeys,
+  getListingReportSignal,
+  summarizeReportEvents,
+} from "@/utils/nostr/report-moderation";
+import {
+  createStorageKey,
+  storage,
+  STORAGE_KEY_PREFIXES,
+  STORAGE_KEYS,
+} from "@/utils/storage";
 import { nip19 } from "nostr-tools";
 
 const isNip19SearchQuery = (search: string) => {
@@ -65,6 +77,7 @@ const DisplayProducts = ({
   const [isNip50SearchLoading, setIsNip50SearchLoading] = useState(false);
   const productEventContext = useContext(ProductContext);
   const followsContext = useContext(FollowsContext);
+  const reportsContext = useContext(ReportsContext);
   const relaysContext = useContext(RelaysContext);
   const [focusedProduct, setFocusedProduct] = useState<ProductData>();
   const [showModal, setShowModal] = useState(false);
@@ -79,6 +92,23 @@ const DisplayProducts = ({
 
   const { nostr } = useContext(NostrContext);
   const { signer, pubkey: userPubkey } = useContext(SignerContext);
+  const directFollowPubkeys = useMemo(
+    () =>
+      getDirectFollowPubkeys(
+        followsContext.followList,
+        followsContext.firstDegreeFollowsLength
+      ),
+    [followsContext.followList, followsContext.firstDegreeFollowsLength]
+  );
+  const reportSummaries = useMemo(
+    () =>
+      summarizeReportEvents({
+        reportEvents: reportsContext.reportEvents,
+        directFollowPubkeys,
+        userPubkey,
+      }),
+    [reportsContext.reportEvents, directFollowPubkeys, userPubkey]
+  );
 
   const searchRelaysKey = Array.from(
     new Set([
@@ -93,9 +123,9 @@ const DisplayProducts = ({
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storageKey = focusedPubkey
-        ? `marketplace-page-${focusedPubkey}`
-        : "marketplace-page-general";
-      const savedPage = sessionStorage.getItem(storageKey);
+        ? createStorageKey(STORAGE_KEY_PREFIXES.MARKETPLACE_PAGE, focusedPubkey)
+        : STORAGE_KEYS.MARKETPLACE_PAGE_GENERAL;
+      const savedPage = storage.getSessionItem(storageKey);
       if (savedPage) {
         const pageNum = parseInt(savedPage, 10);
         if (!isNaN(pageNum) && pageNum > 0) {
@@ -109,7 +139,12 @@ const DisplayProducts = ({
   useEffect(() => {
     const normalizedSearch = selectedSearch.trim();
 
-    if (!normalizedSearch || isNip19SearchQuery(normalizedSearch) || !nostr) {
+    if (
+      !normalizedSearch ||
+      isNip19SearchQuery(normalizedSearch) ||
+      !nostr ||
+      typeof nostr.fetch !== "function"
+    ) {
       setNip50ProductEvents([]);
       setIsNip50SearchLoading(false);
       return;
@@ -200,7 +235,14 @@ const DisplayProducts = ({
       setProductEvents([]);
       setIsProductLoading(false);
     }
-  }, [productEventContext, wotFilter, nip50ProductEvents, selectedSearch]);
+  }, [
+    productEventContext,
+    wotFilter,
+    nip50ProductEvents,
+    selectedSearch,
+    followsContext.followList,
+    followsContext.isLoading,
+  ]);
 
   useEffect(() => {
     if (focusedPubkey && setCategories) {
@@ -251,23 +293,28 @@ const DisplayProducts = ({
     const prevFiltersRef = `${selectedSearch}-${selectedLocation}-${Array.from(
       selectedCategories
     ).join(",")}`;
-    const currentFiltersRef = sessionStorage.getItem("last-filters-ref");
+    const currentFiltersRef = storage.getSessionItem(
+      STORAGE_KEYS.LAST_FILTERS_REF
+    );
 
     if (currentFiltersRef && currentFiltersRef !== prevFiltersRef) {
       // Filters changed, reset to page 1
       setCurrentPage(1);
       if (typeof window !== "undefined") {
         const storageKey = focusedPubkey
-          ? `marketplace-page-${focusedPubkey}`
-          : "marketplace-page-general";
-        sessionStorage.setItem(storageKey, "1");
+          ? createStorageKey(
+              STORAGE_KEY_PREFIXES.MARKETPLACE_PAGE,
+              focusedPubkey
+            )
+          : STORAGE_KEYS.MARKETPLACE_PAGE_GENERAL;
+        storage.setSessionItem(storageKey, "1");
       }
     } else if (currentPage > newTotalPages) {
       // Current page exceeds total pages, go to last page
       setCurrentPage(newTotalPages);
     }
 
-    sessionStorage.setItem("last-filters-ref", prevFiltersRef);
+    storage.setSessionItem(STORAGE_KEYS.LAST_FILTERS_REF, prevFiltersRef);
 
     onFilteredProductsChange?.(filtered);
   }, [
@@ -387,9 +434,9 @@ const DisplayProducts = ({
     // Save to session storage
     if (typeof window !== "undefined") {
       const storageKey = focusedPubkey
-        ? `marketplace-page-${focusedPubkey}`
-        : "marketplace-page-general";
-      sessionStorage.setItem(storageKey, page.toString());
+        ? createStorageKey(STORAGE_KEY_PREFIXES.MARKETPLACE_PAGE, focusedPubkey)
+        : STORAGE_KEYS.MARKETPLACE_PAGE_GENERAL;
+      storage.setSessionItem(storageKey, page.toString());
     }
   };
 
@@ -411,6 +458,11 @@ const DisplayProducts = ({
                     productData={productData}
                     onProductClick={onProductClick}
                     href={getProductHref(productData)}
+                    hydrateProfileFromRelays={Boolean(focusedPubkey)}
+                    reportSignal={getListingReportSignal(
+                      productData,
+                      reportSummaries
+                    )}
                   />
                 )
               )}

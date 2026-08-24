@@ -13,19 +13,105 @@ import { LightningAddress } from "@getalby/lightning-tools";
 import { NostrWebLNProvider } from "@getalby/sdk";
 import {
   NostrContext,
+  NWCContext,
   SignerContext,
 } from "@/components/utility-components/nostr-context-provider";
+import { getStoredRelays } from "@/utils/nostr/nostr-helper-functions";
 import {
-  getLocalStorageData,
   constructGiftWrappedEvent,
   constructMessageSeal,
   constructMessageGiftWrap,
   sendGiftWrappedMessageEvent,
-} from "@/utils/nostr/nostr-helper-functions";
+} from "@/utils/nostr/gift-wrap";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
-import { validateZapReceipt } from "@/utils/nostr/zap-validator";
+import {
+  validateZapReceipt,
+  validateSingleReceipt,
+} from "@/utils/nostr/zap-validator";
+import type { NostrManager } from "@/utils/nostr/nostr-manager";
+
+type SellerZapContext = {
+  lightningAddress: LightningAddress;
+  zapRecipientPubkey: string;
+};
+
+const SELLER_ZAP_CONTEXT_TTL_MS = 5 * 60 * 1000;
+
+const sellerZapContextCache = new Map<
+  string,
+  { promise: Promise<SellerZapContext>; expiresAt: number }
+>();
+
+export function clearSellerZapContextCache(): void {
+  sellerZapContextCache.clear();
+}
+
+function getSellerZapContext(
+  nostrManager: NostrManager,
+  sellerPubkey: string
+): Promise<SellerZapContext> {
+  const now = Date.now();
+  const cached = sellerZapContextCache.get(sellerPubkey);
+  if (cached && cached.expiresAt > now) {
+    return cached.promise;
+  }
+
+  const promise = resolveSellerZapContext(nostrManager, sellerPubkey);
+  const entry = {
+    promise,
+    expiresAt: now + SELLER_ZAP_CONTEXT_TTL_MS,
+  };
+  sellerZapContextCache.set(sellerPubkey, entry);
+
+  promise.catch(() => {
+    if (sellerZapContextCache.get(sellerPubkey) === entry) {
+      sellerZapContextCache.delete(sellerPubkey);
+    }
+  });
+
+  return promise;
+}
+
+async function resolveSellerZapContext(
+  nostrManager: NostrManager,
+  sellerPubkey: string
+): Promise<SellerZapContext> {
+  const profileFilter = { kinds: [0], authors: [sellerPubkey] };
+  const events = await nostrManager.fetch([profileFilter]);
+  let lud16 = "";
+
+  if (events.length > 0) {
+    const kind0 = [...events].sort((a, b) => b.created_at - a.created_at)[0];
+    if (kind0) {
+      try {
+        const content = JSON.parse(kind0.content || "{}");
+        lud16 = content.lud16 || content.lnurl || "";
+      } catch (e) {
+        console.warn("Failed to parse seller profile", e);
+      }
+    }
+  }
+
+  if (!lud16) {
+    throw new Error("Seller has not set up a Lightning Address (LUD16).");
+  }
+
+  const lightningAddress = new LightningAddress(lud16);
+  await lightningAddress.fetch();
+
+  if (!lightningAddress.nostrPubkey) {
+    throw new Error("Seller Lightning Address does not support NIP-57 zaps.");
+  }
+
+  return {
+    lightningAddress,
+    zapRecipientPubkey: lightningAddress.nostrPubkey,
+  };
+}
+
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 
 export default function ZapsnagButton({ product }: { product: ProductData }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -45,35 +131,69 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
   });
 
   const { nostr: nostrManager } = useContext(NostrContext);
+  const {
+    nwcString: unlockedNWCString,
+    hasStoredConnection,
+    ensureUnlocked,
+  } = useContext(NWCContext);
   const { signer, isLoggedIn, pubkey: userPubkey } = useContext(SignerContext);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedInfo = localStorage.getItem("shopstr_shipping_info");
-      if (savedInfo) {
-        try {
-          const parsed = JSON.parse(savedInfo);
-          setShippingInfo((prev) => ({ ...prev, ...parsed }));
-        } catch (e) {
-          console.error("Failed to load saved shipping info", e);
-        }
-      }
+    const savedInfo = storage.getJson<Partial<typeof shippingInfo> | null>(
+      STORAGE_KEYS.SHIPPING_INFO,
+      null
+    );
+    if (savedInfo) {
+      setShippingInfo((prev) => ({ ...prev, ...savedInfo }));
     }
   }, []);
 
   useEffect(() => {
     const checkInventory = async () => {
-      if (!nostrManager || !product.id) return;
-
-      if (!product.quantity || product.quantity <= 0) {
+      if (!nostrManager || !product.id) {
         setIsCheckingInventory(false);
         return;
       }
 
+      if (
+        !product.quantity ||
+        product.quantity <= 0 ||
+        product.price === undefined
+      ) {
+        setIsCheckingInventory(false);
+        return;
+      }
+      const productPrice = product.price;
+
       try {
+        const { zapRecipientPubkey } = await getSellerZapContext(
+          nostrManager,
+          product.pubkey
+        );
         const filter = { kinds: [9735], "#e": [product.id] };
-        const zaps = await nostrManager.fetch([filter]);
-        setSoldCount(zaps.length);
+        const events = await nostrManager.fetch([filter]);
+        let count = 0;
+        for (const event of events) {
+          const result = validateSingleReceipt(event, {
+            productId: product.id,
+            expectedRecipientPubkey: zapRecipientPubkey,
+            expectedReceiptSignerPubkey: zapRecipientPubkey,
+            // Most NIP-57 clients put the seller's own pubkey in 'p', not
+            // the LNURL provider's signing key — accept both so zaps made
+            // outside Shopstr still count toward inventory.
+            alternateRecipientPubkeys: [product.pubkey],
+            expectedAmountSats: productPrice,
+            // Buyers may tip above the listed price; require at least the
+            // product price so a forged "sale" still costs a real full-price
+            // zap (prevents cheap sold-out griefing). Note: sales made
+            // before a price increase will no longer count.
+            allowOverpayment: true,
+            minTimestamp: 0,
+            skipFreshnessCheck: true,
+          });
+          if (result.valid) count++;
+        }
+        setSoldCount(count);
       } catch (e) {
         console.error("Failed to check inventory", e);
       } finally {
@@ -81,7 +201,13 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
       }
     };
     checkInventory();
-  }, [nostrManager, product.id, product.quantity]);
+  }, [
+    nostrManager,
+    product.id,
+    product.price,
+    product.pubkey,
+    product.quantity,
+  ]);
 
   const handleBuy = async () => {
     let originalWebLN: any;
@@ -90,38 +216,30 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
       return;
     }
 
-    if (product.price <= 0) {
+    if (!nostrManager) {
+      alert("Connection error: unable to verify payment.");
+      setLoading(false);
+      return;
+    }
+
+    if (product.price === undefined || product.price <= 0) {
       alert("Could not determine a valid price. Cannot Zap.");
       return;
     }
+    const productPrice = product.price;
 
     setLoading(true);
     setStatus("Finding seller address...");
     try {
-      const profileFilter = { kinds: [0], authors: [product.pubkey] };
-      const events = (await nostrManager?.fetch([profileFilter])) || [];
-      let lud16 = "";
-
-      if (events.length > 0) {
-        const kind0 = [...events].sort(
-          (a, b) => b.created_at - a.created_at
-        )[0];
-        if (kind0) {
-          try {
-            const content = JSON.parse(kind0.content || "{}");
-            lud16 = content.lud16 || content.lnurl || "";
-          } catch (e) {
-            console.warn("Failed to parse seller profile", e);
-          }
-        }
-      }
-
-      if (!lud16) {
-        throw new Error("Seller has not set up a Lightning Address (LUD16).");
-      }
+      const { lightningAddress: ln, zapRecipientPubkey } =
+        await getSellerZapContext(nostrManager, product.pubkey);
 
       originalWebLN = (window as any).webln;
-      const { nwcString } = getLocalStorageData();
+      const nwcString = unlockedNWCString
+        ? unlockedNWCString
+        : hasStoredConnection
+          ? await ensureUnlocked?.()
+          : null;
       if (nwcString) {
         const nwcProvider = new NostrWebLNProvider({
           nostrWalletConnectUrl: nwcString,
@@ -176,17 +294,15 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
       await sendGiftWrappedMessageEvent(nostrManager!, finalEvent, signer);
 
       setStatus("Paying via Lightning...");
-      const ln = new LightningAddress(lud16);
-      await ln.fetch();
 
-      const { relays: userRelays } = getLocalStorageData();
+      const userRelays = getStoredRelays();
       const targetRelays =
         userRelays.length > 0
           ? userRelays
           : ["wss://relay.damus.io", "wss://nos.lol"];
 
       const zapArgs = {
-        satoshi: product.price,
+        satoshi: productPrice,
         comment: `Order #${orderId}`,
         e: product.id,
         relays: targetRelays,
@@ -196,19 +312,19 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
       const response = await ln.zap(zapArgs);
 
       if (response.preimage) {
-        localStorage.setItem(
-          "shopstr_shipping_info",
-          JSON.stringify(shippingInfo)
-        );
+        storage.setJson(STORAGE_KEYS.SHIPPING_INFO, shippingInfo);
 
         setStatus("Verifying receipt...");
-        const receiptFound = await validateZapReceipt(
-          nostrManager!,
-          product.id,
-          startTime
-        );
+        const receiptResult = await validateZapReceipt(nostrManager, {
+          productId: product.id,
+          expectedRecipientPubkey: zapRecipientPubkey,
+          expectedReceiptSignerPubkey: zapRecipientPubkey,
+          expectedAmountSats: productPrice,
+          minTimestamp: startTime,
+          expectedPreimage: response.preimage,
+        });
 
-        if (receiptFound) {
+        if (receiptResult.valid) {
           alert(
             "Order Placed & Verified! Preimage: " +
               response.preimage.substring(0, 8) +

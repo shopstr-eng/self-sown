@@ -6,6 +6,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import {
   ChallengeHandler,
@@ -13,9 +14,17 @@ import {
 } from "@/utils/nostr/signers/nostr-signer";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
 import {
+  clearNWCConnection,
   getLocalStorageData,
   getPersistableSignerData,
+  getStoredReadRelays,
+  getStoredRelays,
+  getStoredWriteRelays,
+  lockNWCConnection,
+  saveEncryptedNWCString,
+  saveNWCInfo,
   type StoredSignerData,
+  unlockNWCString,
 } from "@/utils/nostr/nostr-helper-functions";
 import PassphraseChallengeModal from "@/components/utility-components/request-passphrase-modal";
 import AuthUrlChallengeModal from "@/components/utility-components/auth-challenge-modal";
@@ -24,6 +33,7 @@ import { NostrNIP46Signer } from "@/utils/nostr/signers/nostr-nip46-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import { needsMigration } from "@/utils/nostr/encryption-migration";
 import MigrationPromptModal from "./migration-prompt-modal";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 
 interface SignerContextInterface {
   signer?: NostrSigner;
@@ -47,9 +57,39 @@ interface NostrContextInterface {
   nostr?: NostrManager;
 }
 
+interface NWCContextInterface {
+  nwcString?: string | null;
+  legacyNWCString?: string | null;
+  nwcInfo?: Record<string, any> | null;
+  hasStoredConnection?: boolean;
+  hasLegacyConnection?: boolean;
+  isUnlocked?: boolean;
+  saveConnection?: (
+    nwcString: string,
+    info: Record<string, any>,
+    passphrase: string
+  ) => Promise<void>;
+  ensureUnlocked?: () => Promise<string>;
+  lockConnection?: () => void;
+  removeConnection?: () => void;
+}
+
 export const NostrContext = createContext({
   nostr: {} as NostrManager,
 } as NostrContextInterface);
+
+export const NWCContext = createContext({
+  nwcString: null,
+  legacyNWCString: null,
+  nwcInfo: null,
+  hasStoredConnection: false,
+  hasLegacyConnection: false,
+  isUnlocked: false,
+  saveConnection: async () => {},
+  ensureUnlocked: async () => "",
+  lockConnection: () => {},
+  removeConnection: () => {},
+} as NWCContextInterface);
 
 export function SignerContextProvider({ children }: { children: ReactNode }) {
   const [isPassphraseRequested, setIsPassphraseRequested] = useState(false);
@@ -136,16 +176,20 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
     } else if (signInMethod) {
       switch (signInMethod) {
         case "bunker": {
-          let bunker =
-            "bunker://" +
-            getLocalStorageData().bunkerRemotePubkey +
-            "?secret=" +
-            getLocalStorageData().bunkerSecret;
-          const bunkerRelays = getLocalStorageData().bunkerRelays;
-          for (const relay of bunkerRelays!) {
+          const remotePubkey = storage.getItem(
+            STORAGE_KEYS.BUNKER_REMOTE_PUBKEY
+          );
+          const secret = storage.getItem(STORAGE_KEYS.BUNKER_SECRET);
+          const bunkerRelays = storage.getJson<string[]>(
+            STORAGE_KEYS.BUNKER_RELAYS,
+            []
+          );
+
+          let bunker = "bunker://" + remotePubkey + "?secret=" + secret;
+          for (const relay of bunkerRelays) {
             bunker += "&relay=" + relay;
           }
-          const appPrivKey = getLocalStorageData().clientPrivkey;
+          const appPrivKey = storage.getItem(STORAGE_KEYS.CLIENT_PRIVKEY);
           existingSigner = {
             type: "nip46",
             bunker,
@@ -160,7 +204,9 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
           break;
         }
         case "nsec": {
-          const encryptedPrivateKey = getLocalStorageData().encryptedPrivateKey;
+          const encryptedPrivateKey = storage.getItem(
+            STORAGE_KEYS.ENCRYPTED_PRIVATE_KEY
+          );
           existingSigner = {
             type: "nsec",
             encryptedPrivKey: encryptedPrivateKey!,
@@ -213,7 +259,7 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
     setSigner(signerObject);
     loadKeys(signerObject);
 
-    const isAlreadyLoaded = localStorage.getItem("signer");
+    const isAlreadyLoaded = storage.getItem(STORAGE_KEYS.SIGNER);
     const persistableSigner = existingSigner
       ? getPersistableSignerData(existingSigner)
       : undefined;
@@ -224,7 +270,7 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
       !isAlreadyLoaded || serializedSigner !== isAlreadyLoaded;
 
     if (persistableSigner && hasStorageMismatch) {
-      localStorage.setItem("signer", serializedSigner);
+      storage.setJson(STORAGE_KEYS.SIGNER, persistableSigner);
     }
 
     if (hasStorageMismatch) {
@@ -337,7 +383,9 @@ export function NostrContextProvider({ children }: { children: ReactNode }) {
   const [nostr] = useState<NostrManager>(new NostrManager());
 
   const reload = useCallback(() => {
-    const { readRelays, writeRelays, relays } = getLocalStorageData();
+    const readRelays = getStoredReadRelays();
+    const writeRelays = getStoredWriteRelays();
+    const relays = getStoredRelays();
     nostr.addRelays([...writeRelays, ...relays, ...readRelays]);
   }, [nostr]);
 
@@ -358,6 +406,228 @@ export function NostrContextProvider({ children }: { children: ReactNode }) {
       >
         {children}
       </NostrContext.Provider>
+    </>
+  );
+}
+
+export function NWCContextProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const [isPassphraseRequested, setIsPassphraseRequested] = useState(false);
+  const [challengeResolver, setChallengeResolver] = useState<
+    ((res: any) => void) | undefined
+  >(undefined);
+  const [error, setError] = useState<Error | undefined>(undefined);
+  const [abort, setAbort] = useState<() => void>(() => {});
+  const [nwcString, setNWCString] = useState<string | null>(null);
+  const [legacyNWCString, setLegacyNWCString] = useState<string | null>(null);
+  const [nwcInfo, setNWCInfo] = useState<Record<string, any> | null>(null);
+  const [hasStoredConnection, setHasStoredConnection] = useState(false);
+  const [hasLegacyConnection, setHasLegacyConnection] = useState(false);
+  const rememberedPassphraseRef = useRef<string | undefined>(undefined);
+  const inputPassphraseRef = useRef<string | undefined>(undefined);
+  const inputPassphraseClearerRef = useRef<
+    ReturnType<typeof setTimeout> | undefined
+  >(undefined);
+
+  const clearPassphraseState = useCallback(() => {
+    rememberedPassphraseRef.current = undefined;
+    inputPassphraseRef.current = undefined;
+    if (inputPassphraseClearerRef.current) {
+      clearTimeout(inputPassphraseClearerRef.current);
+      inputPassphraseClearerRef.current = undefined;
+    }
+  }, []);
+
+  const registerSuccessfulPassphrase = useCallback(
+    (passphrase: string, remember: boolean) => {
+      if (remember) {
+        rememberedPassphraseRef.current = passphrase;
+      }
+
+      if (inputPassphraseClearerRef.current) {
+        clearTimeout(inputPassphraseClearerRef.current);
+      }
+
+      inputPassphraseRef.current = passphrase;
+      inputPassphraseClearerRef.current = setTimeout(() => {
+        inputPassphraseRef.current = undefined;
+        inputPassphraseClearerRef.current = undefined;
+      }, 5000);
+    },
+    []
+  );
+
+  const loadNWCState = useCallback(() => {
+    const {
+      nwcString: storedString,
+      legacyNWCString: storedLegacyString,
+      nwcInfo: storedInfo,
+      hasStoredNWCConnection,
+      hasLegacyNWCConnection,
+    } = getLocalStorageData();
+
+    setNWCString(storedString || null);
+    setLegacyNWCString(storedLegacyString || null);
+    setHasStoredConnection(Boolean(hasStoredNWCConnection));
+    setHasLegacyConnection(Boolean(hasLegacyNWCConnection));
+
+    if (!hasStoredNWCConnection && !hasLegacyNWCConnection) {
+      clearPassphraseState();
+    }
+
+    if (storedInfo) {
+      try {
+        setNWCInfo(JSON.parse(storedInfo));
+      } catch (e) {
+        console.error("Failed to parse saved NWC info", e);
+        setNWCInfo(null);
+      }
+    } else {
+      setNWCInfo(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = () => loadNWCState();
+    window.addEventListener("storage", handleStorage);
+    loadNWCState();
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [loadNWCState]);
+
+  const requestPassphrase = useCallback(
+    (
+      currentError?: Error
+    ): Promise<{ passphrase: string; remember: boolean }> => {
+      return new Promise((resolve, reject) => {
+        setError(currentError);
+        setAbort(() => () => reject(new Error("Action cancelled by user")));
+        setChallengeResolver(() => {
+          return async ({ res, remind }: { res: string; remind: boolean }) => {
+            resolve({ passphrase: res, remember: remind });
+          };
+        });
+        setIsPassphraseRequested(true);
+      });
+    },
+    []
+  );
+
+  const getPassphrase = useCallback(
+    async (currentError?: Error): Promise<[string, boolean]> => {
+      if (rememberedPassphraseRef.current) {
+        return [rememberedPassphraseRef.current, false];
+      }
+
+      if (inputPassphraseRef.current) {
+        return [inputPassphraseRef.current, false];
+      }
+
+      const { passphrase, remember } = await requestPassphrase(currentError);
+      return [passphrase || "", remember];
+    },
+    [requestPassphrase]
+  );
+
+  const ensureUnlocked = useCallback(async (): Promise<string> => {
+    if (nwcString) return nwcString;
+    if (!hasStoredConnection) {
+      throw new Error("NWC connection not found.");
+    }
+
+    let currentError: Error | undefined;
+
+    while (true) {
+      const [passphrase, remember] = await getPassphrase(currentError);
+      try {
+        const unlocked = await unlockNWCString(passphrase);
+        registerSuccessfulPassphrase(passphrase, remember);
+        setError(undefined);
+        setIsPassphraseRequested(false);
+        loadNWCState();
+        return unlocked;
+      } catch (e) {
+        currentError = e as Error;
+        setError(currentError);
+      }
+    }
+  }, [
+    getPassphrase,
+    hasStoredConnection,
+    loadNWCState,
+    nwcString,
+    registerSuccessfulPassphrase,
+  ]);
+
+  const saveConnection = useCallback(
+    async (
+      rawNWCString: string,
+      info: Record<string, any>,
+      passphrase: string
+    ) => {
+      await saveEncryptedNWCString(rawNWCString, passphrase);
+      saveNWCInfo(info);
+      loadNWCState();
+    },
+    [loadNWCState]
+  );
+
+  const lockConnection = useCallback(() => {
+    clearPassphraseState();
+    lockNWCConnection();
+    loadNWCState();
+  }, [clearPassphraseState, loadNWCState]);
+
+  const removeConnection = useCallback(() => {
+    clearPassphraseState();
+    clearNWCConnection();
+    setError(undefined);
+    setIsPassphraseRequested(false);
+    loadNWCState();
+  }, [clearPassphraseState, loadNWCState]);
+
+  useEffect(() => {
+    return () => {
+      clearPassphraseState();
+    };
+  }, [clearPassphraseState]);
+
+  return (
+    <>
+      <NWCContext.Provider
+        value={{
+          nwcString,
+          legacyNWCString,
+          nwcInfo,
+          hasStoredConnection,
+          hasLegacyConnection,
+          isUnlocked: Boolean(nwcString),
+          saveConnection,
+          ensureUnlocked,
+          lockConnection,
+          removeConnection,
+        }}
+      >
+        <PassphraseChallengeModal
+          actionOnSubmit={(passphrase: string, remind: boolean) => {
+            if (challengeResolver) {
+              challengeResolver({ res: passphrase, remind });
+            }
+          }}
+          actionOnCancel={() => {
+            if (abort) {
+              abort();
+            }
+          }}
+          error={error}
+          isOpen={isPassphraseRequested}
+          setIsOpen={setIsPassphraseRequested}
+          onCancelRouteTo={router.asPath}
+        />
+        {children}
+      </NWCContext.Provider>
     </>
   );
 }
