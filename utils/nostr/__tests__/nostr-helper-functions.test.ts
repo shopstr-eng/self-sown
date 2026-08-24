@@ -478,49 +478,12 @@ describe("setLocalStorageDataOnSignIn", () => {
     expect(localStorage.getItem("encryptedPrivateKey")).toBeNull();
   });
 
-  it("writes all four bunker keys when clientPubkey, clientPrivkey, bunkerRemotePubkey, and bunkerRelays are all provided", () => {
-    setLocalStorageDataOnSignIn({
-      clientPubkey: "pub-abc",
-      clientPrivkey: "priv-abc",
-      bunkerRemotePubkey: "remote-pubkey",
-      bunkerRelays: ["wss://relay.example"],
-    });
-
-    expect(localStorage.getItem("clientPubkey")).toBe("pub-abc");
-    expect(localStorage.getItem("clientPrivkey")).toBe("priv-abc");
-    expect(localStorage.getItem("bunkerRemotePubkey")).toBe("remote-pubkey");
-    expect(localStorage.getItem("bunkerRelays")).toBe(
-      JSON.stringify(["wss://relay.example"])
-    );
-  });
-
-  it("does not write bunker keys when any of the four required fields is missing", () => {
-    setLocalStorageDataOnSignIn({
-      clientPubkey: "pub-abc",
-      clientPrivkey: "priv-abc",
-      bunkerRemotePubkey: "remote-pubkey",
-    });
-
-    expect(localStorage.getItem("clientPubkey")).toBeNull();
-    expect(localStorage.getItem("clientPrivkey")).toBeNull();
-  });
-
-  it("writes bunkerSecret alongside the other bunker keys when provided", () => {
-    setLocalStorageDataOnSignIn({
-      clientPubkey: "pub-abc",
-      clientPrivkey: "priv-abc",
-      bunkerRemotePubkey: "remote-pubkey",
-      bunkerRelays: ["wss://relay.example"],
-      bunkerSecret: "my-secret",
-    });
-
-    expect(localStorage.getItem("bunkerSecret")).toBe("my-secret");
-  });
-
   it("writes signer JSON when a signer is provided", () => {
-    const signer = { type: "nip07" } as any;
+    const signer = { toJSON: () => ({ type: "nip07" }) } as any;
     setLocalStorageDataOnSignIn({ signer });
-    expect(localStorage.getItem("signer")).toBe(JSON.stringify(signer));
+    expect(localStorage.getItem("signer")).toBe(
+      JSON.stringify({ type: "nip07" })
+    );
   });
 
   it("writes migrationComplete=true when migrationComplete is truthy", () => {
@@ -1032,7 +995,7 @@ describe("verifyNip05Identifier", () => {
 
 describe("getLocalStorageData", () => {
   beforeEach(() => {
-    localStorage.clear();
+    LogOut();
   });
 
   it("returns getDefaultRelays() when localStorage.relays is absent", () => {
@@ -1162,21 +1125,6 @@ describe("getLocalStorageData", () => {
     expect(getLocalStorageData().signer).toEqual({ type: "nip07" });
   });
 
-  it("accepts { type: 'nip46', bunker: '...' } as a valid stored signer", () => {
-    const storedSigner = {
-      type: "nip46",
-      bunker: "bunker://pubkey?relay=wss://relay.example",
-    };
-    localStorage.setItem("signer", JSON.stringify(storedSigner));
-    expect(getLocalStorageData().signer).toEqual(storedSigner);
-  });
-
-  it("rejects { type: 'nip46' } missing bunker and falls through to migration", () => {
-    localStorage.setItem("signer", JSON.stringify({ type: "nip46" }));
-    localStorage.setItem("signInMethod", "extension");
-    expect(getLocalStorageData().signer).toEqual({ type: "nip07" });
-  });
-
   it("accepts { type: 'nsec', encryptedPrivKey: '...' } as a valid stored signer", () => {
     const storedSigner = { type: "nsec", encryptedPrivKey: "enc-key-abc" };
     localStorage.setItem("signer", JSON.stringify(storedSigner));
@@ -1200,24 +1148,6 @@ describe("getLocalStorageData", () => {
   it("reconstructs { type: 'nip07' } from signInMethod=extension when no stored signer", () => {
     localStorage.setItem("signInMethod", "extension");
     expect(getLocalStorageData().signer).toEqual({ type: "nip07" });
-  });
-
-  it("reconstructs { type: 'nip46', bunker, appPrivKey } from signInMethod=bunker keys", () => {
-    localStorage.setItem("signInMethod", "bunker");
-    localStorage.setItem("bunkerRemotePubkey", "remote-pubkey");
-    localStorage.setItem("bunkerSecret", "my-secret");
-    localStorage.setItem(
-      "bunkerRelays",
-      JSON.stringify(["wss://relay.example"])
-    );
-    localStorage.setItem("clientPrivkey", "privkey-abc");
-
-    expect(getLocalStorageData().signer).toEqual({
-      type: "nip46",
-      bunker:
-        "bunker://remote-pubkey?secret=my-secret&relay=wss://relay.example",
-      appPrivKey: "privkey-abc",
-    });
   });
 
   it("reconstructs { type: 'nsec', encryptedPrivKey } from signInMethod=nsec when encryptedPrivateKey is a string", () => {

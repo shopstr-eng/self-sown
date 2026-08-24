@@ -62,12 +62,12 @@ export async function migrateToNip49(passphrase: string): Promise<boolean> {
     );
 
     if (inSigner && signer) {
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         signer: { ...signer, encryptedPrivKey } as any,
         migrationComplete: true,
       });
     } else {
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         encryptedPrivateKey: encryptedPrivKey,
         migrationComplete: true,
       });
