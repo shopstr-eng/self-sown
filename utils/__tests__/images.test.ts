@@ -2,6 +2,7 @@ import {
   buildSrcSet,
   normalizeProductImageUrl,
   normalizeProductImageUrls,
+  normalizeStoredProductImages,
 } from "../images";
 
 describe("normalizeProductImageUrl", () => {
@@ -66,6 +67,24 @@ describe("normalizeProductImageUrl", () => {
       normalizeProductImageUrl("http://[::ffff:127.0.0.1]/image.jpg")
     ).toBe("/no-image-placeholder.png");
   });
+
+  it("falls back when browser path normalization targets a remote host", () => {
+    expect(normalizeProductImageUrl("/\\localhost/admin")).toBe(
+      "/no-image-placeholder.png"
+    );
+    expect(normalizeProductImageUrl("/\\192.168.1.1/router")).toBe(
+      "/no-image-placeholder.png"
+    );
+  });
+
+  it("falls back for canonical localhost and IPv6 link-local hosts", () => {
+    expect(normalizeProductImageUrl("https://localhost./image.jpg")).toBe(
+      "/no-image-placeholder.png"
+    );
+    expect(normalizeProductImageUrl("http://[fe90::1]/image.jpg")).toBe(
+      "/no-image-placeholder.png"
+    );
+  });
 });
 
 describe("normalizeProductImageUrls", () => {
@@ -80,6 +99,24 @@ describe("normalizeProductImageUrls", () => {
 
   it("returns an empty array when no images are provided", () => {
     expect(normalizeProductImageUrls(undefined)).toEqual([]);
+  });
+});
+
+describe("normalizeStoredProductImages", () => {
+  it("normalizes image URLs in persisted products", () => {
+    expect(
+      normalizeStoredProductImages([
+        {
+          id: "product-1",
+          images: ["/\\192.168.1.1/router", "https://example.com/image.jpg"],
+        },
+      ])
+    ).toEqual([
+      {
+        id: "product-1",
+        images: ["/no-image-placeholder.png", "https://example.com/image.jpg"],
+      },
+    ]);
   });
 });
 

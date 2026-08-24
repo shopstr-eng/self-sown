@@ -6,6 +6,7 @@ const EXTERNAL_IMAGE_RE = /^https?:\/\//i;
 const PROTOCOL_RELATIVE_IMAGE_RE = /^\/\//;
 const BLOCKED_LOCAL_IMAGE_PATH_RE = /^\/api\//i;
 const IPV4_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+const LOCAL_IMAGE_BASE_URL = "https://shopstr.invalid";
 
 function isPrivateIPv4Literal(hostname: string): boolean {
   if (!IPV4_RE.test(hostname)) return false;
@@ -33,15 +34,20 @@ function isPrivateIPv6Literal(hostname: string): boolean {
   const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
 
   if (normalized === "::1" || normalized === "::") return true;
-  if (normalized.startsWith("fe80:")) return true;
-  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
   if (normalized.startsWith("::ffff:")) return true;
+  if (!normalized.includes(":")) return false;
+
+  const firstHextet = Number.parseInt(normalized.split(":")[0] || "0", 16);
+  if (Number.isNaN(firstHextet)) return false;
+
+  if ((firstHextet & 0xffc0) === 0xfe80) return true;
+  if ((firstHextet & 0xfe00) === 0xfc00) return true;
 
   return false;
 }
 
 function isBlockedRemoteImageHost(hostname: string): boolean {
-  const lowered = hostname.toLowerCase();
+  const lowered = hostname.toLowerCase().replace(/\.$/, "");
 
   if (
     lowered === "localhost" ||
@@ -66,10 +72,18 @@ export function normalizeProductImageUrl(
   }
 
   if (trimmed.startsWith("/")) {
-    if (BLOCKED_LOCAL_IMAGE_PATH_RE.test(trimmed)) {
+    try {
+      const parsed = new URL(trimmed, LOCAL_IMAGE_BASE_URL);
+      if (
+        parsed.origin !== LOCAL_IMAGE_BASE_URL ||
+        BLOCKED_LOCAL_IMAGE_PATH_RE.test(parsed.pathname)
+      ) {
+        return fallback;
+      }
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch {
       return fallback;
     }
-    return trimmed;
   }
 
   const sanitized = sanitizeUrl(trimmed);
@@ -105,6 +119,15 @@ export function normalizeProductImageUrls(
   }
 
   return images.map((image) => normalizeProductImageUrl(image));
+}
+
+export function normalizeStoredProductImages<T extends { images?: string[] }>(
+  products: T[]
+): Array<T & { images: string[] }> {
+  return products.map((product) => ({
+    ...product,
+    images: normalizeProductImageUrls(product.images),
+  }));
 }
 
 const hostToSrcSet = (url: URL) => {

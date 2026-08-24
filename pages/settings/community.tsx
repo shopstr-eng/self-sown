@@ -1,3 +1,5 @@
+/* eslint-disable @next/next/no-img-element */
+
 import { useContext, useEffect, useState } from "react";
 import {
   Card,
