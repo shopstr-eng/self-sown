@@ -144,15 +144,18 @@ describe("parseTags", () => {
     const event = {
       ...baseEvent,
       tags: [
-        ["image", "url1.jpg"],
-        ["image", "url2.jpg"],
+        ["image", "https://example.com/url1.jpg"],
+        ["image", "https://example.com/url2.jpg"],
         ["t", "electronics"],
         ["t", "nostr"],
       ],
     };
     const result = parseTags(event)!;
 
-    expect(result.images).toEqual(["url1.jpg", "url2.jpg"]);
+    expect(result.images).toEqual([
+      "https://example.com/url1.jpg",
+      "https://example.com/url2.jpg",
+    ]);
     expect(result.categories).toEqual(["electronics", "nostr"]);
   });
 
@@ -369,7 +372,7 @@ describe("parseTags", () => {
   it("does not cap UI images or variant tags", () => {
     const tags: string[][] = [];
     for (let i = 0; i < 500; i++) {
-      tags.push(["image", `image-${i}`]);
+      tags.push(["image", `https://images.example.com/image-${i}.jpg`]);
       tags.push(["size", `size-${i}`, `${i}`]);
     }
 
@@ -377,7 +380,7 @@ describe("parseTags", () => {
 
     expect(result.images).toHaveLength(500);
     expect(result.sizes).toHaveLength(500);
-    expect(result.images[499]).toBe("image-499");
+    expect(result.images[499]).toBe("https://images.example.com/image-499.jpg");
     expect(result.sizes![499]).toBe("size-499");
   });
 

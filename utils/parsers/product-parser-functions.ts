@@ -7,6 +7,7 @@ import {
   type ProductResponse,
 } from "@/utils/parsers/canonical-product-parser";
 import { NostrEvent } from "@/utils/types/types";
+import { normalizeProductImageUrls } from "@/utils/images";
 
 export type ProductData = {
   id: string;
@@ -155,7 +156,7 @@ export const parseTags = (
     ...(product.expiration !== undefined && { expiration: product.expiration }),
     rawEvent: productEvent,
   };
-
+  parsedData.images = normalizeProductImageUrls(parsedData.images);
   parsedData.totalCost = calculateTotalCost(parsedData);
   return parsedData;
 };

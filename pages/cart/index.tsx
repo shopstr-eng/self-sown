@@ -36,6 +36,7 @@ import {
   computeProductPricing,
   ProductPricingResult,
 } from "@/utils/cart-totals";
+import { normalizeStoredProductImages } from "@/utils/images";
 
 const CART_PRICE_CONVERSION_CONCURRENCY = 6;
 
@@ -230,7 +231,11 @@ export default function Component() {
         storage.getSessionItem(STORAGE_KEYS.SF_SELLER_PUBKEY) ||
         storage.getItem(STORAGE_KEYS.SF_SELLER_PUBKEY) ||
         "";
-      const fullCart = storage.getJson<ProductData[]>(STORAGE_KEYS.CART, []);
+      const storedCart = storage.getJson<ProductData[]>(STORAGE_KEYS.CART, []);
+      const fullCart = normalizeStoredProductImages(storedCart);
+      if (JSON.stringify(fullCart) !== JSON.stringify(storedCart)) {
+        storage.setJson(STORAGE_KEYS.CART, fullCart);
+      }
 
       let cartList = fullCart;
       if (sfPk) {
