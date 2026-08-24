@@ -46,7 +46,7 @@ const OnboardingWallet = () => {
       await nwc.enable();
       const info = await nwc.getInfo();
 
-      saveConnection?.(nwcString, info, passphrase.trim());
+      await saveConnection?.(nwcString, info, passphrase.trim());
 
       handleNext();
     } catch (e: any) {

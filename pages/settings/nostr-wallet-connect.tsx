@@ -115,7 +115,7 @@ const NWCSettingsPage = () => {
       await nwc.enable();
       const info = await nwc.getInfo();
 
-      saveConnection?.(nwcString, info, passphrase.trim());
+      await saveConnection?.(nwcString, info, passphrase.trim());
       setWalletInfo(info);
       setIsSaved(true);
       setPassphrase("");

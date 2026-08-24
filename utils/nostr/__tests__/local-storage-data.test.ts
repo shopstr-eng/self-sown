@@ -7,6 +7,23 @@ import {
   unlockNWCString,
 } from "../nostr-helper-functions";
 import { storage, STORAGE_KEYS } from "@/utils/storage";
+import { webcrypto } from "node:crypto";
+
+const originalCrypto = globalThis.crypto;
+
+beforeAll(() => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: webcrypto,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: originalCrypto,
+  });
+});
 
 describe("StorageManager defaults (replaces getLocalStorageData)", () => {
   beforeEach(() => {
@@ -49,8 +66,8 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     );
   });
 
-  it("stores the NWC connection encrypted at rest and keeps the raw value in runtime memory", () => {
-    saveEncryptedNWCString(
+  it("stores the NWC connection encrypted at rest and keeps the raw value in runtime memory", async () => {
+    await saveEncryptedNWCString(
       "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd",
       "secret-passphrase"
     );
@@ -72,8 +89,41 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     );
   });
 
-  it("unlocks the stored NWC connection with the correct passphrase", () => {
-    saveEncryptedNWCString(
+  it("stores NWC credentials in a versioned authenticated envelope", async () => {
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd",
+      "secret-passphrase"
+    );
+
+    const envelope = JSON.parse(
+      localStorage.getItem("encryptedNWCString") || ""
+    );
+
+    expect(envelope).toMatchObject({
+      version: 1,
+      kdf: "PBKDF2-SHA-256",
+      iterations: expect.any(Number),
+      cipher: "AES-256-GCM",
+      salt: expect.any(String),
+      iv: expect.any(String),
+      ciphertext: expect.any(String),
+    });
+    expect(envelope.iterations).toBeGreaterThanOrEqual(600_000);
+  });
+
+  it("rejects passphrases shorter than twelve characters", async () => {
+    await expect(
+      Promise.resolve().then(() =>
+        saveEncryptedNWCString(
+          "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd",
+          "too-short"
+        )
+      )
+    ).rejects.toThrow("at least 12 characters");
+  });
+
+  it("unlocks the stored NWC connection with the correct passphrase", async () => {
+    await saveEncryptedNWCString(
       "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd",
       "secret-passphrase"
     );
@@ -81,7 +131,7 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
 
     expect(getLocalStorageData().nwcString).toBeNull();
 
-    const unlocked = unlockNWCString("secret-passphrase");
+    const unlocked = await unlockNWCString("secret-passphrase");
 
     expect(unlocked).toBe(
       "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd"
@@ -91,20 +141,39 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     );
   });
 
-  it("does not unlock the stored NWC connection with an incorrect passphrase", () => {
-    saveEncryptedNWCString(
+  it("does not unlock the stored NWC connection with an incorrect passphrase", async () => {
+    await saveEncryptedNWCString(
       "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd",
       "secret-passphrase"
     );
     lockNWCConnection();
 
-    expect(() => unlockNWCString("wrong-passphrase")).toThrow(
+    await expect(unlockNWCString("wrong-passphrase")).rejects.toThrow(
       "Incorrect passphrase or invalid NWC connection."
     );
     expect(getLocalStorageData().nwcString).toBeNull();
   });
 
-  it("preserves legacy persisted plaintext NWC data for migration", () => {
+  it("rejects a tampered encrypted NWC connection", async () => {
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://wallet?relay=wss://relay&secret=abcd",
+      "secret-passphrase"
+    );
+    lockNWCConnection();
+
+    const envelope = JSON.parse(
+      localStorage.getItem("encryptedNWCString") || ""
+    );
+    envelope.ciphertext = `${envelope.ciphertext.slice(0, -2)}AA`;
+    localStorage.setItem("encryptedNWCString", JSON.stringify(envelope));
+
+    await expect(unlockNWCString("secret-passphrase")).rejects.toThrow(
+      "Incorrect passphrase or invalid NWC connection."
+    );
+    expect(getLocalStorageData().nwcString).toBeNull();
+  });
+
+  it("removes legacy plaintext even when encrypted NWC data also exists", () => {
     localStorage.setItem(
       "nwcString",
       "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret"
@@ -118,20 +187,16 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     const data = getLocalStorageData();
 
     expect(data.nwcString).toBeNull();
-    expect(data.legacyNWCString).toBe(
-      "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret"
-    );
+    expect(data.legacyNWCString).toBeNull();
     expect(data.nwcInfo).toBe(
       JSON.stringify({ alias: "Legacy", methods: ["pay_invoice"] })
     );
     expect(data.hasStoredNWCConnection).toBe(true);
     expect(data.hasLegacyNWCConnection).toBe(false);
-    expect(localStorage.getItem("nwcString")).toBe(
-      "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret"
-    );
+    expect(localStorage.getItem("nwcString")).toBeNull();
   });
 
-  it("flags an unmigrated legacy plaintext NWC connection without treating it as unlocked", () => {
+  it("removes an unmigrated legacy plaintext NWC connection after reading it", () => {
     localStorage.setItem(
       "nwcString",
       "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret"
@@ -149,15 +214,27 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     );
     expect(data.hasStoredNWCConnection).toBe(false);
     expect(data.hasLegacyNWCConnection).toBe(true);
+    expect(localStorage.getItem("nwcString")).toBeNull();
   });
 
-  it("removes the legacy plaintext NWC value once it is re-encrypted", () => {
+  it("keeps a removed legacy connection available in memory for migration", () => {
+    const legacyNWCString =
+      "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret";
+    localStorage.setItem("nwcString", legacyNWCString);
+
+    expect(getLocalStorageData().legacyNWCString).toBe(legacyNWCString);
+    expect(localStorage.getItem("nwcString")).toBeNull();
+    expect(getLocalStorageData().legacyNWCString).toBe(legacyNWCString);
+    expect(getLocalStorageData().hasLegacyNWCConnection).toBe(true);
+  });
+
+  it("removes the legacy plaintext NWC value once it is re-encrypted", async () => {
     localStorage.setItem(
       "nwcString",
       "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret"
     );
 
-    saveEncryptedNWCString(
+    await saveEncryptedNWCString(
       "nostr+walletconnect://wallet?relay=wss://relay&secret=legacysecret",
       "secret-passphrase"
     );

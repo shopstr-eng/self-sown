@@ -93,12 +93,14 @@ import {
   retractApproval,
 } from "../community";
 import { finalizeEvent, nip44 } from "nostr-tools";
+import { webcrypto } from "node:crypto";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import {
   Community,
   CommunityRelays,
   ProductFormValues,
 } from "@/utils/types/types";
+
 import {
   cacheEventToDatabase,
   cacheEventToDatabaseStrict,
@@ -110,6 +112,22 @@ import {
   buildSignedHttpRequestProofTemplate,
 } from "@/utils/nostr/request-auth";
 import { newPromiseWithTimeout } from "@/utils/timeout";
+
+const originalCrypto = globalThis.crypto;
+
+beforeAll(() => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: webcrypto,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: originalCrypto,
+  });
+});
 
 describe("constructGiftWrappedEvent", () => {
   const senderPubkey =
@@ -1377,8 +1395,8 @@ describe("encrypted NWC storage", () => {
     clearNWCConnection();
   });
 
-  it("stores the NWC connection encrypted at rest", () => {
-    saveEncryptedNWCString(
+  it("stores the NWC connection encrypted at rest", async () => {
+    await saveEncryptedNWCString(
       "nostr+walletconnect://pubkey?relay=wss://relay.example",
       "secret-passphrase"
     );
@@ -1393,18 +1411,18 @@ describe("encrypted NWC storage", () => {
     );
   });
 
-  it("unlocks an encrypted NWC connection using the passphrase", () => {
-    saveEncryptedNWCString(
+  it("unlocks an encrypted NWC connection using the passphrase", async () => {
+    await saveEncryptedNWCString(
       "nostr+walletconnect://pubkey?relay=wss://relay.example",
       "secret-passphrase"
     );
     clearNWCConnection();
 
-    expect(() => unlockNWCString("secret-passphrase")).toThrow(
+    await expect(unlockNWCString("secret-passphrase")).rejects.toThrow(
       "NWC connection not found."
     );
 
-    saveEncryptedNWCString(
+    await saveEncryptedNWCString(
       "nostr+walletconnect://pubkey?relay=wss://relay.example",
       "secret-passphrase"
     );
@@ -1415,7 +1433,7 @@ describe("encrypted NWC storage", () => {
     lockNWCConnection();
 
     expect(getLocalStorageData().nwcString).toBeNull();
-    expect(unlockNWCString("secret-passphrase")).toBe(
+    await expect(unlockNWCString("secret-passphrase")).resolves.toBe(
       "nostr+walletconnect://pubkey?relay=wss://relay.example"
     );
   });
@@ -1432,9 +1450,12 @@ describe("encrypted NWC storage", () => {
     expect(localStorage.getItem("encryptedNWCString")).toBeNull();
   });
 
-  it("dispatches a storage event on window", () => {
+  it("dispatches a storage event on window", async () => {
     const dispatchSpy = jest.spyOn(window, "dispatchEvent");
-    saveEncryptedNWCString("nostr+walletconnect://pubkey", "secret-passphrase");
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://pubkey",
+      "secret-passphrase"
+    );
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: "storage" })
     );

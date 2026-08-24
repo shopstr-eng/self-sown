@@ -67,7 +67,7 @@ interface NWCContextInterface {
     nwcString: string,
     info: Record<string, any>,
     passphrase: string
-  ) => void;
+  ) => Promise<void>;
   ensureUnlocked?: () => Promise<string>;
   lockConnection?: () => void;
   removeConnection?: () => void;
@@ -84,7 +84,7 @@ export const NWCContext = createContext({
   hasStoredConnection: false,
   hasLegacyConnection: false,
   isUnlocked: false,
-  saveConnection: () => {},
+  saveConnection: async () => {},
   ensureUnlocked: async () => "",
   lockConnection: () => {},
   removeConnection: () => {},
@@ -535,7 +535,7 @@ export function NWCContextProvider({ children }: { children: ReactNode }) {
     while (true) {
       const [passphrase, remember] = await getPassphrase(currentError);
       try {
-        const unlocked = unlockNWCString(passphrase);
+        const unlocked = await unlockNWCString(passphrase);
         registerSuccessfulPassphrase(passphrase, remember);
         setError(undefined);
         setIsPassphraseRequested(false);
@@ -555,8 +555,12 @@ export function NWCContextProvider({ children }: { children: ReactNode }) {
   ]);
 
   const saveConnection = useCallback(
-    (rawNWCString: string, info: Record<string, any>, passphrase: string) => {
-      saveEncryptedNWCString(rawNWCString, passphrase);
+    async (
+      rawNWCString: string,
+      info: Record<string, any>,
+      passphrase: string
+    ) => {
+      await saveEncryptedNWCString(rawNWCString, passphrase);
       saveNWCInfo(info);
       loadNWCState();
     },
