@@ -6,6 +6,7 @@ import type { ListingPricingResult } from "@/utils/payments/listing-pricing";
 import {
   SignerContext,
   NostrContext,
+  NWCContext,
 } from "@/components/utility-components/nostr-context-provider";
 import {
   ProductContext,
@@ -32,6 +33,7 @@ export function makeProductData(
     categories: [],
     location: "Online",
     price: 500,
+    priceStatus: "known",
     currency: "SATS",
     shippingType: "Free",
     totalCost: 500,
@@ -129,6 +131,37 @@ export function defaultNostrContextValue(
   return { nostr: {}, setNostr: jest.fn(), ...overrides };
 }
 
+export function defaultNWCContextValue(
+  overrides: Record<string, unknown> = {}
+) {
+  return {
+    nwcString: null,
+    legacyNWCString: null,
+    nwcInfo: null,
+    hasStoredConnection: false,
+    hasLegacyConnection: false,
+    isUnlocked: false,
+    saveConnection: jest.fn(),
+    ensureUnlocked: jest
+      .fn()
+      .mockRejectedValue(new Error("NWC connection not found.")),
+    lockConnection: jest.fn(),
+    removeConnection: jest.fn(),
+    ...overrides,
+  };
+}
+
+export function connectedNWCContextValue(
+  overrides: Record<string, unknown> = {}
+) {
+  return defaultNWCContextValue({
+    nwcInfo: { alias: "MyWallet" },
+    hasStoredConnection: true,
+    ensureUnlocked: jest.fn().mockResolvedValue("nostr+walletconnect://mock"),
+    ...overrides,
+  });
+}
+
 export function defaultChatsContextValue(
   overrides: Record<string, unknown> = {}
 ) {
@@ -210,6 +243,7 @@ export function defaultReviewsContextValue(
 export interface CheckoutContextOverrides {
   signer?: Record<string, unknown>;
   nostr?: Record<string, unknown>;
+  nwc?: Record<string, unknown>;
   chats?: Record<string, unknown>;
   profileMap?: Record<string, unknown>;
   cashuWallet?: Record<string, unknown>;
@@ -229,33 +263,39 @@ export function renderWithCheckoutContext(
       <NostrContext.Provider
         value={defaultNostrContextValue(overrides.nostr) as any}
       >
-        <ChatsContext.Provider
-          value={defaultChatsContextValue(overrides.chats) as any}
+        <NWCContext.Provider
+          value={defaultNWCContextValue(overrides.nwc) as any}
         >
-          <ProfileMapContext.Provider
-            value={defaultProfileMapContextValue(overrides.profileMap) as any}
+          <ChatsContext.Provider
+            value={defaultChatsContextValue(overrides.chats) as any}
           >
-            <CashuWalletContext.Provider
-              value={
-                defaultCashuWalletContextValue(overrides.cashuWallet) as any
-              }
+            <ProfileMapContext.Provider
+              value={defaultProfileMapContextValue(overrides.profileMap) as any}
             >
-              <ProductContext.Provider
-                value={defaultProductContextValue(overrides.product) as any}
+              <CashuWalletContext.Provider
+                value={
+                  defaultCashuWalletContextValue(overrides.cashuWallet) as any
+                }
               >
-                <ShopMapContext.Provider
-                  value={defaultShopMapContextValue(overrides.shopMap) as any}
+                <ProductContext.Provider
+                  value={defaultProductContextValue(overrides.product) as any}
                 >
-                  <ReviewsContext.Provider
-                    value={defaultReviewsContextValue(overrides.reviews) as any}
+                  <ShopMapContext.Provider
+                    value={defaultShopMapContextValue(overrides.shopMap) as any}
                   >
-                    {ui}
-                  </ReviewsContext.Provider>
-                </ShopMapContext.Provider>
-              </ProductContext.Provider>
-            </CashuWalletContext.Provider>
-          </ProfileMapContext.Provider>
-        </ChatsContext.Provider>
+                    <ReviewsContext.Provider
+                      value={
+                        defaultReviewsContextValue(overrides.reviews) as any
+                      }
+                    >
+                      {ui}
+                    </ReviewsContext.Provider>
+                  </ShopMapContext.Provider>
+                </ProductContext.Provider>
+              </CashuWalletContext.Provider>
+            </ProfileMapContext.Provider>
+          </ChatsContext.Provider>
+        </NWCContext.Provider>
       </NostrContext.Provider>
     </SignerContext.Provider>
   );

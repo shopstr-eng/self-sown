@@ -49,6 +49,7 @@ import {
   createNostrProfileEvent,
   createNostrRelayEvent,
   createNostrShopEvent,
+  clearNWCConnection,
   deleteEvent,
   finalizeAndSendNostrEvent,
   followUser,
@@ -59,6 +60,7 @@ import {
   getLocalStorageData,
   getLocalUserProfileKey,
   isProfileContentPopulated,
+  lockNWCConnection,
   LogOut,
   parseLocalProfileFallback,
   PostListing,
@@ -71,8 +73,10 @@ import {
   publishReportEvent,
   publishReviewEvent,
   REPORT_TYPES,
-  saveNWCString,
+  saveEncryptedNWCString,
+  saveNWCInfo,
   setLocalStorageDataOnSignIn,
+  unlockNWCString,
   verifyNip05Identifier,
   withBlastr,
 } from "../nostr-helper-functions";
@@ -89,12 +93,14 @@ import {
   retractApproval,
 } from "../community";
 import { finalizeEvent, nip44 } from "nostr-tools";
+import { webcrypto } from "node:crypto";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import {
   Community,
   CommunityRelays,
   ProductFormValues,
 } from "@/utils/types/types";
+
 import {
   cacheEventToDatabase,
   cacheEventToDatabaseStrict,
@@ -106,6 +112,22 @@ import {
   buildSignedHttpRequestProofTemplate,
 } from "@/utils/nostr/request-auth";
 import { newPromiseWithTimeout } from "@/utils/timeout";
+
+const originalCrypto = globalThis.crypto;
+
+beforeAll(() => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: webcrypto,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(globalThis, "crypto", {
+    configurable: true,
+    value: originalCrypto,
+  });
+});
 
 describe("constructGiftWrappedEvent", () => {
   const senderPubkey =
@@ -1096,18 +1118,24 @@ describe("getLocalStorageData", () => {
   it("returns null for nwcString and nwcInfo when the keys are absent", () => {
     const data = getLocalStorageData();
     expect(data.nwcString).toBeNull();
+    expect(data.legacyNWCString).toBeNull();
     expect(data.nwcInfo).toBeNull();
+    expect(data.hasStoredNWCConnection).toBe(false);
+    expect(data.hasLegacyNWCConnection).toBe(false);
   });
 
-  it("returns the stored nwcString when present", () => {
+  it("flags a legacy plaintext nwcString without treating it as unlocked", () => {
     localStorage.setItem(
       "nwcString",
       "nostr+walletconnect://pubkey?relay=wss://relay.example"
     );
     const data = getLocalStorageData();
-    expect(data.nwcString).toBe(
+    expect(data.nwcString).toBeNull();
+    expect(data.legacyNWCString).toBe(
       "nostr+walletconnect://pubkey?relay=wss://relay.example"
     );
+    expect(data.hasStoredNWCConnection).toBe(false);
+    expect(data.hasLegacyNWCConnection).toBe(true);
   });
 
   it("returns the parsed savedAddresses array", () => {
@@ -1360,34 +1388,84 @@ describe("constructMessageGiftWrap", () => {
   });
 });
 
-describe("saveNWCString", () => {
+describe("encrypted NWC storage", () => {
   beforeEach(() => {
     localStorage.clear();
     jest.restoreAllMocks();
+    clearNWCConnection();
   });
 
-  it("writes nwcString to localStorage when given a non-empty string", () => {
-    saveNWCString("nostr+walletconnect://pubkey?relay=wss://relay.example");
-    expect(localStorage.getItem("nwcString")).toBe(
+  it("stores the NWC connection encrypted at rest", async () => {
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://pubkey?relay=wss://relay.example",
+      "secret-passphrase"
+    );
+
+    expect(localStorage.getItem("nwcString")).toBeNull();
+    expect(localStorage.getItem("encryptedNWCString")).not.toBeNull();
+    expect(localStorage.getItem("encryptedNWCString")).not.toContain(
+      "relay.example"
+    );
+    expect(getLocalStorageData().nwcString).toBe(
       "nostr+walletconnect://pubkey?relay=wss://relay.example"
     );
   });
 
-  it("removes both nwcString and nwcInfo from localStorage when given an empty string", () => {
+  it("unlocks an encrypted NWC connection using the passphrase", async () => {
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://pubkey?relay=wss://relay.example",
+      "secret-passphrase"
+    );
+    clearNWCConnection();
+
+    await expect(unlockNWCString("secret-passphrase")).rejects.toThrow(
+      "NWC connection not found."
+    );
+
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://pubkey?relay=wss://relay.example",
+      "secret-passphrase"
+    );
+    localStorage.removeItem("nwcString");
+    const encrypted = localStorage.getItem("encryptedNWCString");
+    clearNWCConnection();
+    localStorage.setItem("encryptedNWCString", encrypted || "");
+    lockNWCConnection();
+
+    expect(getLocalStorageData().nwcString).toBeNull();
+    await expect(unlockNWCString("secret-passphrase")).resolves.toBe(
+      "nostr+walletconnect://pubkey?relay=wss://relay.example"
+    );
+  });
+
+  it("removes NWC connection state when cleared", () => {
     localStorage.setItem("nwcString", "some-value");
     localStorage.setItem("nwcInfo", "some-info");
+    localStorage.setItem("encryptedNWCString", "ciphertext");
 
-    saveNWCString("");
+    clearNWCConnection();
 
     expect(localStorage.getItem("nwcString")).toBeNull();
     expect(localStorage.getItem("nwcInfo")).toBeNull();
+    expect(localStorage.getItem("encryptedNWCString")).toBeNull();
   });
 
-  it("dispatches a storage event on window", () => {
+  it("dispatches a storage event on window", async () => {
     const dispatchSpy = jest.spyOn(window, "dispatchEvent");
-    saveNWCString("nostr+walletconnect://pubkey");
+    await saveEncryptedNWCString(
+      "nostr+walletconnect://pubkey",
+      "secret-passphrase"
+    );
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: "storage" })
+    );
+  });
+
+  it("persists non-sensitive wallet info separately", () => {
+    saveNWCInfo({ alias: "Alby", methods: ["pay_invoice"] });
+
+    expect(localStorage.getItem("nwcInfo")).toBe(
+      JSON.stringify({ alias: "Alby", methods: ["pay_invoice"] })
     );
   });
 });
@@ -1417,6 +1495,7 @@ describe("LogOut", () => {
       "bunkerRelays",
       "bunkerSecret",
       "signer",
+      "encryptedNWCString",
       "nwcString",
       "nwcInfo",
       "savedAddresses",
