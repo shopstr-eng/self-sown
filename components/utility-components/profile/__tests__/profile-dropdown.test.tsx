@@ -501,26 +501,32 @@ describe("ProfileWithDropdown", () => {
         },
       ],
     ]);
+    localStorage.setItem("relays", JSON.stringify(["wss://stored.relay"]));
+    localStorage.setItem(
+      "readRelays",
+      JSON.stringify(["wss://stored-read.relay"])
+    );
 
     renderWithProviders(
       <ProfileWithDropdown pubkey={sellerPubkey} dropDownKeys={[]} />,
       {
         profileData: profileMap,
         nostr,
-        relayList: ["wss://relay.example"],
       }
     );
 
     await waitFor(() => {
       expect(mockHydrateProfileBadges).toHaveBeenCalledWith(
         nostr,
-        ["wss://relay.example"],
+        ["wss://stored.relay", "wss://stored-read.relay"],
         [sellerPubkey],
         expect.any(Function),
         profileMap
       );
     });
     expect(mockFetchProfile).not.toHaveBeenCalled();
+    localStorage.removeItem("relays");
+    localStorage.removeItem("readRelays");
   });
 
   it("retries badge hydration immediately when the relay set changes", async () => {

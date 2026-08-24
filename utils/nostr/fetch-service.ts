@@ -54,7 +54,10 @@ import {
   buildSignedHttpRequestProofTemplate,
   SIGNED_EVENT_HEADER,
 } from "@/utils/nostr/request-auth";
-import { fetchNip58ProfileBadges } from "@/utils/nostr/badges";
+import {
+  fetchNip58ProfileBadges,
+  Nip58ProfileBadgesResult,
+} from "@/utils/nostr/badges";
 import type { Nip58ProfileBadge } from "@/utils/types/types";
 
 interface NipProfile {
@@ -80,7 +83,7 @@ export interface Nip58BadgeHydrationOutcome {
 
 interface Nip58BadgeHydrationState {
   relayKey: string;
-  inFlight?: Promise<Nip58BadgeHydrationOutcome>;
+  inFlight?: Promise<Map<string, Nip58ProfileBadgesResult>>;
 }
 
 let nip58BadgeHydrationStates = new WeakMap<
@@ -175,7 +178,9 @@ export async function hydrateNip58ProfileBadges(
   const relayKey = getNip58RelayKey(relays);
   const hydrationEpoch = nip58BadgeHydrationEpoch;
   const managerStates = getNip58ManagerStates(nostr);
-  const pendingHydrations = new Set<Promise<Nip58BadgeHydrationOutcome>>();
+  const pendingHydrations = new Set<
+    Promise<Map<string, Nip58ProfileBadgesResult>>
+  >();
   const statesToHydrate = new Map<string, Nip58BadgeHydrationState>();
   let retryAt: number | null = null;
   const isCurrentState = (pubkey: string, state: Nip58BadgeHydrationState) =>
@@ -195,59 +200,21 @@ export async function hydrateNip58ProfileBadges(
   }
 
   if (statesToHydrate.size) {
-    let hydrationPromise: Promise<Nip58BadgeHydrationOutcome>;
+    let hydrationPromise: Promise<Map<string, Nip58ProfileBadgesResult>>;
     hydrationPromise = (async () => {
-      let batchRetryAt: number | null = null;
-      try {
-        const badgeResults = await fetchNip58ProfileBadges(
-          nostr,
-          relays,
-          Array.from(statesToHydrate.keys())
-        );
-        const profileUpdates = new Map<string, NipProfile | null>();
+      const badgeResults = await fetchNip58ProfileBadges(
+        nostr,
+        relays,
+        Array.from(statesToHydrate.keys())
+      );
+      const currentResults = new Map<string, Nip58ProfileBadgesResult>();
 
-        for (const [pubkey, state] of statesToHydrate) {
-          if (!isCurrentState(pubkey, state)) continue;
-
-          const badgeResult = badgeResults.get(pubkey);
-          if (!badgeResult?.complete) {
-            if (badgeResult?.retryable !== false) {
-              batchRetryAt = earlierRetryAt(
-                batchRetryAt,
-                Date.now() + NIP58_BADGE_HYDRATION_RETRY_MS
-              );
-            }
-            continue;
-          }
-
-          const existingProfile = existingProfileMap.get(pubkey);
-          const profile: NipProfile = existingProfile || {
-            pubkey,
-            created_at: 0,
-            content: {},
-            nip05Verified: false,
-          };
-          profileUpdates.set(pubkey, {
-            ...profile,
-            badges: badgeResult.badges,
-          });
-        }
-
-        if (profileUpdates.size) {
-          editProfileContext(profileUpdates, false);
-        }
-      } catch (error) {
-        for (const [pubkey, state] of statesToHydrate) {
-          if (!isCurrentState(pubkey, state)) continue;
-          batchRetryAt = earlierRetryAt(
-            batchRetryAt,
-            Date.now() + NIP58_BADGE_HYDRATION_RETRY_MS
-          );
-        }
-        throw error;
+      for (const [pubkey, state] of statesToHydrate) {
+        if (!isCurrentState(pubkey, state)) continue;
+        const badgeResult = badgeResults.get(pubkey);
+        if (badgeResult) currentResults.set(pubkey, badgeResult);
       }
-
-      return { retryAt: batchRetryAt };
+      return currentResults;
     })().finally(() => {
       for (const [pubkey, state] of statesToHydrate) {
         if (!isCurrentState(pubkey, state)) continue;
@@ -262,9 +229,42 @@ export async function hydrateNip58ProfileBadges(
     pendingHydrations.add(hydrationPromise);
   }
 
-  const outcomes = await Promise.all(pendingHydrations);
-  for (const outcome of outcomes) {
-    retryAt = earlierRetryAt(retryAt, outcome.retryAt);
+  const badgeResultMaps = await Promise.all(pendingHydrations);
+  const badgeResults = new Map<string, Nip58ProfileBadgesResult>();
+  for (const resultMap of badgeResultMaps) {
+    for (const [pubkey, result] of resultMap) {
+      if (uniquePubkeys.includes(pubkey)) badgeResults.set(pubkey, result);
+    }
+  }
+
+  const profileUpdates = new Map<string, NipProfile | null>();
+  for (const pubkey of uniquePubkeys) {
+    const badgeResult = badgeResults.get(pubkey);
+    if (!badgeResult?.complete) {
+      if (badgeResult?.retryable !== false) {
+        retryAt = earlierRetryAt(
+          retryAt,
+          Date.now() + NIP58_BADGE_HYDRATION_RETRY_MS
+        );
+      }
+      continue;
+    }
+
+    const existingProfile = existingProfileMap.get(pubkey);
+    const profile: NipProfile = existingProfile || {
+      pubkey,
+      created_at: 0,
+      content: {},
+      nip05Verified: false,
+    };
+    profileUpdates.set(pubkey, {
+      ...profile,
+      badges: badgeResult.badges,
+    });
+  }
+
+  if (profileUpdates.size) {
+    editProfileContext(profileUpdates, false);
   }
   return { retryAt };
 }

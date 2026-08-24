@@ -3261,6 +3261,70 @@ describe("fetchProfile", () => {
       { name: "New badge" },
     ]);
   });
+
+  it("delivers one shared badge hydration to every concurrent caller", async () => {
+    type BadgeResult = Map<
+      string,
+      { badges: Array<{ name: string }>; complete: boolean }
+    >;
+    let resolveBadges: (result: BadgeResult) => void = () => {};
+    const fetchBadges = jest.fn(
+      () =>
+        new Promise<BadgeResult>((resolve) => {
+          resolveBadges = resolve;
+        })
+    );
+    jest.doMock("@/utils/nostr/badges", () => ({
+      fetchNip58ProfileBadges: fetchBadges,
+    }));
+    const { hydrateNip58ProfileBadges } = await import("../fetch-service");
+    const nostr = { fetch: jest.fn() } as any;
+    const existingProfileMap = new Map([
+      [
+        pubkey,
+        {
+          pubkey,
+          created_at: 100,
+          content: { display_name: "Seller" },
+          nip05Verified: false,
+        },
+      ],
+    ]);
+    const firstEditProfileContext = jest.fn();
+    const secondEditProfileContext = jest.fn();
+
+    const first = hydrateNip58ProfileBadges(
+      nostr,
+      ["wss://relay.example"],
+      [pubkey],
+      firstEditProfileContext,
+      existingProfileMap
+    );
+    const second = hydrateNip58ProfileBadges(
+      nostr,
+      ["wss://relay.example"],
+      [pubkey],
+      secondEditProfileContext,
+      existingProfileMap
+    );
+
+    expect(fetchBadges).toHaveBeenCalledTimes(1);
+    resolveBadges(
+      new Map([
+        [pubkey, { badges: [{ name: "Shared badge" }], complete: true }],
+      ])
+    );
+    await Promise.all([first, second]);
+
+    expect(firstEditProfileContext).toHaveBeenCalledTimes(1);
+    expect(secondEditProfileContext).toHaveBeenCalledTimes(1);
+    expect(
+      firstEditProfileContext.mock.calls[0]?.[0].get(pubkey)?.badges
+    ).toEqual([{ name: "Shared badge" }]);
+    expect(
+      secondEditProfileContext.mock.calls[0]?.[0].get(pubkey)?.badges
+    ).toEqual([{ name: "Shared badge" }]);
+  });
 });
 
 describe("fetchAllFollows", () => {

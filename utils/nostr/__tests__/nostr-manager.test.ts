@@ -328,5 +328,30 @@ describe("NostrManager", () => {
       });
       expect(partialSubClose).toHaveBeenCalledTimes(1);
     });
+
+    it("fetches from transient relays without retaining them", async () => {
+      const subClose = jest.fn();
+      fakePoolInstance.subscribeMap.mockReturnValueOnce({ close: subClose });
+
+      const fetchPromise = mgr.fetchTransientWithStatus(
+        [{ kinds: [8] }],
+        {},
+        ["wss://hinted.relay"],
+        1234
+      );
+      await waitForSubscribeMap();
+
+      expect(mgr.relays.map((relay: any) => relay.url)).toEqual(["u1"]);
+      const params = fakePoolInstance.subscribeMap.mock.calls[0][1];
+      params.onevent({ id: "hinted-award" });
+      params.oneose();
+
+      await expect(fetchPromise).resolves.toEqual({
+        events: [{ id: "hinted-award" }],
+        complete: true,
+      });
+      expect(mgr.relays.map((relay: any) => relay.url)).toEqual(["u1"]);
+      expect(subClose).toHaveBeenCalledTimes(1);
+    });
   });
 });

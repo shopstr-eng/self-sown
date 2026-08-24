@@ -381,8 +381,7 @@ describe("NIP-58 badge helpers", () => {
         ["e", awardEventId],
       ],
     });
-    const nostr: Pick<NostrManager, "fetch"> = { fetch: jest.fn() };
-    const fetchMock = nostr.fetch as jest.MockedFunction<NostrManager["fetch"]>;
+    const fetchMock = jest.fn();
     fetchMock
       .mockResolvedValueOnce([
         emptyProfileBadgesEvent,
@@ -390,6 +389,7 @@ describe("NIP-58 badge helpers", () => {
       ])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
+    const nostr = { fetch: fetchMock };
 
     const result = await fetchNip58ProfileBadges(
       nostr,
@@ -402,6 +402,104 @@ describe("NIP-58 badge helpers", () => {
       badges: [],
       complete: false,
     });
+  });
+
+  it("expands a referenced kind 30008 Badge Set", async () => {
+    const badgeSetAddress = `${NIP58_BADGE_SET_KIND}:${profilePubkey}:favorites`;
+    const profileBadgesEvent = makeEvent({
+      kind: NIP58_PROFILE_BADGES_KIND,
+      pubkey: profilePubkey,
+      tags: [["a", badgeSetAddress]],
+    });
+    const badgeSetEvent = makeEvent({
+      id: "abababababababababababababababababababababababababababababababab",
+      kind: NIP58_BADGE_SET_KIND,
+      pubkey: profilePubkey,
+      tags: [
+        ["d", "favorites"],
+        ["a", badgeAddress],
+        ["e", awardEventId],
+      ],
+    });
+    const awardEvent = makeEvent({
+      id: awardEventId,
+      kind: NIP58_BADGE_AWARD_KIND,
+      tags: [
+        ["a", badgeAddress],
+        ["p", profilePubkey],
+      ],
+    });
+    const definitionEvent = makeEvent({
+      kind: NIP58_BADGE_DEFINITION_KIND,
+      tags: [
+        ["d", "bravery"],
+        ["name", "Badge Set medal"],
+      ],
+    });
+    const fetchMock = jest.fn(
+      async (filters: Array<{ kinds?: number[]; "#d"?: string[] }>) => {
+        if (
+          filters.some((filter) =>
+            filter.kinds?.includes(NIP58_PROFILE_BADGES_KIND)
+          )
+        ) {
+          return [profileBadgesEvent];
+        }
+        if (
+          filters.some(
+            (filter) =>
+              filter.kinds?.includes(NIP58_BADGE_SET_KIND) &&
+              filter["#d"]?.includes("favorites")
+          )
+        ) {
+          return [badgeSetEvent];
+        }
+        if (
+          filters.some((filter) =>
+            filter.kinds?.includes(NIP58_BADGE_AWARD_KIND)
+          )
+        ) {
+          return [awardEvent];
+        }
+        if (
+          filters.some((filter) =>
+            filter.kinds?.includes(NIP58_BADGE_DEFINITION_KIND)
+          )
+        ) {
+          return [definitionEvent];
+        }
+        return [];
+      }
+    );
+
+    const result = await fetchNip58ProfileBadges(
+      { fetch: fetchMock },
+      ["wss://relay.example"],
+      [profilePubkey]
+    );
+
+    expect(result.get(profilePubkey)).toEqual({
+      badges: [
+        expect.objectContaining({
+          definitionAddress: badgeAddress,
+          awardEventId,
+          name: "Badge Set medal",
+        }),
+      ],
+      complete: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      [
+        {
+          kinds: [NIP58_BADGE_SET_KIND],
+          authors: [profilePubkey],
+          "#d": ["favorites"],
+        },
+      ],
+      {},
+      ["wss://relay.example"],
+      expect.any(Number)
+    );
   });
 
   it("uses validated relay hints only for their associated references", async () => {
@@ -430,8 +528,7 @@ describe("NIP-58 badge helpers", () => {
         ["name", "Medal of Bravery"],
       ],
     });
-    const nostr: Pick<NostrManager, "fetch"> = { fetch: jest.fn() };
-    const fetchMock = nostr.fetch as jest.MockedFunction<NostrManager["fetch"]>;
+    const fetchMock = jest.fn() as jest.MockedFunction<NostrManager["fetch"]>;
     fetchMock.mockImplementation(async (filters, _params, relayUrls) => {
       if (filters[0]?.kinds?.includes(NIP58_PROFILE_BADGES_KIND)) {
         return [hintedProfileBadgesEvent];
@@ -442,6 +539,21 @@ describe("NIP-58 badge helpers", () => {
       }
       return [];
     });
+    const transientFetchMock = jest.fn(
+      async (
+        filters: Parameters<NostrManager["fetch"]>[0],
+        params: Parameters<NostrManager["fetch"]>[1],
+        relayUrls: string[],
+        timeout: number
+      ) => ({
+        events: await fetchMock(filters, params, relayUrls, timeout),
+        complete: true,
+      })
+    );
+    const nostr = {
+      fetch: fetchMock,
+      fetchTransientWithStatus: transientFetchMock,
+    };
 
     const result = await fetchNip58ProfileBadges(
       nostr,
@@ -477,6 +589,24 @@ describe("NIP-58 badge helpers", () => {
     expect(contactedRelays).not.toContain("https://not-a-websocket.example");
     expect(contactedRelays).not.toContain(
       "wss://user:secret@credentialed.relay"
+    );
+    expect(transientFetchMock).toHaveBeenCalledWith(
+      [{ kinds: [NIP58_BADGE_AWARD_KIND], ids: [awardEventId] }],
+      {},
+      ["wss://award.relay"],
+      expect.any(Number)
+    );
+    expect(transientFetchMock).toHaveBeenCalledWith(
+      [
+        {
+          kinds: [NIP58_BADGE_DEFINITION_KIND],
+          authors: [issuerPubkey],
+          "#d": ["bravery"],
+        },
+      ],
+      {},
+      ["wss://definition.relay"],
+      expect.any(Number)
     );
   });
 

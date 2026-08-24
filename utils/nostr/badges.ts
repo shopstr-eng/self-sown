@@ -28,6 +28,12 @@ export interface Nip58BadgeAddress {
   address: string;
 }
 
+interface Nip58BadgeSetAddress {
+  pubkey: string;
+  d: string;
+  address: string;
+}
+
 export type Nip58BadgeDefinition = Omit<Nip58ProfileBadge, "awardEventId">;
 
 export interface Nip58ProfileBadgeReference {
@@ -36,6 +42,14 @@ export interface Nip58ProfileBadgeReference {
   definitionRelayHint?: string;
   awardRelayHint?: string;
 }
+
+type Nip58ProfileBadgeListItem =
+  | { type: "badge"; reference: Nip58ProfileBadgeReference }
+  | {
+      type: "set";
+      setAddress: string;
+      relayHint?: string;
+    };
 
 export interface Nip58ProfileBadgesResult {
   badges: Nip58ProfileBadge[];
@@ -94,6 +108,29 @@ export function parseNip58BadgeAddress(
   };
 }
 
+function parseNip58BadgeSetAddress(
+  address: string | undefined
+): Nip58BadgeSetAddress | null {
+  if (!address) return null;
+
+  const [kindValue, pubkey, ...dParts] = address.split(":");
+  const d = dParts.join(":");
+  if (
+    kindValue !== String(NIP58_BADGE_SET_KIND) ||
+    !pubkey ||
+    !isHexPubkey(pubkey) ||
+    !d
+  ) {
+    return null;
+  }
+
+  return {
+    pubkey,
+    d,
+    address: `${NIP58_BADGE_SET_KIND}:${pubkey}:${d}`,
+  };
+}
+
 export function isNip58ProfileBadgesEvent(event: NostrEvent): boolean {
   if (event.kind === NIP58_PROFILE_BADGES_KIND) return true;
 
@@ -130,14 +167,21 @@ export function parseNip58ProfileBadgesEvent(
   maxReferences = Number.POSITIVE_INFINITY
 ): Nip58ProfileBadgeReference[] {
   if (!isNip58ProfileBadgesEvent(event)) return [];
+  return parseNip58BadgeReferencePairs(event.tags, maxReferences);
+}
+
+function parseNip58BadgeReferencePairs(
+  tags: string[][],
+  maxReferences = Number.POSITIVE_INFINITY
+): Nip58ProfileBadgeReference[] {
   if (maxReferences <= 0) return [];
 
   const references: Nip58ProfileBadgeReference[] = [];
   const seenReferences = new Set<string>();
 
-  for (let index = 0; index < event.tags.length - 1; index += 1) {
-    const aTag = event.tags[index];
-    const eTag = event.tags[index + 1];
+  for (let index = 0; index < tags.length - 1; index += 1) {
+    const aTag = tags[index];
+    const eTag = tags[index + 1];
     if (aTag?.[0] !== "a" || eTag?.[0] !== "e") continue;
 
     const badgeAddress = parseNip58BadgeAddress(aTag[1]);
@@ -159,6 +203,70 @@ export function parseNip58ProfileBadgesEvent(
   }
 
   return references;
+}
+
+function parseNip58ProfileBadgeListItems(
+  event: NostrEvent,
+  maxItems: number
+): Nip58ProfileBadgeListItem[] {
+  if (!isNip58ProfileBadgesEvent(event) || maxItems <= 0) return [];
+
+  const items: Nip58ProfileBadgeListItem[] = [];
+  const seenItems = new Set<string>();
+  for (let index = 0; index < event.tags.length; index += 1) {
+    const aTag = event.tags[index];
+    if (aTag?.[0] !== "a") continue;
+
+    const badgeAddress = parseNip58BadgeAddress(aTag[1]);
+    const eTag = event.tags[index + 1];
+    if (badgeAddress && eTag?.[0] === "e" && isHexEventId(eTag[1])) {
+      const key = `badge:${badgeAddress.address}:${eTag[1]}`;
+      if (!seenItems.has(key)) {
+        items.push({
+          type: "badge",
+          reference: {
+            definitionAddress: badgeAddress.address,
+            awardEventId: eTag[1],
+            definitionRelayHint: aTag[2],
+            awardRelayHint: eTag[2],
+          },
+        });
+        seenItems.add(key);
+      }
+      index += 1;
+    } else {
+      const setAddress = parseNip58BadgeSetAddress(aTag[1]);
+      const key = setAddress ? `set:${setAddress.address}` : "";
+      if (setAddress && !seenItems.has(key)) {
+        items.push({
+          type: "set",
+          setAddress: setAddress.address,
+          relayHint: aTag[2],
+        });
+        seenItems.add(key);
+      }
+    }
+
+    if (items.length >= maxItems) break;
+  }
+  return items;
+}
+
+function buildNip58BadgeSetFilters(setAddresses: Iterable<string>): Filter[] {
+  const dTagsByAuthor = new Map<string, Set<string>>();
+  for (const setAddress of setAddresses) {
+    const parsedAddress = parseNip58BadgeSetAddress(setAddress);
+    if (!parsedAddress) continue;
+    const dTags = dTagsByAuthor.get(parsedAddress.pubkey) || new Set<string>();
+    dTags.add(parsedAddress.d);
+    dTagsByAuthor.set(parsedAddress.pubkey, dTags);
+  }
+
+  return Array.from(dTagsByAuthor.entries()).map(([author, dTags]) => ({
+    kinds: [NIP58_BADGE_SET_KIND],
+    authors: [author],
+    "#d": Array.from(dTags),
+  }));
 }
 
 export function buildNip58BadgeDefinitionFilters(
@@ -211,6 +319,25 @@ function isPreferredReplaceableEvent(
   }
 
   return candidate.id.localeCompare(current.id) < 0;
+}
+
+function buildBadgeSetsByAddress(
+  events: readonly NostrEvent[]
+): Map<string, NostrEvent> {
+  const badgeSetsByAddress = new Map<string, NostrEvent>();
+  for (const event of events) {
+    if (event.kind !== NIP58_BADGE_SET_KIND || !isHexPubkey(event.pubkey)) {
+      continue;
+    }
+    const d = getTagValue(event.tags, "d");
+    if (!d) continue;
+    const address = `${NIP58_BADGE_SET_KIND}:${event.pubkey}:${d}`;
+    const current = badgeSetsByAddress.get(address);
+    if (!current || isPreferredReplaceableEvent(event, current)) {
+      badgeSetsByAddress.set(address, event);
+    }
+  }
+  return badgeSetsByAddress;
 }
 
 function getAwardEventForReference(
@@ -389,13 +516,23 @@ function getAwardDefinitionRelayHint(
 }
 
 type Nip58Fetcher = Pick<NostrManager, "fetch"> &
-  Partial<Pick<NostrManager, "fetchWithStatus">>;
+  Partial<Pick<NostrManager, "fetchWithStatus" | "fetchTransientWithStatus">>;
 
 async function fetchNip58Events(
   nostr: Nip58Fetcher,
   filters: Filter[],
-  relays: string[]
+  relays: string[],
+  transient = false
 ): Promise<NostrFetchResult> {
+  if (transient && typeof nostr.fetchTransientWithStatus === "function") {
+    return nostr.fetchTransientWithStatus(
+      filters,
+      {},
+      relays,
+      NIP58_BADGE_FETCH_TIMEOUT_MS
+    );
+  }
+
   if (typeof nostr.fetchWithStatus === "function") {
     return nostr.fetchWithStatus(
       filters,
@@ -459,9 +596,13 @@ export async function fetchNip58ProfileBadges(
 
   const selectedProfileBadgeEvents = new Map<
     string,
-    { event: NostrEvent; references: Nip58ProfileBadgeReference[] }
+    {
+      items: Nip58ProfileBadgeListItem[];
+      references: Nip58ProfileBadgeReference[];
+      setsComplete: boolean;
+    }
   >();
-  const awardIds = new Set<string>();
+  const badgeSetAddresses = new Set<string>();
 
   for (const pubkey of uniquePubkeys) {
     const latestProfileBadgesEvent = selectLatestNip58ProfileBadgesEvent(
@@ -469,17 +610,17 @@ export async function fetchNip58ProfileBadges(
     );
     if (!latestProfileBadgesEvent) continue;
 
-    const references = parseNip58ProfileBadgesEvent(
+    const items = parseNip58ProfileBadgeListItems(
       latestProfileBadgesEvent,
       MAX_NIP58_PROFILE_BADGES
     );
     selectedProfileBadgeEvents.set(pubkey, {
-      event: latestProfileBadgesEvent,
-      references,
+      items,
+      references: [],
+      setsComplete: true,
     });
-
-    for (const reference of references) {
-      awardIds.add(reference.awardEventId);
+    for (const item of items) {
+      if (item.type === "set") badgeSetAddresses.add(item.setAddress);
     }
   }
 
@@ -515,6 +656,87 @@ export async function fetchNip58ProfileBadges(
     return normalizedHint;
   };
 
+  const badgeSetFilters = buildNip58BadgeSetFilters(badgeSetAddresses);
+  const badgeSetFetch = badgeSetFilters.length
+    ? await fetchNip58Events(nostr, badgeSetFilters, configuredRelays)
+    : { events: [], complete: true };
+  let badgeSetEvents = badgeSetFetch.events;
+  const incompleteBadgeSetAddresses = new Set<string>();
+  if (!badgeSetFetch.complete) {
+    for (const address of badgeSetAddresses) {
+      incompleteBadgeSetAddresses.add(address);
+    }
+  }
+
+  const badgeSetAddressesByHint = new Map<string, Set<string>>();
+  for (const { items } of selectedProfileBadgeEvents.values()) {
+    for (const item of items) {
+      if (item.type !== "set") continue;
+      const relayHint = acceptHint(item.relayHint);
+      if (!relayHint) continue;
+      const addresses = badgeSetAddressesByHint.get(relayHint) || new Set();
+      addresses.add(item.setAddress);
+      badgeSetAddressesByHint.set(relayHint, addresses);
+    }
+  }
+
+  const hintedBadgeSetEvents = await Promise.all(
+    Array.from(badgeSetAddressesByHint.entries()).map(
+      async ([relayHint, addresses]) => ({
+        addresses,
+        result: await fetchNip58Events(
+          nostr,
+          buildNip58BadgeSetFilters(addresses),
+          [relayHint],
+          true
+        ).catch(() => ({ events: [], complete: false })),
+      })
+    )
+  );
+  for (const { addresses, result } of hintedBadgeSetEvents) {
+    if (result.complete) continue;
+    for (const address of addresses) {
+      incompleteBadgeSetAddresses.add(address);
+    }
+  }
+  badgeSetEvents = deduplicateEvents([
+    ...badgeSetEvents,
+    ...hintedBadgeSetEvents.flatMap(({ result }) => result.events),
+  ]);
+  const badgeSetsByAddress = buildBadgeSetsByAddress(badgeSetEvents);
+
+  const awardIds = new Set<string>();
+  for (const selected of selectedProfileBadgeEvents.values()) {
+    const seenReferences = new Set<string>();
+    for (const item of selected.items) {
+      if (selected.references.length >= MAX_NIP58_PROFILE_BADGES) break;
+      const itemReferences =
+        item.type === "badge"
+          ? [item.reference]
+          : parseNip58BadgeReferencePairs(
+              badgeSetsByAddress.get(item.setAddress)?.tags || [],
+              MAX_NIP58_PROFILE_BADGES - selected.references.length
+            );
+
+      if (
+        item.type === "set" &&
+        (!badgeSetsByAddress.has(item.setAddress) ||
+          incompleteBadgeSetAddresses.has(item.setAddress))
+      ) {
+        selected.setsComplete = false;
+      }
+
+      for (const reference of itemReferences) {
+        const key = `${reference.definitionAddress}:${reference.awardEventId}`;
+        if (seenReferences.has(key)) continue;
+        seenReferences.add(key);
+        selected.references.push(reference);
+        awardIds.add(reference.awardEventId);
+        if (selected.references.length >= MAX_NIP58_PROFILE_BADGES) break;
+      }
+    }
+  }
+
   let awardEvents: NostrEvent[] = [];
   if (awardIds.size) {
     const awardFetch = await fetchNip58Events(
@@ -549,7 +771,8 @@ export async function fetchNip58ProfileBadges(
       fetchNip58Events(
         nostr,
         [{ kinds: [NIP58_BADGE_AWARD_KIND], ids: Array.from(ids) }],
-        [relayHint]
+        [relayHint],
+        true
       ).catch(() => ({ events: [], complete: false }))
     )
   );
@@ -619,7 +842,8 @@ export async function fetchNip58ProfileBadges(
         result: await fetchNip58Events(
           nostr,
           buildNip58BadgeDefinitionFilters(addresses),
-          [relayHint]
+          [relayHint],
+          true
         ).catch(() => ({ events: [], complete: false })),
       })
     )
@@ -636,7 +860,10 @@ export async function fetchNip58ProfileBadges(
   ]);
   const definitionsByAddress = buildDefinitionsByAddress(definitionEvents);
 
-  for (const [pubkey, { references }] of selectedProfileBadgeEvents) {
+  for (const [
+    pubkey,
+    { references, setsComplete },
+  ] of selectedProfileBadgeEvents) {
     const badges = resolveNip58BadgeReferences(
       pubkey,
       references,
@@ -645,6 +872,7 @@ export async function fetchNip58ProfileBadges(
     );
     const complete =
       profileBadgeFetch.complete &&
+      setsComplete &&
       references.every((reference) => {
         const awardEvent = getAwardEventForReference(
           reference,

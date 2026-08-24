@@ -1,4 +1,8 @@
-import { LogOut } from "@/utils/nostr/nostr-helper-functions";
+import {
+  getStoredReadRelays,
+  getStoredRelays,
+  LogOut,
+} from "@/utils/nostr/nostr-helper-functions";
 import {
   ProfileMapContext,
   RelaysContext,
@@ -256,7 +260,15 @@ export const ProfileWithDropdown = ({
         ...(relaysContext.readRelayList || []),
       ])
     );
-    const relaysToFetch = relays.length > 0 ? relays : getDefaultRelays();
+    const storedRelays = Array.from(
+      new Set([...getStoredRelays(), ...getStoredReadRelays()])
+    );
+    const relaysToFetch =
+      relays.length > 0
+        ? relays
+        : storedRelays.length > 0
+          ? storedRelays
+          : getDefaultRelays();
 
     const updateProfileContext = (profileMap: Map<string, unknown>) => {
       const profile = profileMap.get(pubkey);

@@ -260,6 +260,32 @@ export class NostrManager {
     );
   }
 
+  public async fetchTransientWithStatus(
+    filters: NostrFilter[],
+    params: SubscribeManyParams | undefined,
+    relayUrls: string[],
+    timeout?: number
+  ): Promise<NostrFetchResult> {
+    const transientManager = new NostrManager(relayUrls, {
+      connectionTimeout: this.params.connectionTimeout,
+      keepAliveTime: this.params.keepAliveTime,
+      gcInterval: this.params.gcInterval,
+      readable: this.params.readable,
+      writable: false,
+    });
+
+    try {
+      return await transientManager.fetchWithStatus(
+        filters,
+        params,
+        relayUrls,
+        timeout
+      );
+    } finally {
+      transientManager.close();
+    }
+  }
+
   public async publish(event: NostrEvent, relayUrls?: string[]): Promise<void> {
     if (!this.params.writable) throw new Error("not writable");
     if (relayUrls) {
