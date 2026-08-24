@@ -7,6 +7,7 @@ import {
   renderWithCheckoutContext,
   installFetchMock,
   mockFetchJsonOnce,
+  connectedNWCContextValue,
   type CheckoutContextOverrides,
 } from "@/test-utils/checkout-test-helpers";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
@@ -251,8 +252,6 @@ const DEFAULT_LOCAL_STORAGE_DATA = {
   mints: ["https://mint.example.com"],
   tokens: [] as { id: string; amount: number; secret: string }[],
   history: [] as unknown[],
-  nwcInfo: undefined as string | undefined,
-  nwcString: undefined as string | undefined,
 };
 
 function makeCartProduct(
@@ -674,13 +673,18 @@ describe("discount display (seller-keyed)", () => {
 
 describe("onFormSubmit — payment dispatch", () => {
   function renderDigitalReadyToPay(
-    extraLocalStorage: Partial<typeof DEFAULT_LOCAL_STORAGE_DATA> = {}
+    extraLocalStorage: Partial<typeof DEFAULT_LOCAL_STORAGE_DATA> = {},
+    contextOverrides: CheckoutContextOverrides = {}
   ) {
     mockGetLocalStorageData.mockReturnValue({
       ...DEFAULT_LOCAL_STORAGE_DATA,
       ...extraLocalStorage,
     });
-    const rendered = renderCartInvoiceCard(makeDigitalCart());
+    const rendered = renderCartInvoiceCard(
+      makeDigitalCart(),
+      {},
+      contextOverrides
+    );
     fireEvent.click(screen.getByRole("button", { name: /Online order/i }));
     return rendered;
   }
@@ -712,10 +716,12 @@ describe("onFormSubmit — payment dispatch", () => {
   });
 
   it("dispatches to handleNWCPayment when paymentType is 'nwc'", async () => {
-    const { products } = renderDigitalReadyToPay({
-      nwcInfo: JSON.stringify({ alias: "MyWallet" }),
-      nwcString: "nostr+walletconnect://mock",
-    });
+    const { products } = renderDigitalReadyToPay(
+      {},
+      {
+        nwc: connectedNWCContextValue(),
+      }
+    );
     mockFetchJsonOnce(makeCartQuoteResponse(products));
 
     fireEvent.click(screen.getByRole("button", { name: /Pay with MyWallet/ }));
@@ -777,13 +783,14 @@ describe("requestCartQuote / applyServerPricing", () => {
   });
 
   it("rejects a server total outside tolerance (max(2, ceil(totalCost*0.01)))", async () => {
-    mockGetLocalStorageData.mockReturnValue({
-      ...DEFAULT_LOCAL_STORAGE_DATA,
-      nwcInfo: JSON.stringify({ alias: "MyWallet" }),
-      nwcString: "nostr+walletconnect://mock",
-    });
     const products = makeDigitalCart();
-    renderCartInvoiceCard(products);
+    renderCartInvoiceCard(
+      products,
+      {},
+      {
+        nwc: connectedNWCContextValue(),
+      }
+    );
     fireEvent.click(screen.getByRole("button", { name: /Online order/i }));
     mockFetchJsonOnce(
       makeCartQuoteResponse(products, {

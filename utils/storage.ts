@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
   P2PK_ESCROW_RECORDS_ENCRYPTED: "shopstr.p2pkEscrowRecords.encrypted",
 
   // NWC
+  ENCRYPTED_NWC_STRING: "encryptedNWCString",
   NWC_STRING: "nwcString",
   NWC_INFO: "nwcInfo",
 

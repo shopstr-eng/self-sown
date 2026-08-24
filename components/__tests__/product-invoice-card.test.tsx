@@ -8,6 +8,7 @@ import {
   installFetchMock,
   mockFetchJsonOnce,
   makeMintQuoteResponse,
+  connectedNWCContextValue,
   type CheckoutContextOverrides,
 } from "@/test-utils/checkout-test-helpers";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
@@ -242,8 +243,6 @@ const DEFAULT_LOCAL_STORAGE_DATA = {
   mints: ["https://mint.example.com"],
   tokens: [] as { id: string; amount: number; secret: string }[],
   history: [] as unknown[],
-  nwcInfo: undefined as string | undefined,
-  nwcString: undefined as string | undefined,
 };
 
 function renderProductInvoiceCard(
@@ -471,13 +470,18 @@ describe("form validity (useEffect)", () => {
 
 describe("onFormSubmit — payment method dispatch", () => {
   function renderDigitalReadyToPay(
-    extraLocalStorage: Partial<typeof DEFAULT_LOCAL_STORAGE_DATA> = {}
+    extraLocalStorage: Partial<typeof DEFAULT_LOCAL_STORAGE_DATA> = {},
+    contextOverrides: CheckoutContextOverrides = {}
   ) {
     mockGetLocalStorageData.mockReturnValue({
       ...DEFAULT_LOCAL_STORAGE_DATA,
       ...extraLocalStorage,
     });
-    const rendered = renderProductInvoiceCard(makeDigitalProduct());
+    const rendered = renderProductInvoiceCard(
+      makeDigitalProduct(),
+      {},
+      contextOverrides
+    );
     fireEvent.click(screen.getByRole("button", { name: /Online order/i }));
     return rendered;
   }
@@ -513,10 +517,12 @@ describe("onFormSubmit — payment method dispatch", () => {
   });
 
   it("calls handleNWCPayment when paymentType is 'nwc'", async () => {
-    renderDigitalReadyToPay({
-      nwcInfo: JSON.stringify({ alias: "MyWallet" }),
-      nwcString: "nostr+walletconnect://mock",
-    });
+    renderDigitalReadyToPay(
+      {},
+      {
+        nwc: connectedNWCContextValue(),
+      }
+    );
     mockFetchJsonOnce(makeMintQuoteResponse());
 
     fireEvent.click(screen.getByRole("button", { name: /Pay with MyWallet/ }));
@@ -589,13 +595,10 @@ describe("discount/total display (currentPrice/appliedDiscount)", () => {
 
 describe("server-side repricing guard (validateQuoteMatchesSelectedListingOptions, assertServerAmountWithinTolerance)", () => {
   function renderNwcReady() {
-    mockGetLocalStorageData.mockReturnValue({
-      ...DEFAULT_LOCAL_STORAGE_DATA,
-      nwcInfo: JSON.stringify({ alias: "MyWallet" }),
-      nwcString: "nostr+walletconnect://mock",
-    });
     renderProductInvoiceCard(
-      makeDigitalProduct({ price: 1000, totalCost: 1000 })
+      makeDigitalProduct({ price: 1000, totalCost: 1000 }),
+      {},
+      { nwc: connectedNWCContextValue() }
     );
     fireEvent.click(screen.getByRole("button", { name: /Online order/i }));
   }
@@ -1109,12 +1112,11 @@ describe("sendTokens — seller payout branches", () => {
 
 describe("handleNWCPayment", () => {
   function renderNwcReadyToPay() {
-    mockGetLocalStorageData.mockReturnValue({
-      ...DEFAULT_LOCAL_STORAGE_DATA,
-      nwcInfo: JSON.stringify({ alias: "MyWallet" }),
-      nwcString: "nostr+walletconnect://mock",
-    });
-    const rendered = renderProductInvoiceCard(makeDigitalProduct());
+    const rendered = renderProductInvoiceCard(
+      makeDigitalProduct(),
+      {},
+      { nwc: connectedNWCContextValue() }
+    );
     fireEvent.click(screen.getByRole("button", { name: /Online order/i }));
     return rendered;
   }

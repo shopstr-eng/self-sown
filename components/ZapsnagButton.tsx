@@ -13,6 +13,7 @@ import { LightningAddress } from "@getalby/lightning-tools";
 import { NostrWebLNProvider } from "@getalby/sdk";
 import {
   NostrContext,
+  NWCContext,
   SignerContext,
 } from "@/components/utility-components/nostr-context-provider";
 import { getStoredRelays } from "@/utils/nostr/nostr-helper-functions";
@@ -130,6 +131,11 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
   });
 
   const { nostr: nostrManager } = useContext(NostrContext);
+  const {
+    nwcString: unlockedNWCString,
+    hasStoredConnection,
+    ensureUnlocked,
+  } = useContext(NWCContext);
   const { signer, isLoggedIn, pubkey: userPubkey } = useContext(SignerContext);
 
   useEffect(() => {
@@ -229,7 +235,11 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
         await getSellerZapContext(nostrManager, product.pubkey);
 
       originalWebLN = (window as any).webln;
-      const nwcString = storage.getItem(STORAGE_KEYS.NWC_STRING);
+      const nwcString = unlockedNWCString
+        ? unlockedNWCString
+        : hasStoredConnection
+          ? await ensureUnlocked?.()
+          : null;
       if (nwcString) {
         const nwcProvider = new NostrWebLNProvider({
           nostrWalletConnectUrl: nwcString,

@@ -30,6 +30,10 @@ import type { StorageKey } from "@/utils/storage";
 import { buildWalletConfigV1 } from "@/utils/cashu/wallet-config";
 import { isHexPubkey } from "@/utils/nostr/pubkey";
 import { pickPreferredReplaceableEvent } from "@/utils/nostr/replaceable-events";
+import {
+  decryptNWCString,
+  encryptNWCString,
+} from "@/utils/nostr/nwc-encryption";
 import { getDefaultRelays, withBlastr } from "./relay-config";
 export { getDefaultRelays, withBlastr };
 
@@ -818,6 +822,16 @@ export async function blossomUploadImages(
 
 /***** HELPER FUNCTIONS *****/
 
+let runtimeNWCString: string | null = null;
+let runtimeLegacyNWCString: string | null = null;
+
+function getLegacyNWCString(): string | null {
+  return storage.getItem(STORAGE_KEYS.NWC_STRING);
+}
+
+function removeLegacyNWCString(): void {
+  storage.removeItem(STORAGE_KEYS.NWC_STRING);
+}
 export const setLocalStorageDataOnSignIn = ({
   encryptedPrivateKey,
   relays,
@@ -927,7 +941,10 @@ export interface LocalStorageInterface {
     | { type: "nip46"; bunker: string; appPrivKey?: string }
     | { type: "nsec"; encryptedPrivKey: string; pubkey?: string };
   nwcString?: string | null;
+  legacyNWCString?: string | null;
   nwcInfo?: string | null;
+  hasStoredNWCConnection?: boolean;
+  hasLegacyNWCConnection?: boolean;
   migrationComplete?: boolean;
   savedAddresses: SavedAddress[];
 }
@@ -1125,6 +1142,23 @@ export const getLocalStorageData = (): LocalStorageInterface => {
     }
   }
 
+  const storedLegacyNWCString = getLegacyNWCString();
+  if (storedLegacyNWCString !== null) {
+    runtimeLegacyNWCString = storedLegacyNWCString;
+    removeLegacyNWCString();
+  }
+  const hasStoredNWCConnection = Boolean(
+    storage.getItem(STORAGE_KEYS.ENCRYPTED_NWC_STRING)
+  );
+  if (hasStoredNWCConnection) {
+    runtimeLegacyNWCString = null;
+  }
+  const legacyNWCString = runtimeLegacyNWCString;
+  const hasLegacyNWCConnection =
+    !hasStoredNWCConnection &&
+    typeof legacyNWCString === "string" &&
+    legacyNWCString.startsWith("nostr+walletconnect://");
+
   return {
     signInMethod,
     encryptedPrivateKey,
@@ -1141,8 +1175,11 @@ export const getLocalStorageData = (): LocalStorageInterface => {
     bunkerRelays,
     bunkerSecret,
     signer,
-    nwcString: storage.getItem(STORAGE_KEYS.NWC_STRING),
+    nwcString: runtimeNWCString,
+    legacyNWCString,
     nwcInfo: storage.getItem(STORAGE_KEYS.NWC_INFO),
+    hasStoredNWCConnection,
+    hasLegacyNWCConnection,
     migrationComplete:
       storage.getItem(STORAGE_KEYS.MIGRATION_COMPLETE) === "true",
     savedAddresses: storage.getJson<SavedAddress[]>(
@@ -1158,6 +1195,8 @@ export const getLocalStorageData = (): LocalStorageInterface => {
 };
 
 export const LogOut = () => {
+  runtimeNWCString = null;
+  runtimeLegacyNWCString = null;
   storage.removeItem(STORAGE_KEYS.LEGACY_NPUB);
   storage.removeItem(STORAGE_KEYS.LEGACY_SIGN_IN);
   storage.removeItem(STORAGE_KEYS.LEGACY_CHATS);
@@ -1178,6 +1217,7 @@ export const LogOut = () => {
     STORAGE_KEYS.TOKENS,
     STORAGE_KEYS.HISTORY,
     STORAGE_KEYS.WOT,
+    STORAGE_KEYS.ENCRYPTED_NWC_STRING,
     STORAGE_KEYS.NWC_STRING,
     STORAGE_KEYS.NWC_INFO,
     STORAGE_KEYS.BUNKER_REMOTE_PUBKEY,
@@ -1233,13 +1273,54 @@ export async function verifyNip05Identifier(
   }
 }
 
-export const saveNWCString = (nwcString: string) => {
-  if (nwcString) {
-    storage.setItem(STORAGE_KEYS.NWC_STRING, nwcString);
+export const saveEncryptedNWCString = async (
+  nwcString: string,
+  passphrase: string
+): Promise<void> => {
+  if (!nwcString) {
+    throw new Error("NWC connection string is required.");
+  }
+  const encryptedNWCString = await encryptNWCString(nwcString, passphrase);
+  storage.setItem(STORAGE_KEYS.ENCRYPTED_NWC_STRING, encryptedNWCString);
+  runtimeNWCString = nwcString;
+  runtimeLegacyNWCString = null;
+  removeLegacyNWCString();
+  window.dispatchEvent(new Event("storage"));
+};
+
+export const saveNWCInfo = (info: unknown) => {
+  if (info) {
+    storage.setJson(STORAGE_KEYS.NWC_INFO, info);
   } else {
-    storage.removeItem(STORAGE_KEYS.NWC_STRING);
     storage.removeItem(STORAGE_KEYS.NWC_INFO);
   }
+  window.dispatchEvent(new Event("storage"));
+};
+
+export const unlockNWCString = async (passphrase: string): Promise<string> => {
+  const encryptedNWCString = storage.getItem(STORAGE_KEYS.ENCRYPTED_NWC_STRING);
+  if (!encryptedNWCString) {
+    throw new Error("NWC connection not found.");
+  }
+
+  const decrypted = await decryptNWCString(encryptedNWCString, passphrase);
+
+  runtimeNWCString = decrypted;
+  window.dispatchEvent(new Event("storage"));
+  return decrypted;
+};
+
+export const lockNWCConnection = () => {
+  runtimeNWCString = null;
+  window.dispatchEvent(new Event("storage"));
+};
+
+export const clearNWCConnection = () => {
+  runtimeNWCString = null;
+  runtimeLegacyNWCString = null;
+  removeLegacyNWCString();
+  storage.removeItem(STORAGE_KEYS.ENCRYPTED_NWC_STRING);
+  storage.removeItem(STORAGE_KEYS.NWC_INFO);
   window.dispatchEvent(new Event("storage"));
 };
 
