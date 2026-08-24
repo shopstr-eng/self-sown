@@ -60,10 +60,16 @@ const renderComponent = ({
   focusedPubkey = "",
   routerQuery = {},
   isLoggedIn = true,
+  followList = [],
+  firstDegreeFollowsLength = 0,
+  isFollowsLoading = false,
 }: {
   focusedPubkey?: string;
   routerQuery?: any;
   isLoggedIn?: boolean;
+  followList?: string[];
+  firstDegreeFollowsLength?: number;
+  isFollowsLoading?: boolean;
 }) => {
   const mockRouterPush = jest.fn();
   const mockRouterReplace = jest.fn();
@@ -134,9 +140,12 @@ const renderComponent = ({
           >
             <FollowsContext.Provider
               value={{
-                followList: [],
-                firstDegreeFollowsLength: 0,
-                isLoading: false,
+                directFollowList: followList,
+                followList,
+                firstDegreeFollowsLength,
+                isLoading: isFollowsLoading,
+                addFollow: async () => ({ ok: false, reason: "unknown" }),
+                removeFollow: async () => ({ ok: false, reason: "unknown" }),
               }}
             >
               <MarketplacePage
@@ -242,6 +251,36 @@ describe("MarketplacePage Component", () => {
     });
     await userEvent.click(screen.getByRole("button", { name: "Message" }));
     expect(mockOnOpen).toHaveBeenCalled();
+  });
+
+  it("hides the Trust toggle when logged out", () => {
+    renderComponent({
+      isLoggedIn: false,
+      followList: ["followed-pubkey"],
+      firstDegreeFollowsLength: 1,
+    });
+
+    expect(screen.queryByText("Trust")).not.toBeInTheDocument();
+  });
+
+  it("hides the Trust toggle when logged in with no direct follows", () => {
+    renderComponent({
+      isLoggedIn: true,
+      followList: [],
+      firstDegreeFollowsLength: 0,
+    });
+
+    expect(screen.queryByText("Trust")).not.toBeInTheDocument();
+  });
+
+  it("shows the Trust toggle when logged in with direct follows", () => {
+    renderComponent({
+      isLoggedIn: true,
+      followList: ["followed-pubkey"],
+      firstDegreeFollowsLength: 1,
+    });
+
+    expect(screen.getByText("Trust")).toBeInTheDocument();
   });
 
   it.each([

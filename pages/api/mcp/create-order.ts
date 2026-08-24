@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { randomBytes } from "crypto";
 import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
 import { withMintRetry } from "@/utils/cashu/mint-retry-service";
+import { toCashuMintAmountSats } from "@/utils/cashu/payment-amount";
 import { authenticateRequest, initializeApiKeysTable } from "@/utils/mcp/auth";
 import {
   fetchAllProductsFromDb,
@@ -18,6 +19,7 @@ import {
 } from "@/mcp/tools/purchase-tools";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { getTrustedMintUrl } from "@/utils/cashu/trusted-mints";
 
 // MCP create-order is on the payment critical path; the per-IP cap is
 // generous so a buyer cannot accidentally lock themselves out across
@@ -25,8 +27,6 @@ import { applyRateLimit } from "@/utils/rate-limit";
 // mint quote pipeline.
 const RATE_LIMIT = { limit: 60, windowMs: 60 * 1000 };
 const PER_KEY_LIMIT = { limit: 30, windowMs: 60 * 1000 };
-
-const DEFAULT_MINT_URL = "https://mint.minibits.cash/Bitcoin";
 
 const pendingLightningPayments = new Map<
   string,
@@ -102,7 +102,7 @@ export default async function handler(
   };
 
   if (req.method === "POST") {
-    return handleCreateOrder(req, res, apiKey.id, apiKey.pubkey);
+    return await handleCreateOrder(req, res, apiKey.id, apiKey.pubkey);
   }
 
   if (req.method === "GET") {
@@ -132,7 +132,6 @@ async function handleCreateOrder(
     selectedBulkUnits,
     discountCode,
     paymentMethod = "lightning",
-    mintUrl,
     cashuToken,
   } = req.body as CreateOrderInput & {
     selectedSize?: string;
@@ -141,7 +140,6 @@ async function handleCreateOrder(
     selectedBulkUnits?: number;
     discountCode?: string;
     paymentMethod?: PaymentMethod;
-    mintUrl?: string;
     cashuToken?: string;
   };
 
@@ -229,11 +227,13 @@ async function handleCreateOrder(
         });
       }
       const weightPrice = product.weightPrices?.get(selectedWeight);
-      if (weightPrice !== undefined) {
+      // Match shared listing pricing: volume takes precedence when both
+      // dimensions are selected, while retaining the weight selection.
+      if (!selectedVolume && weightPrice !== undefined) {
         unitPrice = weightPrice;
       }
       selectedSpecs.weight = selectedWeight;
-      selectedSpecs.weightPrice = unitPrice;
+      selectedSpecs.weightPrice = weightPrice ?? unitPrice;
     }
 
     let effectiveQuantity = quantity;
@@ -262,6 +262,9 @@ async function handleCreateOrder(
         bundles: quantity,
       };
     } else {
+      if (unitPrice === undefined) {
+        return res.status(400).json({ error: "Listing price is missing" });
+      }
       subtotal = unitPrice * quantity;
     }
 
@@ -304,11 +307,11 @@ async function handleCreateOrder(
     const orderId = generateOrderId();
 
     const pricingBlock: Record<string, any> = {
-      unitPrice,
+      unitPrice: unitPrice ?? 0,
       quantity: effectiveQuantity,
       subtotal: selectedBulkUnits
         ? product.bulkPrices!.get(selectedBulkUnits)! * quantity
-        : unitPrice * quantity,
+        : (unitPrice ?? 0) * quantity,
       discountPercentage: discountPercentage || undefined,
       discountedSubtotal: discountPercentage ? subtotal : undefined,
       shippingCost,
@@ -321,7 +324,7 @@ async function handleCreateOrder(
     }
 
     if (paymentMethod === "cashu") {
-      return handleCashuPayment(
+      return await handleCashuPayment(
         res,
         orderId,
         apiKeyId,
@@ -337,7 +340,7 @@ async function handleCreateOrder(
       );
     }
 
-    return handleLightningPayment(
+    return await handleLightningPayment(
       res,
       orderId,
       apiKeyId,
@@ -348,14 +351,12 @@ async function handleCreateOrder(
       totalAmount,
       currency,
       shippingAddress || null,
-      pricingBlock,
-      mintUrl
+      pricingBlock
     );
   } catch (error) {
     console.error("Failed to create MCP order:", error);
     return res.status(500).json({
       error: "Failed to create order",
-      details: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
@@ -371,10 +372,9 @@ async function handleLightningPayment(
   totalAmount: number,
   currency: string,
   shippingAddress: Record<string, string> | null,
-  pricingBlock: any,
-  mintUrl?: string
+  pricingBlock: any
 ) {
-  const mint = mintUrl || DEFAULT_MINT_URL;
+  const mint = getTrustedMintUrl();
 
   let amountInSats: number;
   if (currency.toLowerCase() === "sats" || currency.toLowerCase() === "sat") {
@@ -383,7 +383,7 @@ async function handleLightningPayment(
     amountInSats = Math.round(totalAmount);
   }
 
-  if (amountInSats < 1) amountInSats = 1;
+  amountInSats = toCashuMintAmountSats(amountInSats);
 
   try {
     const cashuMint = new CashuMint(mint);
@@ -500,27 +500,37 @@ async function handleCashuPayment(
     }
 
     const tokenMintUrl = decoded.mint;
-    if (tokenMintUrl) {
-      try {
-        const cashuMint = new CashuMint(tokenMintUrl);
-        const wallet = new CashuWallet(cashuMint);
-        await wallet.loadMint();
-        await withMintRetry(() => wallet.receive(cashuToken), {
-          maxAttempts: 4,
-          perAttemptTimeoutMs: 20000,
-          totalTimeoutMs: 90000,
-        });
-      } catch (redeemError) {
-        console.error("Cashu token redemption failed:", redeemError);
-        return res.status(400).json({
-          error:
-            "Failed to redeem Cashu token. It may be invalid or already spent.",
-          details:
-            redeemError instanceof Error
-              ? redeemError.message
-              : "Unknown error",
-        });
-      }
+    const trustedMint = getTrustedMintUrl();
+
+    // The token's embedded mint URL must match the server-controlled trusted mint.
+    // Accepting a buyer-chosen mint would let an attacker point the server at a
+    // fake mint that always reports redemption success, creating fraudulent paid
+    // orders and opening SSRF to arbitrary internal endpoints.
+    if (!tokenMintUrl || tokenMintUrl !== trustedMint) {
+      return res.status(400).json({
+        error:
+          "Cashu token issuer is not a supported mint. Only tokens from trusted mints are accepted.",
+        supportedMints: [trustedMint],
+      });
+    }
+
+    try {
+      const cashuMint = new CashuMint(tokenMintUrl);
+      const wallet = new CashuWallet(cashuMint);
+      await wallet.loadMint();
+      await withMintRetry(() => wallet.receive(cashuToken), {
+        maxAttempts: 4,
+        perAttemptTimeoutMs: 20000,
+        totalTimeoutMs: 90000,
+      });
+    } catch (redeemError) {
+      console.error("Cashu token redemption failed:", redeemError);
+      return res.status(400).json({
+        error:
+          "Failed to redeem Cashu token. It may be invalid or already spent.",
+        details:
+          redeemError instanceof Error ? redeemError.message : "Unknown error",
+      });
     }
 
     const order = await createMcpOrder(

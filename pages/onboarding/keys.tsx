@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useRouter } from "next/router";
 import {
   InformationCircleIcon,
@@ -8,10 +8,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { Card, CardBody, Button, Input, Image, Tooltip } from "@heroui/react";
 import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
-import {
-  generateKeys,
-  setLocalStorageDataOnSignIn,
-} from "@/utils/nostr/nostr-helper-functions";
+import { generateKeys } from "@/utils/nostr/key-utilities";
+import { setLocalStorageDataOnSignIn } from "@/utils/nostr/nostr-helper-functions";
 import { RelaysContext } from "../../utils/context/context";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
@@ -22,7 +20,7 @@ const Keys = () => {
   const router = useRouter();
   const { preselect } = router.query;
 
-  const [privateKey, setPrivateKey] = useState<string>("");
+  const privateKeyRef = useRef<string>("");
   const [passphrase, setPassphrase] = useState<string>("");
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [showFailureModal, setShowFailureModal] = useState(false);
@@ -30,28 +28,28 @@ const Keys = () => {
   const { newSigner } = useContext(SignerContext);
   const relaysContext = useContext(RelaysContext);
 
-  const saveSigner = (signer: NostrSigner) => {
+  const saveSigner = async (signer: NostrSigner): Promise<void> => {
     if (
       !relaysContext.isLoading &&
       relaysContext.relayList.length >= 0 &&
       relaysContext.readRelayList &&
       relaysContext.writeRelayList
     ) {
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         signer,
         relays: relaysContext.relayList,
         readRelays: relaysContext.readRelayList,
         writeRelays: relaysContext.writeRelayList,
       });
     } else {
-      setLocalStorageDataOnSignIn({ signer });
+      await setLocalStorageDataOnSignIn({ signer });
     }
   };
 
   useEffect(() => {
     const fetchKeys = async () => {
       const { nsec } = await generateKeys();
-      setPrivateKey(nsec);
+      privateKeyRef.current = nsec;
     };
 
     fetchKeys();
@@ -62,7 +60,7 @@ const Keys = () => {
       setShowFailureModal(true);
     } else {
       const { encryptedPrivKey, pubkey } = NostrNSecSigner.getEncryptedNSEC(
-        privateKey,
+        privateKeyRef.current,
         passphrase
       );
       const signer = newSigner!("nsec", {
@@ -70,7 +68,7 @@ const Keys = () => {
         pubkey,
       });
       await signer.getPubKey();
-      saveSigner(signer);
+      await saveSigner(signer);
       router.push(
         preselect === "seller"
           ? "/onboarding/user-type?preselect=seller"

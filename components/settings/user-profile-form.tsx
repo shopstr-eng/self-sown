@@ -10,7 +10,10 @@ import {
   Tooltip,
 } from "@heroui/react";
 import { ProfileMapContext } from "@/utils/context/context";
-import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import {
+  AVATARBADGEBUTTONCLASSNAMES,
+  SHOPSTRBUTTONCLASSNAMES,
+} from "@/utils/STATIC-VARIABLES";
 import {
   SignerContext,
   NostrContext,
@@ -24,6 +27,7 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import ShopstrSpinner from "@/components/utility-components/shopstr-spinner";
+import { storage } from "@/utils/storage";
 
 interface UserProfileFormProps {
   isOnboarding?: boolean;
@@ -74,9 +78,10 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
     if (!userPubkey) return;
     setIsFetchingProfile(true);
 
-    const localFallback = parseLocalProfileFallback(
-      localStorage.getItem(getLocalUserProfileKey(userPubkey))
+    const rawLocalFallback = storage.getItem(
+      getLocalUserProfileKey(userPubkey)
     );
+    const localFallback = parseLocalProfileFallback(rawLocalFallback);
 
     const profileMap = profileContext.profileData;
     const profile = profileMap.has(userPubkey)
@@ -97,17 +102,14 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
       }
 
       try {
-        localStorage.setItem(
-          getLocalUserProfileKey(userPubkey),
-          JSON.stringify({
-            content: shouldUseLocalFallback
-              ? localFallback!.content
-              : profile.content,
-            updatedAt: shouldUseLocalFallback
-              ? localFallback!.updatedAt
-              : profileCreatedAt,
-          })
-        );
+        storage.setJson(getLocalUserProfileKey(userPubkey), {
+          content: shouldUseLocalFallback
+            ? localFallback!.content
+            : profile.content,
+          updatedAt: shouldUseLocalFallback
+            ? localFallback!.updatedAt
+            : profileCreatedAt,
+        });
       } catch (error) {
         console.error("Failed to persist profile fallback locally:", error);
       }
@@ -158,13 +160,10 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
       };
 
       try {
-        localStorage.setItem(
-          getLocalUserProfileKey(userPubkey),
-          JSON.stringify({
-            content: updatedData,
-            updatedAt: Math.floor(Date.now() / 1000),
-          })
-        );
+        storage.setJson(getLocalUserProfileKey(userPubkey), {
+          content: updatedData,
+          updatedAt: Math.floor(Date.now() / 1000),
+        });
       } catch (error) {
         console.error("Failed to save local profile fallback:", error);
       }
@@ -174,11 +173,15 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
         return;
       }
 
-      await createNostrProfileEvent(nostr, signer, JSON.stringify(updatedData));
+      const signedProfileEvent = await createNostrProfileEvent(
+        nostr,
+        signer,
+        JSON.stringify(updatedData)
+      );
       profileContext.updateProfileData({
         pubkey: userPubkey,
         content: updatedData,
-        created_at: Math.floor(Date.now() / 1000),
+        created_at: signedProfileEvent.created_at,
       });
 
       if (isOnboarding) {
@@ -198,17 +201,18 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
   return (
     <>
       <div className="mb-8 flex items-center justify-center">
-        <div className="relative h-24 w-24">
+        <div className="relative h-24 w-24 overflow-visible">
           <FileUploaderButton
             isIconOnly
-            className={`absolute right-[-0.5rem] bottom-[-0.5rem] z-20 ${SHOPSTRBUTTONCLASSNAMES}`}
+            className={AVATARBADGEBUTTONCLASSNAMES}
+            containerClassName="absolute right-[-0.5rem] bottom-[-0.5rem] z-20"
             imgCallbackOnUpload={(imgUrl) => setValue("picture", imgUrl)}
           />
           <Image
             key={profileImageSrc}
             src={profileImageSrc}
             alt="user profile picture"
-            className="rounded-full"
+            className="h-24 w-24 rounded-full object-cover"
           />
         </div>
       </div>
@@ -341,6 +345,28 @@ const UserProfileForm = ({ isOnboarding }: UserProfileFormProps) => {
       )}
 
       <form onSubmit={handleSubmit(onSubmit as any)}>
+        <Controller
+          name="picture"
+          control={control}
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Input
+              type="url"
+              className="text-light-text dark:text-dark-text pb-4"
+              classNames={{
+                label: "text-light-text dark:text-dark-text text-lg",
+              }}
+              variant="bordered"
+              fullWidth
+              label="Profile image URL"
+              labelPlacement="outside"
+              placeholder="https://..."
+              onChange={onChange}
+              onBlur={onBlur}
+              value={value || ""}
+            />
+          )}
+        />
+
         <Controller
           name="display_name"
           control={control}

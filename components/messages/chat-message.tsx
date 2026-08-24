@@ -6,13 +6,38 @@ import ClaimButton from "../utility-components/claim-button";
 import LinkPreview from "./link-preview";
 import { NostrMessageEvent } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
-import { getDecodedToken } from "@cashu/cashu-ts";
+import { getTokenMetadata } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 
 function isDecodableToken(token: string): boolean {
   try {
-    getDecodedToken(token, []);
+    getTokenMetadata(token);
     return true;
+  } catch {
+    return false;
+  }
+}
+
+function decodeBuyerPubkeyFromContent(content: string): string | null {
+  const npubMatch = content.match(/npub[a-zA-Z0-9]+/);
+  if (!npubMatch) {
+    return null;
+  }
+
+  try {
+    const decoded = nip19.decode(npubMatch[0]);
+    return decoded.type === "npub" && typeof decoded.data === "string"
+      ? decoded.data
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function isDecodableNpub(value: string): boolean {
+  try {
+    const decoded = nip19.decode(value);
+    return decoded.type === "npub" && typeof decoded.data === "string";
   } catch {
     return false;
   }
@@ -37,16 +62,13 @@ const ChatMessage = ({
 }) => {
   const router = useRouter();
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [localOrderId, setLocalOrderId] = useState("");
   const { pubkey: userPubkey } = useContext(SignerContext);
 
   useEffect(() => {
     if (messageEvent?.content && messageEvent.content.includes("npub1")) {
-      // Find word containing npub using regex
-      const npubMatch = messageEvent.content.match(/npub[a-zA-Z0-9]+/);
-      if (npubMatch && setBuyerPubkey) {
-        const { data: buyerPubkey } = nip19.decode(npubMatch[0]);
-        setBuyerPubkey(buyerPubkey as string);
-      }
+      const buyerPubkey = decodeBuyerPubkeyFromContent(messageEvent.content);
+      setBuyerPubkey(buyerPubkey || "");
     } else {
       setBuyerPubkey("");
     }
@@ -76,6 +98,7 @@ const ChatMessage = ({
     );
     setProductAddress?.(productAddress as string);
     setOrderId?.(orderId as string);
+    setLocalOrderId(orderId as string);
   }, [messageEvent]);
 
   const cashuMatch = messageEvent.content.match(/cashu[A-Za-z]/);
@@ -121,7 +144,7 @@ const ChatMessage = ({
       const subParts = part.split(/(\s+)/);
       return subParts.map((sub, subIndex) => {
         const npubMatch = sub.match(/npub[a-zA-Z0-9]+/);
-        if (npubMatch) {
+        if (npubMatch && isDecodableNpub(npubMatch[0])) {
           return (
             <span
               key={`${index}-${subIndex}`}
@@ -167,7 +190,16 @@ const ChatMessage = ({
             <>
               {renderMessageContent(contentBeforeCashu!)}
               <div className="flex items-center">
-                <ClaimButton token={cashuPrefix + tokenAfterCashuVersion} />
+                <ClaimButton
+                  token={cashuPrefix + tokenAfterCashuVersion}
+                  orderId={localOrderId || undefined}
+                  buyerPubkey={messageEvent.pubkey}
+                  sellerPubkey={
+                    messageEvent.pubkey === userPubkey
+                      ? currentChatPubkey
+                      : userPubkey
+                  }
+                />
                 {copiedToClipboard ? (
                   <CheckIcon className="ml-2 h-5 w-5 text-green-400" />
                 ) : (

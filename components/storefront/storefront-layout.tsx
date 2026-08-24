@@ -27,10 +27,12 @@ import {
 } from "@/utils/types/types";
 import { POLICY_SLUGS, getDefaultPolicies } from "@/utils/storefront-policies";
 import { getNavTextColor } from "@/utils/storefront-colors";
+import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
 import { nip19 } from "nostr-tools";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import parseTags from "@/utils/parsers/product-parser-functions";
+import { productSatisfiesPriceFilter } from "@/utils/parsers/product-filter-helpers";
 import Link from "next/link";
 import StorefrontHero from "./storefront-hero";
 import StorefrontProductGrid from "./storefront-product-grid";
@@ -42,6 +44,7 @@ import StorefrontWallet from "./storefront-wallet";
 import StorefrontMyListings from "./storefront-my-listings";
 import StorefrontOrderConfirmation from "./storefront-order-confirmation";
 import StorefrontPolicyPage from "./storefront-policy-page";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 import {
   isExternalStorefrontHref,
   sanitizeStorefrontNavHref,
@@ -160,40 +163,31 @@ export default function StorefrontLayout({
 
   useEffect(() => {
     if (shopPubkey) {
-      sessionStorage.setItem("sf_seller_pubkey", shopPubkey);
-      localStorage.setItem("sf_seller_pubkey", shopPubkey);
+      storage.setSessionItem(STORAGE_KEYS.SF_SELLER_PUBKEY, shopPubkey);
+      storage.setItem(STORAGE_KEYS.SF_SELLER_PUBKEY, shopPubkey);
     }
     if (shopSlug) {
-      sessionStorage.setItem("sf_shop_slug", shopSlug);
-      localStorage.setItem("sf_shop_slug", shopSlug);
+      storage.setSessionItem(STORAGE_KEYS.SF_SHOP_SLUG, shopSlug);
+      storage.setItem(STORAGE_KEYS.SF_SHOP_SLUG, shopSlug);
     }
   }, [shopPubkey, shopSlug]);
 
   useEffect(() => {
     const sync = () => {
-      const cart = localStorage.getItem("cart");
-      if (!cart) {
-        setCartQuantity(0);
-        return;
-      }
-      const items = JSON.parse(cart) as { pubkey?: string }[];
-      setCartQuantity(
-        shopPubkey
-          ? items.filter((p) => p.pubkey === shopPubkey).length
-          : items.length
-      );
+      setCartQuantity(getStorefrontCartQuantity(shopPubkey));
     };
     sync();
     const interval = setInterval(sync, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [shopPubkey]);
 
   const sellerProducts = useMemo(() => {
     if (!shopPubkey || !productContext.productEvents.length) return [];
     return productContext.productEvents
       .filter((event: any) => event.pubkey === shopPubkey)
       .map((event: any) => parseTags(event))
-      .filter((p: ProductData | undefined) => p !== undefined) as ProductData[];
+      .filter((p: ProductData | undefined): p is ProductData => p !== undefined)
+      .filter(productSatisfiesPriceFilter);
   }, [shopPubkey, productContext.productEvents]);
 
   const profile = profileContext.profileData.get(shopPubkey);

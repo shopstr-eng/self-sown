@@ -8,9 +8,32 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
   testEnvironment: "jest-environment-jsdom",
+  modulePathIgnorePatterns: ["<rootDir>/.next/"],
+  collectCoverageFrom: [
+    "utils/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "pages/**/*.{ts,tsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**",
+    "!pages/_app.tsx",
+    "!pages/_document.tsx",
+    "!public/**",
+    "mcp/**/*.{ts,tsx}",
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 10,
+      functions: 10,
+      lines: 20,
+      statements: 20,
+    },
+  },
   moduleNameMapper: {
     // Handle module aliases
     "^@/(.*)$": "<rootDir>/$1",
+    // Canonical parser sources use NodeNext-style .js relative imports so
+    // the same files can be copied verbatim into packages/shopstr-mcp.
+    "^(\\.{1,2}/.*)\\.js$": "$1",
   },
 };
 

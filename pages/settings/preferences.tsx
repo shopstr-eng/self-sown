@@ -16,14 +16,23 @@ import {
   Radio,
   RadioGroup,
 } from "@heroui/react";
+import { SavedAddress } from "@/utils/types/types";
 import { Relay } from "nostr-tools";
 import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import {
   createBlossomServerEvent,
   createNostrRelayEvent,
-  getLocalStorageData,
+  getStoredBlossomServers,
+  getStoredMints,
+  getStoredReadRelays,
+  getStoredRelays,
+  getStoredWriteRelays,
   publishWalletEvent,
+  saveAddress,
+  deleteAddress,
+  getSavedAddresses,
 } from "@/utils/nostr/nostr-helper-functions";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 import { useTheme } from "next-themes";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import ShopstrSlider from "../../components/utility-components/shopstr-slider";
@@ -33,6 +42,9 @@ import {
   SignerContext,
 } from "@/components/utility-components/nostr-context-provider";
 import ProtectedRoute from "@/components/utility-components/protected-route";
+import EditAddressForm from "@/components/utility-components/edit-address-form";
+import SavedAddressesList from "@/components/utility-components/saved-addresses-list";
+import { CashuWalletContext } from "@/utils/context/context";
 
 const PreferencesPage = () => {
   const { nostr } = useContext(NostrContext);
@@ -55,30 +67,77 @@ const PreferencesPage = () => {
 
   const [isLoaded, setIsLoaded] = useState(false);
   const { signer } = useContext(SignerContext);
+  const { cashuPubkey, cashuPrivkey } = useContext(CashuWalletContext);
 
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
 
+  // Address edit modal state
+  const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(
+    null
+  );
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
-      setMints(getLocalStorageData().mints);
-      setRelays(getLocalStorageData().relays);
-      setReadRelays(getLocalStorageData().readRelays);
-      setWriteRelays(getLocalStorageData().writeRelays);
-      setBlossomServers(getLocalStorageData().blossomServers);
+      setMints(getStoredMints());
+      setRelays(getStoredRelays());
+      setReadRelays(getStoredReadRelays());
+      setWriteRelays(getStoredWriteRelays());
+      setBlossomServers(getStoredBlossomServers());
+      loadSavedAddresses();
     }
     setIsLoaded(true);
   }, [signer]);
 
+  const loadSavedAddresses = () => {
+    const addresses = getSavedAddresses();
+    setSavedAddresses(addresses);
+  };
+
+  const handleEditAddress = (address: SavedAddress) => {
+    setEditingAddress(address);
+    setShowEditAddressModal(true);
+  };
+
+  const handleDeleteAddress = (id: string) => {
+    deleteAddress(id);
+    loadSavedAddresses();
+  };
+
+  const handleSaveEditedAddress = (updatedAddress: SavedAddress) => {
+    saveAddress({
+      id: updatedAddress.id,
+      label: updatedAddress.label,
+      name: updatedAddress.name,
+      address: updatedAddress.address,
+      unit: updatedAddress.unit,
+      city: updatedAddress.city,
+      state: updatedAddress.state,
+      zip: updatedAddress.zip,
+      country: updatedAddress.country,
+      isDefault: updatedAddress.isDefault,
+    });
+    loadSavedAddresses();
+    setShowEditAddressModal(false);
+    setEditingAddress(null);
+  };
+
   useEffect(() => {
-    if (mints.length != 0) {
-      localStorage.setItem("mints", JSON.stringify(mints));
+    window.addEventListener("storage", loadSavedAddresses);
+    return () => window.removeEventListener("storage", loadSavedAddresses);
+  }, []);
+
+  useEffect(() => {
+    if (mints.length !== 0) {
+      storage.setJson(STORAGE_KEYS.MINTS, mints);
     }
   }, [mints]);
 
   useEffect(() => {
-    if (blossomServers.length != 0) {
-      localStorage.setItem("blossomServers", JSON.stringify(blossomServers));
+    if (blossomServers.length !== 0) {
+      storage.setJson(STORAGE_KEYS.BLOSSOM_SERVERS, blossomServers);
     }
   }, [blossomServers]);
 
@@ -100,46 +159,71 @@ const PreferencesPage = () => {
     setShowMintModal(!showMintModal);
   };
 
+  const publishUpdatedWalletMints = async (updatedMints: string[]) => {
+    if (cashuPrivkey) {
+      await publishWalletEvent(
+        nostr!,
+        signer!,
+        { cashuPubkey, cashuPrivkey },
+        { mints: updatedMints }
+      );
+    }
+  };
+
   const replaceMint = async (newMint: string) => {
     try {
-      // Perform a fetch request to the specified mint URL
-      const response = await fetch(newMint + "/keys");
+      const response = await fetch("/api/cashu/validate-mint", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mintUrl: newMint }),
+      });
       if (response.ok) {
-        if (!mints.includes(newMint)) {
-          setMints([newMint, ...mints]);
+        const result = (await response.json()) as { mintUrl?: string };
+        const validatedMint = result.mintUrl ?? newMint;
+        const updatedMints = !mints.includes(validatedMint)
+          ? [validatedMint, ...mints]
+          : [validatedMint, ...mints.filter((mint) => mint !== validatedMint)];
+        if (!mints.includes(validatedMint)) {
+          setMints(updatedMints);
         } else {
-          setMints([newMint, ...mints.filter((mint) => mint !== newMint)]);
+          setMints(updatedMints);
         }
-        await publishWalletEvent(nostr!, signer!);
+        await publishUpdatedWalletMints(updatedMints);
         handleToggleMintModal();
       } else {
+        const result = (await response.json().catch(() => null)) as {
+          error?: string;
+        } | null;
         setFailureText(
-          `Failed to add mint! Could not fetch keys from ${newMint}/keys.`
+          result?.error
+            ? `Failed to add mint! ${result.error}`
+            : `Failed to add mint! Could not validate ${newMint}.`
         );
         setShowFailureModal(true);
       }
     } catch {
-      setFailureText(
-        `Failed to add mint! Could not fetch keys from ${newMint}/keys.`
-      );
+      setFailureText(`Failed to add mint! Could not validate ${newMint}.`);
       setShowFailureModal(true);
     }
   };
 
   const deleteMint = async (mintToDelete: string) => {
-    setMints(mints.filter((mint) => mint !== mintToDelete));
-    await publishWalletEvent(nostr!, signer!);
+    const updatedMints = mints.filter((mint) => mint !== mintToDelete);
+    setMints(updatedMints);
+    await publishUpdatedWalletMints(updatedMints);
   };
 
   useEffect(() => {
-    if (relays.length != 0) {
-      localStorage.setItem("relays", JSON.stringify(relays));
+    if (relays.length !== 0) {
+      storage.setJson(STORAGE_KEYS.RELAYS, relays);
     }
-    if (readRelays.length != 0) {
-      localStorage.setItem("readRelays", JSON.stringify(readRelays));
+    if (readRelays.length !== 0) {
+      storage.setJson(STORAGE_KEYS.READ_RELAYS, readRelays);
     }
-    if (writeRelays.length != 0) {
-      localStorage.setItem("writeRelays", JSON.stringify(writeRelays));
+    if (writeRelays.length !== 0) {
+      storage.setJson(STORAGE_KEYS.WRITE_RELAYS, writeRelays);
     }
   }, [relays, readRelays, writeRelays]);
 
@@ -943,6 +1027,62 @@ const PreferencesPage = () => {
           </Modal>
 
           <span className="text-light-text dark:text-dark-text my-4 flex text-2xl font-bold">
+            Saved Addresses
+          </span>
+
+          {isLoaded && (
+            <div className="bg-light-bg dark:bg-dark-bg mb-6 rounded-md border border-gray-200 p-4 dark:border-zinc-800">
+              <SavedAddressesList
+                addresses={savedAddresses}
+                onEdit={handleEditAddress}
+                onDelete={handleDeleteAddress}
+              />
+              <Button
+                className={`${SHOPSTRBUTTONCLASSNAMES} mt-4`}
+                onClick={() => {
+                  setEditingAddress(null);
+                  setShowEditAddressModal(true);
+                }}
+              >
+                Add New Address
+              </Button>
+            </div>
+          )}
+
+          {/* Edit/Add Address Modal */}
+          <Modal
+            backdrop="blur"
+            isOpen={showEditAddressModal}
+            onClose={() => {
+              setShowEditAddressModal(false);
+              setEditingAddress(null);
+            }}
+            classNames={{
+              body: "py-6",
+              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              header: "border-b-[1px] border-[#292f46]",
+              footer: "border-t-[1px] border-[#292f46]",
+              closeButton: "hover:bg-black/5 active:bg-white/10",
+            }}
+            scrollBehavior={"outside"}
+            size="2xl"
+          >
+            <ModalContent>
+              <ModalHeader className="text-light-text dark:text-dark-text flex flex-col gap-1">
+                {editingAddress ? "Edit Address" : "Add New Address"}
+              </ModalHeader>
+              <EditAddressForm
+                address={editingAddress}
+                onSave={handleSaveEditedAddress}
+                onClose={() => {
+                  setShowEditAddressModal(false);
+                  setEditingAddress(null);
+                }}
+              />
+            </ModalContent>
+          </Modal>
+
+          <span className="text-light-text dark:text-dark-text my-4 flex text-2xl font-bold">
             Web of Trust
           </span>
 
@@ -968,10 +1108,12 @@ const PreferencesPage = () => {
               label="Select your prefered theme:"
               orientation={"horizontal"}
               defaultValue={
-                (localStorage.getItem("theme") as string) || theme || "system"
+                (storage.getItem(STORAGE_KEYS.THEME) as string) ||
+                theme ||
+                "system"
               }
               onChange={(e) => {
-                localStorage.setItem("theme", e.target.value);
+                storage.setItem(STORAGE_KEYS.THEME, e.target.value);
                 setTheme(e.target.value);
               }}
             >

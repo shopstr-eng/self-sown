@@ -209,6 +209,17 @@ export interface ShopProfile {
   event?: NostrEvent;
 }
 
+export interface Nip58ProfileBadge {
+  definitionAddress: string;
+  awardEventId: string;
+  issuerPubkey: string;
+  badgeDefinitionDTag: string;
+  name: string;
+  description?: string;
+  image?: string;
+  thumbnail?: string;
+}
+
 export interface ProfileData {
   pubkey: string;
   content: {
@@ -221,8 +232,16 @@ export interface ProfileData {
     payment_preference?: string;
     fiat_options?: string[];
     shopstr_donation?: number;
+
+    p2pk?: {
+      enabled: boolean;
+      pubkey?: string; // seller redeem while locked
+      refundDelayDays?: number; // days; locktime unix set at checkout
+      reclaimKeys?: string[]; // buyer reclaim after lock (optional)
+    };
   };
   created_at: number;
+  badges?: Nip58ProfileBadge[];
 }
 
 export interface Transaction {
@@ -266,6 +285,40 @@ export interface CombinedFormData {
   Instructions: string;
   Required?: string;
 }
+
+export interface SavedAddress {
+  id: string;
+  label: string;
+  name: string;
+  address: string;
+  unit?: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  isDefault: boolean;
+}
+
+export interface ParsedP2PK {
+  pubkey: string;
+  pubkeys?: string[];
+  nSigs?: number;
+  locktime: number;
+  refundKeys: string[];
+  expired: boolean;
+  rawTags: any[];
+  proofCount?: number;
+  shopstrOrderId?: string;
+}
+
+export type WalletConfig = string[][];
+
+export type TemporaryWalletConfigV1 = {
+  version: 1;
+  cashuPubkey: string;
+  cashuPrivkey: string;
+  mints: string[];
+};
 
 declare global {
   interface Window {

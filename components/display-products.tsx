@@ -1,7 +1,12 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useMemo } from "react";
 import { deleteEvent } from "@/utils/nostr/nostr-helper-functions";
 import { NostrEvent } from "../utils/types/types";
-import { ProductContext, FollowsContext } from "../utils/context/context";
+import {
+  ProductContext,
+  FollowsContext,
+  RelaysContext,
+  ReportsContext,
+} from "../utils/context/context";
 import ProductCard from "./utility-components/product-card";
 import DisplayProductModal from "./display-product-modal";
 import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
@@ -18,6 +23,30 @@ import {
 } from "@/components/utility-components/nostr-context-provider";
 import { getListingSlug } from "@/utils/url-slugs";
 import { productSatisfiesAllFilters } from "@/utils/parsers/product-filter-helpers";
+import {
+  dedupeProductEvents,
+  fetchNip50ProductSearch,
+  getProductEventKey,
+} from "@/utils/nostr/fetch-service";
+import {
+  getDirectFollowPubkeys,
+  getListingReportSignal,
+  summarizeReportEvents,
+} from "@/utils/nostr/report-moderation";
+import {
+  createStorageKey,
+  storage,
+  STORAGE_KEY_PREFIXES,
+  STORAGE_KEYS,
+} from "@/utils/storage";
+import { nip19 } from "nostr-tools";
+
+const isNip19SearchQuery = (search: string) => {
+  const normalizedSearch = search.trim();
+  return (
+    normalizedSearch.includes("naddr1") || normalizedSearch.includes("npub1")
+  );
+};
 
 const DisplayProducts = ({
   focusedPubkey,
@@ -42,8 +71,14 @@ const DisplayProducts = ({
 }) => {
   const [productEvents, setProductEvents] = useState<ProductData[]>([]);
   const [isProductsLoading, setIsProductLoading] = useState(true);
+  const [nip50ProductEvents, setNip50ProductEvents] = useState<NostrEvent[]>(
+    []
+  );
+  const [isNip50SearchLoading, setIsNip50SearchLoading] = useState(false);
   const productEventContext = useContext(ProductContext);
   const followsContext = useContext(FollowsContext);
+  const reportsContext = useContext(ReportsContext);
+  const relaysContext = useContext(RelaysContext);
   const [focusedProduct, setFocusedProduct] = useState<ProductData>();
   const [showModal, setShowModal] = useState(false);
 
@@ -57,14 +92,40 @@ const DisplayProducts = ({
 
   const { nostr } = useContext(NostrContext);
   const { signer, pubkey: userPubkey } = useContext(SignerContext);
+  const directFollowPubkeys = useMemo(
+    () =>
+      getDirectFollowPubkeys(
+        followsContext.followList,
+        followsContext.firstDegreeFollowsLength
+      ),
+    [followsContext.followList, followsContext.firstDegreeFollowsLength]
+  );
+  const reportSummaries = useMemo(
+    () =>
+      summarizeReportEvents({
+        reportEvents: reportsContext.reportEvents,
+        directFollowPubkeys,
+        userPubkey,
+      }),
+    [reportsContext.reportEvents, directFollowPubkeys, userPubkey]
+  );
+
+  const searchRelaysKey = Array.from(
+    new Set([
+      ...(relaysContext.relayList || []),
+      ...(relaysContext.readRelayList || []),
+    ])
+  )
+    .filter(Boolean)
+    .join("|");
 
   // Load saved page from session storage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storageKey = focusedPubkey
-        ? `marketplace-page-${focusedPubkey}`
-        : "marketplace-page-general";
-      const savedPage = sessionStorage.getItem(storageKey);
+        ? createStorageKey(STORAGE_KEY_PREFIXES.MARKETPLACE_PAGE, focusedPubkey)
+        : STORAGE_KEYS.MARKETPLACE_PAGE_GENERAL;
+      const savedPage = storage.getSessionItem(storageKey);
       if (savedPage) {
         const pageNum = parseInt(savedPage, 10);
         if (!isNaN(pageNum) && pageNum > 0) {
@@ -76,16 +137,67 @@ const DisplayProducts = ({
   }, [focusedPubkey]);
 
   useEffect(() => {
+    const normalizedSearch = selectedSearch.trim();
+
+    if (
+      !normalizedSearch ||
+      isNip19SearchQuery(normalizedSearch) ||
+      !nostr ||
+      typeof nostr.fetch !== "function"
+    ) {
+      setNip50ProductEvents([]);
+      setIsNip50SearchLoading(false);
+      return;
+    }
+
+    const relaysToSearch = searchRelaysKey ? searchRelaysKey.split("|") : [];
+
+    let didCancel = false;
+    setIsNip50SearchLoading(true);
+
+    fetchNip50ProductSearch(nostr, relaysToSearch, normalizedSearch, {
+      authors: focusedPubkey ? [focusedPubkey] : undefined,
+    })
+      .then(({ productEvents }) => {
+        if (didCancel) return;
+        setNip50ProductEvents(productEvents);
+      })
+      .catch((error) => {
+        if (didCancel) return;
+        setNip50ProductEvents([]);
+        console.error("Failed to search products with NIP-50:", error);
+      })
+      .finally(() => {
+        if (didCancel) return;
+        setIsNip50SearchLoading(false);
+      });
+
+    return () => {
+      didCancel = true;
+    };
+  }, [selectedSearch, focusedPubkey, nostr, searchRelaysKey]);
+
+  useEffect(() => {
     if (!productEventContext) return;
     const hasProducts =
       productEventContext.productEvents &&
       productEventContext.productEvents.length > 0;
-    if (hasProducts) {
-      const sortedProductEvents = [...productEventContext.productEvents].sort(
-        (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
-      );
+    const hasNip50Products = nip50ProductEvents.length > 0;
+    const sourceProductEvents =
+      selectedSearch.trim() && !isNip19SearchQuery(selectedSearch)
+        ? dedupeProductEvents([
+            ...nip50ProductEvents,
+            ...[...(productEventContext.productEvents || [])].sort(
+              (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
+            ),
+          ])
+        : [...(productEventContext.productEvents || [])].sort(
+            (a: NostrEvent, b: NostrEvent) => b.created_at - a.created_at
+          );
+
+    if (hasProducts || hasNip50Products) {
       const parsedProductData: ProductData[] = [];
-      sortedProductEvents.forEach((event) => {
+      sourceProductEvents.forEach((event) => {
         if (wotFilter) {
           if (!followsContext.isLoading && followsContext.followList) {
             const followList = followsContext.followList;
@@ -123,7 +235,14 @@ const DisplayProducts = ({
       setProductEvents([]);
       setIsProductLoading(false);
     }
-  }, [productEventContext, wotFilter]);
+  }, [
+    productEventContext,
+    wotFilter,
+    nip50ProductEvents,
+    selectedSearch,
+    followsContext.followList,
+    followsContext.isLoading,
+  ]);
 
   useEffect(() => {
     if (focusedPubkey && setCategories) {
@@ -174,23 +293,28 @@ const DisplayProducts = ({
     const prevFiltersRef = `${selectedSearch}-${selectedLocation}-${Array.from(
       selectedCategories
     ).join(",")}`;
-    const currentFiltersRef = sessionStorage.getItem("last-filters-ref");
+    const currentFiltersRef = storage.getSessionItem(
+      STORAGE_KEYS.LAST_FILTERS_REF
+    );
 
     if (currentFiltersRef && currentFiltersRef !== prevFiltersRef) {
       // Filters changed, reset to page 1
       setCurrentPage(1);
       if (typeof window !== "undefined") {
         const storageKey = focusedPubkey
-          ? `marketplace-page-${focusedPubkey}`
-          : "marketplace-page-general";
-        sessionStorage.setItem(storageKey, "1");
+          ? createStorageKey(
+              STORAGE_KEY_PREFIXES.MARKETPLACE_PAGE,
+              focusedPubkey
+            )
+          : STORAGE_KEYS.MARKETPLACE_PAGE_GENERAL;
+        storage.setSessionItem(storageKey, "1");
       }
     } else if (currentPage > newTotalPages) {
       // Current page exceeds total pages, go to last page
       setCurrentPage(newTotalPages);
     }
 
-    sessionStorage.setItem("last-filters-ref", prevFiltersRef);
+    storage.setSessionItem(STORAGE_KEYS.LAST_FILTERS_REF, prevFiltersRef);
 
     onFilteredProductsChange?.(filtered);
   }, [
@@ -247,10 +371,35 @@ const DisplayProducts = ({
       return `/listing/${product.id}`;
     }
 
-    const allParsed = productEventContext.productEvents
-      .filter((e: NostrEvent) => e.kind !== 1)
-      .map((e: NostrEvent) => parseTags(e))
-      .filter((p: ProductData | undefined): p is ProductData => !!p);
+    const rawProductEvent = product.rawEvent;
+    const isNip50SearchResult =
+      rawProductEvent?.kind === 30402 &&
+      nip50ProductEvents.some(
+        (event: NostrEvent) =>
+          event.kind === 30402 &&
+          getProductEventKey(event) === getProductEventKey(rawProductEvent)
+      );
+
+    if (isNip50SearchResult) {
+      const dTag = rawProductEvent.tags.find((tag) => tag[0] === "d")?.[1];
+      if (dTag) {
+        try {
+          return `/listing/${nip19.naddrEncode({
+            identifier: dTag,
+            pubkey: rawProductEvent.pubkey,
+            kind: rawProductEvent.kind,
+          })}`;
+        } catch {
+          // Fall back to the slug path if this event cannot form a valid naddr.
+        }
+      }
+    }
+
+    const allParsed = productEvents.filter(
+      (productData) =>
+        productData.d !== "zapsnag" &&
+        !productData.categories?.includes("zapsnag")
+    );
 
     const slug = getListingSlug(product, allParsed);
     if (slug) {
@@ -285,16 +434,16 @@ const DisplayProducts = ({
     // Save to session storage
     if (typeof window !== "undefined") {
       const storageKey = focusedPubkey
-        ? `marketplace-page-${focusedPubkey}`
-        : "marketplace-page-general";
-      sessionStorage.setItem(storageKey, page.toString());
+        ? createStorageKey(STORAGE_KEY_PREFIXES.MARKETPLACE_PAGE, focusedPubkey)
+        : STORAGE_KEYS.MARKETPLACE_PAGE_GENERAL;
+      storage.setSessionItem(storageKey, page.toString());
     }
   };
 
   return (
     <>
       <div className="w-full md:pl-4">
-        {!isMyListings && isProductsLoading ? (
+        {!isMyListings && (isProductsLoading || isNip50SearchLoading) ? (
           <div className="mt-6 mb-6 flex items-center justify-center">
             <ShopstrSpinner />
           </div>
@@ -309,6 +458,11 @@ const DisplayProducts = ({
                     productData={productData}
                     onProductClick={onProductClick}
                     href={getProductHref(productData)}
+                    hydrateProfileFromRelays={Boolean(focusedPubkey)}
+                    reportSignal={getListingReportSignal(
+                      productData,
+                      reportSummaries
+                    )}
                   />
                 )
               )}
@@ -337,6 +491,7 @@ const DisplayProducts = ({
         )}
         {!isMyListings &&
           !isProductsLoading &&
+          !isNip50SearchLoading &&
           filteredProducts.length === 0 && (
             <div className="mt-20 flex flex-grow items-center justify-center py-10">
               <div className="bg-light-fg dark:bg-dark-fg w-full max-w-lg rounded-lg p-8 text-center shadow-lg">

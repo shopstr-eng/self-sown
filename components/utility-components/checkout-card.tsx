@@ -1,6 +1,5 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { useContext, useEffect, useRef, useState } from "react";
+import { isP2pkEscrowFeatureEnabled } from "@/utils/cashu/p2pk-checkout";
 import { Event, nip19 } from "nostr-tools";
 import parseTags, {
   ProductData,
@@ -45,7 +44,8 @@ import WeightSelector from "./weight-selector";
 import BulkSelector from "./bulk-selector";
 import ZapsnagButton from "@/components/ZapsnagButton";
 import { RawEventModal, EventIdModal } from "./modals/event-modals";
-import { getLocalStorageJson } from "@/utils/safe-json";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
+import useReportEventFlow from "./use-report-event-flow";
 import { CartDiscountsMap, isCartDiscountsMap } from "@/utils/cart-discounts";
 
 const SUMMARY_CHARACTER_LIMIT = 100;
@@ -58,6 +58,7 @@ export default function CheckoutCard({
   setCashuPaymentFailed,
   uniqueKey,
   rawEvent,
+  p2pk,
 }: {
   productData: ProductData;
   setInvoiceIsPaid: (invoiceIsPaid: boolean) => void;
@@ -66,6 +67,11 @@ export default function CheckoutCard({
   setCashuPaymentFailed: (cashuPaymentFailed: boolean) => void;
   uniqueKey?: string;
   rawEvent?: Event;
+  p2pk?: {
+    enabled: boolean;
+    refundDelayDays?: number;
+    reclaimKeys?: string[];
+  };
 }) {
   const { pubkey: userPubkey, isLoggedIn } = useContext(SignerContext);
   const productEventContext = useContext(ProductContext);
@@ -77,6 +83,13 @@ export default function CheckoutCard({
   const [showEventIdModal, setShowEventIdModal] = useState(false);
 
   const router = useRouter();
+
+  const { openReportFlow, reportFlowUi } = useReportEventFlow({
+    targetLabel: "listing",
+    reportedPubkey: productData.pubkey,
+    reportedEventId: productData.id,
+    onRequireLogin: onOpen,
+  });
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isBeingPaid, setIsBeingPaid] = useState(false);
@@ -99,12 +112,15 @@ export default function CheckoutCard({
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successText, setSuccessText] = useState(
+    "Listing URL copied to clipboard!"
+  );
 
   const [cart, setCart] = useState<ProductData[]>([]);
   const [selectedVolume, setSelectedVolume] = useState<string>("");
   const [selectedWeight, setSelectedWeight] = useState<string>("");
   const [selectedBulkOption, setSelectedBulkOption] = useState<string>("1");
-  const [currentPrice, setCurrentPrice] = useState(productData.price);
+  const [currentPrice, setCurrentPrice] = useState(productData.price ?? 0);
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [discountError, setDiscountError] = useState("");
@@ -146,7 +162,7 @@ export default function CheckoutCard({
         setCurrentPrice(weightPrice);
       }
     } else {
-      setCurrentPrice(productData.price);
+      setCurrentPrice(productData.price ?? 0);
     }
   }, [
     selectedVolume,
@@ -157,6 +173,45 @@ export default function CheckoutCard({
     productData.weightPrices,
     productData.bulkPrices,
   ]);
+
+  const p2pkIndicator = () => {
+    if (!isP2pkEscrowFeatureEnabled() || !p2pk?.enabled) return null;
+
+    const days = p2pk.refundDelayDays;
+
+    if (!days || days <= 0) return null;
+
+    const reclaimOpensAfter = new Date(
+      Date.now() + days * 24 * 60 * 60 * 1000
+    ).toLocaleDateString(undefined, {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    return (
+      <div className="mb-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-3">
+        <div className="flex items-center gap-2 text-sm font-medium text-yellow-700 dark:text-yellow-300">
+          <span>🔒</span>
+          <span>P2PK Escrow Enabled</span>
+        </div>
+
+        <p className="mt-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+          Payment ecash is locked to the seller&apos;s pubkey while the lock is
+          active. After{" "}
+          <span className="font-semibold">
+            {days} day{days > 1 ? "s" : ""}
+          </span>
+          , you gain an additional reclaim spend path (manual wallet action).
+          The seller may still be able to claim under Cashu rules.
+        </p>
+
+        <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+          Reclaim path opens after {reclaimOpensAfter}
+        </p>
+      </div>
+    );
+  };
 
   const toggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -178,14 +233,9 @@ export default function CheckoutCard({
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const cartList = getLocalStorageJson<ProductData[]>("cart", [], {
-        removeOnError: true,
-        validate: Array.isArray,
-      });
-      if (cartList && cartList.length > 0) {
-        setCart(cartList);
-      }
+    const cartList = storage.getJson<ProductData[]>(STORAGE_KEYS.CART, []);
+    if (cartList && cartList.length > 0) {
+      setCart(cartList);
     }
   }, []);
 
@@ -335,7 +385,7 @@ export default function CheckoutCard({
 
       updatedCart = [...cart, productToAdd];
       setCart(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
+      storage.setJson(STORAGE_KEYS.CART, updatedCart);
 
       const sellerShop = shopMapContext.shopData.get(productData.pubkey);
       if (
@@ -348,19 +398,18 @@ export default function CheckoutCard({
 
       // Store discount code if applied
       if (appliedDiscount > 0 && discountCode) {
-        const discounts = getLocalStorageJson<CartDiscountsMap>(
-          "cartDiscounts",
+        const discounts = storage.getJson<CartDiscountsMap>(
+          STORAGE_KEYS.CART_DISCOUNTS,
           {},
           {
             removeOnError: true,
-            removeOnValidationError: true,
             validate: isCartDiscountsMap,
           }
         );
         discounts[productData.pubkey] = {
           code: discountCode,
         };
-        localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
+        storage.setJson(STORAGE_KEYS.CART_DISCOUNTS, discounts);
       }
     } else {
       onOpen();
@@ -385,6 +434,7 @@ export default function CheckoutCard({
       navigator.clipboard.writeText(
         `${window.location.origin}/listing/${listingPath}`
       );
+      setSuccessText("Listing URL copied to clipboard!");
       setShowSuccessModal(true);
     }
   };
@@ -581,7 +631,13 @@ export default function CheckoutCard({
                         dropDownKeys={
                           productData.pubkey === userPubkey
                             ? ["shop_profile"]
-                            : ["shop", "inquiry", "copy_npub"]
+                            : [
+                                "shop",
+                                "inquiry",
+                                "copy_npub",
+                                "report_profile",
+                                "follow",
+                              ]
                         }
                       />
                       {merchantQuality !== "" && (
@@ -639,18 +695,32 @@ export default function CheckoutCard({
                           </Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Event Actions">
-                          <DropdownItem
-                            key="view-raw"
-                            onPress={() => setShowRawEventModal(true)}
-                          >
-                            View Raw Event
-                          </DropdownItem>
-                          <DropdownItem
-                            key="view-id"
-                            onPress={() => setShowEventIdModal(true)}
-                          >
-                            View Event ID
-                          </DropdownItem>
+                          {[
+                            <DropdownItem
+                              key="view-raw"
+                              onPress={() => setShowRawEventModal(true)}
+                            >
+                              View Raw Event
+                            </DropdownItem>,
+                            <DropdownItem
+                              key="view-id"
+                              onPress={() => setShowEventIdModal(true)}
+                            >
+                              View Event ID
+                            </DropdownItem>,
+                            ...(productData.pubkey !== userPubkey
+                              ? [
+                                  <DropdownItem
+                                    key="report-listing"
+                                    color="danger"
+                                    className="text-danger"
+                                    onPress={openReportFlow}
+                                  >
+                                    Report Listing
+                                  </DropdownItem>,
+                                ]
+                              : []),
+                          ]}
                         </DropdownMenu>
                       </Dropdown>
                     )}
@@ -716,7 +786,7 @@ export default function CheckoutCard({
                   {hasBulkPrices && (
                     <BulkSelector
                       bulkPrices={productData.bulkPrices!}
-                      basePrice={productData.price}
+                      basePrice={productData.price ?? 0}
                       currency={productData.currency}
                       selectedBulkOption={selectedBulkOption}
                       onBulkChange={setSelectedBulkOption}
@@ -791,6 +861,7 @@ export default function CheckoutCard({
                           {productData.location}
                         </Chip>
                       </div>
+                      {p2pkIndicator()}
                       {renderSizeGrid()}
                       <div className="flex w-full flex-col gap-2">
                         <div className="flex flex-wrap items-center gap-2">
@@ -904,7 +975,13 @@ export default function CheckoutCard({
                                 dropDownKeys={
                                   reviewerPubkey === userPubkey
                                     ? ["shop_profile"]
-                                    : ["shop", "inquiry", "copy_npub"]
+                                    : [
+                                        "shop",
+                                        "inquiry",
+                                        "copy_npub",
+                                        "report_profile",
+                                        "follow",
+                                      ]
                                 }
                               />
                             </div>
@@ -1017,10 +1094,11 @@ export default function CheckoutCard({
           onClose={() => setShowFailureModal(false)}
         />
         <SuccessModal
-          bodyText="Listing URL copied to clipboard!"
+          bodyText={successText}
           isOpen={showSuccessModal}
           onClose={() => setShowSuccessModal(false)}
         />
+        {reportFlowUi}
         <RawEventModal
           isOpen={showRawEventModal}
           onClose={() => setShowRawEventModal(false)}

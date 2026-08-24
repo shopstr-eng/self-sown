@@ -10,6 +10,7 @@ import {
   DropdownMenu,
   DropdownItem,
   Button,
+  useDisclosure,
 } from "@heroui/react";
 import { XCircleIcon, EllipsisVerticalIcon } from "@heroicons/react/24/outline";
 import parseTags, {
@@ -18,13 +19,17 @@ import parseTags, {
 import { parseZapsnagNote } from "@/utils/parsers/zapsnag-parser";
 import CheckoutCard from "../../components/utility-components/checkout-card";
 import ZapsnagButton from "../../components/ZapsnagButton";
-import { ProductContext } from "../../utils/context/context";
+import { ProductContext, ProfileMapContext } from "../../utils/context/context";
 import { nip19 } from "nostr-tools";
 import {
   RawEventModal,
   EventIdModal,
 } from "../../components/utility-components/modals/event-modals";
 import { findProductBySlug, getListingSlug } from "@/utils/url-slugs";
+import {
+  eventMatchesListingIdentifier,
+  getListingRouteIdentifier,
+} from "@/utils/listing-identifiers";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
 import { GetServerSideProps } from "next";
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
@@ -34,7 +39,12 @@ import {
   fetchProductByListingSlug,
 } from "@/utils/db/db-service";
 import { NostrEvent } from "@/utils/types/types";
+import { SignerContext } from "@/components/utility-components/nostr-context-provider";
+import SignInModal from "@/components/sign-in/SignInModal";
+import useReportEventFlow from "@/components/utility-components/use-report-event-flow";
 import ShopstrSpinner from "@/components/utility-components/shopstr-spinner";
+import { useFollowToggle } from "@/components/hooks/use-follow-toggle";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 
 type ListingPageProps = {
   ogMeta: OgMetaProps;
@@ -46,12 +56,6 @@ type ResolvedListingState = {
   rawEvent: NostrEvent;
   isZapsnag: boolean;
 };
-
-function getListingIdentifier(
-  productId: string | string[] | undefined
-): string {
-  return Array.isArray(productId) ? productId[0] || "" : productId || "";
-}
 
 function resolveListingStateFromEvent(
   event: NostrEvent | null | undefined
@@ -113,7 +117,7 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
   context
 ) => {
   const { productId } = context.query;
-  const identifier = getListingIdentifier(productId);
+  const identifier = getListingRouteIdentifier(productId);
 
   if (!identifier) {
     return { props: { ogMeta: LISTING_FALLBACK, initialProductEvent: null } };
@@ -181,6 +185,7 @@ export const getServerSideProps: GetServerSideProps<ListingPageProps> = async (
 
 const Listing = ({ initialProductEvent }: ListingPageProps) => {
   const router = useRouter();
+  const { pubkey: userPubkey } = useContext(SignerContext);
   const seededListing = useMemo(
     () => resolveListingStateFromEvent(initialProductEvent),
     [initialProductEvent]
@@ -188,6 +193,7 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
   const [productData, setProductData] = useState<ProductData | undefined>(
     seededListing?.productData
   );
+
   const [isZapsnag, setIsZapsnag] = useState(seededListing?.isZapsnag ?? false);
   const [productIdString, setProductIdString] = useState("");
   const [rawEvent, setRawEvent] = useState<NostrEvent | undefined>(
@@ -202,6 +208,7 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
   const [invoiceGenerationFailed, setInvoiceGenerationFailed] = useState(false);
   const [cashuPaymentSent, setCashuPaymentSent] = useState(false);
   const [cashuPaymentFailed, setCashuPaymentFailed] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Once payment lands, let the inline "Payment confirmed!" GIF play through
   // once and then push straight to the order summary page. Avoids the prior
@@ -217,22 +224,51 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
   }, [invoiceIsPaid, cashuPaymentSent, router]);
 
   const productContext = useContext(ProductContext);
+  const { openReportFlow, reportFlowUi } = useReportEventFlow({
+    targetLabel: "listing",
+    reportedPubkey: productData?.pubkey,
+    reportedEventId: productData?.id,
+    onRequireLogin: onOpen,
+  });
+  const profileMap = useContext(ProfileMapContext).profileData;
+
+  // seller pk before productData loads (SSR / raw event)
+  const sellerPubkey = useMemo(
+    () =>
+      productData?.pubkey ||
+      rawEvent?.pubkey ||
+      seededListing?.productData.pubkey ||
+      initialProductEvent?.pubkey ||
+      "",
+    [
+      productData?.pubkey,
+      rawEvent?.pubkey,
+      seededListing?.productData.pubkey,
+      initialProductEvent?.pubkey,
+    ]
+  );
+
+  const p2pk = useMemo(() => {
+    if (!sellerPubkey) return undefined;
+    return profileMap.get(sellerPubkey)?.content.p2pk;
+  }, [profileMap, sellerPubkey]);
+  const {
+    isFollowing: isFollowingSeller,
+    isLoading: isFollowActionLoading,
+    toggle: handleFollowToggle,
+  } = useFollowToggle(sellerPubkey, { onRequireSignIn: onOpen });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const pk =
-        sessionStorage.getItem("sf_seller_pubkey") ||
-        localStorage.getItem("sf_seller_pubkey");
-      if (pk) setSfSellerPubkey(pk);
-    }
+    const pk =
+      storage.getSessionItem(STORAGE_KEYS.SF_SELLER_PUBKEY) ||
+      storage.getItem(STORAGE_KEYS.SF_SELLER_PUBKEY);
+    if (pk) setSfSellerPubkey(pk);
   }, []);
 
   useEffect(() => {
     if (router.isReady) {
       const { productId } = router.query;
-      const resolvedProductId = Array.isArray(productId)
-        ? productId[0] || ""
-        : productId || "";
+      const resolvedProductId = getListingRouteIdentifier(productId);
       setProductIdString(resolvedProductId);
       if (!resolvedProductId) {
         router.push("/marketplace");
@@ -279,32 +315,18 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
       }
 
       if (!matchingEvent) {
-        matchingEvent = productContext.productEvents.find(
-          (event: NostrEvent) => {
-            const naddrMatch =
-              nip19.naddrEncode({
-                identifier:
-                  event.tags.find((tag: string[]) => tag[0] === "d")?.[1] || "",
-                pubkey: event.pubkey,
-                kind: event.kind,
-              }) === productIdString;
-
-            const dTagMatch =
-              event.tags.find((tag: string[]) => tag[0] === "d")?.[1] ===
-              productIdString;
-            const idMatch = event.id === productIdString;
-            return naddrMatch || dTagMatch || idMatch;
-          }
+        matchingEvent = productContext.productEvents.find((event: NostrEvent) =>
+          eventMatchesListingIdentifier(event, productIdString)
         );
       }
 
       if (matchingEvent) {
         if (sfSellerPubkey && matchingEvent.pubkey !== sfSellerPubkey) {
           setSfSellerPubkey("");
-          sessionStorage.removeItem("sf_seller_pubkey");
-          sessionStorage.removeItem("sf_shop_slug");
-          localStorage.removeItem("sf_seller_pubkey");
-          localStorage.removeItem("sf_shop_slug");
+          storage.removeSessionItem(STORAGE_KEYS.SF_SELLER_PUBKEY);
+          storage.removeSessionItem(STORAGE_KEYS.SF_SHOP_SLUG);
+          storage.removeItem(STORAGE_KEYS.SF_SELLER_PUBKEY);
+          storage.removeItem(STORAGE_KEYS.SF_SHOP_SLUG);
         }
         const resolvedListing = resolveListingStateFromEvent(matchingEvent);
         if (resolvedListing) {
@@ -406,18 +428,32 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
                           </Button>
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Event Actions">
-                          <DropdownItem
-                            key="view-raw"
-                            onPress={() => setShowRawEventModal(true)}
-                          >
-                            View Raw Event
-                          </DropdownItem>
-                          <DropdownItem
-                            key="view-id"
-                            onPress={() => setShowEventIdModal(true)}
-                          >
-                            View Event ID
-                          </DropdownItem>
+                          {[
+                            <DropdownItem
+                              key="view-raw"
+                              onPress={() => setShowRawEventModal(true)}
+                            >
+                              View Raw Event
+                            </DropdownItem>,
+                            <DropdownItem
+                              key="view-id"
+                              onPress={() => setShowEventIdModal(true)}
+                            >
+                              View Event ID
+                            </DropdownItem>,
+                            ...(productData.pubkey !== userPubkey
+                              ? [
+                                  <DropdownItem
+                                    key="report-listing"
+                                    color="danger"
+                                    className="text-danger"
+                                    onPress={openReportFlow}
+                                  >
+                                    Report Listing
+                                  </DropdownItem>,
+                                ]
+                              : []),
+                          ]}
                         </DropdownMenu>
                       </Dropdown>
                     )}
@@ -425,6 +461,22 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
                   <p className="mb-6 whitespace-pre-wrap text-gray-600 dark:text-gray-300">
                     {productData.summary}
                   </p>
+                  {sellerPubkey && sellerPubkey !== userPubkey && (
+                    <Button
+                      color="secondary"
+                      variant="flat"
+                      className="mb-4"
+                      onPress={handleFollowToggle}
+                      isLoading={isFollowActionLoading}
+                      isDisabled={isFollowActionLoading}
+                    >
+                      {isFollowActionLoading
+                        ? "Please sign..."
+                        : isFollowingSeller
+                          ? "Unfollow"
+                          : "+ Follow"}
+                    </Button>
+                  )}
                   <ZapsnagButton product={productData} />
                 </div>
               </div>
@@ -440,6 +492,8 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
                 onClose={() => setShowEventIdModal(false)}
                 rawEvent={rawEvent}
               />
+              {reportFlowUi}
+              <SignInModal isOpen={isOpen} onClose={onClose} />
             </div>
           ) : (
             <CheckoutCard
@@ -450,6 +504,7 @@ const Listing = ({ initialProductEvent }: ListingPageProps) => {
               setCashuPaymentSent={setCashuPaymentSent}
               setCashuPaymentFailed={setCashuPaymentFailed}
               rawEvent={rawEvent}
+              p2pk={p2pk}
             />
           )
         ) : isListingNotFound ? (

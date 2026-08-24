@@ -6,7 +6,7 @@ import {
   signAndPublishEvent,
 } from "@/utils/mcp/nostr-signing";
 import { ApiKeyRecord, getAgentSigner } from "@/utils/mcp/auth";
-import { EventTemplate } from "nostr-tools";
+import { EventTemplate, getEventHash } from "nostr-tools";
 import { cacheEvent, getDbPool } from "@/utils/db/db-service";
 import { v4 as uuidv4 } from "uuid";
 import dns from "dns";
@@ -23,6 +23,8 @@ import {
   buildSignedHttpRequestProofTemplate,
   SIGNED_EVENT_HEADER,
 } from "@/utils/nostr/request-auth";
+import { getDefaultRelays, withBlastr } from "@/utils/nostr/relay-config";
+import { createGiftWrapEvent } from "@/utils/nostr/gift-wrap";
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
@@ -106,9 +108,15 @@ async function getSigner(apiKey: ApiKeyRecord): Promise<McpNostrSigner | null> {
 
 export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
   const baseUrl = `http://localhost:${process.env.PORT || 5000}`;
+  const context = { apiKeyId: apiKey.id, pubkey: apiKey.pubkey };
+  const reg = (
+    name: string,
+    description: string,
+    inputSchema: any,
+    cb: (args: any, extra: any) => any
+  ) => registerTool(server, name, description, inputSchema, cb, context);
 
-  registerTool(
-    server,
+  reg(
     "set_user_profile",
     "Create or update your Nostr user profile (kind 0). Sets metadata like name, about, picture, lightning address, etc.",
     {
@@ -183,8 +191,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "set_shop_profile",
     "Create or update your shop profile (kind 30019). Sets shop metadata like name, about, picture, banner, settings, and storefront configuration.",
     {
@@ -514,8 +521,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "register_shop_slug",
     "Register, update, or delete your shop's URL slug for the storefront. The slug becomes part of your shop URL (e.g. milk.market/shop/your-slug). Slug must be lowercase alphanumeric with hyphens, 3-50 characters. Reserved words (shop, admin, api, etc.) are not allowed. To delete, set action to 'delete'.",
     {
@@ -639,8 +645,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "create_product_listing",
     "Publish a new product listing (kind 30402) to the marketplace. Creates a classified listing with title, description, price, images, categories, shipping options, and more.",
     {
@@ -919,8 +924,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "update_product_listing",
     "Update an existing product listing by publishing a new event with the same d-tag. All fields are optional — only provided fields will be included.",
     {
@@ -1129,8 +1133,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "delete_listing",
     "Delete a product listing or any Nostr event by publishing a deletion event (kind 5).",
     {
@@ -1170,8 +1173,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "publish_review",
     "Publish a review (kind 31555) for a product or seller. Includes content text and ratings.",
     {
@@ -1265,8 +1267,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "create_community_post",
     "Create a post in a Nostr community (kind 1111). Supports top-level posts and replies.",
     {
@@ -1343,8 +1344,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "send_direct_message",
     "Send an encrypted direct message using NIP-17 gift wrap (kind 1059/13/14). Supports plain messages, listing inquiries, and order-related messages.",
     {
@@ -1395,18 +1395,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       if (!signer) return noSignerError();
 
       try {
-        const {
-          generateSecretKey,
-          getPublicKey,
-          finalizeEvent,
-          getEventHash,
-          nip44,
-        } = await import("nostr-tools");
-
         const senderPubkey = signer.getPubKey();
-        const { getDefaultRelays, withBlastr } =
-          await import("@/utils/nostr/nostr-helper-functions");
-
         const defaultRelays = getDefaultRelays();
         const relayHint = defaultRelays[0] || "wss://relay.damus.io";
 
@@ -1446,86 +1435,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const innerEventId = getEventHash(innerEventForHash as any);
         const fullInnerEvent = { id: innerEventId, ...innerEvent };
 
-        const randomPrivKey = generateSecretKey();
-        const randomPubKey = getPublicKey(randomPrivKey);
+        const stringifiedInner = JSON.stringify(fullInnerEvent);
 
-        async function createGiftWrap(
-          targetPubkey: string,
-          sealPubkey: string,
-          useRandomKey: boolean
-        ) {
-          const stringifiedInner = JSON.stringify(fullInnerEvent);
-          let encryptedSealContent: string;
-
-          if (useRandomKey) {
-            const conversationKey = nip44.getConversationKey(
-              randomPrivKey,
-              targetPubkey
-            );
-            encryptedSealContent = nip44.encrypt(
-              stringifiedInner,
-              conversationKey
-            );
-          } else {
-            encryptedSealContent = signer!.encrypt(
-              targetPubkey,
-              stringifiedInner
-            );
-          }
-
-          const now = Math.floor(Date.now() / 1000);
-          const randomOffset = Math.floor(Math.random() * 172800);
-          const sealTimestamp = now - randomOffset;
-
-          const sealEvent = {
-            pubkey: sealPubkey,
-            created_at: sealTimestamp,
-            content: encryptedSealContent,
-            kind: 13,
-            tags: [] as string[][],
-          };
-
-          let signedSeal;
-          if (useRandomKey) {
-            signedSeal = finalizeEvent(sealEvent, randomPrivKey);
-          } else {
-            signedSeal = signer!.sign(sealEvent);
-          }
-
-          const wrapPrivKey = generateSecretKey();
-          const wrapPubKey = getPublicKey(wrapPrivKey);
-
-          const stringifiedSeal = JSON.stringify(signedSeal);
-          const wrapConversationKey = nip44.getConversationKey(
-            wrapPrivKey,
-            targetPubkey
-          );
-          const encryptedWrap = nip44.encrypt(
-            stringifiedSeal,
-            wrapConversationKey
-          );
-
-          const wrapTimestamp = now - Math.floor(Math.random() * 172800);
-          const giftWrapEvent = {
-            pubkey: wrapPubKey,
-            created_at: wrapTimestamp,
-            content: encryptedWrap,
-            kind: 1059,
-            tags: [["p", targetPubkey, relayHint]],
-          };
-
-          return finalizeEvent(giftWrapEvent, wrapPrivKey);
-        }
-
-        const recipientWrap = await createGiftWrap(
+        const recipientWrap = await createGiftWrapEvent(
+          stringifiedInner,
           params.recipientPubkey,
-          senderPubkey,
-          false
+          { signer, relayHint }
         );
-        const senderWrap = await createGiftWrap(
+
+        const senderWrap = await createGiftWrapEvent(
+          stringifiedInner,
           senderPubkey,
-          randomPubKey,
-          true
+          { relayHint }
         );
 
         const relayManager = new McpRelayManager(withBlastr(defaultRelays));
@@ -1558,8 +1479,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "update_order_address",
     "Update the shipping address for an existing order. Sends an encrypted address change request to the seller via NIP-17 gift-wrapped DM and updates the order record.",
     {
@@ -1605,12 +1525,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           (params.productTitle ? ` (${params.productTitle})` : "") +
           `\n\nNew Address: ${params.newAddress}`;
 
-        const { generateSecretKey, finalizeEvent, getEventHash, nip44 } =
-          await import("nostr-tools");
-
         const senderPubkey = signer.getPubKey();
-        const { getDefaultRelays, withBlastr } =
-          await import("@/utils/nostr/nostr-helper-functions");
         const defaultRelays = getDefaultRelays();
 
         const innerEvent = {
@@ -1630,55 +1545,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const innerEventId = getEventHash(innerEventForHash as any);
         const fullInnerEvent = { id: innerEventId, ...innerEvent };
 
-        const randomPrivKey = generateSecretKey();
-
-        async function createAddressChangeWrap(targetPubkey: string) {
-          const stringifiedInner = JSON.stringify(fullInnerEvent);
-          const conversationKey = nip44.getConversationKey(
-            randomPrivKey,
-            targetPubkey
-          );
-          const encryptedSealContent = nip44.encrypt(
-            stringifiedInner,
-            conversationKey
-          );
-
-          const now = Math.floor(Date.now() / 1000);
-          const randomOffset = Math.floor(Math.random() * 172800);
-          const sealTimestamp = now - randomOffset;
-
-          const sealEvent = {
-            created_at: sealTimestamp,
-            kind: 13,
-            tags: [],
-            content: encryptedSealContent,
-          };
-
-          const signedSeal = finalizeEvent(sealEvent, randomPrivKey);
-
-          const wrapPrivKey = generateSecretKey();
-          const wrapConversationKey = nip44.getConversationKey(
-            wrapPrivKey,
-            targetPubkey
-          );
-          const wrapContent = nip44.encrypt(
-            JSON.stringify(signedSeal),
-            wrapConversationKey
-          );
-
-          const wrapTimestamp = now - Math.floor(Math.random() * 172800);
-
-          const wrapEvent = {
-            created_at: wrapTimestamp,
-            kind: 1059,
-            tags: [["p", targetPubkey]],
-            content: wrapContent,
-          };
-
-          return finalizeEvent(wrapEvent, wrapPrivKey);
-        }
-
-        const sellerWrap = await createAddressChangeWrap(params.sellerPubkey);
+        const sellerWrap = await createGiftWrapEvent(
+          JSON.stringify(fullInnerEvent),
+          params.sellerPubkey
+        );
 
         const relayManager = new McpRelayManager(withBlastr(defaultRelays));
 
@@ -1709,8 +1579,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "send_shipping_update",
     "Send a shipping update to a buyer via encrypted NIP-17 gift-wrapped DM. Includes tracking number, carrier, and estimated delivery time. Also updates the order status to 'shipped' in the database.",
     {
@@ -1760,11 +1629,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             startTime
           );
         }
-
-        const { generateSecretKey, finalizeEvent, getEventHash, nip44 } =
-          await import("nostr-tools");
-        const { getDefaultRelays, withBlastr } =
-          await import("@/utils/nostr/nostr-helper-functions");
 
         const senderPubkey = signer.getPubKey();
         const defaultRelays = getDefaultRelays();
@@ -1819,50 +1683,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const innerEventId = getEventHash(innerEventForHash as any);
         const fullInnerEvent = { id: innerEventId, ...innerEvent };
 
-        const randomPrivKey = generateSecretKey();
-
-        async function createWrap(targetPubkey: string) {
-          const stringifiedInner = JSON.stringify(fullInnerEvent);
-          const conversationKey = nip44.getConversationKey(
-            randomPrivKey,
-            targetPubkey
-          );
-          const encryptedContent = nip44.encrypt(
-            stringifiedInner,
-            conversationKey
-          );
-
-          const now = Math.floor(Date.now() / 1000);
-          const sealEvent = {
-            created_at: now - Math.floor(Math.random() * 172800),
-            kind: 13,
-            tags: [],
-            content: encryptedContent,
-          };
-          const signedSeal = finalizeEvent(sealEvent, randomPrivKey);
-
-          const wrapPrivKey = generateSecretKey();
-          const wrapConversationKey = nip44.getConversationKey(
-            wrapPrivKey,
-            targetPubkey
-          );
-          const wrapContent = nip44.encrypt(
-            JSON.stringify(signedSeal),
-            wrapConversationKey
-          );
-
-          return finalizeEvent(
-            {
-              created_at: now - Math.floor(Math.random() * 172800),
-              kind: 1059,
-              tags: [["p", targetPubkey]],
-              content: wrapContent,
-            },
-            wrapPrivKey
-          );
-        }
-
-        const buyerWrap = await createWrap(order.buyer_pubkey);
+        const buyerWrap = await createGiftWrapEvent(
+          JSON.stringify(fullInnerEvent),
+          order.buyer_pubkey
+        );
 
         const relayManager = new McpRelayManager(withBlastr(defaultRelays));
 
@@ -1910,14 +1734,13 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "update_order_status",
-    "Update the status of an order and optionally notify the buyer via encrypted DM. Sellers can confirm, ship, or complete orders. Buyers can cancel orders.",
+    "Update the status of an order and optionally notify the buyer via encrypted DM. Sellers can confirm, ship, or mark orders delivered. Buyers can cancel orders.",
     {
       orderId: z.string().describe("The order ID to update"),
       status: z
-        .enum(["confirmed", "shipped", "delivered", "completed", "cancelled"])
+        .enum(["confirmed", "shipped", "delivered", "cancelled"])
         .describe("New order status"),
       buyerPubkey: z
         .string()
@@ -1994,11 +1817,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
         if (params.buyerPubkey && params.message) {
           try {
-            const { generateSecretKey, finalizeEvent, getEventHash, nip44 } =
-              await import("nostr-tools");
-            const { getDefaultRelays, withBlastr } =
-              await import("@/utils/nostr/nostr-helper-functions");
-
             const senderPubkey = signer.getPubKey();
             const defaultRelays = getDefaultRelays();
             const relayHint: string =
@@ -2010,7 +1828,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               confirmed: "order-info",
               shipped: "shipping-info",
               delivered: "order-completed",
-              completed: "order-completed",
               cancelled: "order-info",
             };
 
@@ -2037,45 +1854,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             const innerEventId = getEventHash(innerEventForHash as any);
             const fullInnerEvent = { id: innerEventId, ...innerEvent };
 
-            const randomPrivKey = generateSecretKey();
-
-            const stringifiedInner = JSON.stringify(fullInnerEvent);
-            const conversationKey = nip44.getConversationKey(
-              randomPrivKey,
+            const wrapEvent = await createGiftWrapEvent(
+              JSON.stringify(fullInnerEvent),
               buyerPubkey
-            );
-            const encryptedContent = nip44.encrypt(
-              stringifiedInner,
-              conversationKey
-            );
-
-            const now = Math.floor(Date.now() / 1000);
-            const sealEvent = {
-              created_at: now - Math.floor(Math.random() * 172800),
-              kind: 13,
-              tags: [],
-              content: encryptedContent,
-            };
-            const signedSeal = finalizeEvent(sealEvent, randomPrivKey);
-
-            const wrapPrivKey = generateSecretKey();
-            const wrapConversationKey = nip44.getConversationKey(
-              wrapPrivKey,
-              buyerPubkey
-            );
-            const wrapContent = nip44.encrypt(
-              JSON.stringify(signedSeal),
-              wrapConversationKey
-            );
-
-            const wrapEvent = finalizeEvent(
-              {
-                created_at: now - Math.floor(Math.random() * 172800),
-                kind: 1059,
-                tags: [["p", buyerPubkey]],
-                content: wrapContent,
-              },
-              wrapPrivKey
             );
 
             const relayManager = new McpRelayManager(withBlastr(defaultRelays));
@@ -2110,8 +1891,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "list_messages",
     "Fetch and decrypt your incoming messages (NIP-17 gift-wrapped DMs). Returns decrypted message content, sender, subject, and read status. Use to check inquiries, order messages, address changes, and other DMs.",
     {
@@ -2234,8 +2014,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "mark_messages_read",
     "Mark specific messages as read by their event IDs.",
     {
@@ -2278,8 +2057,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "set_relay_list",
     "Publish your relay list (kind 10002, NIP-65). Configures which relays you read from and write to.",
     {
@@ -2341,8 +2119,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "set_blossom_servers",
     "Publish your Blossom media server list (kind 10063). Configures which servers to use for media uploads.",
     {
@@ -2388,8 +2165,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "upload_media",
     "Upload media to a Blossom server. Creates a signed authorization event (kind 24242) and uploads the file. Returns the URL of the uploaded media.",
     {
@@ -2488,8 +2264,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "create_discount_code",
     "Create a discount code for your shop. Codes are percentage-based and can have optional expiration dates.",
     {
@@ -2557,8 +2332,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "delete_discount_code",
     "Delete one of your discount codes.",
     {
@@ -2607,8 +2381,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "list_discount_codes",
     "List your shop's discount codes.",
     {},
@@ -2651,8 +2424,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "get_cashu_balance",
     "Check your Cashu wallet balance by querying stored proof events.",
     {
@@ -2714,8 +2486,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "receive_cashu_tokens",
     "Receive Cashu tokens and store them as a proof event (kind 7375). Publishes the encrypted proof event to your Nostr relays.",
     {
@@ -2744,9 +2515,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           proofs,
         });
         const encryptedContent = signer.encrypt(pubkey, proofData);
-
-        const { getDefaultRelays, withBlastr } =
-          await import("@/utils/nostr/nostr-helper-functions");
 
         const relays = withBlastr(getDefaultRelays());
         const tags: string[][] = [["mint", mintUrl]];
@@ -2782,8 +2550,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "set_cashu_mints",
     "Configure your Cashu wallet mints by publishing a wallet configuration event (kind 17375).",
     {
@@ -2806,9 +2573,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           pubkey,
           JSON.stringify(mintTags)
         );
-
-        const { getDefaultRelays, withBlastr } =
-          await import("@/utils/nostr/nostr-helper-functions");
 
         const relays = withBlastr(getDefaultRelays());
         const tags: string[][] = [["d", pubkey]];
@@ -2843,8 +2607,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "send_cashu_payment",
     "Send a Cashu payment by melting tokens to pay a Lightning invoice. Uses proofs from your stored Cashu wallet.",
     {
@@ -2964,8 +2727,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  registerTool(
-    server,
+  reg(
     "manage_custom_domain",
     "Verify and register a custom domain for your Milk Market storefront. Checks that the domain's CNAME or A record points to milk.market, then records the mapping in the database.",
     {

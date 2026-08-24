@@ -21,16 +21,18 @@ import {
   FaceSmileIcon,
   PlusIcon,
   EllipsisVerticalIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { useRouter } from "next/router";
 import { nip19, Event } from "nostr-tools";
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import {
   ReviewsContext,
   ShopMapContext,
   FollowsContext,
   ProductContext,
   ProfileMapContext,
+  ReportsContext,
 } from "@/utils/context/context";
 import DisplayProducts from "../display-products";
 import LocationDropdown from "../utility-components/dropdowns/location-dropdown";
@@ -55,6 +57,12 @@ import {
   isNpub,
 } from "@/utils/url-slugs";
 import { useDebounce } from "@/utils/hooks/useDebounce";
+import { useFollowToggle } from "@/components/hooks/use-follow-toggle";
+import {
+  getProfileReportSignal,
+  getReportModerationLabel,
+  summarizeReportEvents,
+} from "@/utils/nostr/report-moderation";
 
 export function normalizeNpub(
   npub: string | string[] | undefined
@@ -92,9 +100,10 @@ function MarketplacePage({
   const [selectedCategories, setSelectedCategories] = useState(
     new Set<string>([])
   );
+  const [categorySearch, setCategorySearch] = useState("");
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedSearch, setSelectedSearch] = useState("");
-  const debouncedSearch = useDebounce(selectedSearch, 300);
+  const debouncedSearch = useDebounce(selectedSearch, 500);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const [wotFilter, setWotFilter] = useState(false);
@@ -121,13 +130,44 @@ function MarketplacePage({
   const reviewsContext = useContext(ReviewsContext);
   const shopMapContext = useContext(ShopMapContext);
   const followsContext = useContext(FollowsContext);
+  const reportsContext = useContext(ReportsContext);
   const productEventContext = useContext(ProductContext);
   const profileMapContext = useContext(ProfileMapContext);
 
   const { pubkey: userPubkey, isLoggedIn: loggedIn } =
     useContext(SignerContext);
+  const {
+    isFollowing: isFollowingFocusedPubkey,
+    isLoading: isFollowActionLoading,
+    toggle: handleFollowToggle,
+  } = useFollowToggle(focusedPubkey, { onRequireSignIn: onOpen });
+  const directFollowPubkeys = useMemo(
+    () => followsContext.directFollowList,
+    [followsContext.directFollowList]
+  );
+  const reportSummaries = useMemo(
+    () =>
+      summarizeReportEvents({
+        reportEvents: reportsContext.reportEvents,
+        directFollowPubkeys,
+        userPubkey,
+      }),
+    [reportsContext.reportEvents, directFollowPubkeys, userPubkey]
+  );
+  const profileReportSignal = getProfileReportSignal(
+    focusedPubkey,
+    reportSummaries
+  );
+  const profileReportLabel = getReportModerationLabel(
+    profileReportSignal,
+    "profile"
+  );
 
   const searchBarRef = useRef<HTMLDivElement>(null);
+  const hasTrustGraph =
+    Boolean(loggedIn) &&
+    !followsContext.isLoading &&
+    followsContext.firstDegreeFollowsLength > 0;
 
   useEffect(() => {
     const slug = normalizeNpub(router.query.npub);
@@ -239,11 +279,14 @@ function MarketplacePage({
   }, [focusedPubkey, shopMapContext]);
 
   useEffect(() => {
-    setIsFetchingFollows(true);
-    if (followsContext.followList.length && !followsContext.isLoading) {
-      setIsFetchingFollows(false);
+    setIsFetchingFollows(followsContext.isLoading);
+  }, [followsContext.isLoading]);
+
+  useEffect(() => {
+    if (!hasTrustGraph && wotFilter) {
+      setWotFilter(false);
     }
-  }, [followsContext]);
+  }, [hasTrustGraph, wotFilter]);
 
   const handleFilteredProductsChange = (products: ProductData[]) => {
     setFilteredProducts(products);
@@ -336,7 +379,13 @@ function MarketplacePage({
                           dropDownKeys={
                             reviewerPubkey === userPubkey
                               ? ["shop_profile"]
-                              : ["shop", "inquiry", "copy_npub"]
+                              : [
+                                  "shop",
+                                  "inquiry",
+                                  "copy_npub",
+                                  "report_profile",
+                                  "follow",
+                                ]
                           }
                         />
                       </div>
@@ -463,6 +512,20 @@ function MarketplacePage({
               >
                 Message
               </Button>
+              {focusedPubkey !== userPubkey && (
+                <Button
+                  className="text-light-text dark:text-dark-text dark:hover:text-accent-dark-text bg-transparent text-lg hover:text-purple-700 sm:text-xl"
+                  onPress={handleFollowToggle}
+                  isLoading={isFollowActionLoading}
+                  isDisabled={isFollowActionLoading}
+                >
+                  {isFollowActionLoading
+                    ? "Please sign..."
+                    : isFollowingFocusedPubkey
+                      ? "Unfollow"
+                      : "+ Follow"}
+                </Button>
+              )}
               {rawEvent && (
                 <Dropdown>
                   <DropdownTrigger>
@@ -532,9 +595,31 @@ function MarketplacePage({
                   }
                 }}
                 selectionMode="multiple"
+                listboxProps={{
+                  topContent: (
+                    <Input
+                      aria-label="Search categories"
+                      className="mb-1 px-1 py-1"
+                      value={categorySearch}
+                      onValueChange={setCategorySearch}
+                      placeholder="Search category..."
+                      type="text"
+                      startContent={
+                        <MagnifyingGlassIcon
+                          aria-hidden="true"
+                          className="text-default-400 h-4 w-4"
+                        />
+                      }
+                      onKeyDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ),
+                }}
               >
                 <SelectSection className="text-light-text dark:text-dark-text">
-                  {CATEGORIES.map((category) => (
+                  {CATEGORIES.filter((c) =>
+                    c.toLowerCase().includes(categorySearch.toLowerCase())
+                  ).map((category) => (
                     <SelectItem key={category}>{category}</SelectItem>
                   ))}
                 </SelectSection>
@@ -548,13 +633,19 @@ function MarketplacePage({
                   setSelectedLocation(event.target.value);
                 }}
               />
-              {!isFetchingFollows ? (
+              {!isFetchingFollows && hasTrustGraph ? (
                 <ShopstrSwitch
                   wotFilter={wotFilter}
                   setWotFilter={setWotFilter}
                 />
               ) : null}
             </div>
+          </div>
+        )}
+        {focusedPubkey && profileReportSignal.level !== "none" && (
+          <div className="mt-2 flex w-full items-center gap-2 rounded-md border border-red-400/40 bg-red-500/10 px-3 py-2 text-red-600 dark:text-red-300">
+            <ExclamationTriangleIcon className="h-5 w-5 shrink-0" />
+            <span className="text-sm font-medium">{profileReportLabel}</span>
           </div>
         )}
       </div>

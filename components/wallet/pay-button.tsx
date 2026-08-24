@@ -30,6 +30,7 @@ import {
 } from "@cashu/cashu-ts";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { safeSwap } from "@/utils/cashu/swap-retry-service";
+import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 import { formatWithCommas } from "../utility-components/display-monetary-info";
 import { CashuWalletContext } from "../../utils/context/context";
 import {
@@ -37,6 +38,7 @@ import {
   SignerContext,
 } from "@/components/utility-components/nostr-context-provider";
 import { NostrNIP46Signer } from "@/utils/nostr/signers/nostr-nip46-signer";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 
 const PayButton = () => {
   const [showPayModal, setShowPayModal] = useState(false);
@@ -169,16 +171,13 @@ const PayButton = () => {
             ) || !send.some((s) => s.secret === p.secret)
         ) as Proof[];
         const quarantineProofArray = [...remainingProofsAfterMelt, ...keep];
-        localStorage.setItem("tokens", JSON.stringify(quarantineProofArray));
+        storage.setJson(STORAGE_KEYS.TOKENS, quarantineProofArray);
         throw new Error(meltOutcome.errorMessage ?? "Melt outcome ambiguous");
       }
       const changeProofs = [...keep, ...meltOutcome.changeProofs];
       const changeAmount =
         Array.isArray(changeProofs) && changeProofs.length > 0
-          ? changeProofs.reduce(
-              (acc, current: Proof) => acc + current.amount.toNumber(),
-              0
-            )
+          ? sumProofAmounts(changeProofs)
           : 0;
       const remainingProofs = tokens.filter(
         (p: Proof) =>
@@ -190,23 +189,17 @@ const PayButton = () => {
       } else {
         proofArray = [...remainingProofs];
       }
-      localStorage.setItem("tokens", JSON.stringify(proofArray));
-      const filteredTokenAmount = filteredProofs.reduce(
-        (acc, token: Proof) => acc + token.amount.toNumber(),
-        0
-      );
+      storage.setJson(STORAGE_KEYS.TOKENS, proofArray);
+      const filteredTokenAmount = sumProofAmounts(filteredProofs);
       const transactionAmount = filteredTokenAmount - changeAmount;
-      localStorage.setItem(
-        "history",
-        JSON.stringify([
-          {
-            type: 4,
-            amount: transactionAmount,
-            date: Math.floor(Date.now() / 1000),
-          },
-          ...history,
-        ])
-      );
+      storage.setJson(STORAGE_KEYS.HISTORY, [
+        {
+          type: 4,
+          amount: transactionAmount,
+          date: Math.floor(Date.now() / 1000),
+        },
+        ...history,
+      ]);
       await publishProofEvent(
         nostr!,
         signer!,

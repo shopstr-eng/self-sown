@@ -53,6 +53,7 @@ export const parseZapsnagNote = (event: NostrEvent): ProductData => {
     categories: ["zapsnag"],
     location: "Global",
     price: price,
+    priceStatus: "known",
     currency: currency,
     totalCost: price,
     shippingType: "Free",

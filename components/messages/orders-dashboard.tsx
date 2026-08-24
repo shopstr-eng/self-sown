@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { nip19 } from "nostr-tools";
 import {
@@ -28,6 +28,7 @@ import { ProfileWithDropdown } from "@/components/utility-components/profile/pro
 import ClaimButton from "@/components/utility-components/claim-button";
 import DisplayProductModal from "@/components/display-product-modal";
 import AddressChangeModal from "@/components/utility-components/address-change-modal";
+import { getStoredBuyerP2pkEscrowRecords } from "@/utils/cashu/p2pk-escrow-records";
 import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
@@ -38,14 +39,14 @@ import {
   registerTaggedOrderGroupingKey,
   resolveExplicitPaymentMethod,
 } from "@/utils/messages/order-message-utils";
+import { generateKeys } from "@/utils/nostr/key-utilities";
+import { publishReviewEvent } from "@/utils/nostr/nostr-helper-functions";
 import {
   constructGiftWrappedEvent,
   constructMessageSeal,
   constructMessageGiftWrap,
   sendGiftWrappedMessageEvent,
-  generateKeys,
-  publishReviewEvent,
-} from "@/utils/nostr/nostr-helper-functions";
+} from "@/utils/nostr/gift-wrap";
 import {
   NostrContext,
   SignerContext,
@@ -101,6 +102,7 @@ interface OrderData {
   paymentTag?: string;
   paymentProof?: string;
   subject?: string;
+  hasP2pkEscrowRecord?: boolean;
   reviewRating?: number;
   isSale?: boolean;
   currency?: string;
@@ -115,7 +117,13 @@ interface OrderData {
   returnRequestType?: string;
 }
 
-const OrdersDashboard = () => {
+const OrdersDashboard = ({
+  sellerOnly = false,
+  buyerOnly = false,
+}: {
+  sellerOnly?: boolean;
+  buyerOnly?: boolean;
+}) => {
   const chatsContext = useContext(ChatsContext);
   const productContext = useContext(ProductContext);
   const [orders, setOrders] = useState<OrderData[]>([]);
@@ -133,12 +141,11 @@ const OrdersDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [isSendingShipping, setIsSendingShipping] = useState(false);
 
-  const [randomNpubForSender, setRandomNpubForSender] = useState<string>("");
-  const [randomNsecForSender, setRandomNsecForSender] = useState<string>("");
-  const [randomNpubForReceiver, setRandomNpubForReceiver] =
-    useState<string>("");
-  const [randomNsecForReceiver, setRandomNsecForReceiver] =
-    useState<string>("");
+  const randomNpubForSenderRef = useRef<string>("");
+  const randomNsecForSenderRef = useRef<string>("");
+  const randomNpubForReceiverRef = useRef<string>("");
+  const randomNsecForReceiverRef = useRef<string>("");
+  const failedStatusPersistKeysRef = useRef<Set<string>>(new Set());
 
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedThumb, setSelectedThumb] = useState<"up" | "down" | null>(
@@ -210,12 +217,12 @@ const OrdersDashboard = () => {
   useEffect(() => {
     const fetchKeys = async () => {
       const { nsec: nsecForSender, npub: npubForSender } = await generateKeys();
-      setRandomNpubForSender(npubForSender);
-      setRandomNsecForSender(nsecForSender);
+      randomNpubForSenderRef.current = npubForSender;
+      randomNsecForSenderRef.current = nsecForSender;
       const { nsec: nsecForReceiver, npub: npubForReceiver } =
         await generateKeys();
-      setRandomNpubForReceiver(npubForReceiver);
-      setRandomNsecForReceiver(nsecForReceiver);
+      randomNpubForReceiverRef.current = npubForReceiver;
+      randomNsecForReceiverRef.current = nsecForReceiver;
     };
 
     fetchKeys();
@@ -629,6 +636,19 @@ const OrdersDashboard = () => {
       }
 
       const consolidatedOrders = Array.from(consolidatedOrdersMap.values());
+      const localEscrowRecords = await getStoredBuyerP2pkEscrowRecords(signer);
+      for (const escrowRecord of localEscrowRecords) {
+        const order = consolidatedOrders.find(
+          (item) => item.orderId === escrowRecord.orderId
+        );
+        if (order) {
+          order.hasP2pkEscrowRecord = true;
+          if (!order.paymentToken) {
+            order.paymentToken = escrowRecord.token;
+            order.paymentMethod = order.paymentMethod || "ecash";
+          }
+        }
+      }
       consolidatedOrders.sort((a, b) => b.timestamp - a.timestamp);
 
       const returnRequestOrderIds = new Set<string>();
@@ -663,8 +683,14 @@ const OrdersDashboard = () => {
         }
       }
 
-      setOrders(consolidatedOrders);
-      setTotalOrders(consolidatedOrders.length);
+      const finalOrders = sellerOnly
+        ? consolidatedOrders.filter((o) => o.isSale)
+        : buyerOnly
+          ? consolidatedOrders.filter((o) => !o.isSale)
+          : consolidatedOrders;
+
+      setOrders(finalOrders);
+      setTotalOrders(finalOrders.length);
       setIsLoading(false);
 
       const statusPriorityForPersist: Record<string, number> = {
@@ -675,7 +701,16 @@ const OrdersDashboard = () => {
         pending: 1,
       };
       for (const order of consolidatedOrders) {
-        if (order.status && order.orderId) {
+        if (order.status && order.orderId && signer) {
+          const statusPersistKey = `${order.orderId}:${
+            order.messageEvent?.id ?? ""
+          }:${order.status}`;
+          if (failedStatusPersistKeysRef.current.has(statusPersistKey)) {
+            continue;
+          }
+          if (order.subject === "order-receipt" && order.hasP2pkEscrowRecord) {
+            continue;
+          }
           const currentPriority = statusPriorityForPersist[order.status] || 0;
           const cachedStatusValue = order.statusLookupKeys
             .map((lookupKey) => cachedStatuses[lookupKey])
@@ -703,6 +738,12 @@ const OrdersDashboard = () => {
                     Authorization: authHeader,
                   },
                   body,
+                }).then((response) => {
+                  if (response.status === 404) {
+                    failedStatusPersistKeysRef.current.add(statusPersistKey);
+                  } else if (!response.ok) {
+                    console.error("Failed to save order status");
+                  }
                 })
               )
               .catch((err) =>
@@ -868,13 +909,17 @@ const OrdersDashboard = () => {
     setIsSendingShipping(true);
 
     try {
-      const decodedRandomPubkeyForSender = nip19.decode(randomNpubForSender);
-      const decodedRandomPrivkeyForSender = nip19.decode(randomNsecForSender);
+      const decodedRandomPubkeyForSender = nip19.decode(
+        randomNpubForSenderRef.current
+      );
+      const decodedRandomPrivkeyForSender = nip19.decode(
+        randomNsecForSenderRef.current
+      );
       const decodedRandomPubkeyForReceiver = nip19.decode(
-        randomNpubForReceiver
+        randomNpubForReceiverRef.current
       );
       const decodedRandomPrivkeyForReceiver = nip19.decode(
-        randomNsecForReceiver
+        randomNsecForReceiverRef.current
       );
 
       const daysToAdd = parseInt(data["Delivery Time"]!);
@@ -1163,13 +1208,17 @@ const OrdersDashboard = () => {
     setIsSendingReturnRequest(true);
 
     try {
-      const decodedRandomPubkeyForSender = nip19.decode(randomNpubForSender);
-      const decodedRandomPrivkeyForSender = nip19.decode(randomNsecForSender);
+      const decodedRandomPubkeyForSender = nip19.decode(
+        randomNpubForSenderRef.current
+      );
+      const decodedRandomPrivkeyForSender = nip19.decode(
+        randomNsecForSenderRef.current
+      );
       const decodedRandomPubkeyForReceiver = nip19.decode(
-        randomNpubForReceiver
+        randomNpubForReceiverRef.current
       );
       const decodedRandomPrivkeyForReceiver = nip19.decode(
-        randomNsecForReceiver
+        randomNsecForReceiverRef.current
       );
 
       const sellerPubkey =
@@ -1262,13 +1311,17 @@ const OrdersDashboard = () => {
     setIsSendingAddressChange(true);
 
     try {
-      const decodedRandomPubkeyForSender = nip19.decode(randomNpubForSender);
-      const decodedRandomPrivkeyForSender = nip19.decode(randomNsecForSender);
+      const decodedRandomPubkeyForSender = nip19.decode(
+        randomNpubForSenderRef.current
+      );
+      const decodedRandomPrivkeyForSender = nip19.decode(
+        randomNsecForSenderRef.current
+      );
       const decodedRandomPubkeyForReceiver = nip19.decode(
-        randomNpubForReceiver
+        randomNpubForReceiverRef.current
       );
       const decodedRandomPrivkeyForReceiver = nip19.decode(
-        randomNsecForReceiver
+        randomNsecForReceiverRef.current
       );
 
       const sellerPubkey =
@@ -1343,7 +1396,11 @@ const OrdersDashboard = () => {
       <div className="mx-auto w-full max-w-full min-w-0">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-light-text dark:text-dark-text text-3xl font-bold">
-            Orders Dashboard
+            {sellerOnly
+              ? "Seller Orders Dashboard"
+              : buyerOnly
+                ? "My Purchases"
+                : "Orders Dashboard"}
           </h1>
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -1374,10 +1431,12 @@ const OrdersDashboard = () => {
           </div>
         </div>
 
-        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div
+          className={`mb-8 grid grid-cols-1 gap-6 ${sellerOnly ? "md:grid-cols-4" : "md:grid-cols-3"}`}
+        >
           <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
             <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total Orders
+              {sellerOnly ? "Total Sales" : "Total Orders"}
             </h3>
             <p className="text-light-text dark:text-dark-text text-3xl font-bold">
               {totalOrders}
@@ -1386,7 +1445,7 @@ const OrdersDashboard = () => {
 
           <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
             <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
-              Total GMV
+              {sellerOnly ? "Total Revenue" : "Total GMV"}
             </h3>
             <p className="text-light-text dark:text-dark-text text-3xl font-bold">
               {displayCurrency === "sats"
@@ -1411,6 +1470,27 @@ const OrdersDashboard = () => {
                   })}`}
             </p>
           </div>
+
+          {sellerOnly && (
+            <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+              <h3 className="mb-2 text-sm font-medium text-gray-600 dark:text-gray-400">
+                Top Product
+              </h3>
+              <p className="text-light-text dark:text-dark-text truncate text-xl font-bold">
+                {(() => {
+                  const counts: Record<string, number> = {};
+                  orders.forEach((o) => {
+                    const title = o.productTitle || "Unknown";
+                    counts[title] = (counts[title] || 0) + 1;
+                  });
+                  const top = Object.entries(counts).sort(
+                    (a, b) => b[1] - a[1]
+                  )[0];
+                  return top ? `${top[0]} (×${top[1]})` : "—";
+                })()}
+              </p>
+            </div>
+          )}
         </div>
 
         {orders.length > 0 && (
@@ -1429,11 +1509,13 @@ const OrdersDashboard = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase dark:text-gray-400">
                     Order ID
                   </th>
+                  {!sellerOnly && (
+                    <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase dark:text-gray-400">
+                      Type
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase dark:text-gray-400">
-                    Type
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase dark:text-gray-400">
-                    Buyer/Seller
+                    {sellerOnly ? "Customer" : "Buyer/Seller"}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium tracking-wider text-gray-600 uppercase dark:text-gray-400">
                     Amount
@@ -1519,17 +1601,19 @@ const OrdersDashboard = () => {
                             ) : null}
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-sm whitespace-nowrap">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
-                              order.isSale
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-                            }`}
-                          >
-                            {order.isSale ? "Sale" : "Purchase"}
-                          </span>
-                        </td>
+                        {!sellerOnly && (
+                          <td className="px-4 py-4 text-sm whitespace-nowrap">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${
+                                order.isSale
+                                  ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                                  : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                              }`}
+                            >
+                              {order.isSale ? "Sale" : "Purchase"}
+                            </span>
+                          </td>
+                        )}
                         <td className="px-4 py-4 text-sm">
                           {(() => {
                             const displayPubkey = order.isSale
@@ -1580,7 +1664,7 @@ const OrdersDashboard = () => {
                             >
                               {order.status}
                             </span>
-                            {order.status === "pending" && (
+                            {order.isSale && order.status === "pending" && (
                               <button
                                 onClick={() => handleOpenShippingModal(order)}
                                 className="text-shopstr-purple-light hover:text-shopstr-purple dark:text-shopstr-yellow-light dark:hover:text-shopstr-yellow cursor-pointer text-left text-xs underline"
@@ -1651,12 +1735,22 @@ const OrdersDashboard = () => {
                           })()}
                         </td>
                         <td className="px-4 py-4 text-sm">
-                          {order.subject === "order-receipt" ? (
+                          {order.paymentToken &&
+                          (order.subject !== "order-receipt" ||
+                            order.hasP2pkEscrowRecord) ? (
+                            <ClaimButton
+                              token={order.paymentToken}
+                              orderId={order.orderId}
+                              buyerPubkey={order.buyerPubkey}
+                              sellerPubkey={
+                                order.sellerPubkey ??
+                                (order.isSale ? userPubkey : undefined)
+                              }
+                            />
+                          ) : order.subject === "order-receipt" ? (
                             <span className="text-green-600 dark:text-green-400">
                               Payment Sent
                             </span>
-                          ) : order.paymentToken ? (
-                            <ClaimButton token={order.paymentToken} />
                           ) : (
                             <span className="text-gray-600 dark:text-gray-400">
                               {order.paymentMethod}

@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, useMemo } from "react";
+import { useEffect, useState, useContext, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import {
   CheckCircleIcon,
@@ -13,6 +13,8 @@ import parseTags, {
 } from "@/utils/parsers/product-parser-functions";
 import { nip19 } from "nostr-tools";
 import ProductCard from "@/components/utility-components/product-card";
+import { productSatisfiesPriceFilter } from "@/utils/parsers/product-filter-helpers";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 
 interface OrderSummaryData {
   productTitle: string;
@@ -67,15 +69,18 @@ export default function StorefrontOrderConfirmation({
   const { isLoggedIn } = useContext(SignerContext);
   const productContext = useContext(ProductContext);
   const [orderData, setOrderData] = useState<OrderSummaryData | null>(null);
+  const hasConsumedOrderRef = useRef(false);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("orderSummary");
+    if (hasConsumedOrderRef.current) return;
+    const stored = storage.getSessionJson<OrderSummaryData | null>(
+      STORAGE_KEYS.ORDER_SUMMARY,
+      null
+    );
     if (stored) {
-      try {
-        setOrderData(JSON.parse(stored));
-      } catch {
-        router.push(`/shop/${shopSlug}`);
-      }
+      hasConsumedOrderRef.current = true;
+      setOrderData(stored);
+      storage.removeSessionItem(STORAGE_KEYS.ORDER_SUMMARY);
     } else {
       router.push(`/shop/${shopSlug}`);
     }
@@ -91,7 +96,8 @@ export default function StorefrontOrderConfirmation({
           parsed &&
           parsed.pubkey === shopPubkey &&
           parsed.title &&
-          parsed.images.length > 0
+          parsed.images.length > 0 &&
+          productSatisfiesPriceFilter(parsed)
         ) {
           products.push(parsed);
         }

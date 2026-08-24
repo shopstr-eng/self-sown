@@ -33,8 +33,8 @@ import {
   SHIPPING_OPTIONS,
 } from "@/utils/STATIC-VARIABLES";
 import {
+  getStoredRelays,
   PostListing,
-  getLocalStorageData,
   finalizeAndSendNostrEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
@@ -140,7 +140,7 @@ export default function ProductForm({
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const { relays } = getLocalStorageData();
+      const relays = getStoredRelays();
       setPubkey(signerPubKey as string);
       setRelayHint(relays[0] as string);
     }
@@ -661,7 +661,7 @@ export default function ProductForm({
               <p className="text-light-text dark:text-dark-text ml-2 text-xs">
                 Your donation rate on sales is set to{" "}
                 {profileContext.profileData.get(pubkey)?.content
-                  ?.shopstr_donation || 2.1}
+                  ?.shopstr_donation ?? 2.1}
                 %. You can modify this in your{" "}
                 <span
                   className="cursor-pointer underline hover:text-purple-500 dark:hover:text-yellow-500"

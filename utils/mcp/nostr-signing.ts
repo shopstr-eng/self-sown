@@ -14,13 +14,31 @@ import {
   createHash,
 } from "crypto";
 import { NostrEvent } from "@/utils/types/types";
-import { cacheEvent } from "@/utils/db/db-service";
-import {
-  getDefaultRelays,
-  withBlastr,
-} from "@/utils/nostr/nostr-helper-functions";
+import { cacheEvent, cacheEventStrict } from "@/utils/db/db-service";
+import { getDefaultRelays, withBlastr } from "@/utils/nostr/relay-config";
 
 const ALGORITHM = "aes-256-gcm";
+
+export const MCP_RELAY_ALLOWLIST = new Set([
+  "wss://relay.damus.io",
+  "wss://nos.lol",
+  "wss://purplepag.es",
+  "wss://relay.primal.net",
+  "wss://relay.nostr.band",
+  "wss://sendit.nosflare.com",
+]);
+
+function filterAllowedRelays(urls: string[]): string[] {
+  const allowed: string[] = [];
+  for (const url of urls) {
+    if (MCP_RELAY_ALLOWLIST.has(url)) {
+      allowed.push(url);
+    } else {
+      console.warn(`MCP relay blocked (not in allowlist): ${url}`);
+    }
+  }
+  return allowed;
+}
 
 function getEncryptionKey(): Uint8Array {
   const envKey = process.env.MCP_ENCRYPTION_KEY;
@@ -112,7 +130,11 @@ export class McpRelayManager {
 
   constructor(relayUrls?: string[]) {
     this.pool = new SimplePool();
-    this.relayUrls = relayUrls || withBlastr(getDefaultRelays());
+    const raw = relayUrls || withBlastr(getDefaultRelays());
+    this.relayUrls = filterAllowedRelays(raw);
+    if (this.relayUrls.length === 0) {
+      throw new Error("MCP relay allowlist produced no valid relays");
+    }
   }
 
   getRelayUrls(): string[] {
@@ -131,39 +153,66 @@ export class McpRelayManager {
 export async function signAndPublishEvent(
   signer: McpNostrSigner,
   eventTemplate: EventTemplate,
-  relayManager?: McpRelayManager
+  relayManager?: McpRelayManager,
+  options: {
+    waitForRelayPublish?: boolean;
+    requireDurableCache?: boolean;
+  } = {}
 ): Promise<NostrEvent> {
   const signedEvent = signer.sign(eventTemplate);
 
-  await cacheEvent(signedEvent);
+  if (options.requireDurableCache) {
+    await cacheEventStrict(signedEvent);
+  } else {
+    await cacheEvent(signedEvent);
+  }
 
   const manager = relayManager || new McpRelayManager();
-  try {
-    const publishPromise = manager.publish(signedEvent);
-    const timeoutPromise = new Promise<void>((_, reject) =>
-      setTimeout(() => reject(new Error("Relay publish timeout")), 21000)
-    );
-    await Promise.race([publishPromise, timeoutPromise]);
-  } catch (error) {
-    console.warn(
-      "MCP relay publish timed out or failed, but event is saved to database:",
-      error
-    );
+  const publish = async () => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
-      const { trackFailedRelayPublish } = await import("@/utils/db/db-client");
-      await trackFailedRelayPublish(
-        signedEvent.id,
-        signedEvent,
-        manager.getRelayUrls(),
-        signer
+      const publishPromise = manager.publish(signedEvent);
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        timeoutId = setTimeout(
+          () => reject(new Error("Relay publish timeout")),
+          21000
+        );
+      });
+      await Promise.race([publishPromise, timeoutPromise]);
+    } catch (error) {
+      console.warn(
+        "MCP relay publish timed out or failed, but event is saved to database:",
+        error
       );
-    } catch (trackError) {
-      console.error("Failed to track failed relay publish:", trackError);
+      try {
+        const { trackFailedRelayPublishRecord } =
+          await import("@/utils/db/db-service");
+        await trackFailedRelayPublishRecord({
+          eventId: signedEvent.id,
+          ownerPubkey: signedEvent.pubkey,
+          event: signedEvent,
+          relays: manager.getRelayUrls(),
+        });
+      } catch (trackError) {
+        console.error("Failed to track failed relay publish:", trackError);
+      }
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+      if (!relayManager) {
+        manager.close();
+      }
     }
-  } finally {
-    if (!relayManager) {
-      manager.close();
-    }
+  };
+
+  if (options.waitForRelayPublish === false) {
+    void publish();
+    return signedEvent;
+  }
+
+  try {
+    await publish();
+  } catch {
+    // publish() handles all relay failures.
   }
 
   return signedEvent;

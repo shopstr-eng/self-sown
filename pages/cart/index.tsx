@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { useEffect, useState, useContext } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -30,8 +28,16 @@ import { ShopMapContext, ProfileMapContext } from "@/utils/context/context";
 import { nip19 } from "nostr-tools";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
 import ProtectedRoute from "@/components/utility-components/protected-route";
-import { getLocalStorageJson } from "@/utils/safe-json";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 import { CartDiscountsMap, isCartDiscountsMap } from "@/utils/cart-discounts";
+import { isSellerP2pkEscrowActive } from "@/utils/cashu/p2pk-checkout";
+import { mapWithConcurrency } from "@/utils/concurrency";
+import {
+  computeProductPricing,
+  ProductPricingResult,
+} from "@/utils/cart-totals";
+
+const CART_PRICE_CONVERSION_CONCURRENCY = 6;
 
 interface QuantitySelectorProps {
   value: number;
@@ -85,11 +91,21 @@ export default function Component() {
   const shopContext = useContext(ShopMapContext);
   const profileContext = useContext(ProfileMapContext);
 
+  const renderP2pkCartBadge = (sellerPubkey: string) => {
+    const p2pk = profileContext.profileData.get(sellerPubkey)?.content.p2pk;
+    if (!isSellerP2pkEscrowActive(p2pk)) return null;
+    return (
+      <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-1 text-[11px] font-medium text-yellow-700 dark:text-yellow-300">
+        🔒 P2PK Escrow · {p2pk!.refundDelayDays}d reclaim opens
+      </div>
+    );
+  };
+
   const [products, setProducts] = useState<ProductData[]>([]);
   const [satPrices, setSatPrices] = useState<{ [key: string]: number | null }>(
     {}
   );
-  const [totalCostsInSats, setTotalCostsInSats] = useState<{
+  const [productTotalsInSats, setProductTotalsInSats] = useState<{
     [key: string]: number;
   }>({});
   const [subtotal, setSubtotal] = useState<number>(0);
@@ -169,7 +185,7 @@ export default function Component() {
             ? product.volumePrice
             : product.weightPrice !== undefined
               ? product.weightPrice
-              : product.price;
+              : (product.price ?? 0);
       const qty = quantities[product.id] || 1;
       const discount = appliedDiscounts[product.pubkey] || 0;
       const discountedPrice =
@@ -196,31 +212,25 @@ export default function Component() {
 
   useEffect(() => {
     const stored =
-      sessionStorage.getItem("sf_seller_pubkey") ||
-      localStorage.getItem("sf_seller_pubkey");
+      storage.getSessionItem(STORAGE_KEYS.SF_SELLER_PUBKEY) ||
+      storage.getItem(STORAGE_KEYS.SF_SELLER_PUBKEY);
     if (stored) setSfSellerPubkey(stored);
     const storedSlug =
-      sessionStorage.getItem("sf_shop_slug") ||
-      localStorage.getItem("sf_shop_slug");
+      storage.getSessionItem(STORAGE_KEYS.SF_SHOP_SLUG) ||
+      storage.getItem(STORAGE_KEYS.SF_SHOP_SLUG);
     if (storedSlug) setSfShopSlug(storedSlug);
   }, []);
 
   useEffect(() => {
     let isCancelled = false;
-
     const loadCart = async () => {
-      if (typeof window === "undefined") {
-        return;
-      }
+      if (typeof window === "undefined") return;
 
       const sfPk =
-        sessionStorage.getItem("sf_seller_pubkey") ||
-        localStorage.getItem("sf_seller_pubkey") ||
+        storage.getSessionItem(STORAGE_KEYS.SF_SELLER_PUBKEY) ||
+        storage.getItem(STORAGE_KEYS.SF_SELLER_PUBKEY) ||
         "";
-      const fullCart = getLocalStorageJson<ProductData[]>("cart", [], {
-        removeOnError: true,
-        validate: Array.isArray,
-      });
+      const fullCart = storage.getJson<ProductData[]>(STORAGE_KEYS.CART, []);
 
       let cartList = fullCart;
       if (sfPk) {
@@ -243,19 +253,16 @@ export default function Component() {
         }
       }
 
-      if (cartList.length === 0) {
+      if (cartList.length === 0) return;
+
+      const discounts = storage.getJson<CartDiscountsMap>(
+        STORAGE_KEYS.CART_DISCOUNTS,
+        {}
+      );
+      if (!isCartDiscountsMap(discounts)) {
+        storage.removeItem(STORAGE_KEYS.CART_DISCOUNTS);
         return;
       }
-
-      const discounts = getLocalStorageJson<CartDiscountsMap>(
-        "cartDiscounts",
-        {},
-        {
-          removeOnError: true,
-          removeOnValidationError: true,
-          validate: isCartDiscountsMap,
-        }
-      );
 
       if (Object.keys(discounts).length === 0) {
         return;
@@ -330,12 +337,9 @@ export default function Component() {
       setIsValidatingDiscounts(false);
 
       if (Object.keys(refreshedDiscounts).length > 0) {
-        localStorage.setItem(
-          "cartDiscounts",
-          JSON.stringify(refreshedDiscounts)
-        );
+        storage.setJson(STORAGE_KEYS.CART_DISCOUNTS, refreshedDiscounts);
       } else {
-        localStorage.removeItem("cartDiscounts");
+        storage.removeItem(STORAGE_KEYS.CART_DISCOUNTS);
       }
     };
 
@@ -352,56 +356,50 @@ export default function Component() {
       const shipping: { [key: string]: number } = {};
       const totals: { [key: string]: number } = {};
       let subtotalAmount = 0;
-
-      for (const product of products) {
-        try {
-          const priceSats = await convertPriceToSats(product);
-          const shippingSatPrice = await convertShippingToSats(product);
-          const discount = appliedDiscounts[product.pubkey] || 0;
-          let discountedPrice = priceSats;
-          let productSubtotal = 0;
-          let productShipping = 0;
-
-          if (discount > 0) {
-            discountedPrice = Math.ceil(priceSats * (1 - discount / 100));
+      const results = await mapWithConcurrency(
+        products,
+        CART_PRICE_CONVERSION_CONCURRENCY,
+        async (product): Promise<ProductPricingResult> => {
+          try {
+            const priceSats = await convertPriceToSats(product);
+            const shippingSats = await convertShippingToSats(product);
+            return computeProductPricing({
+              id: product.id,
+              priceSats,
+              shippingSats,
+              discountPercent: appliedDiscounts[product.pubkey] || 0,
+              quantity: quantities[product.id],
+            });
+          } catch (error) {
+            // Outer guard for any unexpected failure during cart pricing.
+            // console.warn (not console.error) keeps the Next.js dev overlay
+            // from popping for a benign per-row failure — the row simply
+            // renders as un-priced and is excluded from checkout.
+            console.warn(
+              `Error converting price for product ${product.id}:`,
+              error
+            );
+            return { id: product.id, status: "error" };
           }
+        }
+      );
 
-          if (discountedPrice !== null || shippingSatPrice !== null) {
-            if (quantities[product.id]) {
-              productSubtotal = Math.ceil(
-                discountedPrice * quantities[product.id]!
-              );
-              productShipping = Math.ceil(
-                shippingSatPrice * quantities[product.id]!
-              );
-              subtotalAmount += productSubtotal;
-            } else {
-              productSubtotal = discountedPrice;
-              productShipping = shippingSatPrice;
-              subtotalAmount += discountedPrice;
-            }
-            prices[product.id] = productSubtotal;
-            shipping[product.id] = productShipping;
-            // Store just the product cost in totals for now
-            totals[product.pubkey] = productSubtotal;
-          }
-        } catch (error) {
-          // Outer guard for any unexpected failure during cart pricing.
-          // console.warn (not console.error) keeps the Next.js dev overlay
-          // from popping for a benign per-row failure — the row simply
-          // renders as un-priced and is excluded from checkout.
-          console.warn(
-            `Error converting price for product ${product.id}:`,
-            error
-          );
-          prices[product.id] = null;
-          shipping[product.id] = 0;
+      for (const result of results) {
+        if (result.status === "priced") {
+          prices[result.id] = result.price;
+          shipping[result.id] = result.shipping;
+          // Store per-product totals so checkout can apply shipping later.
+          totals[result.id] = result.price;
+          subtotalAmount += result.price;
+        } else if (result.status === "error") {
+          prices[result.id] = null;
+          shipping[result.id] = 0;
         }
       }
 
       setSatPrices(prices);
       setSubtotal(subtotalAmount);
-      setTotalCostsInSats(totals);
+      setProductTotalsInSats(totals);
     };
 
     fetchSatPrices();
@@ -439,16 +437,13 @@ export default function Component() {
   };
 
   const handleRemoveFromCart = (productId: string) => {
-    const cartContent = getLocalStorageJson<ProductData[]>("cart", [], {
-      removeOnError: true,
-      validate: Array.isArray,
-    });
+    const cartContent = storage.getJson<ProductData[]>(STORAGE_KEYS.CART, []);
     if (cartContent.length > 0) {
       const updatedCart = cartContent.filter(
         (obj: ProductData) => obj.id !== productId
       );
       setProducts(updatedCart);
-      localStorage.setItem("cart", JSON.stringify(updatedCart));
+      storage.setJson(STORAGE_KEYS.CART, updatedCart);
     }
   };
 
@@ -486,20 +481,15 @@ export default function Component() {
         });
         setDiscountErrors({ ...discountErrors, [pubkey]: "" });
 
-        // Save to localStorage
-        const discounts = getLocalStorageJson<CartDiscountsMap>(
-          "cartDiscounts",
-          {},
-          {
-            removeOnError: true,
-            removeOnValidationError: true,
-            validate: isCartDiscountsMap,
-          }
+        // Save to storage
+        const discounts = storage.getJson<CartDiscountsMap>(
+          STORAGE_KEYS.CART_DISCOUNTS,
+          {}
         );
         discounts[pubkey] = {
           code: code,
         };
-        localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
+        storage.setJson(STORAGE_KEYS.CART_DISCOUNTS, discounts);
       } else {
         setDiscountErrors({
           ...discountErrors,
@@ -522,19 +512,14 @@ export default function Component() {
     setAppliedDiscounts({ ...appliedDiscounts, [pubkey]: 0 });
     setDiscountErrors({ ...discountErrors, [pubkey]: "" });
 
-    // Remove from localStorage
-    const discounts = getLocalStorageJson<CartDiscountsMap>(
-      "cartDiscounts",
-      {},
-      {
-        removeOnError: true,
-        removeOnValidationError: true,
-        validate: isCartDiscountsMap,
-      }
+    // Remove from storage
+    const discounts = storage.getJson<CartDiscountsMap>(
+      STORAGE_KEYS.CART_DISCOUNTS,
+      {}
     );
     if (Object.keys(discounts).length > 0) {
       delete discounts[pubkey];
-      localStorage.setItem("cartDiscounts", JSON.stringify(discounts));
+      storage.setJson(STORAGE_KEYS.CART_DISCOUNTS, discounts);
     }
   };
 
@@ -546,7 +531,7 @@ export default function Component() {
           ? product.volumePrice
           : product.weightPrice !== undefined
             ? product.weightPrice
-            : product.price;
+            : (product.price ?? 0);
 
     if (
       product.currency.toLowerCase() === "sats" ||
@@ -731,6 +716,7 @@ export default function Component() {
                                       )}
                                     </div>
                                   )}
+                                  {renderP2pkCartBadge(product.pubkey)}
                                 </div>
                               </div>
                               <div className="mt-4 flex md:mt-0 md:items-center">
@@ -936,7 +922,7 @@ export default function Component() {
                   products={products}
                   quantities={quantities}
                   shippingTypes={shippingTypes}
-                  totalCostsInSats={totalCostsInSats}
+                  productTotalsInSats={productTotalsInSats}
                   subtotalCost={subtotal}
                   appliedDiscounts={appliedDiscounts}
                   discountCodes={discountCodes}

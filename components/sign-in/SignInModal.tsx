@@ -9,11 +9,8 @@ import {
   InputProps,
 } from "@heroui/react";
 import { SHOPSTRBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
-import {
-  setLocalStorageDataOnSignIn,
-  validateNSecKey,
-  parseBunkerToken,
-} from "@/utils/nostr/nostr-helper-functions";
+import { validateNSecKey, parseBunkerToken } from "@/utils/nostr/key-utilities";
+import { setLocalStorageDataOnSignIn } from "@/utils/nostr/nostr-helper-functions";
 import * as nip49 from "nostr-tools/nip49";
 import { getPublicKey } from "nostr-tools";
 import ShopstrSpinner from "@/components/utility-components/shopstr-spinner";
@@ -64,7 +61,10 @@ export default function SignInModal({
   const router = useRouter();
   const { newSigner } = useContext(SignerContext);
 
-  const saveSigner = (signer: NostrSigner) => {
+  const saveSigner = async (
+    signer: NostrSigner,
+    signerPassphrase?: string
+  ): Promise<void> => {
     if (
       !relaysContext.isLoading &&
       relaysContext.relayList.length >= 0 &&
@@ -74,15 +74,17 @@ export default function SignInModal({
       const generalRelays = relaysContext.relayList;
       const readRelays = relaysContext.readRelayList;
       const writeRelays = relaysContext.writeRelayList;
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         signer,
         relays: generalRelays,
         readRelays: readRelays,
         writeRelays: writeRelays,
+        ...(signerPassphrase ? { signerPassphrase } : {}),
       });
     } else {
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         signer,
+        ...(signerPassphrase ? { signerPassphrase } : {}),
       });
     }
   };
@@ -109,7 +111,7 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip07", {});
       await signer.getPubKey();
-      saveSigner(signer);
+      await saveSigner(signer);
       onClose();
       router.push("/marketplace");
     } catch (error) {
@@ -123,9 +125,9 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip46", { bunker: bunkerToken });
       await signer.connect();
-      saveSigner(signer);
-      setIsBunkerConnecting(false);
       await signer.getPubKey();
+      await saveSigner(signer, passphrase);
+      setIsBunkerConnecting(false);
       onClose();
       router.push("/marketplace");
     } catch {
@@ -140,7 +142,7 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip07", {});
       await signer.getPubKey();
-      saveSigner(signer);
+      await saveSigner(signer);
       onClose();
       router.push(
         sellerFlow
@@ -158,9 +160,9 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip46", { bunker: bunkerToken });
       await signer.connect();
-      saveSigner(signer);
-      setIsBunkerConnecting(false);
       await signer.getPubKey();
+      await saveSigner(signer, passphrase);
+      setIsBunkerConnecting(false);
       onClose();
       router.push(
         sellerFlow
@@ -216,7 +218,7 @@ export default function SignInModal({
           pubkey,
         });
         await signer.getPubKey();
-        saveSigner(signer);
+        await saveSigner(signer);
         onClose();
 
         router.push(
@@ -290,7 +292,7 @@ export default function SignInModal({
           pubkey,
         });
         await signer.getPubKey();
-        saveSigner(signer);
+        await saveSigner(signer);
         onClose();
 
         router.push("/marketplace");
@@ -455,11 +457,40 @@ export default function SignInModal({
                         />
                       </div>
                       <div>
+                        <label className="text-light-text dark:text-dark-text">
+                          Connection Passphrase:
+                        </label>
+                        <Input
+                          type={showPassphrase ? "text" : "password"}
+                          width="100%"
+                          size="lg"
+                          value={passphrase}
+                          placeholder="Protect your bunker connection (12+ characters)..."
+                          onChange={(e) => setPassphrase(e.target.value)}
+                          endContent={
+                            <button
+                              type="button"
+                              onClick={() => setShowPassphrase((v) => !v)}
+                              className="text-gray-400"
+                            >
+                              {showPassphrase ? (
+                                <EyeSlashIcon className="h-5 w-5" />
+                              ) : (
+                                <EyeIcon className="h-5 w-5" />
+                              )}
+                            </button>
+                          }
+                        />
+                      </div>
+                      <div>
                         <Button
                           data-testid="bunker-signup-submit-btn"
                           className={`${SHOPSTRBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerSignup}
-                          isDisabled={validBunkerToken !== "success"}
+                          isDisabled={
+                            validBunkerToken !== "success" ||
+                            passphrase.trim().length < 12
+                          }
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
@@ -672,11 +703,40 @@ export default function SignInModal({
                         />
                       </div>
                       <div>
+                        <label className="text-light-text dark:text-dark-text">
+                          Connection Passphrase:
+                        </label>
+                        <Input
+                          type={showPassphrase ? "text" : "password"}
+                          width="100%"
+                          size="lg"
+                          value={passphrase}
+                          placeholder="Protect your bunker connection (12+ characters)..."
+                          onChange={(e) => setPassphrase(e.target.value)}
+                          endContent={
+                            <button
+                              type="button"
+                              onClick={() => setShowPassphrase((v) => !v)}
+                              className="text-gray-400"
+                            >
+                              {showPassphrase ? (
+                                <EyeSlashIcon className="h-5 w-5" />
+                              ) : (
+                                <EyeIcon className="h-5 w-5" />
+                              )}
+                            </button>
+                          }
+                        />
+                      </div>
+                      <div>
                         <Button
                           data-testid="bunker-submit-btn"
                           className={`${SHOPSTRBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerLogin}
-                          isDisabled={validBunkerToken !== "success"}
+                          isDisabled={
+                            validBunkerToken !== "success" ||
+                            passphrase.trim().length < 12
+                          }
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">

@@ -13,33 +13,531 @@ import {
 import { ChatsMap } from "@/utils/context/context";
 import {
   getLocalStorageData,
+  getLatestLocalContactListEvent,
   deleteEvent,
   verifyNip05Identifier,
+  publishWalletEvent,
 } from "@/utils/nostr/nostr-helper-functions";
+import { isHexPubkey } from "@/utils/nostr/pubkey";
+import {
+  pickPreferredReplaceableEvent,
+  selectPreferredReplaceableEvent,
+} from "@/utils/nostr/replaceable-events";
 import {
   ProductData,
   parseTags,
 } from "@/utils/parsers/product-parser-functions";
+import { productSatisfiesSearchFilter } from "@/utils/parsers/product-filter-helpers";
 import { parseCommunityEvent } from "../parsers/community-parser-functions";
 import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions";
 import { hashToCurve } from "@cashu/cashu-ts";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
-import { cacheEventsToDatabase } from "@/utils/db/db-client";
+import {
+  cacheEventsToDatabase,
+  cacheEventToDatabase,
+} from "@/utils/db/db-client";
+import { mapWithConcurrency } from "@/utils/concurrency";
+import {
+  applyWalletConfigContent,
+  generateCashuWalletKeypair,
+  LatestWalletKeypair,
+} from "@/utils/cashu/wallet-config";
+import {
+  BUYER_P2PK_ESCROW_EVENT_KIND,
+  BuyerP2pkEscrowRecord,
+  isBuyerP2pkEscrowRecord,
+  restoreEncryptedEscrowRecordLocally,
+} from "@/utils/cashu/p2pk-escrow-records";
 import {
   buildMessagesListProof,
   buildSignedHttpRequestProofTemplate,
   SIGNED_EVENT_HEADER,
 } from "@/utils/nostr/request-auth";
+import {
+  fetchNip58ProfileBadges,
+  Nip58ProfileBadgesResult,
+} from "@/utils/nostr/badges";
+import type { Nip58ProfileBadge } from "@/utils/types/types";
 
 interface NipProfile {
   pubkey: string;
   created_at: number;
   content: { nip05?: string; [key: string]: any };
   nip05Verified: boolean;
+  badges?: Nip58ProfileBadge[];
 }
 
-function getUniqueProofs(proofs: Proof[]): Proof[] {
+type SearchFilter = Filter & { search: string };
+
+const PRODUCT_SEARCH_LIMIT = 100;
+export const NIP50_SEARCH_TIMEOUT_MS = 10_000;
+const NIP11_RELAY_INFO_TIMEOUT_MS = 3_000;
+const NIP11_RELAY_INFO_CACHE_TTL_MS = 5 * 60_000;
+const COMMUNITY_POST_BATCH_CONCURRENCY = 4;
+export const NIP58_BADGE_HYDRATION_RETRY_MS = 5_000;
+
+export interface Nip58BadgeHydrationOutcome {
+  retryAt: number | null;
+}
+
+interface Nip58BadgeHydrationState {
+  relayKey: string;
+  inFlight?: Promise<Map<string, Nip58ProfileBadgesResult>>;
+}
+
+let nip58BadgeHydrationStates = new WeakMap<
+  object,
+  Map<string, Nip58BadgeHydrationState>
+>();
+let nip58BadgeHydrationEpoch = 0;
+export const DEFAULT_NIP50_SEARCH_RELAYS = [
+  "wss://relay.nostr.band",
+  "wss://nostr.wine",
+  "wss://relay.noswhere.com",
+  "wss://search.nos.today",
+  "wss://antiprimal.net",
+  "wss://relay.ditto.pub",
+];
+
+interface Nip50RelaySupportCacheEntry {
+  expiresAt: number;
+  supportPromise: Promise<boolean>;
+}
+
+const nip50RelaySupportCache = new Map<string, Nip50RelaySupportCacheEntry>();
+let relayInfoFetchImpl: typeof globalThis.fetch | undefined;
+
+function normalizeRelayUrl(relay: string): string {
+  const trimmedRelay = relay.trim();
+  if (!trimmedRelay) return "";
+
+  const relayWithProtocol = /^wss?:\/\//i.test(trimmedRelay)
+    ? trimmedRelay
+    : `wss://${trimmedRelay}`;
+
+  return relayWithProtocol.replace(/\/+$/, "");
+}
+
+function getUniqueRelayUrls(relays: string[]): string[] {
+  const relayMap = new Map<string, string>();
+
+  for (const relay of relays) {
+    const normalizedRelay = normalizeRelayUrl(relay);
+    if (!normalizedRelay) continue;
+    relayMap.set(normalizedRelay.toLowerCase(), normalizedRelay);
+  }
+
+  return Array.from(relayMap.values());
+}
+
+function getNip58RelayKey(relays: string[]): string {
+  return getUniqueRelayUrls(relays)
+    .map((relay) => relay.toLowerCase())
+    .sort()
+    .join(",");
+}
+
+function getNip58ManagerStates(
+  nostr: object
+): Map<string, Nip58BadgeHydrationState> {
+  const existingStates = nip58BadgeHydrationStates.get(nostr);
+  if (existingStates) return existingStates;
+
+  const states = new Map<string, Nip58BadgeHydrationState>();
+  nip58BadgeHydrationStates.set(nostr, states);
+  return states;
+}
+
+function earlierRetryAt(
+  current: number | null,
+  candidate: number | null
+): number | null {
+  if (candidate === null) return current;
+  return current === null ? candidate : Math.min(current, candidate);
+}
+
+export function clearNip58ProfileBadgeHydrationCache(): void {
+  nip58BadgeHydrationStates = new WeakMap();
+  nip58BadgeHydrationEpoch += 1;
+}
+
+export async function hydrateNip58ProfileBadges(
+  nostr: NostrManager,
+  relays: string[],
+  pubkeys: string[],
+  editProfileContext: (
+    profileMap: Map<string, NipProfile | null>,
+    isLoading: boolean
+  ) => void,
+  existingProfileMap: Map<string, any> = new Map()
+): Promise<Nip58BadgeHydrationOutcome> {
+  const uniquePubkeys = Array.from(new Set(pubkeys.filter(isHexPubkey)));
+  if (!uniquePubkeys.length) return { retryAt: null };
+
+  const relayKey = getNip58RelayKey(relays);
+  const hydrationEpoch = nip58BadgeHydrationEpoch;
+  const managerStates = getNip58ManagerStates(nostr);
+  const pendingHydrations = new Set<
+    Promise<Map<string, Nip58ProfileBadgesResult>>
+  >();
+  const statesToHydrate = new Map<string, Nip58BadgeHydrationState>();
+  let retryAt: number | null = null;
+  const isCurrentState = (pubkey: string, state: Nip58BadgeHydrationState) =>
+    hydrationEpoch === nip58BadgeHydrationEpoch &&
+    managerStates.get(pubkey) === state;
+
+  for (const pubkey of uniquePubkeys) {
+    const existingState = managerStates.get(pubkey);
+    if (existingState?.relayKey === relayKey && existingState.inFlight) {
+      pendingHydrations.add(existingState.inFlight);
+      continue;
+    }
+
+    const state: Nip58BadgeHydrationState = { relayKey };
+    managerStates.set(pubkey, state);
+    statesToHydrate.set(pubkey, state);
+  }
+
+  if (statesToHydrate.size) {
+    let hydrationPromise: Promise<Map<string, Nip58ProfileBadgesResult>>;
+    hydrationPromise = (async () => {
+      const badgeResults = await fetchNip58ProfileBadges(
+        nostr,
+        relays,
+        Array.from(statesToHydrate.keys())
+      );
+      const currentResults = new Map<string, Nip58ProfileBadgesResult>();
+
+      for (const [pubkey, state] of statesToHydrate) {
+        if (!isCurrentState(pubkey, state)) continue;
+        const badgeResult = badgeResults.get(pubkey);
+        if (badgeResult) currentResults.set(pubkey, badgeResult);
+      }
+      return currentResults;
+    })().finally(() => {
+      for (const [pubkey, state] of statesToHydrate) {
+        if (!isCurrentState(pubkey, state)) continue;
+        if (state.inFlight !== hydrationPromise) continue;
+        managerStates.delete(pubkey);
+      }
+    });
+
+    for (const state of statesToHydrate.values()) {
+      state.inFlight = hydrationPromise;
+    }
+    pendingHydrations.add(hydrationPromise);
+  }
+
+  const badgeResultMaps = await Promise.all(pendingHydrations);
+  const badgeResults = new Map<string, Nip58ProfileBadgesResult>();
+  for (const resultMap of badgeResultMaps) {
+    for (const [pubkey, result] of resultMap) {
+      if (uniquePubkeys.includes(pubkey)) badgeResults.set(pubkey, result);
+    }
+  }
+
+  const profileUpdates = new Map<string, NipProfile | null>();
+  for (const pubkey of uniquePubkeys) {
+    const badgeResult = badgeResults.get(pubkey);
+    if (!badgeResult?.complete) {
+      if (badgeResult?.retryable !== false) {
+        retryAt = earlierRetryAt(
+          retryAt,
+          Date.now() + NIP58_BADGE_HYDRATION_RETRY_MS
+        );
+      }
+      continue;
+    }
+
+    const existingProfile = existingProfileMap.get(pubkey);
+    const profile: NipProfile = existingProfile || {
+      pubkey,
+      created_at: 0,
+      content: {},
+      nip05Verified: false,
+    };
+    profileUpdates.set(pubkey, {
+      ...profile,
+      badges: badgeResult.badges,
+    });
+  }
+
+  if (profileUpdates.size) {
+    editProfileContext(profileUpdates, false);
+  }
+  return { retryAt };
+}
+
+function buildRelayInformationUrl(relay: string): string | null {
+  try {
+    const url = new URL(relay);
+
+    if (url.protocol === "wss:") {
+      url.protocol = "https:";
+    } else if (url.protocol === "ws:") {
+      url.protocol = "http:";
+    } else if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function relayInfoAdvertisesNip50(relayInfo: unknown): boolean {
+  if (!relayInfo || typeof relayInfo !== "object") return false;
+
+  const supportedNips = (relayInfo as { supported_nips?: unknown })
+    .supported_nips;
+
+  return (
+    Array.isArray(supportedNips) &&
+    supportedNips.some((nip) => nip === 50 || nip === "50")
+  );
+}
+
+async function fetchRelayAdvertisesNip50(relay: string): Promise<boolean> {
+  const fetchImpl = globalThis.fetch;
+  if (typeof fetchImpl !== "function") return false;
+
+  if (relayInfoFetchImpl !== fetchImpl) {
+    nip50RelaySupportCache.clear();
+    relayInfoFetchImpl = fetchImpl;
+  }
+
+  const relayCacheKey = relay.toLowerCase();
+  const cachedSupport = nip50RelaySupportCache.get(relayCacheKey);
+  if (cachedSupport && cachedSupport.expiresAt > Date.now()) {
+    return cachedSupport.supportPromise;
+  }
+  if (cachedSupport) nip50RelaySupportCache.delete(relayCacheKey);
+
+  const relayInformationUrl = buildRelayInformationUrl(relay);
+  if (!relayInformationUrl) return false;
+
+  const cacheEntry: Nip50RelaySupportCacheEntry = {
+    expiresAt: Date.now() + NIP11_RELAY_INFO_CACHE_TTL_MS,
+    supportPromise: Promise.resolve(false),
+  };
+
+  cacheEntry.supportPromise = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      NIP11_RELAY_INFO_TIMEOUT_MS
+    );
+
+    try {
+      const response = await fetchImpl(relayInformationUrl, {
+        headers: { Accept: "application/nostr+json" },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) throw new Error("Relay information request failed");
+
+      return relayInfoAdvertisesNip50(await response.json());
+    } catch {
+      if (nip50RelaySupportCache.get(relayCacheKey) === cacheEntry) {
+        nip50RelaySupportCache.delete(relayCacheKey);
+      }
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  })();
+
+  nip50RelaySupportCache.set(relayCacheKey, cacheEntry);
+  return cacheEntry.supportPromise;
+}
+
+async function getSelectedNip50SearchRelays(
+  relays: string[]
+): Promise<string[]> {
+  const knownSearchRelaySet = new Set(
+    DEFAULT_NIP50_SEARCH_RELAYS.map((relay) => relay.toLowerCase())
+  );
+  const selectedSearchRelays = (
+    await Promise.all(
+      getUniqueRelayUrls(relays).map(async (relay) => {
+        if (knownSearchRelaySet.has(relay.toLowerCase())) return relay;
+        return (await fetchRelayAdvertisesNip50(relay)) ? relay : null;
+      })
+    )
+  ).filter((relay): relay is string => !!relay);
+
+  return selectedSearchRelays;
+}
+
+export function getProductEventKey(event: NostrEvent): string {
+  if (event.kind === 30402) {
+    const dTag = event.tags?.find((tag: string[]) => tag[0] === "d")?.[1];
+    if (dTag) return `${event.kind}:${event.pubkey}:${dTag}`;
+  }
+
+  return `${event.kind}:${event.id}`;
+}
+
+export function dedupeProductEvents(events: NostrEvent[]): NostrEvent[] {
+  const eventMap = new Map<string, NostrEvent>();
+  const orderedKeys: string[] = [];
+
+  for (const event of events) {
+    if (!event?.id) continue;
+
+    const key = getProductEventKey(event);
+    const existing = eventMap.get(key);
+
+    if (!existing) {
+      orderedKeys.push(key);
+      eventMap.set(key, event);
+      continue;
+    }
+
+    if ((event.created_at ?? 0) >= (existing.created_at ?? 0)) {
+      eventMap.set(key, event);
+    }
+  }
+
+  return orderedKeys
+    .map((key) => eventMap.get(key))
+    .filter((event): event is NostrEvent => !!event);
+}
+
+export function buildNip50ProductSearchFilters(
+  searchQuery: string,
+  options: { authors?: string[]; limit?: number } = {}
+): SearchFilter[] {
+  const search = searchQuery.trim().replace(/\s+/g, " ");
+  if (!search) return [];
+
+  const limit = options.limit ?? PRODUCT_SEARCH_LIMIT;
+  const baseFilter = {
+    search,
+    limit,
+    ...(options.authors?.length ? { authors: options.authors } : {}),
+  };
+
+  return [
+    {
+      ...baseFilter,
+      kinds: [30402],
+    },
+  ];
+}
+
+function eventMatchesProductSearch(
+  event: NostrEvent,
+  searchQuery: string
+): boolean {
+  if (event.kind === 30402) {
+    const parsedProduct = parseTags(event);
+    return (
+      !!parsedProduct &&
+      productSatisfiesSearchFilter(parsedProduct, searchQuery)
+    );
+  }
+
+  return false;
+}
+
+export async function fetchNip50ProductSearch(
+  nostr: NostrManager,
+  relays: string[],
+  searchQuery: string,
+  options: { authors?: string[]; limit?: number } = {}
+): Promise<{
+  productEvents: NostrEvent[];
+}> {
+  const filters = buildNip50ProductSearchFilters(searchQuery, options);
+  if (!filters.length) {
+    return { productEvents: [] };
+  }
+
+  const fetchSearchEvents = async (targetRelays: string[]) => {
+    if (targetRelays.length === 0) return Promise.resolve([]);
+
+    const relayResults = await Promise.all(
+      targetRelays.map((relay) =>
+        nostr
+          .fetch(filters, {}, [relay], NIP50_SEARCH_TIMEOUT_MS)
+          .catch((error) => {
+            console.warn(
+              `Failed to search products with NIP-50 relay ${relay}:`,
+              error
+            );
+            return [];
+          })
+      )
+    );
+
+    return relayResults.flat();
+  };
+
+  const curatedSearchEventsByRelay = new Map(
+    DEFAULT_NIP50_SEARCH_RELAYS.map((relay) => [
+      relay.toLowerCase(),
+      fetchSearchEvents([relay]),
+    ])
+  );
+  const selectedSearchRelays = await getSelectedNip50SearchRelays(relays);
+  const selectedSearchRelaySet = new Set(
+    selectedSearchRelays.map((relay) => relay.toLowerCase())
+  );
+  const selectedSearchEventsPromise = Promise.all(
+    selectedSearchRelays.map(
+      (relay) =>
+        curatedSearchEventsByRelay.get(relay.toLowerCase()) ??
+        fetchSearchEvents([relay])
+    )
+  ).then((relayResults) => relayResults.flat());
+  const fallbackSearchEventsPromise = Promise.all(
+    DEFAULT_NIP50_SEARCH_RELAYS.filter(
+      (relay) => !selectedSearchRelaySet.has(relay.toLowerCase())
+    ).map((relay) => curatedSearchEventsByRelay.get(relay.toLowerCase())!)
+  ).then((relayResults) => relayResults.flat());
+
+  const filterSearchProductEvents = (events: NostrEvent[]) =>
+    events.filter(
+      (event) => event.id && event.sig && event.pubkey && event.kind === 30402
+    );
+
+  const [selectedSearchEvents, fallbackSearchEvents] = await Promise.all([
+    selectedSearchEventsPromise,
+    fallbackSearchEventsPromise,
+  ]);
+  let searchProductEvents = filterSearchProductEvents([
+    ...selectedSearchEvents,
+    ...fallbackSearchEvents,
+  ]);
+  let relevantSearchProductEvents = searchProductEvents.filter((event) =>
+    eventMatchesProductSearch(event, searchQuery)
+  );
+
+  const dedupedSearchProductEvents = dedupeProductEvents(
+    relevantSearchProductEvents
+  );
+
+  const cacheableProductEvents = dedupedSearchProductEvents.filter(
+    (event) => event.kind === 30402
+  );
+
+  if (cacheableProductEvents.length > 0) {
+    try {
+      await cacheEventsToDatabase(cacheableProductEvents);
+    } catch (error) {
+      console.error("Failed to cache NIP-50 product search events:", error);
+    }
+  }
+
+  return {
+    productEvents: dedupedSearchProductEvents,
+  };
+}
+
+export function getUniqueProofs(proofs: Proof[]): Proof[] {
   const seenSecrets = new Set<string>();
   return proofs.filter((proof) => {
     if (!seenSecrets.has(proof.secret)) {
@@ -50,8 +548,25 @@ function getUniqueProofs(proofs: Proof[]): Proof[] {
   });
 }
 
-function isHexString(value: string): boolean {
+export function isHexString(value: string): boolean {
   return /^[0-9a-fA-F]{64}$/.test(value);
+}
+
+function parseJsonSafely<T>(input: unknown): T | null {
+  if (typeof input !== "string") {
+    return null;
+  }
+
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return null;
+  }
 }
 
 export const fetchAllPosts = async (
@@ -69,12 +584,15 @@ export const fetchAllPosts = async (
       const dbProductsMap = new Map<string, NostrEvent>();
 
       const getEventKey = (event: NostrEvent): string => {
-        if (event.kind === 30402) {
-          const dTag = event.tags?.find((tag: string[]) => tag[0] === "d")?.[1];
-          if (dTag) return `${event.pubkey}:${dTag}`;
-        }
-        return event.id;
+        return getProductEventKey(event);
       };
+      const isValidProductRelayEvent = (
+        event: NostrEvent | null | undefined
+      ): event is NostrEvent =>
+        !!event?.id &&
+        !!event.sig &&
+        !!event.pubkey &&
+        (event.kind === 30402 || event.kind === 1);
 
       // Cascading DB fetch: load batches one at a time, displaying each as it arrives
       let offset = 0;
@@ -129,7 +647,8 @@ export const fetchAllPosts = async (
 
       // Cache valid product events to database
       const validProductEvents = fetchedEvents.filter(
-        (e) => e.id && e.sig && e.pubkey && (e.kind === 30402 || e.kind === 1)
+        (event): event is NostrEvent =>
+          isValidProductRelayEvent(event) && event.kind === 30402
       );
       if (validProductEvents.length > 0) {
         cacheEventsToDatabase(validProductEvents).catch((error) =>
@@ -139,7 +658,7 @@ export const fetchAllPosts = async (
 
       // Merge relay events on top of the accumulated DB products
       for (const event of fetchedEvents) {
-        if (!event || !event.id) continue;
+        if (!isValidProductRelayEvent(event)) continue;
         const key = getEventKey(event);
         const existing = dbProductsMap.get(key);
         if (!existing || event.created_at >= existing.created_at) {
@@ -162,6 +681,131 @@ export const fetchAllPosts = async (
   });
 };
 
+export function getReportTargetIdentifiers(event: NostrEvent): {
+  referencedPubkeys: string[];
+  referencedEventIds: string[];
+} {
+  const referencedPubkeys = event.tags
+    .filter((tag: string[]) => tag[0] === "p" && tag[1])
+    .map((tag: string[]) => tag[1]!);
+  const referencedEventIds = event.tags
+    .filter((tag: string[]) => tag[0] === "e" && tag[1])
+    .map((tag: string[]) => tag[1]!);
+
+  return { referencedPubkeys, referencedEventIds };
+}
+
+export const fetchReports = async (
+  nostr: NostrManager,
+  relays: string[],
+  products: NostrEvent[],
+  editReportsContext: (reportEvents: NostrEvent[], isLoading: boolean) => void,
+  additionalProfilePubkeys: string[] = []
+): Promise<{
+  reportEvents: NostrEvent[];
+}> => {
+  return new Promise(async function (resolve, reject) {
+    try {
+      const productIds = new Set(products.map((product) => product.id));
+      const sellerPubkeys = new Set(
+        [
+          ...products.map((product) => product.pubkey),
+          ...additionalProfilePubkeys,
+        ].filter(Boolean)
+      );
+
+      const reportEventsMap = new Map<string, NostrEvent>();
+
+      const isRelevantReportEvent = (event: NostrEvent): boolean => {
+        const { referencedPubkeys, referencedEventIds } =
+          getReportTargetIdentifiers(event);
+
+        return (
+          referencedEventIds.some((eventId) => productIds.has(eventId)) ||
+          referencedPubkeys.some((pubkey) => sellerPubkeys.has(pubkey))
+        );
+      };
+
+      const upsertReportEvent = (event: NostrEvent) => {
+        if (!isRelevantReportEvent(event)) return;
+
+        const existing = reportEventsMap.get(event.id);
+        if (!existing || event.created_at >= existing.created_at) {
+          reportEventsMap.set(event.id, event);
+        }
+      };
+
+      try {
+        const params = new URLSearchParams();
+        Array.from(sellerPubkeys).forEach((pubkey) =>
+          params.append("p", pubkey)
+        );
+        Array.from(productIds).forEach((productId) =>
+          params.append("e", productId)
+        );
+        const response = await fetch(
+          `/api/db/fetch-reports?${params.toString()}`
+        );
+        if (response.ok) {
+          const reportsFromDb: NostrEvent[] = await response.json();
+          reportsFromDb.forEach(upsertReportEvent);
+
+          if (reportEventsMap.size > 0) {
+            editReportsContext(
+              Array.from(reportEventsMap.values()).sort(
+                (a, b) => b.created_at - a.created_at
+              ),
+              false
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch reports from database: ", error);
+      }
+
+      const reportFilters: Filter[] = [];
+      if (sellerPubkeys.size > 0) {
+        reportFilters.push({
+          kinds: [1984],
+          "#p": Array.from(sellerPubkeys),
+        });
+      }
+      if (productIds.size > 0) {
+        reportFilters.push({
+          kinds: [1984],
+          "#e": Array.from(productIds),
+        });
+      }
+
+      if (reportFilters.length === 0) {
+        editReportsContext([], false);
+        resolve({ reportEvents: [] });
+        return;
+      }
+
+      const fetchedEvents = await nostr.fetch(reportFilters, {}, relays);
+      fetchedEvents.forEach(upsertReportEvent);
+
+      const reportEvents = Array.from(reportEventsMap.values()).sort(
+        (a, b) => b.created_at - a.created_at
+      );
+      editReportsContext(reportEvents, false);
+
+      const validReports = fetchedEvents.filter(
+        (event) => event.id && event.sig && event.pubkey && event.kind === 1984
+      );
+      if (validReports.length > 0) {
+        cacheEventsToDatabase(validReports).catch((error) =>
+          console.error("Failed to cache reports to database:", error)
+        );
+      }
+
+      resolve({ reportEvents });
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
 export const fetchCart = async (
   nostr: NostrManager,
   signer: NostrSigner | undefined,
@@ -376,7 +1020,7 @@ export const fetchShopProfile = async (
   });
 };
 
-async function verifyProfilesNip05(
+export async function verifyProfilesNip05(
   profileMap: Map<string, NipProfile | null>,
   concurrency = 8
 ): Promise<void> {
@@ -418,13 +1062,17 @@ export const fetchProfile = async (
   existingProfileMap: Map<string, any> = new Map()
 ): Promise<{
   profileMap: Map<string, NipProfile | null>;
+  badgeHydration: Promise<Nip58BadgeHydrationOutcome>;
 }> => {
   return new Promise(async function (resolve, reject) {
     try {
       if (!pubkeyProfilesToFetch.length) {
         const preservedProfileMap = new Map(existingProfileMap);
         editProfileContext(preservedProfileMap, false);
-        resolve({ profileMap: preservedProfileMap });
+        resolve({
+          profileMap: preservedProfileMap,
+          badgeHydration: Promise.resolve({ retryAt: null }),
+        });
         return;
       }
 
@@ -437,7 +1085,11 @@ export const fetchProfile = async (
           !existingProfile ||
           (profile.created_at ?? 0) >= (existingProfile.created_at ?? 0)
         ) {
-          mergedProfileMap.set(profile.pubkey, profile);
+          const nextProfile =
+            profile.badges === undefined && existingProfile?.badges
+              ? { ...profile, badges: existingProfile.badges }
+              : profile;
+          mergedProfileMap.set(profile.pubkey, nextProfile);
         }
       };
 
@@ -461,22 +1113,20 @@ export const fetchProfile = async (
           }
 
           for (const [pubkey, event] of latestDbEvents.entries()) {
-            try {
-              const content = JSON.parse(event.content);
-              const profile: NipProfile = {
-                pubkey: event.pubkey,
-                created_at: event.created_at,
-                content,
-                nip05Verified: false,
-              };
-              dbProfileMap.set(pubkey, profile);
-              updateProfileIfNewer(profile);
-            } catch (error) {
-              console.error(
-                `Failed to parse profile from DB: ${pubkey}`,
-                error
-              );
+            const content = parseJsonSafely<Record<string, any>>(event.content);
+            if (!content) {
+              console.warn(`Skipping invalid profile JSON from DB: ${pubkey}`);
+              continue;
             }
+
+            const profile: NipProfile = {
+              pubkey: event.pubkey,
+              created_at: event.created_at,
+              content,
+              nip05Verified: false,
+            };
+            dbProfileMap.set(pubkey, profile);
+            updateProfileIfNewer(profile);
           }
 
           if (dbProfileMap.size > 0) {
@@ -512,23 +1162,23 @@ export const fetchProfile = async (
           !existing ||
           event.created_at > existing.created_at
         ) {
-          try {
-            const content = JSON.parse(event.content);
-            const profile: NipProfile = {
-              pubkey: event.pubkey,
-              created_at: event.created_at,
-              content,
-              nip05Verified: false,
-            };
-            profileMap.set(event.pubkey, profile);
-            updatedProfiles.set(event.pubkey, profile);
-            updateProfileIfNewer(profile);
-          } catch (error) {
-            console.error(
-              `Failed parse profile for pubkey: ${event.pubkey}, ${event.content}`,
-              error
+          const content = parseJsonSafely<Record<string, any>>(event.content);
+          if (!content) {
+            console.warn(
+              `Skipping invalid profile JSON for pubkey: ${event.pubkey}`
             );
+            continue;
           }
+
+          const profile: NipProfile = {
+            pubkey: event.pubkey,
+            created_at: event.created_at,
+            content,
+            nip05Verified: false,
+          };
+          profileMap.set(event.pubkey, profile);
+          updatedProfiles.set(event.pubkey, profile);
+          updateProfileIfNewer(profile);
         }
       }
 
@@ -545,8 +1195,19 @@ export const fetchProfile = async (
       }
 
       editProfileContext(new Map(mergedProfileMap), false);
-
-      resolve({ profileMap: mergedProfileMap });
+      const badgeHydration = hydrateNip58ProfileBadges(
+        nostr,
+        relays,
+        pubkeyProfilesToFetch,
+        editProfileContext,
+        mergedProfileMap
+      ).catch((error) => {
+        console.error("Failed to fetch NIP-58 profile badges:", error);
+        return {
+          retryAt: Date.now() + NIP58_BADGE_HYDRATION_RETRY_MS,
+        };
+      });
+      resolve({ profileMap: mergedProfileMap, badgeHydration });
     } catch (error) {
       reject(error);
     }
@@ -950,63 +1611,193 @@ export const fetchAllFollows = async (
   nostr: NostrManager,
   relays: string[],
   editFollowsContext: (
+    directFollowList: string[],
     followList: string[],
     firstDegreeFollowsLength: number,
     isLoading: boolean
   ) => void,
   userPubkey?: string
 ): Promise<{
+  directFollowList: string[];
   followList: string[];
+  firstDegreeFollowsLength: number;
 }> => {
   const wot = getLocalStorageData().wot;
-  const defaultAuthor =
-    "d36e8083fa7b36daee646cb8b3f99feaa3d89e5a396508741f003e21ac0b6bec";
 
-  const fetchFollows = async (userPubkey: string) => {
-    let secondDegreeFollowsArrayFromRelay: string[] = [];
-    let firstDegreeFollowsLength = 0;
-    let followsArrayFromRelay: string[] = [];
-    const followsSet: Set<string> = new Set();
+  if (!userPubkey) {
+    editFollowsContext([], [], 0, false);
+    return {
+      directFollowList: [],
+      followList: [],
+      firstDegreeFollowsLength: 0,
+    };
+  }
 
-    // fetch first-degree follows
-    let fetchedEvents = await nostr.fetch(
-      [
-        {
-          kinds: [3],
-          authors: [userPubkey],
-        },
-      ],
-      {},
-      relays
+  const localContactListEvent = getLatestLocalContactListEvent(userPubkey);
+
+  const extractValidFollowTags = (
+    tags: string[][],
+    excluded = new Set<string>()
+  ) =>
+    tags
+      .filter((tag) => tag[0] === "p")
+      .map((tag) => tag[1])
+      .filter(
+        (pubkey) => isHexPubkey(pubkey!) && !excluded.has(pubkey!)
+      ) as string[];
+
+  const getLatestEventByAuthor = (events: NostrEvent[]) => {
+    const latestByAuthor = new Map<string, NostrEvent>();
+    for (const event of events) {
+      const existing = latestByAuthor.get(event.pubkey);
+      latestByAuthor.set(
+        event.pubkey,
+        existing ? selectPreferredReplaceableEvent(event, existing) : event
+      );
+    }
+    return latestByAuthor;
+  };
+
+  let dbContactListEvent: NostrEvent | null = null;
+  if (localContactListEvent?.id) {
+    const localDirectFollows = Array.from(
+      new Set(extractValidFollowTags(localContactListEvent.tags))
     );
-    const authors: string[] = [];
-    for (const event of fetchedEvents) {
-      const validTags = event.tags
-        .map((tag) => tag[1])
-        .filter((pubkey) => isHexString(pubkey!) && !followsSet.has(pubkey!));
-      validTags.forEach((pubkey) => followsSet.add(pubkey!));
-      followsArrayFromRelay.push(...(validTags as string[]));
-      firstDegreeFollowsLength = followsArrayFromRelay.length;
-      authors.push(...followsArrayFromRelay);
+    editFollowsContext(
+      localDirectFollows,
+      localDirectFollows,
+      localDirectFollows.length,
+      true
+    );
+  }
+
+  try {
+    // Bound the DB cache lookup so a hung API route can't stall the whole
+    // follows pipeline before the relay fetch even starts.
+    const response = await fetch(
+      `/api/db/fetch-contacts?pubkey=${encodeURIComponent(userPubkey)}`,
+      typeof AbortSignal !== "undefined" &&
+        typeof AbortSignal.timeout === "function"
+        ? { signal: AbortSignal.timeout(2500) }
+        : undefined
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.contactList) {
+        dbContactListEvent = data.contactList as NostrEvent;
+        const dbDirectFollows = Array.from(
+          new Set(extractValidFollowTags(dbContactListEvent.tags))
+        );
+        if (!localContactListEvent?.id && dbDirectFollows.length > 0) {
+          editFollowsContext(
+            dbDirectFollows,
+            dbDirectFollows,
+            dbDirectFollows.length,
+            true
+          );
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch contact list from database:", error);
+  }
+
+  const fetchFollows = async (authorPubkey: string) => {
+    // fetch first-degree follows
+    let fetchedFirstDegreeEvents: NostrEvent[] = [];
+    try {
+      fetchedFirstDegreeEvents = (await nostr.fetch(
+        [{ kinds: [3], authors: [authorPubkey] }],
+        {},
+        relays
+      )) as NostrEvent[];
+    } catch (error) {
+      console.error(
+        "Relay fetch for first-degree follows failed, falling back to DB:",
+        error
+      );
     }
 
-    // Fetch second-degree follows
-    fetchedEvents = await nostr.fetch(
-      [
-        {
-          kinds: [3],
-          authors,
-        },
-      ],
-      {},
-      relays
-    );
+    const allFirstDegreeEvents = [...fetchedFirstDegreeEvents];
+    if (
+      dbContactListEvent &&
+      authorPubkey === userPubkey &&
+      dbContactListEvent.id
+    ) {
+      allFirstDegreeEvents.push(dbContactListEvent);
+    }
+    if (
+      localContactListEvent &&
+      authorPubkey === userPubkey &&
+      localContactListEvent.id
+    ) {
+      allFirstDegreeEvents.push(localContactListEvent);
+    }
 
-    for (const followEvent of fetchedEvents) {
-      const validFollowTags = followEvent.tags
-        .map((tag) => tag[1])
-        .filter((pubkey) => isHexString(pubkey!) && !followsSet.has(pubkey!));
-      secondDegreeFollowsArrayFromRelay.push(...(validFollowTags as string[]));
+    const latestFirstDegreeEvent =
+      pickPreferredReplaceableEvent(allFirstDegreeEvents);
+
+    if (
+      latestFirstDegreeEvent &&
+      (!dbContactListEvent ||
+        latestFirstDegreeEvent.id !== dbContactListEvent.id)
+    ) {
+      cacheEventToDatabase(latestFirstDegreeEvent).catch((error) =>
+        console.error("Failed to cache initial contact list:", error)
+      );
+    }
+
+    const directFollowList = latestFirstDegreeEvent
+      ? Array.from(new Set(extractValidFollowTags(latestFirstDegreeEvent.tags)))
+      : [];
+
+    const firstDegreeFollowsLength = directFollowList.length;
+
+    if (directFollowList.length > 0) {
+      editFollowsContext(
+        directFollowList,
+        directFollowList,
+        firstDegreeFollowsLength,
+        true
+      );
+    }
+
+    if (!directFollowList.length) {
+      return {
+        directFollowList,
+        followsArrayFromRelay: [],
+        firstDegreeFollowsLength,
+      };
+    }
+
+    const followsSet: Set<string> = new Set(directFollowList);
+    let secondDegreeFollowsArrayFromRelay: string[] = [];
+
+    // Fetch second-degree follows
+    let fetchedSecondDegreeEvents: NostrEvent[] = [];
+    try {
+      fetchedSecondDegreeEvents = (await nostr.fetch(
+        [
+          {
+            kinds: [3],
+            authors: directFollowList,
+          },
+        ],
+        {},
+        relays
+      )) as NostrEvent[];
+    } catch (error) {
+      console.error("Relay fetch for second-degree follows failed:", error);
+    }
+
+    for (const followEvent of getLatestEventByAuthor(
+      fetchedSecondDegreeEvents
+    ).values()) {
+      const validFollowTags = extractValidFollowTags(
+        followEvent.tags,
+        followsSet
+      );
+      secondDegreeFollowsArrayFromRelay.push(...validFollowTags);
     }
 
     const pubkeyCount: Map<string, number> = new Map();
@@ -1018,27 +1809,28 @@ export const fetchAllFollows = async (
         (pubkey) => (pubkeyCount.get(pubkey) || 0) >= wot
       );
     // Concatenate arrays ensuring uniqueness
-    followsArrayFromRelay = Array.from(
-      new Set(followsArrayFromRelay.concat(secondDegreeFollowsArrayFromRelay))
+    const followsArrayFromRelay = Array.from(
+      new Set(directFollowList.concat(secondDegreeFollowsArrayFromRelay))
     );
     return {
+      directFollowList,
       followsArrayFromRelay,
       firstDegreeFollowsLength,
     };
   };
 
-  let { followsArrayFromRelay, firstDegreeFollowsLength } = await fetchFollows(
-    userPubkey || defaultAuthor
+  const { directFollowList, followsArrayFromRelay, firstDegreeFollowsLength } =
+    await fetchFollows(userPubkey);
+  editFollowsContext(
+    directFollowList,
+    followsArrayFromRelay,
+    firstDegreeFollowsLength,
+    false
   );
-
-  if (!followsArrayFromRelay?.length) {
-    // If followsArrayFromRelay is still empty, add the default value
-    ({ followsArrayFromRelay, firstDegreeFollowsLength } =
-      await fetchFollows(defaultAuthor));
-  }
-  editFollowsContext(followsArrayFromRelay, firstDegreeFollowsLength, false);
   return {
+    directFollowList,
     followList: followsArrayFromRelay,
+    firstDegreeFollowsLength,
   };
 };
 
@@ -1288,6 +2080,70 @@ export const fetchAllBlossomServers = async (
   });
 };
 
+export const fetchEscrowRecords = async (
+  nostr: NostrManager,
+  signer: NostrSigner | undefined,
+  relays: string[]
+): Promise<void> => {
+  const userPubkey = await signer?.getPubKey?.();
+  if (!userPubkey) return;
+
+  const restoreEncryptedRecordFromEvent = async (event: NostrEvent) => {
+    const decrypted = await signer!.decrypt(userPubkey, event.content);
+    const record = parseJsonSafely<BuyerP2pkEscrowRecord>(decrypted);
+    if (!isBuyerP2pkEscrowRecord(record)) return;
+
+    restoreEncryptedEscrowRecordLocally({
+      orderId: record.orderId,
+      createdAt: record.createdAt,
+      content: event.content,
+    });
+  };
+
+  // DB-first: restore from server-side cache so the orders dashboard has records
+  // even before the Nostr relay fetch completes
+  try {
+    const dbRes = await fetch(`/api/db/fetch-escrow?pubkey=${userPubkey}`);
+    const dbEvents: NostrEvent[] = dbRes.ok ? await dbRes.json() : [];
+    for (const event of dbEvents) {
+      if (event.kind !== BUYER_P2PK_ESCROW_EVENT_KIND) continue;
+      try {
+        await restoreEncryptedRecordFromEvent(event);
+      } catch {
+        // skip malformed cached events
+      }
+    }
+  } catch (error) {
+    console.error("Failed to restore escrow records from database:", error);
+  }
+
+  // Relay fetch: pick up records missing from the DB cache (e.g. first login on this server)
+  const escrowEvents: NostrEvent[] = await nostr.fetch(
+    [{ kinds: [BUYER_P2PK_ESCROW_EVENT_KIND], authors: [userPubkey] }],
+    {},
+    relays
+  );
+
+  const validEscrowEvents = escrowEvents.filter(
+    (e) => e.id && e.sig && e.pubkey && e.kind === BUYER_P2PK_ESCROW_EVENT_KIND
+  );
+  if (validEscrowEvents.length > 0) {
+    cacheEventsToDatabase(validEscrowEvents).catch((err) =>
+      console.error("Failed to cache escrow events to database:", err)
+    );
+  }
+
+  // restoreEncryptedEscrowRecordLocally deduplicates by orderId, so it is safe
+  // to call for the same record from DB and relay without creating duplicates.
+  for (const event of validEscrowEvents) {
+    try {
+      await restoreEncryptedRecordFromEvent(event);
+    } catch (error) {
+      console.error(`Failed to decrypt escrow record ${event.id}:`, error);
+    }
+  }
+};
+
 export const fetchCashuWallet = async (
   nostr: NostrManager,
   signer: NostrSigner | undefined,
@@ -1296,12 +2152,19 @@ export const fetchCashuWallet = async (
     proofEvents: any[],
     cashuMints: string[],
     cashuProofs: Proof[],
-    isLoading: boolean
+    isLoading: boolean,
+    keys?: {
+      cashuPubkey?: string;
+      cashuPrivkey?: string;
+      walletIdentityUnavailable?: boolean;
+    }
   ) => void
 ): Promise<{
   proofEvents: any[];
   cashuMints: string[];
   cashuProofs: Proof[];
+  cashuPubkey?: string;
+  cashuPrivkey?: string;
 }> => {
   return new Promise(async function (resolve, reject) {
     const { tokens } = getLocalStorageData();
@@ -1323,6 +2186,7 @@ export const fetchCashuWallet = async (
       const cashuRelays: string[] = [];
       const cashuMints: string[] = [];
       const cashuMintSet: Set<string> = new Set();
+      let latestKeypair: LatestWalletKeypair | null = null;
       let cashuProofs: Proof[] = [...tokens]; // Start with existing tokens
       const incomingSpendingHistory: [][] = [];
 
@@ -1341,15 +2205,13 @@ export const fetchCashuWallet = async (
                 userPubkey,
                 event.content
               );
-              const walletContent: string[][] = JSON.parse(decrypted);
-              walletContent
-                .filter((entry) => entry[0] === "mint")
-                .forEach((entry) => {
-                  if (entry[1] && !cashuMintSet.has(entry[1])) {
-                    cashuMintSet.add(entry[1]);
-                    cashuMints.push(entry[1]);
-                  }
-                });
+              latestKeypair = applyWalletConfigContent(
+                decrypted,
+                event.created_at,
+                cashuMintSet,
+                cashuMints,
+                latestKeypair
+              );
             } catch (error) {
               console.error(
                 `Failed to decrypt wallet config event from DB ${event.id}:`,
@@ -1434,11 +2296,17 @@ export const fetchCashuWallet = async (
         authors: [userPubkey],
       };
 
-      const hEvents: NostrEvent[] = await nostr.fetch(
-        [walletConfigFilter],
-        {},
-        relays
-      );
+      let walletRelayFetchSucceeded = false;
+      let hEvents: NostrEvent[] = [];
+      try {
+        hEvents = await nostr.fetch([walletConfigFilter], {}, relays);
+        walletRelayFetchSucceeded = true;
+      } catch (fetchError) {
+        console.error(
+          "Failed to fetch wallet config events from relay:",
+          fetchError
+        );
+      }
 
       // Cache wallet config events to database
       const validWalletConfigEvents = hEvents.filter(
@@ -1464,15 +2332,13 @@ export const fetchCashuWallet = async (
                 userPubkey,
                 event.content
               );
-              const walletContent: string[][] = JSON.parse(decrypted);
-              walletContent
-                .filter((entry) => entry[0] === "mint")
-                .forEach((entry) => {
-                  if (entry[1] && !cashuMintSet.has(entry[1])) {
-                    cashuMintSet.add(entry[1]);
-                    cashuMints.push(entry[1]);
-                  }
-                });
+              latestKeypair = applyWalletConfigContent(
+                decrypted,
+                event.created_at,
+                cashuMintSet,
+                cashuMints,
+                latestKeypair
+              );
             } catch (decryptError) {
               console.error(
                 `Failed to decrypt wallet config event ${event.id}:`,
@@ -1520,6 +2386,37 @@ export const fetchCashuWallet = async (
         } catch (error) {
           console.error("Failed to process most recent wallet event:", error);
         }
+      }
+
+      // Generate a new wallet identity only when the relay fetch definitively
+      // returned (even if empty). A failed relay fetch means we cannot confirm
+      // that no identity exists — generating one would silently replace a real
+      // identity on a broken relay.
+      const hasExistingKeypair =
+        latestKeypair?.cashuPubkey !== undefined &&
+        latestKeypair?.cashuPrivkey !== undefined;
+
+      if (!hasExistingKeypair && walletRelayFetchSucceeded && signer) {
+        try {
+          const { cashuPubkey, cashuPrivkey } = generateCashuWalletKeypair();
+          await publishWalletEvent(
+            nostr,
+            signer,
+            { cashuPubkey, cashuPrivkey },
+            { mints: cashuMints }
+          );
+          latestKeypair = {
+            createdAt: Math.floor(Date.now() / 1000),
+            cashuPubkey,
+            cashuPrivkey,
+          };
+        } catch (error) {
+          console.error("Failed to generate Cashu wallet identity:", error);
+        }
+      } else if (!hasExistingKeypair && !walletRelayFetchSucceeded) {
+        console.warn(
+          "Wallet identity unavailable: relay fetch failed. Skipping identity generation to avoid overwriting an existing identity."
+        );
       }
 
       // Use cashu-specific relays if available, otherwise use default relays
@@ -1728,12 +2625,32 @@ export const fetchCashuWallet = async (
       // Final deduplication
       cashuProofs = getUniqueProofs(cashuProofs);
 
-      editCashuWalletContext(proofEvents, cashuMints, cashuProofs, false);
+      const walletKeys = {
+        cashuPubkey: latestKeypair?.cashuPubkey,
+        cashuPrivkey: latestKeypair?.cashuPrivkey,
+        walletIdentityUnavailable:
+          !hasExistingKeypair && !walletRelayFetchSucceeded ? true : undefined,
+      };
+
+      editCashuWalletContext(
+        proofEvents,
+        cashuMints,
+        cashuProofs,
+        false,
+        walletKeys
+      );
 
       resolve({
         proofEvents: proofEvents,
         cashuMints: cashuMints,
         cashuProofs: cashuProofs,
+        ...(latestKeypair?.cashuPubkey !== undefined &&
+        latestKeypair?.cashuPrivkey !== undefined
+          ? {
+              cashuPubkey: latestKeypair.cashuPubkey,
+              cashuPrivkey: latestKeypair.cashuPrivkey,
+            }
+          : {}),
       });
     } catch (error) {
       console.error("Fatal error in fetchCashuWallet:", error);
@@ -1895,20 +2812,24 @@ export const fetchCommunityPosts = async (
         : combinedRelays;
       const batchSize = 50;
       const postEvents: NostrEvent[] = [];
+      const batches: string[][] = [];
       for (let i = 0; i < approvedEventIds.length; i += batchSize) {
         const batchIds = approvedEventIds.slice(i, i + batchSize);
-        if (batchIds.length > 0) {
+        if (batchIds.length > 0) batches.push(batchIds);
+      }
+      const batchResults = await mapWithConcurrency(
+        batches,
+        COMMUNITY_POST_BATCH_CONCURRENCY,
+        async (batchIds) => {
           const postsFilter: Filter = {
             kinds: [1111],
             ids: batchIds,
           };
-          const batchEvents = await nostr.fetch(
-            [postsFilter],
-            {},
-            requestRelays
-          );
-          postEvents.push(...batchEvents);
+          return nostr.fetch([postsFilter], {}, requestRelays);
         }
+      );
+      for (const batchEvents of batchResults) {
+        postEvents.push(...batchEvents);
       }
 
       // Annotate posts with approval metadata where available
