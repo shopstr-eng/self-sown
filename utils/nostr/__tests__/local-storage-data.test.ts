@@ -2,10 +2,12 @@ import {
   LogOut,
   clearNWCConnection,
   getLocalStorageData,
+  lockNIP46Signer,
   lockNWCConnection,
   saveEncryptedNWCString,
   saveNWCInfo,
   setLocalStorageDataOnSignIn,
+  unlockNIP46Signer,
   unlockNWCString,
 } from "../nostr-helper-functions";
 import { storage, STORAGE_KEYS } from "@/utils/storage";
@@ -259,18 +261,18 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     expect(localStorage.getItem("nwcString")).toBeNull();
   });
 
-  it("accepts a marker-only nip46 stored signer", () => {
+  it("does not treat a marker-only NIP-46 record as a usable signer", () => {
     localStorage.setItem("signer", JSON.stringify({ type: "nip46" }));
 
     const data = getLocalStorageData();
 
-    expect(data.signer).toEqual({ type: "nip46" });
+    expect(data.signer).toBeUndefined();
     expect(localStorage.getItem("signer")).toBe(
       JSON.stringify({ type: "nip46" })
     );
   });
 
-  it("reconstructs a marker-only nip46 signer from separate bunker keys", () => {
+  it("captures legacy NIP-46 credentials in memory and removes every plaintext copy", () => {
     localStorage.setItem("signer", JSON.stringify({ type: "nip46" }));
     localStorage.setItem("clientPrivkey", "client-private-key");
     localStorage.setItem("bunkerRemotePubkey", "remote-pubkey");
@@ -288,32 +290,93 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
     expect(localStorage.getItem("signer")).toBe(
       JSON.stringify({ type: "nip46" })
     );
+    expect(data.hasLegacyNIP46Connection).toBe(true);
+    expect(localStorage.getItem("clientPrivkey")).toBeNull();
+    expect(localStorage.getItem("bunkerRemotePubkey")).toBeNull();
+    expect(localStorage.getItem("bunkerRelays")).toBeNull();
+    expect(localStorage.getItem("bunkerSecret")).toBeNull();
   });
 
-  it("stores only a safe nip46 signer marker while keeping runtime signer data", () => {
-    setLocalStorageDataOnSignIn({
+  it("stores NIP-46 credentials only inside an encrypted signer envelope", async () => {
+    const remotePubkey = "a".repeat(64);
+    const appPrivKey = "b".repeat(64);
+
+    await setLocalStorageDataOnSignIn({
       signer: {
         toJSON: () => ({
           type: "nip46",
-          bunker: "bunker://pubkey?secret=supersecret",
-          appPrivKey: "app-private-key",
+          bunker: `bunker://${remotePubkey}?secret=supersecret&relay=wss://relay.example`,
+          appPrivKey,
         }),
       } as any,
-    });
+      signerPassphrase: "secret-passphrase",
+    } as any);
 
     const data = getLocalStorageData();
 
     expect(data.signer).toEqual({
       type: "nip46",
-      bunker: "bunker://pubkey?secret=supersecret",
-      appPrivKey: "app-private-key",
+      bunker: `bunker://${remotePubkey}?relay=wss%3A%2F%2Frelay.example`,
+      appPrivKey,
     });
-    expect(localStorage.getItem("signer")).toBe(
-      JSON.stringify({ type: "nip46" })
-    );
+    const storedSigner = localStorage.getItem("signer") || "";
+    expect(JSON.parse(storedSigner)).toMatchObject({
+      type: "nip46",
+      encryptedSigner: expect.any(String),
+    });
+    expect(storedSigner).not.toContain("supersecret");
+    expect(storedSigner).not.toContain(appPrivKey);
+    expect(localStorage.getItem("clientPrivkey")).toBeNull();
+    expect(localStorage.getItem("bunkerSecret")).toBeNull();
   });
 
-  it("migrates legacy persisted bunker signer data to a safe marker on read", () => {
+  it("restores the encrypted NIP-46 signer after reload with the passphrase", async () => {
+    const remotePubkey = "a".repeat(64);
+    const appPrivKey = "b".repeat(64);
+    await setLocalStorageDataOnSignIn({
+      signer: {
+        toJSON: () => ({
+          type: "nip46",
+          bunker: `bunker://${remotePubkey}?secret=single-use&relay=wss://relay.example`,
+          appPrivKey,
+        }),
+      } as any,
+      signerPassphrase: "secret-passphrase",
+    });
+
+    lockNIP46Signer();
+    expect(getLocalStorageData().signer).toMatchObject({
+      type: "nip46",
+      encryptedSigner: expect.any(String),
+    });
+
+    await expect(unlockNIP46Signer("secret-passphrase")).resolves.toEqual({
+      type: "nip46",
+      bunker: `bunker://${remotePubkey}?relay=wss%3A%2F%2Frelay.example`,
+      appPrivKey,
+    });
+  });
+
+  it("drops the in-memory NIP-46 signer when another tab removes the persisted session", async () => {
+    const remotePubkey = "a".repeat(64);
+    await setLocalStorageDataOnSignIn({
+      signer: {
+        toJSON: () => ({
+          type: "nip46",
+          bunker: `bunker://${remotePubkey}?relay=wss://relay.example`,
+          appPrivKey: "b".repeat(64),
+        }),
+      } as any,
+      signerPassphrase: "secret-passphrase",
+    });
+    expect(getLocalStorageData().signer?.type).toBe("nip46");
+
+    localStorage.removeItem("signer");
+
+    expect(getLocalStorageData().signer).toBeUndefined();
+  });
+
+  it("removes a legacy serialized signer and keeps it only for in-session migration", () => {
     localStorage.setItem(
       "signer",
       JSON.stringify({
@@ -331,12 +394,14 @@ describe("StorageManager defaults (replaces getLocalStorageData)", () => {
 
     expect(data.signer).toEqual({
       type: "nip46",
-      bunker:
-        "bunker://remote-pubkey?secret=stored-secret&relay=wss://relay.one",
-      appPrivKey: "client-private-key",
+      bunker: "bunker://pubkey?secret=legacysecret",
+      appPrivKey: "legacy-app-privkey",
     });
     expect(localStorage.getItem("signer")).toBe(
       JSON.stringify({ type: "nip46" })
     );
+    expect(data.hasLegacyNIP46Connection).toBe(true);
+    expect(localStorage.getItem("clientPrivkey")).toBeNull();
+    expect(localStorage.getItem("bunkerSecret")).toBeNull();
   });
 });

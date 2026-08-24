@@ -34,6 +34,11 @@ import {
   decryptNWCString,
   encryptNWCString,
 } from "@/utils/nostr/nwc-encryption";
+import {
+  decryptNIP46SignerCredentials,
+  encryptNIP46SignerCredentials,
+  type NIP46SignerCredentials,
+} from "@/utils/nostr/nip46-encryption";
 import { getDefaultRelays, withBlastr } from "./relay-config";
 export { getDefaultRelays, withBlastr };
 
@@ -832,17 +837,31 @@ function getLegacyNWCString(): string | null {
 export type StoredSignerData =
   | { type: "nip07" }
   | { type: "nip46"; bunker?: string; appPrivKey?: string }
+  | { type: "nip46"; encryptedSigner: string }
   | { type: "nsec"; encryptedPrivKey: string; pubkey?: string };
 
 let runtimeSignerData: StoredSignerData | undefined;
+let runtimeLegacyNip46SignerData: NIP46SignerCredentials | undefined;
 
 export function getPersistableSignerData(
   signerData: StoredSignerData
 ): StoredSignerData {
-  if (signerData.type === "nip46") {
+  if (signerData.type === "nip46" && !("encryptedSigner" in signerData)) {
     return { type: "nip46" };
   }
   return signerData;
+}
+
+function isNIP46SignerCredentials(
+  signerData: StoredSignerData | undefined
+): signerData is NIP46SignerCredentials {
+  return (
+    signerData?.type === "nip46" &&
+    "bunker" in signerData &&
+    typeof signerData.bunker === "string" &&
+    "appPrivKey" in signerData &&
+    typeof signerData.appPrivKey === "string"
+  );
 }
 
 function buildNip46SignerData({
@@ -878,7 +897,32 @@ function removeLegacyNWCString(): void {
   storage.removeItem(STORAGE_KEYS.NWC_STRING);
 }
 
-export const setLocalStorageDataOnSignIn = ({
+function removeLegacyNIP46Storage(): void {
+  storage.clearKeys([
+    STORAGE_KEYS.CLIENT_PUBKEY,
+    STORAGE_KEYS.CLIENT_PRIVKEY,
+    STORAGE_KEYS.BUNKER_REMOTE_PUBKEY,
+    STORAGE_KEYS.BUNKER_RELAYS,
+    STORAGE_KEYS.BUNKER_SECRET,
+  ]);
+}
+
+async function prepareEncryptedNIP46Signer(
+  signerData: NIP46SignerCredentials,
+  passphrase: string
+): Promise<{
+  runtimeSigner: NIP46SignerCredentials;
+  persistedSigner: StoredSignerData;
+}> {
+  const { encryptedSigner, runtimeSigner } =
+    await encryptNIP46SignerCredentials(signerData, passphrase);
+  return {
+    runtimeSigner,
+    persistedSigner: { type: "nip46", encryptedSigner },
+  };
+}
+
+export const setLocalStorageDataOnSignIn = async ({
   encryptedPrivateKey,
   relays,
   readRelays,
@@ -886,12 +930,8 @@ export const setLocalStorageDataOnSignIn = ({
   mints,
   blossomServers,
   wot,
-  clientPubkey,
-  clientPrivkey,
-  bunkerRemotePubkey,
-  bunkerRelays,
-  bunkerSecret,
   signer,
+  signerPassphrase,
   migrationComplete,
 }: {
   encryptedPrivateKey?: string;
@@ -907,8 +947,28 @@ export const setLocalStorageDataOnSignIn = ({
   bunkerRelays?: string[];
   bunkerSecret?: string;
   signer?: NostrSigner;
+  signerPassphrase?: string;
   migrationComplete?: boolean;
-}) => {
+}): Promise<void> => {
+  let signerData: StoredSignerData | undefined;
+  let persistableSignerData: StoredSignerData | undefined;
+  if (signer) {
+    signerData = signer.toJSON() as StoredSignerData;
+    if (isNIP46SignerCredentials(signerData)) {
+      if (!signerPassphrase) {
+        throw new Error("A passphrase is required to store a NIP-46 signer.");
+      }
+      const prepared = await prepareEncryptedNIP46Signer(
+        signerData,
+        signerPassphrase
+      );
+      signerData = prepared.runtimeSigner;
+      persistableSignerData = prepared.persistedSigner;
+    } else {
+      persistableSignerData = getPersistableSignerData(signerData);
+    }
+  }
+
   if (encryptedPrivateKey) {
     storage.setItem(STORAGE_KEYS.ENCRYPTED_PRIVATE_KEY, encryptedPrivateKey);
   }
@@ -937,23 +997,13 @@ export const setLocalStorageDataOnSignIn = ({
 
   storage.setItem(STORAGE_KEYS.WOT, String(wot ? wot : 3));
 
-  if (clientPubkey && clientPrivkey && bunkerRemotePubkey && bunkerRelays) {
-    storage.setItem(STORAGE_KEYS.CLIENT_PUBKEY, clientPubkey);
-    storage.setItem(STORAGE_KEYS.CLIENT_PRIVKEY, clientPrivkey);
-    storage.setItem(STORAGE_KEYS.BUNKER_REMOTE_PUBKEY, bunkerRemotePubkey);
-    storage.setJson(
-      STORAGE_KEYS.BUNKER_RELAYS,
-      bunkerRelays && bunkerRelays.length !== 0 ? bunkerRelays : []
-    );
-    if (bunkerSecret) {
-      storage.setItem(STORAGE_KEYS.BUNKER_SECRET, bunkerSecret);
-    }
-  }
-
-  if (signer) {
-    const signerData = signer.toJSON() as StoredSignerData;
+  if (signerData && persistableSignerData) {
     runtimeSignerData = signerData;
-    storage.setJson(STORAGE_KEYS.SIGNER, getPersistableSignerData(signerData));
+    runtimeLegacyNip46SignerData = undefined;
+    storage.setJson(STORAGE_KEYS.SIGNER, persistableSignerData);
+    if (signerData.type === "nip46") {
+      removeLegacyNIP46Storage();
+    }
   }
 
   if (migrationComplete) {
@@ -985,6 +1035,8 @@ export interface LocalStorageInterface {
   bunkerRelays?: string[];
   bunkerSecret?: string;
   signer?: StoredSignerData;
+  hasStoredNIP46Connection?: boolean;
+  hasLegacyNIP46Connection?: boolean;
   nwcString?: string | null;
   legacyNWCString?: string | null;
   nwcInfo?: string | null;
@@ -1005,6 +1057,7 @@ export function isStoredSignerData(
     type?: unknown;
     bunker?: unknown;
     appPrivKey?: unknown;
+    encryptedSigner?: unknown;
     encryptedPrivKey?: unknown;
     pubkey?: unknown;
   };
@@ -1014,6 +1067,13 @@ export function isStoredSignerData(
   }
 
   if (candidate.type === "nip46") {
+    if (candidate.encryptedSigner !== undefined) {
+      return (
+        typeof candidate.encryptedSigner === "string" &&
+        candidate.bunker === undefined &&
+        candidate.appPrivKey === undefined
+      );
+    }
     return (
       (candidate.bunker === undefined ||
         typeof candidate.bunker === "string") &&
@@ -1157,24 +1217,38 @@ export const getLocalStorageData = (): LocalStorageInterface => {
     validate: isStoredSignerDataOrUndefined,
   });
 
-  let signer: StoredSignerData | undefined =
-    runtimeSignerData ?? persistedSigner;
+  const persistedEncryptedNIP46 =
+    persistedSigner?.type === "nip46" && "encryptedSigner" in persistedSigner;
+  const persistedLegacyNIP46 = isNIP46SignerCredentials(persistedSigner)
+    ? persistedSigner
+    : undefined;
+  const reconstructedLegacyNIP46 = buildNip46SignerData({
+    clientPrivkey,
+    bunkerRemotePubkey,
+    bunkerRelays,
+    bunkerSecret,
+  });
+  const legacyNIP46Signer =
+    persistedLegacyNIP46 ??
+    (isNIP46SignerCredentials(reconstructedLegacyNIP46)
+      ? reconstructedLegacyNIP46
+      : undefined);
 
-  if (persistedSigner?.type === "nip46") {
-    const persistableSigner = getPersistableSignerData(persistedSigner);
-    if (JSON.stringify(persistedSigner) !== JSON.stringify(persistableSigner)) {
-      storage.setJson(STORAGE_KEYS.SIGNER, persistableSigner);
-    }
+  if (legacyNIP46Signer) {
+    runtimeSignerData = legacyNIP46Signer;
+    runtimeLegacyNip46SignerData = legacyNIP46Signer;
+    storage.setJson(STORAGE_KEYS.SIGNER, { type: "nip46" });
+    removeLegacyNIP46Storage();
+  } else if (!persistedSigner) {
+    runtimeSignerData = undefined;
+    runtimeLegacyNip46SignerData = undefined;
+  }
 
-    if (!runtimeSignerData) {
-      signer =
-        buildNip46SignerData({
-          clientPrivkey,
-          bunkerRemotePubkey,
-          bunkerRelays,
-          bunkerSecret,
-        }) ?? persistableSigner;
-    }
+  let signer: StoredSignerData | undefined = runtimeSignerData;
+  if (!signer && persistedEncryptedNIP46) {
+    signer = persistedSigner;
+  } else if (!signer && persistedSigner?.type !== "nip46") {
+    signer = persistedSigner;
   }
 
   if (!signer) {
@@ -1183,17 +1257,6 @@ export const getLocalStorageData = (): LocalStorageInterface => {
         signer = { type: "nip07" };
         break;
       case "bunker":
-        if (bunkerRemotePubkey && bunkerSecret) {
-          let bunker = `bunker://${bunkerRemotePubkey}?secret=${bunkerSecret}`;
-          for (const relay of bunkerRelays) {
-            bunker += `&relay=${relay}`;
-          }
-          signer = {
-            type: "nip46",
-            bunker,
-            appPrivKey: clientPrivkey,
-          };
-        }
         break;
       case "nsec":
         if (encryptedPrivateKey) {
@@ -1239,6 +1302,8 @@ export const getLocalStorageData = (): LocalStorageInterface => {
     bunkerRelays,
     bunkerSecret,
     signer,
+    hasStoredNIP46Connection: persistedEncryptedNIP46,
+    hasLegacyNIP46Connection: Boolean(runtimeLegacyNip46SignerData),
     nwcString: runtimeNWCString,
     legacyNWCString,
     nwcInfo: storage.getItem(STORAGE_KEYS.NWC_INFO),
@@ -1258,8 +1323,58 @@ export const getLocalStorageData = (): LocalStorageInterface => {
   };
 };
 
+export const saveEncryptedNIP46Signer = async (
+  signerData: NIP46SignerCredentials,
+  passphrase: string
+): Promise<NIP46SignerCredentials> => {
+  const { runtimeSigner, persistedSigner } = await prepareEncryptedNIP46Signer(
+    signerData,
+    passphrase
+  );
+  runtimeSignerData = runtimeSigner;
+  runtimeLegacyNip46SignerData = undefined;
+  storage.setJson(STORAGE_KEYS.SIGNER, persistedSigner);
+  removeLegacyNIP46Storage();
+  window.dispatchEvent(new Event("storage"));
+  return runtimeSigner;
+};
+
+export const unlockNIP46Signer = async (
+  passphrase: string
+): Promise<NIP46SignerCredentials> => {
+  const persistedSigner = storage.getJson<StoredSignerData | undefined>(
+    STORAGE_KEYS.SIGNER,
+    undefined,
+    {
+      removeOnError: true,
+      removeOnValidationError: true,
+      validate: isStoredSignerDataOrUndefined,
+    }
+  );
+  if (
+    persistedSigner?.type !== "nip46" ||
+    !("encryptedSigner" in persistedSigner)
+  ) {
+    throw new Error("Stored NIP-46 connection not found.");
+  }
+
+  const signerData = await decryptNIP46SignerCredentials(
+    persistedSigner.encryptedSigner,
+    passphrase
+  );
+  runtimeSignerData = signerData;
+  return signerData;
+};
+
+export const lockNIP46Signer = (): void => {
+  if (runtimeSignerData?.type === "nip46") {
+    runtimeSignerData = undefined;
+  }
+};
+
 export const LogOut = () => {
   runtimeSignerData = undefined;
+  runtimeLegacyNip46SignerData = undefined;
   runtimeNWCString = null;
   runtimeLegacyNWCString = null;
   storage.removeItem(STORAGE_KEYS.LEGACY_NPUB);

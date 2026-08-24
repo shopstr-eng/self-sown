@@ -21,6 +21,7 @@ import {
   getStoredRelays,
   getStoredWriteRelays,
   lockNWCConnection,
+  saveEncryptedNIP46Signer,
   saveEncryptedNWCString,
   saveNWCInfo,
   type StoredSignerData,
@@ -110,44 +111,52 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
   const [showMigrationModal, setShowMigrationModal] = useState(false);
   const isLoggedIn = !!(signer && pubkey);
   const lastSuccessfulSignerKeyRef = useRef<string>("");
+  const legacyNIP46MigrationRequestedRef = useRef(false);
 
-  const challengeHandler: ChallengeHandler = (
-    type,
-    challenge,
-    abort,
-    abortSignal,
-    error
-  ) => {
-    return new Promise((resolve, _reject) => {
-      setError(error);
-      setAbort(() => abort);
-      setChallengeResolver(() => {
-        return async (res: any) => {
-          resolve(res);
-        };
+  const challengeHandler = useCallback<ChallengeHandler>(
+    (type, challenge, abort, abortSignal, error) => {
+      return new Promise((resolve, reject) => {
+        setError(error);
+        setAbort(() => abort);
+        setChallengeResolver(() => {
+          return async (res: any) => {
+            resolve(res);
+          };
+        });
+        switch (type) {
+          case "passphrase": {
+            setIsPassphraseRequested(true);
+            abortSignal.addEventListener(
+              "abort",
+              () => {
+                setIsPassphraseRequested(false);
+                reject(new Error("Action cancelled by user"));
+              },
+              { once: true }
+            );
+            break;
+          }
+          case "auth_url": {
+            setAuthUrl(challenge);
+            setIsAuthChallengeRequested(true);
+            abortSignal.addEventListener(
+              "abort",
+              () => {
+                setIsAuthChallengeRequested(false);
+                reject(new Error("Action cancelled by user"));
+              },
+              { once: true }
+            );
+            break;
+          }
+          default: {
+            throw new Error("Unknown challenge type " + type);
+          }
+        }
       });
-      switch (type) {
-        case "passphrase": {
-          setIsPassphraseRequested(true);
-          abortSignal.addEventListener("abort", () => {
-            setIsPassphraseRequested(false);
-          });
-          break;
-        }
-        case "auth_url": {
-          setAuthUrl(challenge);
-          setIsAuthChallengeRequested(true);
-          abortSignal.addEventListener("abort", () => {
-            setIsAuthChallengeRequested(false);
-          });
-          break;
-        }
-        default: {
-          throw new Error("Unknown challenge type " + type);
-        }
-      }
-    });
-  };
+    },
+    []
+  );
 
   const loadKeys = async (signerObject: NostrSigner) => {
     try {
@@ -167,119 +176,160 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loadSigner = useCallback((retryCount = 0) => {
-    let existingSigner: StoredSignerData | undefined;
-    const { signer, signInMethod } = getLocalStorageData();
+  const loadSigner = useCallback(
+    (retryCount = 0) => {
+      let existingSigner: StoredSignerData | undefined;
+      const { signer, signInMethod, hasLegacyNIP46Connection } =
+        getLocalStorageData();
 
-    if (signer) {
-      existingSigner = signer;
-    } else if (signInMethod) {
-      switch (signInMethod) {
-        case "bunker": {
-          const remotePubkey = storage.getItem(
-            STORAGE_KEYS.BUNKER_REMOTE_PUBKEY
-          );
-          const secret = storage.getItem(STORAGE_KEYS.BUNKER_SECRET);
-          const bunkerRelays = storage.getJson<string[]>(
-            STORAGE_KEYS.BUNKER_RELAYS,
-            []
-          );
-
-          let bunker = "bunker://" + remotePubkey + "?secret=" + secret;
-          for (const relay of bunkerRelays) {
-            bunker += "&relay=" + relay;
+      if (signer) {
+        existingSigner = signer;
+      } else if (signInMethod) {
+        switch (signInMethod) {
+          case "bunker": {
+            break;
           }
-          const appPrivKey = storage.getItem(STORAGE_KEYS.CLIENT_PRIVKEY);
-          existingSigner = {
-            type: "nip46",
-            bunker,
-            appPrivKey: appPrivKey!,
-          };
-          break;
+          case "extension": {
+            existingSigner = {
+              type: "nip07",
+            };
+            break;
+          }
+          case "nsec": {
+            const encryptedPrivateKey = storage.getItem(
+              STORAGE_KEYS.ENCRYPTED_PRIVATE_KEY
+            );
+            existingSigner = {
+              type: "nsec",
+              encryptedPrivKey: encryptedPrivateKey!,
+            };
+            break;
+          }
+          default: {
+            throw new Error("Unknown signInMethod " + signInMethod);
+          }
         }
-        case "extension": {
-          existingSigner = {
-            type: "nip07",
-          };
-          break;
-        }
-        case "nsec": {
-          const encryptedPrivateKey = storage.getItem(
-            STORAGE_KEYS.ENCRYPTED_PRIVATE_KEY
-          );
-          existingSigner = {
-            type: "nsec",
-            encryptedPrivKey: encryptedPrivateKey!,
-          };
-          break;
-        }
-        default: {
-          throw new Error("Unknown signInMethod " + signInMethod);
-        }
-      }
-    } else {
-      lastSuccessfulSignerKeyRef.current = "";
-      setSigner(undefined);
-      setPubKey(undefined);
-      setNPub(undefined);
-      setIsAuthStateResolved(true);
-      return;
-    }
-
-    const signerKey = JSON.stringify(existingSigner);
-    if (signerKey === lastSuccessfulSignerKeyRef.current) {
-      return;
-    }
-
-    setIsAuthStateResolved(false);
-
-    let signerObject: NostrSigner;
-    try {
-      signerObject = NostrManager.signerFrom(
-        existingSigner! as { [key: string]: string },
-        challengeHandler
-      );
-    } catch {
-      const isExtension =
-        existingSigner?.type === "nip07" || signInMethod === "extension";
-      if (isExtension && retryCount < 10) {
-        setTimeout(() => loadSigner(retryCount + 1), 500);
       } else {
+        lastSuccessfulSignerKeyRef.current = "";
         setSigner(undefined);
         setPubKey(undefined);
         setNPub(undefined);
         setIsAuthStateResolved(true);
+        return;
       }
-      return;
-    }
 
-    if (!signerObject) return;
+      if (!existingSigner) {
+        lastSuccessfulSignerKeyRef.current = "";
+        setSigner(undefined);
+        setPubKey(undefined);
+        setNPub(undefined);
+        setIsAuthStateResolved(true);
+        return;
+      }
 
-    lastSuccessfulSignerKeyRef.current = signerKey;
-    setSigner(signerObject);
-    loadKeys(signerObject);
+      const signerKey = JSON.stringify(existingSigner);
+      if (signerKey === lastSuccessfulSignerKeyRef.current) {
+        return;
+      }
 
-    const isAlreadyLoaded = storage.getItem(STORAGE_KEYS.SIGNER);
-    const persistableSigner = existingSigner
-      ? getPersistableSignerData(existingSigner)
-      : undefined;
-    const serializedSigner = persistableSigner
-      ? JSON.stringify(persistableSigner)
-      : "";
-    const hasStorageMismatch =
-      !isAlreadyLoaded || serializedSigner !== isAlreadyLoaded;
+      setIsAuthStateResolved(false);
 
-    if (persistableSigner && hasStorageMismatch) {
-      storage.setJson(STORAGE_KEYS.SIGNER, persistableSigner);
-    }
+      let signerObject: NostrSigner;
+      try {
+        signerObject = NostrManager.signerFrom(
+          existingSigner! as { [key: string]: string },
+          challengeHandler
+        );
+      } catch {
+        const isExtension =
+          existingSigner?.type === "nip07" || signInMethod === "extension";
+        if (isExtension && retryCount < 10) {
+          setTimeout(() => loadSigner(retryCount + 1), 500);
+        } else {
+          setSigner(undefined);
+          setPubKey(undefined);
+          setNPub(undefined);
+          setIsAuthStateResolved(true);
+        }
+        return;
+      }
 
-    if (hasStorageMismatch) {
-      const shouldReloadSigner = false;
-      window.dispatchEvent(
-        new CustomEvent("storage", { detail: { shouldReloadSigner } })
-      );
-    }
-  }, []);
+      if (!signerObject) return;
+
+      lastSuccessfulSignerKeyRef.current = signerKey;
+      setSigner(signerObject);
+      loadKeys(signerObject);
+
+      if (
+        hasLegacyNIP46Connection &&
+        existingSigner &&
+        existingSigner.type === "nip46" &&
+        "bunker" in existingSigner &&
+        typeof existingSigner.bunker === "string" &&
+        "appPrivKey" in existingSigner &&
+        typeof existingSigner.appPrivKey === "string" &&
+        !legacyNIP46MigrationRequestedRef.current
+      ) {
+        const legacySigner = {
+          type: "nip46" as const,
+          bunker: existingSigner.bunker,
+          appPrivKey: existingSigner.appPrivKey,
+        };
+        legacyNIP46MigrationRequestedRef.current = true;
+        void (async () => {
+          let migrationError: Error | undefined;
+          let aborted = false;
+          do {
+            try {
+              const abortController = new AbortController();
+              const response = await challengeHandler(
+                "passphrase",
+                "Create a passphrase to protect your NIP-46 connection",
+                () => {
+                  aborted = true;
+                  abortController.abort();
+                },
+                abortController.signal,
+                migrationError
+              );
+              await saveEncryptedNIP46Signer(legacySigner, response.res);
+              setIsPassphraseRequested(false);
+              return;
+            } catch (caughtError) {
+              migrationError = caughtError as Error;
+            }
+          } while (!aborted);
+        })();
+      } else if (!hasLegacyNIP46Connection) {
+        legacyNIP46MigrationRequestedRef.current = false;
+      }
+
+      const isAlreadyLoaded = storage.getItem(STORAGE_KEYS.SIGNER);
+      const isRuntimeNIP46Signer =
+        existingSigner.type === "nip46" && "bunker" in existingSigner;
+      const persistableSigner = isRuntimeNIP46Signer
+        ? undefined
+        : getPersistableSignerData(existingSigner);
+      const serializedSigner = persistableSigner
+        ? JSON.stringify(persistableSigner)
+        : "";
+      const hasStorageMismatch =
+        Boolean(persistableSigner) &&
+        (!isAlreadyLoaded || serializedSigner !== isAlreadyLoaded);
+
+      if (persistableSigner && hasStorageMismatch) {
+        storage.setJson(STORAGE_KEYS.SIGNER, persistableSigner);
+      }
+
+      if (hasStorageMismatch) {
+        const shouldReloadSigner = false;
+        window.dispatchEvent(
+          new CustomEvent("storage", { detail: { shouldReloadSigner } })
+        );
+      }
+    },
+    [challengeHandler]
+  );
 
   useEffect(() => {
     const handleStorage = (
