@@ -41,6 +41,7 @@ import {
   MintOperationError,
   withMintRetry,
 } from "@/utils/cashu/mint-retry-service";
+import { toCashuMintAmountSats } from "@/utils/cashu/payment-amount";
 import { getUniqueProofs } from "@/utils/nostr/fetch-service";
 import {
   markMintQuoteClaimed,
@@ -48,6 +49,7 @@ import {
   recordPendingMintQuote,
   updatePendingMintQuote,
 } from "@/utils/cashu/pending-mint-operations";
+import { storage, STORAGE_KEYS } from "@/utils/storage";
 
 const MintButton = () => {
   const [showMintModal, setShowMintModal] = useState(false);
@@ -86,11 +88,12 @@ const MintButton = () => {
   };
 
   const handleMint = async (numSats: number) => {
+    const invoiceAmount = toCashuMintAmountSats(numSats);
     const wallet = new CashuWallet(new CashuMint(mints[0]!));
     await wallet.loadMint();
 
     const { request: pr, quote: hash } = await withMintRetry(
-      () => wallet.createMintQuoteBolt11(numSats),
+      () => wallet.createMintQuoteBolt11(invoiceAmount),
       { maxAttempts: 4, perAttemptTimeoutMs: 15000, totalTimeoutMs: 60000 }
     );
 
@@ -99,7 +102,7 @@ const MintButton = () => {
     recordPendingMintQuote({
       quoteId: hash,
       mintUrl: mints[0]!,
-      amount: numSats,
+      amount: invoiceAmount,
       invoice: pr,
     });
 
@@ -132,7 +135,7 @@ const MintButton = () => {
         console.error(e);
       }
     }
-    await invoiceHasBeenPaid(wallet, numSats, hash);
+    await invoiceHasBeenPaid(wallet, invoiceAmount, hash);
   };
 
   /**
@@ -142,7 +145,7 @@ const MintButton = () => {
    */
   async function invoiceHasBeenPaid(
     wallet: CashuWallet,
-    numSats: number,
+    invoiceAmount: number,
     hash: string
   ) {
     const pollMaxRounds = 30; // ~1 minute of UNPAID polling
@@ -151,8 +154,7 @@ const MintButton = () => {
 
     while (roundsConsumed < pollMaxRounds && !claimDone) {
       let quoteState:
-        | Awaited<ReturnType<typeof wallet.checkMintQuoteBolt11>>
-        | undefined;
+        Awaited<ReturnType<typeof wallet.checkMintQuoteBolt11>> | undefined;
       try {
         quoteState = await withMintRetry(
           () => wallet.checkMintQuoteBolt11(hash),
@@ -208,7 +210,7 @@ const MintButton = () => {
 
       try {
         const proofs = await withMintRetry(
-          () => wallet.mintProofsBolt11(numSats, hash),
+          () => wallet.mintProofsBolt11(invoiceAmount, hash),
           { maxAttempts: 5, perAttemptTimeoutMs: 15000, totalTimeoutMs: 60000 }
         );
         if (proofs && proofs.length > 0) {
@@ -218,25 +220,22 @@ const MintButton = () => {
             ...(currentTokens as Proof[]),
             ...proofs,
           ]);
-          localStorage.setItem("tokens", JSON.stringify(proofArray));
-          localStorage.setItem(
-            "history",
-            JSON.stringify([
-              {
-                type: 3,
-                amount: numSats,
-                date: Math.floor(Date.now() / 1000),
-              },
-              ...currentHistory,
-            ])
-          );
+          storage.setJson(STORAGE_KEYS.TOKENS, proofArray);
+          storage.setJson(STORAGE_KEYS.HISTORY, [
+            {
+              type: 3,
+              amount: invoiceAmount,
+              date: Math.floor(Date.now() / 1000),
+            },
+            ...currentHistory,
+          ]);
           await publishProofEvent(
             nostr!,
             signer!,
             mints[0]!,
             proofs,
             "in",
-            numSats.toString()
+            invoiceAmount.toString()
           );
           markMintQuoteClaimed(hash);
           setPaymentConfirmed(true);

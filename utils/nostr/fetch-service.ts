@@ -13,10 +13,16 @@ import {
 import { ChatsMap } from "@/utils/context/context";
 import {
   getLocalStorageData,
+  getLatestLocalContactListEvent,
   deleteEvent,
   verifyNip05Identifier,
   publishWalletEvent,
 } from "@/utils/nostr/nostr-helper-functions";
+import { isHexPubkey } from "@/utils/nostr/pubkey";
+import {
+  pickPreferredReplaceableEvent,
+  selectPreferredReplaceableEvent,
+} from "@/utils/nostr/replaceable-events";
 import {
   ProductData,
   parseTags,
@@ -27,7 +33,11 @@ import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions"
 import { hashToCurve } from "@cashu/cashu-ts";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
-import { cacheEventsToDatabase } from "@/utils/db/db-client";
+import {
+  cacheEventsToDatabase,
+  cacheEventToDatabase,
+} from "@/utils/db/db-client";
+import { mapWithConcurrency } from "@/utils/concurrency";
 import {
   applyWalletConfigContent,
   generateCashuWalletKeypair,
@@ -56,6 +66,9 @@ type SearchFilter = Filter & { search: string };
 
 const PRODUCT_SEARCH_LIMIT = 100;
 export const NIP50_SEARCH_TIMEOUT_MS = 10_000;
+const NIP11_RELAY_INFO_TIMEOUT_MS = 3_000;
+const NIP11_RELAY_INFO_CACHE_TTL_MS = 5 * 60_000;
+const COMMUNITY_POST_BATCH_CONCURRENCY = 4;
 export const DEFAULT_NIP50_SEARCH_RELAYS = [
   "wss://relay.nostr.band",
   "wss://nostr.wine",
@@ -64,6 +77,14 @@ export const DEFAULT_NIP50_SEARCH_RELAYS = [
   "wss://antiprimal.net",
   "wss://relay.ditto.pub",
 ];
+
+interface Nip50RelaySupportCacheEntry {
+  expiresAt: number;
+  supportPromise: Promise<boolean>;
+}
+
+const nip50RelaySupportCache = new Map<string, Nip50RelaySupportCacheEntry>();
+let relayInfoFetchImpl: typeof globalThis.fetch | undefined;
 
 function normalizeRelayUrl(relay: string): string {
   const trimmedRelay = relay.trim();
@@ -88,21 +109,106 @@ function getUniqueRelayUrls(relays: string[]): string[] {
   return Array.from(relayMap.values());
 }
 
-function getNip50SearchRelays(relays: string[]): string[] {
+function buildRelayInformationUrl(relay: string): string | null {
+  try {
+    const url = new URL(relay);
+
+    if (url.protocol === "wss:") {
+      url.protocol = "https:";
+    } else if (url.protocol === "ws:") {
+      url.protocol = "http:";
+    } else if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function relayInfoAdvertisesNip50(relayInfo: unknown): boolean {
+  if (!relayInfo || typeof relayInfo !== "object") return false;
+
+  const supportedNips = (relayInfo as { supported_nips?: unknown })
+    .supported_nips;
+
+  return (
+    Array.isArray(supportedNips) &&
+    supportedNips.some((nip) => nip === 50 || nip === "50")
+  );
+}
+
+async function fetchRelayAdvertisesNip50(relay: string): Promise<boolean> {
+  const fetchImpl = globalThis.fetch;
+  if (typeof fetchImpl !== "function") return false;
+
+  if (relayInfoFetchImpl !== fetchImpl) {
+    nip50RelaySupportCache.clear();
+    relayInfoFetchImpl = fetchImpl;
+  }
+
+  const relayCacheKey = relay.toLowerCase();
+  const cachedSupport = nip50RelaySupportCache.get(relayCacheKey);
+  if (cachedSupport && cachedSupport.expiresAt > Date.now()) {
+    return cachedSupport.supportPromise;
+  }
+  if (cachedSupport) nip50RelaySupportCache.delete(relayCacheKey);
+
+  const relayInformationUrl = buildRelayInformationUrl(relay);
+  if (!relayInformationUrl) return false;
+
+  const cacheEntry: Nip50RelaySupportCacheEntry = {
+    expiresAt: Date.now() + NIP11_RELAY_INFO_CACHE_TTL_MS,
+    supportPromise: Promise.resolve(false),
+  };
+
+  cacheEntry.supportPromise = (async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(
+      () => controller.abort(),
+      NIP11_RELAY_INFO_TIMEOUT_MS
+    );
+
+    try {
+      const response = await fetchImpl(relayInformationUrl, {
+        headers: { Accept: "application/nostr+json" },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) throw new Error("Relay information request failed");
+
+      return relayInfoAdvertisesNip50(await response.json());
+    } catch {
+      if (nip50RelaySupportCache.get(relayCacheKey) === cacheEntry) {
+        nip50RelaySupportCache.delete(relayCacheKey);
+      }
+      return false;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  })();
+
+  nip50RelaySupportCache.set(relayCacheKey, cacheEntry);
+  return cacheEntry.supportPromise;
+}
+
+async function getSelectedNip50SearchRelays(
+  relays: string[]
+): Promise<string[]> {
   const knownSearchRelaySet = new Set(
     DEFAULT_NIP50_SEARCH_RELAYS.map((relay) => relay.toLowerCase())
   );
-  const selectedSearchRelays = getUniqueRelayUrls(relays).filter((relay) =>
-    knownSearchRelaySet.has(relay.toLowerCase())
-  );
-  const selectedSearchRelaySet = new Set(
-    selectedSearchRelays.map((relay) => relay.toLowerCase())
-  );
-  const backupSearchRelays = DEFAULT_NIP50_SEARCH_RELAYS.filter(
-    (relay) => !selectedSearchRelaySet.has(relay.toLowerCase())
-  );
+  const selectedSearchRelays = (
+    await Promise.all(
+      getUniqueRelayUrls(relays).map(async (relay) => {
+        if (knownSearchRelaySet.has(relay.toLowerCase())) return relay;
+        return (await fetchRelayAdvertisesNip50(relay)) ? relay : null;
+      })
+    )
+  ).filter((relay): relay is string => !!relay);
 
-  return [...selectedSearchRelays, ...backupSearchRelays];
+  return selectedSearchRelays;
 }
 
 export function getProductEventKey(event: NostrEvent): string {
@@ -190,8 +296,6 @@ export async function fetchNip50ProductSearch(
     return { productEvents: [] };
   }
 
-  const searchRelays = getNip50SearchRelays(relays);
-
   const fetchSearchEvents = async (targetRelays: string[]) => {
     if (targetRelays.length === 0) return Promise.resolve([]);
 
@@ -212,14 +316,42 @@ export async function fetchNip50ProductSearch(
     return relayResults.flat();
   };
 
+  const curatedSearchEventsByRelay = new Map(
+    DEFAULT_NIP50_SEARCH_RELAYS.map((relay) => [
+      relay.toLowerCase(),
+      fetchSearchEvents([relay]),
+    ])
+  );
+  const selectedSearchRelays = await getSelectedNip50SearchRelays(relays);
+  const selectedSearchRelaySet = new Set(
+    selectedSearchRelays.map((relay) => relay.toLowerCase())
+  );
+  const selectedSearchEventsPromise = Promise.all(
+    selectedSearchRelays.map(
+      (relay) =>
+        curatedSearchEventsByRelay.get(relay.toLowerCase()) ??
+        fetchSearchEvents([relay])
+    )
+  ).then((relayResults) => relayResults.flat());
+  const fallbackSearchEventsPromise = Promise.all(
+    DEFAULT_NIP50_SEARCH_RELAYS.filter(
+      (relay) => !selectedSearchRelaySet.has(relay.toLowerCase())
+    ).map((relay) => curatedSearchEventsByRelay.get(relay.toLowerCase())!)
+  ).then((relayResults) => relayResults.flat());
+
   const filterSearchProductEvents = (events: NostrEvent[]) =>
     events.filter(
       (event) => event.id && event.sig && event.pubkey && event.kind === 30402
     );
 
-  let searchProductEvents = filterSearchProductEvents(
-    await fetchSearchEvents(searchRelays)
-  );
+  const [selectedSearchEvents, fallbackSearchEvents] = await Promise.all([
+    selectedSearchEventsPromise,
+    fallbackSearchEventsPromise,
+  ]);
+  let searchProductEvents = filterSearchProductEvents([
+    ...selectedSearchEvents,
+    ...fallbackSearchEvents,
+  ]);
   let relevantSearchProductEvents = searchProductEvents.filter((event) =>
     eventMatchesProductSearch(event, searchQuery)
   );
@@ -1300,97 +1432,193 @@ export const fetchAllFollows = async (
   nostr: NostrManager,
   relays: string[],
   editFollowsContext: (
+    directFollowList: string[],
     followList: string[],
     firstDegreeFollowsLength: number,
     isLoading: boolean
   ) => void,
   userPubkey?: string
 ): Promise<{
+  directFollowList: string[];
   followList: string[];
+  firstDegreeFollowsLength: number;
 }> => {
   const wot = getLocalStorageData().wot;
 
   if (!userPubkey) {
-    editFollowsContext([], 0, false);
+    editFollowsContext([], [], 0, false);
     return {
+      directFollowList: [],
       followList: [],
+      firstDegreeFollowsLength: 0,
     };
   }
 
-  const fetchFollows = async (userPubkey: string) => {
-    let secondDegreeFollowsArrayFromRelay: string[] = [];
-    let firstDegreeFollowsLength = 0;
-    const followsSet: Set<string> = new Set();
+  const localContactListEvent = getLatestLocalContactListEvent(userPubkey);
 
-    // fetch first-degree follows
-    const fetchedEvents = await nostr.fetch(
-      [
-        {
-          kinds: [3],
-          authors: [userPubkey],
-        },
-      ],
-      {},
-      relays
+  const extractValidFollowTags = (
+    tags: string[][],
+    excluded = new Set<string>()
+  ) =>
+    tags
+      .filter((tag) => tag[0] === "p")
+      .map((tag) => tag[1])
+      .filter(
+        (pubkey) => isHexPubkey(pubkey!) && !excluded.has(pubkey!)
+      ) as string[];
+
+  const getLatestEventByAuthor = (events: NostrEvent[]) => {
+    const latestByAuthor = new Map<string, NostrEvent>();
+    for (const event of events) {
+      const existing = latestByAuthor.get(event.pubkey);
+      latestByAuthor.set(
+        event.pubkey,
+        existing ? selectPreferredReplaceableEvent(event, existing) : event
+      );
+    }
+    return latestByAuthor;
+  };
+
+  let dbContactListEvent: NostrEvent | null = null;
+  if (localContactListEvent?.id) {
+    const localDirectFollows = Array.from(
+      new Set(extractValidFollowTags(localContactListEvent.tags))
     );
+    editFollowsContext(
+      localDirectFollows,
+      localDirectFollows,
+      localDirectFollows.length,
+      true
+    );
+  }
 
-    const latestContactListEvent = fetchedEvents.reduce<NostrEvent | null>(
-      (latestEvent, event) => {
-        if (!latestEvent || event.created_at > latestEvent.created_at) {
-          return event;
+  try {
+    // Bound the DB cache lookup so a hung API route can't stall the whole
+    // follows pipeline before the relay fetch even starts.
+    const response = await fetch(
+      `/api/db/fetch-contacts?pubkey=${encodeURIComponent(userPubkey)}`,
+      typeof AbortSignal !== "undefined" &&
+        typeof AbortSignal.timeout === "function"
+        ? { signal: AbortSignal.timeout(2500) }
+        : undefined
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data?.contactList) {
+        dbContactListEvent = data.contactList as NostrEvent;
+        const dbDirectFollows = Array.from(
+          new Set(extractValidFollowTags(dbContactListEvent.tags))
+        );
+        if (!localContactListEvent?.id && dbDirectFollows.length > 0) {
+          editFollowsContext(
+            dbDirectFollows,
+            dbDirectFollows,
+            dbDirectFollows.length,
+            true
+          );
         }
-        return latestEvent;
-      },
-      null
-    );
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch contact list from database:", error);
+  }
 
-    if (!latestContactListEvent) {
-      return {
-        followsArrayFromRelay: [],
-        firstDegreeFollowsLength: 0,
-      };
+  const fetchFollows = async (authorPubkey: string) => {
+    // fetch first-degree follows
+    let fetchedFirstDegreeEvents: NostrEvent[] = [];
+    try {
+      fetchedFirstDegreeEvents = (await nostr.fetch(
+        [{ kinds: [3], authors: [authorPubkey] }],
+        {},
+        relays
+      )) as NostrEvent[];
+    } catch (error) {
+      console.error(
+        "Relay fetch for first-degree follows failed, falling back to DB:",
+        error
+      );
     }
 
-    const authors: string[] = [];
-    const directFollowsArrayFromRelay = latestContactListEvent.tags
-      .map((tag) => tag[1])
-      .filter((pubkey) => isHexString(pubkey!) && !followsSet.has(pubkey!));
-    directFollowsArrayFromRelay.forEach((pubkey) => followsSet.add(pubkey!));
-    firstDegreeFollowsLength = directFollowsArrayFromRelay.length;
-    authors.push(...(directFollowsArrayFromRelay as string[]));
+    const allFirstDegreeEvents = [...fetchedFirstDegreeEvents];
+    if (
+      dbContactListEvent &&
+      authorPubkey === userPubkey &&
+      dbContactListEvent.id
+    ) {
+      allFirstDegreeEvents.push(dbContactListEvent);
+    }
+    if (
+      localContactListEvent &&
+      authorPubkey === userPubkey &&
+      localContactListEvent.id
+    ) {
+      allFirstDegreeEvents.push(localContactListEvent);
+    }
 
-    if (!authors.length) {
+    const latestFirstDegreeEvent =
+      pickPreferredReplaceableEvent(allFirstDegreeEvents);
+
+    if (
+      latestFirstDegreeEvent &&
+      (!dbContactListEvent ||
+        latestFirstDegreeEvent.id !== dbContactListEvent.id)
+    ) {
+      cacheEventToDatabase(latestFirstDegreeEvent).catch((error) =>
+        console.error("Failed to cache initial contact list:", error)
+      );
+    }
+
+    const directFollowList = latestFirstDegreeEvent
+      ? Array.from(new Set(extractValidFollowTags(latestFirstDegreeEvent.tags)))
+      : [];
+
+    const firstDegreeFollowsLength = directFollowList.length;
+
+    if (directFollowList.length > 0) {
+      editFollowsContext(
+        directFollowList,
+        directFollowList,
+        firstDegreeFollowsLength,
+        true
+      );
+    }
+
+    if (!directFollowList.length) {
       return {
+        directFollowList,
         followsArrayFromRelay: [],
         firstDegreeFollowsLength,
       };
     }
 
-    // Fetch second-degree follows
-    const fetchedSecondDegreeEvents = await nostr.fetch(
-      [
-        {
-          kinds: [3],
-          authors,
-        },
-      ],
-      {},
-      relays
-    );
+    const followsSet: Set<string> = new Set(directFollowList);
+    let secondDegreeFollowsArrayFromRelay: string[] = [];
 
-    const latestSecondDegreeEvents = new Map<string, NostrEvent>();
-    for (const followEvent of fetchedSecondDegreeEvents) {
-      const latestEvent = latestSecondDegreeEvents.get(followEvent.pubkey);
-      if (!latestEvent || followEvent.created_at > latestEvent.created_at) {
-        latestSecondDegreeEvents.set(followEvent.pubkey, followEvent);
-      }
+    // Fetch second-degree follows
+    let fetchedSecondDegreeEvents: NostrEvent[] = [];
+    try {
+      fetchedSecondDegreeEvents = (await nostr.fetch(
+        [
+          {
+            kinds: [3],
+            authors: directFollowList,
+          },
+        ],
+        {},
+        relays
+      )) as NostrEvent[];
+    } catch (error) {
+      console.error("Relay fetch for second-degree follows failed:", error);
     }
 
-    for (const followEvent of latestSecondDegreeEvents.values()) {
-      const validFollowTags = followEvent.tags
-        .map((tag) => tag[1])
-        .filter((pubkey) => isHexString(pubkey!) && !followsSet.has(pubkey!));
-      secondDegreeFollowsArrayFromRelay.push(...(validFollowTags as string[]));
+    for (const followEvent of getLatestEventByAuthor(
+      fetchedSecondDegreeEvents
+    ).values()) {
+      const validFollowTags = extractValidFollowTags(
+        followEvent.tags,
+        followsSet
+      );
+      secondDegreeFollowsArrayFromRelay.push(...validFollowTags);
     }
 
     const pubkeyCount: Map<string, number> = new Map();
@@ -1403,23 +1631,27 @@ export const fetchAllFollows = async (
       );
     // Concatenate arrays ensuring uniqueness
     const followsArrayFromRelay = Array.from(
-      new Set(
-        (directFollowsArrayFromRelay as string[]).concat(
-          secondDegreeFollowsArrayFromRelay
-        )
-      )
+      new Set(directFollowList.concat(secondDegreeFollowsArrayFromRelay))
     );
     return {
+      directFollowList,
       followsArrayFromRelay,
       firstDegreeFollowsLength,
     };
   };
 
-  const { followsArrayFromRelay, firstDegreeFollowsLength } =
+  const { directFollowList, followsArrayFromRelay, firstDegreeFollowsLength } =
     await fetchFollows(userPubkey);
-  editFollowsContext(followsArrayFromRelay, firstDegreeFollowsLength, false);
+  editFollowsContext(
+    directFollowList,
+    followsArrayFromRelay,
+    firstDegreeFollowsLength,
+    false
+  );
   return {
+    directFollowList,
     followList: followsArrayFromRelay,
+    firstDegreeFollowsLength,
   };
 };
 
@@ -2401,20 +2633,24 @@ export const fetchCommunityPosts = async (
         : combinedRelays;
       const batchSize = 50;
       const postEvents: NostrEvent[] = [];
+      const batches: string[][] = [];
       for (let i = 0; i < approvedEventIds.length; i += batchSize) {
         const batchIds = approvedEventIds.slice(i, i + batchSize);
-        if (batchIds.length > 0) {
+        if (batchIds.length > 0) batches.push(batchIds);
+      }
+      const batchResults = await mapWithConcurrency(
+        batches,
+        COMMUNITY_POST_BATCH_CONCURRENCY,
+        async (batchIds) => {
           const postsFilter: Filter = {
             kinds: [1111],
             ids: batchIds,
           };
-          const batchEvents = await nostr.fetch(
-            [postsFilter],
-            {},
-            requestRelays
-          );
-          postEvents.push(...batchEvents);
+          return nostr.fetch([postsFilter], {}, requestRelays);
         }
+      );
+      for (const batchEvents of batchResults) {
+        postEvents.push(...batchEvents);
       }
 
       // Annotate posts with approval metadata where available

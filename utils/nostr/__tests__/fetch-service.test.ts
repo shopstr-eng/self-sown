@@ -11,6 +11,7 @@ import {
 
 jest.mock("@/utils/db/db-client", () => ({
   cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
+  cacheEventToDatabase: jest.fn().mockResolvedValue(undefined),
 }));
 
 const { cacheEventsToDatabase } = jest.requireMock("@/utils/db/db-client");
@@ -42,6 +43,25 @@ const expectNip50RelayFetches = (
       NIP50_SEARCH_TIMEOUT_MS
     );
   });
+};
+
+const makeRelayInfoResponse = (supportedNips: unknown[]) => ({
+  ok: true,
+  json: jest.fn().mockResolvedValue({ supported_nips: supportedNips }),
+});
+
+const mockRelayInfoSupport = (
+  supportByRelay: Record<string, unknown[]> = {}
+) => {
+  global.fetch = jest.fn((url: string) => {
+    const relayUrl = String(url)
+      .replace(/^https:/i, "wss:")
+      .replace(/^http:/i, "ws:")
+      .replace(/\/+$/, "");
+    return Promise.resolve(
+      makeRelayInfoResponse(supportByRelay[relayUrl] ?? [1, 11])
+    );
+  }) as unknown as typeof global.fetch;
 };
 
 describe("getProductEventKey", () => {
@@ -542,6 +562,7 @@ describe("getUniqueProofs", () => {
 describe("fetch-service NIP-50 search helpers", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRelayInfoSupport();
   });
 
   it("builds NIP-50 search filters only for marketplace listings", () => {
@@ -717,7 +738,7 @@ describe("fetch-service NIP-50 search helpers", () => {
       return result;
     });
 
-    for (let index = 0; index < 5 && !resolveCache; index += 1) {
+    for (let index = 0; index < 20 && !resolveCache; index += 1) {
       await Promise.resolve();
     }
 
@@ -812,7 +833,60 @@ describe("fetch-service NIP-50 search helpers", () => {
     expect(result.productEvents).toEqual([firstRelayResult, secondRelayResult]);
   });
 
-  it("routes search to curated NIP-50 relays instead of general user relays", async () => {
+  it("prioritizes a selected curated relay ahead of unselected fallbacks", async () => {
+    const selectedRelayResult = {
+      id: "selected-curated-result",
+      pubkey: "selected-seller",
+      created_at: 10,
+      kind: 30402,
+      tags: [
+        ["d", "selected-coffee"],
+        ["title", "Selected Coffee Beans"],
+        ["price", "12", "USD"],
+      ],
+      content: "Selected curated relay result",
+      sig: "sig-selected",
+    };
+    const fallbackRelayResult = {
+      id: "unselected-fallback-result",
+      pubkey: "fallback-seller",
+      created_at: 20,
+      kind: 30402,
+      tags: [
+        ["d", "fallback-coffee"],
+        ["title", "Fallback Coffee Beans"],
+        ["price", "14", "USD"],
+      ],
+      content: "Unselected fallback relay result",
+      sig: "sig-fallback",
+    };
+    const selectedRelay = DEFAULT_NIP50_SEARCH_RELAYS[1]!;
+    const nostr = {
+      fetch: jest.fn((_, __, relays: string[]) => {
+        if (relays[0] === selectedRelay) {
+          return Promise.resolve([selectedRelayResult]);
+        }
+        if (relays[0] === DEFAULT_NIP50_SEARCH_RELAYS[0]) {
+          return Promise.resolve([fallbackRelayResult]);
+        }
+        return Promise.resolve([]);
+      }),
+    };
+
+    const result = await fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      [selectedRelay],
+      "coffee"
+    );
+
+    expectNip50RelayFetches(nostr.fetch);
+    expect(result.productEvents).toEqual([
+      selectedRelayResult,
+      fallbackRelayResult,
+    ]);
+  });
+
+  it("starts curated fallbacks before metadata-gated selected relays", async () => {
     const searchListing = {
       id: "fallback-product",
       pubkey: "fallback-seller",
@@ -829,6 +903,10 @@ describe("fetch-service NIP-50 search helpers", () => {
     const nostr = {
       fetch: jest.fn().mockResolvedValue([searchListing]),
     };
+    mockRelayInfoSupport({
+      "wss://relay.damus.io": [1, 11, 50],
+      "wss://nos.lol": [1, 11],
+    });
 
     const result = await fetchNip50ProductSearch(
       nostr as unknown as NostrManager,
@@ -836,7 +914,17 @@ describe("fetch-service NIP-50 search helpers", () => {
       "coffee"
     );
 
-    expectNip50RelayFetches(nostr.fetch);
+    expectNip50RelayFetches(nostr.fetch, [
+      ...DEFAULT_NIP50_SEARCH_RELAYS,
+      "wss://relay.damus.io",
+    ]);
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://relay.damus.io/",
+      expect.objectContaining({
+        headers: { Accept: "application/nostr+json" },
+        signal: expect.any(AbortSignal),
+      })
+    );
     expect(result.productEvents).toEqual([searchListing]);
     expect(cacheEventsToDatabase).toHaveBeenCalledWith([searchListing]);
   });
@@ -945,17 +1033,19 @@ describe("fetch-service NIP-50 search helpers", () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it("keeps known selected NIP-50 relays while dropping unsupported selected relays", async () => {
-    const selectedSearchRelay = "wss://relay.nostr.band";
+  it("queries curated relays before metadata-gated selected relays", async () => {
     const searchRelays = [
-      selectedSearchRelay,
-      ...DEFAULT_NIP50_SEARCH_RELAYS.filter(
-        (relay) => relay !== selectedSearchRelay
-      ),
+      ...DEFAULT_NIP50_SEARCH_RELAYS,
+      "wss://relay.damus.io",
+      "wss://nos.lol",
     ];
     const nostr = {
       fetch: jest.fn().mockResolvedValue([]),
     };
+    mockRelayInfoSupport({
+      "wss://relay.damus.io": [1, 11, 50],
+      "wss://nos.lol": [1, 11, "50"],
+    });
 
     await fetchNip50ProductSearch(
       nostr as unknown as NostrManager,
@@ -967,19 +1057,16 @@ describe("fetch-service NIP-50 search helpers", () => {
   });
 
   it("deduplicates normalized selected NIP-50 relays before adding backup relays", async () => {
-    const selectedSearchRelays = [
-      "wss://relay.noswhere.com",
-      "wss://search.nos.today",
-    ];
     const searchRelays = [
-      ...selectedSearchRelays,
-      ...DEFAULT_NIP50_SEARCH_RELAYS.filter(
-        (relay) => !selectedSearchRelays.includes(relay)
-      ),
+      ...DEFAULT_NIP50_SEARCH_RELAYS,
+      "wss://relay.damus.io",
     ];
     const nostr = {
       fetch: jest.fn().mockResolvedValue([]),
     };
+    mockRelayInfoSupport({
+      "wss://relay.damus.io": [1, 11, 50],
+    });
 
     await fetchNip50ProductSearch(
       nostr as unknown as NostrManager,
@@ -993,6 +1080,139 @@ describe("fetch-service NIP-50 search helpers", () => {
     );
 
     expectNip50RelayFetches(nostr.fetch, searchRelays);
+  });
+
+  it("skips selected relays that do not advertise NIP-50", async () => {
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([]),
+    };
+    mockRelayInfoSupport({
+      "wss://relay.example": [1, 11],
+      "wss://search.example": [1, 11, 50],
+    });
+
+    await fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      ["wss://relay.example", "wss://search.example"],
+      "coffee"
+    );
+
+    expectNip50RelayFetches(nostr.fetch, [
+      ...DEFAULT_NIP50_SEARCH_RELAYS,
+      "wss://search.example",
+    ]);
+  });
+
+  it("caches selected relay NIP-50 metadata checks across searches", async () => {
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([]),
+    };
+    mockRelayInfoSupport({
+      "wss://search.example": [1, 11, 50],
+    });
+
+    await fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      ["wss://search.example"],
+      "coffee"
+    );
+    await fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      ["wss://search.example"],
+      "coffee"
+    );
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(nostr.fetch).toHaveBeenCalledTimes(
+      (DEFAULT_NIP50_SEARCH_RELAYS.length + 1) * 2
+    );
+  });
+
+  it("retries a transient relay metadata failure on the next search", async () => {
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([]),
+    };
+    const relayInfoFetch = jest
+      .fn()
+      .mockRejectedValueOnce(new Error("temporary failure"))
+      .mockResolvedValue(makeRelayInfoResponse([1, 11, 50]));
+    global.fetch = relayInfoFetch as unknown as typeof global.fetch;
+
+    await fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      ["wss://search.example"],
+      "coffee"
+    );
+    await fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      ["wss://search.example"],
+      "coffee"
+    );
+
+    expect(relayInfoFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("expires cached relay metadata support after five minutes", async () => {
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([]),
+    };
+    const relayInfoFetch = jest
+      .fn()
+      .mockResolvedValue(makeRelayInfoResponse([1, 11, 50]));
+    global.fetch = relayInfoFetch as unknown as typeof global.fetch;
+    const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1_000);
+
+    try {
+      await fetchNip50ProductSearch(
+        nostr as unknown as NostrManager,
+        ["wss://search.example"],
+        "coffee"
+      );
+      nowSpy.mockReturnValue(1_000 + 5 * 60_000 - 1);
+      await fetchNip50ProductSearch(
+        nostr as unknown as NostrManager,
+        ["wss://search.example"],
+        "coffee"
+      );
+      nowSpy.mockReturnValue(1_000 + 5 * 60_000 + 1);
+      await fetchNip50ProductSearch(
+        nostr as unknown as NostrManager,
+        ["wss://search.example"],
+        "coffee"
+      );
+
+      expect(relayInfoFetch).toHaveBeenCalledTimes(2);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
+
+  it("starts curated relay searches while selected relay metadata is pending", async () => {
+    let resolveRelayInfo!: (
+      response: ReturnType<typeof makeRelayInfoResponse>
+    ) => void;
+    global.fetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveRelayInfo = resolve;
+        })
+    ) as unknown as typeof global.fetch;
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([]),
+    };
+
+    const searchPromise = fetchNip50ProductSearch(
+      nostr as unknown as NostrManager,
+      ["wss://search.example"],
+      "coffee"
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expectNip50RelayFetches(nostr.fetch);
+
+    resolveRelayInfo(makeRelayInfoResponse([1, 11, 50]));
+    await searchPromise;
   });
 
   it("uses default NIP-50 relays when no selected relays are available", async () => {
@@ -2515,13 +2735,20 @@ describe("fetchAllFollows", () => {
 
     jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
       getLocalStorageData: jest.fn(() => ({ wot: 2 })),
+      getLatestLocalContactListEvent: jest.fn(() => null),
       deleteEvent: jest.fn(),
       verifyNip05Identifier: jest.fn(),
     }));
 
     jest.doMock("@/utils/db/db-client", () => ({
-      cacheEventsToDatabase: jest.fn(),
+      cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
+      cacheEventToDatabase: jest.fn().mockResolvedValue(undefined),
     }));
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ contactList: null }),
+    }) as typeof global.fetch;
   });
 
   it("returns empty follows for logged-out users without fetching defaults", async () => {
@@ -2539,7 +2766,7 @@ describe("fetchAllFollows", () => {
 
     expect(result.followList).toEqual([]);
     expect(nostr.fetch).not.toHaveBeenCalled();
-    expect(editFollowsContext).toHaveBeenCalledWith([], 0, false);
+    expect(editFollowsContext).toHaveBeenCalledWith([], [], 0, false);
   });
 
   it("keeps follows empty when a logged-in user has no contact list", async () => {
@@ -2563,7 +2790,7 @@ describe("fetchAllFollows", () => {
       {},
       ["wss://relay.example"]
     );
-    expect(editFollowsContext).toHaveBeenCalledWith([], 0, false);
+    expect(editFollowsContext).toHaveBeenCalledWith([], [], 0, false);
   });
 
   it("uses only the latest kind 3 contact list for direct follows", async () => {
@@ -2612,8 +2839,95 @@ describe("fetchAllFollows", () => {
     );
     expect(editFollowsContext).toHaveBeenCalledWith(
       [latestFollowPubkey],
+      [latestFollowPubkey],
       1,
       false
+    );
+  });
+
+  it("prefers the locally signed contact list while relay and DB still have stale data", async () => {
+    jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+      getLocalStorageData: jest.fn(() => ({ wot: 2 })),
+      getLatestLocalContactListEvent: jest.fn(() => ({
+        id: "local-contact-list",
+        pubkey: userPubkey,
+        created_at: 300,
+        kind: 3,
+        tags: [["p", latestFollowPubkey]],
+        content: "",
+        sig: "sig-local",
+      })),
+      deleteEvent: jest.fn(),
+      verifyNip05Identifier: jest.fn(),
+    }));
+
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        contactList: {
+          id: "db-contact-list",
+          pubkey: userPubkey,
+          created_at: 200,
+          kind: 3,
+          tags: [["p", olderFollowPubkey]],
+          content: "",
+          sig: "sig-db",
+        },
+      }),
+    }) as typeof global.fetch;
+
+    const { fetchAllFollows } = await import("../fetch-service");
+    const editFollowsContext = jest.fn();
+    const nostr = {
+      fetch: jest
+        .fn()
+        .mockResolvedValueOnce([
+          {
+            id: "relay-contact-list",
+            pubkey: userPubkey,
+            created_at: 200,
+            kind: 3,
+            tags: [["p", olderFollowPubkey]],
+            content: "",
+            sig: "sig-relay",
+          },
+        ])
+        .mockResolvedValueOnce([]),
+    } as any;
+
+    const result = await fetchAllFollows(
+      nostr,
+      ["wss://relay.example"],
+      editFollowsContext,
+      userPubkey
+    );
+
+    expect(result.directFollowList).toEqual([latestFollowPubkey]);
+    expect(result.followList).toEqual([latestFollowPubkey]);
+    expect(editFollowsContext).toHaveBeenNthCalledWith(
+      1,
+      [latestFollowPubkey],
+      [latestFollowPubkey],
+      1,
+      true
+    );
+    expect(editFollowsContext).toHaveBeenLastCalledWith(
+      [latestFollowPubkey],
+      [latestFollowPubkey],
+      1,
+      false
+    );
+    expect(editFollowsContext).not.toHaveBeenCalledWith(
+      [olderFollowPubkey],
+      [olderFollowPubkey],
+      1,
+      true
+    );
+    expect(nostr.fetch).toHaveBeenNthCalledWith(
+      2,
+      [{ kinds: [3], authors: [latestFollowPubkey] }],
+      {},
+      ["wss://relay.example"]
     );
   });
 
@@ -2621,6 +2935,7 @@ describe("fetchAllFollows", () => {
     // wot = 1 so a single endorsement is enough
     jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
       getLocalStorageData: jest.fn(() => ({ wot: 1 })),
+      getLatestLocalContactListEvent: jest.fn(() => null),
       deleteEvent: jest.fn(),
       verifyNip05Identifier: jest.fn(),
     }));
@@ -2752,6 +3067,7 @@ describe("fetchAllFollows", () => {
     // wot = 1 so C qualifies even with one endorsement; but two direct follows both endorse C
     jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
       getLocalStorageData: jest.fn(() => ({ wot: 1 })),
+      getLatestLocalContactListEvent: jest.fn(() => null),
       deleteEvent: jest.fn(),
       verifyNip05Identifier: jest.fn(),
     }));
@@ -2895,7 +3211,7 @@ describe("fetchAllFollows", () => {
     // Only one relay call (no second-degree fetch)
     expect(nostr.fetch).toHaveBeenCalledTimes(1);
     expect(result.followList).toEqual([]);
-    expect(editFollowsContext).toHaveBeenCalledWith([], 0, false);
+    expect(editFollowsContext).toHaveBeenCalledWith([], [], 0, false);
   });
 
   it("returns existing latestEvent when a subsequent kind 3 event has an older timestamp (line 1330)", async () => {
