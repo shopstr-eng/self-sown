@@ -136,7 +136,7 @@ export default function Developers() {
               Back
             </button>
             <h1 className="text-center text-5xl font-bold text-black">
-              Developers & AI Agents
+              Milk Market for Developers & AI Agents
             </h1>
             <p className="mt-4 text-center text-lg text-zinc-600">
               Milk Market is built to be operated by machines: search the
@@ -282,14 +282,26 @@ export default function Developers() {
                 <li>
                   The OpenAPI document is semantically versioned (current: 2.x,
                   see{" "}
-                  <code className="rounded bg-zinc-100 px-1">
-                    info.version
-                  </code>{" "}
+                  <code className="rounded bg-zinc-100 px-1">info.version</code>{" "}
                   and{" "}
                   <code className="rounded bg-zinc-100 px-1">
                     x-versioning-policy
                   </code>
                   ).
+                </li>
+                <li>
+                  Every <code className="rounded bg-zinc-100 px-1">/api/*</code>{" "}
+                  response carries an{" "}
+                  <code className="rounded bg-zinc-100 px-1">API-Version</code>{" "}
+                  header with the served major version. Pin a version by sending{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    API-Version: 2
+                  </code>
+                  ; an unsupported value fails closed with a 400{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    unsupported_api_version
+                  </code>{" "}
+                  error instead of silently serving a different contract.
                 </li>
                 <li>
                   Additive changes — new endpoints, new optional fields, new

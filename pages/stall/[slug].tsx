@@ -63,7 +63,9 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   // path, not the internal /stall/* rewrite); browsers fall through to the
   // standard HTML 404 page.
   const stallNotFound = () => {
-    const notFoundPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
+    const notFoundPath = customHost
+      ? originalPath || "/"
+      : `/stall/${shopSlug}`;
     if (tryWriteAgentNotFound(context.req, context.res, notFoundPath)) {
       return { props: {} as ShopPageProps };
     }

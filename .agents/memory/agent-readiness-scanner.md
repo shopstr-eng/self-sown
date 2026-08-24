@@ -34,6 +34,12 @@ The MCP endpoint (`pages/api/mcp/index.ts`) allows unauthenticated `initialize` 
 
 - **Keyless admission needs more than a request rate limit:** retained transports make it a resource-exhaustion vector. Enforce a per-IP concurrent-session cap with a pending slot reserved SYNCHRONOUSLY before any await (check-then-act after an await is raceable), swap it for the real sid in `onsessioninitialized`, and release it on every failure/throw path. All teardown goes through one `dropSession` helper so the per-IP index can't leak.
 - **Error envelopes differ by protocol:** MCP 401/403 are JSON-RPC envelopes (`error.code`/`error.message`, modeled as `JsonRpcError`/`McpUnauthorized`/`McpForbidden` in openapi.json), but ALL MCP 429s must use the REST `RateLimited` shape (`{error, code, retryAfterSeconds}` + `Retry-After`) to match `applyRateLimit`. Don't mix.
+- **SDK 1.29 Accept 406 trap:** `StreamableHTTPServerTransport` bridges Node→Web via `@hono/node-server`, which builds the Web Request from `req.rawHeaders` — mutating `req.headers.accept` alone never reaches the transport (406 on `*/*`, missing, or json-only Accept). Use `applyMcpAcceptHeader(req)` (utils/api/mcp-accept.ts), which syncs both representations. Bare `initialize` without params is also defaulted in the route.
+
+## 5. API versioning contract
+
+- Every `/api/*` response is stamped `API-Version: 2` in proxy.ts; an `API-Version` request header with an unsupported major fails closed 400 (`unsupported_api_version`, shared Error body) BEFORE routing. Versioned-header (not URL-path) strategy; the contract lives in `x-versioning-policy` + `/developers#versioning`.
+- **Spec-lint tests exist** (`__tests__/utils/geo/openapi-completeness.test.ts`): any new operation in openapi.json must have operationId+summary+description, a shared 4xx error `$ref`, typed parameters, and keep typed-response coverage ≥60% — or CI fails.
 
 **Why:** an architect review caught both the unbounded-retention DoS and the 429-contract mismatch after the first pass; these are the invariants future MCP changes must preserve.
 

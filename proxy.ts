@@ -7,6 +7,11 @@ import {
   isSelfHostBlockedApi,
   selfHostStallRewritePath,
 } from "@/utils/self-host/routing";
+import {
+  API_VERSION,
+  isApiVersionSupported,
+  unsupportedApiVersionBody,
+} from "@/utils/api/api-version";
 
 // Routes that should NOT be rewritten under /stall/<slug>/ on a custom
 // domain — they live at the root of the seller's site (or fall through to
@@ -248,12 +253,32 @@ function withAdvisoryRateLimitHeaders(res: NextResponse): NextResponse {
 }
 
 export async function proxy(request: NextRequest) {
-  return withAdvisoryRateLimitHeaders(await routeRequest(request));
+  const res = withAdvisoryRateLimitHeaders(await routeRequest(request));
+  // Every API response advertises the served major version. Agents may pin a
+  // version with the API-Version request header (unsupported pins fail closed
+  // in routeRequest); the contract lives in openapi.json x-versioning-policy.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    res.headers.set("API-Version", API_VERSION);
+  }
+  return res;
 }
 
 async function routeRequest(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const hostname = (request.headers.get("host") || "").toLowerCase();
+
+  // Version pinning: an API-Version request header naming an unsupported
+  // major version fails closed with the shared Error contract instead of
+  // silently serving a different shape than the agent asked for.
+  if (pathname.startsWith("/api/")) {
+    const requestedVersion = request.headers.get("api-version");
+    if (!isApiVersionSupported(requestedVersion)) {
+      return NextResponse.json(
+        unsupportedApiVersionBody(requestedVersion as string),
+        { status: 400 }
+      );
+    }
+  }
 
   if (pathname === "/.well-known/agent.json") {
     return NextResponse.rewrite(

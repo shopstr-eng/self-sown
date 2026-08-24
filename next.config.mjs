@@ -119,6 +119,10 @@ const nextConfig = {
           destination: "/api/openapi.json",
         },
         {
+          source: "/docs",
+          destination: "/developers",
+        },
+        {
           source: "/.well-known/agent.json",
           destination: "/api/.well-known/agent.json",
         },

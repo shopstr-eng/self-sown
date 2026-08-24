@@ -10,7 +10,7 @@
     "url": "https://milk.market"
   },
   "iconUrl": "https://milk.market/milk-market.png",
-  "documentationUrl": "https://milk.market/skill.md",
+  "documentationUrl": "https://milk.market/developers",
   "capabilities": {
     "streaming": true,
     "pushNotifications": false,

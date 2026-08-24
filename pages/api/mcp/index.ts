@@ -16,6 +16,7 @@ import {
 import { recordRequest } from "@/utils/mcp/metrics";
 import { registerWriteTools } from "@/mcp/tools/write-tools";
 import { applyRateLimit, getRequestIp } from "@/utils/rate-limit";
+import { applyMcpAcceptHeader } from "@/utils/api/mcp-accept";
 import { wrapWithAudit, type ToolCb } from "@/mcp/audit-log";
 
 // MCP protocol entry — high per-IP cap for legitimate session traffic, with
@@ -877,6 +878,12 @@ export default async function handler(
   };
 
   if (req.method === "POST") {
+    // Naive agent clients (and readiness scanners) often POST initialize with
+    // Accept: application/json, *\/*, or no Accept at all; the SDK transport
+    // hard-fails those with 406 before the handshake starts. Default to the
+    // full Streamable-HTTP accept set — spec-compliant clients that send both
+    // types pass through unchanged.
+    applyMcpAcceptHeader(req);
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (sessionId && sessions.has(sessionId)) {
@@ -898,6 +905,20 @@ export default async function handler(
     const body = req.body;
     const isInitialize =
       body && !Array.isArray(body) && body.method === "initialize";
+
+    // Some clients send a bare initialize with no params; fill in the
+    // protocol-mandated shape rather than failing the handshake on a
+    // technicality.
+    if (
+      isInitialize &&
+      (typeof body.params !== "object" || body.params === null)
+    ) {
+      body.params = {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "unknown", version: "0" },
+      };
+    }
 
     if (isInitialize || !sessionId) {
       // Keyless initialize is public, so admission is rate-limited AND
@@ -926,9 +947,7 @@ export default async function handler(
         pendingSlotId = undefined;
       };
       if (anonIp && pendingSlotId) {
-        if (
-          anonSessionIdsByIp.get(anonIp)!.size > MAX_UNAUTH_SESSIONS_PER_IP
-        ) {
+        if (anonSessionIdsByIp.get(anonIp)!.size > MAX_UNAUTH_SESSIONS_PER_IP) {
           releasePendingSlot();
           // REST error shape, matching applyRateLimit's 429 contract
           // (components.responses.RateLimited in openapi.json).
