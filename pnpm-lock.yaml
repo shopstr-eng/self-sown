@@ -12,7 +12,11 @@ overrides:
   postcss: 8.5.13
   immutable: 4.3.8
   tar-fs: 2.1.4
-  brace-expansion: 5.0.6
+  brace-expansion@^1.1.7: 1.1.18
+  brace-expansion@^2.0.1: 2.1.4
+  brace-expansion@^2.0.2: 2.1.4
+  brace-expansion@^5.0.2: 5.0.9
+  shell-quote: 1.9.0
   qs: 6.15.2
   ws: 8.20.1
 
@@ -224,6 +228,9 @@ importers:
       jest-environment-jsdom:
         specifier: 30.4.1
         version: 30.4.1
+      jest-environment-node:
+        specifier: 30.4.1
+        version: 30.4.1
       pg-mem:
         specifier: 3.0.14
         version: 3.0.14
@@ -269,6 +276,9 @@ importers:
       expo-dev-client:
         specifier: ~55.0.17
         version: 55.0.17(expo@55.0.7)(typescript@5.9.3)
+      expo-document-picker:
+        specifier: ~55.0.11
+        version: 55.0.11(expo@55.0.7)
       expo-linking:
         specifier: ~55.0.7
         version: 55.0.7(expo@55.0.7)(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.16)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
@@ -326,6 +336,9 @@ importers:
       "@milk-market/domain":
         specifier: file:../domain
         version: link:../domain
+      crypto-js:
+        specifier: 4.2.0
+        version: 4.2.0
       nostr-tools:
         specifier: 2.7.1
         version: 2.7.1(typescript@6.0.3)
@@ -6443,6 +6456,12 @@ packages:
         integrity: sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw==,
       }
 
+  balanced-match@1.0.2:
+    resolution:
+      {
+        integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==,
+      }
+
   balanced-match@4.0.4:
     resolution:
       {
@@ -6576,10 +6595,22 @@ packages:
       }
     engines: { node: ">= 5.10.0" }
 
-  brace-expansion@5.0.6:
+  brace-expansion@1.1.18:
     resolution:
       {
-        integrity: sha512-kLpxurY4Z4r9sgMsyG0Z9uzsBlgiU/EFKhj/h91/8yHu0edo7XuixOIH3VcJ8kkxs6/jPzoI6U9Vj3WqbMQ94g==,
+        integrity: sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==,
+      }
+
+  brace-expansion@2.1.4:
+    resolution:
+      {
+        integrity: sha512-hGfVzPxthbf3+2yjg/RBs60cB0FhqBS/zvdV/4wn4/BmN0bNMMHPc4V/BbFieqf1TKAGGAHnY4eSjajCl0f2Xg==,
+      }
+
+  brace-expansion@5.0.9:
+    resolution:
+      {
+        integrity: sha512-ScQ4IuvIEF1TMlP7Zt+vjJ//9zlPb2SDcxWxM3bk8s6t6GGdJ7KO1dCcTidOPJKePW30LE/2cT7wCyPho9/Wxg==,
       }
     engines: { node: 18 || 20 || >=22 }
 
@@ -6992,6 +7023,12 @@ packages:
     resolution:
       {
         integrity: sha512-VRhuHOLoKYOy4UbilLbUzbYg93XLjv2PncJC50EuTWPA3gaja1UjBsUP/D/9/juV3vQFr6XBEzn9KCAHdUvOHw==,
+      }
+
+  concat-map@0.0.1:
+    resolution:
+      {
+        integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==,
       }
 
   connect@3.7.0:
@@ -7946,6 +7983,14 @@ packages:
     resolution:
       {
         integrity: sha512-OfievdxJCXUGKbERI6rT3YE7Eh8TtJA+KrdmGaU27tg5pW1zfeyvpmiYG3jy754jXXb0HbXI4aTRuX2f3CpISA==,
+      }
+    peerDependencies:
+      expo: "*"
+
+  expo-document-picker@55.0.11:
+    resolution:
+      {
+        integrity: sha512-0po1UceUMKzHOOppXN5y35KXhF2zQN91cje/yxyoJaTgZPPFM7VZ+0Z4xd1JiO1WTbB+w6mb21RaPWriit/67w==,
       }
     peerDependencies:
       expo: "*"
@@ -11031,7 +11076,6 @@ packages:
     resolution:
       {
         integrity: sha512-sHGJy8sOC1YraBywpzQlIKBE4pBbGbiF95U6Auspzyem956E0+FtDtsx1ZxlOJkQCZ1AFXAY/yuvtFYrOxF+Bw==,
-        tarball: https://registry.npmjs.org/npm-package-arg/-/npm-package-arg-11.0.3.tgz,
       }
     engines: { node: ^16.14.0 || >=18.0.0 }
 
@@ -11039,7 +11083,6 @@ packages:
     resolution:
       {
         integrity: sha512-S48WzZW777zhNIrn7gxOlISNAqi9ZC/uQFnRdbeIHhZhCA6UqpkOT8T1G7BvfdgP4Er8gF4sUbaS0i7QvIfCWw==,
-        tarball: https://registry.npmjs.org/npm-run-path/-/npm-run-path-4.0.1.tgz,
       }
     engines: { node: ">=8" }
 
@@ -12515,10 +12558,10 @@ packages:
       }
     engines: { node: ">=8" }
 
-  shell-quote@1.8.3:
+  shell-quote@1.9.0:
     resolution:
       {
-        integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==,
+        integrity: sha512-Iov+JwFv/2HcTpcwNMKd8+IWNb8tboQJNQTkAY/LLVK7gGH9jy+LGkVqPxfekHl+yMmiqXszdGWXgkfml7hjqA==,
       }
     engines: { node: ">= 0.4" }
 
@@ -17116,6 +17159,7 @@ snapshots:
   "@milk-market/nostr@file:packages/nostr(typescript@5.9.3)":
     dependencies:
       "@milk-market/domain": file:packages/domain
+      crypto-js: 4.2.0
       nostr-tools: 2.7.1(typescript@5.9.3)
     transitivePeerDependencies:
       - typescript
@@ -19615,6 +19659,8 @@ snapshots:
 
   bail@2.0.2: {}
 
+  balanced-match@1.0.2: {}
+
   balanced-match@4.0.4: {}
 
   bare-events@2.9.1: {}
@@ -19695,7 +19741,16 @@ snapshots:
     dependencies:
       big-integer: 1.6.52
 
-  brace-expansion@5.0.6:
+  brace-expansion@1.1.18:
+    dependencies:
+      balanced-match: 1.0.2
+      concat-map: 0.0.1
+
+  brace-expansion@2.1.4:
+    dependencies:
+      balanced-match: 1.0.2
+
+  brace-expansion@5.0.9:
     dependencies:
       balanced-match: 4.0.4
 
@@ -19921,6 +19976,8 @@ snapshots:
       - supports-color
 
   compute-scroll-into-view@3.1.1: {}
+
+  concat-map@0.0.1: {}
 
   connect@3.7.0:
     dependencies:
@@ -20619,6 +20676,10 @@ snapshots:
     dependencies:
       expo: 55.0.7(@babel/core@7.29.0)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.6)(react-dom@19.2.0(react@19.2.0))(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.16)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       expo-dev-menu-interface: 55.0.1(expo@55.0.7)
+
+  expo-document-picker@55.0.11(expo@55.0.7):
+    dependencies:
+      expo: 55.0.7(@babel/core@7.29.0)(@expo/dom-webview@55.0.3)(@expo/metro-runtime@55.0.6)(expo-router@55.0.6)(react-dom@19.2.0(react@19.2.0))(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.16)(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
 
   expo-file-system@55.0.11(expo@55.0.7)(react-native@0.83.2(@babel/core@7.29.0)(@types/react@19.2.16)(react@19.2.0)):
     dependencies:
@@ -22962,19 +23023,19 @@ snapshots:
 
   minimatch@10.2.4:
     dependencies:
-      brace-expansion: 5.0.6
+      brace-expansion: 5.0.9
 
   minimatch@3.1.5:
     dependencies:
-      brace-expansion: 5.0.6
+      brace-expansion: 1.1.18
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 5.0.6
+      brace-expansion: 2.1.4
 
   minimatch@9.0.9:
     dependencies:
-      brace-expansion: 5.0.6
+      brace-expansion: 2.1.4
 
   minimist@1.2.8: {}
 
@@ -23567,7 +23628,7 @@ snapshots:
 
   react-devtools-core@6.1.5:
     dependencies:
-      shell-quote: 1.8.3
+      shell-quote: 1.9.0
       ws: 8.20.1
     transitivePeerDependencies:
       - bufferutil
@@ -24106,7 +24167,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.3: {}
+  shell-quote@1.9.0: {}
 
   side-channel-list@1.0.0:
     dependencies:

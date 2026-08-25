@@ -4,7 +4,7 @@ import { findListingBySlug } from "../url-slugs";
 
 let pool: Pool | null = null;
 let tablesInitialized = false;
-let initializingTables = false;
+let tablesInitializationPromise: Promise<void> | null = null;
 
 // Queue for serializing cache operations
 let cacheQueue: Promise<void> = Promise.resolve();
@@ -349,7 +349,11 @@ export function getDbPool(): Pool {
     const hostname = url.hostname;
     // Match pattern like: ep-lucky-union-aefj3mfs.us-east-2.aws.neon.tech
     // Transform to: ep-lucky-union-aefj3mfs-pooler.us-east-2.aws.neon.tech
-    const poolerHostname = hostname.replace(/^([^.]+)\./, "$1-pooler.");
+    const endpoint = hostname.split(".")[0];
+    const poolerHostname =
+      hostname.endsWith(".neon.tech") && !endpoint.endsWith("-pooler")
+        ? hostname.replace(/^([^.]+)\./, "$1-pooler.")
+        : hostname;
     url.hostname = poolerHostname;
     const poolUrl = url.toString();
 
@@ -367,15 +371,43 @@ export function getDbPool(): Pool {
     });
 
     // Auto-create tables on first connection (only once)
-    if (!tablesInitialized && !initializingTables) {
-      initializingTables = true;
-      initializeTables().catch((error) => {
-        console.error("Failed to initialize database tables:", error);
-        initializingTables = false;
-      });
+    if (!tablesInitialized && !tablesInitializationPromise) {
+      tablesInitializationPromise = initializeTables()
+        .catch((error) => {
+          console.error("Failed to initialize database tables:", error);
+          throw error;
+        })
+        .finally(() => {
+          if (!tablesInitialized) {
+            tablesInitializationPromise = null;
+          }
+        });
     }
   }
   return pool;
+}
+
+async function ensureTablesInitialized(): Promise<void> {
+  if (tablesInitialized) {
+    return;
+  }
+
+  getDbPool();
+
+  if (!tablesInitializationPromise) {
+    tablesInitializationPromise = initializeTables()
+      .catch((error) => {
+        console.error("Failed to initialize database tables:", error);
+        throw error;
+      })
+      .finally(() => {
+        if (!tablesInitialized) {
+          tablesInitializationPromise = null;
+        }
+      });
+  }
+
+  await tablesInitializationPromise;
 }
 
 // Auto-create all tables if they don't exist
@@ -1701,10 +1733,8 @@ async function initializeTables(): Promise<void> {
     await ensureAuthedSellersTable(client);
 
     tablesInitialized = true;
-    initializingTables = false;
   } catch (error) {
     console.error("Failed to initialize tables:", error);
-    initializingTables = false;
     throw error;
   } finally {
     if (client) {
@@ -1780,6 +1810,7 @@ export function buildReviewDTagFilter(dTag: string): string {
 
 // Cache a single event to the database
 export async function cacheEvent(event: NostrEvent): Promise<void> {
+  await ensureTablesInitialized();
   const table = getTableForEvent(event);
   if (!table) {
     console.warn(`No table mapping for event kind ${event.kind}`);
@@ -1961,6 +1992,7 @@ export async function cacheEvents(events: NostrEvent[]): Promise<void> {
 
 // Internal function to perform the actual transaction
 async function cacheEventsTransaction(events: NostrEvent[]): Promise<void> {
+  await ensureTablesInitialized();
   const eventsByTable = new Map<string, NostrEvent[]>();
 
   // Group events by table
@@ -2144,6 +2176,7 @@ export async function fetchCachedEvents(
     until?: number;
   }
 ): Promise<NostrEvent[]> {
+  await ensureTablesInitialized();
   const table = getTableForKind(kind);
   if (!table) return [];
 
@@ -2525,6 +2558,7 @@ export async function fetchProductsByPubkeyFromDb(
 export async function fetchProductByIdFromDb(
   id: string
 ): Promise<NostrEvent | null> {
+  await ensureTablesInitialized();
   const dbPool = getDbPool();
   let client;
   try {

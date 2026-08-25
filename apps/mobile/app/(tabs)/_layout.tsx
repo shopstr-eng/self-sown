@@ -40,6 +40,7 @@ export default function SellerTabsLayout() {
         options={{
           title: "Listings",
           tabBarLabel: "Listings",
+          headerShown: false,
         }}
       />
       <Tabs.Screen
