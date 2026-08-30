@@ -7,7 +7,7 @@ import {
 } from "@/components/utility-components/nostr-context-provider";
 import * as nostrHelpers from "@/utils/nostr/nostr-helper-functions";
 import * as zapValidator from "@/utils/nostr/zap-validator";
-import { LightningAddress } from "@getalby/lightning-tools";
+import { getSatoshiValue, LightningAddress } from "@getalby/lightning-tools";
 
 jest.mock("@heroui/react", () => ({
   Button: ({
@@ -57,6 +57,7 @@ jest.mock("@getalby/lightning-tools", () => {
       fetch: jest.fn().mockResolvedValue(true),
       zap: jest.fn().mockResolvedValue({ preimage: "test-preimage" }),
     })),
+    getSatoshiValue: jest.fn(),
   };
 });
 
@@ -125,7 +126,7 @@ const mockProduct = {
 const mockSigner = { signEvent: jest.fn() };
 const mockNostrManager = { fetch: jest.fn() };
 
-const renderComponent = (contextOverrides = {}) => {
+const renderComponent = (contextOverrides = {}, product = mockProduct) => {
   const defaultContext = {
     nostrContext: { nostr: mockNostrManager },
     signerContext: {
@@ -139,7 +140,7 @@ const renderComponent = (contextOverrides = {}) => {
   return render(
     <NostrContext.Provider value={defaultContext.nostrContext as any}>
       <SignerContext.Provider value={defaultContext.signerContext as any}>
-        <ZapsnagButton product={mockProduct} />
+        <ZapsnagButton product={product} />
       </SignerContext.Provider>
     </NostrContext.Provider>
   );
@@ -170,6 +171,14 @@ describe("ZapsnagButton Component", () => {
     renderComponent();
     expect(screen.getByText(/Zap to Buy/i)).toBeInTheDocument();
     expect(screen.getByText(/100 sats/i)).toBeInTheDocument();
+  });
+
+  test("displays a fiat listing in fiat", () => {
+    renderComponent({}, { ...mockProduct, price: 75, currency: "USD" });
+    expect(screen.getByText(/75 USD/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText(/Zap to Buy/i));
+    expect(screen.getByText("Total: 75 USD")).toBeInTheDocument();
   });
 
   test("opens modal when clicked", () => {
@@ -413,6 +422,96 @@ describe("ZapsnagButton Component", () => {
     );
 
     dateNowSpy.mockRestore();
+  });
+
+  test("converts a fiat listing to sats only when creating the zap", async () => {
+    (getSatoshiValue as jest.Mock).mockResolvedValueOnce(123456);
+    mockNostrManager.fetch.mockResolvedValueOnce([
+      {
+        created_at: 100,
+        content: JSON.stringify({ lud16: "seller@alby.com" }),
+      },
+    ]);
+    (nostrHelpers.constructGiftWrappedEvent as jest.Mock).mockResolvedValue({});
+    (nostrHelpers.constructMessageSeal as jest.Mock).mockResolvedValue({});
+    (nostrHelpers.constructMessageGiftWrap as jest.Mock).mockResolvedValue({});
+    (nostrHelpers.sendGiftWrappedMessageEvent as jest.Mock).mockResolvedValue(
+      undefined
+    );
+    (zapValidator.validateZapReceipt as jest.Mock).mockResolvedValue(true);
+
+    renderComponent({}, { ...mockProduct, price: 75, currency: "USD" });
+    fireEvent.click(screen.getByText(/Zap to Buy/i));
+    for (const [label, value] of [
+      ["Full Name", "Buyer"],
+      ["Street Address", "Road"],
+      ["City", "Town"],
+      ["Postal / Zip Code", "123"],
+      ["Country", "US"],
+    ]) {
+      fireEvent.change(screen.getByLabelText(label), {
+        target: { value },
+      });
+    }
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Confirm & Zap"));
+    });
+
+    expect(getSatoshiValue).toHaveBeenCalledWith({
+      amount: 75,
+      currency: "USD",
+    });
+    const mockLnInstance = (LightningAddress as unknown as jest.Mock).mock
+      .results[0]!.value;
+    expect(mockLnInstance.zap).toHaveBeenCalledWith(
+      expect.objectContaining({ satoshi: 123456 })
+    );
+    expect(nostrHelpers.constructGiftWrappedEvent).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.any(String),
+      "zapsnag-order",
+      expect.objectContaining({
+        orderAmount: 75,
+        orderCurrency: "USD",
+      })
+    );
+  });
+
+  test("does not zap the raw fiat amount when conversion fails", async () => {
+    (getSatoshiValue as jest.Mock).mockRejectedValueOnce(
+      new Error("rate unavailable")
+    );
+    mockNostrManager.fetch.mockResolvedValueOnce([
+      {
+        created_at: 100,
+        content: JSON.stringify({ lud16: "seller@alby.com" }),
+      },
+    ]);
+
+    renderComponent({}, { ...mockProduct, price: 75, currency: "USD" });
+    fireEvent.click(screen.getByText(/Zap to Buy/i));
+    for (const [label, value] of [
+      ["Full Name", "Buyer"],
+      ["Street Address", "Road"],
+      ["City", "Town"],
+      ["Postal / Zip Code", "123"],
+      ["Country", "US"],
+    ]) {
+      fireEvent.change(screen.getByLabelText(label), {
+        target: { value },
+      });
+    }
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Confirm & Zap"));
+    });
+
+    expect(LightningAddress).not.toHaveBeenCalled();
+    expect(window.alert).toHaveBeenCalledWith(
+      expect.stringContaining("current exchange rate")
+    );
   });
 
   test("handles error if seller has no LUD16", async () => {

@@ -8,7 +8,7 @@ import {
   Input,
   useDisclosure,
 } from "@heroui/react";
-import { LightningAddress } from "@getalby/lightning-tools";
+import { getSatoshiValue, LightningAddress } from "@getalby/lightning-tools";
 import { NostrWebLNProvider } from "@getalby/sdk";
 import {
   NostrContext,
@@ -25,6 +25,11 @@ import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { validateZapReceipt } from "@/utils/nostr/zap-validator";
+import {
+  EXCHANGE_RATE_BUYER_MESSAGE,
+  ExchangeRateError,
+  isSatsCurrency,
+} from "@/utils/stripe/currency";
 
 export default function ZapsnagButton({ product }: { product: ProductData }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -153,6 +158,24 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
         );
       }
 
+      const currency = product.currency || "sats";
+      let zapAmountSats: number;
+      try {
+        zapAmountSats = isSatsCurrency(currency)
+          ? Math.ceil(product.price)
+          : Math.ceil(
+              await getSatoshiValue({
+                amount: product.price,
+                currency,
+              })
+            );
+      } catch {
+        throw new ExchangeRateError();
+      }
+      if (!Number.isFinite(zapAmountSats) || zapAmountSats <= 0) {
+        throw new ExchangeRateError();
+      }
+
       setStatus("Encrypting shipping info...");
       const ephemeralPrivBytes = generateSecretKey();
       const ephemeralPubHex = getPublicKey(ephemeralPrivBytes);
@@ -209,7 +232,7 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
           : ["wss://relay.damus.io", "wss://nos.lol"];
 
       const zapArgs = {
-        satoshi: product.price,
+        satoshi: zapAmountSats,
         comment: `Order #${orderId}`,
         e: product.id,
         relays: targetRelays,
@@ -246,7 +269,12 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
       }
     } catch (e: any) {
       console.error(e);
-      alert("Order failed: " + e.message);
+      alert(
+        "Order failed: " +
+          (e instanceof ExchangeRateError
+            ? EXCHANGE_RATE_BUYER_MESSAGE
+            : e.message)
+      );
     } finally {
       if ((window as any).webln !== originalWebLN) {
         (window as any).webln = originalWebLN;
@@ -288,7 +316,7 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
             ? "Sold Out"
             : remaining !== null
               ? `Zap to Buy (${remaining} left)`
-              : `Zap to Buy (${product.price} sats)`}
+              : `Zap to Buy (${product.price} ${product.currency || "sats"})`}
       </Button>
 
       <Modal isOpen={isOpen} onClose={onClose} size="2xl">
@@ -376,7 +404,7 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
             </div>
 
             <div className="py-6 text-center text-xl font-bold">
-              Total: {product.price} sats
+              Total: {product.price} {product.currency || "sats"}
             </div>
 
             <Button

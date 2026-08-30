@@ -1,22 +1,30 @@
 import { NostrEvent } from "@/utils/types/types";
 import { ProductData } from "./product-parser-functions";
+import currencySelection from "@/public/currencySelection.json";
+
+const currencyPattern = [
+  "sats?",
+  "satoshis?",
+  ...Object.keys(currencySelection),
+].join("|");
 
 export const parseZapsnagNote = (event: NostrEvent): ProductData => {
   const content = event.content;
 
-  const priceRegex =
-    /(?:price|cost|⚡)\s*[:=-]?\s*(\d+[\d,]*)\s*(sats?|satoshis?|usd|eur)?/i;
+  const priceRegex = new RegExp(
+    `(?:price|cost|⚡)\\s*[:=-]?\\s*(\\d[\\d,]*(?:\\.\\d+)?)\\s*(${currencyPattern})?`,
+    "i"
+  );
   const match = content.match(priceRegex);
 
   let price = 0;
   let currency = "sats";
 
   if (match && match[1]) {
-    price = parseInt(match[1].replace(/,/g, ""));
+    price = Number(match[1].replace(/,/g, ""));
     if (match[2]) {
-      const curr = match[2].toLowerCase();
-      if (curr.includes("usd")) currency = "USD";
-      else if (curr.includes("eur")) currency = "EUR";
+      const curr = match[2].toUpperCase();
+      currency = curr.startsWith("SAT") ? "sats" : curr;
     }
   }
 

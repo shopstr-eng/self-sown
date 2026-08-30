@@ -30,6 +30,14 @@ describe("parseZapsnagNote", () => {
     expect(result.currency).toBe("USD");
   });
 
+  it("preserves decimal prices and other supported fiat currencies", () => {
+    const event = createEvent("Maple syrup price: 19.95 CAD");
+    const result = parseZapsnagNote(event);
+
+    expect(result.price).toBe(19.95);
+    expect(result.currency).toBe("CAD");
+  });
+
   it("handles prices with commas", () => {
     const event = createEvent("Lambo price: 1,000,000 sats");
     const result = parseZapsnagNote(event);
