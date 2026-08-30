@@ -287,6 +287,181 @@ describe("seller nostr helpers", () => {
     expect(publishSpy).toHaveBeenCalledTimes(3);
   });
 
+  test("does not cache a listing when every relay rejects it", async () => {
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec
+    );
+    const fetchSpy = jest.fn();
+    global.fetch = fetchSpy as typeof fetch;
+    jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValue([Promise.reject(new Error("relay failed"))] as never);
+
+    await expect(
+      publishSellerListing({
+        baseUrl: "http://127.0.0.1:5000",
+        session,
+        draft: {
+          title: "Fresh milk",
+          description: "Daily delivery.",
+          images: ["https://example.com/milk.jpg"],
+          price: "15",
+          currency: "USD",
+          categories: ["Milk"],
+          location: "Jaipur",
+          shippingType: "Free",
+          shippingCost: "",
+          pickupLocations: [],
+          quantity: "2",
+          status: "active",
+        },
+      })
+    ).rejects.toThrow("could not be published");
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  test("treats a cache-failed relay publication as successful and retains retry identity", async () => {
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec
+    );
+    const fetchSpy = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: false } as Response)
+      .mockResolvedValue({ ok: true } as Response);
+    const publishSpy = jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValue([Promise.resolve("ok")] as never);
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation();
+    global.fetch = fetchSpy as typeof fetch;
+    const draft = {
+      title: "Fresh milk",
+      description: "Daily delivery.",
+      images: ["https://example.com/milk.jpg"],
+      price: "15",
+      currency: "USD",
+      categories: ["Milk"],
+      location: "Jaipur",
+      shippingType: "Free" as const,
+      shippingCost: "",
+      pickupLocations: [],
+      quantity: "2",
+      status: "active" as const,
+    };
+
+    const firstResult = await publishSellerListing({
+      baseUrl: "http://127.0.0.1:5000",
+      session,
+      draft,
+    });
+
+    const firstPublishedEvent = publishSpy.mock.calls[0]?.[1];
+    expect(publishSpy.mock.invocationCallOrder[0]).toBeLessThan(
+      fetchSpy.mock.invocationCallOrder[0]!
+    );
+    expect(draft.dTag).toBe(
+      firstPublishedEvent?.tags.find((tag) => tag[0] === "d")?.[1]
+    );
+    expect(firstResult.id).toBe(firstPublishedEvent?.id);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Published event but failed to cache it.",
+      expect.any(SellerNostrError)
+    );
+
+    const retryEvent = await publishSellerListing({
+      baseUrl: "http://127.0.0.1:5000",
+      session,
+      draft,
+    });
+
+    expect(retryEvent.tags.find((tag) => tag[0] === "d")?.[1]).toBe(draft.dTag);
+    expect(retryEvent.created_at).toBeGreaterThan(
+      firstPublishedEvent?.created_at ?? 0
+    );
+    expect(publishSpy).toHaveBeenCalledTimes(6);
+    expect(fetchSpy).toHaveBeenCalledTimes(6);
+  });
+
+  test("makes same-second listing updates newer than the source event", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec
+    );
+    global.fetch = jest.fn().mockResolvedValue({ ok: true } as Response);
+    jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValue([Promise.resolve("ok")] as never);
+
+    const listingEvent = await publishSellerListing({
+      baseUrl: "http://127.0.0.1:5000",
+      session,
+      existingEventId: "old-event",
+      existingDTag: "stable-d-tag",
+      draft: {
+        eventId: "old-event",
+        dTag: "stable-d-tag",
+        sourceCreatedAt: now,
+        title: "Updated milk",
+        description: "Updated in the same second.",
+        images: ["https://example.com/milk.jpg"],
+        price: "15",
+        currency: "USD",
+        categories: ["Milk"],
+        location: "Jaipur",
+        shippingType: "Free",
+        shippingCost: "",
+        pickupLocations: [],
+        quantity: "2",
+        status: "inactive",
+      },
+    });
+
+    expect(listingEvent.created_at).toBe(now + 1);
+    expect(listingEvent.tags).toContainEqual(["published_at", String(now + 1)]);
+  });
+
+  test("continues after an auxiliary listing event fails to publish", async () => {
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec
+    );
+    const fetchSpy = jest.fn().mockResolvedValue({ ok: true } as Response);
+    const publishSpy = jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValueOnce([Promise.resolve("ok")] as never)
+      .mockReturnValueOnce([Promise.reject(new Error("aux failed"))] as never)
+      .mockReturnValueOnce([Promise.resolve("ok")] as never);
+    const warnSpy = jest.spyOn(console, "warn").mockImplementation();
+    global.fetch = fetchSpy as typeof fetch;
+
+    await expect(
+      publishSellerListing({
+        baseUrl: "http://127.0.0.1:5000",
+        session,
+        draft: {
+          title: "Fresh milk",
+          description: "Daily delivery.",
+          images: ["https://example.com/milk.jpg"],
+          price: "15",
+          currency: "USD",
+          categories: ["Milk"],
+          location: "Jaipur",
+          shippingType: "Free",
+          shippingCost: "",
+          pickupLocations: [],
+          quantity: "2",
+          status: "active",
+        },
+      })
+    ).resolves.toEqual(expect.objectContaining({ kind: 30402 }));
+
+    expect(publishSpy).toHaveBeenCalledTimes(3);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Failed to publish auxiliary listing event.",
+      expect.any(SellerNostrError)
+    );
+  });
+
   test("new listings with the same title still get different d tags", async () => {
     const session = createSellerSessionFromNsec(
       generateSellerNsecCredentials().nsec

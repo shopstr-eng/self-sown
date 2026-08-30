@@ -88,14 +88,14 @@ function createRandomDTag(prefix: string): string {
   ).join("")}`;
 }
 
-function createListingDTag(): string {
+export function createSellerListingDTag(): string {
   return createRandomDTag("listing");
 }
 
-function addPublishedAtTag(tags: string[][]): string[][] {
+function addPublishedAtTag(tags: string[][], publishedAt: number): string[][] {
   return [
     ...tags.filter((tag) => tag[0] !== "published_at"),
-    ["published_at", String(Math.floor(Date.now() / 1000))],
+    ["published_at", String(publishedAt)],
   ];
 }
 
@@ -155,13 +155,21 @@ async function deleteCachedEvents(
   }
 }
 
-async function cacheAndPublishEvent(
+async function publishAndCacheEvent(
   baseUrl: string,
   session: SellerSession,
-  event: Event
+  event: Event,
+  cacheRequired = true
 ): Promise<void> {
-  await cacheSignedEvent(baseUrl, event);
   await publishSignedEvent(session, event);
+  try {
+    await cacheSignedEvent(baseUrl, event);
+  } catch (error) {
+    if (cacheRequired) {
+      throw error;
+    }
+    console.warn("Published event but failed to cache it.", error);
+  }
 }
 
 export function generateSellerNsecCredentials(): {
@@ -430,16 +438,17 @@ export function createSellerShopProfileEventTemplate(
 
 export function createSellerListingEventTemplate(
   session: SellerSession,
-  tags: string[][]
+  tags: string[][],
+  createdAt = Math.floor(Date.now() / 1000)
 ): EventTemplateWithPubkey {
   const summary = tags.find((tag) => tag[0] === "summary")?.[1] ?? "";
 
   return {
     pubkey: session.pubkey,
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: createdAt,
     content: summary,
     kind: 30402,
-    tags: addPublishedAtTag(tags),
+    tags: addPublishedAtTag(tags, createdAt),
   };
 }
 
@@ -506,12 +515,16 @@ export async function publishSellerListing(params: {
   existingDTag?: string;
 }): Promise<Event> {
   const isExistingListing = Boolean(
-    params.existingEventId ||
-    params.existingDTag ||
-    params.draft.eventId ||
-    params.draft.dTag
+    params.existingEventId || params.existingDTag || params.draft.eventId
   );
-  const dTag = params.existingDTag ?? params.draft.dTag ?? createListingDTag();
+  const dTag =
+    params.existingDTag ?? params.draft.dTag ?? createSellerListingDTag();
+  const createdAt = Math.max(
+    Math.floor(Date.now() / 1000),
+    (params.draft.sourceCreatedAt ?? 0) + 1
+  );
+  params.draft.dTag = dTag;
+  params.draft.sourceCreatedAt = createdAt;
   const relayHint = getPrimaryRelayHint(params.session);
   const tags = buildSellerListingTags({
     draft: params.draft,
@@ -521,10 +534,15 @@ export async function publishSellerListing(params: {
   });
   const listingEvent = signEventTemplate(
     params.session,
-    createSellerListingEventTemplate(params.session, tags)
+    createSellerListingEventTemplate(params.session, tags, createdAt)
   );
 
-  await cacheAndPublishEvent(params.baseUrl, params.session, listingEvent);
+  await publishAndCacheEvent(
+    params.baseUrl,
+    params.session,
+    listingEvent,
+    false
+  );
 
   if (!isExistingListing) {
     const handlerEvent = signEventTemplate(
@@ -544,20 +562,28 @@ export async function publishSellerListing(params: {
       })
     );
 
-    await cacheAndPublishEvent(
-      params.baseUrl,
-      params.session,
-      recommendationEvent
-    );
-    await cacheAndPublishEvent(params.baseUrl, params.session, handlerEvent);
+    for (const event of [recommendationEvent, handlerEvent]) {
+      try {
+        await publishAndCacheEvent(params.baseUrl, params.session, event);
+      } catch (error) {
+        console.warn("Failed to publish auxiliary listing event.", error);
+      }
+    }
   }
 
   if (params.existingEventId && params.existingEventId !== listingEvent.id) {
-    await deleteSellerListing({
-      baseUrl: params.baseUrl,
-      session: params.session,
-      eventId: params.existingEventId,
-    });
+    try {
+      await deleteSellerListing({
+        baseUrl: params.baseUrl,
+        session: params.session,
+        eventId: params.existingEventId,
+      });
+    } catch (error) {
+      console.warn(
+        "Updated listing but failed to retire its old event.",
+        error
+      );
+    }
   }
 
   return listingEvent;
@@ -578,7 +604,12 @@ export async function deleteSellerListing(params: {
     )
   );
 
-  await cacheAndPublishEvent(params.baseUrl, params.session, deleteEvent);
+  await publishAndCacheEvent(
+    params.baseUrl,
+    params.session,
+    deleteEvent,
+    false
+  );
   await deleteCachedEvents(params.baseUrl, params.session, [params.eventId]);
 
   return deleteEvent;

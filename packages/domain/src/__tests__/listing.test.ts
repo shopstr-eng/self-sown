@@ -112,6 +112,21 @@ describe("seller listing draft helpers", () => {
     ).toEqual({
       eventId: "listing-event",
       dTag: "listing-d-tag",
+      sourceCreatedAt: 1710000000,
+      sourceTags: [
+        ["d", "listing-d-tag"],
+        ["title", "Creamline Milk"],
+        ["summary", "Daily raw milk."],
+        ["image", "https://example.com/milk.jpg"],
+        ["price", "14", "USD"],
+        ["location", "Jaipur"],
+        ["shipping", "Pickup", "0", "USD"],
+        ["pickup_location", "Farm gate"],
+        ["t", "Milk"],
+        ["t", "FREEMILK"],
+        ["quantity", "3"],
+        ["status", "inactive"],
+      ],
       title: "Creamline Milk",
       description: "Daily raw milk.",
       images: ["https://example.com/milk.jpg"],
@@ -172,5 +187,62 @@ describe("seller listing draft helpers", () => {
       ["quantity", "4"],
       ["pickup_location", "Farm gate"],
     ]);
+  });
+
+  test("preserves web-only tags while replacing mobile-editable tags", () => {
+    const originalTags = [
+      ["d", "stable-d-tag"],
+      ["title", "Old title"],
+      ["status", "active"],
+      ["subscription", "true"],
+      ["subscription_default", "false"],
+      ["subscription_discount", "10"],
+      ["subscription_frequency", "weekly", "monthly"],
+      ["variant", "Small"],
+      ["variant_price", "Small", "12"],
+      ["bulk_price", "4", "40"],
+      ["ship_from_zip", "78701", "US"],
+      ["package_weight_oz", "16"],
+      ["herdshare_agreement", "https://example.com/agreement"],
+      ["lab_report", "https://example.com/report.pdf", "Lab report"],
+      ["page_config", '{"layout":"story"}'],
+    ];
+    const draft = createSellerListingDraftFromEvent({
+      id: "old-event",
+      pubkey: "seller-pubkey",
+      created_at: 1710000000,
+      kind: 30402,
+      content: "",
+      tags: originalTags,
+    });
+
+    expect(draft).not.toBeNull();
+    const tags = buildSellerListingTags({
+      pubkey: "seller-pubkey",
+      dTag: "stable-d-tag",
+      draft: {
+        ...draft!,
+        title: "New title",
+        description: "Updated from mobile.",
+        images: ["https://example.com/new.jpg"],
+        price: "15",
+        currency: "USD",
+        categories: ["Local"],
+        location: "Austin",
+        shippingType: "Free",
+        shippingCost: "",
+        pickupLocations: [],
+        quantity: "2",
+        status: "inactive",
+      },
+    });
+
+    for (const tag of originalTags.slice(3)) {
+      expect(tags).toContainEqual(tag);
+    }
+    expect(tags).toContainEqual(["title", "New title"]);
+    expect(tags).toContainEqual(["status", "inactive"]);
+    expect(tags).not.toContainEqual(["title", "Old title"]);
+    expect(tags).not.toContainEqual(["status", "active"]);
   });
 });

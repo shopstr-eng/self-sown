@@ -106,3 +106,4 @@
 - [Dev workflow serves a production build](dev-workflow-is-production-build.md) — Next.js Dev Server workflow = next build + standalone, no hot reload; restart (2.5min) before any live verification or "stale" HTML mimics logic bugs.
 - [Invoice card dual Order Summary panes](invoice-card-dual-order-summary.md) — product-invoice-card.tsx has TWO near-identical Order Summary blocks with different indentation; patch both or one payment path silently misses the change.
 - [Blank string coerces to 0](blank-string-number-coercion.md) — Number("")==0: optional numeric string fields (MCP z.string(), forms) must reject blank as "unset" before Number(); share one builder helper across all write paths.
+- [Mobile listing partial edits](mobile-listing-partial-edits.md) — mobile owns only basic tag families; preserve every other product tag, and keep relay-success retries on one monotonic address.

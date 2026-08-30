@@ -7,6 +7,7 @@ import {
   validateSellerListingDraft,
   type SellerListingDraftValidationErrors,
 } from "@milk-market/domain";
+import { createSellerListingDTag } from "@milk-market/nostr";
 
 import { ListingEditor } from "@/components/listing-editor";
 import { ScreenScrollView, ScreenTitle } from "@/components/seller-ui";
@@ -70,7 +71,11 @@ export default function NewListingScreen() {
 
     setSaveLoading(true);
     try {
-      await saveSellerListing(session, draft);
+      const draftToSave = draft.dTag
+        ? draft
+        : { ...draft, dTag: createSellerListingDTag() };
+      setDraft(draftToSave);
+      await saveSellerListing(session, draftToSave);
       await Promise.allSettled([
         queryClient.invalidateQueries({
           queryKey: ["seller-listing-events", session.pubkey],

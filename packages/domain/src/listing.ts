@@ -1,5 +1,5 @@
 import { CATEGORIES, type ShippingOptionsType } from "./constants";
-import type { ProductFormValues } from "./forms";
+import type { ProductFormValue, ProductFormValues } from "./forms";
 import type { NostrEventRecord } from "./seller";
 
 export type SellerListingStatus = "active" | "inactive";
@@ -7,6 +7,8 @@ export type SellerListingStatus = "active" | "inactive";
 export interface SellerListingDraft {
   eventId?: string;
   dTag?: string;
+  sourceCreatedAt?: number;
+  sourceTags?: ProductFormValues;
   title: string;
   description: string;
   images: string[];
@@ -69,11 +71,34 @@ const SELLER_LISTING_STATUSES = new Set<SellerListingStatus>([
   "active",
   "inactive",
 ]);
+const MOBILE_EDITABLE_TAGS = new Set([
+  "d",
+  "alt",
+  "client",
+  "title",
+  "summary",
+  "price",
+  "location",
+  "shipping",
+  "status",
+  "image",
+  "t",
+  "quantity",
+  "pickup_location",
+  "published_at",
+]);
 
 function getTagValues(event: NostrEventRecord, key: string): string[] {
   return event.tags
     .filter((tag) => tag[0] === key && typeof tag[1] === "string")
     .map((tag) => tag[1] as string);
+}
+
+function cloneTags(tags: string[][]): ProductFormValues {
+  return tags.flatMap((tag): ProductFormValue[] => {
+    const [key, ...values] = tag;
+    return key ? [[key, ...values]] : [];
+  });
 }
 
 function normalizeCommaSeparatedValues(values: string | string[]): string[] {
@@ -280,6 +305,8 @@ export function createSellerListingDraftFromEvent(
   return {
     eventId: event.id,
     dTag,
+    sourceCreatedAt: event.created_at,
+    sourceTags: cloneTags(event.tags),
     title: getTagValues(event, "title")[0] ?? "",
     description:
       getTagValues(event, "summary")[0] ??
@@ -305,7 +332,13 @@ export function buildSellerListingTags(params: {
 }): ProductFormValues {
   const normalized = normalizeSellerListingDraft(params.draft);
   const relayHint = params.relayHint ?? "";
+  const preservedTags = cloneTags(
+    (params.draft.sourceTags ?? []).filter(
+      (tag) => !MOBILE_EDITABLE_TAGS.has(tag[0])
+    )
+  );
   const tags: ProductFormValues = [
+    ...preservedTags,
     ["d", params.dTag],
     ["alt", `Product listing: ${normalized.title}`],
     [

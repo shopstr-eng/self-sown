@@ -2507,6 +2507,7 @@ export async function fetchProductsByPubkeyFromDb(
   limit = 500,
   offset = 0
 ): Promise<NostrEvent[]> {
+  await ensureTablesInitialized();
   const dbPool = getDbPool();
   let client;
 

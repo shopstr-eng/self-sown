@@ -17,7 +17,7 @@ export async function saveSellerListing(
     session,
     draft,
     existingEventId: draft.eventId,
-    existingDTag: draft.dTag,
+    existingDTag: draft.eventId ? draft.dTag : undefined,
   });
 }
 

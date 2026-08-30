@@ -317,6 +317,51 @@ describe("db-service helpers", () => {
     });
   });
 
+  test("seller product fetch waits for table initialization", async () => {
+    await jest.isolateModulesAsync(async () => {
+      const prev = process.env.DATABASE_URL;
+      process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+      const queries: string[] = [];
+      const client = {
+        query: jest.fn(async (query: string | { text?: string }) => {
+          const text = typeof query === "string" ? query : (query.text ?? "");
+          queries.push(text);
+          return { rows: [], rowCount: 0 };
+        }),
+        release: jest.fn(),
+      };
+      const pool = {
+        connect: jest.fn(async () => client),
+        on: jest.fn(),
+        end: jest.fn(async () => undefined),
+      };
+
+      try {
+        jest.doMock("pg", () => ({
+          Pool: class {
+            constructor() {
+              return pool;
+            }
+          },
+        }));
+        const mod = await import("../db-service");
+        await mod.fetchProductsByPubkeyFromDb("seller-pubkey");
+
+        const initializationIndex = queries.findIndex((query) =>
+          query.includes("CREATE TABLE IF NOT EXISTS product_events")
+        );
+        const sellerFetchIndex = queries.findIndex((query) =>
+          query.includes("WHERE p.kind = 30402 AND p.pubkey = $1")
+        );
+        expect(initializationIndex).toBeGreaterThanOrEqual(0);
+        expect(sellerFetchIndex).toBeGreaterThan(initializationIndex);
+        await mod.closeDbPool();
+      } finally {
+        process.env.DATABASE_URL = prev;
+      }
+    });
+  });
+
   test("cacheEvent upserts regular events with ON CONFLICT", async () => {
     await jest.isolateModulesAsync(async () => {
       const prev = process.env.DATABASE_URL;
