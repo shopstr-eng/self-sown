@@ -13,6 +13,7 @@ import {
 } from "@milk-market/domain";
 import {
   createSignedSellerActionAuthEvent,
+  createSignedStorefrontSlugAuthEvent,
   publishSellerShopProfile,
 } from "@milk-market/nostr";
 
@@ -204,7 +205,7 @@ export default function StorefrontScreen() {
               pubkey: session.pubkey,
               slug: savedSlug,
             },
-            createSignedSellerActionAuthEvent(session, "storefront-slug-write")
+            createSignedStorefrontSlugAuthEvent(session, "POST", savedSlug)
           );
           savedSlug = slugResponse.slug;
           setSlugState({
@@ -216,7 +217,7 @@ export default function StorefrontScreen() {
             {
               pubkey: session.pubkey,
             },
-            createSignedSellerActionAuthEvent(session, "storefront-slug-write")
+            createSignedStorefrontSlugAuthEvent(session, "DELETE")
           );
           setSlugState({
             value: "",

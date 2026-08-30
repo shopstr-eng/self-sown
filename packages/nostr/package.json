@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@milk-market/domain": "file:../domain",
+    "crypto-js": "4.2.0",
     "nostr-tools": "2.7.1"
   },
   "scripts": {

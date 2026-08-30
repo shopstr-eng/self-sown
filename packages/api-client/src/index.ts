@@ -202,8 +202,9 @@ export function createMilkMarketApiClient(
     fetchProfiles() {
       return requestJson<NostrEventRecord[]>("/api/db/fetch-profiles");
     },
-    fetchProducts() {
-      return requestJson<NostrEventRecord[]>("/api/db/fetch-products");
+    fetchProducts(pubkey?: string) {
+      const query = pubkey ? `?pubkey=${encodeURIComponent(pubkey)}` : "";
+      return requestJson<NostrEventRecord[]>(`/api/db/fetch-products${query}`);
     },
     fetchSellerNotificationEmail(pubkey: string, signedEvent: unknown) {
       return requestJson<FetchNotificationEmailResponse>(
