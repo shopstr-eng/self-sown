@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
+  createSellerListingDraftFromEvent,
   selectSellerListingSummaries,
   selectSellerShopProfile,
   withNotificationEmail,
+  type NostrEventRecord,
   type SellerSession,
 } from "@milk-market/domain";
 import {
@@ -56,10 +58,40 @@ export function useSellerListings(pubkey?: string) {
       if (!pubkey) {
         throw new Error("Vendor pubkey is required.");
       }
-      const products = await mobileApiClient.fetchProducts();
+      const products = await mobileApiClient.fetchProducts(pubkey);
       return selectSellerListingSummaries(products, pubkey);
     },
   });
+}
+
+export function useSellerListingEvents(pubkey?: string) {
+  return useQuery({
+    queryKey: ["seller-listing-events", pubkey],
+    enabled: Boolean(pubkey),
+    queryFn: async () => {
+      if (!pubkey) {
+        throw new Error("Seller pubkey is required.");
+      }
+
+      return mobileApiClient.fetchProducts(pubkey);
+    },
+  });
+}
+
+export function findSellerListingDraft(
+  events: NostrEventRecord[] | undefined,
+  listingId: string
+) {
+  if (!events) {
+    return null;
+  }
+
+  const event = events.find((productEvent) => productEvent.id === listingId);
+  if (!event) {
+    return null;
+  }
+
+  return createSellerListingDraftFromEvent(event);
 }
 
 export function useStripeConnectStatus(session: SellerSession | null) {

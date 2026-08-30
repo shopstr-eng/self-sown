@@ -53,69 +53,13 @@ export default function DashboardScreen() {
   const [stripeCountry, setStripeCountry] = useState("US");
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
-  if (!session) {
-    return null;
-  }
-
-  const listingCount = listingsQuery.data?.length ?? 0;
-  const stripeStatus = stripeStatusQuery.data;
-  const storefrontLoadError =
-    profileQuery.error ?? notificationEmailQuery.error ?? null;
-  const storefrontLoadErrorMessage = storefrontLoadError
-    ? getErrorMessage(
-        storefrontLoadError,
-        "Vendor storefront data could not be loaded."
-      )
-    : "";
-  const listingsErrorMessage = listingsQuery.error
-    ? getErrorMessage(
-        listingsQuery.error,
-        "Vendor listings could not be loaded right now."
-      )
-    : "";
-  const stripeStatusErrorMessage = stripeStatusQuery.error
-    ? getErrorMessage(
-        stripeStatusQuery.error,
-        "Stripe Connect status could not be loaded."
-      )
-    : "";
-  const setupItems = [
-    { label: "Vendor session ready", complete: true },
-    {
-      label: "Stall basics saved",
-      complete: Boolean(shopProfile?.content.name.trim()),
-    },
-    {
-      label: "Notification email added",
-      complete: Boolean(shopProfile?.notificationEmail ?? session.email),
-    },
-    {
-      label: "Stripe onboarding complete",
-      complete: Boolean(stripeStatus?.chargesEnabled),
-    },
-  ];
-  const completedCount = setupItems.filter((item) => item.complete).length;
-
-  const stripeTone =
-    stripeStatus?.chargesEnabled === true
-      ? "success"
-      : stripeStatus?.hasAccount
-        ? "warning"
-        : "neutral";
-  const stripeLabel =
-    stripeStatus?.chargesEnabled === true
-      ? "Card payments live"
-      : stripeStatus?.hasAccount
-        ? "Finish Stripe onboarding"
-        : "Stripe not connected";
-
   useEffect(() => {
     const callbackStatus =
       stripeConnectStatus === "success" || stripeConnectStatus === "refresh"
         ? (stripeConnectStatus as StripeConnectCallbackStatus)
         : null;
 
-    if (!callbackStatus) {
+    if (!callbackStatus || !session) {
       return;
     }
 
@@ -178,7 +122,63 @@ export default function DashboardScreen() {
     return () => {
       active = false;
     };
-  }, [router, stripeConnectStatus, stripeStatusQuery]);
+  }, [router, session, stripeConnectStatus, stripeStatusQuery]);
+
+  if (!session) {
+    return null;
+  }
+
+  const listingCount = listingsQuery.data?.length ?? 0;
+  const stripeStatus = stripeStatusQuery.data;
+  const storefrontLoadError =
+    profileQuery.error ?? notificationEmailQuery.error ?? null;
+  const storefrontLoadErrorMessage = storefrontLoadError
+    ? getErrorMessage(
+        storefrontLoadError,
+        "Vendor storefront data could not be loaded."
+      )
+    : "";
+  const listingsErrorMessage = listingsQuery.error
+    ? getErrorMessage(
+        listingsQuery.error,
+        "Vendor listings could not be loaded right now."
+      )
+    : "";
+  const stripeStatusErrorMessage = stripeStatusQuery.error
+    ? getErrorMessage(
+        stripeStatusQuery.error,
+        "Stripe Connect status could not be loaded."
+      )
+    : "";
+  const setupItems = [
+    { label: "Vendor session ready", complete: true },
+    {
+      label: "Stall basics saved",
+      complete: Boolean(shopProfile?.content.name.trim()),
+    },
+    {
+      label: "Notification email added",
+      complete: Boolean(shopProfile?.notificationEmail ?? session.email),
+    },
+    {
+      label: "Stripe onboarding complete",
+      complete: Boolean(stripeStatus?.chargesEnabled),
+    },
+  ];
+  const completedCount = setupItems.filter((item) => item.complete).length;
+
+  const stripeTone =
+    stripeStatus?.chargesEnabled === true
+      ? "success"
+      : stripeStatus?.hasAccount
+        ? "warning"
+        : "neutral";
+  const stripeLabel =
+    stripeStatus?.chargesEnabled === true
+      ? "Card payments live"
+      : stripeStatus?.hasAccount
+        ? "Finish Stripe onboarding"
+        : "Stripe not connected";
 
   const handleRefreshSellerData = async () => {
     await Promise.allSettled([

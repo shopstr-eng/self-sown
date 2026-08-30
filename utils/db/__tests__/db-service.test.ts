@@ -532,7 +532,7 @@ describe("db-service helpers", () => {
     test("getDbPool constructs pg.Pool and closeDbPool ends it", async () => {
       await jest.isolateModulesAsync(async () => {
         const prev = process.env.DATABASE_URL;
-        process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+        process.env.DATABASE_URL = "postgres://test@127.0.0.1:55432/testdb";
         try {
           let constructed = false;
           const client = {
@@ -563,6 +563,9 @@ describe("db-service helpers", () => {
           const pool = mod.getDbPool();
           expect(constructed).toBe(true);
           expect(pool).toBeInstanceOf(FakePool);
+          expect((pool as unknown as FakePool).opts.connectionString).toBe(
+            process.env.DATABASE_URL
+          );
 
           // close should call end() and allow recreation on next getDbPool
           await mod.closeDbPool();
