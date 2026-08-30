@@ -111,6 +111,8 @@ export default function ProductForm({
   >(oldValues?.beefinit_donation_percentage);
   const [isFlashSale, setIsFlashSale] = useState(false);
   const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
+  const [subscriptionDefaultSelected, setSubscriptionDefaultSelected] =
+    useState(false);
   const [subscriptionDiscount, setSubscriptionDiscount] = useState("");
   const [subscriptionFrequencies, setSubscriptionFrequencies] = useState<
     string[]
@@ -290,6 +292,9 @@ export default function ProductForm({
 
     if (oldValues?.subscriptionEnabled) {
       setSubscriptionEnabled(true);
+      setSubscriptionDefaultSelected(
+        oldValues.subscriptionDefaultSelected === true
+      );
       setSubscriptionDiscount(
         oldValues.subscriptionDiscount
           ? String(oldValues.subscriptionDiscount)
@@ -298,6 +303,7 @@ export default function ProductForm({
       setSubscriptionFrequencies(oldValues.subscriptionFrequency || []);
     } else {
       setSubscriptionEnabled(false);
+      setSubscriptionDefaultSelected(false);
       setSubscriptionDiscount("");
       setSubscriptionFrequencies([]);
     }
@@ -612,6 +618,10 @@ export default function ProductForm({
 
     if (subscriptionEnabled) {
       tags.push(["subscription", "true"]);
+      tags.push([
+        "subscription_default",
+        subscriptionDefaultSelected ? "true" : "false",
+      ]);
       if (subscriptionDiscount) {
         tags.push(["subscription_discount", subscriptionDiscount]);
       }
@@ -2922,6 +2932,24 @@ export default function ProductForm({
 
               {subscriptionEnabled && (
                 <div className="mt-2 space-y-4 rounded-md border-2 border-dashed border-gray-300 bg-gray-50 p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-black">
+                        Select subscription by default
+                      </span>
+                      <span className="text-tiny text-gray-500">
+                        Buyers can still choose a one-time purchase
+                      </span>
+                    </div>
+                    <Switch
+                      aria-label="Select subscription by default"
+                      isSelected={subscriptionDefaultSelected}
+                      onValueChange={setSubscriptionDefaultSelected}
+                      classNames={{
+                        wrapper: "group-data-[selected=true]:bg-yellow-600",
+                      }}
+                    />
+                  </div>
                   <div>
                     <label className="mb-2 block text-base font-semibold text-black">
                       Subscription Discount (%)

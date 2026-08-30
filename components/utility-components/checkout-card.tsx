@@ -151,8 +151,9 @@ export default function CheckoutCard({
     productData.subscriptionFrequency &&
     productData.subscriptionFrequency.length > 0
   );
-  const [isSubscriptionSelected, setIsSubscriptionSelected] =
-    useState(hasSubscription);
+  const [isSubscriptionSelected, setIsSubscriptionSelected] = useState(
+    hasSubscription && productData.subscriptionDefaultSelected === true
+  );
   const [selectedFrequency, setSelectedFrequency] = useState<string>(
     hasSubscription && productData.subscriptionFrequency?.[0]
       ? productData.subscriptionFrequency[0]

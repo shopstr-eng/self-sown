@@ -60,6 +60,7 @@ export type ProductData = {
   expiration?: number;
   beefinit_donation_percentage?: number;
   subscriptionEnabled?: boolean;
+  subscriptionDefaultSelected?: boolean;
   subscriptionDiscount?: number;
   subscriptionFrequency?: string[];
   pageConfig?: StorefrontProductPageConfig;
@@ -281,6 +282,9 @@ export const parseTags = (productEvent: NostrEvent) => {
         if (values[0] === "true") {
           parsedData.subscriptionEnabled = true;
         }
+        break;
+      case "subscription_default":
+        parsedData.subscriptionDefaultSelected = values[0] !== "false";
         break;
       case "subscription_discount":
         parsedData.subscriptionDiscount = Number(values[0]);
