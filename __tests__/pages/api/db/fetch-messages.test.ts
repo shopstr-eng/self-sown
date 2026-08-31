@@ -165,6 +165,7 @@ describe("/api/db/fetch-messages", () => {
     expect(fetchAllMessagesFromDbMock).toHaveBeenCalledWith(VALID_PUBKEY);
     expect(res.statusCode).toBe(200);
     expect(res.body).toEqual(messages);
+    expect(res.headers["Cache-Control"]).toBe("private, no-store");
   });
 
   it("returns 500 when the database call throws", async () => {

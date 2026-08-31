@@ -1,18 +1,27 @@
 const getOrderStatusesMock = jest.fn();
+const verifyNip98RequestMock = jest.fn();
 
 jest.mock("@/utils/db/db-service", () => ({
   getOrderStatuses: (...args: unknown[]) => getOrderStatusesMock(...args),
 }));
 
-import handler from "@/pages/api/db/get-order-statuses";
+jest.mock("@/utils/nostr/nip98-auth", () => ({
+  verifyNip98Request: (...args: unknown[]) => verifyNip98RequestMock(...args),
+}));
 
-const getExpectedMaxOrderIds = () => {
-  const configured = Number.parseInt(
-    process.env.MAX_ORDER_IDS_PER_REQUEST || "",
-    10
-  );
-  return Number.isFinite(configured) && configured > 0 ? configured : 200;
-};
+import handler from "@/pages/api/db/get-order-statuses";
+import { __resetRateLimitBuckets } from "@/utils/rate-limit";
+
+const sellerPubkey = "a".repeat(64);
+
+function createRequest(body: unknown, authorization = "Nostr signed") {
+  return {
+    method: "POST",
+    headers: authorization ? { authorization } : {},
+    socket: { remoteAddress: "127.0.0.1" },
+    body,
+  } as any;
+}
 
 function createResponse() {
   return {
@@ -36,76 +45,94 @@ function createResponse() {
 
 describe("/api/db/get-order-statuses", () => {
   beforeEach(() => {
+    __resetRateLimitBuckets();
     getOrderStatusesMock.mockReset();
+    verifyNip98RequestMock.mockReset().mockResolvedValue({
+      ok: true,
+      pubkey: sellerPubkey,
+    });
   });
 
-  it("rejects non-string orderIds payloads", async () => {
+  it("requires authentication before returning even an empty status set", async () => {
+    verifyNip98RequestMock.mockResolvedValue({
+      ok: false,
+      error: "Missing Authorization header",
+    });
+    const req = createRequest({ orderIds: [] }, "");
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(verifyNip98RequestMock).toHaveBeenCalledWith(req, "POST", req.body);
+    expect(getOrderStatusesMock).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+  });
+
+  it("scopes status reads to the authenticated seller", async () => {
+    getOrderStatusesMock.mockResolvedValue({ "order-1": "confirmed" });
+    const req = createRequest({ orderIds: ["order-1"] });
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(getOrderStatusesMock).toHaveBeenCalledWith(
+      ["order-1"],
+      sellerPubkey
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["Cache-Control"]).toBe("private, no-store");
+  });
+
+  it("rejects GET so signed reads have one unambiguous payload", async () => {
     const req = {
-      method: "POST",
-      headers: {},
-      body: { orderIds: ["order-1", 123] },
+      method: "GET",
+      headers: { authorization: "Nostr signed" },
+      socket: { remoteAddress: "127.0.0.1" },
+      query: { orderIds: "order-1" },
     } as any;
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(res.statusCode).toBe(405);
+    expect(verifyNip98RequestMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed order IDs before querying", async () => {
+    const req = createRequest({ orderIds: ["order-1", "invalid order id"] });
     const res = createResponse();
 
     await handler(req, res as any);
 
     expect(res.statusCode).toBe(400);
-    expect(res.jsonBody).toEqual({
-      error: "Invalid orderIds. Expected a string or array of strings.",
-    });
-  });
-
-  it("rejects requests with too many order IDs", async () => {
-    const maxOrderIds = getExpectedMaxOrderIds();
-    const req = {
-      method: "POST",
-      headers: {},
-      body: {
-        orderIds: Array.from(
-          { length: maxOrderIds + 1 },
-          (_, index) => `order-${index}`
-        ),
-      },
-    } as any;
-    const res = createResponse();
-
-    await handler(req, res as any);
-
-    expect(res.statusCode).toBe(413);
-    expect(res.jsonBody).toEqual({
-      error: `Too many order IDs. Maximum allowed is ${maxOrderIds}.`,
-    });
-  });
-
-  it("returns empty statuses when orderIds is omitted", async () => {
-    const req = {
-      method: "POST",
-      headers: {},
-      body: {},
-    } as any;
-    const res = createResponse();
-
-    await handler(req, res as any);
-
+    expect(res.jsonBody).toEqual({ error: "Invalid order ID" });
     expect(getOrderStatusesMock).not.toHaveBeenCalled();
-    expect(res.statusCode).toBe(200);
-    expect(res.jsonBody).toEqual({ statuses: {} });
   });
 
-  it("dedupes IDs before querying", async () => {
+  it("deduplicates IDs before querying", async () => {
     getOrderStatusesMock.mockResolvedValue({ "order-1": "shipped" });
-
-    const req = {
-      method: "POST",
-      headers: {},
-      body: { orderIds: ["order-1", "order-1", " order-2 "] },
-    } as any;
+    const req = createRequest({
+      orderIds: ["order-1", "order-1", " order-2 "],
+    });
     const res = createResponse();
 
     await handler(req, res as any);
 
-    expect(getOrderStatusesMock).toHaveBeenCalledWith(["order-1", "order-2"]);
+    expect(getOrderStatusesMock).toHaveBeenCalledWith(
+      ["order-1", "order-2"],
+      sellerPubkey
+    );
     expect(res.statusCode).toBe(200);
-    expect(res.jsonBody).toEqual({ statuses: { "order-1": "shipped" } });
+  });
+
+  it("reports a database failure instead of returning false pending state", async () => {
+    getOrderStatusesMock.mockRejectedValueOnce(new Error("database offline"));
+    const req = createRequest({ orderIds: ["order-1"] });
+    const res = createResponse();
+
+    await handler(req, res as any);
+
+    expect(res.statusCode).toBe(500);
+    expect(res.jsonBody).toEqual({ error: "Failed to get order statuses" });
   });
 });

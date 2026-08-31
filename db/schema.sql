@@ -102,6 +102,40 @@ CREATE TABLE IF NOT EXISTS message_events (
 CREATE INDEX IF NOT EXISTS idx_message_events_pubkey ON message_events(pubkey);
 CREATE INDEX IF NOT EXISTS idx_message_events_created_at ON message_events(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS seller_order_states (
+    seller_pubkey TEXT NOT NULL,
+    order_id TEXT NOT NULL,
+    buyer_pubkey TEXT,
+    source_message_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    version INTEGER NOT NULL DEFAULT 0,
+    last_transition_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (seller_pubkey, order_id),
+    UNIQUE (seller_pubkey, source_message_id),
+    CONSTRAINT seller_order_states_status_check
+      CHECK (status IN ('pending', 'confirmed', 'shipped', 'completed', 'canceled'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_seller_order_states_buyer
+  ON seller_order_states(buyer_pubkey, order_id);
+
+CREATE TABLE IF NOT EXISTS seller_order_status_transitions (
+    seller_pubkey TEXT NOT NULL,
+    order_id TEXT NOT NULL,
+    transition_id TEXT NOT NULL,
+    actor_pubkey TEXT NOT NULL,
+    previous_status TEXT NOT NULL,
+    next_status TEXT NOT NULL,
+    order_version INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (seller_pubkey, order_id, transition_id),
+    FOREIGN KEY (seller_pubkey, order_id)
+      REFERENCES seller_order_states(seller_pubkey, order_id)
+      ON DELETE CASCADE
+);
+
 -- Profile events (kind 0 - user profile, kind 30019 - shop profile)
 CREATE TABLE IF NOT EXISTS profile_events (
     id TEXT PRIMARY KEY,

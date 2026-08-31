@@ -23,6 +23,8 @@ import {
 import { useSellerBootstrap } from "@/hooks/use-seller-bootstrap";
 import { mobileApiClient } from "@/lib/api-client";
 import { getErrorMessage } from "@/lib/error-utils";
+import { clearPrivateSellerOrderQueries } from "@/lib/order-query";
+import { queryClient } from "@/lib/query-client";
 import {
   createStripeConnectRedirectBaseUrl,
   createStripeConnectRedirectUrl,
@@ -252,6 +254,7 @@ export default function DashboardScreen() {
   };
 
   const handleSignOut = async () => {
+    await clearPrivateSellerOrderQueries(queryClient);
     await clearSession();
     router.replace("/sign-in" as Href);
   };

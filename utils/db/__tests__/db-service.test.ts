@@ -688,6 +688,133 @@ describe("db-service helpers", () => {
         process.env.DATABASE_URL = prev;
       }
     });
+
+    test("getOrderStatuses scopes authenticated reads to owned message rows", async () => {
+      await jest.isolateModulesAsync(async () => {
+        const previousDatabaseUrl = process.env.DATABASE_URL;
+        process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+        const client = {
+          query: jest.fn(async () => ({ rows: [], rowCount: 0 })),
+          release: jest.fn(),
+        };
+        const pool = {
+          connect: jest.fn(async () => client),
+          on: jest.fn(),
+          end: jest.fn(),
+        };
+
+        try {
+          jest.doMock("pg", () => ({
+            Pool: class {
+              constructor() {
+                return pool;
+              }
+            },
+          }));
+
+          const mod = await import("../db-service");
+          const sellerPubkey = "a".repeat(64);
+          await mod.getOrderStatuses(["order-1"], sellerPubkey);
+
+          expect(client.query).toHaveBeenCalledWith(
+            expect.stringContaining("seller_pubkey = $2"),
+            [["order-1"], sellerPubkey]
+          );
+          await mod.closeDbPool();
+        } finally {
+          process.env.DATABASE_URL = previousDatabaseUrl;
+        }
+      });
+    });
+
+    test("getOrderStatuses propagates read failures and releases its client", async () => {
+      await jest.isolateModulesAsync(async () => {
+        const previousDatabaseUrl = process.env.DATABASE_URL;
+        process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+        const readFailure = new Error("database offline");
+        const client = {
+          query: jest.fn(async () => {
+            throw readFailure;
+          }),
+          release: jest.fn(),
+        };
+        const pool = {
+          connect: jest.fn(async () => client),
+          on: jest.fn(),
+          end: jest.fn(),
+        };
+        const consoleError = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => undefined);
+
+        try {
+          jest.doMock("pg", () => ({
+            Pool: class {
+              constructor() {
+                return pool;
+              }
+            },
+          }));
+
+          const mod = await import("../db-service");
+
+          await expect(
+            mod.getOrderStatuses(["order-1"], "a".repeat(64))
+          ).rejects.toBe(readFailure);
+          expect(client.release).toHaveBeenCalled();
+          await mod.closeDbPool();
+        } finally {
+          consoleError.mockRestore();
+          process.env.DATABASE_URL = previousDatabaseUrl;
+        }
+      });
+    });
+
+    test("markMessagesAsRead propagates write failures and releases its client", async () => {
+      await jest.isolateModulesAsync(async () => {
+        const previousDatabaseUrl = process.env.DATABASE_URL;
+        process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+        const writeFailure = new Error("database offline");
+        const client = {
+          query: jest.fn(async (query: string) => {
+            if (/UPDATE message_events\s+SET is_read/i.test(query)) {
+              throw writeFailure;
+            }
+            return { rows: [], rowCount: 0 };
+          }),
+          release: jest.fn(),
+        };
+        const pool = {
+          connect: jest.fn(async () => client),
+          on: jest.fn(),
+          end: jest.fn(),
+        };
+        const consoleError = jest
+          .spyOn(console, "error")
+          .mockImplementation(() => undefined);
+
+        try {
+          jest.doMock("pg", () => ({
+            Pool: class {
+              constructor() {
+                return pool;
+              }
+            },
+          }));
+
+          const mod = await import("../db-service");
+
+          await expect(
+            mod.markMessagesAsRead(["1".repeat(64)], "a".repeat(64))
+          ).rejects.toBe(writeFailure);
+          expect(client.release).toHaveBeenCalledTimes(1);
+          await mod.closeDbPool();
+        } finally {
+          consoleError.mockRestore();
+          process.env.DATABASE_URL = previousDatabaseUrl;
+        }
+      });
+    });
   });
 
   describe("db-service with Testcontainers (discounts, stats, cached events)", () => {
@@ -1091,6 +1218,235 @@ describe("db-service helpers", () => {
           ).resolves.toMatchObject({
             id: "product-b1",
             content: "listing b",
+          });
+        });
+      }
+    );
+
+    maybeItTc(
+      "seller order state rejects forged authority and enforces atomic lifecycle transitions",
+      async () => {
+        await withPostgresDbService(async (db) => {
+          await waitForTables(db, ["message_events", "seller_order_states"]);
+
+          const sellerPubkey = "a".repeat(64);
+          const buyerPubkey = "b".repeat(64);
+          const ephemeralPubkey = "e".repeat(64);
+          const sourceMessageId = "1".repeat(64);
+          const secondSourceMessageId = "2".repeat(64);
+          const pool = db.getDbPool();
+          const client = await pool.connect();
+          try {
+            await client.query(
+              `INSERT INTO message_events
+                 (id, pubkey, created_at, kind, tags, content, sig)
+               VALUES
+                 ($1, $2, 1, 1059, $3::jsonb, 'encrypted', $4),
+                 ($5, $2, 2, 1059, $3::jsonb, 'encrypted', $4)`,
+              [
+                sourceMessageId,
+                ephemeralPubkey,
+                JSON.stringify([["p", sellerPubkey]]),
+                "f".repeat(128),
+                secondSourceMessageId,
+              ]
+            );
+          } finally {
+            client.release();
+          }
+
+          const cachedMessages = await db.fetchAllMessagesFromDb(sellerPubkey);
+          expect(cachedMessages).toHaveLength(2);
+          expect(
+            cachedMessages.every(
+              (message) => typeof message.created_at === "number"
+            )
+          ).toBe(true);
+
+          const base = {
+            sellerPubkey,
+            buyerPubkey,
+            orderId: "order-secure",
+            expectedStatus: "pending" as const,
+            status: "confirmed" as const,
+            messageId: sourceMessageId,
+          };
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: ephemeralPubkey,
+              transitionId: "forged-outer-author",
+            })
+          ).resolves.toEqual({ outcome: "forbidden" });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: buyerPubkey,
+              transitionId: "buyer-seller-transition",
+            })
+          ).resolves.toEqual({ outcome: "forbidden" });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              status: "shipped",
+              transitionId: "skipped-confirmation",
+            })
+          ).resolves.toEqual({
+            outcome: "conflict",
+            currentStatus: "pending",
+          });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              transitionId: "confirm-once",
+            })
+          ).resolves.toEqual({
+            outcome: "updated",
+            status: "confirmed",
+            version: 1,
+          });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              transitionId: "confirm-once",
+            })
+          ).resolves.toEqual({
+            outcome: "idempotent",
+            status: "confirmed",
+            version: 1,
+          });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: buyerPubkey,
+              expectedStatus: "confirmed",
+              status: "shipped",
+              transitionId: "buyer-cannot-ship",
+            })
+          ).resolves.toEqual({ outcome: "forbidden" });
+
+          const concurrent = await Promise.all([
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              expectedStatus: "confirmed",
+              status: "shipped",
+              transitionId: "ship-a",
+            }),
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              expectedStatus: "confirmed",
+              status: "shipped",
+              transitionId: "ship-b",
+            }),
+          ]);
+          expect(concurrent).toEqual(
+            expect.arrayContaining([
+              { outcome: "updated", status: "shipped", version: 2 },
+              { outcome: "conflict", currentStatus: "shipped" },
+            ])
+          );
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              expectedStatus: "shipped",
+              status: "completed",
+              transitionId: "complete-once",
+            })
+          ).resolves.toEqual({
+            outcome: "updated",
+            status: "completed",
+            version: 3,
+          });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              transitionId: "confirm-once",
+            })
+          ).resolves.toEqual({
+            outcome: "idempotent",
+            status: "confirmed",
+            version: 1,
+          });
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: ephemeralPubkey,
+              transitionId: "confirm-once",
+            })
+          ).resolves.toEqual({ outcome: "forbidden" });
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              ...base,
+              actorPubkey: sellerPubkey,
+              orderId: "different-order",
+              transitionId: "reuse-source",
+            })
+          ).resolves.toEqual({ outcome: "not_found" });
+
+          await expect(
+            db.getOrderStatuses(["order-secure"], sellerPubkey)
+          ).resolves.toEqual({ "order-secure": "completed" });
+          await expect(
+            db.getOrderStatuses(["order-secure"], ephemeralPubkey)
+          ).resolves.toEqual({});
+
+          await expect(
+            db.transitionSellerOrderStatus({
+              actorPubkey: sellerPubkey,
+              sellerPubkey,
+              buyerPubkey,
+              orderId: "order-cancel",
+              expectedStatus: "pending",
+              status: "confirmed",
+              messageId: secondSourceMessageId,
+              transitionId: "confirm-before-cancel",
+            })
+          ).resolves.toMatchObject({ outcome: "updated" });
+          await expect(
+            db.transitionSellerOrderStatus({
+              actorPubkey: buyerPubkey,
+              sellerPubkey,
+              buyerPubkey: null,
+              orderId: "order-cancel",
+              expectedStatus: "confirmed",
+              status: "canceled",
+              transitionId: "buyer-cancel",
+            })
+          ).resolves.toEqual({
+            outcome: "updated",
+            status: "canceled",
+            version: 2,
+          });
+          await expect(
+            db.transitionSellerOrderStatus({
+              actorPubkey: sellerPubkey,
+              sellerPubkey,
+              buyerPubkey,
+              orderId: "order-cancel",
+              expectedStatus: "canceled",
+              status: "shipped",
+              messageId: secondSourceMessageId,
+              transitionId: "resurrect-canceled",
+            })
+          ).resolves.toEqual({
+            outcome: "conflict",
+            currentStatus: "canceled",
           });
         });
       }

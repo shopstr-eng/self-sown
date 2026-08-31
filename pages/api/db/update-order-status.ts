@@ -1,41 +1,24 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getOrderParticipants, updateOrderStatus } from "@/utils/db/db-service";
+
+import {
+  transitionSellerOrderStatus,
+  type CanonicalOrderStatus,
+} from "@/utils/db/db-service";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 
-// Order status writes sit on the buyer/seller critical path. The per-IP
-// limit is generous (a buyer + seller behind shared NAT can both work many
-// orders at once); the per-pubkey limit is the meaningful authority bound
-// since we only call it after NIP-98 verification.
 const PER_IP_LIMIT = { limit: 300, windowMs: 60 * 1000 };
 const PER_PUBKEY_LIMIT = { limit: 200, windowMs: 60 * 1000 };
-
-const SELLER_MANAGED_STATUSES = new Set(["confirmed", "shipped", "completed"]);
-const BUYER_MANAGED_STATUSES = new Set(["canceled"]);
-const PARTICIPANT_MANAGED_STATUSES = new Set(["pending"]);
-
-function canActorUpdateOrderStatus(
-  actorPubkey: string,
-  buyerPubkey: string | null,
-  sellerPubkey: string | null,
-  status: string
-): boolean {
-  if (actorPubkey === sellerPubkey) {
-    return (
-      SELLER_MANAGED_STATUSES.has(status) ||
-      PARTICIPANT_MANAGED_STATUSES.has(status)
-    );
-  }
-
-  if (actorPubkey === buyerPubkey) {
-    return (
-      BUYER_MANAGED_STATUSES.has(status) ||
-      PARTICIPANT_MANAGED_STATUSES.has(status)
-    );
-  }
-
-  return false;
-}
+const HEX_64 = /^[0-9a-f]{64}$/;
+const ORDER_ID = /^[A-Za-z0-9._:-]{1,128}$/;
+const TRANSITION_ID = /^[A-Za-z0-9._:-]{1,160}$/;
+const ORDER_STATUSES = new Set([
+  "pending",
+  "confirmed",
+  "shipped",
+  "completed",
+  "canceled",
+]);
 
 export default async function handler(
   req: NextApiRequest,
@@ -45,8 +28,13 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!(await applyRateLimit(req, res, "update-order-status:ip", PER_IP_LIMIT)))
+  res.setHeader("Cache-Control", "private, no-store");
+
+  if (
+    !(await applyRateLimit(req, res, "update-order-status:ip", PER_IP_LIMIT))
+  ) {
     return;
+  }
 
   const authResult = await verifyNip98Request(req, "POST", req.body);
   if (!authResult.ok) {
@@ -61,83 +49,92 @@ export default async function handler(
       PER_PUBKEY_LIMIT,
       authResult.pubkey
     ))
-  )
+  ) {
     return;
-
-  const { orderId, status, messageId } = req.body;
-
-  if (!orderId || !status) {
-    return res
-      .status(400)
-      .json({ error: "Missing required fields: orderId, status" });
   }
 
-  // Bound the key length so a caller can't stamp an oversized order_id; matches
-  // the cap enforced on the read side (get-order-statuses).
-  if (typeof orderId !== "string" || orderId.length > 128) {
+  if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
+
+  const {
+    orderId,
+    expectedStatus,
+    status,
+    messageId,
+    sellerPubkey,
+    buyerPubkey,
+    transitionId,
+  } = req.body;
+
+  if (typeof orderId !== "string" || !ORDER_ID.test(orderId)) {
     return res.status(400).json({ error: "Invalid orderId" });
   }
-  if (messageId !== undefined && typeof messageId !== "string") {
+  if (
+    messageId !== undefined &&
+    (typeof messageId !== "string" || !HEX_64.test(messageId))
+  ) {
     return res.status(400).json({ error: "Invalid messageId" });
   }
-
-  const validStatuses = [
-    "pending",
-    "confirmed",
-    "shipped",
-    "completed",
-    "canceled",
-  ];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({
-      error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
-    });
+  if (typeof sellerPubkey !== "string" || !HEX_64.test(sellerPubkey)) {
+    return res.status(400).json({ error: "Invalid sellerPubkey" });
+  }
+  if (
+    buyerPubkey !== null &&
+    buyerPubkey !== undefined &&
+    (typeof buyerPubkey !== "string" || !HEX_64.test(buyerPubkey))
+  ) {
+    return res.status(400).json({ error: "Invalid buyerPubkey" });
+  }
+  if (typeof transitionId !== "string" || !TRANSITION_ID.test(transitionId)) {
+    return res.status(400).json({ error: "Invalid transitionId" });
+  }
+  if (
+    typeof expectedStatus !== "string" ||
+    typeof status !== "string" ||
+    !ORDER_STATUSES.has(expectedStatus) ||
+    !ORDER_STATUSES.has(status) ||
+    status === "pending"
+  ) {
+    return res.status(400).json({ error: "Invalid status transition" });
   }
 
   try {
-    // Order messages are encrypted gift wraps, so the server usually CANNOT
-    // resolve the buyer/seller pubkeys from the cached rows (the `b`/`item`
-    // tags live inside the encrypted content). Resolve best-effort: only when
-    // BOTH participants are known do we apply role-based status authority.
-    // Otherwise the per-row ownership check inside updateOrderStatus (the
-    // authenticated pubkey must be the row author or a `p`-tag recipient) is
-    // the authority. See memory: order-participants-not-server-readable.
-    let buyerPubkey: string | null = null;
-    let sellerPubkey: string | null = null;
-    try {
-      ({ buyerPubkey, sellerPubkey } = await getOrderParticipants(orderId));
-    } catch (participantsError) {
-      console.error(
-        "update-order-status: failed to resolve order participants:",
-        participantsError
-      );
-    }
+    const result = await transitionSellerOrderStatus({
+      actorPubkey: authResult.pubkey,
+      buyerPubkey: buyerPubkey ?? null,
+      expectedStatus: expectedStatus as CanonicalOrderStatus,
+      messageId,
+      orderId,
+      sellerPubkey,
+      status: status as Exclude<CanonicalOrderStatus, "pending">,
+      transitionId,
+    });
 
-    if (
-      buyerPubkey &&
-      sellerPubkey &&
-      !canActorUpdateOrderStatus(
-        authResult.pubkey,
-        buyerPubkey,
-        sellerPubkey,
-        status
-      )
-    ) {
-      return res.status(403).json({
-        error:
-          "You are not allowed to set this order status for the current order role.",
+    if (result.outcome === "forbidden") {
+      return res
+        .status(403)
+        .json({ error: "You are not allowed to update this order." });
+    }
+    if (result.outcome === "not_found") {
+      return res.status(404).json({ error: "Order message not found." });
+    }
+    if (result.outcome === "conflict") {
+      return res.status(409).json({
+        error: "Order status changed. Refresh before retrying.",
+        ...(result.currentStatus
+          ? { currentStatus: result.currentStatus }
+          : {}),
       });
     }
 
-    const persistedRows = await updateOrderStatus(
+    return res.status(200).json({
+      success: true,
       orderId,
       status,
-      authResult.pubkey,
-      messageId
-    );
-    return res
-      .status(200)
-      .json({ success: true, orderId, status, persisted: persistedRows > 0 });
+      persisted: true,
+      version: result.version,
+    });
   } catch (error) {
     console.error("Failed to update order status:", error);
     return res.status(500).json({ error: "Failed to update order status" });

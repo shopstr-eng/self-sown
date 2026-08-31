@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import { SimplePool } from "nostr-tools";
+import type { SellerListingDraft } from "@milk-market/domain";
 
 import {
   SellerNostrError,
@@ -334,7 +335,7 @@ describe("seller nostr helpers", () => {
       .mockReturnValue([Promise.resolve("ok")] as never);
     const warnSpy = jest.spyOn(console, "warn").mockImplementation();
     global.fetch = fetchSpy as typeof fetch;
-    const draft = {
+    const draft: SellerListingDraft = {
       title: "Fresh milk",
       description: "Daily delivery.",
       images: ["https://example.com/milk.jpg"],

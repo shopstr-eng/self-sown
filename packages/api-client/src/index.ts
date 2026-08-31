@@ -3,6 +3,8 @@ import type {
   StripeConnectStatus,
 } from "@milk-market/domain";
 
+export * from "./orders";
+
 export const API_CLIENT_PACKAGE_READY = true as const;
 
 export class MilkMarketApiError extends Error {

@@ -349,7 +349,7 @@ export function getDbPool(): Pool {
     const hostname = url.hostname;
     // Match pattern like: ep-lucky-union-aefj3mfs.us-east-2.aws.neon.tech
     // Transform to: ep-lucky-union-aefj3mfs-pooler.us-east-2.aws.neon.tech
-    const endpoint = hostname.split(".")[0];
+    const endpoint = hostname.split(".")[0] ?? "";
     const poolerHostname =
       hostname.endsWith(".neon.tech") && !endpoint.endsWith("-pooler")
         ? hostname.replace(/^([^.]+)\./, "$1-pooler.")
@@ -553,6 +553,44 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_message_events_is_read ON message_events(is_read);
       CREATE INDEX IF NOT EXISTS idx_message_events_order_id ON message_events(order_id);
       CREATE INDEX IF NOT EXISTS idx_message_events_tags_p ON message_events USING gin (tags jsonb_path_ops);
+
+      -- Server-trusted seller order state. The encrypted NIP-17 payload is
+      -- intentionally opaque here; the binding is established only by an
+      -- authenticated seller proving that the cached source gift wrap names
+      -- them as its recipient.
+      CREATE TABLE IF NOT EXISTS seller_order_states (
+          seller_pubkey TEXT NOT NULL,
+          order_id TEXT NOT NULL,
+          buyer_pubkey TEXT,
+          source_message_id TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          version INTEGER NOT NULL DEFAULT 0,
+          last_transition_id TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (seller_pubkey, order_id),
+          UNIQUE (seller_pubkey, source_message_id),
+          CONSTRAINT seller_order_states_status_check
+            CHECK (status IN ('pending', 'confirmed', 'shipped', 'completed', 'canceled'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_seller_order_states_buyer
+        ON seller_order_states(buyer_pubkey, order_id);
+
+      CREATE TABLE IF NOT EXISTS seller_order_status_transitions (
+          seller_pubkey TEXT NOT NULL,
+          order_id TEXT NOT NULL,
+          transition_id TEXT NOT NULL,
+          actor_pubkey TEXT NOT NULL,
+          previous_status TEXT NOT NULL,
+          next_status TEXT NOT NULL,
+          order_version INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (seller_pubkey, order_id, transition_id),
+          FOREIGN KEY (seller_pubkey, order_id)
+            REFERENCES seller_order_states(seller_pubkey, order_id)
+            ON DELETE CASCADE
+      );
 
       -- Profile events (kind 0 - user profile, kind 30019 - shop profile)
       CREATE TABLE IF NOT EXISTS profile_events (
@@ -1810,13 +1848,13 @@ export function buildReviewDTagFilter(dTag: string): string {
 
 // Cache a single event to the database
 export async function cacheEvent(event: NostrEvent): Promise<void> {
-  await ensureTablesInitialized();
   const table = getTableForEvent(event);
   if (!table) {
     console.warn(`No table mapping for event kind ${event.kind}`);
     return;
   }
 
+  await ensureTablesInitialized();
   const dbPool = getDbPool();
   let client;
 
@@ -3185,7 +3223,10 @@ export async function fetchAllMessagesFromDb(
     return result.rows.map((row) => ({
       id: row.id,
       pubkey: row.pubkey,
-      created_at: row.created_at,
+      // node-postgres returns BIGINT columns as strings by default. Keep the
+      // HTTP event shape faithful to Nostr so strict mobile clients do not
+      // discard otherwise valid encrypted messages before verification.
+      created_at: Number(row.created_at),
       kind: row.kind,
       tags: row.tags,
       content: row.content,
@@ -3230,6 +3271,7 @@ export async function markMessagesAsRead(
     );
   } catch (error) {
     console.error("Failed to mark messages as read:", error);
+    throw error;
   } finally {
     if (client) {
       client.release();
@@ -3259,206 +3301,321 @@ export async function getUnreadMessageCount(pubkey: string): Promise<number> {
   }
 }
 
-export async function getOrderParticipants(orderId: string): Promise<{
+export type CanonicalOrderStatus =
+  | "pending"
+  | "confirmed"
+  | "shipped"
+  | "completed"
+  | "canceled";
+
+export interface SellerOrderTransitionInput {
+  actorPubkey: string;
+  sellerPubkey: string;
+  buyerPubkey: string | null;
+  orderId: string;
+  expectedStatus: CanonicalOrderStatus;
+  status: Exclude<CanonicalOrderStatus, "pending">;
+  messageId?: string;
+  transitionId: string;
+}
+
+export type SellerOrderTransitionResult =
+  | {
+      outcome: "updated" | "idempotent";
+      status: CanonicalOrderStatus;
+      version: number;
+    }
+  | { outcome: "forbidden" }
+  | { outcome: "not_found" }
+  | {
+      outcome: "conflict";
+      currentStatus?: CanonicalOrderStatus;
+    };
+
+interface SellerOrderStateRow {
+  seller_pubkey: string;
+  buyer_pubkey: string | null;
+  source_message_id: string;
+  status: CanonicalOrderStatus;
+  version: number;
+  last_transition_id: string | null;
+}
+
+interface SellerOrderTransitionRow {
+  actor_pubkey: string;
+  next_status: CanonicalOrderStatus;
+  order_version: number;
+}
+
+function isAllowedOrderTransition(
+  row: SellerOrderStateRow,
+  actorPubkey: string,
+  expectedStatus: CanonicalOrderStatus,
+  status: Exclude<CanonicalOrderStatus, "pending">
+): boolean {
+  if (actorPubkey === row.seller_pubkey) {
+    return (
+      (expectedStatus === "pending" && status === "confirmed") ||
+      (expectedStatus === "confirmed" && status === "shipped") ||
+      (expectedStatus === "shipped" && status === "completed")
+    );
+  }
+
+  return (
+    actorPubkey === row.buyer_pubkey &&
+    status === "canceled" &&
+    (expectedStatus === "pending" || expectedStatus === "confirmed")
+  );
+}
+
+export async function transitionSellerOrderStatus(
+  input: SellerOrderTransitionInput
+): Promise<SellerOrderTransitionResult> {
+  await ensureTablesInitialized();
+  const client = await getDbPool().connect();
+
+  try {
+    await client.query("BEGIN");
+
+    let result = await client.query<SellerOrderStateRow>(
+      `SELECT seller_pubkey, buyer_pubkey, source_message_id, status,
+              version, last_transition_id
+       FROM seller_order_states
+       WHERE seller_pubkey = $1 AND order_id = $2
+       FOR UPDATE`,
+      [input.sellerPubkey, input.orderId]
+    );
+
+    if (result.rows.length === 0) {
+      if (
+        input.actorPubkey !== input.sellerPubkey ||
+        !input.messageId ||
+        input.expectedStatus !== "pending"
+      ) {
+        await client.query("ROLLBACK");
+        return { outcome: "forbidden" };
+      }
+
+      const source = await client.query(
+        `SELECT 1
+         FROM message_events
+         WHERE id = $1
+           AND kind = 1059
+           AND EXISTS (
+             SELECT 1
+             FROM jsonb_array_elements(tags) elem
+             WHERE elem->>0 = 'p' AND elem->>1 = $2
+           )`,
+        [input.messageId, input.sellerPubkey]
+      );
+      if (source.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return { outcome: "forbidden" };
+      }
+
+      await client.query(
+        `INSERT INTO seller_order_states (
+           seller_pubkey, order_id, buyer_pubkey, source_message_id
+         )
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT DO NOTHING`,
+        [input.sellerPubkey, input.orderId, input.buyerPubkey, input.messageId]
+      );
+
+      result = await client.query<SellerOrderStateRow>(
+        `SELECT seller_pubkey, buyer_pubkey, source_message_id, status,
+                version, last_transition_id
+         FROM seller_order_states
+         WHERE seller_pubkey = $1 AND order_id = $2
+         FOR UPDATE`,
+        [input.sellerPubkey, input.orderId]
+      );
+    }
+
+    const row = result.rows[0];
+    if (!row) {
+      await client.query("ROLLBACK");
+      return { outcome: "not_found" };
+    }
+
+    if (
+      (input.messageId && row.source_message_id !== input.messageId) ||
+      (input.actorPubkey === row.seller_pubkey &&
+        input.buyerPubkey !== null &&
+        row.buyer_pubkey !== input.buyerPubkey)
+    ) {
+      await client.query("ROLLBACK");
+      return { outcome: "forbidden" };
+    }
+
+    const actorCanSetTarget =
+      (input.actorPubkey === row.seller_pubkey &&
+        (input.status === "confirmed" ||
+          input.status === "shipped" ||
+          input.status === "completed")) ||
+      (input.actorPubkey === row.buyer_pubkey && input.status === "canceled");
+    if (!actorCanSetTarget) {
+      await client.query("ROLLBACK");
+      return { outcome: "forbidden" };
+    }
+
+    const priorTransition = await client.query<SellerOrderTransitionRow>(
+      `SELECT actor_pubkey, next_status, order_version
+         FROM seller_order_status_transitions
+         WHERE seller_pubkey = $1
+           AND order_id = $2
+           AND transition_id = $3`,
+      [input.sellerPubkey, input.orderId, input.transitionId]
+    );
+    const prior = priorTransition.rows[0];
+    if (prior) {
+      await client.query("COMMIT");
+      return prior.actor_pubkey === input.actorPubkey &&
+        prior.next_status === input.status
+        ? {
+            outcome: "idempotent",
+            status: prior.next_status,
+            version: prior.order_version,
+          }
+        : { outcome: "forbidden" };
+    }
+
+    if (
+      row.status !== input.expectedStatus ||
+      !isAllowedOrderTransition(
+        row,
+        input.actorPubkey,
+        input.expectedStatus,
+        input.status
+      )
+    ) {
+      await client.query("ROLLBACK");
+      return { outcome: "conflict", currentStatus: row.status };
+    }
+
+    const updated = await client.query<{ version: number }>(
+      `UPDATE seller_order_states
+       SET status = $1,
+           version = version + 1,
+           last_transition_id = $2,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE seller_pubkey = $3
+         AND order_id = $4
+         AND status = $5
+         AND version = $6
+       RETURNING version`,
+      [
+        input.status,
+        input.transitionId,
+        input.sellerPubkey,
+        input.orderId,
+        input.expectedStatus,
+        row.version,
+      ]
+    );
+    if (updated.rows.length !== 1) {
+      await client.query("ROLLBACK");
+      return { outcome: "conflict", currentStatus: row.status };
+    }
+
+    await client.query(
+      `INSERT INTO seller_order_status_transitions (
+         seller_pubkey, order_id, transition_id, actor_pubkey,
+         previous_status, next_status, order_version
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        input.sellerPubkey,
+        input.orderId,
+        input.transitionId,
+        input.actorPubkey,
+        input.expectedStatus,
+        input.status,
+        updated.rows[0]!.version,
+      ]
+    );
+
+    await client.query("COMMIT");
+    return {
+      outcome: "updated",
+      status: input.status,
+      version: updated.rows[0]!.version,
+    };
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      // Keep the original database failure.
+    }
+    console.error("Failed to transition seller order status:", error);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+export async function getOrderParticipants(
+  orderId: string,
+  sellerPubkey: string
+): Promise<{
   buyerPubkey: string | null;
   sellerPubkey: string | null;
 }> {
-  const dbPool = getDbPool();
-  let client;
-
+  await ensureTablesInitialized();
+  const client = await getDbPool().connect();
   try {
-    client = await dbPool.connect();
-    const result = await client.query<{ tags: string[][] }>(
-      `SELECT tags
-       FROM message_events
-       WHERE order_id = $1
-       ORDER BY created_at DESC`,
-      [orderId] as any[]
+    const result = await client.query<{
+      buyer_pubkey: string | null;
+      seller_pubkey: string;
+    }>(
+      `SELECT buyer_pubkey, seller_pubkey
+       FROM seller_order_states
+       WHERE order_id = $1 AND seller_pubkey = $2`,
+      [orderId, sellerPubkey]
     );
-
-    let buyerPubkey: string | null = null;
-    let sellerPubkey: string | null = null;
-
-    for (const row of result.rows) {
-      const tags = Array.isArray(row.tags) ? (row.tags as string[][]) : [];
-
-      if (!buyerPubkey) {
-        const buyerTag = tags.find((tag) => tag[0] === "b");
-        if (buyerTag?.[1]) {
-          buyerPubkey = buyerTag[1];
+    const row = result.rows[0];
+    return row
+      ? {
+          buyerPubkey: row.buyer_pubkey,
+          sellerPubkey: row.seller_pubkey,
         }
-      }
-
-      if (!sellerPubkey) {
-        const itemTag = tags.find((tag) => tag[0] === "item");
-        const productAddress =
-          tags.find((tag) => tag[0] === "a")?.[1] || itemTag?.[1];
-        const addressParts = productAddress?.split(":");
-        if (addressParts && addressParts.length >= 2 && addressParts[1]) {
-          sellerPubkey = addressParts[1];
-        }
-      }
-
-      if (buyerPubkey && sellerPubkey) {
-        break;
-      }
-    }
-
-    return { buyerPubkey, sellerPubkey };
-  } catch (error) {
-    console.error("Failed to get order participants:", error);
-    throw error;
+      : { buyerPubkey: null, sellerPubkey: null };
   } finally {
-    if (client) {
-      client.release();
-    }
+    client.release();
   }
 }
 
-// Update order status in database.
-//
-// Order messages are cached as encrypted kind-1059 gift wraps, so the server can
-// never read the order tag out of their content — which is why `order_id` is
-// never populated at cache time. The CLIENT is the only party that knows which
-// cached gift wrap belongs to which order, so it sends `messageId` (the
-// gift-wrap event id, i.e. message_events.id). We locate that row by id, stamp
-// `order_id` onto it, and set the status in one shot. Once a row carries an
-// `order_id`, getOrderStatuses can read the status back by lookup key.
-//
-// Ownership: the gift-wrap `pubkey` is a throwaway ephemeral key, so the real
-// authority is the `p` tag — only a recipient of the gift wrap (the seller for
-// an incoming order) can write its status.
-//
-// Returns the number of rows updated so callers can tell whether anything
-// actually persisted.
-// Order lifecycle is forward-only: pending → confirmed → shipped → completed,
-// plus a buyer cancel from an early state. Returning the set of statuses a row
-// may currently hold for the target to be a legal (non-regressing) transition
-// lets us enforce the state machine in the UPDATE's WHERE clause, so a valid
-// actor — or an out-of-order retry — can never move a status backward
-// (completed → confirmed) or resurrect a terminal state (canceled → shipped).
-// An unset (NULL) status is always the initial stamp and is handled separately.
-function allowedPreviousOrderStatuses(status: string): string[] {
-  switch (status) {
-    case "pending":
-      return ["pending"];
-    case "confirmed":
-      return ["pending", "confirmed"];
-    case "shipped":
-      return ["pending", "confirmed", "shipped"];
-    case "completed":
-      return ["pending", "confirmed", "shipped", "completed"];
-    case "canceled":
-      // A buyer may cancel only before the order ships; re-canceling is a no-op.
-      return ["pending", "confirmed", "canceled"];
-    default:
-      return [];
-  }
-}
-
-export async function updateOrderStatus(
-  orderId: string,
-  status: string,
-  pubkey: string,
-  messageId?: string
-): Promise<number> {
-  const dbPool = getDbPool();
-  let client;
-  let rowsAffected = 0;
-  const allowedPrev = allowedPreviousOrderStatuses(status);
-
-  try {
-    client = await dbPool.connect();
-
-    if (messageId) {
-      // Locate the cached gift wrap by its event id, verify ownership via the
-      // `p` tag, and stamp order_id while setting the status. Only (re)stamp
-      // order_id when it is still NULL or already equals this order, so a
-      // recipient can't repoint someone else's already-tagged row. The
-      // order_status guard makes the transition forward-only.
-      const byId = await client.query(
-        `UPDATE message_events
-         SET order_status = $1,
-             order_id = $3
-         WHERE id = $2
-         AND (order_id IS NULL OR order_id = $3)
-         AND (order_status IS NULL OR order_status = ANY($5))
-         AND (
-           pubkey = $4
-           OR EXISTS (
-             SELECT 1
-             FROM jsonb_array_elements(tags) elem
-             WHERE elem->>0 = 'p' AND elem->>1 = $4
-           )
-         )`,
-        [status, messageId, orderId, pubkey, allowedPrev]
-      );
-      rowsAffected += byId.rowCount ?? 0;
-    }
-
-    // Propagate the status to any sibling rows already tagged with this order_id
-    // (multi-message orders). Harmless on the first write when nothing is tagged.
-    // The same forward-only guard prevents regressing a sibling that already
-    // holds a more-advanced status.
-    const byOrderId = await client.query(
-      `UPDATE message_events
-       SET order_status = $1
-       WHERE order_id = $2
-       AND (order_status IS NULL OR order_status = ANY($4))
-       AND (
-         pubkey = $3
-         OR EXISTS (
-           SELECT 1
-           FROM jsonb_array_elements(tags) elem
-           WHERE elem->>0 = 'p' AND elem->>1 = $3
-         )
-       )`,
-      [status, orderId, pubkey, allowedPrev]
-    );
-    rowsAffected += byOrderId.rowCount ?? 0;
-
-    return rowsAffected;
-  } catch (error) {
-    console.error("Failed to update order status:", error);
-    throw error;
-  } finally {
-    if (client) {
-      client.release();
-    }
-  }
-}
-
-// Get order statuses from database
 export async function getOrderStatuses(
-  orderIds: string[]
+  orderIds: string[],
+  sellerPubkey: string
 ): Promise<Record<string, string>> {
   if (orderIds.length === 0) return {};
 
+  await ensureTablesInitialized();
   const dbPool = getDbPool();
   let client;
 
   try {
     client = await dbPool.connect();
-
     const result = await client.query(
-      `SELECT DISTINCT ON (order_id) order_id, order_status 
-       FROM message_events 
-       WHERE order_id = ANY($1) AND order_status IS NOT NULL
-       ORDER BY order_id, created_at DESC`,
-      [orderIds]
+      `SELECT order_id, status
+       FROM seller_order_states
+       WHERE order_id = ANY($1)
+         AND seller_pubkey = $2`,
+      [orderIds, sellerPubkey]
     );
 
     const statuses: Record<string, string> = {};
     for (const row of result.rows) {
-      if (row.order_id && row.order_status) {
-        statuses[row.order_id] = row.order_status;
+      if (row.order_id && row.status) {
+        statuses[row.order_id] = row.status;
       }
     }
 
     return statuses;
   } catch (error) {
     console.error("Failed to get order statuses:", error);
-    return {};
+    throw error;
   } finally {
     if (client) {
       client.release();

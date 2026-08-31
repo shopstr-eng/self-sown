@@ -17,6 +17,8 @@ import {
   type SellerSession,
 } from "@milk-market/domain";
 
+export * from "./order-messages";
+
 export const NOSTR_PACKAGE_READY = true as const;
 
 const STRIPE_CONNECT_AUTH_KIND = 27235;

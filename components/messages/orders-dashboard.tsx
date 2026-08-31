@@ -56,6 +56,7 @@ import {
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import { persistSellerOrderStatusThrough } from "@/utils/orders/persist-order-status";
 import {
   buildSignedHttpRequestProofTemplate,
   buildUpdateSubscriptionProof,
@@ -403,10 +404,15 @@ const OrdersDashboard = ({
 
       if (orderIdSet.size > 0) {
         try {
-          const response = await fetch("/api/db/get-order-statuses", {
+          const sellerPubkey = filterBySellerPubkey || userPubkey;
+          if (!sellerPubkey) return;
+          const response = await fetch("/api/db/get-public-order-statuses", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderIds: Array.from(orderIdSet) }),
+            body: JSON.stringify({
+              sellerPubkey,
+              orderIds: Array.from(orderIdSet),
+            }),
           });
           if (response.ok) {
             const data = await response.json();
@@ -419,7 +425,12 @@ const OrdersDashboard = ({
     }
 
     loadCachedStatuses();
-  }, [chatsContext?.isLoading, chatsContext?.chatsMap]);
+  }, [
+    chatsContext?.isLoading,
+    chatsContext?.chatsMap,
+    filterBySellerPubkey,
+    userPubkey,
+  ]);
 
   useEffect(() => {
     async function loadOrders() {
@@ -857,51 +868,32 @@ const OrdersDashboard = ({
       setTotalOrders(finalOrders.length);
       setIsLoading(false);
 
-      const statusPriorityForPersist: Record<string, number> = {
-        canceled: 5,
-        completed: 4,
-        shipped: 3,
-        confirmed: 2,
-        pending: 1,
-      };
       for (const order of consolidatedOrders) {
-        if (order.status && order.orderId) {
-          const currentPriority = statusPriorityForPersist[order.status] || 0;
-          const cachedStatusValue = order.statusLookupKeys
-            .map((lookupKey) => cachedStatuses[lookupKey])
-            .find((status): status is string => Boolean(status));
-          const cachedPriority = cachedStatusValue
-            ? statusPriorityForPersist[cachedStatusValue] || 0
-            : 0;
-          if (currentPriority > cachedPriority) {
-            const body = JSON.stringify({
-              orderId: order.orderId,
-              status: order.status,
-              // The server caches the kind-1059 gift wrap, so it can only match
-              // by the gift-wrap id (wrappedEventId), not the decrypted rumor id.
-              messageId: order.messageEvent?.wrappedEventId,
-            });
-            createNip98AuthorizationHeader(
-              signer!,
-              `${window.location.origin}/api/db/update-order-status`,
-              "POST",
-              body
-            )
-              .then((authHeader) =>
-                fetch("/api/db/update-order-status", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: authHeader,
-                  },
-                  body,
-                })
-              )
-              .catch((err) =>
-                console.error("Failed to save order status:", err)
-              );
-          }
+        const sourceMessageId = order.messageEvent?.wrappedEventId;
+        if (
+          !signer ||
+          !userPubkey ||
+          userPubkey !== order.sellerPubkey ||
+          !sourceMessageId ||
+          (order.status !== "confirmed" &&
+            order.status !== "shipped" &&
+            order.status !== "completed")
+        ) {
+          continue;
         }
+        const cachedStatusValue = order.statusLookupKeys
+          .map((lookupKey) => cachedStatuses[lookupKey])
+          .find((status): status is string => Boolean(status));
+        void persistSellerOrderStatusThrough({
+          signer,
+          origin: window.location.origin,
+          orderId: order.orderId,
+          sellerPubkey: order.sellerPubkey,
+          buyerPubkey: order.isGuest ? null : order.buyerPubkey || null,
+          sourceMessageId,
+          currentStatus: cachedStatusValue || "pending",
+          targetStatus: order.status,
+        }).catch((err) => console.error("Failed to save order status:", err));
       }
     }
 
@@ -911,6 +903,7 @@ const OrdersDashboard = ({
     productContext,
     cachedStatuses,
     signer,
+    userPubkey,
     filterBySellerPubkey,
   ]);
 
@@ -1213,32 +1206,23 @@ const OrdersDashboard = ({
       // Persist status to database. Isolate so a signing/network failure here
       // can't prevent the modal from closing or affect the email above.
       try {
-        const body = JSON.stringify({
-          orderId: selectedOrder.orderId,
-          status: "shipped",
-          // Match the cached gift wrap by its wrap id so the server can stamp
-          // order_id and actually persist the "shipped" status.
-          messageId: selectedOrder.messageEvent?.wrappedEventId,
-        });
-        const authHeader = await createNip98AuthorizationHeader(
-          signer,
-          `${window.location.origin}/api/db/update-order-status`,
-          "POST",
-          body
-        );
-
-        fetch("/api/db/update-order-status", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
-          body,
-        }).catch((err) =>
-          console.error("Failed to persist shipped status:", err)
-        );
+        const sourceMessageId = selectedOrder.messageEvent?.wrappedEventId;
+        if (sourceMessageId && selectedOrder.sellerPubkey) {
+          await persistSellerOrderStatusThrough({
+            signer,
+            origin: window.location.origin,
+            orderId: selectedOrder.orderId,
+            sellerPubkey: selectedOrder.sellerPubkey,
+            buyerPubkey: selectedOrder.isGuest
+              ? null
+              : selectedOrder.buyerPubkey || null,
+            sourceMessageId,
+            currentStatus: selectedOrder.status,
+            targetStatus: "shipped",
+          });
+        }
       } catch (statusError) {
-        console.error("Failed to sign shipped status update:", statusError);
+        console.error("Failed to persist shipped status:", statusError);
       }
 
       handleCloseShippingModal();
