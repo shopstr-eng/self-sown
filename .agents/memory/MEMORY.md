@@ -110,3 +110,4 @@
 - [ZapSnag fiat settlement](zapsnag-fiat-settlement.md) — kind-1 listings display their listed fiat; convert to validated sats only at zap time, while order metadata stays fiat.
 - [DNS-pinned Undici lookup](dns-pinned-undici-lookup.md) — custom lookups must honor the all-address callback shape; smoke-test real outbound fetches, not mocks alone.
 - [Sharp in Next standalone](sharp-next-standalone.md) — pnpm tracing can omit Sharp package metadata/libvips despite a green build; verify and repair the nested runtime package context.
+- [Cashu escrow outbox design rules](cashu-escrow-outbox-design.md) — fund-moving outbox = one row per escrow + claim fencing token + conditional locked→resolved transition; signed commitment events need exactly-once tags + byte-exact canonical content.

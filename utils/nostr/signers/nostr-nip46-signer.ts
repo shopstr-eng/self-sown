@@ -14,6 +14,8 @@ import {
 } from "@/utils/nostr/signers/nostr-signer";
 import { v4 as uuidv4 } from "uuid";
 import { decryptNIP46SignerCredentials } from "@/utils/nostr/nip46-encryption";
+import { buildNip46PermittedMethods } from "@/utils/nostr/signers/nip46-permissions";
+import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 type BunkerData = {
   url: string;
   bunkerPubkey: string;
@@ -254,8 +256,10 @@ export class NostrNIP46Signer implements NostrSigner {
     const args: string[] = [];
     args.push(this.bunker!.bunkerPubkey);
     args.push(this.bunker!.secret || "");
+    // Least-privilege permitted-methods list; escrow kinds are only requested
+    // when the escrow feature flag is enabled (see nip46-permissions.ts).
     args.push(
-      "sign_event:0,sign_event:5,sign_event:13,sign_event:1059,sign_event:1111,sign_event:4550,sign_event:7375,sign_event:7376,sign_event:10002,sign_event:17375,kind:30019,sign_event:30402,sign_event:30405,sign_event:30406,sign_event:31555,sign_event:31989,sign_event:31990,sign_event:34550,get_public_key,nip44_encrypt,nip44_decrypt"
+      buildNip46PermittedMethods({ escrowEnabled: isEscrowClientEnabled() })
     );
     return await this.sendRPC("connect", args);
   }
