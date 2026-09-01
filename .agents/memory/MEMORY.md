@@ -25,7 +25,7 @@
 - [Upstream parity + dev OOM](upstream-parity-and-dev-oom.md) — record git parity with upstream via `merge -s ours` (hand-off, not main agent); dev server dying after pnpm install is a 1GB cold-compile OOM, not a regression.
 - [Tests must not live under pages/](nextjs-tests-under-pages.md) — a Jest test colocated in pages/ builds as a route and crashes `next build` with "expect is not defined" (dev is fine); keep tests in top-level **tests**/.
 - [Authed-sellers marketplace gate](authed-sellers-marketplace-gate.md) — marketplace shows only pubkeys in server-side authed_sellers (grown on password entry); filter must fail closed; recorded pubkey is client-supplied (trust = shared password).
-- - [Onboarding flow redirects](onboarding-flow-redirects.md) — inserting a wizard step means updating every redirect into it (incl. two Shopify-migrate auto-redirects), not just the linear Next chain.
+- [Onboarding flow redirects](onboarding-flow-redirects.md) — inserting a wizard step means updating every redirect into it (incl. two Shopify-migrate auto-redirects), not just the linear Next chain.
 - [Pro feature enforcement surfaces](pro-feature-enforcement-surfaces.md) — gate server-backed Pro features (domain/MCP/email) at the write endpoint; Nostr-published design has no server write path, enforce at the serve/render layer.
 - [Stripe webhook claim release](stripe-webhook-claim-release.md) — claimStripeEvent permanently dedups; release the claim in catch on handler failure or Stripe's retry is silently dropped.
 - [One-shot idempotency claim ordering](idempotency-claim-ordering.md) — take the once-per-key claim AFTER all skip/empty-audience early-returns, or a no-op attempt permanently burns it and the version can never run.
@@ -108,3 +108,5 @@
 - [Blank string coerces to 0](blank-string-number-coercion.md) — Number("")==0: optional numeric string fields (MCP z.string(), forms) must reject blank as "unset" before Number(); share one builder helper across all write paths.
 - [Mobile listing partial edits](mobile-listing-partial-edits.md) — mobile owns only basic tag families; preserve every other product tag, and keep relay-success retries on one monotonic address.
 - [ZapSnag fiat settlement](zapsnag-fiat-settlement.md) — kind-1 listings display their listed fiat; convert to validated sats only at zap time, while order metadata stays fiat.
+- [DNS-pinned Undici lookup](dns-pinned-undici-lookup.md) — custom lookups must honor the all-address callback shape; smoke-test real outbound fetches, not mocks alone.
+- [Sharp in Next standalone](sharp-next-standalone.md) — pnpm tracing can omit Sharp package metadata/libvips despite a green build; verify and repair the nested runtime package context.

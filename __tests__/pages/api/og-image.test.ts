@@ -167,7 +167,7 @@ describe("/api/og-image", () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("redirects the crawler to the original when the upstream is not an image", async () => {
+  it("does not redirect crawlers to non-image upstream URLs", async () => {
     (global.fetch as jest.Mock).mockResolvedValue(
       imageResponse(Buffer.from("<html>nope</html>"), "text/html")
     );
@@ -178,11 +178,11 @@ describe("/api/og-image", () => {
       res as unknown as NextApiResponse
     );
 
-    expect(res.statusCode).toBe(307);
-    expect(res.redirectTo).toBe("https://cdn-d.example/not-an-image");
+    expect(res.statusCode).toBe(502);
+    expect(res.redirectTo).toBeUndefined();
   });
 
-  it("redirects when the source declares a body over the size cap", async () => {
+  it("rejects a source that declares a body over the size cap", async () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
       status: 200,
@@ -203,8 +203,8 @@ describe("/api/og-image", () => {
       res as unknown as NextApiResponse
     );
 
-    expect(res.statusCode).toBe(307);
-    expect(res.redirectTo).toBe("https://cdn-e.example/huge.png");
+    expect(res.statusCode).toBe(413);
+    expect(res.redirectTo).toBeUndefined();
   });
 
   it("rejects URLs that resolve to private addresses", async () => {
@@ -246,6 +246,46 @@ describe("/api/og-image", () => {
     );
   });
 
+  it("rejects network-path relative URLs instead of proxying their host", async () => {
+    const res = createResponse();
+    await handler(
+      createRequest({ url: "//internal.example/secret.png" }),
+      res as unknown as NextApiResponse
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects self-referential API paths", async () => {
+    const res = createResponse();
+    await handler(
+      createRequest({ url: "/api/og-image?url=https://cdn.example/image.png" }),
+      res as unknown as NextApiResponse
+    );
+
+    expect(res.statusCode).toBe(400);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("rejects upstream redirects rather than following or exposing them", async () => {
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 302,
+      headers: { get: (name: string) => name === "location" ? "http://10.0.0.1/" : null },
+      body: streamBody(Buffer.alloc(0)),
+    } as unknown as Response);
+    const res = createResponse();
+    await handler(
+      createRequest({ url: "https://cdn-redirect.example/image.png" }),
+      res as unknown as NextApiResponse
+    );
+
+    expect(res.statusCode).toBe(502);
+    expect(res.redirectTo).toBeUndefined();
+    expect((global.fetch as jest.Mock).mock.calls).toHaveLength(1);
+  });
+
   it("redirects when the upstream body stalls mid-stream", async () => {
     __setBodyReadDeadlineForTests(200);
     const partial = noisyPng.subarray(0, 100 * 1024);
@@ -280,8 +320,8 @@ describe("/api/og-image", () => {
       res as unknown as NextApiResponse
     );
 
-    expect(res.statusCode).toBe(307);
-    expect(res.redirectTo).toBe("https://cdn-f.example/stalled.png");
+    expect(res.statusCode).toBe(502);
+    expect(res.redirectTo).toBeUndefined();
   });
 
   it("redirects when the streamed body exceeds the cap mid-stream", async () => {
@@ -295,8 +335,8 @@ describe("/api/og-image", () => {
       res as unknown as NextApiResponse
     );
 
-    expect(res.statusCode).toBe(307);
-    expect(res.redirectTo).toBe("https://cdn-g.example/too-big.png");
+    expect(res.statusCode).toBe(413);
+    expect(res.redirectTo).toBeUndefined();
   });
 
   it("shares one upstream fetch across concurrent requests for the same URL", async () => {

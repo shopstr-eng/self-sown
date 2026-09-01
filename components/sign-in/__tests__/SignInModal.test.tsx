@@ -183,6 +183,10 @@ describe("SignInModal", () => {
         /paste your bunker token/i
       );
       await user.type(input, "bunker://valid-token");
+      await user.type(
+        screen.getByPlaceholderText(/protect this connection/i),
+        "valid bunker passphrase"
+      );
 
       await user.click(screen.getByTestId("bunker-submit-btn"));
       await waitFor(() => {
@@ -193,6 +197,7 @@ describe("SignInModal", () => {
         expect(signer.getPubKey).toHaveBeenCalled();
         expect(helpers.setLocalStorageDataOnSignIn).toHaveBeenCalledWith({
           signer,
+          signerPassphrase: "valid bunker passphrase",
           relays: mockRelays.relayList,
           readRelays: mockRelays.readRelayList,
           writeRelays: mockRelays.writeRelayList,
@@ -213,6 +218,10 @@ describe("SignInModal", () => {
         /paste your bunker token/i
       );
       await user.type(input, "bunker://valid-token");
+      await user.type(
+        screen.getByPlaceholderText(/protect this connection/i),
+        "valid bunker passphrase"
+      );
       await user.click(screen.getByTestId("bunker-submit-btn"));
 
       expect(

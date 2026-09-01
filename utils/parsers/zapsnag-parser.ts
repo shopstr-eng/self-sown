@@ -1,6 +1,7 @@
 import { NostrEvent } from "@/utils/types/types";
 import { ProductData } from "./product-parser-functions";
 import currencySelection from "@/public/currencySelection.json";
+import { normalizeProductImageUrl } from "@/utils/images";
 
 const currencyPattern = [
   "sats?",
@@ -56,7 +57,7 @@ export const parseZapsnagNote = (event: NostrEvent): ProductData => {
     title: title,
     summary: content,
     publishedAt: String(event.created_at),
-    images: [image],
+    images: [normalizeProductImageUrl(image)],
     categories: ["zapsnag"],
     location: "Global",
     price: price,

@@ -63,6 +63,92 @@ const makeDbPayload = <T>(items: T[]) => ({
   json: async () => items,
 });
 
+describe("fetchCart", () => {
+  it("round-trips the complete address and distinguishes sellers sharing a d tag", async () => {
+    const sellerA = "a".repeat(64);
+    const sellerB = "b".repeat(64);
+    const sharedD = "shared:listing";
+    const products = [
+      makeProductEvent({
+        id: "product-a",
+        pubkey: sellerA,
+        tags: [["d", sharedD]],
+      }),
+      makeProductEvent({
+        id: "product-b",
+        pubkey: sellerB,
+        tags: [["d", sharedD]],
+      }),
+    ];
+    const savedAddress = ["a", `30402:${sellerB}:${sharedD}`];
+    const signer = {
+      getPubKey: jest.fn().mockResolvedValue("buyer"),
+      decrypt: jest.fn().mockResolvedValue(JSON.stringify([savedAddress])),
+    };
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([makeBaseEvent({ kind: 30405 })]),
+    };
+    const editCartContext = jest.fn();
+    const { fetchCart } = await import("../fetch-service");
+
+    const { cartList } = await fetchCart(
+      nostr as any,
+      signer as any,
+      ["wss://relay.example"],
+      editCartContext,
+      products
+    );
+
+    expect(cartList).toHaveLength(1);
+    expect(cartList[0]?.pubkey).toBe(sellerB);
+    expect(cartList[0]?.id).toBe("product-b");
+    expect(editCartContext).toHaveBeenCalledWith([savedAddress], false);
+  });
+});
+
+describe("fetchAllFollows", () => {
+  it("uses the lowest event id for conflicting equal-second contact lists", async () => {
+    localStorage.setItem("wot", "1");
+    const sellerA = "a".repeat(64);
+    const sellerB = "b".repeat(64);
+    const nostr = {
+      fetch: jest
+        .fn()
+        .mockResolvedValueOnce([
+          makeBaseEvent({
+            id: "f".repeat(64),
+            kind: 3,
+            created_at: 10,
+            tags: [["p", sellerA]],
+          }),
+          makeBaseEvent({
+            id: "0".repeat(64),
+            kind: 3,
+            created_at: 10,
+            tags: [["p", sellerB]],
+          }),
+        ])
+        .mockResolvedValueOnce([]),
+    };
+    const editFollowsContext = jest.fn();
+    const { fetchAllFollows } = await import("../fetch-service");
+
+    await fetchAllFollows(
+      nostr as any,
+      ["wss://relay.example"],
+      editFollowsContext,
+      "viewer"
+    );
+
+    expect(editFollowsContext).toHaveBeenLastCalledWith(
+      [sellerB],
+      1,
+      false,
+      [sellerB]
+    );
+  });
+});
+
 describe("fetchAllPosts - NIP-99 and relay merge behavior", () => {
   beforeEach(() => {
     jest.resetModules();
@@ -229,6 +315,9 @@ describe("fetchProfile", () => {
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    jest.doMock("@/utils/nostr/badges", () => ({
+      fetchNip58ProfileBadges: jest.fn().mockResolvedValue(new Map()),
+    }));
   });
 
   it("keeps the latest kind 0 profile from the DB and ignores shop profile rows", async () => {
@@ -312,6 +401,140 @@ describe("fetchProfile", () => {
     expect(profileMap.get(pubkey)?.content.about).toBeUndefined();
     expect(editProfileContext).toHaveBeenLastCalledWith(profileMap, false);
     expect(cacheEventsToDatabase).not.toHaveBeenCalled();
+  });
+
+  it("publishes kind-0 profile state before slow NIP-58 badge hydration", async () => {
+    let resolveBadges!: (value: Map<string, any>) => void;
+    const fetchNip58ProfileBadges = jest.fn(
+      () =>
+        new Promise<Map<string, any>>((resolve) => {
+          resolveBadges = resolve;
+        })
+    );
+    jest.doMock("@/utils/nostr/badges", () => ({
+      fetchNip58ProfileBadges,
+    }));
+    jest.doMock("@/utils/db/db-client", () => ({
+      cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    const { fetchProfile } = await import("../fetch-service");
+    global.fetch = jest.fn().mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
+    const editProfileContext = jest.fn();
+    const nostr = {
+      fetch: jest.fn().mockResolvedValue([
+        makeBaseEvent({
+          kind: 0,
+          pubkey,
+          created_at: 100,
+          content: JSON.stringify({ name: "Ready before badges" }),
+        }),
+      ]),
+    } as any;
+
+    await fetchProfile(
+      nostr,
+      ["wss://slow-badge-relay.example"],
+      [pubkey],
+      editProfileContext
+    );
+
+    expect(editProfileContext).toHaveBeenLastCalledWith(
+      expect.any(Map),
+      false
+    );
+    expect(editProfileContext.mock.calls.at(-1)?.[0].get(pubkey)).toMatchObject({
+      content: { name: "Ready before badges" },
+    });
+    expect(fetchNip58ProfileBadges).toHaveBeenCalled();
+
+    resolveBadges(
+      new Map([
+        [pubkey, { complete: true, badges: [{ name: "Resolved badge" }] }],
+      ])
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(editProfileContext.mock.calls.at(-1)?.[0].get(pubkey).badges).toEqual([
+      { name: "Resolved badge" },
+    ]);
+  });
+
+  it("does not let stale or incomplete badge hydration regress a newer profile", async () => {
+    let resolveOldBadges!: (value: Map<string, any>) => void;
+    const fetchNip58ProfileBadges = jest
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<Map<string, any>>((resolve) => {
+            resolveOldBadges = resolve;
+          })
+      )
+      .mockResolvedValueOnce(new Map([[pubkey, { complete: false, badges: [] }]]));
+    jest.doMock("@/utils/nostr/badges", () => ({
+      fetchNip58ProfileBadges,
+    }));
+    jest.doMock("@/utils/db/db-client", () => ({
+      cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    const { fetchProfile } = await import("../fetch-service");
+    global.fetch = jest.fn().mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
+    const editProfileContext = jest.fn();
+    const nostr = {
+      fetch: jest
+        .fn()
+        .mockResolvedValueOnce([
+          makeBaseEvent({
+            kind: 0,
+            pubkey,
+            created_at: 100,
+            content: JSON.stringify({ name: "Older profile" }),
+          }),
+        ])
+        .mockResolvedValueOnce([
+          makeBaseEvent({
+            kind: 0,
+            pubkey,
+            created_at: 200,
+            content: JSON.stringify({ name: "Newer profile" }),
+          }),
+        ]),
+    } as any;
+    const existingProfiles = new Map([
+      [pubkey, { pubkey, created_at: 1, content: {}, badges: [{ name: "Kept badge" }] }],
+    ]);
+
+    await fetchProfile(
+      nostr,
+      ["wss://relay.example"],
+      [pubkey],
+      editProfileContext,
+      existingProfiles
+    );
+    await fetchProfile(
+      nostr,
+      ["wss://relay.example"],
+      [pubkey],
+      editProfileContext,
+      existingProfiles
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    resolveOldBadges(
+      new Map([[pubkey, { complete: true, badges: [{ name: "Stale badge" }] }]])
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const publishedProfile = editProfileContext.mock.calls.at(-1)?.[0].get(pubkey);
+    expect(publishedProfile).toMatchObject({
+      created_at: 200,
+      content: { name: "Newer profile" },
+      badges: [{ name: "Kept badge" }],
+    });
   });
 });
 

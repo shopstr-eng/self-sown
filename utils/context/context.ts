@@ -144,12 +144,16 @@ export interface FollowsContextInterface {
   followList: string[];
   firstDegreeFollowsLength: number;
   isLoading: boolean;
+  // Direct kind-3 contacts only; followList also includes the trust graph.
+  directFollowList?: string[];
+  setDirectFollowList?: (followList: string[]) => void;
 }
 
 export const FollowsContext = createContext({
   followList: [],
   firstDegreeFollowsLength: 0,
   isLoading: true,
+  directFollowList: [],
 } as FollowsContextInterface);
 
 export interface RelaysContextInterface {

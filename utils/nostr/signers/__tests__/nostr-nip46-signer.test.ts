@@ -8,6 +8,8 @@ import {
   finalizeEvent,
   generateSecretKey,
 } from "nostr-tools";
+import { encryptNIP46SignerCredentials } from "@/utils/nostr/nip46-encryption";
+import { webcrypto } from "crypto";
 
 jest.mock("nostr-tools", () => ({
   ...jest.requireActual("nostr-tools"),
@@ -73,6 +75,10 @@ describe("NostrNIP46Signer", () => {
         callback(resolve, reject, new AbortController().signal);
       });
     });
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: webcrypto,
+    });
   });
 
   describe("Constructor", () => {
@@ -106,6 +112,54 @@ describe("NostrNIP46Signer", () => {
         mockChallengeHandler
       );
       expect(restoredSigner).toBeInstanceOf(NostrNIP46Signer);
+    });
+
+    it("reloads encrypted credentials and connects with the bunker capability secret", async () => {
+      const bunkerPubkey = "a".repeat(64);
+      const capabilitySecret = "connection-capability-secret";
+      const bunker = `bunker://${bunkerPubkey}?secret=${capabilitySecret}&relay=wss://relay.one`;
+      const { encryptedSigner } = await encryptNIP46SignerCredentials(
+        {
+          type: "nip46",
+          bunker,
+          appPrivKey: "b".repeat(64),
+        },
+        "correct horse battery staple"
+      );
+      const persisted = JSON.stringify({ type: "nip46", encryptedSigner });
+
+      expect(persisted).not.toContain(capabilitySecret);
+      mockChallengeHandler.mockResolvedValue({
+        res: "correct horse battery staple",
+        remind: false,
+      });
+      const restoredSigner = NostrNIP46Signer.fromJSON(
+        JSON.parse(persisted),
+        mockChallengeHandler
+      )!;
+      const connection = restoredSigner.connect();
+
+      for (let i = 0; i < 150 && NostrManagerMock.mock.calls.length === 0; i += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      expect(NostrManagerMock).toHaveBeenCalled();
+      onEventCallback({
+        content: JSON.stringify({
+          id: "shp" + "mock-instance-id" + 0,
+          result: "ack",
+        }),
+      });
+
+      await expect(connection).resolves.toBe("ack");
+      expect(finalizeEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.any(String),
+        }),
+        expect.any(Uint8Array)
+      );
+      const encryptedRequest = (finalizeEvent as jest.Mock).mock.calls.at(-1)?.[0]
+        .content;
+      expect(encryptedRequest).toContain(capabilitySecret);
     });
 
     it("should return undefined from fromJSON for invalid data", () => {

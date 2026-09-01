@@ -1810,13 +1810,13 @@ export function buildReviewDTagFilter(dTag: string): string {
 
 // Cache a single event to the database
 export async function cacheEvent(event: NostrEvent): Promise<void> {
-  await ensureTablesInitialized();
   const table = getTableForEvent(event);
   if (!table) {
     console.warn(`No table mapping for event kind ${event.kind}`);
     return;
   }
 
+  await ensureTablesInitialized();
   const dbPool = getDbPool();
   let client;
 

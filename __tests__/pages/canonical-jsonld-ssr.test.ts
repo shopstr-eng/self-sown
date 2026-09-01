@@ -413,7 +413,7 @@ describe("stall page non-Pro seller never serves product-as-landing OG meta", ()
     ]);
   }
 
-  test("serves the default stall OG meta with no Product/ItemList JSON-LD", async () => {
+  test("serves seller stall OG meta with no Product/ItemList JSON-LD", async () => {
     primeNonProProductLandingStall();
 
     const result = (await stallGetServerSideProps(
@@ -421,8 +421,8 @@ describe("stall page non-Pro seller never serves product-as-landing OG meta", ()
     )) as { props: { ogMeta: { title?: string; jsonLd?: unknown } } };
 
     const { ogMeta } = result.props;
-    // Default stall meta, NOT the pinned product's title/description.
-    expect(ogMeta.title).toBe("Milk Market Stall");
+    // Seller stall meta, NOT the pinned product's title/description.
+    expect(ogMeta.title).toBe("Happy Farm | Milk Market");
     // No structured data at all — neither Product nor ItemList JSON-LD.
     expect(ogMeta.jsonLd).toBeUndefined();
   });

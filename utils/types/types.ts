@@ -102,6 +102,17 @@ export interface ShopProfile {
   event?: NostrEvent;
 }
 
+export interface Nip58ProfileBadge {
+  definitionAddress: string;
+  awardEventId: string;
+  issuerPubkey: string;
+  badgeDefinitionDTag: string;
+  name: string;
+  description?: string;
+  image?: string;
+  thumbnail?: string;
+}
+
 export interface ProfileData {
   pubkey: string;
   content: {
@@ -116,6 +127,7 @@ export interface ProfileData {
     mm_donation?: number;
   };
   created_at: number;
+  badges?: Nip58ProfileBadge[];
 }
 
 export interface Transaction {

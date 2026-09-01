@@ -10,6 +10,7 @@ const fakePoolInstance = {
   ),
   subscribeMap: jest.fn().mockReturnValue({ close: jest.fn() }),
   publish: jest.fn().mockReturnValue([Promise.resolve("ok")]),
+  close: jest.fn(),
 };
 const FakePool = jest.fn().mockImplementation(() => fakePoolInstance);
 
@@ -104,6 +105,21 @@ describe("NostrManager", () => {
       expect(mgr.relays.length).toBe(0);
       expect(sub.close).toHaveBeenCalled();
     });
+
+    it("uses a bounded default timeout and retries a failed relay connection", async () => {
+      const mgr = new NostrManager(["r1"]);
+      fakePoolInstance.ensureRelay.mockRejectedValueOnce(
+        new Error("connection failed")
+      );
+
+      await expect(mgr.relays[0].connect()).rejects.toThrow("connection failed");
+      await mgr.relays[0].connect();
+
+      expect(fakePoolInstance.ensureRelay).toHaveBeenLastCalledWith("r1", {
+        connectionTimeout: 4000,
+      });
+      expect(fakePoolInstance.ensureRelay).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe("subscribe()", () => {
@@ -137,21 +153,10 @@ describe("NostrManager", () => {
       expect(mgr.relays[0].activeSubs).not.toContain(sub);
     });
 
-    it("awaits reconnect before subscribing on sleeping relays", async () => {
-      let resolveConnect!: () => void;
-      relayConnectMock.mockReturnValueOnce(
-        new Promise<void>((resolve) => {
-          resolveConnect = resolve;
-        })
-      );
+    it("subscribes without waiting for a slow relay connection", async () => {
+      fakePoolInstance.ensureRelay.mockReturnValueOnce(new Promise(() => {}));
 
-      const subscribePromise = mgr.subscribe([], {}, ["u1"]);
-      await Promise.resolve();
-
-      expect(fakePoolInstance.subscribeMap).not.toHaveBeenCalled();
-
-      resolveConnect();
-      await subscribePromise;
+      await mgr.subscribe([], {}, ["u1"]);
 
       expect(fakePoolInstance.subscribeMap).toHaveBeenCalledTimes(1);
     });
@@ -175,21 +180,10 @@ describe("NostrManager", () => {
       expect(fakePoolInstance.publish).toHaveBeenCalledWith(["p1"], evt);
     });
 
-    it("awaits reconnect before publishing on sleeping relays", async () => {
-      let resolveConnect!: () => void;
-      relayConnectMock.mockReturnValueOnce(
-        new Promise<void>((resolve) => {
-          resolveConnect = resolve;
-        })
-      );
+    it("publishes without waiting for a slow relay connection", async () => {
+      fakePoolInstance.ensureRelay.mockReturnValueOnce(new Promise(() => {}));
 
-      const publishPromise = mgr.publish(evt, ["p1"]);
-      await Promise.resolve();
-
-      expect(fakePoolInstance.publish).not.toHaveBeenCalled();
-
-      resolveConnect();
-      await publishPromise;
+      await mgr.publish(evt, ["p1"]);
 
       expect(fakePoolInstance.publish).toHaveBeenCalledWith(["p1"], evt);
     });

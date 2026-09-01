@@ -1,5 +1,28 @@
 import { lookup } from "dns/promises";
 import net from "net";
+import { createRequire } from "module";
+
+// Importing Undici's public entry point initializes browser fetch primitives,
+// which are intentionally absent in our jsdom test environment. The Agent
+// dispatcher itself is server-only and does not need those primitives.
+const require = createRequire(import.meta.url);
+const Agent = require("undici/lib/dispatcher/agent") as new (opts: {
+  keepAliveTimeout: number;
+  keepAliveMaxTimeout: number;
+  connect: {
+    lookup: (
+      name: string,
+       options: { family?: number; all?: boolean },
+       callback: (
+         error: Error | null,
+         address: string | ResolvedAddress[],
+         family?: 4 | 6
+       ) => void
+    ) => void;
+  };
+}) => {
+  dispatch: unknown;
+};
 
 // Shared SSRF guards for any server-side outbound fetch of a user-supplied
 // URL. Extracted from pages/api/og-preview.ts so the storefront design
@@ -20,15 +43,19 @@ export function isPrivateIPv4(ip: string): boolean {
     return true;
   }
 
-  const [a, b] = parts as [number, number, number, number];
+  const [a, b, c] = parts as [number, number, number, number];
   if (a === 10) return true;
   if (a === 127) return true;
   if (a === 169 && b === 254) return true;
   if (a === 172 && b >= 16 && b <= 31) return true;
   if (a === 192 && b === 168) return true;
+  if (a === 192 && b === 0) return true; // IETF protocol assignments
+  if (a === 192 && b === 2) return true; // TEST-NET-1
   if (a === 0) return true;
   if (a === 100 && b >= 64 && b <= 127) return true;
   if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15 benchmark
+  if (a === 198 && b === 51 && c === 100) return true; // TEST-NET-2
+  if (a === 203 && b === 0 && c === 113) return true; // TEST-NET-3
   if (a >= 224) return true;
 
   return false;
@@ -41,8 +68,10 @@ function extractEmbeddedIPv4(normalized: string): string | null {
   const dotted = normalized.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/);
   if (dotted && dotted[1]) return dotted[1];
 
+  // IPv4-compatible addresses have 96 zero bits (`::7f00:1`) and mapped
+  // addresses use `::ffff:`. Both can carry a private IPv4 destination.
   const hexMapped = normalized.match(
-    /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/
+    /^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/
   );
   if (hexMapped && hexMapped[1] && hexMapped[2]) {
     const hi = parseInt(hexMapped[1], 16);
@@ -54,14 +83,22 @@ function extractEmbeddedIPv4(normalized: string): string | null {
 }
 
 export function isPrivateIPv6(ip: string): boolean {
-  let normalized = ip.toLowerCase();
+  let normalized = ip.replace(/^\[|\]$/g, "").toLowerCase();
   const zoneIdx = normalized.indexOf("%"); // strip zone id, e.g. fe80::1%eth0
   if (zoneIdx !== -1) normalized = normalized.slice(0, zoneIdx);
 
   if (normalized === "::1") return true;
   if (normalized === "::") return true;
-  if (normalized.startsWith("fe80:")) return true;
+  // fe80::/10 includes fe80 through febf, not merely the fe80::/16.
+  if (/^fe[89ab][0-9a-f]:/i.test(normalized)) return true;
   if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
+  if (normalized.startsWith("ff")) return true; // multicast
+  if (
+    normalized.startsWith("2001:db8:") || // documentation prefix
+    normalized.startsWith("2001:0:")
+  ) {
+    return true; // documentation and Teredo
+  }
 
   // IPv4-mapped/compatible addresses (e.g. ::ffff:127.0.0.1, ::ffff:7f00:1)
   // tunnel an IPv4 address through IPv6; validate that against the IPv4 rules
@@ -72,37 +109,94 @@ export function isPrivateIPv6(ip: string): boolean {
   return false;
 }
 
-export async function isSafePublicHostname(hostname: string): Promise<boolean> {
-  const lowered = hostname.toLowerCase();
+type ResolvedAddress = { address: string; family: 4 | 6 };
+
+function normalizeHostname(hostname: string): string {
+  return hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+}
+
+async function resolveSafePublicAddresses(
+  hostname: string
+): Promise<ResolvedAddress[] | null> {
+  const lowered = normalizeHostname(hostname);
   if (
     lowered === "localhost" ||
     lowered.endsWith(".localhost") ||
     lowered.endsWith(".local")
   ) {
-    return false;
+    return null;
   }
 
-  const ipType = net.isIP(hostname);
-  if (ipType === 4) return !isPrivateIPv4(hostname);
-  if (ipType === 6) return !isPrivateIPv6(hostname);
+  const ipType = net.isIP(lowered);
+  if (ipType === 4) {
+    return isPrivateIPv4(lowered) ? null : [{ address: lowered, family: 4 }];
+  }
+  if (ipType === 6) {
+    return isPrivateIPv6(lowered) ? null : [{ address: lowered, family: 6 }];
+  }
 
   try {
-    const addresses = await lookup(hostname, { all: true });
-    if (addresses.length === 0) return false;
+    const addresses = await lookup(lowered, { all: true });
+    if (addresses.length === 0) return null;
 
     for (const addr of addresses) {
       if (
         (addr.family === 4 && isPrivateIPv4(addr.address)) ||
         (addr.family === 6 && isPrivateIPv6(addr.address))
       ) {
-        return false;
+        return null;
       }
     }
 
-    return true;
+    return addresses
+      .filter(
+        (addr): addr is ResolvedAddress =>
+          addr.family === 4 || addr.family === 6
+      )
+      .map((addr) => ({ address: addr.address, family: addr.family }));
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function isSafePublicHostname(hostname: string): Promise<boolean> {
+  return (await resolveSafePublicAddresses(hostname)) !== null;
+}
+
+function pinnedDispatcher(
+  hostname: string,
+  addresses: ResolvedAddress[]
+): InstanceType<typeof Agent> {
+  let next = 0;
+  const expectedHost = normalizeHostname(hostname);
+  return new Agent({
+    // A short keep-alive prevents a per-request dispatcher from retaining idle
+    // sockets after the caller has consumed its response.
+    keepAliveTimeout: 1,
+    keepAliveMaxTimeout: 1,
+    connect: {
+      lookup(name, options, callback) {
+         const returnAll = options.all === true;
+        if (normalizeHostname(name) !== expectedHost) {
+           callback(
+             new SafeFetchError("Unexpected DNS lookup host"),
+             returnAll ? [] : "",
+             returnAll ? undefined : 4
+           );
+          return;
+        }
+        const matching = addresses.filter(
+          (address) => !options.family || address.family === options.family
+        );
+         if (returnAll) {
+           callback(null, matching.length > 0 ? matching : addresses);
+           return;
+         }
+         const selected = matching[next++ % matching.length] ?? addresses[0]!;
+         callback(null, selected.address, selected.family);
+      },
+    },
+  });
 }
 
 /**
@@ -118,6 +212,11 @@ export function parseHttpUrl(value: string): URL | null {
     return null;
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return null;
+  }
+  // Credentials have no legitimate use for public image/document URLs and can
+  // hide the actual destination in a URL displayed to a user.
+  if (parsed.username || parsed.password || !parsed.hostname) {
     return null;
   }
   if (parsed.port && parsed.port !== "80" && parsed.port !== "443") {
@@ -163,7 +262,8 @@ export async function safeFetch(
     if (!parsed) {
       throw new SafeFetchError("Invalid or disallowed URL");
     }
-    if (!(await isSafePublicHostname(parsed.hostname))) {
+    const addresses = await resolveSafePublicAddresses(parsed.hostname);
+    if (!addresses) {
       throw new SafeFetchError("URL host is not allowed");
     }
 
@@ -171,6 +271,9 @@ export async function safeFetch(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     let response: Response;
     try {
+      // Pin the connection to addresses vetted above. Calling fetch with the
+      // hostname still preserves HTTP Host and TLS SNI, unlike replacing it
+      // with an IP literal, while the custom lookup closes DNS-rebinding TOCTOU.
       response = await fetch(parsed.toString(), {
         signal: controller.signal,
         redirect: "manual",
@@ -178,7 +281,8 @@ export async function safeFetch(
           "User-Agent": SAFE_FETCH_USER_AGENT,
           Accept: accept,
         },
-      });
+        dispatcher: pinnedDispatcher(parsed.hostname, addresses),
+      } as RequestInit);
     } finally {
       clearTimeout(timeout);
     }

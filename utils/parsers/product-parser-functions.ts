@@ -1,6 +1,7 @@
 import { ShippingOptionsType } from "@/utils/STATIC-VARIABLES";
 import { calculateTotalCost } from "@/components/utility-components/display-monetary-info";
 import { parseShippingTag } from "@/utils/parsers/product-tag-helpers";
+import { normalizeProductImageUrl } from "@/utils/images";
 import { NostrEvent, StorefrontProductPageConfig } from "@/utils/types/types";
 
 export type LabReport = {
@@ -113,7 +114,7 @@ export const parseTags = (productEvent: NostrEvent) => {
         break;
       case "image":
         if (parsedData.images === undefined) parsedData.images = [];
-        parsedData.images.push(values[0]!);
+        parsedData.images.push(normalizeProductImageUrl(values[0]));
         break;
       case "t":
         if (parsedData.categories === undefined) parsedData.categories = [];
@@ -229,7 +230,10 @@ export const parseTags = (productEvent: NostrEvent) => {
           }
           parsedData.variants.push(values[0]);
           if (values[1]) {
-            parsedData.variantImages!.set(values[0], values[1]);
+            parsedData.variantImages!.set(
+              values[0],
+              normalizeProductImageUrl(values[1])
+            );
           }
         }
         break;

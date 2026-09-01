@@ -24,6 +24,7 @@ import ProductPageRenderer from "@/components/storefront/product-page-renderer";
 import FormattedText from "@/components/storefront/formatted-text";
 import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
 import { NostrEvent } from "@/utils/types/types";
+import SellerFollowButton from "@/components/utility-components/seller-follow-button";
 
 interface ProductListingViewProps {
   productData: ProductData | undefined;
@@ -103,7 +104,11 @@ export default function ProductListingView({
         className={`flex h-full min-h-screen flex-col bg-white ${topPaddingClass}`}
       >
         {productData ? (
-          isZapsnag ? (
+          <>
+            <div className="mx-auto flex w-full max-w-6xl justify-end px-6 pt-4">
+              <SellerFollowButton sellerPubkey={sellerPubkey} />
+            </div>
+          {isZapsnag ? (
             <div className="mx-auto w-full max-w-2xl p-6">
               <div className="overflow-hidden rounded-xl bg-white shadow-lg">
                 <img
@@ -180,7 +185,8 @@ export default function ProductListingView({
                 sellerPubkey={sellerPubkey}
               />
             </>
-          )
+          )}
+          </>
         ) : isListingNotFound ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">
             <div className="shadow-neo w-full max-w-2xl rounded-md border-2 border-black bg-white px-8 pt-8 pb-8 text-center">

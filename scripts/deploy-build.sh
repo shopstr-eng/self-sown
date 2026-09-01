@@ -40,6 +40,7 @@ next build
 echo "==> Folding static + public into the standalone bundle"
 cp -r .next/static .next/standalone/.next/static
 cp -r public .next/standalone/public
+node scripts/copy-sharp-standalone.mjs
 
 echo "==> Post-build cleanup (drop only large, runtime-irrelevant items)"
 # IMPORTANT: do NOT remove .replit, replit.nix, package.json, pnpm-lock.yaml,

@@ -221,8 +221,8 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
 
     const isAlreadyLoaded = localStorage.getItem("signer");
     if (
-      !isAlreadyLoaded ||
-      JSON.stringify(existingSigner) !== isAlreadyLoaded
+      existingSigner?.type !== "nip46" &&
+      (!isAlreadyLoaded || JSON.stringify(existingSigner) !== isAlreadyLoaded)
     ) {
       localStorage.setItem("signer", JSON.stringify(existingSigner));
 
@@ -235,8 +235,23 @@ export function SignerContextProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const handleStorage = (
-      event: Event & { detail?: { shouldReloadSigner?: boolean } }
+      event: Event & {
+        detail?: {
+          shouldReloadSigner?: boolean;
+          activeSigner?: NostrSigner;
+          signerKey?: string;
+        };
+      }
     ) => {
+      if (
+        event.detail?.shouldReloadSigner === false &&
+        event.detail.activeSigner
+      ) {
+        lastSuccessfulSignerKeyRef.current = event.detail.signerKey || "";
+        setSigner(event.detail.activeSigner);
+        loadKeys(event.detail.activeSigner);
+        return;
+      }
       if (event.detail?.shouldReloadSigner === false) return;
       loadSigner();
     };

@@ -9,6 +9,7 @@ import {
   getDefaultMint,
   getDefaultRelays,
   getLocalStorageData,
+  publishSavedForLaterEvent,
   publishReportEvent,
   setLocalStorageDataOnSignIn,
 } from "../nostr-helper-functions";
@@ -40,7 +41,7 @@ describe("constructGiftWrappedEvent", () => {
       {
         isOrder: true,
         orderId: "order-1",
-        type: 1,
+        type: 2,
         paymentType: "cashu",
         paymentReference: "cashuA-token",
         paymentProof: "proof-1",
@@ -70,7 +71,7 @@ describe("constructGiftWrappedEvent", () => {
         ["subject", "order-payment"],
         ["order", "order-1"],
         ["b", "buyer-pubkey"],
-        ["type", "1"],
+        ["type", "2"],
         ["amount", "12345"],
         ["payment", "cashu", "cashuA-token", "proof-1"],
         ["status", "paid"],
@@ -80,6 +81,34 @@ describe("constructGiftWrappedEvent", () => {
         ["weight", "1lb"],
         ["bulk", "5"],
         ["donation_amount", "100", "2"],
+      ])
+    );
+  });
+
+  it("preserves quantity and proof metadata for receipt events", async () => {
+    const event = await constructGiftWrappedEvent(
+      senderPubkey,
+      recipientPubkey,
+      "Receipt",
+      "order-receipt",
+      {
+        isOrder: true,
+        type: 4,
+        productData: {
+          pubkey: "seller-pubkey",
+          d: "listing-1",
+        } as ProductData,
+        quantity: 3,
+        paymentType: "cashu",
+        paymentReference: "token",
+        paymentProof: "proof",
+      }
+    );
+
+    expect(event.tags).toEqual(
+      expect.arrayContaining([
+        ["item", "30402:seller-pubkey:listing-1", "3"],
+        ["payment", "cashu", "token", "proof"],
       ])
     );
   });
@@ -146,6 +175,49 @@ describe("local storage sign-in helpers", () => {
         "bunker://remote-pubkey?secret=shared-secret&relay=wss://one.example&relay=wss://two.example",
       appPrivKey: "client-secret",
     });
+  });
+});
+
+describe("publishSavedForLaterEvent", () => {
+  const product = {
+    pubkey: "seller-pubkey",
+    d: "listing-1",
+  } as ProductData;
+
+  beforeEach(() => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true });
+  });
+
+  it("removes only the matching seller and product address", async () => {
+    const signer = {
+      encrypt: jest.fn().mockResolvedValue("encrypted"),
+      sign: jest.fn().mockImplementation(async (event) => ({
+        ...event,
+        id: "saved-cart-event",
+        pubkey: "buyer-pubkey",
+        sig: "signature",
+      })),
+    };
+    const nostr = { publish: jest.fn().mockResolvedValue(undefined) };
+
+    await publishSavedForLaterEvent(
+      nostr as any,
+      signer as any,
+      "cart",
+      "buyer-pubkey",
+      [
+        ["a", "30402:seller-pubkey:listing-1"],
+        ["a", "30402:other-seller-pubkey:listing-1"],
+        ["a", "30402:seller-pubkey:listing-2"],
+      ],
+      product,
+      -1
+    );
+
+    const tags = JSON.parse(signer.encrypt.mock.calls[0][1]) as string[][];
+    expect(tags).not.toContainEqual(["a", "30402:seller-pubkey:listing-1"]);
+    expect(tags).toContainEqual(["a", "30402:other-seller-pubkey:listing-1"]);
+    expect(tags).toContainEqual(["a", "30402:seller-pubkey:listing-2"]);
   });
 });
 

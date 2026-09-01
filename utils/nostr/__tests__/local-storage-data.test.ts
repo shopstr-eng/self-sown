@@ -8,6 +8,7 @@ import {
 describe("getLocalStorageData", () => {
   beforeEach(() => {
     localStorage.clear();
+    sessionStorage.clear();
     jest.restoreAllMocks();
   });
 
@@ -69,5 +70,30 @@ describe("getLocalStorageData", () => {
       type: "nsec",
       encryptedPrivKey: "ncryptsec1mock",
     });
+  });
+
+  it("keeps legacy NWC credentials recoverable while using only session storage", () => {
+    localStorage.setItem(
+      "nwcString",
+      "nostr+walletconnect://wallet.example?secret=secret"
+    );
+
+    expect(getLocalStorageData().nwcString).toContain("secret=secret");
+    expect(localStorage.getItem("nwcString")).toContain("secret=secret");
+    expect(sessionStorage.getItem("nwcString")).toContain("secret=secret");
+  });
+
+  it("does not delete legacy NIP-46 credentials before encryption succeeds", () => {
+    localStorage.setItem("signInMethod", "bunker");
+    localStorage.setItem("clientPrivkey", "legacy-app-key");
+    localStorage.setItem("bunkerRemotePubkey", "legacy-bunker");
+    localStorage.setItem("bunkerSecret", "legacy-capability");
+    localStorage.setItem("bunkerRelays", JSON.stringify(["wss://relay.example"]));
+
+    expect(getLocalStorageData().signer).toEqual(
+      expect.objectContaining({ type: "nip46", appPrivKey: "legacy-app-key" })
+    );
+    expect(localStorage.getItem("clientPrivkey")).toBe("legacy-app-key");
+    expect(localStorage.getItem("bunkerSecret")).toBe("legacy-capability");
   });
 });

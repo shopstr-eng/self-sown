@@ -10,7 +10,10 @@ jest.mock("nostr-tools", () => {
   };
 });
 
-import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
+import {
+  createNip98AuthorizationHeader,
+  verifyNip98Request,
+} from "@/utils/nostr/nip98-auth";
 
 function buildAuthHeader(event: Record<string, unknown>): string {
   return `Nostr ${Buffer.from(JSON.stringify(event), "utf-8").toString(
@@ -22,6 +25,30 @@ describe("verifyNip98Request", () => {
   beforeEach(() => {
     verifyEventMock.mockReset();
     verifyEventMock.mockReturnValue(true);
+  });
+
+  it("UTF-8 encodes authorization events in browsers", async () => {
+    const signer = {
+      sign: jest.fn().mockResolvedValue({
+        id: "a",
+        pubkey: "f".repeat(64),
+        kind: 27235,
+        created_at: 1710000000,
+        tags: [["u", "https://milk.market/api?note=€"], ["method", "GET"]],
+        content: "🥛",
+        sig: "b",
+      }),
+    } as any;
+
+    const header = await createNip98AuthorizationHeader(
+      signer,
+      "https://milk.market/api?note=€",
+      "GET"
+    );
+
+    expect(
+      JSON.parse(Buffer.from(header.substring(6), "base64").toString("utf-8"))
+    ).toEqual(expect.objectContaining({ content: "🥛" }));
   });
 
   it("rejects missing authorization headers", async () => {

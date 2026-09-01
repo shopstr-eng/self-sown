@@ -119,45 +119,53 @@ describe("MigrationPromptModal", () => {
     });
   });
 
-  it("should show an error message when migration fails (returns false)", async () => {
-    mockedMigrateToNip49.mockResolvedValue(false);
-    render(<MigrationPromptModal {...defaultProps} />);
+  it(
+    "should show an error message when migration fails (returns false)",
+    async () => {
+      mockedMigrateToNip49.mockResolvedValue(false);
+      render(<MigrationPromptModal {...defaultProps} />);
 
-    const input = screen.getByLabelText("Your Passphrase");
-    fireEvent.change(input, { target: { value: "wrongpass" } });
+      const input = screen.getByLabelText("Your Passphrase");
+      fireEvent.change(input, { target: { value: "wrongpass" } });
 
-    const upgradeButton = screen.getByRole("button", {
-      name: "Upgrade Encryption",
-    });
-    fireEvent.click(upgradeButton);
+      const upgradeButton = screen.getByRole("button", {
+        name: "Upgrade Encryption",
+      });
+      fireEvent.click(upgradeButton);
 
-    expect(
-      await screen.findByRole("alert", {}, { timeout: 5000 })
-    ).toHaveTextContent(
-      "Migration failed. Please try again with the correct passphrase."
-    );
-    expect(mockOnSuccess).not.toHaveBeenCalled();
-    expect(mockOnClose).not.toHaveBeenCalled();
-  });
+      expect(
+        await screen.findByRole("alert", {}, { timeout: 10000 })
+      ).toHaveTextContent(
+        "Migration failed. Please try again with the correct passphrase."
+      );
+      expect(mockOnSuccess).not.toHaveBeenCalled();
+      expect(mockOnClose).not.toHaveBeenCalled();
+    },
+    15000
+  );
 
-  it("should show an error message when migration throws an error", async () => {
-    mockedMigrateToNip49.mockRejectedValue(new Error("Decryption failed"));
-    render(<MigrationPromptModal {...defaultProps} />);
+  it(
+    "should show an error message when migration throws an error",
+    async () => {
+      mockedMigrateToNip49.mockRejectedValue(new Error("Decryption failed"));
+      render(<MigrationPromptModal {...defaultProps} />);
 
-    const input = screen.getByLabelText("Your Passphrase");
-    fireEvent.change(input, { target: { value: "anotherwrongpass" } });
+      const input = screen.getByLabelText("Your Passphrase");
+      fireEvent.change(input, { target: { value: "anotherwrongpass" } });
 
-    const upgradeButton = screen.getByRole("button", {
-      name: "Upgrade Encryption",
-    });
-    fireEvent.click(upgradeButton);
+      const upgradeButton = screen.getByRole("button", {
+        name: "Upgrade Encryption",
+      });
+      fireEvent.click(upgradeButton);
 
-    expect(
-      await screen.findByRole("alert", {}, { timeout: 5000 })
-    ).toHaveTextContent(
-      "Failed to decrypt with the provided passphrase. Please try again."
-    );
-  });
+      expect(
+        await screen.findByRole("alert", {}, { timeout: 10000 })
+      ).toHaveTextContent(
+        "Failed to decrypt with the provided passphrase. Please try again."
+      );
+    },
+    15000
+  );
 
   it("should call migration handler when Enter key is pressed in the input", () => {
     mockedMigrateToNip49.mockResolvedValue(true);

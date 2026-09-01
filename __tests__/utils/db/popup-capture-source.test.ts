@@ -30,7 +30,7 @@ import { newDb, type IMemoryDb } from "pg-mem";
 jest.mock("pg", () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { newDb: makeDb } = require("pg-mem");
-  const memDb: IMemoryDb = makeDb();
+  const memDb: IMemoryDb = makeDb({ noAstCoverageCheck: true });
   memDb.public.none(`
     CREATE TABLE popup_email_captures (
       id SERIAL PRIMARY KEY,
@@ -72,6 +72,19 @@ jest.mock("pg", () => {
             `${wasNew} AS is_new`
           );
           return raw.query(rewritten, params);
+        }
+        // This test seeds the only two tables it exercises. Skip the runtime
+        // production-schema bootstrap, which contains PostgreSQL DDL/PLpgSQL
+        // that pg-mem intentionally does not implement.
+        if (
+          /CREATE TABLE IF NOT EXISTS|ALTER TABLE|CREATE INDEX|DO \$\$/i.test(
+            sql
+          )
+        ) {
+          return { rows: [], rowCount: 0 };
+        }
+        if (!/popup_email_captures/i.test(sql)) {
+          return { rows: [], rowCount: 0 };
         }
         return raw.query(sql, params);
       },

@@ -33,6 +33,10 @@ export type NostrSub = {
 export type NostrFilter = NToolFilter;
 export type NostrEvent = NToolEvent;
 export type NostrEventTemplate = NToolEvenTemplate;
+export type NostrFetchResult = {
+  events: NostrEvent[];
+  complete: boolean;
+};
 export type NostrManagerParams = {
   connectionTimeout?: number;
   keepAliveTime: number;
@@ -40,6 +44,8 @@ export type NostrManagerParams = {
   readable?: boolean;
   writable?: boolean;
 };
+
+const DEFAULT_CONNECTION_TIMEOUT_MS = 4000;
 
 export class NostrManager {
   private readonly pool: SimplePool;
@@ -51,7 +57,7 @@ export class NostrManager {
     const {
       keepAliveTime = 1000 * 60 * 5,
       gcInterval = 1000 * 60 * 5,
-      connectionTimeout = undefined,
+      connectionTimeout = DEFAULT_CONNECTION_TIMEOUT_MS,
       readable = true,
       writable = true,
     } = params || {};
@@ -146,7 +152,9 @@ export class NostrManager {
     const relays = relayUrls
       ? this.relays.filter((r) => relayUrls.includes(r.url))
       : this.relays;
-    await this.keepAlive(relays);
+    // subscribeMap establishes each relay independently; waiting here makes a
+    // healthy relay wait behind an unreachable one.
+    this.keepAlive(relays).catch(console.error);
     const requests = relays.flatMap((r) =>
       filters.map((f) => ({ url: r.url, filter: f }))
     );
@@ -164,7 +172,6 @@ export class NostrManager {
     for (const relay of relays) {
       relay.activeSubs.push(sub);
     }
-    await this.keepAlive(relays);
     return sub;
   }
 
@@ -248,6 +255,77 @@ export class NostrManager {
     }
   }
 
+  /** Fetch with completion information for callers that must distinguish an
+   * empty relay response from a timed-out one (notably NIP-58 hydration). */
+  public async fetchWithStatus(
+    filters: NostrFilter[],
+    params?: SubscribeManyParams,
+    relayUrls?: string[],
+    timeout?: number
+  ): Promise<NostrFetchResult> {
+    const fetchedEvents: NostrEvent[] = [];
+    let sub: NostrSub | undefined;
+    let didCloseSub = false;
+    const closeSub = async () => {
+      if (!sub || didCloseSub) return;
+      didCloseSub = true;
+      await sub.close();
+    };
+
+    return newPromiseWithTimeout<NostrFetchResult>(
+      async (resolve, _reject, abortSignal) => {
+        const subscriptionParams = params || {};
+        const onEvent = subscriptionParams.onevent || (() => {});
+        const onEose = subscriptionParams.oneose || (() => {});
+        let settled = false;
+        subscriptionParams.onevent = (event: NostrEvent) => {
+          fetchedEvents.push(event);
+          return onEvent(event);
+        };
+        subscriptionParams.oneose = () => {
+          closeSub().catch(console.error);
+          if (!settled) {
+            settled = true;
+            resolve({ events: fetchedEvents, complete: true });
+          }
+          return onEose();
+        };
+        abortSignal.addEventListener("abort", () => {
+          closeSub().catch(console.error);
+          if (!settled) {
+            settled = true;
+            resolve({ events: fetchedEvents, complete: false });
+          }
+        });
+        sub = await this.subscribe(filters, subscriptionParams, relayUrls);
+        if (abortSignal.aborted) closeSub().catch(console.error);
+      },
+      { timeout }
+    );
+  }
+
+  public async fetchTransientWithStatus(
+    filters: NostrFilter[],
+    params: SubscribeManyParams | undefined,
+    relayUrls: string[],
+    timeout?: number
+  ): Promise<NostrFetchResult> {
+    const transientManager = new NostrManager(relayUrls, {
+      ...this.params,
+      writable: false,
+    });
+    try {
+      return await transientManager.fetchWithStatus(
+        filters,
+        params,
+        relayUrls,
+        timeout
+      );
+    } finally {
+      transientManager.close();
+    }
+  }
+
   public async publish(event: NostrEvent, relayUrls?: string[]): Promise<void> {
     if (!this.params.writable) throw new Error("not writable");
     if (relayUrls) {
@@ -259,7 +337,9 @@ export class NostrManager {
     const relays = relayUrls
       ? this.relays.filter((r) => relayUrls.includes(r.url))
       : this.relays;
-    await this.keepAlive(relays);
+    // pool.publish establishes each relay independently; do not block all
+    // publishes on a slow connection attempt.
+    this.keepAlive(relays).catch(console.error);
     await Promise.allSettled(
       this.pool.publish(
         relays.map((r) => r.url),
@@ -275,15 +355,19 @@ export class NostrManager {
     }
   ): void {
     if (this.relays.find((r) => r.url === relayUrl)) return;
-    const r = this.pool.ensureRelay(relayUrl, params);
+    const connectionTimeout =
+      params?.connectionTimeout ??
+      this.params.connectionTimeout ??
+      DEFAULT_CONNECTION_TIMEOUT_MS;
     const relay: NostrRelay = {
       url: relayUrl,
       connect: async () => {
-        this.pool.ensureRelay(relayUrl, params);
-        await (await r).connect();
+        // Do not retain a rejected ensureRelay promise: the pool removes a
+        // failed relay and a later activity should be able to retry it.
+        await this.pool.ensureRelay(relayUrl, { connectionTimeout });
       },
       disconnect: async () => {
-        (await r).close();
+        this.pool.close([relayUrl]);
       },
       activeSubs: [],
       sleeping: true,

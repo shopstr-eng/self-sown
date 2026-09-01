@@ -133,7 +133,10 @@ export default function SignInModal({
   const router = useRouter();
   const { newSigner } = useContext(SignerContext);
 
-  const saveSigner = (signer: NostrSigner) => {
+  const saveSigner = async (
+    signer: NostrSigner,
+    signerPassphrase?: string
+  ) => {
     if (
       !relaysContext.isLoading &&
       relaysContext.relayList.length >= 0 &&
@@ -143,15 +146,17 @@ export default function SignInModal({
       const generalRelays = relaysContext.relayList;
       const readRelays = relaysContext.readRelayList;
       const writeRelays = relaysContext.writeRelayList;
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         signer,
+        signerPassphrase,
         relays: generalRelays,
         readRelays: readRelays,
         writeRelays: writeRelays,
       });
     } else {
-      setLocalStorageDataOnSignIn({
+      await setLocalStorageDataOnSignIn({
         signer,
+        signerPassphrase,
       });
     }
   };
@@ -162,7 +167,7 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip07", {});
       await signer.getPubKey();
-      saveSigner(signer);
+      await saveSigner(signer);
       onClose();
       router.push("/marketplace");
     } catch (error) {
@@ -176,7 +181,7 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip46", { bunker: bunkerToken });
       await signer.connect();
-      saveSigner(signer);
+      await saveSigner(signer, passphrase);
       setIsBunkerConnecting(false);
       await signer.getPubKey();
       onClose();
@@ -210,7 +215,7 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip07", {});
       await signer.getPubKey();
-      saveSigner(signer);
+      await saveSigner(signer);
       onClose();
       router.push(signUpRedirect);
     } catch (error) {
@@ -224,7 +229,7 @@ export default function SignInModal({
     try {
       const signer = newSigner!("nip46", { bunker: bunkerToken });
       await signer.connect();
-      saveSigner(signer);
+      await saveSigner(signer, passphrase);
       setIsBunkerConnecting(false);
       await signer.getPubKey();
       onClose();
@@ -678,11 +683,27 @@ export default function SignInModal({
                         />
                       </div>
                       <div>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Connection Passphrase:
+                        </label>
+                        <Input
+                          type={showPassphrase ? "text" : "password"}
+                          width="100%"
+                          size="lg"
+                          value={passphrase}
+                          placeholder="Protect this connection (12+ characters)..."
+                          onChange={(e) => setPassphrase(e.target.value)}
+                        />
+                      </div>
+                      <div>
                         <Button
                           data-testid="bunker-signup-submit-btn"
                           className={`${BLUEBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerSignup}
-                          isDisabled={validBunkerToken != "success"}
+                          isDisabled={
+                            validBunkerToken != "success" ||
+                            passphrase.trim().length < 12
+                          }
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
@@ -962,11 +983,27 @@ export default function SignInModal({
                         />
                       </div>
                       <div>
+                        <label className="mb-2 block text-sm font-bold text-black">
+                          Connection Passphrase:
+                        </label>
+                        <Input
+                          type={showPassphrase ? "text" : "password"}
+                          width="100%"
+                          size="lg"
+                          value={passphrase}
+                          placeholder="Protect this connection (12+ characters)..."
+                          onChange={(e) => setPassphrase(e.target.value)}
+                        />
+                      </div>
+                      <div>
                         <Button
                           data-testid="bunker-submit-btn"
                           className={`${BLUEBUTTONCLASSNAMES} w-full`}
                           onClick={startBunkerLogin}
-                          isDisabled={validBunkerToken != "success"}
+                          isDisabled={
+                            validBunkerToken != "success" ||
+                            passphrase.trim().length < 12
+                          }
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">

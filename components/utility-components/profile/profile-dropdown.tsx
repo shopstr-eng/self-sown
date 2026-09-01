@@ -29,7 +29,7 @@ import SignInModal from "../../sign-in/SignInModal";
 import { useStorefrontBranding } from "@/utils/storefront/storefront-branding-context";
 import useReportEventFlow from "../use-report-event-flow";
 import { copyToClipboard } from "@/utils/clipboard";
-import { ProfileData } from "@/utils/types/types";
+import { Nip58ProfileBadge, ProfileData } from "@/utils/types/types";
 
 import { GlobeAltIcon } from "@heroicons/react/24/outline";
 
@@ -52,6 +52,7 @@ const inFlightProfileRequests = new Map<
   Promise<ProfileData["content"] | null>
 >();
 const MAX_PROFILE_CACHE_ENTRIES = 100;
+const MAX_VISIBLE_PROFILE_BADGES = 4;
 
 const trimProfileContentCache = () => {
   while (fetchedProfileContentCache.size > MAX_PROFILE_CACHE_ENTRIES) {
@@ -259,6 +260,29 @@ export const ProfileWithDropdown = ({
   })();
   const pfp = profileContent?.picture || `https://robohash.org/${pubkey}`;
   const isNip05Verified = profile?.nip05Verified || false;
+  const profileBadges = (profile?.badges || [])
+    .filter(
+      (badge: Nip58ProfileBadge) => badge.thumbnail || badge.image
+    )
+    .slice(0, MAX_VISIBLE_PROFILE_BADGES);
+  const displayNameWithBadges = (
+    <span className="inline-flex min-w-0 items-center gap-1">
+      <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+        {displayName}
+      </span>
+      {profileBadges.map((badge: Nip58ProfileBadge) => (
+        <img
+          key={`${badge.definitionAddress}:${badge.awardEventId}`}
+          src={badge.thumbnail || badge.image || ""}
+          alt={`${badge.name} badge`}
+          title={badge.description ? `${badge.name}: ${badge.description}` : badge.name}
+          className="h-4 w-4 shrink-0 rounded-full border border-white bg-white object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
+      ))}
+    </span>
+  );
 
   const shopHref = (() => {
     if (customDomain) return `https://${customDomain}`;
@@ -499,7 +523,7 @@ export const ProfileWithDropdown = ({
                 } group-hover:underline group-hover:underline-offset-2`,
                 base: `${baseClassname}`,
               }}
-              name={displayName}
+              name={displayNameWithBadges}
             />
           </DropdownTrigger>
           <DropdownMenu

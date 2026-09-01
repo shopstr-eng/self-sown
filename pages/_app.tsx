@@ -379,6 +379,22 @@ function MilkMarket({ props }: { props: AppProps }) {
       followList: [],
       firstDegreeFollowsLength: 0,
       isLoading: true,
+      directFollowList: [],
+      setDirectFollowList: (directFollowList: string[]) => {
+        setFollowsContext((previous) => ({
+          ...previous,
+          directFollowList,
+          followList: Array.from(
+            new Set([
+              ...directFollowList,
+              ...previous.followList.filter(
+                (pubkey) => !previous.directFollowList?.includes(pubkey)
+              ),
+            ])
+          ),
+          firstDegreeFollowsLength: directFollowList.length,
+        }));
+      },
     }
   );
 
@@ -525,13 +541,16 @@ function MilkMarket({ props }: { props: AppProps }) {
   const editFollowsContext = (
     followList: string[],
     firstDegreeFollowsLength: number,
-    isLoading: boolean
+    isLoading: boolean,
+    directFollowList: string[] = followList.slice(0, firstDegreeFollowsLength)
   ) => {
-    setFollowsContext({
+    setFollowsContext((previous) => ({
+      ...previous,
       followList,
       firstDegreeFollowsLength,
       isLoading,
-    });
+      directFollowList,
+    }));
   };
 
   const editCommunityContext = (

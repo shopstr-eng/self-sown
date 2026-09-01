@@ -89,7 +89,9 @@ async function fetchAndTransform(
 ): Promise<CacheEntry> {
   const response = await safeFetch(sourceUrl, {
     accept: "image/*",
-    followRedirects: true,
+    // Never let the image endpoint become a redirect oracle. A crawler can
+    // follow a legitimate image redirect itself, but the server must not.
+    followRedirects: false,
     timeoutMs: 8000,
   });
   if (!response.ok) {
@@ -99,7 +101,7 @@ async function fetchAndTransform(
     .split(";")[0]!
     .trim()
     .toLowerCase();
-  if (!contentType.startsWith("image/")) {
+  if (!/^image\/(?:avif|gif|jpe?g|png|tiff|webp)$/i.test(contentType)) {
     throw new Error(
       `Upstream URL is not an image: ${contentType || "unknown"}`
     );
@@ -171,10 +173,34 @@ export default async function handler(
 
   let sourceUrl: string;
   if (url.startsWith("/")) {
-    sourceUrl = `${PLATFORM_BASE}${url}`;
+    const platform = parseHttpUrl(PLATFORM_BASE);
+    let relative: URL;
+    try {
+      relative = new URL(url, platform?.toString());
+    } catch {
+      return res.status(400).json({ error: "Invalid url" });
+    }
+    // `//host/path` and backslash variants are network-path references, not
+    // platform-relative paths. Do not turn them into an arbitrary proxy.
+    if (
+      !platform ||
+      relative.origin !== platform.origin ||
+      relative.pathname.startsWith("/api/")
+    ) {
+      return res.status(400).json({ error: "Invalid url" });
+    }
+    sourceUrl = relative.toString();
   } else {
     const parsed = parseHttpUrl(url);
     if (!parsed) {
+      return res.status(400).json({ error: "Invalid url" });
+    }
+    const platform = parseHttpUrl(PLATFORM_BASE);
+    if (
+      platform &&
+      parsed.origin === platform.origin &&
+      parsed.pathname.startsWith("/api/")
+    ) {
       return res.status(400).json({ error: "Invalid url" });
     }
     sourceUrl = parsed.toString();
@@ -201,9 +227,13 @@ export default async function handler(
     if (err instanceof SafeFetchError) {
       return res.status(400).json({ error: "URL host is not allowed" });
     }
-    // Transient upstream failure or an exotic/unsupported format: send the
-    // crawler straight to the original image so the card still renders.
-    return res.redirect(307, sourceUrl);
+    // Do not disclose or redirect to a caller-controlled upstream URL. Apart
+    // from privacy leakage, that would let this endpoint bypass its own
+    // redirect and content checks.
+    if (err instanceof BodyTooLargeError) {
+      return res.status(413).json({ error: "Image too large" });
+    }
+    return res.status(502).json({ error: "Unable to fetch image" });
   } finally {
     inflight.delete(cacheKey);
   }

@@ -9,6 +9,7 @@ import {
   isPrivateIPv6,
   isSafePublicHostname,
   parseHttpUrl,
+  safeFetch,
 } from "@/utils/url-safety";
 
 describe("url-safety SSRF guards", () => {
@@ -29,6 +30,9 @@ describe("url-safety SSRF guards", () => {
         "0.0.0.0",
         "198.18.0.1",
         "198.19.255.255",
+        "192.0.2.1",
+        "198.51.100.1",
+        "203.0.113.1",
         "224.0.0.1",
       ]) {
         expect(isPrivateIPv4(ip)).toBe(true);
@@ -48,8 +52,17 @@ describe("url-safety SSRF guards", () => {
   });
 
   describe("isPrivateIPv6", () => {
-    it("flags loopback, unspecified, link-local and unique-local", () => {
-      for (const ip of ["::1", "::", "fe80::1", "fc00::1", "fd12:3456::1"]) {
+    it("flags loopback, unspecified, the full link-local /10, and unique-local", () => {
+      for (const ip of [
+        "::1",
+        "::",
+        "fe80::1",
+        "fe90::1",
+        "feaf::1",
+        "febf::1",
+        "fc00::1",
+        "fd12:3456::1",
+      ]) {
         expect(isPrivateIPv6(ip)).toBe(true);
       }
     });
@@ -60,6 +73,8 @@ describe("url-safety SSRF guards", () => {
       expect(isPrivateIPv6("::ffff:7f00:1")).toBe(true); // == 127.0.0.1
       expect(isPrivateIPv6("::ffff:c0a8:1")).toBe(true); // == 192.168.0.1
       expect(isPrivateIPv6("::127.0.0.1")).toBe(true); // IPv4-compatible
+      expect(isPrivateIPv6("::7f00:1")).toBe(true); // IPv4-compatible loopback
+      expect(isPrivateIPv6("[::ffff:127.0.0.1]")).toBe(true);
     });
 
     it("strips zone ids before matching", () => {
@@ -79,6 +94,7 @@ describe("url-safety SSRF guards", () => {
     it("rejects localhost-style names without a DNS lookup", async () => {
       expect(await isSafePublicHostname("localhost")).toBe(false);
       expect(await isSafePublicHostname("db.local")).toBe(false);
+      expect(await isSafePublicHostname("localhost.")).toBe(false);
       expect(lookupMock).not.toHaveBeenCalled();
     });
 
@@ -109,6 +125,35 @@ describe("url-safety SSRF guards", () => {
       expect(parseHttpUrl("javascript:alert(1)")).toBeNull();
       expect(parseHttpUrl("ftp://shop.example")).toBeNull();
       expect(parseHttpUrl("not a url")).toBeNull();
+      expect(parseHttpUrl("https://user:pass@shop.example/image.png")).toBeNull();
+      expect(parseHttpUrl("https://shop.example:8080/image.png")).toBeNull();
+    });
+  });
+
+  describe("safeFetch DNS pinning", () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it("uses the vetted resolution for a request instead of resolving a rebinding host again", async () => {
+      lookupMock.mockResolvedValue([{ family: 4, address: "93.184.216.34" }]);
+      global.fetch = jest.fn().mockResolvedValue({
+        status: 200,
+        headers: { get: () => null },
+      } as unknown as Response);
+
+      await safeFetch("https://rebind.example/image.png");
+
+      expect(lookupMock).toHaveBeenCalledTimes(1);
+      expect(lookupMock).toHaveBeenCalledWith("rebind.example", { all: true });
+      const init = (global.fetch as jest.Mock).mock.calls[0]?.[1];
+      expect(init?.dispatcher).toBeDefined();
+      // A second DNS answer would be private, but the dispatcher has already
+      // been configured from the first (vetted) answer and does not consult DNS.
+      lookupMock.mockResolvedValue([{ family: 4, address: "127.0.0.1" }]);
+      expect(lookupMock).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -35,6 +35,10 @@ import {
   buildBlogPostTags,
   type BlogPostDraft,
 } from "@milk-market/domain";
+import {
+  encryptNIP46SignerCredentials,
+  type NIP46SignerCredentials,
+} from "@/utils/nostr/nip46-encryption";
 
 export const REPORT_TYPES = [
   "nudity",
@@ -1082,14 +1086,15 @@ export async function publishSavedForLaterEvent(
 ) {
   try {
     let cartTags: string[][] = [];
+    const productAddress = `30402:${product.pubkey}:${product.d}`;
 
     if (quantity && quantity < 0) {
       cartTags = [...cartAddresses].filter(
-        (address) => !address[1]!.includes(`:${product.d}`)
+        (address) => !(address[0] === "a" && address[1] === productAddress)
       );
     } else if (quantity && quantity > 0) {
       for (let i = 0; i < quantity; i++) {
-        const productTag = ["a", "30402:" + product.pubkey + ":" + product.d];
+        const productTag = ["a", productAddress];
         cartTags.push(productTag);
       }
     }
@@ -1746,7 +1751,7 @@ const LOCALSTORAGECONSTANTS = {
   savedAddresses: "savedAddresses",
 };
 
-export const setLocalStorageDataOnSignIn = ({
+export const setLocalStorageDataOnSignIn = async ({
   encryptedPrivateKey,
   relays,
   readRelays,
@@ -1760,6 +1765,7 @@ export const setLocalStorageDataOnSignIn = ({
   bunkerRelays,
   bunkerSecret,
   signer,
+  signerPassphrase,
   migrationComplete,
 }: {
   encryptedPrivateKey?: string;
@@ -1775,8 +1781,37 @@ export const setLocalStorageDataOnSignIn = ({
   bunkerRelays?: string[];
   bunkerSecret?: string;
   signer?: NostrSigner;
+  signerPassphrase?: string;
   migrationComplete?: boolean;
-}) => {
+}): Promise<void> => {
+  let serializedSigner: string | undefined;
+  if (signer) {
+    const signerData = signer.toJSON() as
+      | NIP46SignerCredentials
+      | LocalStorageInterface["signer"];
+    if (
+      signerData &&
+      signerData.type === "nip46" &&
+      "bunker" in signerData &&
+      typeof signerData.bunker === "string" &&
+      typeof signerData.appPrivKey === "string"
+    ) {
+      if (!signerPassphrase) {
+        throw new Error("A passphrase is required to store a NIP-46 signer.");
+      }
+      const { encryptedSigner } = await encryptNIP46SignerCredentials(
+        {
+          type: "nip46",
+          bunker: signerData.bunker,
+          appPrivKey: signerData.appPrivKey,
+        },
+        signerPassphrase
+      );
+      serializedSigner = JSON.stringify({ type: "nip46", encryptedSigner });
+    } else {
+      serializedSigner = JSON.stringify(signerData);
+    }
+  }
   if (encryptedPrivateKey) {
     localStorage.setItem(
       LOCALSTORAGECONSTANTS.encryptedPrivateKey,
@@ -1831,15 +1866,39 @@ export const setLocalStorageDataOnSignIn = ({
     }
   }
 
-  if (signer) {
-    localStorage.setItem(LOCALSTORAGECONSTANTS.signer, JSON.stringify(signer));
+  if (serializedSigner) {
+    localStorage.setItem(LOCALSTORAGECONSTANTS.signer, serializedSigner);
+    // Old NIP-46 fields contain the same credentials. Clear them only after
+    // the encrypted replacement has been written successfully.
+    if (signer?.toJSON().type === "nip46") {
+      localStorage.removeItem(LOCALSTORAGECONSTANTS.clientPubkey);
+      localStorage.removeItem(LOCALSTORAGECONSTANTS.clientPrivkey);
+      localStorage.removeItem(LOCALSTORAGECONSTANTS.bunkerRemotePubkey);
+      localStorage.removeItem(LOCALSTORAGECONSTANTS.bunkerRelays);
+      localStorage.removeItem(LOCALSTORAGECONSTANTS.bunkerSecret);
+    }
   }
 
   if (migrationComplete) {
     localStorage.setItem("migrationComplete", migrationComplete.toString());
   }
 
-  window.dispatchEvent(new Event("storage"));
+  if (signer?.toJSON().type === "nip46" && serializedSigner) {
+    // The signer used to complete login is already initialized. Give the
+    // provider that instance rather than immediately rebuilding the newly
+    // encrypted record and asking for its passphrase a second time.
+    window.dispatchEvent(
+      new CustomEvent("storage", {
+        detail: {
+          shouldReloadSigner: false,
+          activeSigner: signer,
+          signerKey: serializedSigner,
+        },
+      })
+    );
+  } else {
+    window.dispatchEvent(new Event("storage"));
+  }
 };
 
 export interface LocalStorageInterface {
@@ -1863,6 +1922,7 @@ export interface LocalStorageInterface {
   signer?:
     | { type: "nip07" }
     | { type: "nip46"; bunker: string; appPrivKey?: string }
+    | { type: "nip46"; encryptedSigner: string }
     | { type: "nsec"; encryptedPrivKey: string; pubkey?: string };
   nwcString?: string | null;
   nwcInfo?: string | null;
@@ -1881,6 +1941,7 @@ function isStoredSignerData(
     type?: unknown;
     bunker?: unknown;
     appPrivKey?: unknown;
+    encryptedSigner?: unknown;
     encryptedPrivKey?: unknown;
     pubkey?: unknown;
   };
@@ -1890,6 +1951,13 @@ function isStoredSignerData(
   }
 
   if (candidate.type === "nip46") {
+    if (candidate.encryptedSigner !== undefined) {
+      return (
+        typeof candidate.encryptedSigner === "string" &&
+        candidate.bunker === undefined &&
+        candidate.appPrivKey === undefined
+      );
+    }
     return (
       typeof candidate.bunker === "string" &&
       (candidate.appPrivKey === undefined ||
@@ -2071,6 +2139,23 @@ export const getLocalStorageData = (): LocalStorageInterface => {
         validate: isStoredSignerData,
       }
     );
+    const sessionNip46Signer = getLocalStorageJson<
+      LocalStorageInterface["signer"] | undefined
+    >("nip46SignerSession", undefined, {
+      removeOnError: true,
+      validate: isStoredSignerData,
+    });
+    if (
+      signer?.type === "nip46" &&
+      !("encryptedSigner" in signer) &&
+      sessionNip46Signer?.type === "nip46"
+    ) {
+      signer = sessionNip46Signer;
+    } else if (signer?.type === "nip46" && !("encryptedSigner" in signer)) {
+      // Keep a legacy signer usable in this tab without overwriting its
+      // durable recovery data. It is removed only after encrypted persistence.
+      sessionStorage.setItem("nip46SignerSession", JSON.stringify(signer));
+    }
     if (!signer) {
       switch (signInMethod) {
         case "extension":
@@ -2090,6 +2175,7 @@ export const getLocalStorageData = (): LocalStorageInterface => {
             appPrivKey:
               typeof clientPrivkey === "string" ? clientPrivkey : undefined,
           };
+          sessionStorage.setItem("nip46SignerSession", JSON.stringify(signer));
           break;
         case "nsec":
           if (typeof encryptedPrivateKey === "string") {
@@ -2102,9 +2188,18 @@ export const getLocalStorageData = (): LocalStorageInterface => {
       }
     }
 
-    nwcString = localStorage.getItem(LOCALSTORAGECONSTANTS.nwcString)
-      ? localStorage.getItem(LOCALSTORAGECONSTANTS.nwcString)
-      : null;
+    // NWC URLs embed a wallet capability secret. A legacy value remains
+    // recoverable until the user explicitly replaces or removes it.
+    nwcString = sessionStorage.getItem(LOCALSTORAGECONSTANTS.nwcString);
+    if (!nwcString) {
+      const legacyNwcString = localStorage.getItem(
+        LOCALSTORAGECONSTANTS.nwcString
+      );
+      if (legacyNwcString) {
+        sessionStorage.setItem(LOCALSTORAGECONSTANTS.nwcString, legacyNwcString);
+        nwcString = legacyNwcString;
+      }
+    }
 
     nwcInfo = localStorage.getItem(LOCALSTORAGECONSTANTS.nwcInfo)
       ? localStorage.getItem(LOCALSTORAGECONSTANTS.nwcInfo)
@@ -2149,6 +2244,7 @@ export const LogOut = () => {
   localStorage.removeItem("chats");
   for (const key in LOCALSTORAGECONSTANTS) {
     localStorage.removeItem(key);
+    sessionStorage.removeItem(key);
   }
 
   window.dispatchEvent(new Event("storage"));
@@ -2239,9 +2335,10 @@ export async function verifyNip05Identifier(
 
 export const saveNWCString = (nwcString: string) => {
   if (nwcString) {
-    localStorage.setItem(LOCALSTORAGECONSTANTS.nwcString, nwcString);
+    sessionStorage.setItem(LOCALSTORAGECONSTANTS.nwcString, nwcString);
   } else {
     localStorage.removeItem(LOCALSTORAGECONSTANTS.nwcString);
+    sessionStorage.removeItem(LOCALSTORAGECONSTANTS.nwcString);
     localStorage.removeItem(LOCALSTORAGECONSTANTS.nwcInfo);
   }
   window.dispatchEvent(new Event("storage"));

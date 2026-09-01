@@ -51,6 +51,7 @@ import {
   isNpub,
 } from "@/utils/url-slugs";
 import { useDebounce } from "@/utils/hooks/useDebounce";
+import SellerFollowButton from "../utility-components/seller-follow-button";
 
 export function normalizeNpub(
   npub: string | string[] | undefined
@@ -97,6 +98,7 @@ function MarketplacePage({
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const [wotFilter, setWotFilter] = useState(false);
+  const [followingFilter, setFollowingFilter] = useState(false);
 
   const [merchantReview, setMerchantReview] = useState(0);
   const [merchantQuality, setMerchantQuality] = useState("");
@@ -489,6 +491,7 @@ function MarketplacePage({
                 >
                   Message
                 </Button>
+                <SellerFollowButton sellerPubkey={focusedPubkey} />
                 {(() => {
                   const shopData = shopMapContext.shopData.get(focusedPubkey);
                   const shopSlug = shopData?.content?.storefront?.shopSlug;
@@ -647,6 +650,19 @@ function MarketplacePage({
                     setWotFilter={setWotFilter}
                   />
                 ) : null}
+                {loggedIn && !followsContext.isLoading ? (
+                  <Button
+                    aria-pressed={followingFilter}
+                    className={`shadow-neo border-2 border-black font-bold ${
+                      followingFilter
+                        ? "bg-primary-yellow text-black"
+                        : "bg-white text-black"
+                    }`}
+                    onPress={() => setFollowingFilter((active) => !active)}
+                  >
+                    Following
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>
@@ -670,6 +686,7 @@ function MarketplacePage({
             selectedLocation={selectedLocation}
             selectedSearch={debouncedSearch}
             wotFilter={wotFilter}
+            followingFilter={followingFilter}
             setCategories={setCategories}
             onFilteredProductsChange={handleFilteredProductsChange}
             searchBarRef={searchBarRef}

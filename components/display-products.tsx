@@ -25,6 +25,7 @@ const DisplayProducts = ({
   selectedLocation,
   selectedSearch,
   wotFilter,
+  followingFilter,
   isMyListings,
   setCategories,
   onFilteredProductsChange,
@@ -35,6 +36,7 @@ const DisplayProducts = ({
   selectedLocation: string;
   selectedSearch: string;
   wotFilter?: boolean;
+  followingFilter?: boolean;
   isMyListings?: boolean;
   setCategories?: (categories: string[]) => void;
   onFilteredProductsChange?: (products: ProductData[]) => void;
@@ -112,9 +114,11 @@ const DisplayProducts = ({
       );
       const parsedProductData: ProductData[] = [];
       sortedProductEvents.forEach((event) => {
-        if (wotFilter) {
+        if (wotFilter || followingFilter) {
           if (!followsContext.isLoading && followsContext.followList) {
-            const followList = followsContext.followList;
+            const followList = followingFilter
+              ? (followsContext.directFollowList ?? [])
+              : followsContext.followList;
             if (followList.length > 0 && followList.includes(event.pubkey)) {
               let parsedData;
               if (event.kind === 1) {
@@ -149,7 +153,7 @@ const DisplayProducts = ({
       setProductEvents([]);
       setIsProductLoading(false);
     }
-  }, [productEventContext, wotFilter]);
+  }, [productEventContext, wotFilter, followingFilter, followsContext]);
 
   useEffect(() => {
     if (focusedPubkey && setCategories) {

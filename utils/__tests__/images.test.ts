@@ -1,4 +1,36 @@
-import { buildSrcSet } from "../images";
+import {
+  buildSrcSet,
+  normalizeProductImageUrl,
+  normalizeStoredProductImages,
+} from "../images";
+
+describe("normalizeProductImageUrl", () => {
+  it("canonicalizes public remote URLs without routing them through the app", () => {
+    expect(normalizeProductImageUrl(" HTTPS://CDN.example/a.png ")).toBe(
+      "https://cdn.example/a.png"
+    );
+  });
+
+  it("rejects protocol-relative, API, credentialed, and private image targets", () => {
+    for (const value of [
+      "//tracker.example/pixel",
+      "/api/og-image?url=https://cdn.example/a.png",
+      "/\\192.168.1.1/router",
+      "https://user:pass@cdn.example/a.png",
+      "http://192.168.1.2/a.png",
+      "http://[::ffff:127.0.0.1]/a.png",
+      "https://localhost./a.png",
+    ]) {
+      expect(normalizeProductImageUrl(value)).toBe("/no-image-placeholder.png");
+    }
+  });
+
+  it("normalizes persisted product images as well", () => {
+    expect(
+      normalizeStoredProductImages([{ id: "a", images: ["javascript:alert(1)"] }])
+    ).toEqual([{ id: "a", images: ["/no-image-placeholder.png"] }]);
+  });
+});
 
 describe("buildSrcSet", () => {
   it("should return a formatted srcset for image.nostr.build URLs", () => {
