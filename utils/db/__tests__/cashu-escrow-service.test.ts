@@ -15,6 +15,11 @@ import {
   releaseEscrowOutboxClaim,
   recoverStaleEscrowOutboxClaims,
   listExpiredLockedEscrows,
+  getEscrowRegistration,
+  listPendingEscrowOutboxEntries,
+  attachEscrowPayoutPayload,
+  saveEscrowPreparedOutputs,
+  convertExpiredReleaseToRefund,
   deriveOutboxId,
   ESCROW_CLAIM_STALE_MS,
 } from "@/utils/db/cashu-escrow-service";
@@ -41,6 +46,11 @@ interface OutboxRow {
   claim_token: string | null;
   claimed_at: Date | null;
   last_error: string | null;
+  payout_payload: unknown | null;
+  payout_outputs: unknown | null;
+  prepared_outputs: unknown | null;
+  updated_at: Date;
+  created_seq: number;
 }
 
 const registrations = new Map<string, RegistrationRow>();
@@ -95,7 +105,7 @@ async function fakeQuery(sql: string, params: any[] = []) {
   }
 
   if (text.startsWith("INSERT INTO cashu_escrow_outbox")) {
-    const [outbox_id, escrow_id, action] = params;
+    const [outbox_id, escrow_id, action, payout_payload] = params;
     if (outbox.has(outbox_id)) return makeResult([], 0);
     outbox.set(outbox_id, {
       outbox_id,
@@ -106,8 +116,56 @@ async function fakeQuery(sql: string, params: any[] = []) {
       claim_token: null,
       claimed_at: null,
       last_error: null,
+      // Real Postgres parses JSONB on write and returns it parsed.
+      payout_payload: payout_payload ? JSON.parse(payout_payload) : null,
+      payout_outputs: null,
+      prepared_outputs: null,
+      updated_at: new Date(fakeNow),
+      created_seq: outbox.size,
     });
     return makeResult([{ outbox_id }], 1);
+  }
+
+  if (text.startsWith("UPDATE cashu_escrow_outbox SET prepared_outputs")) {
+    const [outbox_id, claimToken, prepared_outputs] = params;
+    const row = outbox.get(outbox_id);
+    if (!row || row.status !== "processing" || row.claim_token !== claimToken) {
+      return makeResult([], 0);
+    }
+    row.prepared_outputs = prepared_outputs ? JSON.parse(prepared_outputs) : null;
+    row.updated_at = new Date(fakeNow);
+    return makeResult([], 1);
+  }
+
+  if (text.startsWith("UPDATE cashu_escrow_outbox o SET action = 'refund'")) {
+    const [outbox_id, claimToken, now] = params;
+    const row = outbox.get(outbox_id);
+    const registration = row ? registrations.get(row.escrow_id) : undefined;
+    const convertible =
+      row &&
+      registration &&
+      row.status === "processing" &&
+      row.claim_token === claimToken &&
+      row.action === "release" &&
+      registration.status === "locked" &&
+      registration.expires_at <= now;
+    if (!convertible) return makeResult([], 0);
+    row!.action = "refund";
+    row!.status = "pending";
+    row!.payout_payload = null;
+    row!.prepared_outputs = null;
+    row!.last_error =
+      "Release window expired before payout; converted to a refund.";
+    row!.updated_at = new Date(fakeNow);
+    return makeResult([], 1);
+  }
+
+  if (text.startsWith("UPDATE cashu_escrow_outbox SET payout_payload")) {
+    const [outbox_id, payout_payload] = params;
+    const row = outbox.get(outbox_id);
+    if (!row || row.status !== "pending") return makeResult([], 0);
+    row.payout_payload = payout_payload ? JSON.parse(payout_payload) : null;
+    return makeResult([], 1);
   }
 
   if (text.startsWith("SELECT action FROM cashu_escrow_outbox")) {
@@ -128,6 +186,7 @@ async function fakeQuery(sql: string, params: any[] = []) {
     row.attempts += 1;
     row.claimed_at = now;
     row.claim_token = claimToken;
+    row.updated_at = new Date(now);
     return makeResult([{ ...row }], 1);
   }
 
@@ -135,12 +194,13 @@ async function fakeQuery(sql: string, params: any[] = []) {
     text.startsWith("UPDATE cashu_escrow_outbox SET status = 'done'") &&
     text.includes("RETURNING")
   ) {
-    const [outbox_id, claimToken] = params;
+    const [outbox_id, claimToken, payout_outputs] = params;
     const row = outbox.get(outbox_id);
     if (!row || row.status !== "processing" || row.claim_token !== claimToken) {
       return makeResult([], 0);
     }
     row.status = "done";
+    row.payout_outputs = payout_outputs ? JSON.parse(payout_outputs) : null;
     return makeResult([{ escrow_id: row.escrow_id, action: row.action }], 1);
   }
 
@@ -153,6 +213,7 @@ async function fakeQuery(sql: string, params: any[] = []) {
     if (row && row.status === "processing" && row.claim_token === claimToken) {
       row.status = "pending";
       row.last_error = errorMessage;
+      row.updated_at = new Date(fakeNow);
       return makeResult([], 1);
     }
     return makeResult([], 0);
@@ -168,6 +229,7 @@ async function fakeQuery(sql: string, params: any[] = []) {
         row.claimed_at < staleBefore
       ) {
         row.status = "pending";
+        row.updated_at = new Date(fakeNow);
         recovered += 1;
       }
     }
@@ -188,6 +250,31 @@ async function fakeQuery(sql: string, params: any[] = []) {
     const rows = [...registrations.values()]
       .filter((r) => r.status === "locked" && r.expires_at < now)
       .map((r) => ({ escrow_id: r.escrow_id }));
+    return makeResult(rows);
+  }
+
+  if (text.startsWith("SELECT escrow_id, buyer_pubkey")) {
+    const row = registrations.get(params[0]);
+    return makeResult(row ? [{ ...row }] : []);
+  }
+
+  if (text.startsWith("SELECT outbox_id FROM cashu_escrow_outbox")) {
+    const [limit, now] = params;
+    // Emulate the exponential backoff: fresh entries (attempts = 0) are due
+    // immediately; after n failed attempts the entry is due at
+    // updated_at + min(2^(n-1) minutes, 6h).
+    const backoffMs = (attempts: number) =>
+      Math.min(Math.pow(2, Math.min(attempts - 1, 10)) * 60_000, 21_600_000);
+    const rows = [...outbox.values()]
+      .filter(
+        (r) =>
+          r.status === "pending" &&
+          (r.attempts === 0 ||
+            r.updated_at.getTime() + backoffMs(r.attempts) <= now.getTime())
+      )
+      .sort((a, b) => a.created_seq - b.created_seq)
+      .slice(0, limit)
+      .map((r) => ({ outbox_id: r.outbox_id }));
     return makeResult(rows);
   }
 
@@ -446,6 +533,183 @@ describe("cashu-escrow-service", () => {
 
       const due = await listExpiredLockedEscrows(fakeNow);
       expect(due).toEqual([{ escrowId: expiredId }]);
+    });
+  });
+
+  describe("payout payloads", () => {
+    it("stores the payout payload at enqueue and returns it with the claim", async () => {
+      const escrowId = await registered();
+      const payload = { proofs: [{ secret: "s", amount: 5000 }] };
+      const { outboxId } = await enqueueEscrowAction(
+        escrowId,
+        "release",
+        payload
+      );
+
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+      expect(claim!.payoutPayload).toEqual(payload);
+    });
+
+    it("attachEscrowPayoutPayload fills a pending entry but not a claimed one", async () => {
+      const escrowId = await registered();
+      const { outboxId } = await enqueueEscrowAction(escrowId, "refund");
+
+      const attached = await attachEscrowPayoutPayload(outboxId, {
+        proofs: [{ secret: "a", amount: 1 }],
+      });
+      expect(attached).toBe(true);
+
+      // A claimed (processing) entry must not have its payload swapped
+      // out from under the worker that already read it.
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+      expect(claim).not.toBeNull();
+      const reattached = await attachEscrowPayoutPayload(outboxId, {
+        proofs: [{ secret: "b", amount: 1 }],
+      });
+      expect(reattached).toBe(false);
+    });
+
+    it("finalize records the payout outputs on the row", async () => {
+      const escrowId = await registered();
+      const { outboxId } = await enqueueEscrowAction(escrowId, "release");
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+
+      const outputs = [{ secret: "out", amount: 4999 }];
+      await finalizeEscrowOutboxEntry(outboxId, claim!.claimToken, outputs);
+
+      const row = outbox.get(outboxId)!;
+      expect(row.status).toBe("done");
+      expect(row.payout_outputs).toEqual(outputs);
+    });
+  });
+
+  describe("getEscrowRegistration", () => {
+    it("returns the registered escrow or null", async () => {
+      const escrowId = await registered();
+      const registration = await getEscrowRegistration(escrowId);
+      expect(registration).toMatchObject({
+        escrowId,
+        buyerPubkey: BUYER_PK,
+        sellerPubkey: "b".repeat(64),
+        orderId: "order-1",
+        amountSats: 5_000,
+        mintUrl: "https://mint.example",
+        status: "locked",
+      });
+      expect(registration!.expiresAt).toBeInstanceOf(Date);
+      expect(await getEscrowRegistration("nobody:nowhere")).toBeNull();
+    });
+  });
+
+  describe("listPendingEscrowOutboxEntries", () => {
+    it("lists pending entries oldest first and honors the limit", async () => {
+      const first = await registered({ orderId: "o1" });
+      const second = await registered({ orderId: "o2" });
+      const third = await registered({ orderId: "o3" });
+      await enqueueEscrowAction(first, "refund");
+      await enqueueEscrowAction(second, "release");
+      await enqueueEscrowAction(third, "refund");
+
+      // Claiming the second entry takes it out of the pending set.
+      await claimEscrowOutboxEntry(deriveOutboxId(second), { now: fakeNow });
+
+      const pending = await listPendingEscrowOutboxEntries(10, fakeNow);
+      expect(pending).toEqual([
+        { outboxId: deriveOutboxId(first) },
+        { outboxId: deriveOutboxId(third) },
+      ]);
+
+      const limited = await listPendingEscrowOutboxEntries(1, fakeNow);
+      expect(limited).toEqual([{ outboxId: deriveOutboxId(first) }]);
+    });
+
+    it("backs off failed entries exponentially instead of hot-looping", async () => {
+      const escrowId = await registered({ orderId: "backoff" });
+      const { outboxId } = await enqueueEscrowAction(escrowId, "release");
+
+      // Fresh entries are due immediately.
+      expect(await listPendingEscrowOutboxEntries(10, fakeNow)).toEqual([
+        { outboxId },
+      ]);
+
+      // After one failed attempt the entry backs off for a minute.
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+      await releaseEscrowOutboxClaim(outboxId, claim!.claimToken, "boom");
+      expect(await listPendingEscrowOutboxEntries(10, fakeNow)).toEqual([]);
+      expect(
+        await listPendingEscrowOutboxEntries(
+          10,
+          new Date(fakeNow.getTime() + 61_000)
+        )
+      ).toEqual([{ outboxId }]);
+    });
+  });
+
+  describe("saveEscrowPreparedOutputs", () => {
+    it("is fenced by the claim token and the processing status", async () => {
+      const escrowId = await registered();
+      const { outboxId } = await enqueueEscrowAction(escrowId, "release");
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+
+      const prepared = [
+        { blindedMessage: { amount: "4", id: "k", B_: "ab" } },
+      ];
+      // A stale/foreign fencing token must not be able to write outputs.
+      await expect(
+        saveEscrowPreparedOutputs(outboxId, "wrong-token", prepared)
+      ).resolves.toBe(false);
+      await expect(
+        saveEscrowPreparedOutputs(outboxId, claim!.claimToken, prepared)
+      ).resolves.toBe(true);
+      expect(outbox.get(outboxId)!.prepared_outputs).toEqual(prepared);
+
+      // Once the claim is released the entry is no longer 'processing'.
+      await releaseEscrowOutboxClaim(outboxId, claim!.claimToken, "x");
+      await expect(
+        saveEscrowPreparedOutputs(outboxId, claim!.claimToken, prepared)
+      ).resolves.toBe(false);
+    });
+  });
+
+  describe("convertExpiredReleaseToRefund", () => {
+    it("converts a claimed release on an expired escrow into a pending refund", async () => {
+      const escrowId = await registered({
+        orderId: "expired",
+        expiresAt: Math.floor(fakeNow.getTime() / 1000) - 10,
+      });
+      const payload = { proofs: [{ secret: "s", amount: 5000 }] };
+      const { outboxId } = await enqueueEscrowAction(
+        escrowId,
+        "release",
+        payload
+      );
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+
+      const converted = await convertExpiredReleaseToRefund(
+        outboxId,
+        claim!.claimToken,
+        fakeNow
+      );
+
+      expect(converted).toBe(true);
+      const row = outbox.get(outboxId)!;
+      expect(row.action).toBe("refund");
+      expect(row.status).toBe("pending");
+      // The seller-signed release payload must not survive the conversion.
+      expect(row.payout_payload).toBeNull();
+      expect(row.prepared_outputs).toBeNull();
+    });
+
+    it("refuses to convert a release whose escrow has not expired", async () => {
+      const escrowId = await registered({ orderId: "fresh" });
+      const { outboxId } = await enqueueEscrowAction(escrowId, "release");
+      const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
+
+      await expect(
+        convertExpiredReleaseToRefund(outboxId, claim!.claimToken, fakeNow)
+      ).resolves.toBe(false);
+      expect(outbox.get(outboxId)!.action).toBe("release");
+      expect(outbox.get(outboxId)!.status).toBe("processing");
     });
   });
 });

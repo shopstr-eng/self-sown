@@ -960,6 +960,14 @@ CREATE TABLE IF NOT EXISTS cashu_escrow_outbox (
     claim_token TEXT,
     claimed_at TIMESTAMP,
     last_error TEXT,
+    -- Signed P2PK payout proofs the worker swaps at the mint, and the
+    -- payee-locked output proofs recorded when the payout finalizes.
+    payout_payload JSONB,
+    payout_outputs JSONB,
+    -- Payee-locked swap outputs persisted after prepare and BEFORE the mint
+    -- call, so a crash mid-swap is recoverable via the mint's NUT-09
+    -- /restore endpoint instead of burning the payout.
+    prepared_outputs JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

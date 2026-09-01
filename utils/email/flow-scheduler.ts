@@ -56,6 +56,10 @@ async function processScheduledBlogPosts() {
   });
 }
 
+async function processEscrowPayouts() {
+  await callEndpoint("/api/cashu/escrow/process", { batch_size: 10 });
+}
+
 export function startFlowScheduler() {
   if (schedulerStarted) return;
   if (!process.env.FLOW_PROCESSOR_SECRET) {
@@ -80,6 +84,7 @@ export function startFlowScheduler() {
   const WINBACK_INTERVAL = 24 * 60 * 60 * 1000;
   const PRO_LIFECYCLE_INTERVAL = 6 * 60 * 60 * 1000;
   const SCHEDULED_BLOG_INTERVAL = 2 * 60 * 1000;
+  const ESCROW_PAYOUT_INTERVAL = 60 * 1000;
 
   setTimeout(() => processEmails(), 30 * 1000);
   setInterval(() => processEmails(), PROCESS_INTERVAL);
@@ -95,4 +100,9 @@ export function startFlowScheduler() {
 
   setTimeout(() => processScheduledBlogPosts(), 90 * 1000);
   setInterval(() => processScheduledBlogPosts(), SCHEDULED_BLOG_INTERVAL);
+
+  // Escrow payouts are time-sensitive (buyers wait on releases/refunds), so
+  // sweep promptly. The endpoint is a no-op unless escrow is enabled.
+  setTimeout(() => processEscrowPayouts(), 45 * 1000);
+  setInterval(() => processEscrowPayouts(), ESCROW_PAYOUT_INTERVAL);
 }

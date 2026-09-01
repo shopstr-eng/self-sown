@@ -1775,6 +1775,16 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_cashu_escrow_outbox_pending
         ON cashu_escrow_outbox(status, created_at);
+
+      -- Payout worker (task: escrow payouts). payout_payload carries the
+      -- payee-signed P2PK proofs the worker swaps at the mint;
+      -- payout_outputs records the payee-locked output proofs at finalize
+      -- so a crash can never silently burn them.
+      ALTER TABLE cashu_escrow_outbox ADD COLUMN IF NOT EXISTS payout_payload JSONB;
+      ALTER TABLE cashu_escrow_outbox ADD COLUMN IF NOT EXISTS payout_outputs JSONB;
+      -- Payee-locked swap outputs persisted before the mint call (crash
+      -- recovery via NUT-09 restore).
+      ALTER TABLE cashu_escrow_outbox ADD COLUMN IF NOT EXISTS prepared_outputs JSONB;
     `);
 
     await ensureAuthedSellersTable(client);

@@ -90,6 +90,63 @@ Both tables exist in the runtime bootstrap
 (`utils/db/db-service.ts initializeTables`, authoritative for hosted envs)
 and in `db/schema.sql` (self-host). Keep them in sync when migrating.
 
+### 6. Payout worker (`utils/cashu/escrow-payout-worker.ts`,
+`utils/cashu/escrow-payout.ts`, `POST /api/cashu/escrow/process`)
+
+A cron-driven worker (internal scheduler, `FLOW_PROCESSOR_SECRET`-gated, no-op
+unless escrow is enabled) drains the outbox:
+
+- **Claim → pay → finalize, all fenced.** Each entry is claimed with a fresh
+  fencing token; the payout executes; finalization requires the token and a
+  still-`locked` escrow. Any failure calls `releaseEscrowOutboxClaim` with the
+  error recorded, so entries retry instead of stranding. Stale claims are
+  recovered every sweep via `recoverStaleEscrowOutboxClaims`.
+- **Proof-state verification before EVERY payment attempt.** The executor
+  (`executeEscrowPayout`) calls `checkProofsStates` at the mint before
+  swapping — not just on retries — and fails closed unless the mint returns
+  exactly one explicitly-`UNSPENT` state per input. This is the only
+  double-pay guard for the external mint call; the outbox alone cannot
+  provide it.
+- **Two-phase swap with durable prepared outputs.** The swap runs as
+  `prepareSwapToReceive` → persist the payee-locked output data to the
+  outbox row (`prepared_outputs`, fenced by the claim token) →
+  `completeSwap`. A crash after the mint accepted the swap therefore loses
+  nothing: the retry finds the inputs SPENT and reconstructs the payee's
+  proofs from the persisted blinded messages via the mint's NUT-09 `/restore`
+  endpoint instead of paying again. Only SPENT-with-nothing-recorded (a
+  crash before the first prepare persisted, which cannot have swapped) is
+  left for operator reconciliation — and it still refuses to re-pay.
+- **Signed payout proofs ride on the outbox row** (`payout_payload`). The
+  server holds no keys: inputs arrive pre-signed by the entitled party
+  (seller for release, buyer for refund), and the swap outputs are
+  P2PK-locked to the payee, so custody of the result (`payout_outputs`,
+  recorded transactionally at finalize) is safe.
+- **Lock construction is validated against the commitment** before any mint
+  call: locked to the committed seller, `locktime` == commitment expiry,
+  `refund` = exactly the committed buyer, no multisig, no SIG_ALL (the
+  keyless server cannot sign outputs), amount covers the commitment — and
+  the P2PK tag set is allowlisted (`locktime`/`refund`/`n_sigs`/
+  `n_sigs_refund`/`sigflag`), so a `pubkeys` tag cannot silently widen a
+  seller-only lock into 1-of-2 and no future NUT-11 tag can sneak in
+  semantics the worker never reviewed.
+- **Expiry is re-checked at payout time**, and a release claimed after its
+  window closed is atomically converted to a pending refund
+  (`convertExpiredReleaseToRefund`, fenced by the claim token and
+  conditional on actual expiry) instead of stranding the buyer behind an
+  unpayable release row.
+- **Failed entries back off exponentially** (1min, 2min, 4min, … capped at
+  6h, in `listPendingEscrowOutboxEntries`), so a permanently-undeliverable
+  entry cannot hot-loop the mint every sweep. Fresh entries are due
+  immediately.
+- **Expired locked escrows self-enqueue refunds** each sweep
+  (`listExpiredLockedEscrows` → `enqueueEscrowAction(…, "refund")`).
+  The enqueue is idempotent; when a release is already pending the one-row
+  outbox rejects the refund, which is logged and skipped.
+- Refunds enqueued by the sweep have no signed proofs yet; they pend (with
+  `last_error` recorded) until the buyer's signed refund proofs are attached
+  via `attachEscrowPayoutPayload` (atomic against concurrent claims). The
+  signing endpoints are future work — see the checklist.
+
 ## Residual risks (must be closed before enabling)
 
 1. **Proof custody**: registration records the commitment, but the P2PK-locked
@@ -98,18 +155,31 @@ and in `db/schema.sql` (self-host). Keep them in sync when migrating.
    recovery UX must land before the flag does.
 2. **Arbiter key compromise** = misdirected release. Arbiter operations need
    their own signed-request binding when the resolution endpoint is built.
-3. **Expiry race**: a release claimed just before expiry vs. an auto-refund
-   sweep is serialized only by the outbox state machine; the release worker
-   must re-check expiry at signing time.
+3. **Expiry race — handled by conversion**: the worker re-checks expiry at
+   payout time; a release whose window closed mid-flight is atomically
+   converted to a pending refund (see §6). Residual: none known, but this
+   path MUST be covered by the staging kill-test below before enabling.
 4. **Mint liveness**: refund-after-expiry depends on the mint being reachable;
    `listExpiredLockedEscrows` + retry backoff cover transient outages, not a
-   dead mint.
+   dead mint. The NUT-09 restore recovery path likewise requires the mint to
+   still serve the payout keyset.
+5. **Crash between mint swap and finalize — recovered**: prepared payee-
+   locked outputs are persisted before the mint call, and a retry
+   reconstructs them via /restore (see §6). Residual: a mint that has
+   forgotten the issued outputs (or dropped the keyset) still strands the
+   payout in the "SPENT inputs, unrestorable outputs" state — detected and
+   never re-paid, but requiring mint/operator reconciliation.
 
 ## Enabling checklist
 
 - [ ] End-to-end recovery test in staging: kill the payout worker mid-release,
-      confirm the outbox requeues and pays exactly once.
+      confirm the outbox requeues and pays exactly once, and that the payee
+      proofs are recovered via /restore.
 - [ ] Buyer wallet recovery path for locked proofs (backup + restore verify).
 - [ ] Arbiter resolution endpoint with signed-request binding.
+- [ ] Signed release/refund request endpoints that collect the payee's P2PK
+      signatures and attach them to the outbox entry
+      (`attachEscrowPayoutPayload`).
+- [ ] Delivery of `payout_outputs` to the payee after a payout finalizes.
 - [ ] Buyer UI behind `NEXT_PUBLIC_CASHU_ESCROW_ENABLED`, off by default.
 - [ ] Re-run this threat model against the final flow.

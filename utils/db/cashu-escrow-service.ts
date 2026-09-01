@@ -38,6 +38,32 @@ export interface EscrowOutboxEntry {
   attempts: number;
   /** Fencing token — required to finalize or release this claim. */
   claimToken: string;
+  /**
+   * The signed P2PK payout proofs attached to this entry (set at enqueue
+   * time or via attachEscrowPayoutPayload). Opaque to this layer — the
+   * payout executor (utils/cashu/escrow-payout.ts) validates the shape.
+   */
+  payoutPayload: unknown | null;
+  /**
+   * Payee-locked output data (serialized cashu-ts OutputData) persisted
+   * AFTER the swap is prepared and BEFORE the mint call. If a retry finds
+   * the inputs SPENT, the payout is reconstructed from this via the mint's
+   * NUT-09 /restore endpoint instead of paying again.
+   */
+  preparedOutputs: unknown | null;
+}
+
+/** A registered escrow as the payout worker needs it. */
+export interface EscrowRegistration {
+  escrowId: string;
+  buyerPubkey: string;
+  sellerPubkey: string;
+  orderId: string;
+  amountSats: number;
+  mintUrl: string;
+  arbiterPubkey: string | null;
+  expiresAt: Date;
+  status: EscrowStatus;
 }
 
 /** One payout action per escrow: the outbox id IS the escrow id. */
@@ -121,7 +147,8 @@ export async function registerEscrowCommitment(
  */
 export async function enqueueEscrowAction(
   escrowId: string,
-  action: EscrowOutboxAction
+  action: EscrowOutboxAction,
+  payoutPayload?: unknown
 ): Promise<{ enqueued: boolean; outboxId: string }> {
   const pool = getDbPool();
   const outboxId = deriveOutboxId(escrowId);
@@ -148,11 +175,18 @@ export async function enqueueEscrowAction(
     }
 
     const inserted = await client.query(
-      `INSERT INTO cashu_escrow_outbox (outbox_id, escrow_id, action, status)
-       VALUES ($1, $2, $3, 'pending')
+      `INSERT INTO cashu_escrow_outbox (
+         outbox_id, escrow_id, action, status, payout_payload
+       )
+       VALUES ($1, $2, $3, 'pending', $4)
        ON CONFLICT (outbox_id) DO NOTHING
        RETURNING outbox_id`,
-      [outboxId, escrowId, action]
+      [
+        outboxId,
+        escrowId,
+        action,
+        payoutPayload === undefined ? null : JSON.stringify(payoutPayload),
+      ]
     );
     if ((inserted.rowCount || 0) > 0) {
       await client.query("COMMIT");
@@ -206,7 +240,7 @@ export async function claimEscrowOutboxEntry(
      WHERE outbox_id = $1
        AND status <> 'done'
        AND (status = 'pending' OR claimed_at < $2)
-     RETURNING outbox_id, escrow_id, action, status, attempts`,
+     RETURNING outbox_id, escrow_id, action, status, attempts, payout_payload, prepared_outputs`,
     [outboxId, staleBefore, now, claimToken]
   );
   const row = result.rows[0];
@@ -218,7 +252,87 @@ export async function claimEscrowOutboxEntry(
     status: row.status,
     attempts: row.attempts,
     claimToken,
+    payoutPayload: row.payout_payload ?? null,
+    preparedOutputs: row.prepared_outputs ?? null,
   };
+}
+
+/**
+ * Durably record the prepared payee-locked swap outputs BEFORE the mint
+ * call (see executeEscrowPayout). Fenced by the claim token and the
+ * 'processing' status: if this worker's claim was reclaimed, the write
+ * fails and the payment must not proceed with memory-only outputs.
+ */
+export async function saveEscrowPreparedOutputs(
+  outboxId: string,
+  claimToken: string,
+  preparedOutputs: unknown
+): Promise<boolean> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `UPDATE cashu_escrow_outbox
+     SET prepared_outputs = $3, updated_at = NOW()
+     WHERE outbox_id = $1 AND status = 'processing' AND claim_token = $2`,
+    [outboxId, claimToken, JSON.stringify(preparedOutputs)]
+  );
+  return (result.rowCount || 0) > 0;
+}
+
+/**
+ * Convert a claimed RELEASE whose lock window has expired into a pending
+ * REFUND. Fenced by the claim token and conditional on the escrow still
+ * being locked and actually expired: an operator (or a slow retry) can no
+ * longer strand the buyer by holding an unpayable release row. The
+ * seller-signed release payload is discarded — refund proofs must come from
+ * the buyer via attachEscrowPayoutPayload.
+ */
+export async function convertExpiredReleaseToRefund(
+  outboxId: string,
+  claimToken: string,
+  now: Date = new Date()
+): Promise<boolean> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `UPDATE cashu_escrow_outbox o
+     SET action = 'refund',
+         status = 'pending',
+         payout_payload = NULL,
+         prepared_outputs = NULL,
+         last_error = 'Release window expired before payout; converted to a refund.',
+         updated_at = NOW()
+     FROM cashu_escrow_registrations r
+     WHERE o.outbox_id = $1
+       AND r.escrow_id = o.escrow_id
+       AND o.status = 'processing'
+       AND o.claim_token = $2
+       AND o.action = 'release'
+       AND r.status = 'locked'
+       AND r.expires_at <= $3`,
+    [outboxId, claimToken, now]
+  );
+  return (result.rowCount || 0) > 0;
+}
+
+/**
+ * Attach (or replace) the signed payout proofs on a PENDING entry. This is
+ * how a resolution endpoint supplies the payee-signed P2PK proofs after the
+ * entry was enqueued without them (e.g. the expiry sweep enqueues refunds
+ * before the buyer has submitted signed refund proofs). The status guard
+ * makes the write atomic against a concurrent claim: a worker already
+ * processing the entry keeps the payload it claimed with.
+ */
+export async function attachEscrowPayoutPayload(
+  outboxId: string,
+  payoutPayload: unknown
+): Promise<boolean> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `UPDATE cashu_escrow_outbox
+     SET payout_payload = $2, updated_at = NOW()
+     WHERE outbox_id = $1 AND status = 'pending'`,
+    [outboxId, JSON.stringify(payoutPayload)]
+  );
+  return (result.rowCount || 0) > 0;
 }
 
 /**
@@ -229,7 +343,8 @@ export async function claimEscrowOutboxEntry(
  */
 export async function finalizeEscrowOutboxEntry(
   outboxId: string,
-  claimToken: string
+  claimToken: string,
+  payoutOutputs?: unknown
 ): Promise<void> {
   const pool = getDbPool();
   const client = await pool.connect();
@@ -237,10 +352,14 @@ export async function finalizeEscrowOutboxEntry(
     await client.query("BEGIN");
     const updated = await client.query(
       `UPDATE cashu_escrow_outbox
-       SET status = 'done', updated_at = NOW()
+       SET status = 'done', payout_outputs = $3, updated_at = NOW()
        WHERE outbox_id = $1 AND status = 'processing' AND claim_token = $2
        RETURNING escrow_id, action`,
-      [outboxId, claimToken]
+      [
+        outboxId,
+        claimToken,
+        payoutOutputs === undefined ? null : JSON.stringify(payoutOutputs),
+      ]
     );
     const row = updated.rows[0];
     if (!row) {
@@ -320,4 +439,66 @@ export async function listExpiredLockedEscrows(
     [now]
   );
   return result.rows.map((row) => ({ escrowId: row.escrow_id }));
+}
+
+/** Load a registration for the payout worker. Null when unknown. */
+export async function getEscrowRegistration(
+  escrowId: string
+): Promise<EscrowRegistration | null> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `SELECT escrow_id, buyer_pubkey, seller_pubkey, order_id, amount_sats,
+            mint_url, arbiter_pubkey, expires_at, status
+     FROM cashu_escrow_registrations
+     WHERE escrow_id = $1`,
+    [escrowId]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    escrowId: row.escrow_id,
+    buyerPubkey: row.buyer_pubkey,
+    sellerPubkey: row.seller_pubkey,
+    orderId: row.order_id,
+    amountSats: Number(row.amount_sats),
+    mintUrl: row.mint_url,
+    arbiterPubkey: row.arbiter_pubkey ?? null,
+    expiresAt: new Date(row.expires_at),
+    status: row.status,
+  };
+}
+
+/**
+ * Pending outbox entries for the payout worker to drain, oldest first.
+ * Stale 'processing' entries are deliberately excluded — the worker runs
+ * recoverStaleEscrowOutboxClaims before draining, which returns them to
+ * pending for the NEXT listing (they are then reclaimed with a fresh
+ * fencing token at claim time anyway).
+ *
+ * Entries that have already been attempted back off exponentially
+ * (attempts is incremented at each claim): 1min, 2min, 4min, ... capped at
+ * 6h, so a permanently-failing entry (e.g. waiting on signed proofs, or a
+ * mint refusing) cannot hot-loop the mint every sweep. Fresh entries
+ * (attempts = 0) are due immediately.
+ */
+export async function listPendingEscrowOutboxEntries(
+  limit: number = 10,
+  now: Date = new Date()
+): Promise<Array<{ outboxId: string }>> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `SELECT outbox_id FROM cashu_escrow_outbox
+     WHERE status = 'pending'
+       AND (
+         attempts = 0
+         OR updated_at
+            + LEAST(POWER(2, LEAST(attempts - 1, 10))::int * 60, 21600)
+              * INTERVAL '1 second'
+            <= $2
+       )
+     ORDER BY created_at ASC
+     LIMIT $1`,
+    [limit, now]
+  );
+  return result.rows.map((row) => ({ outboxId: row.outbox_id }));
 }
