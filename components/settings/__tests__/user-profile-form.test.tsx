@@ -312,7 +312,22 @@ describe("UserProfileForm", () => {
   test("derives payment preference from the lightning address on save", async () => {
     mockCreateNostrProfileEvent.mockResolvedValue({});
     const user = userEvent.setup();
-    renderWithProviders(<UserProfileForm />);
+    // Seed the stale legacy donation key in the existing profile so the save
+    // must prove the merge-and-delete path strips it.
+    const staleProfile = new Map([
+      [
+        mockUserPubkey,
+        {
+          pubkey: mockUserPubkey,
+          content: {
+            display_name: "Test User",
+            shopstr_donation: 3.3,
+          },
+          created_at: 0,
+        },
+      ],
+    ]);
+    renderWithProviders(<UserProfileForm />, staleProfile);
     await screen.findByLabelText("Display name");
 
     // Read-only display: Cashu without a lightning address.
