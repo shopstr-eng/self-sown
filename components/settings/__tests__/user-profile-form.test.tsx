@@ -324,7 +324,7 @@ describe("UserProfileForm", () => {
     );
     expect(screen.getByText("Lightning (Bitcoin)")).toBeInTheDocument();
 
-    const donationInput = screen.getByLabelText(/Shopstr donation/i);
+    const donationInput = screen.getByLabelText(/Milk Market donation/i);
     await user.clear(donationInput);
     await user.type(donationInput, "5.5");
 

@@ -190,7 +190,7 @@ const UserProfilePage = () => {
           ) : (
             <>
               <div className="bg-light-fg dark:bg-dark-fg mb-20 h-40 rounded-lg">
-                <div className="bg-shopstr-purple-light dark:bg-dark-fg relative flex h-40 items-center justify-center rounded-lg">
+                <div className="bg-accent-light-text dark:bg-dark-fg relative flex h-40 items-center justify-center rounded-lg">
                   {watchBanner && (
                     <Image
                       alt={"User banner image"}
@@ -199,7 +199,7 @@ const UserProfilePage = () => {
                     />
                   )}
                   <FileUploaderButton
-                    className={`bg-shopstr-purple absolute right-5 bottom-5 z-20 border-2 border-white shadow-md ${PRIMARYBUTTONCLASSNAMES}`}
+                    className={`bg-accent-light-text absolute right-5 bottom-5 z-20 border-2 border-white shadow-md ${PRIMARYBUTTONCLASSNAMES}`}
                     imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
                   >
                     Upload Banner
@@ -569,7 +569,7 @@ const UserProfilePage = () => {
                       }}
                       variant="bordered"
                       fullWidth
-                      label="Shopstr donation (%)"
+                      label="Milk Market donation (%)"
                       labelPlacement="outside"
                       onChange={onChange}
                       onBlur={onBlur}
