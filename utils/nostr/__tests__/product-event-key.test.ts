@@ -57,7 +57,7 @@ describe("upsertProductEvent", () => {
     });
     const result = upsertProductEvent([old], republished);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("new");
+    expect(result[0]?.id).toBe("new");
   });
 
   it("ignores an older republish of an existing product", () => {
@@ -73,7 +73,7 @@ describe("upsertProductEvent", () => {
     });
     const result = upsertProductEvent([current], stale);
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("current");
+    expect(result[0]?.id).toBe("current");
   });
 
   it("preserves position when replacing so featured ordering is stable", () => {

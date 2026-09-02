@@ -17,7 +17,8 @@ export function upsertProductEvent(
   if (existingIndex === -1) {
     return [...events, event];
   }
-  if (event.created_at >= events[existingIndex].created_at) {
+  const existing = events[existingIndex];
+  if (existing && event.created_at >= existing.created_at) {
     const next = [...events];
     next[existingIndex] = event;
     return next;
