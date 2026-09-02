@@ -1375,6 +1375,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Whether the storefront accepts Bitcoin (Lightning/Cashu/NWC) at checkout. Set false to hide all Bitcoin buttons — only honored when a card or fiat method is also available (a buyer is never left with no way to pay). Omit/true = accepted (default)."
         ),
+      storefrontAcceptsEscrow: z
+        .boolean()
+        .optional()
+        .describe(
+          "Whether buyers paying with Cashu may opt into escrow (funds locked to you with a buyer refund path after the lock expires). Opt-IN: omit/false = not offered (default). Checkout only offers escrow when the deployment also enables it."
+        ),
     },
     async (params) => {
       const startTime = Date.now();
@@ -1472,6 +1478,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           storefront.paymentMethodOrder = params.storefrontPaymentMethodOrder;
         if (params.storefrontAcceptBitcoin !== undefined)
           storefront.acceptBitcoin = params.storefrontAcceptBitcoin;
+        if (params.storefrontAcceptsEscrow !== undefined)
+          storefront.acceptsEscrow = params.storefrontAcceptsEscrow;
         if (Object.keys(storefront).length > 0) content.storefront = storefront;
 
         const eventTemplate: EventTemplate = {

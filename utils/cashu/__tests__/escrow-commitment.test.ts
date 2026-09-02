@@ -5,12 +5,17 @@ import {
   type Event,
 } from "nostr-tools";
 import {
+  buildEscrowActionContent,
+  buildEscrowActionEventTemplate,
   buildEscrowCommitmentContent,
   buildEscrowCommitmentEventTemplate,
   deriveEscrowId,
+  verifyEscrowActionEvent,
   verifyEscrowCommitmentEvent,
+  ESCROW_ACTION_KIND,
   ESCROW_COMMITMENT_KIND,
   ESCROW_COMMITMENT_MAX_AGE_SECONDS,
+  ESCROW_DEFAULT_LOCK_SECONDS,
   ESCROW_MAX_LOCK_SECONDS,
   type EscrowCommitment,
 } from "@/utils/cashu/escrow-commitment";
@@ -229,5 +234,130 @@ describe("escrow-commitment", () => {
     const result = verify(resigned);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toMatch(/content/i);
+  });
+});
+
+describe("escrow action events", () => {
+  const actionBuyerSecret = generateSecretKey();
+  const actionBuyerPk = getPublicKey(actionBuyerSecret);
+  const ESCROW_ID = `${actionBuyerPk}:order-xyz`;
+
+  function makeAction(
+    overrides: {
+      action?: string;
+      escrowId?: string;
+      kind?: number;
+      createdAt?: number;
+      secret?: Uint8Array;
+      contentOverride?: string;
+      extraTags?: string[][];
+    } = {}
+  ): Event {
+    const action = overrides.action ?? "refund";
+    const escrowId = overrides.escrowId ?? ESCROW_ID;
+    const template = buildEscrowActionEventTemplate({
+      action: action as never,
+      escrowId,
+    });
+    template.created_at = overrides.createdAt ?? NOW;
+    if (overrides.kind !== undefined) template.kind = overrides.kind;
+    if (overrides.contentOverride !== undefined)
+      template.content = overrides.contentOverride;
+    if (overrides.extraTags) template.tags.push(...overrides.extraTags);
+    return finalizeEvent(template, overrides.secret ?? actionBuyerSecret);
+  }
+
+  const verifyAction = (event: Event, nowSeconds = NOW) =>
+    verifyEscrowActionEvent(event, { nowSeconds });
+
+  it("accepts a well-formed buyer-signed refund action", () => {
+    const event = makeAction();
+    expect(event.kind).toBe(ESCROW_ACTION_KIND);
+    expect(verifyAction(event)).toEqual({
+      ok: true,
+      action: "refund",
+      escrowId: ESCROW_ID,
+      actorPubkey: actionBuyerPk,
+    });
+  });
+
+  it("builds canonical content with sorted keys", () => {
+    expect(buildEscrowActionContent({ action: "refund", escrowId: "x" })).toBe(
+      '{"action":"refund","escrowId":"x"}'
+    );
+  });
+
+  it("keeps the default lock under the protocol maximum", () => {
+    expect(ESCROW_DEFAULT_LOCK_SECONDS).toBe(60 * 60 * 24 * 14);
+    expect(ESCROW_DEFAULT_LOCK_SECONDS).toBeLessThan(ESCROW_MAX_LOCK_SECONDS);
+  });
+
+  it("rejects the wrong kind", () => {
+    expect(verifyAction(makeAction({ kind: 1 })).ok).toBe(false);
+  });
+
+  it("rejects a stale action (replay window)", () => {
+    const event = makeAction();
+    expect(
+      verifyAction(event, NOW + ESCROW_COMMITMENT_MAX_AGE_SECONDS + 1).ok
+    ).toBe(false);
+  });
+
+  it("rejects an unsupported action", () => {
+    // Signed correctly, but the action is not one the protocol supports.
+    const event = makeAction({ action: "steal" });
+    const result = verifyAction(event);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/unsupported/i);
+  });
+
+  it("accepts a release signed by the buyer", () => {
+    const result = verifyAction(makeAction({ action: "release" }));
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.action).toBe("release");
+      expect(result.actorPubkey).toBe(actionBuyerPk);
+    }
+  });
+
+  it("accepts a release signed by a non-buyer (actor authorized by the endpoint)", () => {
+    // A release can be signed by EITHER party (buyer approves, seller
+    // completes); the endpoints authorize the actor against the registered
+    // commitment, which is authoritative. Only refunds are buyer-bound here.
+    const result = verifyAction(
+      makeAction({ action: "release", secret: generateSecretKey() })
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects a signer who is not the escrow buyer", () => {
+    const event = makeAction({ secret: generateSecretKey() });
+    const result = verifyAction(event);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/buyer/i);
+  });
+
+  it("rejects a malformed escrow id", () => {
+    expect(verifyAction(makeAction({ escrowId: "not-an-escrow-id" })).ok).toBe(
+      false
+    );
+  });
+
+  it("rejects duplicate d tags", () => {
+    const event = makeAction({ extraTags: [["d", ESCROW_ID]] });
+    expect(verifyAction(event).ok).toBe(false);
+  });
+
+  it("rejects content that disagrees with the signed tags", () => {
+    const event = makeAction({ contentOverride: "{}" });
+    const result = verifyAction(event);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/content/i);
+  });
+
+  it("rejects a tampered action (invalid signature)", () => {
+    const event = makeAction();
+    const tampered = { ...event, content: event.content.replace("refund", "refund!") };
+    expect(verifyAction(tampered).ok).toBe(false);
   });
 });

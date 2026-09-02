@@ -10,6 +10,7 @@ import {
 } from "@/utils/cashu/escrow-payout-worker";
 import {
   claimEscrowOutboxEntry,
+  convertExpiredAwaitingWitnessReleaseToRefund,
   convertExpiredReleaseToRefund,
   enqueueEscrowAction,
   finalizeEscrowOutboxEntry,
@@ -24,6 +25,7 @@ import { isEscrowEnabled } from "@/utils/cashu/escrow-config";
 
 jest.mock("@/utils/db/cashu-escrow-service", () => ({
   claimEscrowOutboxEntry: jest.fn(),
+  convertExpiredAwaitingWitnessReleaseToRefund: jest.fn(),
   convertExpiredReleaseToRefund: jest.fn(),
   enqueueEscrowAction: jest.fn(),
   finalizeEscrowOutboxEntry: jest.fn(),
@@ -40,6 +42,8 @@ jest.mock("@/utils/cashu/escrow-config", () => ({
 
 const mockedClaim = claimEscrowOutboxEntry as jest.Mock;
 const mockedConvert = convertExpiredReleaseToRefund as jest.Mock;
+const mockedConvertAwaiting =
+  convertExpiredAwaitingWitnessReleaseToRefund as jest.Mock;
 const mockedEnqueue = enqueueEscrowAction as jest.Mock;
 const mockedFinalize = finalizeEscrowOutboxEntry as jest.Mock;
 const mockedGetRegistration = getEscrowRegistration as jest.Mock;
@@ -317,6 +321,26 @@ describe("runEscrowPayoutSweep", () => {
     expect(mockedEnqueue).toHaveBeenCalledWith("b:o1", "refund");
     expect(mockedEnqueue).toHaveBeenCalledWith("b:o2", "refund");
     expect(summary.refundsEnqueued).toBe(2);
+  });
+
+  it("converts an ignored awaiting-witness release before enqueueing the expiry refund", async () => {
+    // Buyer approved a release pre-expiry, the seller never witnessed it,
+    // and the lock expired: the sweep atomically converts the stale release
+    // to a payload-less pending refund (the claim guard can never drain that
+    // stage), so seller inaction never blocks the buyer's refund.
+    mockedListExpired.mockResolvedValue([
+      { escrowId: "buyer:order-1" },
+      { escrowId: "buyer:order-2" },
+    ]);
+    mockedConvertAwaiting.mockResolvedValue(true);
+    mockedEnqueue.mockResolvedValue({ enqueued: false, outboxId: "x" });
+    await runEscrowPayoutSweep();
+    expect(mockedConvertAwaiting).toHaveBeenCalledWith("buyer:order-1");
+    expect(mockedConvertAwaiting).toHaveBeenCalledWith("buyer:order-2");
+    // Conversion runs BEFORE the enqueue for each expired escrow.
+    expect(
+      mockedConvertAwaiting.mock.invocationCallOrder[0]
+    ).toBeLessThan(mockedEnqueue.mock.invocationCallOrder[0]);
   });
 
   it("keeps sweeping when one refund enqueue throws (e.g. release already pending)", async () => {

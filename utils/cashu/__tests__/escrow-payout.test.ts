@@ -156,6 +156,24 @@ describe("validateEscrowPayoutProofs", () => {
     ).not.toThrow();
   });
 
+  it("skips the witness check only when requireWitness is false", () => {
+    // release-approve's structural pre-check: the buyer hands over RAW
+    // proofs; only the seller's key can witness them (the next step).
+    const proofs = [makeUnsignedProof()];
+    expect(() =>
+      validateEscrowPayoutProofs(
+        registration,
+        "release",
+        proofs,
+        LOCKTIME - 10,
+        { requireWitness: false }
+      )
+    ).not.toThrow();
+    expect(() =>
+      validateEscrowPayoutProofs(registration, "release", proofs, LOCKTIME - 10)
+    ).toThrow(/not signed by the seller/);
+  });
+
   it("rejects a release once the lock has expired", () => {
     const proofs = [makeSignedProof(sellerPriv)];
     expect(() =>

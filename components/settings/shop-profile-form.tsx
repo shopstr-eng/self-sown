@@ -83,6 +83,7 @@ import CustomDomainSection from "./custom-domain-section";
 import StorefrontPreviewModal from "./storefront/storefront-preview-modal";
 import StorefrontPreviewPanel from "./storefront/storefront-preview-panel";
 import { sanitizeStorefrontConfigLinks } from "@/utils/storefront-links";
+import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import {
   IMPORT_DESIGN_DRAFT_KEY,
   type ImportedStoreDesign,
@@ -372,6 +373,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     StorefrontPaymentMethodGroup[]
   >(DEFAULT_PAYMENT_METHOD_ORDER);
   const [acceptBitcoin, setAcceptBitcoin] = useState(true);
+  // Opt-in (default off): buyers may lock Cashu payments in escrow.
+  const [acceptsEscrow, setAcceptsEscrow] = useState(false);
   const [blogPageSections, setBlogPageSections] = useState<StorefrontSection[]>(
     []
   );
@@ -483,6 +486,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             orderedPaymentMethodGroups(sf.paymentMethodOrder)
           );
         setAcceptBitcoin(sf.acceptBitcoin !== false);
+        setAcceptsEscrow(sf.acceptsEscrow === true);
       }
     },
     [reset]
@@ -613,6 +617,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
           orderedPaymentMethodGroups(sf.paymentMethodOrder)
         );
       setAcceptBitcoin(sf.acceptBitcoin !== false);
+      setAcceptsEscrow(sf.acceptsEscrow === true);
       if (sf.emailPopup) setEmailPopup({ ...emailPopup, ...sf.emailPopup });
       if (sf.seoMeta) setSeoMeta({ ...seoMeta, ...sf.seoMeta });
     }
@@ -970,6 +975,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         seoMeta,
         paymentMethodOrder,
         acceptBitcoin,
+        acceptsEscrow,
       }),
     [
       watchedFormValues,
@@ -1005,6 +1011,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       seoMeta,
       paymentMethodOrder,
       acceptBitcoin,
+      acceptsEscrow,
     ]
   );
   useEffect(() => {
@@ -1140,6 +1147,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             ).length > 0)
             ? false
             : undefined,
+        // Opt-IN (inverse of acceptBitcoin): only persist when enabled;
+        // absent/false = escrow not offered (default, byte-stable events).
+        acceptsEscrow: acceptsEscrow ? true : undefined,
       });
       transformedData.storefront = storefrontConfig;
     }
@@ -1555,6 +1565,26 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                       )}
                     </p>
                   </div>
+
+                  {isEscrowClientEnabled() && (
+                    <div>
+                      <label className="mb-2 flex items-center gap-3 text-base font-bold text-black">
+                        <input
+                          type="checkbox"
+                          checked={acceptsEscrow}
+                          onChange={(e) => setAcceptsEscrow(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        Accept escrow payments
+                      </label>
+                      <p className="ml-7 text-sm text-gray-500">
+                        Lets buyers lock their Cashu payment in escrow: funds
+                        are released to you when the order completes, and the
+                        buyer can reclaim them after the lock expires if it
+                        never does.
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             })()}

@@ -25,6 +25,13 @@ The methods currently guarded: loadMint, send, checkProofsStates,
 createMintQuoteBolt11, checkMintQuoteBolt11, mintProofsBolt11, the keyChain
 getter, KeyChain.getKeysets, and getEncodedToken.
 
+v4 semantics that bit real flows (guard with real-library round-trip tests, not
+mocks): `getDecodedToken` throws without the second keysets arg (pass `[]`);
+decoded proofs carry `Amount` objects that JSON-serialize as strings (normalize
+to ints before wire transfer); `signP2PKProofs` only attaches refund-key
+witnesses after the locktime expires and swallows per-proof failures into log
+warnings (verify witnesses landed yourself).
+
 **Blind spot — method-EXISTS ≠ method-CALLED:** the contract test only asserts the
 library methods exist; it can't see whether a call site actually invokes them in
 the right order. cashu-ts v4 requires `await wallet.loadMint()` on a freshly

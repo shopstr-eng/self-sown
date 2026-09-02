@@ -113,3 +113,4 @@
 - [DNS-pinned Undici lookup](dns-pinned-undici-lookup.md) — custom lookups must honor the all-address callback shape; smoke-test real outbound fetches, not mocks alone.
 - [Sharp in Next standalone](sharp-next-standalone.md) — pnpm tracing can omit Sharp package metadata/libvips despite a green build; verify and repair the nested runtime package context.
 - [Cashu escrow outbox design rules](cashu-escrow-outbox-design.md) — one row/escrow + fencing tokens; worker must strict-check mint state every attempt, persist prepared outputs pre-swap (NUT-09 restore recovery), allowlist P2PK tags, convert expired releases, back off retries.
+- [Cashu escrow custody rule](cashu-escrow-custody.md) — locked proofs never go to the seller (self-redeem risk); buyer custody fail-closed, never truncated; messages carry the escrow id, never the token; every pending outbox stage must stay advanceable, including past expiry.

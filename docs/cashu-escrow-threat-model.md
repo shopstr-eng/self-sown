@@ -147,12 +147,81 @@ unless escrow is enabled) drains the outbox:
   via `attachEscrowPayoutPayload` (atomic against concurrent claims). The
   signing endpoints are future work — see the checklist.
 
+## Buyer-facing flow (behind `NEXT_PUBLIC_CASHU_ESCROW_ENABLED`, off by default)
+
+- **Double opt-in**: the checkout toggle renders only when the deployment flag
+  is on AND the seller's storefront config sets `acceptsEscrow: true`
+  (opt-IN, persisted only when true so existing shop events stay byte-stable).
+  The eligibility check is re-run inside the payment handler, so a stale UI
+  state fails loudly instead of silently degrading to a direct payment.
+  Direct Cashu checkout remains the default; escrow is never forced.
+- **Commitment before funds move**: the buyer signs the kind-31995 commitment
+  and `POST /api/cashu/escrow/register` must succeed BEFORE any proofs are
+  swapped into the P2PK lock (data = seller pubkey, locktime = expiry, refund
+  = exactly the buyer, SIG_INPUTS — the construction the payout worker
+  validates). Multi-product single-seller carts register one commitment per
+  product slice, keyed `<orderId>:<productId>` to avoid id collisions.
+- **Custody stays with the buyer**: the locked proofs are NEVER sent to the
+  seller. The seller's payment message references the escrow id (payment type
+  `escrow`, no token), so the seller cannot redeem the funds unilaterally
+  before expiry — funds move only through the signed release/refund payout
+  flow. The buyer retains the locked token in their localStorage escrow
+  record (written fail-closed at checkout; a failed write aborts loudly and
+  the recoverable-proof tracker stash keeps the funds recoverable) and signs
+  its P2PK witnesses when triggering a refund.
+- **Status**: `GET /api/cashu/escrow/status?escrowId=…` is unauthenticated but
+  rate-limited; the escrow id embeds the buyer pubkey and a high-entropy order
+  id, so knowing it is proof of involvement. It returns status, expiry, the
+  escrow's mint, and any pending outbox action — never amounts. Once a payout
+  has completed it also returns the payout proofs, which are P2PK-locked to
+  the PAYEE (buyer for refunds, seller for releases) and therefore useless to
+  anyone else. While a buyer-approved release awaits the seller's witness it
+  reports `releaseAwaitingSeller` and serves the raw locked proofs (seller-
+  locked pre-expiry, so unspendable by anyone else) for the seller to sign.
+- **Refund trigger**: `POST /api/cashu/escrow/refund` takes a buyer-signed
+  kind-31996 action event (canonical content, unique tags, 10-minute
+  freshness window, signer bound to the escrow's buyer prefix) together with
+  the buyer-retained locked proofs carrying the buyer's P2PK witness. The
+  endpoint re-checks the buyer against the registration, requires actual
+  expiry, validates the proofs against the commitment
+  (`validateEscrowPayoutProofs` — the same validator the payout worker runs),
+  then enqueues the refund and attaches the payload
+  (`attachEscrowPayoutPayload`) in one request, so a 200 means the refund can
+  actually complete. Idempotent, and a conflicting pending release is a 409,
+  never a silent flip. Payload-less pending refunds (auto-enqueued by the
+  expiry sweep, or left by a lost enqueue/claim race) stay completable: the
+  status endpoint reports `payloadAttached`, the buyer UI keeps the refund
+  control until the payload lands, and the endpoint retries the attach once
+  across a claim race and only reports success once attachment succeeds.
+  Refund witness signing requires a key-based signer; remote (NIP-46)
+  signers fail loudly with instructions.
+- **Release**: two-step. The buyer approves early via
+  `POST /api/cashu/escrow/release-approve` (buyer-signed kind-31996 action
+  event, pre-expiry only, structural proof check with witnesses deferred —
+  only the seller's key can produce them) and the raw locked proofs are
+  stored on the outbox at stage `awaiting_seller_witness`; the payout
+  worker's claim atomically skips that stage, so an unwitnessed release can
+  never be attempted (no burned attempts, no claim churn). The seller
+  completes via `POST /api/cashu/escrow/release` with the seller-witnessed
+  proofs, re-validated with the worker's full validator and re-attached at
+  stage `ready`. Both endpoints authorize the signer against the registration
+  (DB is authoritative), replay completed releases with the payout token, and
+  409 on a conflicting pending refund. The seller's orders-dashboard payment
+  cell (payment type `escrow`, reference = escrow id) drives the witness and
+  redeem steps in app; witness signing requires a key-based signer, same as
+  refunds.
+- The buyer's escrow records live in localStorage (deduped by escrow id,
+  NEVER truncated — each record holds the only custody material, so eviction
+  could strand funds; terminal records are pruned only after release or
+  refund+redeem) and render on the orders page with the refund trigger and a
+  refund-redemption button once the payout lands.
+
 ## Residual risks (must be closed before enabling)
 
-1. **Proof custody**: registration records the commitment, but the P2PK-locked
-   proofs themselves stay client-side until release/refund signing is wired.
-   A buyer who loses their wallet backup before resolution loses the funds —
-   recovery UX must land before the flag does.
+1. **Proof custody**: the P2PK-locked proofs live in the buyer's localStorage
+   escrow record. A buyer who loses their browser storage (and wallet backup)
+   before resolution loses the funds — wallet recovery UX (backup + restore
+   verify) must land before the flag does.
 2. **Arbiter key compromise** = misdirected release. Arbiter operations need
    their own signed-request binding when the resolution endpoint is built.
 3. **Expiry race — handled by conversion**: the worker re-checks expiry at
@@ -177,9 +246,17 @@ unless escrow is enabled) drains the outbox:
       proofs are recovered via /restore.
 - [ ] Buyer wallet recovery path for locked proofs (backup + restore verify).
 - [ ] Arbiter resolution endpoint with signed-request binding.
-- [ ] Signed release/refund request endpoints that collect the payee's P2PK
-      signatures and attach them to the outbox entry
-      (`attachEscrowPayoutPayload`).
-- [ ] Delivery of `payout_outputs` to the payee after a payout finalizes.
-- [ ] Buyer UI behind `NEXT_PUBLIC_CASHU_ESCROW_ENABLED`, off by default.
+- [x] Refund: `/api/cashu/escrow/refund` collects the buyer-witnessed locked
+      proofs, validates them against the commitment, and attaches them to the
+      outbox entry (`attachEscrowPayoutPayload`) atomically.
+- [x] Release: buyer-approved via `/api/cashu/escrow/release-approve` (raw
+      proofs staged `awaiting_seller_witness`, unclaimable by the worker),
+      seller-completed via `/api/cashu/escrow/release` (seller-witnessed
+      proofs, full validation, re-attached at stage `ready`).
+- [x] Refund delivery: the status endpoint returns the buyer-locked payout
+      token once a refund finalizes; the orders page redeems it in-app.
+- [x] Release delivery: the status endpoint returns the seller-locked payout
+      token once a release finalizes; the orders dashboard redeems it in-app.
+- [x] Buyer UI behind `NEXT_PUBLIC_CASHU_ESCROW_ENABLED`, off by default
+      (checkout toggle, status + refund trigger; see "Buyer-facing flow").
 - [ ] Re-run this threat model against the final flow.

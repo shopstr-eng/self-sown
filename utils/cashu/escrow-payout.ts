@@ -205,7 +205,8 @@ export function validateEscrowPayoutProofs(
   registration: EscrowRegistration,
   action: EscrowOutboxAction,
   proofs: Proof[],
-  nowSeconds: number = Math.floor(Date.now() / 1000)
+  nowSeconds: number = Math.floor(Date.now() / 1000),
+  options?: { requireWitness?: boolean }
 ): void {
   const expiresAtSeconds = Math.floor(registration.expiresAt.getTime() / 1000);
 
@@ -295,8 +296,13 @@ export function validateEscrowPayoutProofs(
 
     // The witness must carry a valid Schnorr signature from the entitled
     // party over each proof's secret (verified with the real cashu-ts
-    // verifier, so library semantics are the contract).
-    if (!hasP2PKSignedProof(expectedSigner, proof)) {
+    // verifier, so library semantics are the contract). Skipped ONLY for the
+    // structural pre-check when the buyer hands RAW proofs over for the
+    // seller to witness (release-approve) — every payout path requires them.
+    if (
+      options?.requireWitness !== false &&
+      !hasP2PKSignedProof(expectedSigner, proof)
+    ) {
       throw new Error(
         action === "release"
           ? "Escrow release proof is not signed by the seller."

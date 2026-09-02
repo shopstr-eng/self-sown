@@ -605,4 +605,9 @@ export interface StorefrontConfig {
   // card or fiat method available (fail-safe: a buyer is never left with no way
   // to pay). Undefined/true = Bitcoin accepted (default, backward-compat).
   acceptBitcoin?: boolean;
+  // When true, buyers paying with Cashu may opt into escrow (funds locked to
+  // the seller with a buyer refund path after the lock expires). Opt-IN —
+  // undefined/false = escrow not offered (default, backward-compat). Checkout
+  // also requires the deployment's NEXT_PUBLIC_CASHU_ESCROW_ENABLED flag.
+  acceptsEscrow?: boolean;
 }

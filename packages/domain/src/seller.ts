@@ -978,6 +978,8 @@ function normalizeStorefrontConfig(
 
   const acceptBitcoin =
     typeof value.acceptBitcoin === "boolean" ? value.acceptBitcoin : undefined;
+  const acceptsEscrow =
+    typeof value.acceptsEscrow === "boolean" ? value.acceptsEscrow : undefined;
 
   const normalized: StorefrontConfig = {
     ...(colorScheme ? { colorScheme } : {}),
@@ -1038,6 +1040,9 @@ function normalizeStorefrontConfig(
     // Only persist when explicitly disabled; undefined/true stays absent so the
     // default (Bitcoin accepted) is preserved and events stay byte-stable.
     ...(acceptBitcoin === false ? { acceptBitcoin: false } : {}),
+    // Opt-IN, so the inverse of acceptBitcoin: only persist when explicitly
+    // enabled; undefined/false stays absent (escrow not offered by default).
+    ...(acceptsEscrow === true ? { acceptsEscrow: true } : {}),
   };
 
   return Object.keys(normalized).length > 0 ? normalized : undefined;

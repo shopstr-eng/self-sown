@@ -22,6 +22,7 @@ import { NostrMessageEvent } from "../../utils/types/types";
 import MilkMarketSpinner from "../utility-components/mm-spinner";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import ClaimButton from "@/components/utility-components/claim-button";
+import SellerEscrowCell from "@/components/escrow/seller-escrow-cell";
 import DisplayProductModal from "@/components/display-product-modal";
 import parseTags, {
   ProductData,
@@ -2351,6 +2352,11 @@ const OrdersDashboard = ({
                             <span className="font-bold text-green-600">
                               Payment Sent
                             </span>
+                          ) : order.paymentTag === "escrow" &&
+                            order.paymentReference ? (
+                            <SellerEscrowCell
+                              escrowId={order.paymentReference}
+                            />
                           ) : order.paymentToken ? (
                             <ClaimButton token={order.paymentToken} />
                           ) : (

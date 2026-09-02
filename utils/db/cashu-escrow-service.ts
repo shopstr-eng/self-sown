@@ -240,6 +240,9 @@ export async function claimEscrowOutboxEntry(
      WHERE outbox_id = $1
        AND status <> 'done'
        AND (status = 'pending' OR claimed_at < $2)
+       -- A release still awaiting the seller's witness is not payable yet;
+       -- never claim it (no burned attempts, no claim churn).
+       AND (payout_payload->>'stage') IS DISTINCT FROM 'awaiting_seller_witness'
      RETURNING outbox_id, escrow_id, action, status, attempts, payout_payload, prepared_outputs`,
     [outboxId, staleBefore, now, claimToken]
   );
@@ -428,6 +431,46 @@ export async function recoverStaleEscrowOutboxClaims(
   return result.rowCount || 0;
 }
 
+/**
+ * Atomically convert a PENDING release that is still awaiting the seller's
+ * witness into a payload-less pending refund once the lock has expired.
+ * Post-expiry the buyer owns the funds, so an ignored release approval must
+ * never block the buyer's refund — and the worker's claim guard deliberately
+ * never claims that stage, so without this conversion the outbox row would
+ * deadlock the escrow. Self-guarding (expired + still-locked registration +
+ * pending awaiting-witness release only), so callers may invoke it
+ * unconditionally and concurrently. Returns true when a conversion happened.
+ * A seller-COMPLETED ("ready") release is untouched: the worker converts it
+ * at payout time via convertExpiredReleaseToRefund.
+ */
+export async function convertExpiredAwaitingWitnessReleaseToRefund(
+  escrowId: string
+): Promise<boolean> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `UPDATE cashu_escrow_outbox o
+        SET action = 'refund',
+            payout_payload = NULL,
+            prepared_outputs = NULL,
+            attempts = 0,
+            claimed_at = NULL,
+            claim_token = NULL,
+            updated_at = NOW()
+      WHERE o.escrow_id = $1
+        AND o.action = 'release'
+        AND o.status = 'pending'
+        AND o.payout_payload->>'stage' = 'awaiting_seller_witness'
+        AND EXISTS (
+          SELECT 1 FROM cashu_escrow_registrations r
+           WHERE r.escrow_id = o.escrow_id
+             AND r.status = 'locked'
+             AND r.expires_at <= NOW()
+        )`,
+    [escrowId]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
 /** Escrows whose lock expired without a payout — these need refunds. */
 export async function listExpiredLockedEscrows(
   now: Date = new Date()
@@ -465,6 +508,41 @@ export async function getEscrowRegistration(
     arbiterPubkey: row.arbiter_pubkey ?? null,
     expiresAt: new Date(row.expires_at),
     status: row.status,
+  };
+}
+
+/**
+ * Outbox state for an escrow, for the buyer-facing status/refund endpoints.
+ * Null when no release/refund has ever been enqueued. Read-only. Includes the
+ * payout outputs once finalized (payee-P2PK-locked proofs — useless to anyone
+ * but the payee); never exposes the payout payload (input proofs).
+ */
+export async function getEscrowOutboxEntryByEscrowId(
+  escrowId: string
+): Promise<{
+  outboxId: string;
+  action: EscrowOutboxAction;
+  status: EscrowOutboxStatus;
+  payoutOutputs: unknown | null;
+  /** Whether the signed payout payload has been attached to the entry. */
+  payloadAttached: boolean;
+  /** The parsed payout payload (proofs + optional stage), when attached. */
+  payoutPayload: { proofs?: unknown; stage?: string } | null;
+} | null> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `SELECT outbox_id, action, status, payout_outputs, payout_payload, (payout_payload IS NOT NULL) AS payload_attached FROM cashu_escrow_outbox WHERE escrow_id = $1`,
+    [escrowId]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    outboxId: row.outbox_id,
+    action: row.action,
+    status: row.status,
+    payoutOutputs: row.payout_outputs ?? null,
+    payloadAttached: Boolean(row.payload_attached),
+    payoutPayload: row.payout_payload ?? null,
   };
 }
 

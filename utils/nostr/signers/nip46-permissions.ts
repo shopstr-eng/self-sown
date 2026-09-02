@@ -6,7 +6,10 @@
 // on, so a deployment that has not enabled escrow never asks the bunker for
 // the extra kind.
 
-import { ESCROW_COMMITMENT_KIND } from "@/utils/cashu/escrow-commitment";
+import {
+  ESCROW_ACTION_KIND,
+  ESCROW_COMMITMENT_KIND,
+} from "@/utils/cashu/escrow-commitment";
 
 /**
  * Baseline permissions required by the existing app surface:
@@ -55,6 +58,9 @@ export const NIP46_BASE_PERMITTED_METHODS: readonly string[] = [
 /** Escrow-only permissions, appended solely when escrow is enabled. */
 export const NIP46_ESCROW_PERMITTED_METHODS: readonly string[] = [
   `sign_event:${ESCROW_COMMITMENT_KIND}`,
+  // Buyer-signed refund trigger (post-expiry). Same flag gate as the
+  // commitment kind — a deployment without escrow never requests either.
+  `sign_event:${ESCROW_ACTION_KIND}`,
 ];
 
 export function buildNip46PermittedMethods(options?: {

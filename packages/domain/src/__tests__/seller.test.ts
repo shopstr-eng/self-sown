@@ -682,6 +682,32 @@ describe("seller domain helpers", () => {
     expect(storefront).not.toHaveProperty("paymentMethodOrder");
   });
 
+  test("persists storefront acceptsEscrow only when explicitly enabled", () => {
+    const parse = (acceptsEscrow: unknown) => {
+      const result = parseSellerShopProfileEvent({
+        id: "shop-event",
+        pubkey: "seller-pubkey",
+        created_at: 1710000000,
+        kind: 30019,
+        sig: "sig",
+        tags: [["d", "seller-pubkey"]],
+        content: JSON.stringify({
+          name: "Fresh Farm",
+          storefront: { shopSlug: "fresh-farm", acceptsEscrow },
+        }),
+      });
+      return (result as { content: { storefront: any } }).content.storefront;
+    };
+
+    // Literal true persists (escrow is opt-IN).
+    expect(parse(true).acceptsEscrow).toBe(true);
+    // false / absent / junk are dropped so existing events stay byte-stable
+    // and escrow is never offered by default.
+    expect(parse(false)).not.toHaveProperty("acceptsEscrow");
+    expect(parse(undefined)).not.toHaveProperty("acceptsEscrow");
+    expect(parse("yes")).not.toHaveProperty("acceptsEscrow");
+  });
+
   test("selects seller listing summaries from cached product events", () => {
     const summaries = selectSellerListingSummaries(
       [

@@ -43,6 +43,17 @@ import {
 } from "@cashu/cashu-ts";
 import { safeSwap } from "@/utils/cashu/swap-retry-service";
 import { pickMintForPayment } from "@/utils/cashu/wallet-mint-sync";
+import {
+  buildEscrowLockOutputConfig,
+  defaultEscrowExpiresAt,
+  isEscrowAvailableForSeller,
+  recordBuyerEscrow,
+  registerEscrowCommitmentWithServer,
+} from "@/utils/cashu/escrow-checkout";
+import {
+  buildEscrowCommitmentEventTemplate,
+  ESCROW_DEFAULT_LOCK_SECONDS,
+} from "@/utils/cashu/escrow-commitment";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
 import { allocateSellerAmounts } from "@/utils/cashu/allocate-seller-amounts";
@@ -322,6 +333,11 @@ export default function CartInvoiceCard({
     if (!isSingleSeller || products.length === 0) return null;
     return products[0]!.pubkey;
   }, [isSingleSeller, products]);
+
+  // Buyer opt-in for escrowed Cashu (single-seller carts only; rendered only
+  // when the deployment flag is on AND that seller accepts escrow). Direct
+  // Cashu stays the default.
+  const [escrowOptIn, setEscrowOptIn] = useState(false);
 
   const [fiatPaymentOptions, setFiatPaymentOptions] = useState<{
     [key: string]: string;
@@ -5511,6 +5527,27 @@ export default function CartInvoiceCard({
         });
       }
 
+      // Escrow opt-in: honored only for single-seller carts when the buyer
+      // chose it AND that seller accepts escrow AND the deployment flag is
+      // on. Recomputed here (never trusting the toggle alone) so a stale UI
+      // state can't lock funds the seller didn't agree to. A
+      // requested-but-unavailable escrow fails loudly instead of silently
+      // degrading to a direct payment.
+      const escrowActive =
+        escrowOptIn &&
+        isSingleSeller &&
+        !!singleSellerPubkey &&
+        !!userPubkey &&
+        !!signer &&
+        isEscrowAvailableForSeller(
+          shopContext.shopData.get(singleSellerPubkey)?.content?.storefront
+        );
+      if (escrowOptIn && !escrowActive) {
+        throw new Error(
+          "Escrow is not available for this cart. Escrow needs a single seller who accepts it — pay directly instead."
+        );
+      }
+
       // Track which sellers already had their (sats) shipping folded into a
       // reported order total, so multi-product sellers don't double-count
       // shipping across this per-product message loop. Reporting only — the
@@ -5594,6 +5631,13 @@ export default function CartInvoiceCard({
         let sellerProofs: Proof[] = [];
         let donationProofs: Proof[] = [];
         let beefDonationProofs: Proof[] = [];
+        // Per-product escrow (single-seller carts): each product's locked
+        // slice gets its own commitment, keyed off the shared order id so
+        // multi-product carts never collide on buyer:orderId.
+        const productEscrowOrderId =
+          products.length > 1 ? `${orderId}:${product.id}` : orderId;
+        let productEscrowId: string | null = null;
+        let productEscrowExpiresAt = 0;
 
         let shippingData = data; // Assume data contains shipping info
         if (formType === "shipping") {
@@ -5733,19 +5777,141 @@ export default function CartInvoiceCard({
         // directly — no swap — so accumulated fees/rounding stay with the
         // seller rather than being dropped. Non-terminal products swap their
         // exact allocated amount.
-        if (isTerminalProduct) {
+        if (isTerminalProduct && !escrowActive) {
           sellerProofs = remainingProofs;
           remainingProofs = [];
           sellerAmount = sellerProofs.reduce(
             (acc, cur: Proof) => acc + cur.amount.toNumber(),
             0
           );
+        } else if (isTerminalProduct) {
+          // Escrow needs P2PK-LOCKED outputs, so the terminal product can't
+          // take raw remaining proofs: swap exactly (remaining − this swap's
+          // input fee) into locked outputs instead. includeFees stays off so
+          // the send sum is exactly sweepAmount and the keep change is zero.
+          const remainingTotal = remainingProofs.reduce(
+            (acc: number, cur: Proof) => acc + cur.amount.toNumber(),
+            0
+          );
+          const inputFee = wallet.getFeesForProofs(remainingProofs).toNumber();
+          const sweepAmount = remainingTotal - inputFee;
+          if (sweepAmount > 0) {
+            // Sign + register the commitment BEFORE locking proofs, so the
+            // server always holds the terms before funds move.
+            productEscrowExpiresAt = defaultEscrowExpiresAt();
+            const commitmentEvent = await signer!.sign(
+              buildEscrowCommitmentEventTemplate({
+                buyerPubkey: userPubkey!,
+                sellerPubkey: pubkey,
+                orderId: productEscrowOrderId,
+                amountSats: sweepAmount,
+                mintUrl: spendMint,
+                expiresAt: productEscrowExpiresAt,
+              })
+            );
+            const registration =
+              await registerEscrowCommitmentWithServer(commitmentEvent);
+            productEscrowId = registration.escrowId;
+            const __swapOutcomeEscrowTerminal = await safeSwap(
+              wallet,
+              sweepAmount,
+              remainingProofs,
+              {
+                sendConfig: { includeFees: false },
+                outputConfig: buildEscrowLockOutputConfig({
+                  sellerPubkey: pubkey,
+                  buyerPubkey: userPubkey!,
+                  expiresAt: productEscrowExpiresAt,
+                }),
+              }
+            );
+            if (__swapOutcomeEscrowTerminal.status !== "swapped") {
+              throw new Error(
+                __swapOutcomeEscrowTerminal.errorMessage ??
+                  `Swap did not complete (${__swapOutcomeEscrowTerminal.status})`
+              );
+            }
+            const { keep: escrowKeep, send: escrowSend } =
+              __swapOutcomeEscrowTerminal;
+            __recoverableTracker.replaceFromSwap(
+              remainingProofs,
+              escrowKeep,
+              escrowSend
+            );
+            sellerProofs = escrowSend;
+            sellerAmount = escrowSend.reduce(
+              (acc: number, cur: Proof) => acc + cur.amount.toNumber(),
+              0
+            );
+            remainingProofs = escrowKeep;
+            // CUSTODY: the locked proofs stay with the buyer and are never
+            // sent to the seller (utils/cashu/escrow-checkout.ts) — this
+            // record is the only local copy, so a failed write is fatal; the
+            // recoverable tracker stash keeps the funds recoverable on throw.
+            const recordedEscrow = recordBuyerEscrow({
+              escrowId: productEscrowId,
+              orderId: productEscrowOrderId,
+              sellerPubkey: pubkey,
+              amountSats: sellerAmount,
+              mintUrl: spendMint,
+              expiresAt: productEscrowExpiresAt,
+              createdAt: Math.floor(Date.now() / 1000),
+              lockedToken: getEncodedToken({
+                mint: spendMint,
+                proofs: sellerProofs,
+              }),
+            });
+            if (!recordedEscrow) {
+              throw new Error(
+                "Payment locked in escrow, but the escrow record could not be saved on this device. Order id: " +
+                  productEscrowOrderId
+              );
+            }
+          } else {
+            // Dust remainder: nothing lockable — hand it over directly (as
+            // the non-escrow sweep would) rather than burning it.
+            sellerProofs = remainingProofs;
+            remainingProofs = [];
+            sellerAmount = sellerProofs.reduce(
+              (acc, cur: Proof) => acc + cur.amount.toNumber(),
+              0
+            );
+          }
         } else if (sellerAmount > 0) {
+          if (escrowActive) {
+            // Sign + register the commitment BEFORE locking proofs, so the
+            // server always holds the terms before funds move.
+            productEscrowExpiresAt = defaultEscrowExpiresAt();
+            const commitmentEvent = await signer!.sign(
+              buildEscrowCommitmentEventTemplate({
+                buyerPubkey: userPubkey!,
+                sellerPubkey: pubkey,
+                orderId: productEscrowOrderId,
+                amountSats: sellerAmount,
+                mintUrl: spendMint,
+                expiresAt: productEscrowExpiresAt,
+              })
+            );
+            const registration =
+              await registerEscrowCommitmentWithServer(commitmentEvent);
+            productEscrowId = registration.escrowId;
+          }
           const __swapOutcomeA_0 = await safeSwap(
             wallet,
             sellerAmount,
             remainingProofs,
-            { sendConfig: { includeFees: true } }
+            {
+              sendConfig: { includeFees: true },
+              ...(escrowActive
+                ? {
+                    outputConfig: buildEscrowLockOutputConfig({
+                      sellerPubkey: pubkey,
+                      buyerPubkey: userPubkey!,
+                      expiresAt: productEscrowExpiresAt,
+                    }),
+                  }
+                : {}),
+            }
           );
           if (__swapOutcomeA_0.status !== "swapped") {
             throw new Error(
@@ -5757,6 +5923,29 @@ export default function CartInvoiceCard({
           __recoverableTracker.replaceFromSwap(remainingProofs, keep, send);
           sellerProofs = send;
           remainingProofs = keep;
+          if (escrowActive && productEscrowId) {
+            // CUSTODY: locked proofs stay with the buyer (see below); the
+            // record is the only local copy, so a failed write is fatal.
+            const recordedEscrow = recordBuyerEscrow({
+              escrowId: productEscrowId,
+              orderId: productEscrowOrderId,
+              sellerPubkey: pubkey,
+              amountSats: sellerAmount,
+              mintUrl: spendMint,
+              expiresAt: productEscrowExpiresAt,
+              createdAt: Math.floor(Date.now() / 1000),
+              lockedToken: getEncodedToken({
+                mint: spendMint,
+                proofs: sellerProofs,
+              }),
+            });
+            if (!recordedEscrow) {
+              throw new Error(
+                "Payment locked in escrow, but the escrow record could not be saved on this device. Order id: " +
+                  productEscrowOrderId
+              );
+            }
+          }
         } else {
           sellerAmount = 0;
         }
@@ -5781,8 +5970,22 @@ export default function CartInvoiceCard({
             ["type", "2"],
             ["subject", "order-payment"],
             ["order", orderId],
-            ["payment", "ecash", sellerToken],
+            // Custody: escrow payments reference the escrow id instead of
+            // carrying the locked token — the seller never receives the
+            // proofs; payout runs through the signed release/refund flow.
+            productEscrowId
+              ? ["payment", "escrow", productEscrowId]
+              : ["payment", "ecash", sellerToken],
           ];
+          if (productEscrowId) {
+            // Marks the token as P2PK-locked escrow so seller tooling can
+            // recognize it (claim flow is separate future work).
+            paymentTags.push([
+              "escrow",
+              productEscrowId,
+              String(productEscrowExpiresAt),
+            ]);
+          }
           if (sellerAmount) {
             paymentTags.push(["amount", sellerAmount.toString()]);
           }
@@ -5798,6 +6001,10 @@ export default function CartInvoiceCard({
 
         // Step 1: Send payment message (if applicable)
         if (
+          // Escrowed proofs are P2PK-locked to the seller — they can never be
+          // melted to the seller's Lightning address, so escrow forces the
+          // locked-token delivery path below.
+          !escrowActive &&
           paymentPreference === "lightning" &&
           lnurl &&
           lnurl !== "" &&
@@ -6178,28 +6385,55 @@ export default function CartInvoiceCard({
 
           let paymentMessage = "";
           if (sellerToken && sellerProofs) {
+            const escrowSuffix = productEscrowId
+              ? " The funds are locked in escrow " +
+                productEscrowId +
+                " until " +
+                new Date(
+                  (productEscrowExpiresAt ?? 0) * 1000
+                ).toLocaleDateString() +
+                "; they are released to you when the order completes, otherwise the buyer can reclaim them after that date."
+              : null;
             if (quantities[product.id] && quantities[product.id]! > 1) {
-              paymentMessage =
-                "This is a Cashu token payment from " +
-                (userNPub || "a guest buyer") +
-                " for " +
-                quantities[product.id] +
-                " of your " +
-                title +
-                " listing" +
-                productDetails +
-                " on Milk Market: " +
-                sellerToken;
+              paymentMessage = escrowSuffix
+                ? "This is an escrowed Cashu payment from " +
+                  (userNPub || "a guest buyer") +
+                  " for " +
+                  quantities[product.id] +
+                  " of your " +
+                  title +
+                  " listing" +
+                  productDetails +
+                  " on Milk Market." +
+                  escrowSuffix
+                : "This is a Cashu token payment from " +
+                  (userNPub || "a guest buyer") +
+                  " for " +
+                  quantities[product.id] +
+                  " of your " +
+                  title +
+                  " listing" +
+                  productDetails +
+                  " on Milk Market: " +
+                  sellerToken;
             } else {
-              paymentMessage =
-                "This is a Cashu token payment from " +
-                (userNPub || "a guest buyer") +
-                " for your " +
-                title +
-                " listing" +
-                productDetails +
-                " on Milk Market: " +
-                sellerToken;
+              paymentMessage = escrowSuffix
+                ? "This is an escrowed Cashu payment from " +
+                  (userNPub || "a guest buyer") +
+                  " for your " +
+                  title +
+                  " listing" +
+                  productDetails +
+                  " on Milk Market." +
+                  escrowSuffix
+                : "This is a Cashu token payment from " +
+                  (userNPub || "a guest buyer") +
+                  " for your " +
+                  title +
+                  " listing" +
+                  productDetails +
+                  " on Milk Market: " +
+                  sellerToken;
             }
             await sendPaymentAndContactMessageWithKeys(
               pubkey,
@@ -6210,8 +6444,8 @@ export default function CartInvoiceCard({
               false,
               false,
               orderId,
-              "ecash",
-              sellerToken,
+              productEscrowId ? "escrow" : "ecash",
+              productEscrowId ? productEscrowId : sellerToken,
               undefined,
               sellerAmount,
               quantities[product.id] && quantities[product.id]! > 1
@@ -9259,6 +9493,14 @@ export default function CartInvoiceCard({
                   {(() => {
                     const sellerStorefront =
                       singleSellerShopProfile?.content?.storefront;
+                    // Escrow is opt-in on BOTH sides: the deployment flag and
+                    // the seller's storefront setting, and the buyer must be
+                    // signed in (the commitment binds their pubkey).
+                    const escrowAvailable =
+                      isSingleSeller &&
+                      isEscrowAvailableForSeller(sellerStorefront) &&
+                      isLoggedIn &&
+                      !!signer;
                     const cardAvailable = isSingleSeller
                       ? isStripeMerchant || squareCardEligible
                       : allSellersHaveStripe || multiSellerCardEligible;
@@ -9343,6 +9585,33 @@ export default function CartInvoiceCard({
                                 Pay with Cashu: {formattedLightningCost}
                                 {getDiscountLabel(bitcoinDiscountPct)}
                               </Button>
+                            )}
+
+                            {hasTokensAvailable && escrowAvailable && (
+                              <label className="flex cursor-pointer items-start gap-3 rounded-md border-2 border-black bg-white px-4 py-3 text-left">
+                                <input
+                                  type="checkbox"
+                                  checked={escrowOptIn}
+                                  onChange={(e) =>
+                                    setEscrowOptIn(e.target.checked)
+                                  }
+                                  className="mt-1 h-4 w-4 rounded border-gray-300"
+                                />
+                                <span>
+                                  <span className="block text-sm font-bold text-black">
+                                    Pay via escrow
+                                  </span>
+                                  <span className="block text-xs font-medium text-gray-600">
+                                    Your Cashu stays locked to the seller
+                                    until the order completes. If it never
+                                    does, you can reclaim it after{" "}
+                                    {Math.round(
+                                      ESCROW_DEFAULT_LOCK_SECONDS / 86400
+                                    )}{" "}
+                                    days from your orders page.
+                                  </span>
+                                </span>
+                              </label>
                             )}
 
                             {nwcInfo && (

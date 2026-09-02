@@ -2,6 +2,7 @@ import { useRouter } from "next/router";
 import MessageFeed from "@/components/messages/message-feed";
 import StripeConnectBanner from "@/components/stripe-connect/StripeConnectBanner";
 import ProtectedRoute from "@/components/utility-components/protected-route";
+import BuyerEscrowList from "@/components/escrow/buyer-escrow-list";
 
 export default function MessageView() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function MessageView() {
             returnPath="/orders?stripe=success"
             refreshPath="/orders?stripe=refresh"
           />
+        </div>
+        <div className="px-4 pt-4">
+          <BuyerEscrowList />
         </div>
         <MessageFeed
           {...(isInquiry !== undefined

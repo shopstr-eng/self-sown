@@ -23,6 +23,7 @@ import {
   enqueueEscrowAction,
   finalizeEscrowOutboxEntry,
   getEscrowRegistration,
+  convertExpiredAwaitingWitnessReleaseToRefund,
   listExpiredLockedEscrows,
   listPendingEscrowOutboxEntries,
   recoverStaleEscrowOutboxClaims,
@@ -185,6 +186,12 @@ export async function runEscrowPayoutSweep(options?: {
   summary.expiredFound = expired.length;
   for (const { escrowId } of expired) {
     try {
+      // An ignored buyer-approved release (still awaiting the seller's
+      // witness) must not deadlock the refund past expiry: convert it to a
+      // payload-less pending refund first (self-guarding, atomic). A
+      // seller-COMPLETED release is untouched — the drain step converts it
+      // via convertExpiredReleaseToRefund when its payout re-checks expiry.
+      await convertExpiredAwaitingWitnessReleaseToRefund(escrowId);
       const result = await enqueueEscrowAction(escrowId, "refund");
       if (result.enqueued) summary.refundsEnqueued++;
     } catch (error) {

@@ -3,7 +3,10 @@ import {
   NIP46_ESCROW_PERMITTED_METHODS,
   buildNip46PermittedMethods,
 } from "@/utils/nostr/signers/nip46-permissions";
-import { ESCROW_COMMITMENT_KIND } from "@/utils/cashu/escrow-commitment";
+import {
+  ESCROW_ACTION_KIND,
+  ESCROW_COMMITMENT_KIND,
+} from "@/utils/cashu/escrow-commitment";
 
 // The exact list bunkers were granted before permissions were made explicit.
 // Any change here is a deliberate, reviewable permission change.
@@ -18,10 +21,10 @@ describe("nip46-permissions", () => {
     );
   });
 
-  it("appends the escrow commitment kind only when escrow is enabled", () => {
+  it("appends the escrow kinds only when escrow is enabled", () => {
     const withEscrow = buildNip46PermittedMethods({ escrowEnabled: true });
     expect(withEscrow).toBe(
-      `${LEGACY_CONNECT_STRING},sign_event:${ESCROW_COMMITMENT_KIND}`
+      `${LEGACY_CONNECT_STRING},sign_event:${ESCROW_COMMITMENT_KIND},sign_event:${ESCROW_ACTION_KIND}`
     );
   });
 
@@ -32,6 +35,7 @@ describe("nip46-permissions", () => {
     expect(LEGACY_CONNECT_STRING).not.toContain(
       String(ESCROW_COMMITMENT_KIND)
     );
+    expect(LEGACY_CONNECT_STRING).not.toContain(String(ESCROW_ACTION_KIND));
   });
 
   it("contains no duplicates", () => {
