@@ -324,10 +324,6 @@ describe("UserProfileForm", () => {
     );
     expect(screen.getByText("Lightning (Bitcoin)")).toBeInTheDocument();
 
-    const donationInput = screen.getByLabelText(/Milk Market donation/i);
-    await user.clear(donationInput);
-    await user.type(donationInput, "5.5");
-
     await user.click(screen.getByRole("button", { name: /Save Profile/i }));
 
     await waitFor(() => {
@@ -336,11 +332,10 @@ describe("UserProfileForm", () => {
         expect.any(Object),
         expect.stringContaining('"payment_preference":"lightning"')
       );
-      expect(mockCreateNostrProfileEvent).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.any(Object),
-        expect.stringContaining('"shopstr_donation":"5.5"')
-      );
     });
+    // The legacy shopstr_donation key must never be written; mm_donation
+    // (shop settings) is canonical.
+    const savedPayload = mockCreateNostrProfileEvent.mock.calls.at(-1)?.[2];
+    expect(savedPayload).not.toContain("shopstr_donation");
   });
 });

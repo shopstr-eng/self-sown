@@ -47,7 +47,6 @@ const UserProfilePage = () => {
       about: "",
       website: "",
       lud16: "", // Lightning address
-      shopstr_donation: 2.1,
     },
   });
 
@@ -149,6 +148,9 @@ const UserProfilePage = () => {
         typeof data.lud16 === "string" ? data.lud16 : "",
         acceptBitcoin
       );
+      // Drop any legacy donation field; mm_donation (set in shop settings) is
+      // the canonical key — never propagate the stale upstream one.
+      delete updatedData.shopstr_donation;
 
       try {
         localStorage.setItem(
@@ -553,36 +555,6 @@ const UserProfilePage = () => {
                     shop settings.
                   </p>
                 </div>
-
-                <Controller
-                  name="shopstr_donation"
-                  control={control}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      className="text-light-text dark:text-dark-text pb-4"
-                      classNames={{
-                        label: "text-light-text dark:text-dark-text text-lg",
-                      }}
-                      variant="bordered"
-                      fullWidth
-                      label="Milk Market donation (%)"
-                      labelPlacement="outside"
-                      onChange={onChange}
-                      onBlur={onBlur}
-                      value={value?.toString() || ""}
-                    />
-                  )}
-                />
-                {watch("lud16") ? (
-                  <p className="text-light-text dark:text-dark-text mb-4 text-sm font-medium opacity-70">
-                    Note: Lightning payments go directly to your Lightning
-                    address, so this donation doesn&apos;t apply to them.
-                  </p>
-                ) : null}
 
                 <Button
                   className={`mb-10 w-full ${PRIMARYBUTTONCLASSNAMES}`}
