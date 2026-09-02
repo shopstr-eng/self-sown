@@ -12,6 +12,11 @@
 #   with --no-deps (their h11 pin is metadata-only).
 # - pip in this image defaults to --user (via PIP_CONFIG_FILE), which fails
 #   inside a venv — PIP_USER=0 overrides it.
+# - PYTHONPATH injects the Nix-store pip + sitecustomize into EVERY python
+#   here, including the venv one, so venv pip resolves its install scheme
+#   against the read-only Nix store ("Permission denied: .../site-packages").
+#   Scrub PYTHONPATH/PYTHONUSERBASE/the poetry pip vars and neutralize
+#   PIP_CONFIG_FILE for all pip invocations.
 # - pip-generated entry points here get a "#!/usr/bin/env python3" shebang
 #   that resolves to the system python (no cashu) — rewrite to the venv python.
 # - Latest slowapi/limits dropped the "fixed-window-elastic-expiry" strategy
@@ -26,12 +31,16 @@ if ! "$VENV/bin/python" -c "import cashu.mint.main" >/dev/null 2>&1; then
   echo "[staging-mint] bootstrapping nutshell mint venv at $VENV ..."
   rm -rf "$VENV"
   python3 -m venv "$VENV"
-  export PIP_USER=0
-  PIP="$VENV/bin/pip"
-  $PIP install --quiet --upgrade pip
-  $PIP install --quiet "h11>=0.16"   # firewall blocks h11<0.15 artifacts
-  $PIP install --quiet --no-deps "cashu==$MINT_VERSION"
-  $PIP install --quiet \
+  pip_venv() {
+    env -u PYTHONPATH -u PYTHONUSERBASE -u REPLIT_PYTHONPATH \
+      -u POETRY_PIP_NO_ISOLATE -u POETRY_PIP_NO_PREFIX -u POETRY_PIP_FROM_PATH \
+      PIP_CONFIG_FILE=/dev/null PIP_USER=0 \
+      "$VENV/bin/python" -m pip "$@"
+  }
+  pip_venv install --quiet --upgrade pip
+  pip_venv install --quiet "h11>=0.16"   # firewall blocks h11<0.15 artifacts
+  pip_venv install --quiet --no-deps "cashu==$MINT_VERSION"
+  pip_venv install --quiet \
     aiosqlite bech32 bip32 bitstring bolt11 brotli cbor2 click cryptography \
     ecdsa environs fastapi greenlet importlib-metadata jinja2 loguru mnemonic \
     pycryptodomex pydantic pydantic-settings pyjwt setuptools SQLAlchemy \
@@ -39,8 +48,8 @@ if ! "$VENV/bin/python" -c "import cashu.mint.main" >/dev/null 2>&1; then
     grpcio grpcio-tools googleapis-common-protos redis websocket-client \
     mypy-protobuf types-protobuf asyncpg breez-sdk-spark \
     anyio sniffio certifi idna
-  $PIP install --quiet --no-deps httpx httpcore   # h11<0.15 pin is metadata-only
-  $PIP install --quiet "slowapi==0.1.9" "limits==3.14.1"
+  pip_venv install --quiet --no-deps httpx httpcore   # h11<0.15 pin is metadata-only
+  pip_venv install --quiet "slowapi==0.1.9" "limits==3.14.1"
   # Entry points get a system-python shebang in this image; point them at the venv.
   for bin in mint mint-cli cashu; do
     [ -f "$VENV/bin/$bin" ] && sed -i "1s|.*|#!$VENV/bin/python|" "$VENV/bin/$bin"

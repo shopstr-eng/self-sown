@@ -17,6 +17,10 @@ script exists so the mint self-heals. Naive `pip install cashu` FAILS here:
   httpcore 1.0.9 runs fine on h11 0.16.
 - pip defaults to `--user` via PIP_CONFIG_FILE (fails inside a venv) — export
   PIP_USER=0.
+- PYTHONPATH injects the Nix-store pip into EVERY python here, including a
+  venv's, so venv pip installs target the read-only Nix store and fail
+  "Permission denied". The script's pip wrapper scrubs the inherited python
+  env for every pip call — don't bypass it.
 - pip-generated entry points get a `#!/usr/bin/env python3` shebang that resolves
   to the SYSTEM python (no cashu module) — rewrite it to the venv python.
 - Latest slowapi/limits removed the `fixed-window-elastic-expiry` strategy cashu
