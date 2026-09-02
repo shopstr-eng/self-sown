@@ -1,15 +1,18 @@
 /**
  * @jest-environment jsdom
  *
- * Component coverage for the LAST MILE of escrow payouts: the in-app redeem
- * buttons that turn a delivered P2PK-locked payout token into wallet funds —
- * BuyerEscrowList's "Redeem refund to wallet" and SellerEscrowCell's "Redeem
- * payout to wallet". Both flows sign the delivered payout proofs' P2PK
- * witnesses with the local signer and swap them at the mint via
- * wallet.receive, then merge the fresh proofs into the local wallet. A
- * regression in signer wiring or token decoding would strand payees with an
- * unredeemable payout and only surface in production (API-level delivery is
- * covered by __tests__/api/cashu-escrow-status.test.ts).
+ * Component coverage for the LAST MILE of escrow payouts: the in-app buttons
+ * that move escrowed funds —
+ *   BuyerEscrowList:  "Request refund" / "Complete refund",
+ *                     "Release payment to seller", "Redeem refund to wallet"
+ *   SellerEscrowCell: "Sign & release payout", "Redeem payout to wallet"
+ * The action flows sign an escrow action event with the local signer, witness
+ * (or hand over raw) locked proofs, and fire the requestEscrow* API call; the
+ * redeem flows sign the delivered payout proofs' P2PK witnesses and swap them
+ * at the mint via wallet.receive, then merge the fresh proofs into the local
+ * wallet. A regression in signer wiring or token decoding would silently break
+ * refunds/releases and only surface when a real user is stuck (API-level
+ * delivery is covered by __tests__/api/cashu-escrow-status.test.ts).
  *
  * Real-library guardrail: token DECODING and P2PK SIGNING run against the
  * real @cashu/cashu-ts (getDecodedToken on a real fixture token,
@@ -19,7 +22,13 @@
  */
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { generateSecretKey, getPublicKey } from "nostr-tools";
+import {
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  verifyEvent,
+  type EventTemplate,
+} from "nostr-tools";
 import {
   getEncodedToken,
   hasP2PKSignedProof,
@@ -28,8 +37,16 @@ import {
 } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import {
+  ESCROW_ACTION_KIND,
+  buildEscrowActionContent,
+} from "@/utils/cashu/escrow-commitment";
+import {
   isSellerEscrowRedeemed,
   listBuyerEscrows,
+  requestEscrowRefund,
+  requestEscrowRelease,
+  requestEscrowReleaseApproval,
+  signEscrowProofsWithSigner,
 } from "@/utils/cashu/escrow-checkout";
 import { persistReceivedTokens } from "@/utils/cashu/wallet-mint-sync";
 import BuyerEscrowList from "@/components/escrow/buyer-escrow-list";
@@ -69,6 +86,12 @@ jest.mock("@/utils/cashu/escrow-checkout", () => {
     ...actual,
     fetchEscrowStatus: (...args: unknown[]) => mockFetchEscrowStatus(...args),
     signEscrowLockedProofs: jest.fn(actual.signEscrowLockedProofs),
+    signEscrowProofsWithSigner: jest.fn(actual.signEscrowProofsWithSigner),
+    // The HTTP seams: fully mocked, so the tests assert the component fired
+    // the right endpoint with the right payload without a server.
+    requestEscrowRefund: jest.fn(),
+    requestEscrowReleaseApproval: jest.fn(),
+    requestEscrowRelease: jest.fn(),
   };
 });
 import { signEscrowLockedProofs } from "@/utils/cashu/escrow-checkout";
@@ -155,13 +178,19 @@ describe("escrow payout redemption", () => {
   const sellerSecret = generateSecretKey();
   const sellerPk = getPublicKey(sellerSecret);
 
+  // The signers REALLY sign action events (finalizeEvent with the real key)
+  // so the requestEscrow* payload assertions can verify the event signature.
   const buyerSigner = {
     _getPrivKey: async () => buyerSecret,
-    sign: jest.fn(),
+    sign: jest.fn((template: EventTemplate) =>
+      finalizeEvent(template, buyerSecret)
+    ),
   };
   const sellerSigner = {
     _getPrivKey: async () => sellerSecret,
-    sign: jest.fn(),
+    sign: jest.fn((template: EventTemplate) =>
+      finalizeEvent(template, sellerSecret)
+    ),
   };
 
   const buyerPayoutToken = getEncodedToken({
@@ -198,10 +227,22 @@ describe("escrow payout redemption", () => {
     };
   }
 
+  /** Matches the escrow action event template handed to signer.sign. */
+  function actionTemplate(action: "refund" | "release", escrowId: string) {
+    return expect.objectContaining({
+      kind: ESCROW_ACTION_KIND,
+      content: buildEscrowActionContent({ action, escrowId }),
+      tags: [
+        ["d", escrowId],
+        ["action", action],
+      ],
+    });
+  }
+
   describe("BuyerEscrowList — redeem refund to wallet", () => {
     const escrowId = `${buyerPk}:order-1`;
 
-    function seedBuyerRecord() {
+    function seedBuyerRecord(lockedToken = "cashuAlocked") {
       localStorage.setItem(
         "cashu_escrows",
         JSON.stringify([
@@ -213,7 +254,7 @@ describe("escrow payout redemption", () => {
             mintUrl: MINT,
             expiresAt: 1_700_000_000,
             createdAt: 1_600_000_000,
-            lockedToken: "cashuAlocked",
+            lockedToken,
           },
         ])
       );
@@ -317,6 +358,323 @@ describe("escrow payout redemption", () => {
       await waitFor(() =>
         expect(
           screen.getByRole("button", { name: "Redeem refund to wallet" })
+        ).toBeEnabled()
+      );
+    });
+  });
+
+  describe("BuyerEscrowList — request / complete refund", () => {
+    const escrowId = `${buyerPk}:order-1`;
+
+    function seedRefundRecord() {
+      // The record's lockedToken must REALLY decode: signEscrowLockedProofs
+      // is a call-through spy, so the component decodes + witnesses the
+      // actual locked proofs. Buyer is the refund key on an expired lock.
+      localStorage.setItem(
+        "cashu_escrows",
+        JSON.stringify([
+          {
+            escrowId,
+            orderId: "order-1",
+            sellerPubkey: "d".repeat(64),
+            amountSats: 100,
+            mintUrl: MINT,
+            expiresAt: 1_700_000_000,
+            createdAt: 1_600_000_000,
+            lockedToken: buyerPayoutToken,
+          },
+        ])
+      );
+    }
+
+    function renderBuyerList() {
+      return render(
+        <SignerContext.Provider
+          value={
+            {
+              signer: buyerSigner,
+              pubkey: buyerPk,
+              isLoggedIn: true,
+            } as never
+          }
+        >
+          <BuyerEscrowList />
+        </SignerContext.Provider>
+      );
+    }
+
+    it("signs the refund action + locked proofs and fires requestEscrowRefund", async () => {
+      seedRefundRecord();
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          expiresAt: 1_700_000_000, // expired → refundable
+        })
+      );
+
+      renderBuyerList();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Request refund" })
+      );
+
+      await waitFor(() =>
+        expect(requestEscrowRefund).toHaveBeenCalledTimes(1)
+      );
+
+      // The signer was handed the escrow action template (refund, this
+      // escrow), and the signed event is a real, valid Nostr event.
+      expect(buyerSigner.sign).toHaveBeenCalledWith(
+        actionTemplate("refund", escrowId)
+      );
+      // The locked proofs were witnessed through the real signing seam.
+      expect(signEscrowLockedProofs).toHaveBeenCalledWith(
+        buyerPayoutToken,
+        buyerSigner,
+        MINT
+      );
+      const [actionEvent, payoutProofs] = (requestEscrowRefund as jest.Mock)
+        .mock.calls[0]!;
+      expect(verifyEvent(actionEvent)).toBe(true);
+      expect(actionEvent.pubkey).toBe(buyerPk);
+      expect(payoutProofs).toHaveLength(1);
+      expect(hasP2PKSignedProof(buyerPk, payoutProofs[0]!)).toBe(true);
+    });
+
+    it("offers 'Complete refund' for a payload-less pending refund and fires the same request", async () => {
+      seedRefundRecord();
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          expiresAt: 1_700_000_000,
+          pendingAction: "refund",
+          payloadAttached: false,
+        })
+      );
+
+      renderBuyerList();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Complete refund" })
+      );
+
+      await waitFor(() =>
+        expect(requestEscrowRefund).toHaveBeenCalledTimes(1)
+      );
+      expect(buyerSigner.sign).toHaveBeenCalledWith(
+        actionTemplate("refund", escrowId)
+      );
+      const [, payoutProofs] = (requestEscrowRefund as jest.Mock).mock
+        .calls[0]!;
+      expect(hasP2PKSignedProof(buyerPk, payoutProofs[0]!)).toBe(true);
+    });
+
+    it("surfaces a request failure as an error banner and re-enables the button", async () => {
+      seedRefundRecord();
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          expiresAt: 1_700_000_000,
+        })
+      );
+      (requestEscrowRefund as jest.Mock).mockRejectedValueOnce(
+        new Error("refund endpoint down")
+      );
+
+      renderBuyerList();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Request refund" })
+      );
+
+      // Loud failure — an error banner, not a hang or a silent dead-end.
+      await screen.findByText("refund endpoint down");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Request refund" })
+        ).toBeEnabled()
+      );
+    });
+  });
+
+  describe("BuyerEscrowList — release payment to seller", () => {
+    const escrowId = `${buyerPk}:order-1`;
+
+    function seedReleaseRecord() {
+      localStorage.setItem(
+        "cashu_escrows",
+        JSON.stringify([
+          {
+            escrowId,
+            orderId: "order-1",
+            sellerPubkey: "d".repeat(64),
+            amountSats: 100,
+            mintUrl: MINT,
+            expiresAt: 1_900_000_000,
+            createdAt: 1_600_000_000,
+            lockedToken: buyerPayoutToken,
+          },
+        ])
+      );
+    }
+
+    function renderBuyerList() {
+      return render(
+        <SignerContext.Provider
+          value={
+            {
+              signer: buyerSigner,
+              pubkey: buyerPk,
+              isLoggedIn: true,
+            } as never
+          }
+        >
+          <BuyerEscrowList />
+        </SignerContext.Provider>
+      );
+    }
+
+    it("signs the release action and fires requestEscrowReleaseApproval with the RAW locked proofs", async () => {
+      seedReleaseRecord();
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          pendingAction: null,
+          expiresAt: 1_900_000_000, // still locked → early release
+        })
+      );
+
+      renderBuyerList();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Release payment to seller" })
+      );
+
+      await waitFor(() =>
+        expect(requestEscrowReleaseApproval).toHaveBeenCalledTimes(1)
+      );
+
+      expect(buyerSigner.sign).toHaveBeenCalledWith(
+        actionTemplate("release", escrowId)
+      );
+      const [actionEvent, proofs] = (
+        requestEscrowReleaseApproval as jest.Mock
+      ).mock.calls[0]!;
+      expect(verifyEvent(actionEvent)).toBe(true);
+      expect(actionEvent.pubkey).toBe(buyerPk);
+      // Only the seller can witness pre-expiry, so the buyer hands over the
+      // RAW proofs — no buyer witness may be attached at this stage.
+      expect(proofs).toHaveLength(1);
+      expect(proofs[0]!.witness).toBeUndefined();
+      // No mint interaction: approval is a pure server call.
+      expect(mockReceive).not.toHaveBeenCalled();
+    });
+
+    it("surfaces an approval failure as an error banner and re-enables the button", async () => {
+      seedReleaseRecord();
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          pendingAction: null,
+          expiresAt: 1_900_000_000,
+        })
+      );
+      (requestEscrowReleaseApproval as jest.Mock).mockRejectedValueOnce(
+        new Error("release-approve endpoint down")
+      );
+
+      renderBuyerList();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Release payment to seller" })
+      );
+
+      await screen.findByText("release-approve endpoint down");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Release payment to seller" })
+        ).toBeEnabled()
+      );
+    });
+  });
+
+  describe("SellerEscrowCell — sign & release payout", () => {
+    const escrowId = `${buyerPk}:order-3`;
+
+    function renderSellerCell() {
+      return render(
+        <SignerContext.Provider
+          value={{ signer: sellerSigner, isLoggedIn: true } as never}
+        >
+          <SellerEscrowCell escrowId={escrowId} />
+        </SignerContext.Provider>
+      );
+    }
+
+    it("witnesses the releaseProofs, signs the release action, and fires requestEscrowRelease", async () => {
+      const releaseProofs = [sellerPayoutProof(sellerPk)];
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          releaseAwaitingSeller: true,
+          releaseProofs,
+          mintUrl: MINT,
+          expiresAt: 1_900_000_000, // pre-expiry: seller key is entitled
+        })
+      );
+
+      renderSellerCell();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Sign & release payout" })
+      );
+
+      await waitFor(() =>
+        expect(requestEscrowRelease).toHaveBeenCalledTimes(1)
+      );
+
+      // The served releaseProofs were witnessed with the seller's key through
+      // the real signing seam, and the action event template is this escrow's
+      // release.
+      expect(signEscrowProofsWithSigner).toHaveBeenCalledWith(
+        releaseProofs,
+        sellerSigner
+      );
+      expect(sellerSigner.sign).toHaveBeenCalledWith(
+        actionTemplate("release", escrowId)
+      );
+      const [actionEvent, payoutProofs] = (requestEscrowRelease as jest.Mock)
+        .mock.calls[0]!;
+      expect(verifyEvent(actionEvent)).toBe(true);
+      expect(actionEvent.pubkey).toBe(sellerPk);
+      expect(payoutProofs).toHaveLength(1);
+      expect(hasP2PKSignedProof(sellerPk, payoutProofs[0]!)).toBe(true);
+    });
+
+    it("surfaces a release failure as an error and re-enables the button", async () => {
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          releaseAwaitingSeller: true,
+          releaseProofs: [sellerPayoutProof(sellerPk)],
+          mintUrl: MINT,
+          expiresAt: 1_900_000_000,
+        })
+      );
+      (requestEscrowRelease as jest.Mock).mockRejectedValueOnce(
+        new Error("release endpoint down")
+      );
+
+      renderSellerCell();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Sign & release payout" })
+      );
+
+      await screen.findByText("release endpoint down");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Sign & release payout" })
         ).toBeEnabled()
       );
     });
