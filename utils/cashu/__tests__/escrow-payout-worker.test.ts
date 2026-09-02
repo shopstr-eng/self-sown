@@ -35,7 +35,11 @@ import {
   saveEscrowPreparedOutputs,
 } from "@/utils/db/cashu-escrow-service";
 import { isEscrowEnabled } from "@/utils/cashu/escrow-config";
+import { notifyEscrowPayoutFinalized } from "@/utils/cashu/escrow-payout-notify";
 
+jest.mock("@/utils/cashu/escrow-payout-notify", () => ({
+  notifyEscrowPayoutFinalized: jest.fn(),
+}));
 jest.mock("@/utils/db/cashu-escrow-service", () => ({
   claimEscrowOutboxEntry: jest.fn(),
   convertExpiredAwaitingWitnessReleaseToRefund: jest.fn(),
@@ -66,6 +70,7 @@ const mockedRecover = recoverStaleEscrowOutboxClaims as jest.Mock;
 const mockedRelease = releaseEscrowOutboxClaim as jest.Mock;
 const mockedSave = saveEscrowPreparedOutputs as jest.Mock;
 const mockedEnabled = isEscrowEnabled as jest.Mock;
+const mockedNotify = notifyEscrowPayoutFinalized as jest.Mock;
 
 const REGISTRATION = {
   escrowId: "buyer:order-1",
@@ -103,6 +108,7 @@ beforeEach(() => {
   mockedRelease.mockResolvedValue(true);
   mockedSave.mockResolvedValue(true);
   mockedConvert.mockResolvedValue(true);
+  mockedNotify.mockResolvedValue(true);
 });
 
 describe("processEscrowOutboxEntry", () => {
@@ -132,6 +138,71 @@ describe("processEscrowOutboxEntry", () => {
       outputs
     );
     expect(mockedRelease).not.toHaveBeenCalled();
+    // Post-finalize: the payee is notified exactly once with the resolution.
+    expect(mockedNotify).toHaveBeenCalledTimes(1);
+    expect(mockedNotify).toHaveBeenCalledWith(REGISTRATION, "release");
+  });
+
+  it("notifies the buyer after a finalized refund", async () => {
+    mockedClaim.mockResolvedValue(claimed({ action: "refund" }));
+    const executePayout: jest.Mock = jest.fn(async () => ({
+      outputs: [{ s: 1 }],
+    }));
+
+    const result = await processEscrowOutboxEntry("buyer:order-1", {
+      executePayout,
+    });
+
+    expect(result.status).toBe("processed");
+    expect(mockedNotify).toHaveBeenCalledTimes(1);
+    expect(mockedNotify).toHaveBeenCalledWith(REGISTRATION, "refund");
+  });
+
+  it("still reports processed when the payout notification fails", async () => {
+    // The DM is best-effort and isolated: a notification failure must never
+    // mark the finalized payout failed or re-queue it.
+    mockedClaim.mockResolvedValue(claimed());
+    mockedNotify.mockRejectedValue(new Error("relays unreachable"));
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+    const executePayout: jest.Mock = jest.fn(async () => ({
+      outputs: [{ secret: "out" }],
+    }));
+
+    const result = await processEscrowOutboxEntry("buyer:order-1", {
+      executePayout,
+    });
+
+    expect(result).toEqual({ outboxId: "buyer:order-1", status: "processed" });
+    expect(mockedFinalize).toHaveBeenCalledTimes(1);
+    expect(mockedRelease).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it("does NOT notify when the payout fails — only finalization notifies", async () => {
+    mockedClaim.mockResolvedValue(claimed());
+    const executePayout = jest.fn(async () => {
+      throw new Error("mint unreachable");
+    });
+
+    const result = await processEscrowOutboxEntry("buyer:order-1", {
+      executePayout,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(mockedNotify).not.toHaveBeenCalled();
+  });
+
+  it("does NOT notify on an expiry conversion — nothing was paid out", async () => {
+    mockedClaim.mockResolvedValue(claimed());
+    const executePayout = jest.fn();
+
+    const result = await processEscrowOutboxEntry("buyer:order-1", {
+      executePayout,
+      now: new Date(REGISTRATION.expiresAt.getTime() + 1_000),
+    });
+
+    expect(result.status).toBe("converted");
+    expect(mockedNotify).not.toHaveBeenCalled();
   });
 
   it("persists prepared outputs under the claim fencing token before paying", async () => {

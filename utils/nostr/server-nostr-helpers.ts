@@ -230,10 +230,15 @@ export async function republishBlogPostToAuthorRelays(
   return { published, relays };
 }
 
-export async function sendServerSideNostrDM(
+// Shared gift-wrap construction + delivery for server-signed DMs (NIP-17).
+// `deliverToRecipientRelays` additionally resolves the recipient's own NIP-65
+// read relays from the Postgres cache — the same seller-relay delivery fix as
+// order DMs: default relays alone miss recipients who read elsewhere.
+async function deliverServerSideNostrDM(
   recipientPubkey: string,
   message: string,
-  subject: string
+  subject: string,
+  deliverToRecipientRelays: boolean
 ): Promise<boolean> {
   try {
     const encryptionNsec = process.env["ENCRYPTION_NSEC"];
@@ -311,7 +316,16 @@ export async function sendServerSideNostrDM(
 
     await cacheEvent(signedGiftWrap as NostrEvent);
 
-    const successCount = await publishToRelays(signedGiftWrap);
+    const relays = deliverToRecipientRelays
+      ? Array.from(
+          new Set([
+            ...(await getRecipientReadRelays(recipientPubkey)),
+            ...defaultRelays,
+            BLASTR_RELAY,
+          ])
+        )
+      : defaultRelays;
+    const successCount = await publishToRelays(signedGiftWrap, relays);
     if (successCount === 0) {
       console.warn(
         `Relay publish timed out or failed for gift-wrapped message, but event is saved to database. Recipient: ${recipientPubkey.substring(
@@ -322,7 +336,7 @@ export async function sendServerSideNostrDM(
       await trackFailedRelayPublish(
         (signedGiftWrap as NostrEvent).id,
         signedGiftWrap as NostrEvent,
-        defaultRelays
+        relays
       ).catch(console.error);
     }
 
@@ -331,4 +345,24 @@ export async function sendServerSideNostrDM(
     console.error("Failed to send server-side Nostr DM:", error);
     return false;
   }
+}
+
+export async function sendServerSideNostrDM(
+  recipientPubkey: string,
+  message: string,
+  subject: string
+): Promise<boolean> {
+  return deliverServerSideNostrDM(recipientPubkey, message, subject, false);
+}
+
+// Same server-signed DM, but delivered to the recipient's OWN NIP-65 read
+// relays (∪ defaults ∪ blastr) — use when the recipient may not read the
+// default relay set (e.g. escrow payout notifications to sellers on their own
+// relays, mirroring the order-DM seller-relay delivery pattern).
+export async function sendServerSideNostrDMToRecipientRelays(
+  recipientPubkey: string,
+  message: string,
+  subject: string
+): Promise<boolean> {
+  return deliverServerSideNostrDM(recipientPubkey, message, subject, true);
 }

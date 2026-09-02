@@ -31,6 +31,7 @@ import {
   saveEscrowPreparedOutputs,
 } from "@/utils/db/cashu-escrow-service";
 import { executeEscrowPayout } from "@/utils/cashu/escrow-payout";
+import { notifyEscrowPayoutFinalized } from "@/utils/cashu/escrow-payout-notify";
 import type { SerializedOutputData } from "@cashu/cashu-ts";
 
 export const ESCROW_PAYOUT_BATCH_SIZE = 10;
@@ -38,6 +39,8 @@ export const ESCROW_PAYOUT_BATCH_SIZE = 10;
 export interface EscrowPayoutWorkerDeps {
   /** Injectable for tests; defaults to the real mint payout. */
   executePayout?: typeof executeEscrowPayout;
+  /** Injectable for tests; defaults to a Nostr DM to the payee. */
+  notifyPayoutFinalized?: typeof notifyEscrowPayoutFinalized;
   /** Injectable clock; defaults to wall time. */
   now?: Date;
 }
@@ -125,6 +128,19 @@ export async function processEscrowOutboxEntry(
       }
     );
     await finalizeEscrowOutboxEntry(outboxId, claim.claimToken, result.outputs);
+    // Post-finalize notification (exactly-once): the entry is now terminal
+    // ('done'), so no later sweep re-enters this branch. The DM is
+    // best-effort and isolated — a notification failure must never mark the
+    // finalized payout failed or re-queue it.
+    const notify = deps.notifyPayoutFinalized ?? notifyEscrowPayoutFinalized;
+    try {
+      await notify(registration, claim.action);
+    } catch (notifyError) {
+      console.error(
+        `[escrow-worker] payout notification for ${outboxId} failed:`,
+        notifyError instanceof Error ? notifyError.message : notifyError
+      );
+    }
     return { outboxId, status: "processed" };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -159,6 +175,7 @@ export async function runEscrowPayoutSweep(options?: {
   batchSize?: number;
   now?: Date;
   executePayout?: typeof executeEscrowPayout;
+  notifyPayoutFinalized?: typeof notifyEscrowPayoutFinalized;
 }): Promise<EscrowSweepSummary> {
   const summary: EscrowSweepSummary = {
     skipped: false,
@@ -214,6 +231,7 @@ export async function runEscrowPayoutSweep(options?: {
     try {
       const result = await processEscrowOutboxEntry(outboxId, {
         executePayout: options?.executePayout,
+        notifyPayoutFinalized: options?.notifyPayoutFinalized,
         now,
       });
       if (result.status === "processed") summary.processed++;

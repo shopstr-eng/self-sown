@@ -36,6 +36,15 @@ never add latency to or change the success of checkout):**
 messages (`!!orderId && !isReceipt && !isDonation`) — not buyer receipts (their
 ephemeral recipient key has no relay list, so it just wastes a discovery timeout).
 
+**Server-CREATED DMs have the same trap.** `sendServerSideNostrDM` publishes
+only to the default relay set; `sendServerSideNostrDMToRecipientRelays` is the
+variant that resolves the recipient's NIP-65 read relays ∪ defaults ∪ blastr.
+**Why:** a server-signed DM (escrow payout notification, Pro receipt) to a
+recipient who reads non-default relays silently never arrives.
+**How to apply:** any new server-originated payee/recipient-facing DM should
+use the recipient-relay variant; keep the plain one only where default-relay
+delivery is intentional.
+
 **Read-path symmetry (the other half of resilience):** delivering an order to the
 seller's relays + server cache only helps if the dashboard READ path actually
 merges the server copy. Profiles and products already merge DB ∪ relay for display.

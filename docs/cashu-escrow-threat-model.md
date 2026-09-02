@@ -267,6 +267,12 @@ unless escrow is enabled) drains the outbox:
       token once a refund finalizes; the orders page redeems it in-app.
 - [x] Release delivery: the status endpoint returns the seller-locked payout
       token once a release finalizes; the orders dashboard redeems it in-app.
+- [x] Payout notification: after a payout finalizes, the worker sends the
+      payee a gift-wrapped Nostr DM (server-signed, delivered to the payee's
+      NIP-65 read relays ∪ defaults ∪ blastr) referencing the escrow id and
+      the resolution — never the payout token. Best-effort and exactly-once:
+      it fires only in the post-finalize branch (the entry is terminal
+      `done`), and a DM failure never retries or rolls back the payout.
 - [x] Buyer UI behind `NEXT_PUBLIC_CASHU_ESCROW_ENABLED`, off by default
       (checkout toggle, status + refund trigger; see "Buyer-facing flow").
 - [ ] Re-run this threat model against the final flow.
