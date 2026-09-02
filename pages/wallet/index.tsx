@@ -21,6 +21,15 @@ import {
   restoreTokensFromProofEvents,
   syncMintsFromTokens,
 } from "@/utils/cashu/wallet-mint-sync";
+import {
+  describeEscrowRestore,
+  republishMissingEscrowBackups,
+  restoreEscrowsFromProofEvents,
+} from "@/utils/cashu/escrow-backup";
+import {
+  NostrContext,
+  SignerContext,
+} from "@/components/utility-components/nostr-context-provider";
 import { CashuWalletContext } from "@/utils/context/context";
 
 const Wallet = () => {
@@ -35,7 +44,23 @@ const Wallet = () => {
   // (token count change), so the multi-mint balance cannot stay stale.
   const [keysetRetryTick, setKeysetRetryTick] = useState(0);
   const walletContext = useContext(CashuWalletContext);
+  const { nostr } = useContext(NostrContext);
+  const { signer, isLoggedIn } = useContext(SignerContext);
   const router = useRouter();
+
+  // Self-heal: re-publish kind-7375 backups for any local escrow record that
+  // has none yet (checkout-time publish failed, or the escrow predates
+  // backups). Without this a lost browser would strand the locked proofs.
+  useEffect(() => {
+    if (!isLoggedIn || !nostr || !signer) return;
+    republishMissingEscrowBackups(
+      nostr,
+      signer,
+      walletContext.proofEvents || []
+    ).catch((err) =>
+      console.warn("[wallet] escrow backup republish failed:", err)
+    );
+  }, [isLoggedIn, nostr, signer, walletContext.proofEvents]);
 
   // Reactive view of localStorage — re-read on storage events emitted by the
   // wallet writers and on a slow poll so older same-tab writes don't get
@@ -172,29 +197,34 @@ const Wallet = () => {
   const [restoreStatus, setRestoreStatus] = useState<string | null>(null);
   const handleRestore = async () => {
     try {
+      // Escrow-locked proofs restore into `cashu_escrows` records, not the
+      // spendable wallet — restore both from the same kind-7375 backup.
+      const escrowResult = await restoreEscrowsFromProofEvents(
+        walletContext.proofEvents || []
+      );
       const { restoredCount, restoredSats, skippedCount } =
         await restoreTokensFromProofEvents(walletContext.proofEvents || []);
+      const escrowNotes = describeEscrowRestore(escrowResult);
+      let tokenStatus: string;
       if (restoredCount === 0 && skippedCount === 0) {
-        setRestoreStatus(
-          "Nothing to restore. Your local wallet already matches your nostr backup."
-        );
+        tokenStatus =
+          "Nothing to restore. Your local wallet already matches your nostr backup.";
       } else if (restoredCount === 0 && skippedCount > 0) {
-        setRestoreStatus(
-          `Couldn't verify ${skippedCount} proof${
-            skippedCount === 1 ? "" : "s"
-          } — a mint was unreachable. Try again in a moment.`
-        );
+        tokenStatus = `Couldn't verify ${skippedCount} proof${
+          skippedCount === 1 ? "" : "s"
+        } — a mint was unreachable. Try again in a moment.`;
       } else {
-        setRestoreStatus(
-          `Restored ${restoredCount} proof${
-            restoredCount === 1 ? "" : "s"
-          } (${restoredSats} sats) from nostr backup.${
-            skippedCount > 0
-              ? ` ${skippedCount} skipped (mint unreachable) — try again.`
-              : ""
-          }`
-        );
+        tokenStatus = `Restored ${restoredCount} proof${
+          restoredCount === 1 ? "" : "s"
+        } (${restoredSats} sats) from nostr backup.${
+          skippedCount > 0
+            ? ` ${skippedCount} skipped (mint unreachable) — try again.`
+            : ""
+        }`;
       }
+      setRestoreStatus(
+        escrowNotes ? `${tokenStatus} ${escrowNotes}` : tokenStatus
+      );
     } catch (err) {
       console.error("Restore failed:", err);
       setRestoreStatus("Restore failed. See console for details.");

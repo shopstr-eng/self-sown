@@ -1009,4 +1009,81 @@ describe("fetchCashuWallet", () => {
     expect(nostr.fetch).not.toHaveBeenCalled();
     expect(editCashuWalletContext).toHaveBeenCalledWith([], [], [], false);
   });
+
+  it("keeps DB-cached escrow backups out of the spendable wallet while preserving them for restore", async () => {
+    // Regression: the escrow backup publish path caches to the database
+    // BEFORE relay publication, so this DB branch may be the only place a
+    // fresh backup is visible. The locked proofs are P2PK escrow funds —
+    // they must reach proofEvents (so restoreEscrowsFromProofEvents can
+    // rebuild the record) but NEVER cashuProofs (spendable balance).
+    jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+      getLocalStorageData: jest.fn(() => ({ tokens: [] })),
+      deleteEvent: jest.fn(),
+      verifyNip05Identifier: jest.fn(),
+    }));
+    jest.doMock("@/utils/db/db-client", () => ({
+      cacheEventsToDatabase: jest.fn(),
+    }));
+
+    const { fetchCashuWallet } = await import("../fetch-service");
+
+    const buyerPk = "f".repeat(64);
+    const escrowInfo = {
+      escrowId: `${buyerPk}:order-1`,
+      orderId: "order-1",
+      sellerPubkey: "d".repeat(64),
+      amountSats: 121,
+      expiresAt: 1_900_000_000,
+      createdAt: 1_800_000_000,
+    };
+    const lockedProofs = [
+      { id: "ks", amount: 100, secret: "locked-1", C: "c1" },
+      { id: "ks", amount: 21, secret: "locked-2", C: "c2" },
+    ];
+    const dbEvent = makeBaseEvent({
+      id: "escrow-backup-event",
+      kind: 7375,
+      pubkey: buyerPk,
+      content: "encrypted",
+    });
+
+    const signer = {
+      getPubKey: async () => buyerPk,
+      decrypt: async () =>
+        JSON.stringify({
+          mint: "https://mint.example",
+          unit: "sat",
+          proofs: lockedProofs,
+          escrow: escrowInfo,
+        }),
+    };
+    global.fetch = jest.fn(async () =>
+      makeDbPayload([dbEvent])
+    ) as unknown as typeof global.fetch;
+    const nostr = { fetch: jest.fn(async () => []) } as any;
+    const editCashuWalletContext = jest.fn();
+
+    const result = await fetchCashuWallet(
+      nostr,
+      signer as any,
+      ["wss://relay.example"],
+      editCashuWalletContext
+    );
+
+    // Retained in proofEvents WITH the escrow marker for restore…
+    expect(result.proofEvents).toHaveLength(1);
+    expect(result.proofEvents[0]).toMatchObject({
+      id: "escrow-backup-event",
+      mint: "https://mint.example",
+      escrow: escrowInfo,
+    });
+    // …but excluded from the spendable wallet.
+    expect(result.cashuProofs).toEqual([]);
+    expect(editCashuWalletContext).toHaveBeenCalledWith(
+      result.proofEvents,
+      expect.any(Array),
+      [],
+      false
+    );
+  });
 });

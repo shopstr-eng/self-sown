@@ -218,10 +218,17 @@ unless escrow is enabled) drains the outbox:
 
 ## Residual risks (must be closed before enabling)
 
-1. **Proof custody**: the P2PK-locked proofs live in the buyer's localStorage
-   escrow record. A buyer who loses their browser storage (and wallet backup)
-   before resolution loses the funds — wallet recovery UX (backup + restore
-   verify) must land before the flag does.
+1. **Proof custody — mitigated**: the P2PK-locked proofs live in the buyer's
+   localStorage escrow record AND are backed up to the buyer's own kind-7375
+   wallet events at checkout (`publishEscrowBackup`, best-effort; the wallet
+   pages re-publish any missing backup on visit). Escrow-marked backups are
+   excluded from the spendable-wallet paths (boot fetch, token restore) and
+   restore rebuilds the `cashu_escrows` record with per-mint UNSPENT
+   verification, fail-closed on unreachable mints. Restore reports any
+   escrow whose proofs could not be recovered with the order id, amount, and
+   a "contact support before expiry" pointer. Residual: a backup publish
+   that never succeeds (offline buyer who also loses the device before
+   visiting the wallet page) still strands the funds.
 2. **Arbiter key compromise** = misdirected release. Arbiter operations need
    their own signed-request binding when the resolution endpoint is built.
 3. **Expiry race — handled by conversion**: the worker re-checks expiry at
@@ -244,7 +251,10 @@ unless escrow is enabled) drains the outbox:
 - [ ] End-to-end recovery test in staging: kill the payout worker mid-release,
       confirm the outbox requeues and pays exactly once, and that the payee
       proofs are recovered via /restore.
-- [ ] Buyer wallet recovery path for locked proofs (backup + restore verify).
+- [x] Buyer wallet recovery path for locked proofs: kind-7375 backup at
+      checkout (+ wallet-page re-publish of missing backups) and restore with
+      per-mint UNSPENT verification; unrecoverable escrows are reported with
+      a contact-support-before-expiry pointer.
 - [ ] Arbiter resolution endpoint with signed-request binding.
 - [x] Refund: `/api/cashu/escrow/refund` collects the buyer-witnessed locked
       proofs, validates them against the commitment, and attaches them to the

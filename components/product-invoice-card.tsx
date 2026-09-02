@@ -51,6 +51,7 @@ import {
   recordBuyerEscrow,
   registerEscrowCommitmentWithServer,
 } from "@/utils/cashu/escrow-checkout";
+import { publishEscrowBackup } from "@/utils/cashu/escrow-backup";
 import {
   buildEscrowCommitmentEventTemplate,
   ESCROW_DEFAULT_LOCK_SECONDS,
@@ -2959,7 +2960,7 @@ export default function ProductInvoiceCard({
           // is the only local copy, so a failed write is fatal. The throw
           // routes through the recoverable-proof tracker stash, which keeps
           // the funds recoverable.
-          const recorded = recordBuyerEscrow({
+          const escrowRecord = {
             escrowId,
             orderId,
             sellerPubkey: productData.pubkey,
@@ -2968,7 +2969,8 @@ export default function ProductInvoiceCard({
             expiresAt: escrowExpiresAt,
             createdAt: Math.floor(Date.now() / 1000),
             lockedToken: sellerToken,
-          });
+          };
+          const recorded = recordBuyerEscrow(escrowRecord);
           if (!recorded) {
             throw new Error(
               "Payment locked in escrow, but the escrow record could not be saved on this device. Contact support with order id " +
@@ -2976,6 +2978,11 @@ export default function ProductInvoiceCard({
                 "."
             );
           }
+          // Back the locked proofs up to the buyer's own kind-7375 wallet
+          // events so a lost browser can recover them (threat-model residual
+          // risk #1). Best-effort — localStorage holds custody, and the
+          // wallet page re-publishes any missing backup on visit.
+          await publishEscrowBackup(nostr, signer, escrowRecord);
         }
       }
 

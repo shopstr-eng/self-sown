@@ -10,6 +10,13 @@ export interface ProofEventLike {
   mint: string;
   proofs: Proof[];
   created_at?: number;
+  /**
+   * Present when this kind-7375 event is an escrow backup (see
+   * utils/cashu/escrow-backup.ts): its proofs are P2PK-locked escrow funds,
+   * NOT spendable wallet balance, so token restore must skip them — they are
+   * restored into `cashu_escrows` records by restoreEscrowsFromProofEvents.
+   */
+  escrow?: unknown;
 }
 
 const TOKENS_KEY = "tokens";
@@ -132,6 +139,11 @@ export async function restoreTokensFromProofEvents(
   const additionsByMint = new Map<string, Proof[]>();
   for (const ev of proofEvents || []) {
     if (!ev || !Array.isArray(ev.proofs) || !ev.mint) continue;
+    // Escrow backups hold P2PK-locked proofs (buyer can't spend them before
+    // expiry; seller can) — restoring them into `tokens` would inflate the
+    // wallet with unspendable balance. They restore into `cashu_escrows`
+    // via restoreEscrowsFromProofEvents instead.
+    if (ev.escrow) continue;
     for (const p of ev.proofs) {
       if (!p || !p.secret) continue;
       if (seen.has(p.secret)) continue;

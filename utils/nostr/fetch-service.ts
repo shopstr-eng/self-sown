@@ -1802,15 +1802,27 @@ export const fetchCashuWallet = async (
                     mint: cashuWalletEventContent.mint,
                     proofs: cashuWalletEventContent.proofs,
                     created_at: event.created_at,
+                    // Preserve the escrow marker (utils/cashu/escrow-backup.ts)
+                    // so restore can rebuild the buyer's escrow records from
+                    // the database copy — the publish path caches backups to
+                    // the DB before relays, so this branch may be the only
+                    // place a fresh backup is visible.
+                    ...(cashuWalletEventContent.escrow
+                      ? { escrow: cashuWalletEventContent.escrow }
+                      : {}),
                   });
                   if (!cashuMintSet.has(cashuWalletEventContent.mint)) {
                     cashuMintSet.add(cashuWalletEventContent.mint);
                     cashuMints.push(cashuWalletEventContent.mint);
                   }
-                  cashuProofs = getUniqueProofs([
-                    ...cashuProofs,
-                    ...cashuWalletEventContent.proofs,
-                  ]);
+                  // Escrow-marked backups are NOT spendable wallet balance
+                  // (P2PK-locked proofs) — keep them out of cashuProofs.
+                  if (!cashuWalletEventContent.escrow) {
+                    cashuProofs = getUniqueProofs([
+                      ...cashuProofs,
+                      ...cashuWalletEventContent.proofs,
+                    ]);
+                  }
                 } else if (event.kind === 7376 && cashuWalletEventContent) {
                   incomingSpendingHistory.push(cashuWalletEventContent);
                 }
@@ -1992,6 +2004,14 @@ export const fetchCashuWallet = async (
                 mint: cashuWalletEventContent.mint,
                 proofs: cashuWalletEventContent.proofs,
                 created_at: event.created_at,
+                // Escrow backups (utils/cashu/escrow-backup.ts) carry an
+                // `escrow` marker. Keep it so restore can rebuild the
+                // buyer's escrow records — but never merge these proofs
+                // into the spendable wallet below: they are P2PK-locked
+                // escrow funds, not balance.
+                ...(cashuWalletEventContent.escrow
+                  ? { escrow: cashuWalletEventContent.escrow }
+                  : {}),
               });
 
               // Add mint to our set if not already present
@@ -2000,11 +2020,15 @@ export const fetchCashuWallet = async (
                 cashuMints.push(cashuWalletEventContent.mint);
               }
 
-              // Add proofs to our collection (will be filtered later)
-              cashuProofs = getUniqueProofs([
-                ...cashuProofs,
-                ...cashuWalletEventContent.proofs,
-              ]);
+              // Add proofs to our collection (will be filtered later).
+              // Escrow-marked backups are excluded — locked proofs are not
+              // spendable wallet balance.
+              if (!cashuWalletEventContent.escrow) {
+                cashuProofs = getUniqueProofs([
+                  ...cashuProofs,
+                  ...cashuWalletEventContent.proofs,
+                ]);
+              }
             }
           } else if (event.kind === 7376 && cashuWalletEventContent) {
             // Process spending history events
@@ -2063,9 +2087,12 @@ export const fetchCashuWallet = async (
               if (spentYs.has(Ys[idx]!)) spentSecrets.add(mp.secret);
             });
 
-            // Mark fully spent proof events for deletion
+            // Mark fully spent proof events for deletion. Escrow backups are
+            // exempt: they are the buyer's recovery material for unresolved
+            // escrows (custody rule — records are never truncated), so a
+            // boot-time cleanup must not delete them.
             for (const proofEvent of proofEvents) {
-              if (proofEvent.mint === mint) {
+              if (proofEvent.mint === mint && !proofEvent.escrow) {
                 const eventYs = proofEvent.proofs.map((p: Proof) =>
                   hashToCurve(enc.encode(p.secret)).toHex(true)
                 );
@@ -2131,8 +2158,13 @@ export const fetchCashuWallet = async (
           (id) => !outProofIds.includes(id)
         );
 
+        // Escrow-marked backups publish no spending history, so their ids
+        // never appear here — the `!event.escrow` guard is belt-and-braces
+        // against a foreign client having written history for them.
         const proofsToAddBack = proofEvents
-          .filter((event) => proofIdsToAddBack.includes(event.id))
+          .filter(
+            (event) => proofIdsToAddBack.includes(event.id) && !event.escrow
+          )
           .flatMap((event) => event.proofs);
 
         cashuProofs = getUniqueProofs([...cashuProofs, ...proofsToAddBack]);

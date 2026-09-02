@@ -50,6 +50,7 @@ import {
   recordBuyerEscrow,
   registerEscrowCommitmentWithServer,
 } from "@/utils/cashu/escrow-checkout";
+import { publishEscrowBackup } from "@/utils/cashu/escrow-backup";
 import {
   buildEscrowCommitmentEventTemplate,
   ESCROW_DEFAULT_LOCK_SECONDS,
@@ -5848,7 +5849,7 @@ export default function CartInvoiceCard({
             // sent to the seller (utils/cashu/escrow-checkout.ts) — this
             // record is the only local copy, so a failed write is fatal; the
             // recoverable tracker stash keeps the funds recoverable on throw.
-            const recordedEscrow = recordBuyerEscrow({
+            const escrowRecord = {
               escrowId: productEscrowId,
               orderId: productEscrowOrderId,
               sellerPubkey: pubkey,
@@ -5860,13 +5861,17 @@ export default function CartInvoiceCard({
                 mint: spendMint,
                 proofs: sellerProofs,
               }),
-            });
+            };
+            const recordedEscrow = recordBuyerEscrow(escrowRecord);
             if (!recordedEscrow) {
               throw new Error(
                 "Payment locked in escrow, but the escrow record could not be saved on this device. Order id: " +
                   productEscrowOrderId
               );
             }
+            // Best-effort kind-7375 backup of the locked proofs (buyer
+            // recovery path); the wallet page re-publishes if this fails.
+            await publishEscrowBackup(nostr, signer, escrowRecord);
           } else {
             // Dust remainder: nothing lockable — hand it over directly (as
             // the non-escrow sweep would) rather than burning it.
@@ -5926,7 +5931,7 @@ export default function CartInvoiceCard({
           if (escrowActive && productEscrowId) {
             // CUSTODY: locked proofs stay with the buyer (see below); the
             // record is the only local copy, so a failed write is fatal.
-            const recordedEscrow = recordBuyerEscrow({
+            const escrowRecord = {
               escrowId: productEscrowId,
               orderId: productEscrowOrderId,
               sellerPubkey: pubkey,
@@ -5938,13 +5943,17 @@ export default function CartInvoiceCard({
                 mint: spendMint,
                 proofs: sellerProofs,
               }),
-            });
+            };
+            const recordedEscrow = recordBuyerEscrow(escrowRecord);
             if (!recordedEscrow) {
               throw new Error(
                 "Payment locked in escrow, but the escrow record could not be saved on this device. Order id: " +
                   productEscrowOrderId
               );
             }
+            // Best-effort kind-7375 backup of the locked proofs (buyer
+            // recovery path); the wallet page re-publishes if this fails.
+            await publishEscrowBackup(nostr, signer, escrowRecord);
           }
         } else {
           sellerAmount = 0;
