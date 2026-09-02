@@ -80,7 +80,14 @@ export default async function handler(
           mint: registration.mintUrl,
           proofs: outbox.payoutOutputs as Proof[],
         });
-      } catch {
+      } catch (encodeError) {
+        // Fail loudly server-side: recorded payout outputs that cannot be
+        // encoded mean the payee can never receive their funds — a silent
+        // omission would look like an unpaid escrow forever.
+        console.error(
+          `Cashu escrow ${escrowId}: failed to encode recorded payout outputs for delivery:`,
+          encodeError
+        );
         payoutToken = undefined;
       }
     }

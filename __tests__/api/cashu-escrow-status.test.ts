@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { createP2PKsecret, getDecodedToken } from "@cashu/cashu-ts";
 import handler from "@/pages/api/cashu/escrow/status";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { isEscrowEnabled } from "@/utils/cashu/escrow-config";
@@ -174,7 +175,15 @@ describe("GET /api/cashu/escrow/status", () => {
     expect(res.body.payoutToken).toBeUndefined();
   });
 
-  it("delivers the paid-out refund token to the buyer", async () => {
+  it("delivers the paid-out refund token to the buyer, locked to the buyer", async () => {
+    const buyerLockedOutputs = [
+      {
+        id: "009a1f293253e41e",
+        amount: 100,
+        secret: createP2PKsecret(BUYER_PK),
+        C: "02" + "cd".repeat(32),
+      },
+    ];
     mockedGetRegistration.mockResolvedValue(
       registration({ status: "refunded" })
     );
@@ -182,14 +191,7 @@ describe("GET /api/cashu/escrow/status", () => {
       outboxId: "outbox-1",
       action: "refund",
       status: "done",
-      payoutOutputs: [
-        {
-          id: "009a1f293253e41e",
-          amount: 100,
-          secret: "buyer-locked-output",
-          C: "02" + "cd".repeat(32),
-        },
-      ],
+      payoutOutputs: buyerLockedOutputs,
     });
     const { req, res } = makeReqRes({ escrowId: ESCROW_ID });
     await handler(req, res);
@@ -197,6 +199,24 @@ describe("GET /api/cashu/escrow/status", () => {
     expect(res.body.pendingAction).toBeNull();
     expect(typeof res.body.payoutToken).toBe("string");
     expect(res.body.payoutToken.startsWith("cashu")).toBe(true);
+    // The delivered token carries the recorded payout outputs — the
+    // payee-locked secret and point byte-identically, the amount
+    // value-equal (v4 encoding coerces it to a string). First-attempt and
+    // NUT-09-restored payouts take this same path, so both are delivered
+    // identically.
+    const decoded = getDecodedToken(res.body.payoutToken, []);
+    expect(decoded.mint).toBe("https://mint.example");
+    expect(decoded.proofs).toHaveLength(1);
+    expect(decoded.proofs[0]!.id).toBe(buyerLockedOutputs[0]!.id);
+    expect(decoded.proofs[0]!.secret).toBe(buyerLockedOutputs[0]!.secret);
+    expect(decoded.proofs[0]!.C).toBe(buyerLockedOutputs[0]!.C);
+    expect(Number(decoded.proofs[0]!.amount)).toBe(
+      buyerLockedOutputs[0]!.amount
+    );
+    // The delivered proofs are spendable ONLY by the payee (refund → buyer).
+    const secret = JSON.parse(decoded.proofs[0]!.secret);
+    expect(secret[0]).toBe("P2PK");
+    expect(secret[1].data).toBe(BUYER_PK);
   });
 
   it("serves a buyer-approved release's raw proofs while awaiting the seller", async () => {
@@ -241,6 +261,14 @@ describe("GET /api/cashu/escrow/status", () => {
   });
 
   it("delivers the paid-out RELEASE token (seller-locked, useless to others)", async () => {
+    const sellerLockedOutputs = [
+      {
+        id: "009a1f293253e41e",
+        amount: 100,
+        secret: createP2PKsecret("d".repeat(64)),
+        C: "02" + "cd".repeat(32),
+      },
+    ];
     mockedGetRegistration.mockResolvedValue(
       registration({ status: "released" })
     );
@@ -248,14 +276,7 @@ describe("GET /api/cashu/escrow/status", () => {
       outboxId: "outbox-1",
       action: "release",
       status: "done",
-      payoutOutputs: [
-        {
-          id: "009a1f293253e41e",
-          amount: 100,
-          secret: "seller-locked-output",
-          C: "02" + "cd".repeat(32),
-        },
-      ],
+      payoutOutputs: sellerLockedOutputs,
     });
     const { req, res } = makeReqRes({ escrowId: ESCROW_ID });
     await handler(req, res);
@@ -263,6 +284,20 @@ describe("GET /api/cashu/escrow/status", () => {
     expect(res.body.pendingAction).toBeNull();
     expect(typeof res.body.payoutToken).toBe("string");
     expect(res.body.payoutToken.startsWith("cashu")).toBe(true);
+    // Round-trip of the recorded outputs (secret/point byte-identical,
+    // amount value-equal), locked to the entitled party (release → seller).
+    const decoded = getDecodedToken(res.body.payoutToken, []);
+    expect(decoded.mint).toBe("https://mint.example");
+    expect(decoded.proofs).toHaveLength(1);
+    expect(decoded.proofs[0]!.id).toBe(sellerLockedOutputs[0]!.id);
+    expect(decoded.proofs[0]!.secret).toBe(sellerLockedOutputs[0]!.secret);
+    expect(decoded.proofs[0]!.C).toBe(sellerLockedOutputs[0]!.C);
+    expect(Number(decoded.proofs[0]!.amount)).toBe(
+      sellerLockedOutputs[0]!.amount
+    );
+    const secret = JSON.parse(decoded.proofs[0]!.secret);
+    expect(secret[0]).toBe("P2PK");
+    expect(secret[1].data).toBe("d".repeat(64));
   });
 
   it("500s on unexpected storage failures", async () => {

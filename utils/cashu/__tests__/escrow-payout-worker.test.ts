@@ -5,9 +5,22 @@
 // and the executor's mint discipline in utils/cashu/__tests__/escrow-payout.test.ts.
 
 import {
+  createP2PKsecret,
+  OutputData,
+  signP2PKProof,
+  type Proof,
+  type SerializedOutputData,
+} from "@cashu/cashu-ts";
+import { generateSecretKey, getPublicKey } from "nostr-tools";
+import {
   processEscrowOutboxEntry,
   runEscrowPayoutSweep,
 } from "@/utils/cashu/escrow-payout-worker";
+import {
+  executeEscrowPayout,
+  type EscrowPayoutMintApi,
+  type EscrowPayoutMintWallet,
+} from "@/utils/cashu/escrow-payout";
 import {
   claimEscrowOutboxEntry,
   convertExpiredAwaitingWitnessReleaseToRefund,
@@ -286,6 +299,107 @@ describe("processEscrowOutboxEntry", () => {
     expect(result.status).toBe("failed");
     consoleSpy.mockRestore();
   });
+
+  it("records a NUT-09-recovered payout for delivery identically to a first-attempt payout", async () => {
+    // Composition test across the delivery chain: an earlier attempt crashed
+    // after the mint swapped the inputs but before finalizing. The retry
+    // finds every input SPENT, reconstructs the payee-locked proofs from the
+    // persisted prepared outputs via the mint's /restore endpoint, and the
+    // worker finalizes with them — so the payee's delivery path (the
+    // payout_outputs recorded here, served by the status endpoint) is
+    // identical to a first-attempt payout. Uses the REAL executor with real
+    // signed proofs; only the mint network calls are faked.
+    const sellerSecret = generateSecretKey();
+    const buyerSecret = generateSecretKey();
+    const sellerPub = getPublicKey(sellerSecret);
+    const buyerPub = getPublicKey(buyerSecret);
+    const sellerPriv = Buffer.from(sellerSecret).toString("hex");
+    const expiresAt = new Date(Date.now() + 86_400_000);
+    const locktime = Math.floor(expiresAt.getTime() / 1000);
+    const keysetId = "009a1f293253e41e";
+
+    mockedGetRegistration.mockResolvedValue({
+      ...REGISTRATION,
+      buyerPubkey: buyerPub,
+      sellerPubkey: sellerPub,
+      expiresAt,
+    });
+
+    const proof = {
+      amount: 5_000,
+      id: keysetId,
+      secret: createP2PKsecret(sellerPub, [
+        ["locktime", String(locktime)],
+        ["refund", buyerPub],
+      ]),
+      C: `02${getPublicKey(generateSecretKey())}`,
+    } as unknown as Proof;
+    const signedProof = signP2PKProof(proof, sellerPriv);
+
+    // Prepared payee-locked outputs persisted by the crashed attempt.
+    const preparedOutput = OutputData.createSingleP2PKData(
+      { pubkey: sellerPub },
+      4,
+      keysetId
+    );
+    const prepared: SerializedOutputData[] = [
+      OutputData.serialize(preparedOutput),
+    ];
+
+    mockedClaim.mockResolvedValue(
+      claimed({
+        payoutPayload: { proofs: [signedProof] },
+        preparedOutputs: prepared,
+      })
+    );
+
+    const validPoint = () => `02${getPublicKey(generateSecretKey())}`;
+    const wallet: EscrowPayoutMintWallet = {
+      checkProofsStates: jest.fn(async () => [{ state: "SPENT" }]) as any,
+      prepareSwapToReceive: jest.fn() as any,
+      completeSwap: jest.fn() as any,
+    };
+    const mintApi: EscrowPayoutMintApi = {
+      getKeys: jest.fn(async () => ({
+        keysets: [{ id: keysetId, unit: "sat", keys: { "4": validPoint() } }],
+      })) as any,
+      restore: jest.fn(async ({ outputs }: any) => ({
+        outputs,
+        signatures: outputs.map((o: any) => ({
+          id: o.id,
+          amount: o.amount,
+          C_: validPoint(),
+        })),
+      })) as any,
+    };
+
+    const result = await processEscrowOutboxEntry("buyer:order-1", {
+      executePayout: (registration, action, payload, options) =>
+        executeEscrowPayout(registration, action, payload, {
+          ...options,
+          walletFactory: () => wallet,
+          mintApiFactory: () => mintApi,
+        }),
+    });
+
+    expect(result).toEqual({ outboxId: "buyer:order-1", status: "processed" });
+    // Recovery never re-pays: no second swap at the mint.
+    expect(wallet.prepareSwapToReceive).not.toHaveBeenCalled();
+    expect(wallet.completeSwap).not.toHaveBeenCalled();
+    expect(mintApi.restore).toHaveBeenCalledTimes(1);
+    // The recovered payee-locked proofs are exactly what finalize records —
+    // byte-identical delivery to a first-attempt payout.
+    expect(mockedFinalize).toHaveBeenCalledTimes(1);
+    const [finalizeId, finalizeToken, recordedOutputs] =
+      mockedFinalize.mock.calls[0]!;
+    expect(finalizeId).toBe("buyer:order-1");
+    expect(finalizeToken).toBe("token-1");
+    expect(recordedOutputs).toHaveLength(1);
+    expect(recordedOutputs[0].secret).toBe(
+      Buffer.from(preparedOutput.secret).toString("utf-8")
+    );
+    expect(mockedRelease).not.toHaveBeenCalled();
+  });
 });
 
 describe("runEscrowPayoutSweep", () => {
@@ -339,8 +453,8 @@ describe("runEscrowPayoutSweep", () => {
     expect(mockedConvertAwaiting).toHaveBeenCalledWith("buyer:order-2");
     // Conversion runs BEFORE the enqueue for each expired escrow.
     expect(
-      mockedConvertAwaiting.mock.invocationCallOrder[0]
-    ).toBeLessThan(mockedEnqueue.mock.invocationCallOrder[0]);
+      mockedConvertAwaiting.mock.invocationCallOrder[0]!
+    ).toBeLessThan(mockedEnqueue.mock.invocationCallOrder[0]!);
   });
 
   it("keeps sweeping when one refund enqueue throws (e.g. release already pending)", async () => {
