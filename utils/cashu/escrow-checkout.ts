@@ -154,6 +154,53 @@ export function pruneResolvedBuyerEscrows(escrowIds: string[]): void {
   }
 }
 
+// ── Seller-side payout redemption markers (localStorage) ────────────────────
+//
+// The seller keeps no custody material locally, so unlike the buyer records
+// above these markers are pure UX: once a payout token has been redeemed into
+// the wallet the mint will reject it as already-spent forever after, so there
+// is no reason to ever offer the redeem button again. The status endpoint
+// keeps serving the (spent) payout token, so without this marker the button
+// reappears after every reload and the re-click fails at the mint.
+
+const SELLER_REDEEMED_ESCROW_STORAGE_KEY = "cashu_escrow_seller_redeemed";
+
+/** Malformed storage is treated as empty, never fatal. */
+export function listRedeemedSellerEscrows(): string[] {
+  try {
+    const raw = localStorage.getItem(SELLER_REDEEMED_ESCROW_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => typeof id === "string");
+  } catch {
+    return [];
+  }
+}
+
+export function isSellerEscrowRedeemed(escrowId: string): boolean {
+  return listRedeemedSellerEscrows().includes(escrowId);
+}
+
+/**
+ * Record that a payout was redeemed into the local wallet, deduped by escrow
+ * id. Best-effort: a failed write only means the button can reappear after a
+ * reload (the mint still rejects the spent token), so this never throws.
+ */
+export function markSellerEscrowRedeemed(escrowId: string): void {
+  try {
+    const existing = listRedeemedSellerEscrows().filter(
+      (id) => id !== escrowId
+    );
+    localStorage.setItem(
+      SELLER_REDEEMED_ESCROW_STORAGE_KEY,
+      JSON.stringify([escrowId, ...existing])
+    );
+  } catch {
+    // Marker is hygiene only — never fatal.
+  }
+}
+
 // ── Payout proof decoding & witness signing ─────────────────────────────────
 
 /**

@@ -8,7 +8,10 @@ import {
   buildEscrowLockOutputConfig,
   defaultEscrowExpiresAt,
   isEscrowAvailableForSeller,
+  isSellerEscrowRedeemed,
   listBuyerEscrows,
+  listRedeemedSellerEscrows,
+  markSellerEscrowRedeemed,
   pruneResolvedBuyerEscrows,
   recordBuyerEscrow,
   signEscrowLockedProofs,
@@ -191,6 +194,60 @@ describe("escrow-checkout helpers", () => {
       delete (legacy as any).lockedToken;
       store.set("cashu_escrows", JSON.stringify([legacy]));
       expect(listBuyerEscrows()).toEqual([]);
+    });
+  });
+
+  describe("seller payout redemption markers", () => {
+    it("round-trips markers newest first", () => {
+      markSellerEscrowRedeemed("escrow-old");
+      markSellerEscrowRedeemed("escrow-new");
+      expect(listRedeemedSellerEscrows()).toEqual(["escrow-new", "escrow-old"]);
+      expect(isSellerEscrowRedeemed("escrow-old")).toBe(true);
+      expect(isSellerEscrowRedeemed("escrow-new")).toBe(true);
+    });
+
+    it("dedups by escrow id (marking twice is a no-op)", () => {
+      markSellerEscrowRedeemed("escrow-1");
+      markSellerEscrowRedeemed("escrow-1");
+      expect(listRedeemedSellerEscrows()).toEqual(["escrow-1"]);
+    });
+
+    it("does not mark other escrows", () => {
+      markSellerEscrowRedeemed("escrow-1");
+      expect(isSellerEscrowRedeemed("escrow-2")).toBe(false);
+    });
+
+    it("treats malformed storage as empty", () => {
+      store.set("cashu_escrow_seller_redeemed", "{not json");
+      expect(listRedeemedSellerEscrows()).toEqual([]);
+      store.set(
+        "cashu_escrow_seller_redeemed",
+        JSON.stringify(["escrow-1", 42, null])
+      );
+      expect(listRedeemedSellerEscrows()).toEqual(["escrow-1"]);
+    });
+
+    it("never throws when the storage write fails", () => {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error("quota exceeded");
+          },
+          removeItem: () => undefined,
+          clear: () => undefined,
+        },
+      });
+      try {
+        expect(() => markSellerEscrowRedeemed("escrow-1")).not.toThrow();
+        expect(isSellerEscrowRedeemed("escrow-1")).toBe(false);
+      } finally {
+        Object.defineProperty(globalThis, "localStorage", {
+          configurable: true,
+          value: workingStorage,
+        });
+      }
     });
   });
 

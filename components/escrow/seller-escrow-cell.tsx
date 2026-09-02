@@ -21,6 +21,8 @@ import { buildEscrowActionEventTemplate } from "@/utils/cashu/escrow-commitment"
 import {
   EscrowStatusResponse,
   fetchEscrowStatus,
+  isSellerEscrowRedeemed,
+  markSellerEscrowRedeemed,
   requestEscrowRelease,
   signEscrowLockedProofs,
   signEscrowProofsWithSigner,
@@ -91,6 +93,12 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
 
   const handleRedeem = async () => {
     if (!signer || !status?.payoutToken) return;
+    // Never re-hit the mint for a payout this browser already redeemed — the
+    // proofs are spent and the mint would only answer "already spent".
+    if (redeemed || isSellerEscrowRedeemed(escrowId)) {
+      setRedeemed(true);
+      return;
+    }
     setError(null);
     setBusy(true);
     try {
@@ -108,6 +116,9 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
         proofs: signedProofs,
       });
       persistReceivedTokens(freshProofs, decoded.mint);
+      // Persist the redemption so a reload never re-offers this (now spent)
+      // payout token; best-effort — a failed write only loses the UX marker.
+      markSellerEscrowRedeemed(escrowId);
       setRedeemed(true);
     } catch (redeemError) {
       setError(
@@ -126,8 +137,13 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
   } else if (status === null) {
     body = <span className="text-gray-600">Escrow status unavailable</span>;
   } else if (status.status === "released") {
+    // The status endpoint keeps serving the (spent) payout token after
+    // redemption, so consult the persisted marker, not just component state —
+    // this branch only renders after the client-side status fetch, so the
+    // localStorage read never runs during SSR/hydration.
+    const payoutRedeemed = redeemed || isSellerEscrowRedeemed(escrowId);
     body =
-      status.payoutToken && !redeemed ? (
+      status.payoutToken && !payoutRedeemed ? (
         <button
           type="button"
           disabled={busy || !signer}
@@ -138,7 +154,7 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
         </button>
       ) : (
         <span className="font-bold text-green-600">
-          {redeemed ? "Payout redeemed to wallet" : "Escrow released to you"}
+          {payoutRedeemed ? "Payout redeemed to wallet" : "Escrow released to you"}
         </span>
       );
   } else if (status.status === "refunded") {
