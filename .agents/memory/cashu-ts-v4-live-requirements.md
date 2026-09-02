@@ -22,3 +22,10 @@ every mocked test passed; they are invisible without a real mint.
 a real mint (a local Nutshell FakeWallet mint suffices) before shipping; for
 new decode/receive code, copy the existing escrow decode/receive call shapes
 rather than the minimal signature.
+
+A fourth live-only behavior (found 2026-09): `wallet.send(amount, proofs)`
+SHORT-CIRCUITS when `amount` exactly equals the inputs' total — no swap, the
+inputs stay UNSPENT at the mint. Any test fixture that needs proofs marked
+SPENT must send a partial amount to force the swap. The boot-cleanup contract
+test (`utils/nostr/__tests__/fetch-service-real-mint.test.ts`, gated on the
+staging mint, port 3338) does exactly this.

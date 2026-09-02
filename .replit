@@ -68,12 +68,12 @@ isValidation = true
 name = "Staging Cashu Mint"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /tmp/nutshell-data && env MINT_RATE_LIMIT=FALSE MINT_BACKEND_BOLT11_SAT=FakeWallet MINT_INPUT_FEE_PPK=0 MINT_LISTEN_HOST=127.0.0.1 MINT_LISTEN_PORT=3338 MINT_DATABASE=/tmp/nutshell-data MINT_PRIVATE_KEY=TEST_PRIVATE_KEY MINT_NAME=\"Staging Fake Mint\" /tmp/nutshell-venv/bin/mint"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/staging-cashu-mint.sh"
 
 [agent]
 expertMode = true
