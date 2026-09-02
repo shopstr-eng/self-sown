@@ -179,13 +179,27 @@ describe("fetchCashuWallet spent-proof cleanup against the staging mint", () => 
     }
   };
 
-  const makeWalletEventContent = (proofs: Proof[]) => ({
-    content: `cipher-${proofs.map((p) => p.secret).join("|")}`,
+  const makeWalletEventContent = (proofs: Proof[], escrow?: object) => ({
+    // Include the escrow flag in the cipher text so two events holding the
+    // same proofs still decrypt distinctly (the signer stub keys on content).
+    content: `cipher-${escrow ? "escrow-" : ""}${proofs
+      .map((p) => p.secret)
+      .join("|")}`,
     decrypted: JSON.stringify({
       mint: STAGING_MINT_URL,
       unit: "sat",
       proofs: proofs.map(toWireProof),
+      ...(escrow ? { escrow } : {}),
     }),
+  });
+
+  const makeEscrowBackupInfo = () => ({
+    escrowId: `${"f".repeat(64)}:order-1`,
+    orderId: "order-1",
+    sellerPubkey: "e".repeat(64),
+    amountSats: 4,
+    expiresAt: 2000000000,
+    createdAt: 1,
   });
 
   it("passes only fully-spent event ids to deleteEvent", async () => {
@@ -219,6 +233,42 @@ describe("fetchCashuWallet spent-proof cleanup against the staging mint", () => 
     expect(result.cashuProofs.map((p: Proof) => p.secret).sort()).toEqual(
       unspentProofs.map((p) => p.secret).sort()
     );
+  });
+
+  it("never deletes an escrow-marked backup even when the mint reports its proofs SPENT", async () => {
+    if (!mintAvailable) return;
+
+    // An escrow backup whose proofs the mint reports SPENT (the escrow
+    // resolved / was redeemed elsewhere) sits next to a regular fully-spent
+    // event. The regular event must be deleted; the escrow backup is the
+    // buyer's only recovery material for an unresolved escrow and must
+    // survive no matter what the mint says. If a cashu-ts upgrade changed
+    // the proof-state shape so escrow proofs read SPENT through the real
+    // stack, this is the test that catches it before a real boot does.
+    const escrowEvent = makeWalletEventContent(
+      spentProofs,
+      makeEscrowBackupInfo()
+    );
+    const regularSpentEvent = makeWalletEventContent(spentProofs);
+
+    const { result, mockDeleteEvent } = await bootWallet({
+      eventById: {
+        "real-mint-escrow-backup-event": escrowEvent,
+        "real-mint-regular-spent-event": regularSpentEvent,
+      },
+    });
+
+    expect(mockDeleteEvent).toHaveBeenCalledTimes(1);
+    expect(mockDeleteEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      ["real-mint-regular-spent-event"]
+    );
+
+    // The escrow-marked proofs must also stay out of the spendable wallet
+    // balance — locked escrow funds are not spendable even before they are
+    // spent.
+    expect(result.cashuProofs).toEqual([]);
   });
 
   it("queues no deletions when the mint reports every proof unspent", async () => {
