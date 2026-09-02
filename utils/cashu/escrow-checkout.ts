@@ -231,6 +231,23 @@ export function markSellerEscrowRedeemed(escrowId: string): void {
   }
 }
 
+/**
+ * True when the mint rejected a swap because the input proofs are ALREADY
+ * spent — which, for an escrow payout token, means the payout was already
+ * redeemed (e.g. on another device/browser, where the localStorage marker
+ * above doesn't exist). Callers should treat this as success, not failure:
+ * the money is already in the seller's wallet. Detection uses both the
+ * NUT-00 error code (11001 "token already spent", surfaced by cashu-ts as
+ * MintOperationError.code) and a message fallback for mints that don't
+ * implement structured error codes.
+ */
+export function isMintAlreadySpentError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = (error as { code?: unknown }).code;
+  if (code === 11001) return true;
+  return /already\s+spent/i.test(error.message);
+}
+
 // ── Payout proof decoding & witness signing ─────────────────────────────────
 
 /**

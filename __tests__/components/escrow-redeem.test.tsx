@@ -23,6 +23,7 @@ import { generateSecretKey, getPublicKey } from "nostr-tools";
 import {
   getEncodedToken,
   hasP2PKSignedProof,
+  MintOperationError,
   type Proof,
 } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
@@ -377,6 +378,46 @@ describe("escrow payout redemption", () => {
       // being offered again after a reload.
       expect(isSellerEscrowRedeemed(escrowId)).toBe(true);
     });
+
+    // Regression: a seller who already redeemed on another device/browser (or
+    // cleared site data) has no localStorage marker, so the mint rejects the
+    // re-redeem as already-spent. That means the money is already in their
+    // wallet — the cell must converge on the stable redeemed state, not show
+    // a raw mint error.
+    it.each([
+      [
+        "structured NUT-00 code",
+        new MintOperationError(11001, "Token already spent."),
+      ],
+      ["message only", new Error("tokens already spent")],
+    ])(
+      "treats an already-spent rejection (%s) as redeemed, not an error",
+      async (_label, alreadySpentError) => {
+        mockFetchEscrowStatus.mockResolvedValue(
+          statusResponse({
+            escrowId,
+            status: "released",
+            payoutToken: sellerPayoutToken,
+            mintUrl: MINT,
+          })
+        );
+        mockReceive.mockRejectedValue(alreadySpentError);
+
+        renderSellerCell();
+        const button = await screen.findByRole("button", {
+          name: "Redeem payout to wallet",
+        });
+        fireEvent.click(button);
+
+        await screen.findByText("Payout redeemed to wallet");
+
+        // Nothing reached the wallet, but the marker converges so a reload
+        // keeps showing the stable redeemed state.
+        expect(persistReceivedTokens).not.toHaveBeenCalled();
+        expect(storedTokenSecrets()).toHaveLength(0);
+        expect(isSellerEscrowRedeemed(escrowId)).toBe(true);
+      }
+    );
 
     it("surfaces a mint failure as an error and never writes the redeemed marker", async () => {
       mockFetchEscrowStatus.mockResolvedValue(

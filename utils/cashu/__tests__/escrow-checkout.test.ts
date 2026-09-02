@@ -9,6 +9,7 @@ import {
   decodeEscrowLockedProofs,
   defaultEscrowExpiresAt,
   isEscrowAvailableForSeller,
+  isMintAlreadySpentError,
   isSellerEscrowRedeemed,
   listBuyerEscrows,
   listRedeemedSellerEscrows,
@@ -286,6 +287,29 @@ describe("escrow-checkout helpers", () => {
           value: workingStorage,
         });
       }
+    });
+  });
+
+  describe("isMintAlreadySpentError", () => {
+    it("detects the NUT-00 11001 code (cashu-ts MintOperationError)", () => {
+      const error = new Error("Token already spent.");
+      (error as { code?: number }).code = 11001;
+      expect(isMintAlreadySpentError(error)).toBe(true);
+    });
+
+    it("detects unstructured already-spent messages case-insensitively", () => {
+      expect(
+        isMintAlreadySpentError(new Error("tokens ALREADY SPENT at mint"))
+      ).toBe(true);
+    });
+
+    it("rejects genuine failures and non-Error values", () => {
+      expect(isMintAlreadySpentError(new Error("mint exploded"))).toBe(false);
+      expect(isMintAlreadySpentError(new Error("network unreachable"))).toBe(
+        false
+      );
+      expect(isMintAlreadySpentError("already spent")).toBe(false);
+      expect(isMintAlreadySpentError(undefined)).toBe(false);
     });
   });
 

@@ -21,6 +21,7 @@ import {
   EscrowStatusResponse,
   decodeEscrowLockedProofs,
   fetchEscrowStatus,
+  isMintAlreadySpentError,
   isSellerEscrowRedeemed,
   markSellerEscrowRedeemed,
   requestEscrowRelease,
@@ -126,6 +127,15 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
       markSellerEscrowRedeemed(escrowId);
       setRedeemed(true);
     } catch (redeemError) {
+      // A "token already spent" rejection means the payout was already
+      // redeemed elsewhere (new device/browser, or cleared site data lost the
+      // localStorage marker): the money is already in the seller's wallet, so
+      // converge on the stable redeemed state instead of a scary error.
+      if (isMintAlreadySpentError(redeemError)) {
+        markSellerEscrowRedeemed(escrowId);
+        setRedeemed(true);
+        return;
+      }
       setError(
         redeemError instanceof Error
           ? redeemError.message
