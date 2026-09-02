@@ -1,5 +1,6 @@
 import type { Proof } from "@cashu/cashu-ts";
 import { persistReceivedTokens } from "@/utils/cashu/wallet-mint-sync";
+import { stripEscrowLockedProofs } from "@/utils/cashu/escrow-checkout";
 
 export interface StashedHistoryEntry {
   type: number;
@@ -31,7 +32,15 @@ export function stashProofsLocally(
   if (typeof window === "undefined") return 0;
   if (!Array.isArray(proofs) || proofs.length === 0) return 0;
 
-  const amount = proofs.reduce((acc, p) => {
+  // Escrow-locked proofs are already recorded under `cashu_escrows` (that
+  // record is their custody home) and must NEVER be restashed as spendable
+  // wallet balance — after a refresh they'd render as spendable while also
+  // sitting in the escrow record, double-counted. Strip them here, at the
+  // single chokepoint every recovery stash flows through.
+  const spendableProofs = stripEscrowLockedProofs(proofs);
+  if (spendableProofs.length === 0) return 0;
+
+  const amount = spendableProofs.reduce((acc, p) => {
     const v =
       typeof p.amount === "number"
         ? p.amount
@@ -44,7 +53,7 @@ export function stashProofsLocally(
 
   // Merge proofs into the wallet AND promote `mintUrl` to default so the
   // wallet UI recognizes the recovered balance against the right keysets.
-  persistReceivedTokens(proofs, mintUrl);
+  persistReceivedTokens(spendableProofs, mintUrl);
 
   try {
     const existingHistory = JSON.parse(

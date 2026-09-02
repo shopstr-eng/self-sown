@@ -2975,6 +2975,9 @@ export default function ProductInvoiceCard({
             expiresAt: escrowExpiresAt,
             createdAt: Math.floor(Date.now() / 1000),
             lockedToken: sellerToken,
+            // Lets recovery stashes strip these locked proofs without
+            // decoding the token (v2-keyset mints can't decode sync).
+            lockedSecrets: sellerProofs.map((p: Proof) => p.secret),
           };
           const recorded = recordBuyerEscrow(escrowRecord);
           if (!recorded) {
@@ -2984,6 +2987,10 @@ export default function ProductInvoiceCard({
                 "."
             );
           }
+          // Custody now lives in the escrow record — keep the locked proofs
+          // out of any later failure-stash into the spendable wallet (a
+          // refresh would render them as spendable, double-counted).
+          __recoverableTracker.consume(sellerProofs);
           // Back the locked proofs up to the buyer's own kind-7375 wallet
           // events so a lost browser can recover them (threat-model residual
           // risk #1). Best-effort — localStorage holds custody, and the

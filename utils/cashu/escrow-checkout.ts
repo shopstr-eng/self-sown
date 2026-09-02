@@ -116,6 +116,14 @@ export interface BuyerEscrowRecord {
    * expiry (and later hands over to authorize a release).
    */
   lockedToken: string;
+  /**
+   * The `secret` of every proof inside `lockedToken`, recorded at lock time.
+   * Lets failure-recovery paths strip escrow-locked proofs from wallet
+   * restashes WITHOUT decoding the token (v2-keyset mints can't be decoded
+   * synchronously — decoding needs an async keyset fetch). Optional only so
+   * pre-existing records stay valid; those fall back to a sync decode.
+   */
+  lockedSecrets?: string[];
 }
 
 const BUYER_ESCROW_STORAGE_KEY = "cashu_escrows";
@@ -165,6 +173,197 @@ export function recordBuyerEscrow(record: BuyerEscrowRecord): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Collect the proof secrets locked inside every recorded buyer escrow.
+ * Prefers the `lockedSecrets` recorded at lock time; falls back to a sync
+ * token decode for pre-existing records (v2-keyset tokens may fail to decode
+ * without an async keyset fetch — those are skipped by this SYNC variant).
+ * This is only the write-time chokepoint for recovery stashes; the GUARANTEE
+ * for pre-existing/leaked state comes from the async hydration pass
+ * (listEscrowLockedSecretsAsync in fetchCashuWallet), which resolves v2
+ * keysets via a mint fetch and reconciles localStorage["tokens"].
+ */
+export function listEscrowLockedSecrets(): Set<string> {
+  const secrets = new Set<string>();
+  for (const record of listBuyerEscrows()) {
+    if (Array.isArray(record.lockedSecrets)) {
+      for (const secret of record.lockedSecrets) {
+        if (typeof secret === "string") secrets.add(secret);
+      }
+      continue;
+    }
+    try {
+      const decoded = getDecodedToken(record.lockedToken, []);
+      for (const proof of decoded.proofs) {
+        if (proof && typeof proof.secret === "string") {
+          secrets.add(proof.secret);
+        }
+      }
+    } catch {
+      // Undecodable record (e.g. v2 keyset id): skip — see docblock.
+    }
+  }
+  return secrets;
+}
+
+/**
+ * True for Cashu well-known P2PK secrets (["P2PK", {...}]). Escrow-locked
+ * proofs ALWAYS carry this shape (buildEscrowLockOutputConfig), and this
+ * wallet never stores P2PK proofs as spendable balance — receive/swap/melt
+ * always re-blind to fresh random secrets — so a P2PK-shaped proof sitting
+ * in localStorage["tokens"] can only be escrow material that leaked in.
+ * Hydration uses this as the fail-closed backstop for escrow records whose
+ * locked token cannot be decoded (e.g. legacy record + unreachable mint).
+ */
+export function isP2PKWellKnownSecret(secret: unknown): boolean {
+  if (typeof secret !== "string") return false;
+  const trimmed = secret.trim();
+  if (!trimmed.startsWith('["P2PK"')) return false;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) && parsed[0] === "P2PK";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Async variant of listEscrowLockedSecrets for hydration/reconciliation
+ * paths: legacy records without `lockedSecrets` are decoded via
+ * decodeEscrowLockedProofs, which resolves v2 keyset IDs with a mint fetch —
+ * so a v2 legacy record is NOT silently skipped here. Successfully decoded
+ * legacy records are MIGRATED (lockedSecrets persisted back), so later
+ * passes — including the sync stash chokepoint — never need to decode them
+ * again. A record is only skipped when its mint is unreachable (transient:
+ * the fetch failure is never cached, so the next hydration retries); callers
+ * displaying spendable balance must pair this with the isP2PKWellKnownSecret
+ * fail-closed check so even an unresolved record's proofs can't render as
+ * spendable.
+ */
+export interface EscrowLockedSecretsResolution {
+  secrets: Set<string>;
+  /**
+   * True when at least one legacy record (no lockedSecrets) could not be
+   * decoded this pass — e.g. its mint is unreachable. Callers that render
+   * spendable balance MUST fail closed in this case: also strip any proof
+   * carrying a P2PK well-known secret (isP2PKWellKnownSecret), the shape
+   * every escrow-locked proof has and no legitimately-stored wallet proof
+   * ever takes (receive/swap/melt always re-blind to fresh random secrets).
+   */
+  hasUnresolvedLegacy: boolean;
+}
+
+export async function listEscrowLockedSecretsAsync(): Promise<EscrowLockedSecretsResolution> {
+  const secrets = new Set<string>();
+  const resolvedLegacy = new Map<string, string[]>();
+  let hasUnresolvedLegacy = false;
+  for (const record of listBuyerEscrows()) {
+    if (Array.isArray(record.lockedSecrets)) {
+      for (const secret of record.lockedSecrets) {
+        if (typeof secret === "string") secrets.add(secret);
+      }
+      continue;
+    }
+    try {
+      const { proofs } = await decodeEscrowLockedProofs(
+        record.lockedToken,
+        record.mintUrl
+      );
+      const resolved: string[] = [];
+      for (const proof of proofs) {
+        if (proof && typeof proof.secret === "string") {
+          secrets.add(proof.secret);
+          resolved.push(proof.secret);
+        }
+      }
+      if (resolved.length > 0) resolvedLegacy.set(record.escrowId, resolved);
+    } catch {
+      // Mint unreachable — never cached, so the next hydration retries.
+      // Flagged so the caller can fail closed via the P2PK-shape strip.
+      hasUnresolvedLegacy = true;
+    }
+  }
+  // Migrate legacy records: persist the resolved secrets so no future pass
+  // has to decode (or fail to decode) these tokens again. The re-read +
+  // write is one synchronous block, so a concurrent checkout write can't be
+  // lost — enrichments are applied to the CURRENT list by escrow id.
+  if (resolvedLegacy.size > 0) {
+    try {
+      const current = listBuyerEscrows();
+      let changed = false;
+      const next = current.map((record) => {
+        const resolved = resolvedLegacy.get(record.escrowId);
+        if (resolved && !Array.isArray(record.lockedSecrets)) {
+          changed = true;
+          return { ...record, lockedSecrets: resolved };
+        }
+        return record;
+      });
+      if (changed) {
+        localStorage.setItem(BUYER_ESCROW_STORAGE_KEY, JSON.stringify(next));
+      }
+    } catch {
+      // Migration is hygiene only — the in-memory set is already resolved.
+    }
+  }
+  return { secrets, hasUnresolvedLegacy };
+}
+
+/**
+ * Remove any proof that is locked in a recorded buyer escrow from a set
+ * about to be written into the spendable wallet (`localStorage["tokens"]`).
+ *
+ * The escrow lock path swaps buyer proofs into P2PK-locked outputs and
+ * records them under `cashu_escrows` — they are NOT spendable balance. But
+ * the checkout recoverable-proof tracker still holds them until the seller
+ * message publishes, so a mid-flow failure (backup publish, donation swap,
+ * message send) would otherwise restash them into the wallet, where a page
+ * refresh would show the locked funds as spendable and double-count them
+ * against the escrow record. Callers MUST run every recovery-stash set
+ * through this filter.
+ */
+export function stripEscrowLockedProofs<T extends Proof>(proofs: T[]): T[] {
+  if (!Array.isArray(proofs) || proofs.length === 0) return proofs;
+  const locked = listEscrowLockedSecrets();
+  if (locked.size === 0) return proofs;
+  return proofs.filter(
+    (proof) => !(proof && typeof proof.secret === "string" && locked.has(proof.secret))
+  );
+}
+
+/**
+ * Single-proof membership check against a resolution result. FAIL CLOSED:
+ * when a legacy escrow record couldn't be decoded this pass, any P2PK-shaped
+ * secret is treated as escrow-locked — that shape only ever arises from the
+ * escrow lock path, so a false positive is impossible in this wallet.
+ */
+export function isEscrowLockedProof(
+  proof: Proof | null | undefined,
+  resolution: EscrowLockedSecretsResolution
+): boolean {
+  if (!proof || typeof proof.secret !== "string") return false;
+  if (resolution.secrets.has(proof.secret)) return true;
+  return resolution.hasUnresolvedLegacy && isP2PKWellKnownSecret(proof.secret);
+}
+
+/**
+ * Async variant of stripEscrowLockedProofs for hydration/reconciliation:
+ * resolves legacy v2-keyset locked tokens via a mint keyset fetch instead of
+ * skipping them, so a proof leaked into the spendable wallet by an old
+ * version is still recognized and removed. Fails closed (P2PK-shape strip)
+ * for legacy records whose mint is unreachable this pass.
+ */
+export async function stripEscrowLockedProofsAsync<T extends Proof>(
+  proofs: T[]
+): Promise<T[]> {
+  if (!Array.isArray(proofs) || proofs.length === 0) return proofs;
+  const resolution = await listEscrowLockedSecretsAsync();
+  if (resolution.secrets.size === 0 && !resolution.hasUnresolvedLegacy) {
+    return proofs;
+  }
+  return proofs.filter((proof) => !isEscrowLockedProof(proof, resolution));
 }
 
 /**

@@ -357,6 +357,11 @@ export async function restoreEscrowsFromProofEvents(
       expiresAt: info.expiresAt,
       createdAt: info.createdAt,
       lockedToken: getEncodedToken({ mint, proofs }),
+      // Record the locked secrets so spendable-wallet reconciliation never
+      // has to decode the token (v2-keyset mints can't decode synchronously).
+      lockedSecrets: proofs
+        .map((proof) => proof?.secret)
+        .filter((secret): secret is string => typeof secret === "string"),
     };
     // recordBuyerEscrow re-reads storage and dedupes by escrow id, so a
     // concurrent checkout/write can't be clobbered. A failed write is

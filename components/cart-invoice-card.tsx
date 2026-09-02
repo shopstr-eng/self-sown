@@ -5869,6 +5869,9 @@ export default function CartInvoiceCard({
                 mint: spendMint,
                 proofs: sellerProofs,
               }),
+              // Lets recovery stashes strip these locked proofs without
+              // decoding the token (v2-keyset mints can't decode sync).
+              lockedSecrets: sellerProofs.map((p: Proof) => p.secret),
             };
             const recordedEscrow = recordBuyerEscrow(escrowRecord);
             if (!recordedEscrow) {
@@ -5877,6 +5880,11 @@ export default function CartInvoiceCard({
                   productEscrowOrderId
               );
             }
+            // Custody now lives in the escrow record — keep the locked
+            // proofs out of any later failure-stash into the spendable
+            // wallet (a refresh would render them as spendable,
+            // double-counted).
+            __recoverableTracker.consume(sellerProofs);
             // Best-effort kind-7375 backup of the locked proofs (buyer
             // recovery path); the wallet page re-publishes if this fails.
             // Never silently: a backup that can never publish (e.g. a remote
@@ -5965,6 +5973,9 @@ export default function CartInvoiceCard({
                 mint: spendMint,
                 proofs: sellerProofs,
               }),
+              // Lets recovery stashes strip these locked proofs without
+              // decoding the token (v2-keyset mints can't decode sync).
+              lockedSecrets: sellerProofs.map((p: Proof) => p.secret),
             };
             const recordedEscrow = recordBuyerEscrow(escrowRecord);
             if (!recordedEscrow) {
@@ -5973,6 +5984,11 @@ export default function CartInvoiceCard({
                   productEscrowOrderId
               );
             }
+            // Custody now lives in the escrow record — keep the locked
+            // proofs out of any later failure-stash into the spendable
+            // wallet (a refresh would render them as spendable,
+            // double-counted).
+            __recoverableTracker.consume(sellerProofs);
             // Best-effort kind-7375 backup of the locked proofs (buyer
             // recovery path); the wallet page re-publishes if this fails.
             // Never silently: a backup that can never publish (e.g. a remote

@@ -1184,6 +1184,273 @@ describe("fetchCashuWallet", () => {
     );
   });
 
+  it("strips escrow-locked proofs leaked into localStorage tokens at hydration", async () => {
+    // Regression: a previous version could write P2PK-locked escrow proofs
+    // into localStorage["tokens"] (recovery-stash path). After a refresh the
+    // boot snapshot seeded the spendable balance straight from that snapshot,
+    // so locked funds rendered as spendable AND double-counted against the
+    // escrow record. Hydration must reconcile: remove them from the wallet
+    // AND from the stored token list.
+    const lockedProof = {
+      id: "ks",
+      amount: 100,
+      secret: "leaked-locked-secret",
+      C: "c1",
+    };
+    const spendableProof = {
+      id: "ks",
+      amount: 21,
+      secret: "spendable-secret",
+      C: "c2",
+    };
+    localStorage.setItem(
+      "tokens",
+      JSON.stringify([lockedProof, spendableProof])
+    );
+    // Legacy-style escrow record identified by lockedSecrets (the async
+    // v2-keyset decode path is covered in escrow-checkout.test.ts).
+    localStorage.setItem(
+      "cashu_escrows",
+      JSON.stringify([
+        {
+          escrowId: `${"f".repeat(64)}:order-leaked`,
+          orderId: "order-leaked",
+          sellerPubkey: "d".repeat(64),
+          amountSats: 100,
+          mintUrl: "https://mint.example",
+          expiresAt: 1_900_000_000,
+          createdAt: 1_800_000_000,
+          lockedToken: "cashuAwhatever",
+          lockedSecrets: ["leaked-locked-secret"],
+        },
+      ])
+    );
+    try {
+      jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+        getLocalStorageData: jest.fn(() => ({
+          tokens: [lockedProof, spendableProof],
+        })),
+        deleteEvent: jest.fn(),
+        verifyNip05Identifier: jest.fn(),
+      }));
+      jest.doMock("@/utils/db/db-client", () => ({
+        cacheEventsToDatabase: jest.fn(),
+      }));
+
+      const { fetchCashuWallet } = await import("../fetch-service");
+
+      const buyerPk = "f".repeat(64);
+      const signer = { getPubKey: async () => buyerPk };
+      global.fetch = jest.fn(async () =>
+        makeDbPayload([])
+      ) as unknown as typeof global.fetch;
+      const nostr = { fetch: jest.fn(async () => []) } as any;
+      const editCashuWalletContext = jest.fn();
+
+      const result = await fetchCashuWallet(
+        nostr,
+        signer as any,
+        ["wss://relay.example"],
+        editCashuWalletContext
+      );
+
+      // The leaked locked proof is NOT spendable balance…
+      expect(result.cashuProofs.map((p: any) => p.secret)).toEqual([
+        "spendable-secret",
+      ]);
+      // …and the stored token list itself was reconciled, so the next
+      // refresh can't resurrect it either.
+      const storedTokens = JSON.parse(
+        localStorage.getItem("tokens") ?? "[]"
+      ).map((p: any) => p.secret);
+      expect(storedTokens).toEqual(["spendable-secret"]);
+    } finally {
+      localStorage.removeItem("tokens");
+      localStorage.removeItem("cashu_escrows");
+    }
+  });
+
+  it("fails closed at hydration when a legacy escrow record cannot be decoded", async () => {
+    // Regression: a legacy escrow record (no lockedSecrets) whose locked
+    // token can't be decoded this pass (e.g. mint unreachable) must NOT let
+    // its proofs render as spendable. Escrow-locked proofs always carry a
+    // P2PK well-known secret — a shape no legitimately-stored wallet proof
+    // ever has (receive/swap/melt re-blind to fresh random secrets) — so
+    // hydration strips P2PK-shaped proofs as the fail-closed backstop.
+    const p2pkLockedProof = {
+      id: "ks",
+      amount: 100,
+      secret: JSON.stringify([
+        "P2PK",
+        { nonce: "ab".repeat(16), data: "02" + "cd".repeat(32), tags: [] },
+      ]),
+      C: "c1",
+    };
+    const spendableProof = {
+      id: "ks",
+      amount: 21,
+      secret: "plain-random-secret",
+      C: "c2",
+    };
+    localStorage.setItem(
+      "tokens",
+      JSON.stringify([p2pkLockedProof, spendableProof])
+    );
+    // Legacy record: NO lockedSecrets, and an undecodable token (the mocked
+    // @cashu/cashu-ts has no getDecodedToken, so resolution always fails —
+    // exactly the "mint unreachable" shape this test pins).
+    localStorage.setItem(
+      "cashu_escrows",
+      JSON.stringify([
+        {
+          escrowId: `${"f".repeat(64)}:order-legacy`,
+          orderId: "order-legacy",
+          sellerPubkey: "d".repeat(64),
+          amountSats: 100,
+          mintUrl: "https://mint-down.example",
+          expiresAt: 1_900_000_000,
+          createdAt: 1_800_000_000,
+          lockedToken: "cashuAundecodable",
+        },
+      ])
+    );
+    try {
+      jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+        getLocalStorageData: jest.fn(() => ({
+          tokens: [p2pkLockedProof, spendableProof],
+        })),
+        deleteEvent: jest.fn(),
+        verifyNip05Identifier: jest.fn(),
+      }));
+      jest.doMock("@/utils/db/db-client", () => ({
+        cacheEventsToDatabase: jest.fn(),
+      }));
+
+      const { fetchCashuWallet } = await import("../fetch-service");
+
+      const buyerPk = "f".repeat(64);
+      const signer = { getPubKey: async () => buyerPk };
+      global.fetch = jest.fn(async () =>
+        makeDbPayload([])
+      ) as unknown as typeof global.fetch;
+      const nostr = { fetch: jest.fn(async () => []) } as any;
+
+      const result = await fetchCashuWallet(
+        nostr,
+        signer as any,
+        ["wss://relay.example"],
+        jest.fn()
+      );
+
+      // Fail-closed: the P2PK-shaped locked proof is NOT spendable even
+      // though its record could not be decoded…
+      expect(result.cashuProofs.map((p: any) => p.secret)).toEqual([
+        "plain-random-secret",
+      ]);
+      // …and the stored token list was reconciled the same way.
+      const storedTokens = JSON.parse(
+        localStorage.getItem("tokens") ?? "[]"
+      ).map((p: any) => p.secret);
+      expect(storedTokens).toEqual(["plain-random-secret"]);
+    } finally {
+      localStorage.removeItem("tokens");
+      localStorage.removeItem("cashu_escrows");
+    }
+  });
+
+  it("reconciliation preserves change proofs persisted concurrently during hydration", async () => {
+    // Regression: hydration snapshots `tokens`, awaits the async escrow
+    // resolution, then writes the filtered list back. If it wrote the stale
+    // SNAPSHOT, a send/swap that persisted fresh change proofs during that
+    // await would be silently destroyed. The reconciliation must re-read
+    // current storage and remove ONLY the locked entries.
+    //
+    // Simulated deterministically: the boot snapshot (getLocalStorageData
+    // mock) predates the concurrent write, while localStorage already holds
+    // the fresh change proof — exactly the post-await state the write sees.
+    const lockedProof = {
+      id: "ks",
+      amount: 100,
+      secret: "leaked-locked-secret",
+      C: "c1",
+    };
+    const spendableProof = {
+      id: "ks",
+      amount: 21,
+      secret: "spendable-secret",
+      C: "c2",
+    };
+    const freshChangeProof = {
+      id: "ks",
+      amount: 7,
+      secret: "fresh-change-secret",
+      C: "c3",
+    };
+    // Concurrent write landed AFTER the snapshot: locked + spendable + change.
+    localStorage.setItem(
+      "tokens",
+      JSON.stringify([lockedProof, spendableProof, freshChangeProof])
+    );
+    localStorage.setItem(
+      "cashu_escrows",
+      JSON.stringify([
+        {
+          escrowId: `${"f".repeat(64)}:order-race`,
+          orderId: "order-race",
+          sellerPubkey: "d".repeat(64),
+          amountSats: 100,
+          mintUrl: "https://mint.example",
+          expiresAt: 1_900_000_000,
+          createdAt: 1_800_000_000,
+          lockedToken: "cashuAwhatever",
+          lockedSecrets: ["leaked-locked-secret"],
+        },
+      ])
+    );
+    try {
+      jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+        // Boot snapshot taken BEFORE the concurrent write landed.
+        getLocalStorageData: jest.fn(() => ({
+          tokens: [lockedProof, spendableProof],
+        })),
+        deleteEvent: jest.fn(),
+        verifyNip05Identifier: jest.fn(),
+      }));
+      jest.doMock("@/utils/db/db-client", () => ({
+        cacheEventsToDatabase: jest.fn(),
+      }));
+
+      const { fetchCashuWallet } = await import("../fetch-service");
+
+      const buyerPk = "f".repeat(64);
+      const signer = { getPubKey: async () => buyerPk };
+      global.fetch = jest.fn(async () =>
+        makeDbPayload([])
+      ) as unknown as typeof global.fetch;
+      const nostr = { fetch: jest.fn(async () => []) } as any;
+
+      await fetchCashuWallet(
+        nostr,
+        signer as any,
+        ["wss://relay.example"],
+        jest.fn()
+      );
+
+      // The reconciliation removed ONLY the locked proof from CURRENT
+      // storage — the concurrently-persisted change proof survived.
+      const storedTokens = JSON.parse(
+        localStorage.getItem("tokens") ?? "[]"
+      ).map((p: any) => p.secret);
+      expect(storedTokens).toEqual([
+        "spendable-secret",
+        "fresh-change-secret",
+      ]);
+    } finally {
+      localStorage.removeItem("tokens");
+      localStorage.removeItem("cashu_escrows");
+    }
+  });
+
   it("never queues escrow backup events for deletion when the mint reports their proofs spent", async () => {
     // Regression: escrow backups are the buyer's recovery material for
     // unresolved escrows (custody rule). The spent-event cleanup must exempt

@@ -14,8 +14,11 @@ import {
   listBuyerEscrows,
   listRedeemedSellerEscrows,
   markSellerEscrowRedeemed,
+  listEscrowLockedSecrets,
   pruneResolvedBuyerEscrows,
   recordBuyerEscrow,
+  stripEscrowLockedProofs,
+  stripEscrowLockedProofsAsync,
   resolveEscrowLockSeconds,
   formatEscrowLockDuration,
   signEscrowLockedProofs,
@@ -233,6 +236,239 @@ describe("escrow-checkout helpers", () => {
       delete (legacy as any).lockedToken;
       store.set("cashu_escrows", JSON.stringify([legacy]));
       expect(listBuyerEscrows()).toEqual([]);
+    });
+  });
+
+  describe("stripEscrowLockedProofs / listEscrowLockedSecrets", () => {
+    const lockedProofA = {
+      id: "009a1f293253e41e",
+      amount: 100,
+      secret: "locked-secret-a",
+      C: "02" + "cd".repeat(32),
+    } as unknown as Proof;
+    const lockedProofB = {
+      id: "009a1f293253e41e",
+      amount: 200,
+      secret: "locked-secret-b",
+      C: "02" + "cd".repeat(32),
+    } as unknown as Proof;
+    const spendableProof = {
+      id: "009a1f293253e41e",
+      amount: 50,
+      secret: "spendable-secret",
+      C: "02" + "cd".repeat(32),
+    } as unknown as Proof;
+
+    it("strips proofs recorded as escrow-locked via lockedSecrets", () => {
+      recordBuyerEscrow(
+        makeRecord({ lockedSecrets: ["locked-secret-a", "locked-secret-b"] })
+      );
+      const result = stripEscrowLockedProofs([
+        lockedProofA,
+        spendableProof,
+        lockedProofB,
+      ]);
+      expect(result).toEqual([spendableProof]);
+    });
+
+    it("falls back to decoding lockedToken when lockedSecrets is absent", () => {
+      const lockedToken = getEncodedToken({
+        mint: "https://mint.example",
+        proofs: [lockedProofA],
+      });
+      recordBuyerEscrow(makeRecord({ lockedToken }));
+      expect(listEscrowLockedSecrets().has("locked-secret-a")).toBe(true);
+      const result = stripEscrowLockedProofs([lockedProofA, spendableProof]);
+      expect(result).toEqual([spendableProof]);
+    });
+
+    it("collects secrets across multiple escrow records", () => {
+      recordBuyerEscrow(
+        makeRecord({
+          escrowId: `${"a".repeat(64)}:order-1`,
+          orderId: "order-1",
+          lockedSecrets: ["locked-secret-a"],
+        })
+      );
+      recordBuyerEscrow(
+        makeRecord({
+          escrowId: `${"a".repeat(64)}:order-2`,
+          orderId: "order-2",
+          lockedSecrets: ["locked-secret-b"],
+        })
+      );
+      expect(stripEscrowLockedProofs([lockedProofA, lockedProofB])).toEqual(
+        []
+      );
+    });
+
+    it("is a no-op pass-through when no escrows are recorded", () => {
+      const input = [lockedProofA, spendableProof];
+      expect(stripEscrowLockedProofs(input)).toBe(input);
+      expect(stripEscrowLockedProofs([])).toEqual([]);
+    });
+
+    it("ignores malformed lockedSecrets entries and undecodable tokens", () => {
+      recordBuyerEscrow(
+        makeRecord({
+          lockedToken: "cashuAnot-valid-token",
+          lockedSecrets: ["locked-secret-a", 42 as unknown as string],
+        })
+      );
+      // Still strips the valid secret; the garbage entries are skipped.
+      expect(stripEscrowLockedProofs([lockedProofA, spendableProof])).toEqual([
+        spendableProof,
+      ]);
+    });
+
+    it("sync variant SKIPS a v2-keyset legacy record it cannot decode", () => {
+      // Pins the known limitation the async variant exists to cover: a
+      // legacy record (no lockedSecrets) holding a v2-keyset token needs a
+      // mint keyset fetch to decode, which the sync path cannot do.
+      const v2Token = getEncodedToken({
+        mint: "https://mint.example",
+        proofs: [
+          {
+            id: "01" + "ab".repeat(31),
+            amount: 100,
+            secret: "v2-locked-secret",
+            C: "02" + "cd".repeat(32),
+          } as unknown as Proof,
+        ],
+      });
+      recordBuyerEscrow(makeRecord({ lockedToken: v2Token }));
+      expect(listEscrowLockedSecrets().has("v2-locked-secret")).toBe(false);
+    });
+  });
+
+  describe("stripEscrowLockedProofsAsync / listEscrowLockedSecretsAsync", () => {
+    const V2_KEYSET_ID = "01" + "ab".repeat(31);
+    const MINT = "https://mint-v2.example";
+
+    const v2LockedProof = {
+      id: V2_KEYSET_ID,
+      amount: 100,
+      secret: "v2-locked-secret",
+      C: "02" + "cd".repeat(32),
+    } as unknown as Proof;
+    const spendableProof = {
+      id: "009a1f293253e41e",
+      amount: 50,
+      secret: "spendable-secret",
+      C: "02" + "cd".repeat(32),
+    } as unknown as Proof;
+
+    const realFetch = (globalThis as any).fetch;
+    afterEach(() => {
+      (globalThis as any).fetch = realFetch;
+      jest.restoreAllMocks();
+    });
+
+    it("resolves a legacy v2-keyset record via the mint keyset fetch", async () => {
+      // The reviewer-flagged gap: a legacy escrow record (no lockedSecrets)
+      // holding a v2-keyset token MUST NOT be silently skipped — the async
+      // variant fetches the mint's keyset ids so the locked proof is
+      // recognized and stripped even at hydration time.
+      const v2Token = getEncodedToken({
+        mint: MINT,
+        proofs: [v2LockedProof],
+      });
+      recordBuyerEscrow(makeRecord({ lockedToken: v2Token, mintUrl: MINT }));
+      const fetchSpy = ((globalThis as any).fetch = jest
+        .fn()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({ keysets: [{ id: V2_KEYSET_ID }] }),
+        }));
+
+      const result = await stripEscrowLockedProofsAsync([
+        v2LockedProof,
+        spendableProof,
+      ]);
+      expect(result).toEqual([spendableProof]);
+      expect(fetchSpy).toHaveBeenCalledWith(`${MINT}/v1/keysets`);
+      // The decoded secrets are MIGRATED back onto the record, so no future
+      // pass (including the sync stash chokepoint) has to decode again.
+      const stored = listBuyerEscrows().find((r) => r.mintUrl === MINT);
+      expect(stored?.lockedSecrets).toEqual(["v2-locked-secret"]);
+    });
+
+    it("prefers lockedSecrets without any network call", async () => {
+      recordBuyerEscrow(makeRecord({ lockedSecrets: ["v2-locked-secret"] }));
+      const fetchSpy = ((globalThis as any).fetch = jest.fn());
+      const result = await stripEscrowLockedProofsAsync([
+        v2LockedProof,
+        spendableProof,
+      ]);
+      expect(result).toEqual([spendableProof]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("FAILS CLOSED when a legacy record's mint is unreachable: P2PK-shaped proofs are stripped", async () => {
+      // Unreachable mint for the legacy v2 record: it can't be decoded this
+      // pass (failure is never cached, so the next hydration retries). The
+      // invariant "locked funds can never render spendable" must still hold,
+      // so the async strip fails closed on the P2PK well-known-secret shape —
+      // every escrow-locked proof carries it and no legitimately-stored
+      // wallet proof ever does. Distinct mint URL: the keyset-id cache is
+      // per-mint and a prior test warmed the entry for MINT.
+      const DOWN_MINT = "https://mint-down.example";
+      const p2pkLockedProof = {
+        id: V2_KEYSET_ID,
+        amount: 100,
+        secret: JSON.stringify([
+          "P2PK",
+          { nonce: "ab".repeat(16), data: "02" + "cd".repeat(32), tags: [] },
+        ]),
+        C: "02" + "cd".repeat(32),
+      } as unknown as Proof;
+      const v2Token = getEncodedToken({
+        mint: DOWN_MINT,
+        proofs: [p2pkLockedProof],
+      });
+      recordBuyerEscrow(makeRecord({ lockedToken: v2Token, mintUrl: DOWN_MINT }));
+      recordBuyerEscrow(
+        makeRecord({
+          escrowId: `${"a".repeat(64)}:order-2`,
+          orderId: "order-2",
+          lockedSecrets: ["locked-secret-b"],
+        })
+      );
+      (globalThis as any).fetch = jest.fn().mockRejectedValue(
+        new Error("mint down")
+      );
+      const lockedB = {
+        id: "009a1f293253e41e",
+        amount: 200,
+        secret: "locked-secret-b",
+        C: "02" + "cd".repeat(32),
+      } as unknown as Proof;
+      const result = await stripEscrowLockedProofsAsync([
+        p2pkLockedProof,
+        lockedB,
+        spendableProof,
+      ]);
+      // P2PK-shaped leaked proof stripped via the fail-closed shape check
+      // even though its record couldn't be decoded; lockedB stripped via
+      // lockedSecrets; the plain spendable proof survives.
+      expect(result).toEqual([spendableProof]);
+    });
+
+    it("does NOT over-strip when a legacy record is unresolved: non-P2PK unknown secrets pass through", async () => {
+      // Fail-closed must be surgical: an unresolved legacy record strips
+      // P2PK-shaped secrets only — ordinary wallet proofs (random hex
+      // secrets) are never escrow material and must stay spendable.
+      const DOWN_MINT2 = "https://mint-down-2.example";
+      const v2Token = getEncodedToken({
+        mint: DOWN_MINT2,
+        proofs: [v2LockedProof],
+      });
+      recordBuyerEscrow(makeRecord({ lockedToken: v2Token, mintUrl: DOWN_MINT2 }));
+      (globalThis as any).fetch = jest.fn().mockRejectedValue(
+        new Error("mint down")
+      );
+      const result = await stripEscrowLockedProofsAsync([spendableProof]);
+      expect(result).toEqual([spendableProof]);
     });
   });
 

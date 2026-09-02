@@ -31,6 +31,11 @@ import {
   markEventsRequestedForDeletion,
 } from "@/utils/cashu/deleted-event-tracker";
 import {
+  EscrowLockedSecretsResolution,
+  isEscrowLockedProof,
+  listEscrowLockedSecretsAsync,
+} from "@/utils/cashu/escrow-checkout";
+import {
   buildMessagesListProof,
   buildSignedHttpRequestProofTemplate,
   SIGNED_EVENT_HEADER,
@@ -1739,7 +1744,48 @@ export const fetchCashuWallet = async (
       const cashuRelays: string[] = [];
       const cashuMints: string[] = [];
       const cashuMintSet: Set<string> = new Set();
-      let cashuProofs: Proof[] = [...tokens]; // Start with existing tokens
+      // Escrow-locked proofs must NEVER count as spendable balance — not
+      // even ones an old version leaked into localStorage["tokens"] before
+      // the lock path stopped writing them there. Resolve the locked-secret
+      // set ASYNC so legacy records (no lockedSecrets, v2-keyset tokens that
+      // need a mint keyset fetch to decode) are recognized too. If a legacy
+      // record can't be decoded this pass (mint unreachable), fail CLOSED:
+      // P2PK-shaped secrets — the shape every escrow-locked proof carries
+      // and no legitimately-stored wallet proof ever has — are treated as
+      // locked, so unresolved escrow material still can't render spendable.
+      let escrowResolution: EscrowLockedSecretsResolution = {
+        secrets: new Set<string>(),
+        hasUnresolvedLegacy: false,
+      };
+      try {
+        escrowResolution = await listEscrowLockedSecretsAsync();
+      } catch {
+        // Even a wholesale failure here must not break wallet hydration;
+        // the empty resolution simply strips nothing this pass.
+      }
+      const isEscrowLocked = (p: Proof): boolean =>
+        isEscrowLockedProof(p, escrowResolution);
+      // Reconcile the stored token list so the next refresh can't resurrect
+      // a leaked locked proof. CONCURRENCY-SAFE: re-read current storage
+      // immediately before the write and remove only locked entries from
+      // THAT value — a send/swap that persisted fresh change proofs while
+      // the async resolution above was in flight keeps them.
+      try {
+        const rawTokens = localStorage.getItem("tokens");
+        const currentTokens: unknown = rawTokens ? JSON.parse(rawTokens) : [];
+        if (Array.isArray(currentTokens) && currentTokens.some(isEscrowLocked)) {
+          localStorage.setItem(
+            "tokens",
+            JSON.stringify(currentTokens.filter((p: Proof) => !isEscrowLocked(p)))
+          );
+        }
+      } catch {
+        // Persisting the cleanup is hygiene; the in-memory strip below
+        // already keeps the locked proofs out of this run's balance.
+      }
+      let cashuProofs: Proof[] = [...tokens].filter(
+        (p: Proof) => !isEscrowLocked(p)
+      ); // Start with existing tokens, minus escrow-locked
       const incomingSpendingHistory: [][] = [];
       // Secrets we positively determine SPENT during this run (mint state +
       // spending history). Used by the pre-resolve localStorage delta-merge so
@@ -2214,7 +2260,8 @@ export const fetchCashuWallet = async (
               p &&
               p.secret &&
               !known.has(p.secret) &&
-              !spentSecrets.has(p.secret)
+              !spentSecrets.has(p.secret) &&
+              !isEscrowLocked(p)
           );
           if (additions.length > 0) {
             cashuProofs = getUniqueProofs([...cashuProofs, ...additions]);

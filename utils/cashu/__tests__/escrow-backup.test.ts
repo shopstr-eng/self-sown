@@ -254,6 +254,12 @@ describe("escrow-backup", () => {
       expect(decoded.proofs.map((p: Proof) => p.secret).sort()).toEqual(
         PROOFS.map((p) => p.secret).sort()
       );
+      // The restored record carries lockedSecrets, so spendable-wallet
+      // reconciliation never has to decode the token (a restored v2-keyset
+      // token can't be decoded synchronously).
+      expect(stored[0]!.lockedSecrets?.sort()).toEqual(
+        PROOFS.map((p) => p.secret).sort()
+      );
     });
 
     it("verifies proofs against the mint before restoring", async () => {
