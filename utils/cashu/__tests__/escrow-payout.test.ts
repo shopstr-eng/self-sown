@@ -131,6 +131,7 @@ function fakeWallet(
     checkProofsStates: jest.fn(async () => states as any),
     prepareSwapToReceive: jest.fn(async () => preview as any),
     completeSwap: jest.fn(async () => ({ keep: outputs, send: [] }) as any),
+    loadMint: jest.fn(async () => {}) as any,
   };
   return wallet;
 }

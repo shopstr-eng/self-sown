@@ -55,3 +55,14 @@ it imports, and node-parse function param destructures for props you pass (e.g.
 what LSP missed.
 
 `pgrep -f "tsserver.js"` also matches your OWN wrapper shell's command line (bash -c "...tsserver.js..."), so `kill $(pgrep -f tsserver.js)` kills your own shell mid-command (exit -1). Anchor the pattern to the process start instead: `pgrep -f "^/nix/store.*tsserver.js" | xargs -r kill`, or kill listed PIDs excluding $$.
+
+## Long-lived local services (e.g. a Nutshell mint) must be managed workflows
+
+Background shell tasks auto-stop after ~5 minutes and detached `setsid`
+processes get reaped across tool-call boundaries (see the tsc note above), so a
+local service started either way silently dies mid-test. For the staging escrow
+runs the local Nutshell mint only survived as a configured workflow
+("Staging Cashu Mint", port 3338, FakeWallet, MINT_RATE_LIMIT=FALSE).
+**How to apply:** anything that must stay up longer than one bash call — mints,
+relays, mock servers — goes through the workflows tooling, not a background
+shell.

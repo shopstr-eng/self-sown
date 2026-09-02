@@ -165,10 +165,12 @@ describe("escrow payout redemption", () => {
 
   const buyerPayoutToken = getEncodedToken({
     mint: MINT,
+    unit: "sat",
     proofs: [buyerPayoutProof(buyerPk)],
   });
   const sellerPayoutToken = getEncodedToken({
     mint: MINT,
+    unit: "sat",
     proofs: [sellerPayoutProof(sellerPk)],
   });
 
@@ -257,15 +259,19 @@ describe("escrow payout redemption", () => {
       // P2PK witness (checked with the real library verifier).
       expect(signEscrowLockedProofs).toHaveBeenCalledWith(
         buyerPayoutToken,
-        buyerSigner
+        buyerSigner,
+        MINT
       );
       expect(mockLoadMint).toHaveBeenCalledTimes(1);
       expect(mockReceive).toHaveBeenCalledTimes(1);
       const receiveArg = mockReceive.mock.calls[0]![0] as {
         mint: string;
         proofs: Proof[];
+        unit?: string;
       };
       expect(receiveArg.mint).toBe(MINT);
+      // Regression: cashu-ts receive() rejects a unit-less token object.
+      expect(receiveArg.unit).toBe("sat");
       expect(receiveArg.proofs).toHaveLength(1);
       expect(hasP2PKSignedProof(buyerPk, receiveArg.proofs[0]!)).toBe(true);
 
@@ -348,15 +354,19 @@ describe("escrow payout redemption", () => {
 
       expect(signEscrowLockedProofs).toHaveBeenCalledWith(
         sellerPayoutToken,
-        sellerSigner
+        sellerSigner,
+        MINT
       );
       expect(mockLoadMint).toHaveBeenCalledTimes(1);
       expect(mockReceive).toHaveBeenCalledTimes(1);
       const receiveArg = mockReceive.mock.calls[0]![0] as {
         mint: string;
         proofs: Proof[];
+        unit?: string;
       };
       expect(receiveArg.mint).toBe(MINT);
+      // Regression: cashu-ts receive() rejects a unit-less token object.
+      expect(receiveArg.unit).toBe("sat");
       expect(hasP2PKSignedProof(sellerPk, receiveArg.proofs[0]!)).toBe(true);
 
       expect(persistReceivedTokens).toHaveBeenCalledWith(FRESH_PROOFS, MINT);

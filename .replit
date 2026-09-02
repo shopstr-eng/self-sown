@@ -37,6 +37,10 @@ args = "Next.js Dev Server"
 task = "workflow.run"
 args = "test-ucp-geo"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Staging Cashu Mint"
+
 [[workflows.workflow]]
 name = "Next.js Dev Server"
 author = "agent"
@@ -60,6 +64,17 @@ args = "npx jest __tests__/utils/ucp __tests__/utils/geo --no-coverage"
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "Staging Cashu Mint"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /tmp/nutshell-data && env MINT_RATE_LIMIT=FALSE MINT_BACKEND_BOLT11_SAT=FakeWallet MINT_INPUT_FEE_PPK=0 MINT_LISTEN_HOST=127.0.0.1 MINT_LISTEN_PORT=3338 MINT_DATABASE=/tmp/nutshell-data MINT_PRIVATE_KEY=TEST_PRIVATE_KEY MINT_NAME=\"Staging Fake Mint\" /tmp/nutshell-venv/bin/mint"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [agent]
 expertMode = true
 integrations = ["sendgrid:1.0.0", "javascript_openai_ai_integrations:2.0.0", "javascript_anthropic_ai_integrations:2.0.0"]
@@ -70,6 +85,13 @@ integrations = ["sendgrid:1.0.0", "javascript_openai_ai_integrations:2.0.0", "ja
 
 [userenv.production]
 TRUST_PROXY_HEADERS = "true"
+
+[userenv.development]
+CASHU_ESCROW_ALLOWED_MINTS = "https://testnut.cashu.space,http://localhost:3338"
+CASHU_ESCROW_ARBITER_PUBKEYS = "487dfa272ad0f8cc304283157d3655bf54ac365a8c5f74210fa68301569d9618"
+CASHU_ESCROW_ENABLED = "true"
+NEXT_PUBLIC_CASHU_ESCROW_ENABLED = "true"
+NEXT_PUBLIC_CASHU_ESCROW_LOCK_SECONDS = "420"
 
 [postMerge]
 path = "scripts/post-merge.sh"

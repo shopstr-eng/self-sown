@@ -14,7 +14,6 @@ import { nip19 } from "nostr-tools";
 import {
   Mint as CashuMint,
   Wallet as CashuWallet,
-  getDecodedToken,
 } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
@@ -183,7 +182,8 @@ export default function BuyerEscrowList() {
       // refund can actually be paid out, not just recorded.
       const payoutProofs = await signEscrowLockedProofs(
         view.record.lockedToken,
-        signer
+        signer,
+        view.record.mintUrl
       );
       await requestEscrowRefund(actionEvent, payoutProofs);
       await refresh().catch(() => undefined);
@@ -211,7 +211,10 @@ export default function BuyerEscrowList() {
       // "awaiting_seller_witness" — only the seller's key can witness them
       // pre-expiry, which is the seller's completion step. The buyer keeps
       // the local record until the release lands (refresh prunes it then).
-      const { proofs } = decodeEscrowLockedProofs(view.record.lockedToken);
+      const { proofs } = await decodeEscrowLockedProofs(
+        view.record.lockedToken,
+        view.record.mintUrl
+      );
       await requestEscrowReleaseApproval(actionEvent, proofs);
       await refresh().catch(() => undefined);
     } catch (error) {
@@ -229,15 +232,23 @@ export default function BuyerEscrowList() {
     setActionError(null);
     setBusyId(view.record.escrowId);
     try {
-      const decoded = getDecodedToken(payoutToken, []);
+      const decoded = await decodeEscrowLockedProofs(
+        payoutToken,
+        view.record.mintUrl
+      );
       // The payout proofs are P2PK-locked to the buyer: sign the witness,
       // swap them at the mint into ordinary proofs, merge into the wallet.
-      const signedProofs = await signEscrowLockedProofs(payoutToken, signer);
+      const signedProofs = await signEscrowLockedProofs(
+        payoutToken,
+        signer,
+        view.record.mintUrl
+      );
       const wallet = new CashuWallet(new CashuMint(decoded.mint));
       await wallet.loadMint();
       const freshProofs = await wallet.receive({
         mint: decoded.mint,
         proofs: signedProofs,
+        unit: decoded.unit,
       });
       persistReceivedTokens(freshProofs, decoded.mint);
       setRedeemedIds((prev) => new Set(prev).add(view.record.escrowId));

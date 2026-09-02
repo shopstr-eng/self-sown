@@ -25,6 +25,7 @@ import {
   recordBuyerEscrow,
   type BuyerEscrowRecord,
 } from "@/utils/cashu/escrow-checkout";
+import { normalizeP2PKPubkey } from "@/utils/cashu/escrow-payout";
 import {
   filterUnspentProofs,
   type ProofEventLike,
@@ -76,7 +77,13 @@ function proofsMatchEscrowInfo(proofs: Proof[], info: EscrowBackupInfo): boolean
       const parsed = JSON.parse(proof.secret);
       if (!Array.isArray(parsed) || parsed[0] !== "P2PK") return false;
       const payload = parsed[1];
-      if (payload?.data !== info.sellerPubkey) return false;
+      // Mints emit the lock pubkey in compressed SEC form (02/03-prefixed)
+      // while the record carries the x-only Nostr pubkey — compare x-only.
+      if (
+        typeof payload?.data !== "string" ||
+        normalizeP2PKPubkey(payload.data) !== info.sellerPubkey
+      )
+        return false;
       const tags: string[][] = Array.isArray(payload?.tags) ? payload.tags : [];
       const locktime = tags.find((t) => t[0] === "locktime")?.[1];
       if (Number(locktime) !== info.expiresAt) return false;
@@ -107,7 +114,10 @@ export async function publishEscrowBackup(
     // Best-effort by design: without a nostr manager or signer there is
     // nothing to publish with — the wallet page retries on next visit.
     if (!nostr || !signer) return false;
-    const { mint, proofs } = decodeEscrowLockedProofs(record.lockedToken);
+    const { mint, proofs } = await decodeEscrowLockedProofs(
+      record.lockedToken,
+      record.mintUrl
+    );
     const info: EscrowBackupInfo = {
       escrowId: record.escrowId,
       orderId: record.orderId,

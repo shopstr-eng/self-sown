@@ -193,6 +193,34 @@ describe("escrow-backup", () => {
       expect(mockFilterUnspentProofs).toHaveBeenCalledWith(MINT, PROOFS);
     });
 
+    it("accepts compressed (02-prefixed) P2PK lock pubkeys — the form mints emit", async () => {
+      // Regression: real mints write the lock pubkey as compressed SEC
+      // (02/03 + x-only) while the record carries the x-only Nostr pubkey.
+      // Comparing them directly rejected every real backup as invalid.
+      const compressedProofs = PROOFS.map((proof) => ({
+        ...proof,
+        secret: JSON.stringify([
+          "P2PK",
+          {
+            nonce: "ef".repeat(16),
+            data: "02" + SELLER_PK,
+            tags: [
+              ["locktime", String(EXPIRES_AT)],
+              ["refund", BUYER_PK],
+              ["sigflag", "SIG_INPUTS"],
+            ],
+          },
+        ]),
+      })) as unknown as Proof[];
+      const record = makeRecord();
+      const result = await restoreEscrowsFromProofEvents([
+        backupEvent(infoFor(record), compressedProofs),
+      ]);
+      expect(result.unrecoveredEscrows).toEqual([]);
+      expect(result.restoredEscrowCount).toBe(1);
+      expect(listBuyerEscrows()[0]!.escrowId).toBe(record.escrowId);
+    });
+
     it("skips escrows the buyer still holds locally (custody intact)", async () => {
       const record = makeRecord();
       recordBuyerEscrow(record);

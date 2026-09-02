@@ -276,3 +276,37 @@ unless escrow is enabled) drains the outbox:
 - [x] Buyer UI behind `NEXT_PUBLIC_CASHU_ESCROW_ENABLED`, off by default
       (checkout toggle, status + refund trigger; see "Buyer-facing flow").
 - [ ] Re-run this threat model against the final flow.
+
+### Staging verification log
+
+- **2026-09-02 — wiped-browser recovery round-trip proven live** (local
+  Nutshell FakeWallet mint, flag on): escrow checkout → kind-7375 backup on
+  relays → browser localStorage wiped → wallet-page restore rebuilt the
+  escrow record + locked token → post-expiry refund from the restored record
+  → sweep paid out → payout redeemed into the wallet (+100 sats verified at
+  the mint via NUT-07; payout proofs SPENT; locked proofs never appeared as
+  spendable balance at any point). Four live-only bugs found and fixed —
+  none were reachable by the mocked unit tests:
+  1. cashu-ts `getDecodedToken(token, [])` throws on v2 (0x01-prefixed)
+     keyset IDs issued by Nutshell ≥0.20 — killed the checkout-time backup
+     publish. Fixed by fetching `/v1/keysets` and retrying the decode
+     (`decodeTokenWithKeysets` in utils/cashu/escrow-checkout.ts). Other
+     wallet paths using `getDecodedToken(t, [])` remain exposed.
+  2. Real mints write the P2PK lock pubkey compressed (`02`+x-only) while
+     records carry the x-only Nostr pubkey; the restore validator compared
+     them directly and rejected every real backup. Fixed by normalizing via
+     `normalizeP2PKPubkey` (matching the server-side validator).
+  3. The payout worker built `new CashuWallet(new CashuMint(url))` without
+     `loadMint()` — cashu-ts v4 throws "KeyChain not initialized" on every
+     op, so no payout could ever execute against a real mint. Fixed.
+  4. Buyer/seller payout redeem called `wallet.receive({ mint, proofs })`
+     without `unit` — cashu-ts rejects unit-less token objects ("Token is
+     not in wallet unit"). Fixed by threading `unit` through
+     `decodeEscrowLockedProofs` into both redeem sites.
+  Also observed (by design, but noted): attaching the buyer's refund payload
+  rewrites the outbox row's `updated_at`, which re-arms the exponential
+  backoff — after ~5 prior attempts a fresh payload waits ~16 min for the
+  next drain. And after the payout the locked proofs are SPENT, so a second
+  wipe before redeeming correctly refuses the restore — but the buyer then
+  has no way to discover the pending payout token (record gone, escrowId
+  unknown). Tracked as follow-up work.

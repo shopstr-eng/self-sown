@@ -6,6 +6,7 @@ import {
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import {
   buildEscrowLockOutputConfig,
+  decodeEscrowLockedProofs,
   defaultEscrowExpiresAt,
   isEscrowAvailableForSeller,
   isSellerEscrowRedeemed,
@@ -14,6 +15,8 @@ import {
   markSellerEscrowRedeemed,
   pruneResolvedBuyerEscrows,
   recordBuyerEscrow,
+  resolveEscrowLockSeconds,
+  formatEscrowLockDuration,
   signEscrowLockedProofs,
   BuyerEscrowRecord,
   ESCROW_DEFAULT_LOCK_SECONDS,
@@ -98,12 +101,47 @@ describe("escrow-checkout helpers", () => {
     });
   });
 
-  describe("defaultEscrowExpiresAt", () => {
-    it("adds the default lock period and stays under the protocol max", () => {
-      expect(defaultEscrowExpiresAt(1000)).toBe(
-        1000 + ESCROW_DEFAULT_LOCK_SECONDS
+  describe("resolveEscrowLockSeconds", () => {
+    it("defaults to the standard lock period and stays under the max", () => {
+      expect(resolveEscrowLockSeconds(undefined)).toBe(
+        ESCROW_DEFAULT_LOCK_SECONDS
       );
       expect(ESCROW_DEFAULT_LOCK_SECONDS).toBeLessThan(ESCROW_MAX_LOCK_SECONDS);
+    });
+
+    it("honors a positive staging override and clamps to the max", () => {
+      expect(resolveEscrowLockSeconds("420")).toBe(420);
+      expect(resolveEscrowLockSeconds(String(ESCROW_MAX_LOCK_SECONDS * 4))).toBe(
+        ESCROW_MAX_LOCK_SECONDS
+      );
+    });
+
+    it("ignores blank, non-numeric, and non-positive overrides", () => {
+      for (const bad of ["", "abc", "0", "-60"]) {
+        expect(resolveEscrowLockSeconds(bad)).toBe(ESCROW_DEFAULT_LOCK_SECONDS);
+      }
+    });
+  });
+
+  describe("formatEscrowLockDuration", () => {
+    it("labels days, hours, minutes, and odd seconds", () => {
+      expect(formatEscrowLockDuration(14 * 86400)).toBe("14 days");
+      expect(formatEscrowLockDuration(2 * 3600)).toBe("2 hours");
+      expect(formatEscrowLockDuration(420)).toBe("7 minutes");
+      expect(formatEscrowLockDuration(90)).toBe("90 seconds");
+    });
+  });
+
+  describe("defaultEscrowExpiresAt", () => {
+    it("adds the resolved lock period", () => {
+      // NEXT_PUBLIC_* vars are inlined at build time, so assert against the
+      // same ambient value the transform baked in (unset => default).
+      expect(defaultEscrowExpiresAt(1000)).toBe(
+        1000 +
+          resolveEscrowLockSeconds(
+            process.env.NEXT_PUBLIC_CASHU_ESCROW_LOCK_SECONDS
+          )
+      );
     });
   });
 
@@ -300,6 +338,99 @@ describe("escrow-checkout helpers", () => {
       await expect(signEscrowLockedProofs(token, {})).rejects.toThrow(
         /private key/
       );
+    });
+  });
+
+  describe("decodeEscrowLockedProofs with v2 keyset IDs", () => {
+    // Newer Nutshell mints (e.g. 0.20+) issue "v2" keyset IDs (0x01-prefixed,
+    // 64 hex chars). Real-library contract: cashu-ts getDecodedToken needs the
+    // mint's keyset ids to decode such proofs, so the escrow decode falls back
+    // to fetching them. A mocked-library test would never catch this drift.
+    const V2_KEYSET_ID = "01" + "ab".repeat(31);
+    const MINT = "https://mint.example";
+
+    function v2LockedToken(): string {
+      return getEncodedToken({
+        mint: MINT,
+        proofs: [
+          {
+            id: V2_KEYSET_ID,
+            amount: 100,
+            secret: "s".repeat(64),
+            C: "02" + "cd".repeat(32),
+          } as unknown as Proof,
+        ],
+      });
+    }
+
+    const realFetch = (globalThis as any).fetch;
+    afterEach(() => {
+      (globalThis as any).fetch = realFetch;
+      jest.restoreAllMocks();
+    });
+
+    it("decodes via the mint's keyset list when the plain decode throws", async () => {
+      const fetchSpy = ((globalThis as any).fetch = jest
+        .fn()
+        .mockResolvedValue({
+          ok: true,
+          json: async () => ({ keysets: [{ id: V2_KEYSET_ID }] }),
+        }));
+      const { mint, proofs } = await decodeEscrowLockedProofs(
+        v2LockedToken(),
+        MINT
+      );
+      expect(mint).toBe(MINT);
+      expect(proofs).toHaveLength(1);
+      expect(proofs[0]!.amount).toBe(100);
+      expect(fetchSpy).toHaveBeenCalledWith(`${MINT}/v1/keysets`);
+    });
+
+    it("does not fetch keysets for legacy v0/v1 keyset IDs", async () => {
+      const fetchSpy = ((globalThis as any).fetch = jest.fn());
+      const { proofs } = await decodeEscrowLockedProofs(
+        getEncodedToken({
+          mint: MINT,
+          proofs: [
+            {
+              id: "009a1f293253e41e",
+              amount: 100,
+              secret: "s".repeat(64),
+              C: "02" + "cd".repeat(32),
+            } as unknown as Proof,
+          ],
+        }),
+        MINT
+      );
+      expect(proofs).toHaveLength(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+
+    it("propagates the decoded token's unit (the redeem path re-receives it)", async () => {
+      // Regression: cashu-ts receive() rejects a token object whose unit is
+      // absent, so dropping unit here broke payout redemption against real
+      // mints with "Token is not in wallet unit".
+      const { unit } = await decodeEscrowLockedProofs(
+        getEncodedToken({
+          mint: MINT,
+          unit: "sat",
+          proofs: [
+            {
+              id: "009a1f293253e41e",
+              amount: 100,
+              secret: "s".repeat(64),
+              C: "02" + "cd".repeat(32),
+            } as unknown as Proof,
+          ],
+        })
+      );
+      expect(unit).toBe("sat");
+    });
+
+    it("rethrows the decode error when no mint URL is known", async () => {
+      await expect(
+        decodeEscrowLockedProofs(v2LockedToken())
+      ).rejects.toThrow(/short keyset id/i);
     });
   });
 });

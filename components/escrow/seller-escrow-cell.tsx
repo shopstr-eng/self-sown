@@ -13,13 +13,13 @@ import { useCallback, useContext, useEffect, useState } from "react";
 import {
   Mint as CashuMint,
   Wallet as CashuWallet,
-  getDecodedToken,
 } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import { buildEscrowActionEventTemplate } from "@/utils/cashu/escrow-commitment";
 import {
   EscrowStatusResponse,
+  decodeEscrowLockedProofs,
   fetchEscrowStatus,
   isSellerEscrowRedeemed,
   markSellerEscrowRedeemed,
@@ -106,14 +106,19 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
       // swap them at the mint into ordinary proofs, merge into the wallet.
       const signedProofs = await signEscrowLockedProofs(
         status.payoutToken,
-        signer
+        signer,
+        status.mintUrl
       );
-      const decoded = getDecodedToken(status.payoutToken, []);
+      const decoded = await decodeEscrowLockedProofs(
+        status.payoutToken,
+        status.mintUrl
+      );
       const wallet = new CashuWallet(new CashuMint(decoded.mint));
       await wallet.loadMint();
       const freshProofs = await wallet.receive({
         mint: decoded.mint,
         proofs: signedProofs,
+        unit: decoded.unit,
       });
       persistReceivedTokens(freshProofs, decoded.mint);
       // Persist the redemption so a reload never re-offers this (now spent)

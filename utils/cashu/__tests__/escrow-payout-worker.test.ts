@@ -429,6 +429,7 @@ describe("processEscrowOutboxEntry", () => {
       checkProofsStates: jest.fn(async () => [{ state: "SPENT" }]) as any,
       prepareSwapToReceive: jest.fn() as any,
       completeSwap: jest.fn() as any,
+      loadMint: jest.fn(async () => {}) as any,
     };
     const mintApi: EscrowPayoutMintApi = {
       getKeys: jest.fn(async () => ({

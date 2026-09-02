@@ -47,15 +47,13 @@ import { pickMintForPayment } from "@/utils/cashu/wallet-mint-sync";
 import {
   buildEscrowLockOutputConfig,
   defaultEscrowExpiresAt,
+  formatEscrowLockDuration,
   isEscrowAvailableForSeller,
   recordBuyerEscrow,
   registerEscrowCommitmentWithServer,
 } from "@/utils/cashu/escrow-checkout";
 import { publishEscrowBackup } from "@/utils/cashu/escrow-backup";
-import {
-  buildEscrowCommitmentEventTemplate,
-  ESCROW_DEFAULT_LOCK_SECONDS,
-} from "@/utils/cashu/escrow-commitment";
+import { buildEscrowCommitmentEventTemplate } from "@/utils/cashu/escrow-commitment";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
 import {
@@ -6710,10 +6708,8 @@ export default function ProductInvoiceCard({
                                     Your Cashu stays locked to the seller
                                     until the order completes. If it never
                                     does, you can reclaim it after{" "}
-                                    {Math.round(
-                                      ESCROW_DEFAULT_LOCK_SECONDS / 86400
-                                    )}{" "}
-                                    days from your orders page.
+                                    {formatEscrowLockDuration()}{" "}
+                                    from your orders page.
                                   </span>
                                 </span>
                               </label>

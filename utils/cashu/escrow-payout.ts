@@ -52,7 +52,7 @@ export interface EscrowPayoutResult {
 /** The slice of a Cashu wallet the executor needs (injectable for tests). */
 export type EscrowPayoutMintWallet = Pick<
   CashuWallet,
-  "checkProofsStates" | "prepareSwapToReceive" | "completeSwap"
+  "checkProofsStates" | "prepareSwapToReceive" | "completeSwap" | "loadMint"
 >;
 
 /** The slice of a Cashu mint client the recovery path needs. */
@@ -97,7 +97,7 @@ export interface EscrowPayoutOptions {
  * compressed (66 hex with a 02/03 prefix, as mints commonly emit). Compare
  * on the x-only form.
  */
-function normalizeP2PKPubkey(pubkey: string): string {
+export function normalizeP2PKPubkey(pubkey: string): string {
   const lower = pubkey.toLowerCase();
   if (
     lower.length === 66 &&
@@ -383,6 +383,9 @@ export async function executeEscrowPayout(
 
   const walletFactory = options?.walletFactory ?? defaultWalletFactory;
   const wallet = walletFactory(registration.mintUrl);
+  // cashu-ts v4 wallets throw "KeyChain not initialized" until the mint's
+  // keys/keysets are loaded — every op below needs them.
+  await wallet.loadMint();
 
   const states = await wallet.checkProofsStates(proofs);
   // Fail closed on an incomplete or mismatched response: we must know the

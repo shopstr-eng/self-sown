@@ -19,6 +19,7 @@ import {
   signP2PKProofs,
   type OutputConfig,
   type Proof,
+  type Token,
 } from "@cashu/cashu-ts";
 import type { Event } from "nostr-tools";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
@@ -37,11 +38,40 @@ export function isEscrowAvailableForSeller(
   return isEscrowClientEnabled() && storefront?.acceptsEscrow === true;
 }
 
+/**
+ * Lock period for new escrow commitments, in seconds. Staging/testing knob:
+ * NEXT_PUBLIC_CASHU_ESCROW_LOCK_SECONDS shortens the lock so operators can
+ * prove the escrow round-trip (or run kill-tests) without waiting the 14-day
+ * default. Unset/invalid => default; clamped to the protocol max. Server-side
+ * commitment bounds (future, <= 30 days) apply regardless.
+ */
+export function resolveEscrowLockSeconds(rawOverride: string | undefined): number {
+  const override = Number(rawOverride);
+  return Number.isFinite(override) && override > 0
+    ? Math.min(Math.floor(override), ESCROW_MAX_LOCK_SECONDS)
+    : ESCROW_DEFAULT_LOCK_SECONDS;
+}
+
+/** Human label for the configured lock period ("14 days", "7 minutes"). */
+export function formatEscrowLockDuration(
+  lockSeconds: number = resolveEscrowLockSeconds(
+    process.env.NEXT_PUBLIC_CASHU_ESCROW_LOCK_SECONDS
+  )
+): string {
+  if (lockSeconds % 86400 === 0) return `${lockSeconds / 86400} days`;
+  if (lockSeconds % 3600 === 0) return `${lockSeconds / 3600} hours`;
+  if (lockSeconds % 60 === 0) return `${lockSeconds / 60} minutes`;
+  return `${lockSeconds} seconds`;
+}
+
 /** Default commitment expiry (unix seconds) offered at checkout. */
 export function defaultEscrowExpiresAt(
   nowSeconds: number = Math.floor(Date.now() / 1000)
 ): number {
-  return nowSeconds + ESCROW_DEFAULT_LOCK_SECONDS;
+  return (
+    nowSeconds +
+    resolveEscrowLockSeconds(process.env.NEXT_PUBLIC_CASHU_ESCROW_LOCK_SECONDS)
+  );
 }
 
 /**
@@ -211,11 +241,62 @@ export function markSellerEscrowRedeemed(escrowId: string): void {
  * (The cashu-ts Proof type declares amount as Amount — the cast keeps the
  * wire format honest.)
  */
-export function decodeEscrowLockedProofs(lockedToken: string): {
+/**
+ * Newer Nutshell mints issue "v2" keyset IDs (0x01-prefixed). cashu-ts maps
+ * those at decode time, so getDecodedToken(token, []) throws "short keyset ID
+ * v2…" for their tokens unless the mint's keyset ids are supplied. Escrow
+ * callers always know the mint, so on that specific error fetch the keyset
+ * list and retry. Cached per mint; failures are not cached.
+ */
+const mintKeysetIdCache = new Map<string, Promise<string[]>>();
+
+export function fetchMintKeysetIds(mintUrl: string): Promise<string[]> {
+  let pending = mintKeysetIdCache.get(mintUrl);
+  if (!pending) {
+    pending = (async () => {
+      const response = await fetch(`${mintUrl}/v1/keysets`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch keysets from ${mintUrl}`);
+      }
+      const body = await response.json();
+      const ids = (body?.keysets ?? [])
+        .map((keyset: { id?: unknown }) => keyset?.id)
+        .filter((id: unknown): id is string => typeof id === "string");
+      if (ids.length === 0) {
+        throw new Error(`Mint ${mintUrl} returned no keysets`);
+      }
+      return ids;
+    })();
+    mintKeysetIdCache.set(mintUrl, pending);
+    // Never cache a failure: a transient mint outage must not poison decodes.
+    pending.catch(() => mintKeysetIdCache.delete(mintUrl));
+  }
+  return pending;
+}
+
+async function decodeTokenWithKeysets(
+  token: string,
+  mintUrl?: string
+): Promise<Token> {
+  try {
+    return getDecodedToken(token, []);
+  } catch (error) {
+    const isShortKeysetIdError =
+      error instanceof Error && /short keyset id/i.test(error.message);
+    if (!isShortKeysetIdError || !mintUrl) throw error;
+    return getDecodedToken(token, await fetchMintKeysetIds(mintUrl));
+  }
+}
+
+export async function decodeEscrowLockedProofs(
+  lockedToken: string,
+  mintUrl?: string
+): Promise<{
   mint: string;
   proofs: Proof[];
-} {
-  const decoded = getDecodedToken(lockedToken, []);
+  unit?: string;
+}> {
+  const decoded = await decodeTokenWithKeysets(lockedToken, mintUrl);
   const rawProofs = decoded.proofs;
   if (!Array.isArray(rawProofs) || rawProofs.length === 0) {
     throw new Error("Escrow record holds no locked proofs.");
@@ -227,7 +308,9 @@ export function decodeEscrowLockedProofs(lockedToken: string): {
         ? proof.amount
         : Number(String(proof.amount)),
   })) as unknown as Proof[];
-  return { mint: decoded.mint, proofs };
+  // cashu-ts receive() rejects a token object whose unit is absent (undefined
+  // !== "sat"), so callers that re-receive these proofs need the unit.
+  return { mint: decoded.mint, proofs, unit: decoded.unit };
 }
 
 /**
@@ -279,10 +362,11 @@ export async function signEscrowProofsWithSigner(
  */
 export async function signEscrowLockedProofs(
   lockedToken: string,
-  signer: unknown
+  signer: unknown,
+  mintUrl?: string
 ): Promise<Proof[]> {
   return signEscrowProofsWithSigner(
-    decodeEscrowLockedProofs(lockedToken).proofs,
+    (await decodeEscrowLockedProofs(lockedToken, mintUrl)).proofs,
     signer
   );
 }
