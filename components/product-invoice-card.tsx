@@ -52,7 +52,10 @@ import {
   recordBuyerEscrow,
   registerEscrowCommitmentWithServer,
 } from "@/utils/cashu/escrow-checkout";
-import { publishEscrowBackup } from "@/utils/cashu/escrow-backup";
+import {
+  describeEscrowBackupWarning,
+  publishEscrowBackup,
+} from "@/utils/cashu/escrow-backup";
 import { buildEscrowCommitmentEventTemplate } from "@/utils/cashu/escrow-commitment";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { stashProofsLocally } from "@/utils/cashu/local-wallet-stash";
@@ -522,6 +525,11 @@ export default function ProductInvoiceCard({
   // State for failure modal
   const [showFailureModal, setShowFailureModal] = useState(false);
   const [failureText, setFailureText] = useState("");
+  // Non-fatal: payment locked fine, but the kind-7375 recovery backup of the
+  // escrowed proofs didn't publish (e.g. a remote signer without NIP-44).
+  const [escrowBackupWarning, setEscrowBackupWarning] = useState<
+    string | null
+  >(null);
   const [walletRecovery, setWalletRecovery] = useState<{
     isOpen: boolean;
     amountSats: number;
@@ -2979,8 +2987,22 @@ export default function ProductInvoiceCard({
           // Back the locked proofs up to the buyer's own kind-7375 wallet
           // events so a lost browser can recover them (threat-model residual
           // risk #1). Best-effort — localStorage holds custody, and the
-          // wallet page re-publishes any missing backup on visit.
-          await publishEscrowBackup(nostr, signer, escrowRecord);
+          // wallet page re-publishes any missing backup on visit. But never
+          // silently: a backup that can never publish (e.g. a remote signer
+          // without NIP-44) leaves a lost browser unrecoverable, so the
+          // buyer is told.
+          const backupResult = await publishEscrowBackup(
+            nostr,
+            signer,
+            escrowRecord
+          );
+          if (!backupResult.published) {
+            setEscrowBackupWarning(
+              describeEscrowBackupWarning(
+                backupResult.failure ?? "publish_failed"
+              )
+            );
+          }
         }
       }
 
@@ -6146,6 +6168,11 @@ export default function ProductInvoiceCard({
                 </h2>
               </div>
               <div className="flex flex-col items-center">
+                {escrowBackupWarning ? (
+                  <div className="mb-4 w-full rounded-md border-2 border-black bg-yellow-100 p-3 text-center text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    {escrowBackupWarning}
+                  </div>
+                ) : null}
                 {!paymentConfirmed && !stripePaymentConfirmed ? (
                   <div className="flex w-full flex-col items-center justify-center">
                     {qrCodeUrl && (

@@ -25,6 +25,7 @@ import {
   syncMintsFromTokens,
 } from "@/utils/cashu/wallet-mint-sync";
 import {
+  describeEscrowBackupWarning,
   describeEscrowRestore,
   republishMissingEscrowBackups,
   restoreEscrowsFromProofEvents,
@@ -44,15 +45,25 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
   // Self-heal: re-publish kind-7375 backups for any local escrow record that
   // has none yet (checkout-time publish failed, or the escrow predates
   // backups). Without this a lost browser would strand the locked proofs.
+  // Records that STILL have no backup after the retry (e.g. a remote signer
+  // without NIP-44 can never encrypt one) surface a visible warning — a
+  // silently-missing backup is a recovery path that doesn't exist.
+  const [escrowBackupWarning, setEscrowBackupWarning] = useState<
+    string | null
+  >(null);
   useEffect(() => {
     if (!isLoggedIn || !nostr || !signer) return;
-    republishMissingEscrowBackups(
-      nostr,
-      signer,
-      walletContext.proofEvents || []
-    ).catch((err) =>
-      console.warn("[storefront-wallet] escrow backup republish failed:", err)
-    );
+    republishMissingEscrowBackups(nostr, signer, walletContext.proofEvents || [])
+      .then((result) => {
+        setEscrowBackupWarning(
+          result.unbacked.length > 0
+            ? describeEscrowBackupWarning(result.unbacked[0]!.failure)
+            : null
+        );
+      })
+      .catch((err) =>
+        console.warn("[storefront-wallet] escrow backup republish failed:", err)
+      );
   }, [isLoggedIn, nostr, signer, walletContext.proofEvents]);
 
   const [totalBalance, setTotalBalance] = useState(0);
@@ -325,6 +336,14 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
               style={{ color: colors.background }}
             >
               {restoreStatus}
+            </p>
+          ) : null}
+          {escrowBackupWarning ? (
+            <p
+              className="rounded-md border-2 bg-yellow-300 px-4 py-2 text-center text-xs font-bold text-black"
+              style={{ borderColor: colors.text }}
+            >
+              {escrowBackupWarning}
             </p>
           ) : null}
         </div>

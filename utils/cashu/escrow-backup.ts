@@ -97,23 +97,66 @@ function proofsMatchEscrowInfo(proofs: Proof[], info: EscrowBackupInfo): boolean
   return total === info.amountSats;
 }
 
+/** Why an escrow backup publish did not complete. */
+export type EscrowBackupFailure =
+  /** No nostr manager or signer — nothing to publish with (retryable). */
+  | "unavailable"
+  /**
+   * signer.encrypt rejected. Key-based and NIP-07 signers always support
+   * NIP-44 here (the NIP-07 constructor requires it), but a remote (NIP-46)
+   * signer depends on its bunker: nip04-only bunkers and denied permissions
+   * reject the nip44_encrypt RPC, so the backup can NEVER succeed — the
+   * buyer must be told their escrow has no recovery backup.
+   */
+  | "encryption_failed"
+  /** Signing/publishing the backup event failed (retryable). */
+  | "publish_failed";
+
+export interface EscrowBackupPublishResult {
+  published: boolean;
+  failure?: EscrowBackupFailure;
+}
+
+/**
+ * Buyer-facing warning for a missing escrow recovery backup. Shared by the
+ * checkout cards and the wallet pages so the buyer sees the same message
+ * wherever the failure surfaces.
+ */
+export function describeEscrowBackupWarning(
+  failure: EscrowBackupFailure
+): string {
+  if (failure === "encryption_failed") {
+    return (
+      "Your escrowed payment has no recovery backup: your signer could not " +
+      "encrypt it (remote signers/bunkers need NIP-44 encryption support). " +
+      "Your funds are safe on this device, but if you lose this browser " +
+      "before the escrow expires you may be unable to recover them."
+    );
+  }
+  return (
+    "Your escrowed payment could not be backed up for recovery yet. Your " +
+    "funds are safe on this device; the wallet page will keep retrying the " +
+    "backup."
+  );
+}
+
 /**
  * Publish the buyer-retained locked proofs to the buyer's own kind-7375
  * wallet backup, tagged with the escrow record metadata so a restore can
  * rebuild the `cashu_escrows` record. Best-effort: never throws (the
  * localStorage record written at checkout remains the primary custody
- * copy). Returns false on failure so callers can warn; the wallet page
- * re-publishes any missing backups on visit.
+ * copy), but returns a typed failure so callers MUST surface it — a backup
+ * that silently never publishes leaves a lost browser unrecoverable.
  */
 export async function publishEscrowBackup(
   nostr: Nostr | undefined,
   signer: Signer | undefined,
   record: BuyerEscrowRecord
-): Promise<boolean> {
+): Promise<EscrowBackupPublishResult> {
+  // Best-effort by design: without a nostr manager or signer there is
+  // nothing to publish with — the wallet page retries on next visit.
+  if (!nostr || !signer) return { published: false, failure: "unavailable" };
   try {
-    // Best-effort by design: without a nostr manager or signer there is
-    // nothing to publish with — the wallet page retries on next visit.
-    if (!nostr || !signer) return false;
     const { mint, proofs } = await decodeEscrowLockedProofs(
       record.lockedToken,
       record.mintUrl
@@ -127,26 +170,38 @@ export async function publishEscrowBackup(
       createdAt: record.createdAt,
     };
     const userPubkey = await signer.getPubKey?.();
+    let content: string;
+    try {
+      content = await signer.encrypt(
+        userPubkey,
+        JSON.stringify({ mint, unit: "sat", proofs, escrow: info })
+      );
+    } catch (err) {
+      console.warn(
+        `[escrow-backup] signer could not encrypt the backup for escrow ` +
+          `${record.escrowId} (remote signer without NIP-44?):`,
+        err
+      );
+      return { published: false, failure: "encryption_failed" };
+    }
     const backupEvent: EventTemplate = {
       kind: 7375,
       tags: [],
-      content: await signer.encrypt(
-        userPubkey,
-        JSON.stringify({ mint, unit: "sat", proofs, escrow: info })
-      ),
+      content,
       created_at: Math.floor(Date.now() / 1000),
     };
     // finalizeAndSendNostrEvent caches the signed event to the database
     // before relay publishing, so the backup survives relay outages.
     const signed = await finalizeAndSendNostrEvent(signer, nostr, backupEvent);
-    return !!signed;
+    if (!signed) return { published: false, failure: "publish_failed" };
+    return { published: true };
   } catch (err) {
     console.warn(
       `[escrow-backup] failed to back up escrow ${record.escrowId}; ` +
         "the wallet page will retry on next visit:",
       err
     );
-    return false;
+    return { published: false, failure: "publish_failed" };
   }
 }
 
@@ -155,33 +210,56 @@ export async function publishEscrowBackup(
 // arrive. Failed publishes are retried on the next run.
 const backupPublishInFlight = new Set<string>();
 
+export interface UnbackedEscrow {
+  escrowId: string;
+  orderId: string;
+  failure: EscrowBackupFailure;
+}
+
+export interface EscrowBackupRepublishResult {
+  published: number;
+  /** Local escrow records still missing a backup after this run. */
+  unbacked: UnbackedEscrow[];
+}
+
 /**
  * Self-heal: re-publish backups for any local escrow record that has no
  * escrow-marked kind-7375 event yet (e.g. the checkout-time publish failed,
  * or the escrow predates backups). Publishes serially; never throws.
+ * Records that remain unbacked are reported with their failure reason so
+ * the wallet UI can warn the buyer instead of failing silently.
  */
 export async function republishMissingEscrowBackups(
   nostr: Nostr | undefined,
   signer: Signer | undefined,
   proofEvents: ProofEventLike[]
-): Promise<number> {
-  if (typeof window === "undefined" || !nostr || !signer) return 0;
+): Promise<EscrowBackupRepublishResult> {
+  const result: EscrowBackupRepublishResult = { published: 0, unbacked: [] };
+  if (typeof window === "undefined" || !nostr || !signer) return result;
   const backedUp = new Set<string>();
   for (const ev of proofEvents || []) {
     if (isEscrowBackupInfo(ev?.escrow)) backedUp.add(ev.escrow.escrowId);
   }
-  let published = 0;
   for (const record of listBuyerEscrows()) {
     if (backedUp.has(record.escrowId)) continue;
     if (backupPublishInFlight.has(record.escrowId)) continue;
     backupPublishInFlight.add(record.escrowId);
     try {
-      if (await publishEscrowBackup(nostr, signer, record)) published += 1;
+      const publishResult = await publishEscrowBackup(nostr, signer, record);
+      if (publishResult.published) {
+        result.published += 1;
+      } else {
+        result.unbacked.push({
+          escrowId: record.escrowId,
+          orderId: record.orderId,
+          failure: publishResult.failure ?? "publish_failed",
+        });
+      }
     } finally {
       backupPublishInFlight.delete(record.escrowId);
     }
   }
-  return published;
+  return result;
 }
 
 export type UnrecoveredEscrowReason =

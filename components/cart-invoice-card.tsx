@@ -50,7 +50,10 @@ import {
   recordBuyerEscrow,
   registerEscrowCommitmentWithServer,
 } from "@/utils/cashu/escrow-checkout";
-import { publishEscrowBackup } from "@/utils/cashu/escrow-backup";
+import {
+  describeEscrowBackupWarning,
+  publishEscrowBackup,
+} from "@/utils/cashu/escrow-backup";
 import {
   buildEscrowCommitmentEventTemplate,
   ESCROW_DEFAULT_LOCK_SECONDS,
@@ -1080,6 +1083,11 @@ export default function CartInvoiceCard({
   const [nwcInfo, setNwcInfo] = useState<any | null>(null);
   const [isNwcLoading, setIsNwcLoading] = useState(false);
   const [failureText, setFailureText] = useState("");
+  // Non-fatal: payment locked fine, but the kind-7375 recovery backup of the
+  // escrowed proofs didn't publish (e.g. a remote signer without NIP-44).
+  const [escrowBackupWarning, setEscrowBackupWarning] = useState<
+    string | null
+  >(null);
 
   const [isFormValid, setIsFormValid] = useState(false);
   const [shippingPickupPreference, setShippingPickupPreference] = useState<
@@ -5871,7 +5879,21 @@ export default function CartInvoiceCard({
             }
             // Best-effort kind-7375 backup of the locked proofs (buyer
             // recovery path); the wallet page re-publishes if this fails.
-            await publishEscrowBackup(nostr, signer, escrowRecord);
+            // Never silently: a backup that can never publish (e.g. a remote
+            // signer without NIP-44) leaves a lost browser unrecoverable, so
+            // the buyer is told.
+            const backupResult = await publishEscrowBackup(
+              nostr,
+              signer,
+              escrowRecord
+            );
+            if (!backupResult.published) {
+              setEscrowBackupWarning(
+                describeEscrowBackupWarning(
+                  backupResult.failure ?? "publish_failed"
+                )
+              );
+            }
           } else {
             // Dust remainder: nothing lockable — hand it over directly (as
             // the non-escrow sweep would) rather than burning it.
@@ -5953,7 +5975,21 @@ export default function CartInvoiceCard({
             }
             // Best-effort kind-7375 backup of the locked proofs (buyer
             // recovery path); the wallet page re-publishes if this fails.
-            await publishEscrowBackup(nostr, signer, escrowRecord);
+            // Never silently: a backup that can never publish (e.g. a remote
+            // signer without NIP-44) leaves a lost browser unrecoverable, so
+            // the buyer is told.
+            const backupResult = await publishEscrowBackup(
+              nostr,
+              signer,
+              escrowRecord
+            );
+            if (!backupResult.published) {
+              setEscrowBackupWarning(
+                describeEscrowBackupWarning(
+                  backupResult.failure ?? "publish_failed"
+                )
+              );
+            }
           }
         } else {
           sellerAmount = 0;
@@ -8703,6 +8739,11 @@ export default function CartInvoiceCard({
                 </h2>
               </div>
               <div className="flex flex-col items-center">
+                {escrowBackupWarning ? (
+                  <div className="mb-4 w-full rounded-md border-2 border-black bg-yellow-100 p-3 text-center text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    {escrowBackupWarning}
+                  </div>
+                ) : null}
                 {!paymentConfirmed && !stripePaymentConfirmed ? (
                   <div className="flex w-full flex-col items-center justify-center">
                     {qrCodeUrl && (

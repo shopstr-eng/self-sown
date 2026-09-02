@@ -1,6 +1,7 @@
 import { getDecodedToken, type Proof } from "@cashu/cashu-ts";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
 import {
+  describeEscrowBackupWarning,
   describeEscrowRestore,
   publishEscrowBackup,
   republishMissingEscrowBackups,
@@ -118,8 +119,8 @@ describe("escrow-backup", () => {
     it("publishes the locked proofs as an escrow-marked kind-7375 event", async () => {
       mockFinalize.mockResolvedValue({ id: "event-id" });
       const record = makeRecord();
-      const ok = await publishEscrowBackup({} as any, signer as any, record);
-      expect(ok).toBe(true);
+      const result = await publishEscrowBackup({} as any, signer as any, record);
+      expect(result).toEqual({ published: true });
       expect(mockFinalize).toHaveBeenCalledTimes(1);
       const template = mockFinalize.mock.calls[0][2];
       expect(template.kind).toBe(7375);
@@ -129,13 +130,52 @@ describe("escrow-backup", () => {
       expect(content.escrow).toEqual(infoFor(record));
     });
 
-    it("never throws — returns false when publishing fails", async () => {
+    it("never throws — reports publish_failed when publishing fails", async () => {
       mockFinalize.mockRejectedValue(new Error("relays down"));
       const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
       await expect(
         publishEscrowBackup({} as any, signer as any, makeRecord())
-      ).resolves.toBe(false);
+      ).resolves.toEqual({ published: false, failure: "publish_failed" });
       warn.mockRestore();
+    });
+
+    it("reports publish_failed when the signed event comes back empty", async () => {
+      mockFinalize.mockResolvedValue(undefined);
+      await expect(
+        publishEscrowBackup({} as any, signer as any, makeRecord())
+      ).resolves.toEqual({ published: false, failure: "publish_failed" });
+    });
+
+    it("reports encryption_failed when the signer cannot encrypt (remote signer without NIP-44)", async () => {
+      // A NIP-46 bunker that lacks NIP-44 support (or where the user denied
+      // the permission) rejects the nip44_encrypt RPC. This failure is
+      // permanent for that signer — the buyer must be told their escrow has
+      // no recovery backup, not silently retried forever.
+      const nip04OnlySigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt: async () => {
+          throw new Error("unsupported method: nip44_encrypt");
+        },
+      };
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const result = await publishEscrowBackup(
+        {} as any,
+        nip04OnlySigner as any,
+        makeRecord()
+      );
+      expect(result).toEqual({ published: false, failure: "encryption_failed" });
+      expect(mockFinalize).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+
+    it("reports unavailable when there is no signer", async () => {
+      await expect(
+        publishEscrowBackup({} as any, undefined, makeRecord())
+      ).resolves.toEqual({ published: false, failure: "unavailable" });
+      await expect(
+        publishEscrowBackup(undefined, signer as any, makeRecord())
+      ).resolves.toEqual({ published: false, failure: "unavailable" });
+      expect(mockFinalize).not.toHaveBeenCalled();
     });
   });
 
@@ -154,15 +194,44 @@ describe("escrow-backup", () => {
       });
       recordBuyerEscrow(backedUp);
       recordBuyerEscrow(missing);
-      const published = await republishMissingEscrowBackups({} as any, signer as any, [
+      const result = await republishMissingEscrowBackups({} as any, signer as any, [
         backupEvent(infoFor(backedUp)),
       ]);
-      expect(published).toBe(1);
+      expect(result.published).toBe(1);
+      expect(result.unbacked).toEqual([]);
       expect(mockFinalize).toHaveBeenCalledTimes(1);
       const content = JSON.parse(
         (mockFinalize.mock.calls[0][2].content as string).slice("enc:".length)
       );
       expect(content.escrow.escrowId).toBe(missing.escrowId);
+    });
+
+    it("reports records that stay unbacked, with the failure reason, so the UI can warn", async () => {
+      // Remote signer without NIP-44: the retry can never succeed — it must
+      // be reported, not silently retried on every wallet visit.
+      const nip04OnlySigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt: async () => {
+          throw new Error("unsupported method: nip44_encrypt");
+        },
+      };
+      const record = makeRecord();
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      const result = await republishMissingEscrowBackups(
+        {} as any,
+        nip04OnlySigner as any,
+        []
+      );
+      expect(result.published).toBe(0);
+      expect(result.unbacked).toEqual([
+        {
+          escrowId: record.escrowId,
+          orderId: record.orderId,
+          failure: "encryption_failed",
+        },
+      ]);
+      warn.mockRestore();
     });
   });
 
@@ -304,6 +373,24 @@ describe("escrow-backup", () => {
       expect(result.restoredEscrowCount).toBe(0);
       expect(result.unrecoveredEscrows).toEqual([]);
       expect(mockFilterUnspentProofs).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("describeEscrowBackupWarning", () => {
+    it("tells the buyer a permanent encryption failure means no recovery backup", () => {
+      const text = describeEscrowBackupWarning("encryption_failed");
+      expect(text).toContain("no recovery backup");
+      expect(text).toContain("NIP-44");
+      expect(text).toContain("safe on this device");
+    });
+
+    it("frames transient failures as retrying", () => {
+      expect(describeEscrowBackupWarning("publish_failed")).toContain(
+        "keep retrying"
+      );
+      expect(describeEscrowBackupWarning("unavailable")).toContain(
+        "keep retrying"
+      );
     });
   });
 
