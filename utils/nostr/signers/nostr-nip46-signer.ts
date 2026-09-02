@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 import { decryptNIP46SignerCredentials } from "@/utils/nostr/nip46-encryption";
 import { buildNip46PermittedMethods } from "@/utils/nostr/signers/nip46-permissions";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
+
 type BunkerData = {
   url: string;
   bunkerPubkey: string;
@@ -32,15 +33,25 @@ type Listener = {
 
 export class NostrNIP46Signer implements NostrSigner {
   private bunker?: BunkerData;
+
   private appPrivKey?: Uint8Array;
+
   private appPubKey?: string;
+
   private nostr?: NostrManager;
+
   private readonly encryptedSigner?: string;
+
   private readonly listeners: { [key: string]: Listener } = {};
+
   private readonly challengeHandler: ChallengeHandler;
+
   private readonly instanceId: string = uuidv4();
+
   private readonly pendingChallenges: Map<string, AbortController> = new Map();
+
   private rememberedPassphrase?: string;
+
   private initializationPromise?: Promise<void>;
 
   // used to increment the requestId

@@ -2,9 +2,10 @@
 // stateful fake pool that emulates the exact SQL semantics the service
 // relies on (ON CONFLICT DO NOTHING, atomic UPDATE...WHERE status/token
 // guards). Each fakeQuery call is atomic (JS single thread), which mirrors
-// the per-statement atomicity Postgres gives the real queries. What this
-// cannot prove is real-Postgres isolation — that needs a testcontainer run
-// outside this environment (tracked as follow-up work).
+// the per-statement atomicity Postgres gives the real queries. Real-Postgres
+// isolation (row locking, FOR UPDATE serialization, deadlock behavior) is
+// covered by cashu-escrow-service-db.test.ts, which runs against a live
+// Postgres via RUN_TESTCONTAINERS=1 or ESCROW_CONCURRENCY_TEST_DATABASE_URL.
 
 import type { Event } from "nostr-tools";
 import {
