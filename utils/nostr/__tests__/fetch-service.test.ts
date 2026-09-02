@@ -1086,4 +1086,222 @@ describe("fetchCashuWallet", () => {
       false
     );
   });
+
+  it("keeps relay-fetched escrow backups out of the spendable wallet, even when spending history references them", async () => {
+    // Regression: the relay proof-event branch must apply the same escrow
+    // exclusion as the DB branch, and the spending-history add-back must not
+    // reintroduce locked proofs if a foreign client wrote history that
+    // references the escrow backup event.
+    jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+      getLocalStorageData: jest.fn(() => ({ tokens: [] })),
+      deleteEvent: jest.fn(),
+      verifyNip05Identifier: jest.fn(),
+    }));
+    jest.doMock("@/utils/db/db-client", () => ({
+      cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
+    }));
+
+    const { fetchCashuWallet } = await import("../fetch-service");
+
+    const buyerPk = "f".repeat(64);
+    const escrowInfo = {
+      escrowId: `${buyerPk}:order-2`,
+      orderId: "order-2",
+      sellerPubkey: "d".repeat(64),
+      amountSats: 121,
+      expiresAt: 1_900_000_000,
+      createdAt: 1_800_000_000,
+    };
+    const lockedProofs = [
+      { id: "ks", amount: 100, secret: "locked-1", C: "c1" },
+      { id: "ks", amount: 21, secret: "locked-2", C: "c2" },
+    ];
+    const escrowEvent = makeBaseEvent({
+      id: "escrow-relay-event",
+      kind: 7375,
+      pubkey: buyerPk,
+      content: "escrow-ciphertext",
+    });
+    // A foreign client wrote spending history claiming the escrow backup's
+    // proofs were "created" (received) — the add-back must still skip them.
+    const historyEvent = makeBaseEvent({
+      id: "history-event",
+      kind: 7376,
+      pubkey: buyerPk,
+      content: "history-ciphertext",
+    });
+
+    const decryptByContent: Record<string, string> = {
+      "escrow-ciphertext": JSON.stringify({
+        mint: "https://mint.example",
+        unit: "sat",
+        proofs: lockedProofs,
+        escrow: escrowInfo,
+      }),
+      "history-ciphertext": JSON.stringify([
+        ["direction", "in"],
+        ["e", "escrow-relay-event", "", "created"],
+      ]),
+    };
+    const signer = {
+      getPubKey: async () => buyerPk,
+      decrypt: async (_pk: string, content: string) =>
+        decryptByContent[content] ?? "",
+    };
+    global.fetch = jest.fn(async () =>
+      makeDbPayload([])
+    ) as unknown as typeof global.fetch;
+    const nostr = {
+      fetch: jest.fn(async (filters: { kinds?: number[] }[]) =>
+        filters[0]?.kinds?.includes(7375)
+          ? [escrowEvent, historyEvent]
+          : []
+      ),
+    } as any;
+    const editCashuWalletContext = jest.fn();
+
+    const result = await fetchCashuWallet(
+      nostr,
+      signer as any,
+      ["wss://relay.example"],
+      editCashuWalletContext
+    );
+
+    // Retained in proofEvents WITH the escrow marker for restore…
+    expect(result.proofEvents).toHaveLength(1);
+    expect(result.proofEvents[0]).toMatchObject({
+      id: "escrow-relay-event",
+      escrow: escrowInfo,
+    });
+    // …but neither the direct merge nor the history add-back lets the locked
+    // proofs into the spendable wallet.
+    expect(result.cashuProofs).toEqual([]);
+    expect(editCashuWalletContext).toHaveBeenLastCalledWith(
+      result.proofEvents,
+      expect.any(Array),
+      [],
+      false
+    );
+  });
+
+  it("never queues escrow backup events for deletion when the mint reports their proofs spent", async () => {
+    // Regression: escrow backups are the buyer's recovery material for
+    // unresolved escrows (custody rule). The spent-event cleanup must exempt
+    // escrow-marked events even when every proof in them checks out SPENT —
+    // and it must still delete genuinely spent regular proof events.
+    //
+    // Scenario: the buyer's proofs were locked into escrow, so the wallet now
+    // holds an escrow backup of them; the pre-escrow wallet event holding the
+    // same proofs is fully spent (the proofs were consumed to fund the
+    // escrow). Both events' proofs check out SPENT at the mint, so without
+    // the escrow exemption the backup would be deleted alongside the wallet
+    // event — destroying the buyer's recovery material.
+    const mockDeleteEvent = jest.fn().mockResolvedValue(undefined);
+    jest.doMock("@/utils/nostr/nostr-helper-functions", () => ({
+      getLocalStorageData: jest.fn(() => ({ tokens: [] })),
+      deleteEvent: mockDeleteEvent,
+      verifyNip05Identifier: jest.fn(),
+    }));
+    jest.doMock("@/utils/db/db-client", () => ({
+      cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
+    }));
+    // Deterministic Y = `Y:<secret>` so the mint's spent-state response lines
+    // up with the secrets the event loop hashes.
+    const mockHashToCurve = jest.fn((bytes: Uint8Array) => ({
+      toHex: () => `Y:${new TextDecoder().decode(bytes)}`,
+    }));
+    jest.doMock("@cashu/cashu-ts", () => ({
+      Mint: class {},
+      Wallet: class {
+        async loadMint() {}
+        async checkProofsStates(proofs: { secret: string }[]) {
+          return proofs.map((p) => ({ Y: `Y:${p.secret}`, state: "SPENT" }));
+        }
+      },
+      hashToCurve: mockHashToCurve,
+    }));
+
+    const { fetchCashuWallet } = await import("../fetch-service");
+
+    const buyerPk = "f".repeat(64);
+    const mint = "https://mint.example";
+    const lockedProofs = [
+      { id: "ks", amount: 100, secret: "locked-1", C: "c1" },
+      { id: "ks", amount: 21, secret: "locked-2", C: "c2" },
+    ];
+    // The pre-escrow wallet event holds the SAME proofs (no escrow marker)…
+    const regularEvent = makeBaseEvent({
+      id: "regular-spent-event",
+      kind: 7375,
+      pubkey: buyerPk,
+      content: "regular-ciphertext",
+    });
+    // …and the escrow backup holds them too, WITH the marker.
+    const escrowEvent = makeBaseEvent({
+      id: "escrow-spent-event",
+      kind: 7375,
+      pubkey: buyerPk,
+      content: "escrow-ciphertext",
+    });
+
+    const decryptByContent: Record<string, string> = {
+      "regular-ciphertext": JSON.stringify({
+        mint,
+        unit: "sat",
+        proofs: lockedProofs,
+      }),
+      "escrow-ciphertext": JSON.stringify({
+        mint,
+        unit: "sat",
+        proofs: lockedProofs,
+        escrow: {
+          escrowId: `${buyerPk}:order-3`,
+          orderId: "order-3",
+          sellerPubkey: "d".repeat(64),
+          amountSats: 121,
+          expiresAt: 1_900_000_000,
+          createdAt: 1_800_000_000,
+        },
+      }),
+    };
+    const signer = {
+      getPubKey: async () => buyerPk,
+      decrypt: async (_pk: string, content: string) =>
+        decryptByContent[content] ?? "",
+    };
+    global.fetch = jest.fn(async () =>
+      makeDbPayload([])
+    ) as unknown as typeof global.fetch;
+    const nostr = {
+      fetch: jest.fn(async (filters: { kinds?: number[] }[]) =>
+        filters[0]?.kinds?.includes(7375)
+          ? [regularEvent, escrowEvent]
+          : []
+      ),
+    } as any;
+    const editCashuWalletContext = jest.fn();
+
+    const result = await fetchCashuWallet(
+      nostr,
+      signer as any,
+      ["wss://relay.example"],
+      editCashuWalletContext
+    );
+
+    // The spent proofs were pruned from the spendable wallet…
+    expect(result.cashuProofs).toEqual([]);
+    // …and the fully-spent REGULAR proof event was queued for deletion…
+    expect(mockDeleteEvent).toHaveBeenCalledTimes(1);
+    expect(mockDeleteEvent).toHaveBeenCalledWith(
+      nostr,
+      expect.anything(),
+      ["regular-spent-event"]
+    );
+    // …but the escrow backup — whose proofs are every bit as spent — was
+    // never queued for deletion.
+    const deletionIds = mockDeleteEvent.mock.calls.flatMap(
+      (call) => call[2] as string[]
+    );
+    expect(deletionIds).not.toContain("escrow-spent-event");
+  });
 });
