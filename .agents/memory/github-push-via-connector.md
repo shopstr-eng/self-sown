@@ -16,6 +16,14 @@ the API route keeps credentials server-side and produces commits GitHub links
 to the user's account.
 
 **How to apply:**
+- Merge commits: build the push plan with `rev-list origin/main..HEAD --not
+  upstream/main` (a parity merge makes all of upstream's history appear in the
+  range, but those objects already exist remotely — push only new commits and
+  pass the upstream head as a raw second parent SHA). Diff each commit with an
+  explicit two-tree `git diff-tree -r <parent1> <sha>` — `-m --first-parent`
+  silently mixes in the upstream-side diff. For a `-s ours` merge (0 entries)
+  skip createTree and reuse the first parent's tree — the API rejects an empty
+  tree array with "Invalid tree info".
 - Remote commit SHAs will differ from local SHAs (the API normalizes the
   message's trailing newline). Track a localSha→remoteSha map for parents, and
   afterwards `git fetch origin && git reset --hard origin/main` to sync (trees
