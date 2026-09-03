@@ -9,6 +9,7 @@ import {
 import {
   sendRenewalReminder,
   sendSubscriptionCancellation,
+  sendOrphanedSubscriptionPaymentAlert,
 } from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
@@ -224,6 +225,24 @@ export default async function handler(
               `billing_reason=${invoicePaid.billing_reason ?? "unknown"} — ` +
               `renewal charge succeeded but no subscriptions row matched; ` +
               `billing date and status were NOT updated`
+          );
+          // A log line is only seen if someone goes looking; alert ops
+          // directly so a human reconciles promptly. Non-fatal on failure —
+          // the 200 above stands because the row will never appear on retry.
+          await sendOrphanedSubscriptionPaymentAlert({
+            stripeSubscriptionId: paidSubscriptionId,
+            invoiceId: invoicePaid.id ?? "unknown",
+            eventId: event.id,
+            amountPaid: String(invoicePaid.amount_paid ?? "unknown"),
+            currency: invoicePaid.currency ?? "unknown",
+            customerEmail: invoicePaid.customer_email ?? "unknown",
+            billingReason: invoicePaid.billing_reason ?? "unknown",
+            adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+          }).catch((err) =>
+            console.error(
+              "[orphaned_subscription_payment] Failed to send ops alert email:",
+              err
+            )
           );
           break;
         }

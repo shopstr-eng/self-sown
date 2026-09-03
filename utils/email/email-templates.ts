@@ -1167,6 +1167,49 @@ export function proLifetimeLingeringCancelAlertEmail(params: {
   };
 }
 
+export function orphanedSubscriptionPaymentAlertEmail(params: {
+  stripeSubscriptionId: string;
+  invoiceId: string;
+  eventId: string;
+  amountPaid: string;
+  currency: string;
+  customerEmail: string;
+  billingReason: string;
+}): { subject: string; html: string } {
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Orphaned Subscription Payment</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
+      A Stripe renewal charge succeeded, but no local subscription record matched it. The buyer has paid but their billing date and status were NOT updated. Please reconcile this payment and grant the buyer access manually.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef2f2;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Stripe subscription:</strong> <span style="font-family:monospace;">${esc(
+        params.stripeSubscriptionId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Invoice:</strong> <span style="font-family:monospace;">${esc(
+        params.invoiceId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Event:</strong> <span style="font-family:monospace;">${esc(
+        params.eventId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Amount paid:</strong> ${esc(
+        params.amountPaid
+      )} ${esc(params.currency)}</td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Customer email:</strong> ${esc(
+        params.customerEmail
+      )}</td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Billing reason:</strong> ${esc(
+        params.billingReason
+      )}</td></tr>
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+      Filter logs on <code>ORPHANED_SUBSCRIPTION_PAYMENT</code> for history. The webhook returned 200 deliberately — retrying will never find the row.
+    </p>`;
+  return {
+    subject: `${BRAND_NAME}: Orphaned subscription payment needs manual reconciliation`,
+    html: baseTemplate("Orphaned Subscription Payment", body),
+  };
+}
+
 export function customDomainAdminNotificationEmail(params: {
   domain: string;
   domainType: "subdomain" | "apex";

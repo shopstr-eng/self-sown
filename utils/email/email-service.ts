@@ -15,6 +15,7 @@ import {
   paymentFailedSellerEmail,
   transferFailureAlertEmail,
   proLifetimeLingeringCancelAlertEmail,
+  orphanedSubscriptionPaymentAlertEmail,
   customDomainAdminNotificationEmail,
   affiliatePaidEmail,
   affiliatePausedToAffiliateEmail,
@@ -573,6 +574,47 @@ export async function sendProLifetimeLingeringCancelAlert(params: {
   if (!recipient) {
     console.error(
       "[pro_lifetime_lingering_subscription_cancel] No admin email recipient available (configure SendGrid from_email)"
+    );
+    return false;
+  }
+  return sendEmail(recipient, subject, html);
+}
+
+/**
+ * Alert the operator that a paid renewal invoice matched no local
+ * subscriptions row (ORPHANED_SUBSCRIPTION_PAYMENT). Resolves the recipient
+ * the same way the other ops alerts do — explicit adminEmail > SendGrid
+ * verified from_email (the operator's own mailbox). Returns whether the email
+ * was actually sent; callers must treat a false/throw as non-fatal because
+ * the webhook response must stay 200 (the row will never appear on retry).
+ */
+export async function sendOrphanedSubscriptionPaymentAlert(params: {
+  stripeSubscriptionId: string;
+  invoiceId: string;
+  eventId: string;
+  amountPaid: string;
+  currency: string;
+  customerEmail: string;
+  billingReason: string;
+  adminEmail?: string;
+}): Promise<boolean> {
+  const { subject, html } = orphanedSubscriptionPaymentAlertEmail(params);
+  let recipient = (params.adminEmail || "").trim();
+  try {
+    if (!recipient) {
+      const { fromEmail } = await getUncachableSendGridClient();
+      recipient = (fromEmail || "").trim();
+    }
+  } catch (err) {
+    console.error(
+      "[orphaned_subscription_payment] Failed to resolve admin email recipient:",
+      err
+    );
+    return false;
+  }
+  if (!recipient) {
+    console.error(
+      "[orphaned_subscription_payment] No admin email recipient available (set DOMAINS_ADMIN_EMAIL or configure SendGrid from_email)"
     );
     return false;
   }
