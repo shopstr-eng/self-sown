@@ -324,14 +324,19 @@ export default async function handler(
         // Recurring subscriptions live on the seller's Connect account;
         // retrieving without { stripeAccount } from the platform account
         // would not find them. The row stamps connected_account_id at
-        // creation time.
+        // creation time. Legacy rows (created before the stamp) carry NULL —
+        // for those, fall back to the Connect account the event was
+        // delivered for (event.account) before trying the platform account,
+        // or a legacy seller's renewal is retried forever and never updates
+        // local state.
         const subscriptionAccount = (subscription as any)
           .connected_account_id as string | null | undefined;
+        const eventAccount = (event as Stripe.Event & { account?: string })
+          .account;
+        const retrieveAccount = subscriptionAccount ?? eventAccount;
         const stripeSubscription = (await stripe.subscriptions.retrieve(
           paidSubscriptionId,
-          subscriptionAccount
-            ? { stripeAccount: subscriptionAccount }
-            : undefined
+          retrieveAccount ? { stripeAccount: retrieveAccount } : undefined
         )) as any;
 
         // Affiliate referral: record ONLY on the first invoice that creates

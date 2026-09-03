@@ -245,7 +245,7 @@ afterAll(() => {
 
 describe("POST /api/stripe/subscription-webhook — invoice.payment_succeeded", () => {
   function firePaymentSucceeded() {
-    mockConstructEvent.mockReturnValue({
+    const event = {
       id: "evt_renewal",
       type: "invoice.payment_succeeded",
       data: {
@@ -255,7 +255,9 @@ describe("POST /api/stripe/subscription-webhook — invoice.payment_succeeded", 
           billing_reason: "subscription_cycle",
         },
       },
-    });
+    };
+    mockConstructEvent.mockReturnValue(event);
+    return event;
   }
 
   it("retrieves the subscription from the recorded connected account", async () => {
@@ -297,6 +299,30 @@ describe("POST /api/stripe/subscription-webhook — invoice.payment_succeeded", 
 
     expect(res.statusCode).toBe(200);
     expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, undefined);
+    expect(mockUpdateSubscriptionBillingDate).toHaveBeenCalled();
+  });
+
+  it("falls back to event.account for a legacy NULL-account row on a Connect-delivered renewal", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      buyer_pubkey: null,
+      buyer_email: "buyer@example.com",
+      status: "active",
+      connected_account_id: null,
+      currency: "usd",
+    });
+    // Simulate delivery via the Connect endpoint: Stripe stamps the account.
+    const event = firePaymentSucceeded();
+    (event as any).account = CONNECTED_ACCOUNT;
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, {
+      stripeAccount: CONNECTED_ACCOUNT,
+    });
     expect(mockUpdateSubscriptionBillingDate).toHaveBeenCalled();
   });
 });
