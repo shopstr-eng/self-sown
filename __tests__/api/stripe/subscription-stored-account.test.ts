@@ -189,6 +189,31 @@ describe("POST /api/stripe/update-subscription — stored connected account", ()
     });
   });
 
+  it("passes the caller-supplied account through to subscriptions.update for legacy rows", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: SELLER_PUBKEY,
+      buyer_pubkey: null,
+      connected_account_id: null,
+    });
+
+    const res = await callHandler(updateHandler, {
+      subscriptionId: SUB_ID,
+      connectedAccountId: BODY_ACCOUNT,
+      nextBillingDate: "2026-10-01T00:00:00Z",
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsUpdate).toHaveBeenCalledWith(
+      SUB_ID,
+      expect.objectContaining({ proration_behavior: "none" }),
+      { stripeAccount: BODY_ACCOUNT }
+    );
+    expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, {
+      stripeAccount: BODY_ACCOUNT,
+    });
+  });
+
   it("falls back to the caller-supplied account for legacy rows", async () => {
     mockGetSubscriptionByStripeId.mockResolvedValue({
       stripe_subscription_id: SUB_ID,
@@ -206,5 +231,27 @@ describe("POST /api/stripe/update-subscription — stored connected account", ()
     expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, {
       stripeAccount: BODY_ACCOUNT,
     });
+  });
+
+  it("uses no stripeAccount option when neither source has an account", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: SELLER_PUBKEY,
+      buyer_pubkey: null,
+      connected_account_id: null,
+    });
+
+    const res = await callHandler(updateHandler, {
+      subscriptionId: SUB_ID,
+      nextBillingDate: "2026-10-01T00:00:00Z",
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsUpdate).toHaveBeenCalledWith(
+      SUB_ID,
+      expect.objectContaining({ proration_behavior: "none" }),
+      undefined
+    );
+    expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, undefined);
   });
 });
