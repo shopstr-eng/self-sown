@@ -10,6 +10,7 @@ import {
   sendRenewalReminder,
   sendSubscriptionCancellation,
   sendOrphanedSubscriptionPaymentAlert,
+  sendOrphanedSubscriptionCancellationAlert,
 } from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
@@ -390,6 +391,21 @@ export default async function handler(
               `status=${deletedSubscription.status ?? "unknown"} — ` +
               `subscription deleted at Stripe but no subscriptions row matched; ` +
               `buyer cancellation notification was NOT sent`
+          );
+          // A log line is only seen if someone goes looking; alert ops
+          // directly so a human reconciles promptly. Non-fatal on failure —
+          // the 200 above stands because the row will never appear on retry.
+          await sendOrphanedSubscriptionCancellationAlert({
+            stripeSubscriptionId: deletedSubscription.id,
+            eventId: event.id,
+            customer: deletedSubscription.customer ?? "unknown",
+            status: deletedSubscription.status ?? "unknown",
+            adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+          }).catch((err) =>
+            console.error(
+              "[orphaned_subscription_cancel] Failed to send ops alert email:",
+              err
+            )
           );
         } else {
           const endDate = deletedSubscription.current_period_end

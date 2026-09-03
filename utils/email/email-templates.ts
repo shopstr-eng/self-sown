@@ -1210,6 +1210,40 @@ export function orphanedSubscriptionPaymentAlertEmail(params: {
   };
 }
 
+export function orphanedSubscriptionCancellationAlertEmail(params: {
+  stripeSubscriptionId: string;
+  eventId: string;
+  customer: string;
+  status: string;
+}): { subject: string; html: string } {
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Orphaned Subscription Cancellation</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
+      Stripe reports a subscription deleted, but no local subscription record matched it. The buyer may believe they canceled (or their access should now end) and was NOT notified. Please reconcile this cancellation manually.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef2f2;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Stripe subscription:</strong> <span style="font-family:monospace;">${esc(
+        params.stripeSubscriptionId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Event:</strong> <span style="font-family:monospace;">${esc(
+        params.eventId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Customer:</strong> <span style="font-family:monospace;">${esc(
+        params.customer
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Status:</strong> ${esc(
+        params.status
+      )}</td></tr>
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+      Filter logs on <code>ORPHANED_SUBSCRIPTION_CANCEL</code> for history. The webhook returned 200 deliberately — retrying will never find the row.
+    </p>`;
+  return {
+    subject: `${BRAND_NAME}: Orphaned subscription cancellation needs manual reconciliation`,
+    html: baseTemplate("Orphaned Subscription Cancellation", body),
+  };
+}
+
 export function customDomainAdminNotificationEmail(params: {
   domain: string;
   domainType: "subdomain" | "apex";

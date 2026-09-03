@@ -54,6 +54,9 @@ jest.mock("@/utils/db/db-service", () => ({
 const mockSendOrphanedSubscriptionPaymentAlert = jest.fn(
   async (..._args: any[]) => true
 );
+const mockSendOrphanedSubscriptionCancellationAlert = jest.fn(
+  async (..._args: any[]) => true
+);
 
 jest.mock("@/utils/email/email-service", () => ({
   sendRenewalReminder: jest.fn(async () => undefined),
@@ -63,6 +66,8 @@ jest.mock("@/utils/email/email-service", () => ({
   sendTransferFailureAlert: jest.fn(async () => undefined),
   sendOrphanedSubscriptionPaymentAlert: (...args: any[]) =>
     mockSendOrphanedSubscriptionPaymentAlert(...args),
+  sendOrphanedSubscriptionCancellationAlert: (...args: any[]) =>
+    mockSendOrphanedSubscriptionCancellationAlert(...args),
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
@@ -619,7 +624,7 @@ describe("POST /api/stripe/subscription-webhook — orphaned cancellation", () =
     });
   }
 
-  it("logs a loud greppable marker and still 200s when no subscriptions row matches a cancellation", async () => {
+  it("logs a loud greppable marker, alerts ops, and still 200s when no subscriptions row matches a cancellation", async () => {
     mockGetSubscriptionByStripeId.mockResolvedValue(null);
     fireSubscriptionDeleted();
 
@@ -633,10 +638,39 @@ describe("POST /api/stripe/subscription-webhook — orphaned cancellation", () =
     expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_CANCEL");
     expect(errCalls).toContain(SUB_ID);
     expect(errCalls).toContain("evt_orphan_cancel");
+    // Ops must be alerted with the reconciliation details, not just logged.
+    expect(mockSendOrphanedSubscriptionCancellationAlert).toHaveBeenCalledTimes(
+      1
+    );
+    expect(mockSendOrphanedSubscriptionCancellationAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stripeSubscriptionId: SUB_ID,
+        eventId: "evt_orphan_cancel",
+        customer: "cus_orphan",
+        status: "canceled",
+      })
+    );
     // No buyer notification may be faked for a row that does not exist.
     expect(sendSubscriptionCancellation).not.toHaveBeenCalled();
     expect(mockCreateSubscriptionNotification).not.toHaveBeenCalled();
     // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("still 200s when the ops alert email itself throws — the row will never appear on retry", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockSendOrphanedSubscriptionCancellationAlert.mockRejectedValueOnce(
+      new Error("sendgrid down")
+    );
+    fireSubscriptionDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSendOrphanedSubscriptionCancellationAlert).toHaveBeenCalledTimes(
+      1
+    );
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 
