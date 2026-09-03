@@ -5,6 +5,8 @@ import { applyRateLimit } from "@/utils/rate-limit";
 
 const PER_IP_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 const PER_PUBKEY_LIMIT = { limit: 300, windowMs: 60 * 1000 };
+const MAX_MESSAGE_IDS = 200;
+const HEX_EVENT_ID = /^[0-9a-f]{64}$/;
 
 export default async function handler(
   req: NextApiRequest,
@@ -13,6 +15,8 @@ export default async function handler(
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  res.setHeader("Cache-Control", "private, no-store");
 
   if (!(await applyRateLimit(req, res, "mark-messages-read:ip", PER_IP_LIMIT)))
     return;
@@ -34,13 +38,29 @@ export default async function handler(
     return;
 
   try {
-    const { messageIds } = req.body;
+    const messageIds = req.body?.messageIds;
 
     if (!Array.isArray(messageIds)) {
       return res.status(400).json({ error: "messageIds must be an array" });
     }
 
-    await markMessagesAsRead(messageIds, authResult.pubkey);
+    if (messageIds.length > MAX_MESSAGE_IDS) {
+      return res.status(413).json({ error: "Too many messageIds" });
+    }
+
+    if (
+      messageIds.some(
+        (messageId) =>
+          typeof messageId !== "string" || !HEX_EVENT_ID.test(messageId)
+      )
+    ) {
+      return res.status(400).json({ error: "Invalid messageId" });
+    }
+
+    await markMessagesAsRead(
+      Array.from(new Set(messageIds)),
+      authResult.pubkey
+    );
     res.status(200).json({ success: true });
   } catch (error) {
     console.error("Failed to mark messages as read:", error);

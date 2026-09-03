@@ -84,8 +84,10 @@ export default async function handler(
     // shipping email would ever be delivered.
     let orderSellerPubkey: string | null = null;
     try {
-      ({ sellerPubkey: orderSellerPubkey } =
-        await getOrderParticipants(orderId));
+      ({ sellerPubkey: orderSellerPubkey } = await getOrderParticipants(
+        orderId,
+        authResult.pubkey
+      ));
     } catch (lookupError) {
       console.error("Failed to resolve order participants:", lookupError);
     }

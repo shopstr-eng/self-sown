@@ -74,6 +74,7 @@ export function SellerField({
   keyboardType = "default",
   autoCapitalize = "sentences",
   secureTextEntry = false,
+  maxLength,
   error,
 }: {
   label: string;
@@ -84,6 +85,7 @@ export function SellerField({
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: TextInputProps["autoCapitalize"];
   secureTextEntry?: boolean;
+  maxLength?: number;
   error?: string;
 }) {
   return (
@@ -103,6 +105,7 @@ export function SellerField({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         secureTextEntry={secureTextEntry}
+        maxLength={maxLength}
         textAlignVertical={multiline ? "top" : "center"}
       />
       {error ? <Text style={styles.fieldErrorText}>{error}</Text> : null}
@@ -127,6 +130,9 @@ export function ActionButton({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       style={({ pressed }) => [
         styles.button,
         isPrimary ? styles.buttonPrimary : styles.buttonSecondary,

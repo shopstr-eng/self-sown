@@ -44,6 +44,14 @@ export default function SellerTabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="orders"
+        options={{
+          title: "Orders",
+          tabBarLabel: "Orders",
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
         name="storefront"
         options={{
           title: "Stall",

@@ -44,6 +44,7 @@ import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions"
 import { ReviewsContext } from "../../utils/context/context";
 import FailureModal from "../utility-components/failure-modal";
 import { getLatestShippingInfo } from "@/utils/messages/order-message-utils";
+import { persistSellerOrderStatusThrough } from "@/utils/orders/persist-order-status";
 import {
   NostrContext,
   SignerContext,
@@ -259,14 +260,18 @@ const ChatPanel = ({
         }
       }
 
-      fetch("/api/db/update-order-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      if (userPubkey && orderMessage?.wrappedEventId) {
+        void persistSellerOrderStatusThrough({
+          signer,
+          origin: window.location.origin,
           orderId,
-          status: "completed",
-        }),
-      }).catch(() => {});
+          sellerPubkey: userPubkey,
+          buyerPubkey: buyerPubkey || null,
+          sourceMessageId: orderMessage.wrappedEventId,
+          currentStatus: "shipped",
+          targetStatus: "completed",
+        }).catch(() => {});
+      }
 
       fetch("/api/email/send-update-email", {
         method: "POST",
