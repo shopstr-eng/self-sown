@@ -29,6 +29,7 @@ export const config = {
   },
 };
 import { applyRateLimit } from "@/utils/rate-limit";
+import { verifyWithAnySecret } from "@/utils/stripe/webhook-secrets";
 import { claimStripeEvent } from "@/utils/stripe/processed-events";
 
 async function getRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -67,9 +68,18 @@ export default async function handler(
   )
     return;
 
-  const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    console.error("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET not configured");
+  // See webhook.ts: this URL is fronted by both an account-scoped endpoint
+  // (platform Pro subscription renewals) and a Connect endpoint (renewals
+  // for subscriptions living on sellers' connected accounts). Each endpoint
+  // signs with its own secret, so accept either.
+  const webhookSecrets = [
+    process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET,
+    process.env.STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET,
+  ].filter((s): s is string => !!s);
+  if (webhookSecrets.length === 0) {
+    console.error(
+      "STRIPE_SUBSCRIPTION_WEBHOOK_SECRET / STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET not configured"
+    );
     return res.status(500).json({ error: "Webhook secret not configured" });
   }
 
@@ -78,7 +88,7 @@ export default async function handler(
   try {
     const rawBody = await getRawBody(req);
     const signature = req.headers["stripe-signature"] as string;
-    event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+    event = verifyWithAnySecret(stripe, rawBody, signature, webhookSecrets);
   } catch (error) {
     console.error("Webhook signature verification failed:", error);
     return res.status(400).json({ error: "Invalid webhook signature" });

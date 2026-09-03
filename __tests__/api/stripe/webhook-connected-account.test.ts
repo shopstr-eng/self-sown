@@ -128,11 +128,16 @@ function makeRes() {
 
 const originalSubSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
 const originalSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const originalSubConnectSecret =
+  process.env.STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET;
+const originalConnectSecret = process.env.STRIPE_WEBHOOK_CONNECT_SECRET;
 
 beforeEach(() => {
   jest.clearAllMocks();
   process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET = "whsec_sub_test";
   process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+  delete process.env.STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET;
+  delete process.env.STRIPE_WEBHOOK_CONNECT_SECRET;
   mockClaimStripeEvent.mockResolvedValue(true);
   mockFinalizeStripeEvent.mockResolvedValue(undefined);
   mockReleaseStripeEvent.mockResolvedValue(undefined);
@@ -154,6 +159,9 @@ afterEach(() => {
 afterAll(() => {
   process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET = originalSubSecret;
   process.env.STRIPE_WEBHOOK_SECRET = originalSecret;
+  process.env.STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET =
+    originalSubConnectSecret;
+  process.env.STRIPE_WEBHOOK_CONNECT_SECRET = originalConnectSecret;
 });
 
 describe("POST /api/stripe/subscription-webhook — invoice.payment_succeeded", () => {
@@ -267,5 +275,78 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
 
     expect(res.statusCode).toBe(200);
     expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, undefined);
+  });
+});
+
+// Each webhook URL is fronted by two Stripe endpoints (account-scoped +
+// Connect), each signing with its own secret, so handlers must accept either.
+describe("dual signing-secret verification (account + Connect endpoints)", () => {
+  const EVENT = {
+    id: "evt_dual",
+    type: "invoice.payment_succeeded",
+    data: { object: { id: "in_dual", subscription: null } },
+  };
+
+  it("subscription-webhook accepts the Connect secret when the primary fails", async () => {
+    process.env.STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET = "whsec_sub_conn";
+    mockConstructEvent
+      .mockImplementationOnce(() => {
+        throw new Error("primary secret mismatch");
+      })
+      .mockReturnValueOnce(EVENT);
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockConstructEvent).toHaveBeenCalledTimes(2);
+    expect(mockConstructEvent.mock.calls[1][2]).toBe("whsec_sub_conn");
+  });
+
+  it("webhook accepts the Connect secret when the primary fails", async () => {
+    process.env.STRIPE_WEBHOOK_CONNECT_SECRET = "whsec_conn";
+    mockConstructEvent
+      .mockImplementationOnce(() => {
+        throw new Error("primary secret mismatch");
+      })
+      .mockReturnValueOnce({
+        id: "evt_dual_main",
+        type: "invoice.paid",
+        data: { object: { id: "in_dual2", subscription: null } },
+      });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockConstructEvent).toHaveBeenCalledTimes(2);
+    expect(mockConstructEvent.mock.calls[1][2]).toBe("whsec_conn");
+  });
+
+  it("rejects when no configured secret verifies the signature", async () => {
+    mockConstructEvent.mockImplementation(() => {
+      throw new Error("bad signature");
+    });
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(400);
+  });
+
+  it("500s when no secrets are configured at all", async () => {
+    delete process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET;
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+
+    const subRes = makeRes();
+    await subscriptionWebhookHandler(makeReq(), subRes);
+    expect(subRes.statusCode).toBe(500);
+    expect(subRes.body).toEqual({ error: "Webhook secret not configured" });
+    expect(mockConstructEvent).not.toHaveBeenCalled();
+
+    const mainRes = makeRes();
+    await webhookHandler(makeReq(), mainRes);
+    expect(mainRes.statusCode).toBe(500);
+    expect(mainRes.body).toEqual({ error: "Webhook secret not configured" });
   });
 });

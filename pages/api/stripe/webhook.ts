@@ -21,6 +21,7 @@ export const config = {
   },
 };
 import { applyRateLimit } from "@/utils/rate-limit";
+import { verifyWithAnySecret } from "@/utils/stripe/webhook-secrets";
 import {
   claimStripeEvent,
   finalizeStripeEvent,
@@ -51,9 +52,20 @@ export default async function handler(
 
   if (!(await applyRateLimit(req, res, "stripe-webhook", RATE_LIMIT))) return;
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET not configured");
+  // Events reach this route from TWO Stripe webhook endpoints on the same
+  // URL: an account-scoped endpoint (platform events: application_fee.*,
+  // platform payment_intents/invoices) and a Connect endpoint (events for
+  // objects on sellers' connected accounts: direct-charge payment_intents,
+  // connected-account subscription invoices, account.updated). Stripe signs
+  // each endpoint with its own signing secret, so accept either.
+  const webhookSecrets = [
+    process.env.STRIPE_WEBHOOK_SECRET,
+    process.env.STRIPE_WEBHOOK_CONNECT_SECRET,
+  ].filter((s): s is string => !!s);
+  if (webhookSecrets.length === 0) {
+    console.error(
+      "STRIPE_WEBHOOK_SECRET / STRIPE_WEBHOOK_CONNECT_SECRET not configured"
+    );
     return res.status(500).json({ error: "Webhook secret not configured" });
   }
 
@@ -62,7 +74,7 @@ export default async function handler(
   try {
     const rawBody = await getRawBody(req);
     const sig = req.headers["stripe-signature"] as string;
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    event = verifyWithAnySecret(stripe, rawBody, sig, webhookSecrets);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return res

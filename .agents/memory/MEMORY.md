@@ -120,3 +120,4 @@
 - [P2PK pubkey normalization](p2pk-pubkey-normalization.md) — mints emit P2PK lock data compressed (02+x-only), records carry x-only Nostr pubkeys; always compare via normalizeP2PKPubkey, and use the compressed form in test fixtures.
 - [Escrow backup encryption surfacing](escrow-backup-encryption-surfacing.md) — publishEscrowBackup returns typed failures; encryption_failed is permanent for nip04-only bunkers and must render via describeEscrowBackupWarning, never console-only.
 - [Stripe subscription account binding](subscription-account-binding.md) — cancel/update must target the row's stored connected_account_id (stamped at creation); seller's current account is only the legacy-row fallback or reconnecting a different account orphans the sub.
+- [Stripe webhook endpoint topology](stripe-webhook-endpoint-topology.md) — routes handling platform and connected-account objects need separate account+Connect endpoints and secrets; publish after secret changes.
