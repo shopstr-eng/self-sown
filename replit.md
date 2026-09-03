@@ -41,6 +41,7 @@ Deep-dive notes live under `docs/architecture/`. Read the relevant file only whe
 - **`affiliates.md`** — Seller-managed affiliate links + codes (data model, APIs, Stripe + Cashu integration, anti-abuse, cron payouts, email/unsubscribe, operator runbook).
 - **`seo.md`** — On-page SEO, GEO citations, dev-mode optimizations (Turbopack, PWA + flow scheduler off in dev).
 - **`self-host.md`** — Wrangler (lifetime) single-tenant self-host: config (`utils/self-host/`), tenant-scoped entitlement bypass, proxy marketplace-hiding, own-Stripe direct charges, and the dependency-free export-bundle endpoint.
+- **`dependency-upgrades.md`** — Durable decisions on upstream major dependency bumps: which were adopted vs deferred (HeroUI 3, TypeScript 7) and the exact triggers to revisit each deferral.
 
 Other long-form docs:
 
