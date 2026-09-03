@@ -14,6 +14,7 @@ import {
 } from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
+import { sendDedupedOpsAlert } from "@/utils/email/deduped-ops-alert";
 import {
   computeRebateSmallest,
   isAffiliateCodeValid,
@@ -55,6 +56,48 @@ function formatFrequencyLabel(frequency: string): string {
     quarterly: "Quarterly",
   };
   return map[frequency] || frequency;
+}
+
+function orphanedPaymentAlertDedupKey(stripeSubscriptionId: string): string {
+  return `orphaned_subscription_payment_alert:${stripeSubscriptionId}`;
+}
+
+/**
+ * Email ops about an orphaned subscription payment, deduped per Stripe
+ * subscription (see sendDedupedOpsAlert). A legacy subscription nobody
+ * cancels stays live at Stripe, so every billing cycle (or a re-sent
+ * invoice) would otherwise fire the identical alert; the structured
+ * ORPHANED_SUBSCRIPTION_PAYMENT log still records every event. The dedup
+ * timestamp is only written after a mail actually goes out, so a transient
+ * mail failure re-alerts on the next event, while a genuinely different
+ * orphaned subscription always alerts. Never throws — the webhook response
+ * must stay 200 because the row will never appear on retry.
+ */
+async function alertOrphanedSubscriptionPayment(fields: {
+  stripeSubscriptionId: string;
+  invoiceId: string;
+  eventId: string;
+  amountPaid: string;
+  currency: string;
+  customerEmail: string;
+  billingReason: string;
+}): Promise<void> {
+  const outcome = await sendDedupedOpsAlert({
+    dedupKey: orphanedPaymentAlertDedupKey(fields.stripeSubscriptionId),
+    logTag: "[orphaned_subscription_payment]",
+    send: () =>
+      sendOrphanedSubscriptionPaymentAlert({
+        ...fields,
+        adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+      }),
+  });
+  if (outcome === "suppressed") {
+    console.warn(
+      `ORPHANED_SUBSCRIPTION_PAYMENT_ALERT_SUPPRESSED stripe_subscription_id=${fields.stripeSubscriptionId} ` +
+        `invoice_id=${fields.invoiceId} event_id=${fields.eventId} — ` +
+        `ops was already alerted for this subscription within the last 24h`
+    );
+  }
 }
 
 // Rate limit: per-IP cap to bound abuse of payment endpoints.
@@ -228,9 +271,12 @@ export default async function handler(
               `billing date and status were NOT updated`
           );
           // A log line is only seen if someone goes looking; alert ops
-          // directly so a human reconciles promptly. Non-fatal on failure —
-          // the 200 above stands because the row will never appear on retry.
-          await sendOrphanedSubscriptionPaymentAlert({
+          // directly so a human reconciles promptly. Deduped per Stripe
+          // subscription (once per day) so a live legacy subscription can't
+          // spam the identical alert every billing cycle, and non-fatal on
+          // failure — the 200 above stands because the row will never appear
+          // on retry.
+          await alertOrphanedSubscriptionPayment({
             stripeSubscriptionId: paidSubscriptionId,
             invoiceId: invoicePaid.id ?? "unknown",
             eventId: event.id,
@@ -238,13 +284,7 @@ export default async function handler(
             currency: invoicePaid.currency ?? "unknown",
             customerEmail: invoicePaid.customer_email ?? "unknown",
             billingReason: invoicePaid.billing_reason ?? "unknown",
-            adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
-          }).catch((err) =>
-            console.error(
-              "[orphaned_subscription_payment] Failed to send ops alert email:",
-              err
-            )
-          );
+          });
           break;
         }
 

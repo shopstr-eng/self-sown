@@ -30,6 +30,7 @@ jest.mock("@/utils/db/pro-membership", () => ({
   setProManualInvoiceCoverage: jest.fn(),
   getProSetting: (...args: unknown[]) => getProSettingMock(...args),
   setProSetting: (...args: unknown[]) => setProSettingMock(...args),
+  withProSettingsLock: (_key: unknown, fn: () => unknown) => fn(),
 }));
 
 // Keep the real mapStripeSubscription so we genuinely exercise pubkey resolution

@@ -75,6 +75,7 @@ jest.mock("@/utils/db/pro-membership", () => ({
   syncProStripeMeta: (...args: unknown[]) => syncProStripeMetaMock(...args),
   getProSetting: (...args: unknown[]) => getProSettingMock(...args),
   setProSetting: (...args: unknown[]) => setProSettingMock(...args),
+  withProSettingsLock: (_key: unknown, fn: () => unknown) => fn(),
   // Imports membership.ts pulls in at module load but these tests don't drive.
   grantProTrialIfMissing: jest.fn(),
   listExistingStallPubkeys: jest.fn(),

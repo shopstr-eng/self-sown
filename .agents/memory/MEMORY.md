@@ -122,3 +122,4 @@
 - [Escrow backup encryption surfacing](escrow-backup-encryption-surfacing.md) — publishEscrowBackup returns typed failures; encryption_failed is permanent for nip04-only bunkers and must render via describeEscrowBackupWarning, never console-only.
 - [Stripe subscription account binding](subscription-account-binding.md) — cancel/update must target the row's stored connected_account_id (stamped at creation); seller's current account is only the legacy-row fallback or reconnecting a different account orphans the sub.
 - [Stripe webhook endpoint topology](stripe-webhook-endpoint-topology.md) — routes handling platform and connected-account objects need separate account+Connect endpoints and secrets; publish after secret changes.
+- [Ops-alert per-day dedup](ops-alert-dedup.md) — repeatable ops alerts go through the shared pro_settings-backed dedup helper (per-key advisory lock); stamp ONLY after a confirmed send, never throw into webhooks.

@@ -118,6 +118,45 @@ jest.mock("@/mcp/tools/purchase-tools", () => ({
   updateMcpOrderPayment: (...args: any[]) => mockUpdateMcpOrderPayment(...args),
 }));
 
+const mockProSettingsStore = new Map<string, string>();
+const mockGetProSetting = jest.fn(async (...args: any[]) => {
+  const value = mockProSettingsStore.get(args[0] as string);
+  return value === undefined ? null : value;
+});
+const mockSetProSetting = jest.fn(async (...args: any[]) => {
+  mockProSettingsStore.set(args[0] as string, args[1] as string);
+});
+// Serialize per key like the real pg advisory lock so concurrency tests
+// genuinely exercise the mutual exclusion.
+const mockProSettingsLocks = new Map<string, Promise<unknown>>();
+const mockWithProSettingsLock = jest.fn(
+  <T>(key: string, fn: () => Promise<T>): Promise<T> => {
+    const prev = mockProSettingsLocks.get(key) ?? Promise.resolve();
+    let release!: () => void;
+    const current = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    mockProSettingsLocks.set(
+      key,
+      prev.catch(() => {}).then(() => current)
+    );
+    return prev.catch(() => {}).then(async () => {
+      try {
+        return await fn();
+      } finally {
+        release();
+      }
+    });
+  }
+);
+
+jest.mock("@/utils/db/pro-membership", () => ({
+  getProSetting: (...args: any[]) => mockGetProSetting(...args),
+  setProSetting: (...args: any[]) => mockSetProSetting(...args),
+  withProSettingsLock: (key: string, fn: () => Promise<unknown>) =>
+    mockWithProSettingsLock(key, fn),
+}));
+
 jest.mock("@/utils/shipping/auto-purchase", () => ({
   autoPurchaseForMcpOrder: (...args: any[]) =>
     mockAutoPurchaseForMcpOrder(...args),
@@ -177,6 +216,8 @@ beforeEach(() => {
   mockClaimStripeEvent.mockResolvedValue(true);
   mockFinalizeStripeEvent.mockResolvedValue(undefined);
   mockReleaseStripeEvent.mockResolvedValue(undefined);
+  mockProSettingsStore.clear();
+  mockProSettingsLocks.clear();
   mockSubscriptionsRetrieve.mockResolvedValue({
     id: SUB_ID,
     status: "active",
@@ -585,6 +626,160 @@ describe("POST /api/stripe/subscription-webhook — orphaned/failed renewal look
     expect(res.statusCode).toBe(200);
     expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(1);
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("stamps the dedup key only after a successful send, so a live legacy subscription alerts at most once per day", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    firePaymentSucceeded();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(1);
+    expect(mockSetProSetting).toHaveBeenCalledWith(
+      `orphaned_subscription_payment_alert:${SUB_ID}`,
+      expect.any(String)
+    );
+
+    // A second event for the SAME subscription inside the cooldown window is
+    // logged but does not re-email ops (the first send stamped the store).
+    mockSendOrphanedSubscriptionPaymentAlert.mockClear();
+    firePaymentSucceeded();
+
+    const res2 = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res2);
+
+    expect(res2.statusCode).toBe(200);
+    expect(mockSendOrphanedSubscriptionPaymentAlert).not.toHaveBeenCalled();
+    expect(mockSetProSetting).toHaveBeenCalledTimes(1);
+    const warnCalls = (console.warn as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(warnCalls).toContain(
+      "ORPHANED_SUBSCRIPTION_PAYMENT_ALERT_SUPPRESSED"
+    );
+  });
+
+  it("re-alerts when the previous send failed (no dedup stamp) and for a genuinely different orphaned subscription", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+
+    // Send failed last time → nothing was stamped → alert again.
+    mockSendOrphanedSubscriptionPaymentAlert.mockResolvedValueOnce(false);
+    firePaymentSucceeded();
+    await subscriptionWebhookHandler(makeReq(), makeRes());
+    expect(mockSetProSetting).not.toHaveBeenCalled();
+
+    firePaymentSucceeded();
+    await subscriptionWebhookHandler(makeReq(), makeRes());
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(2);
+
+    // A different orphaned subscription has its own dedup key and must still
+    // alert even though SUB_ID was stamped by the successful send above.
+    mockSendOrphanedSubscriptionPaymentAlert.mockClear();
+    mockConstructEvent.mockReturnValue({
+      id: "evt_orphan_other",
+      type: "invoice.payment_succeeded",
+      data: {
+        object: {
+          id: "in_orphan_other",
+          subscription: "sub_other_orphan",
+          billing_reason: "subscription_cycle",
+          amount_paid: 2000,
+          currency: "usd",
+          customer_email: "other@example.com",
+        },
+      },
+    });
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(1);
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ stripeSubscriptionId: "sub_other_orphan" })
+    );
+    expect(mockSetProSetting).toHaveBeenCalledWith(
+      "orphaned_subscription_payment_alert:sub_other_orphan",
+      expect.any(String)
+    );
+  });
+
+  it("re-alerts after the 24h cooldown expires for the same orphaned subscription", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockProSettingsStore.set(
+      `orphaned_subscription_payment_alert:${SUB_ID}`,
+      new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString()
+    );
+    firePaymentSucceeded();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends only one alert when two distinct events for the same orphaned subscription arrive concurrently", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+
+    // Hold the first send open so the second event enters the race window
+    // before either handler can stamp the dedup key.
+    let resolveSend!: (sent: boolean) => void;
+    mockSendOrphanedSubscriptionPaymentAlert.mockImplementationOnce(
+      () =>
+        new Promise<boolean>((resolve) => {
+          resolveSend = resolve;
+        })
+    );
+
+    const orphanEvent = (eventId: string, invoiceId: string) => ({
+      id: eventId,
+      type: "invoice.payment_succeeded",
+      data: {
+        object: {
+          id: invoiceId,
+          subscription: SUB_ID,
+          billing_reason: "subscription_cycle",
+          amount_paid: 1000,
+          currency: "usd",
+          customer_email: "buyer@example.com",
+        },
+      },
+    });
+    mockConstructEvent.mockReturnValueOnce(
+      orphanEvent("evt_orphan_a", "in_orphan_a") as any
+    );
+    const resA = makeRes();
+    const handlerA = subscriptionWebhookHandler(makeReq(), resA);
+
+    // Wait until handler A is inside the send, then fire event B — it must
+    // queue on the per-subscription lock instead of double-sending.
+    for (
+      let i = 0;
+      i < 100 && mockSendOrphanedSubscriptionPaymentAlert.mock.calls.length === 0;
+      i++
+    ) {
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(1);
+
+    mockConstructEvent.mockReturnValueOnce(
+      orphanEvent("evt_orphan_b", "in_orphan_b") as any
+    );
+    const resB = makeRes();
+    const handlerB = subscriptionWebhookHandler(makeReq(), resB);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    resolveSend(true);
+    await Promise.all([handlerA, handlerB]);
+
+    expect(resA.statusCode).toBe(200);
+    expect(resB.statusCode).toBe(200);
+    // B observed A's stamp after the lock and suppressed its own alert.
+    expect(mockSendOrphanedSubscriptionPaymentAlert).toHaveBeenCalledTimes(1);
+    expect(mockSetProSetting).toHaveBeenCalledTimes(1);
   });
 
   it("500s and releases the event claim when the lookup throws, so Stripe retries", async () => {

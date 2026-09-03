@@ -34,6 +34,7 @@ jest.mock("@/utils/db/pro-membership", () => ({
   syncProStripeMeta: jest.fn(),
   getProSetting: jest.fn(),
   setProSetting: jest.fn(),
+  withProSettingsLock: (_key: string, fn: () => unknown) => fn(),
   grantProTrialIfMissing: jest.fn(),
   listExistingStallPubkeys: jest.fn(),
   listPaidProManualInvoices: jest.fn(),

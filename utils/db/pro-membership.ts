@@ -771,6 +771,39 @@ export async function getProSetting(key: string): Promise<string | null> {
   }
 }
 
+/**
+ * Serialize a check→act→write critical section per pro_settings-style key
+ * across ALL server instances via a transaction-scoped Postgres advisory lock.
+ * Without this, two concurrent webhook events for the same subject can both
+ * read a missing/expired dedup timestamp before either writes, then both act
+ * (e.g. both email ops). The lock is xact-scoped so it is always released —
+ * on commit, rollback, or connection death — and never leaks to the next
+ * borrower of the pooled client.
+ */
+export async function withProSettingsLock<T>(
+  key: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  const client = await getDbPool().connect();
+  try {
+    await client.query("BEGIN");
+    try {
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        [`pro_settings_dedup:${key}`]
+      );
+      const result = await fn();
+      await client.query("COMMIT");
+      return result;
+    } catch (err) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw err;
+    }
+  } finally {
+    client.release();
+  }
+}
+
 export async function setProSetting(key: string, value: string): Promise<void> {
   let client;
   try {

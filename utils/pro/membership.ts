@@ -45,6 +45,7 @@ import {
   sendProReceipt,
   sendProLifetimeLingeringCancelAlert,
 } from "@/utils/email/email-service";
+import { sendDedupedOpsAlert } from "@/utils/email/deduped-ops-alert";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
 import { isSelfHostTenant } from "@/utils/self-host/config";
 
@@ -98,12 +99,6 @@ function logLifetimeLingeringCancel(
   }
 }
 
-// Once a stuck subscription has alerted the operator, suppress further alerts
-// for the same subscription for this long. A truly wedged subscription would
-// otherwise fire a fresh alert on every renewal-webhook auto-retry; the
-// structured logs still record every attempt for anyone watching.
-const LINGERING_CANCEL_ALERT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
-
 function lingeringCancelAlertDedupKey(subscriptionId: string): string {
   return `lifetime_lingering_cancel_alert:${subscriptionId}`;
 }
@@ -111,11 +106,12 @@ function lingeringCancelAlertDedupKey(subscriptionId: string): string {
 /**
  * Email the operator when a lingering-subscription cancel fails so they can
  * cancel it by hand before the seller is charged again — mirroring how transfer
- * failures already alert admin. Deduped per subscription via `pro_settings`: the
- * dedup timestamp is only written after a mail actually goes out, so a transient
- * mail failure still re-alerts on the next webhook retry, while a single stuck
- * subscription can't spam an alert on every renewal. Best-effort: never throws,
- * so it can't fail the webhook or block the (already best-effort) cancel path.
+ * failures already alert admin. Deduped per subscription (see
+ * sendDedupedOpsAlert): the dedup timestamp is only written after a mail
+ * actually goes out, so a transient mail failure still re-alerts on the next
+ * webhook retry, while a single stuck subscription can't spam an alert on
+ * every renewal. Best-effort: never throws, so it can't fail the webhook or
+ * block the (already best-effort) cancel path.
  */
 async function alertLifetimeLingeringCancelFailure(fields: {
   pubkey: string;
@@ -123,35 +119,20 @@ async function alertLifetimeLingeringCancelFailure(fields: {
   source: "purchase" | "renewal_webhook";
   error: unknown;
 }): Promise<void> {
-  try {
-    const dedupKey = lingeringCancelAlertDedupKey(fields.subscriptionId);
-    const last = await getProSetting(dedupKey);
-    if (last) {
-      const lastMs = new Date(last).getTime();
-      if (
-        Number.isFinite(lastMs) &&
-        Date.now() - lastMs < LINGERING_CANCEL_ALERT_COOLDOWN_MS
-      ) {
-        return;
-      }
-    }
-
-    const sent = await sendProLifetimeLingeringCancelAlert({
-      pubkey: fields.pubkey,
-      subscriptionId: fields.subscriptionId,
-      source: fields.source,
-      error:
-        fields.error instanceof Error
-          ? fields.error.message
-          : String(fields.error),
-    });
-
-    if (sent) {
-      await setProSetting(dedupKey, new Date().toISOString());
-    }
-  } catch (err) {
-    console.error("alertLifetimeLingeringCancelFailure failed:", err);
-  }
+  await sendDedupedOpsAlert({
+    dedupKey: lingeringCancelAlertDedupKey(fields.subscriptionId),
+    logTag: "alertLifetimeLingeringCancelFailure",
+    send: () =>
+      sendProLifetimeLingeringCancelAlert({
+        pubkey: fields.pubkey,
+        subscriptionId: fields.subscriptionId,
+        source: fields.source,
+        error:
+          fields.error instanceof Error
+            ? fields.error.message
+            : String(fields.error),
+      }),
+  });
 }
 
 export async function getMembershipView(
