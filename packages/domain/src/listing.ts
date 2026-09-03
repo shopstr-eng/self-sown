@@ -1,6 +1,7 @@
 import { CATEGORIES, type ShippingOptionsType } from "./constants";
 import type { ProductFormValue, ProductFormValues } from "./forms";
 import type { NostrEventRecord } from "./seller";
+import { normalizeSellerParcel, type SellerParcel } from "./shipping";
 
 export type SellerListingStatus = "active" | "inactive";
 
@@ -19,6 +20,13 @@ export interface SellerListingDraft {
   shippingType: ShippingOptionsType;
   shippingCost: string;
   pickupLocations: string[];
+  shipFromPostalCode?: string;
+  shipFromCountry?: string;
+  packageWeightOz?: string;
+  packageLengthIn?: string;
+  packageWidthIn?: string;
+  packageHeightIn?: string;
+  handlingTimeDays?: string;
   quantity: string;
   status: SellerListingStatus;
 }
@@ -34,6 +42,13 @@ export interface SellerListingDraftValidationErrors {
   shippingType?: string;
   shippingCost?: string;
   pickupLocations?: string;
+  shipFromPostalCode?: string;
+  shipFromCountry?: string;
+  packageWeightOz?: string;
+  packageLengthIn?: string;
+  packageWidthIn?: string;
+  packageHeightIn?: string;
+  handlingTimeDays?: string;
   quantity?: string;
   status?: string;
 }
@@ -49,6 +64,10 @@ export interface NormalizedSellerListingDraft {
   shippingType: ShippingOptionsType;
   shippingCost: number;
   pickupLocations: string[];
+  shipFromPostalCode: string;
+  shipFromCountry: string;
+  parcel?: SellerParcel;
+  handlingTimeDays?: number;
   quantity?: number;
   status: SellerListingStatus;
 }
@@ -88,6 +107,9 @@ const MOBILE_EDITABLE_TAGS = new Set([
   "t",
   "quantity",
   "pickup_location",
+  "ship_from_zip",
+  "parcel",
+  "handling_time",
   "published_at",
 ]);
 
@@ -140,6 +162,13 @@ export function createEmptySellerListingDraft(): SellerListingDraft {
     shippingType: "Free",
     shippingCost: "",
     pickupLocations: [],
+    shipFromPostalCode: "",
+    shipFromCountry: "US",
+    packageWeightOz: "",
+    packageLengthIn: "",
+    packageWidthIn: "",
+    packageHeightIn: "",
+    handlingTimeDays: "",
     quantity: "",
     status: "active",
   };
@@ -181,6 +210,13 @@ export function normalizeSellerListingDraft(
     ? (parseNumberInput(draft.shippingCost) ?? 0)
     : 0;
   const parsedQuantity = parseNumberInput(draft.quantity);
+  const parcel = normalizeSellerParcel({
+    weightOz: draft.packageWeightOz ?? "",
+    lengthIn: draft.packageLengthIn ?? "",
+    widthIn: draft.packageWidthIn ?? "",
+    heightIn: draft.packageHeightIn ?? "",
+  });
+  const parsedHandlingTime = parseNumberInput(draft.handlingTimeDays ?? "");
 
   return {
     title: draft.title.trim(),
@@ -199,6 +235,15 @@ export function normalizeSellerListingDraft(
     shippingType: draft.shippingType,
     shippingCost: parsedShippingCost,
     pickupLocations,
+    shipFromPostalCode: (draft.shipFromPostalCode ?? "").trim(),
+    shipFromCountry:
+      (draft.shipFromCountry ?? "US").trim().toUpperCase() || "US",
+    ...(parcel ? { parcel } : {}),
+    ...(parsedHandlingTime !== null &&
+    Number.isInteger(parsedHandlingTime) &&
+    parsedHandlingTime >= 0
+      ? { handlingTimeDays: parsedHandlingTime }
+      : {}),
     ...(parsedQuantity !== null && parsedQuantity >= 0
       ? { quantity: Math.floor(parsedQuantity) }
       : {}),
@@ -214,6 +259,20 @@ export function validateSellerListingDraft(
   const priceInput = parseNumberInput(draft.price);
   const shippingCostInput = parseNumberInput(draft.shippingCost);
   const quantityInput = parseNumberInput(draft.quantity);
+  const packageValues = [
+    draft.packageWeightOz ?? "",
+    draft.packageLengthIn ?? "",
+    draft.packageWidthIn ?? "",
+    draft.packageHeightIn ?? "",
+  ];
+  const hasPackageInput = packageValues.some((value) => value.trim() !== "");
+  const parcel = normalizeSellerParcel({
+    weightOz: draft.packageWeightOz ?? "",
+    lengthIn: draft.packageLengthIn ?? "",
+    widthIn: draft.packageWidthIn ?? "",
+    heightIn: draft.packageHeightIn ?? "",
+  });
+  const handlingTimeInput = parseNumberInput(draft.handlingTimeDays ?? "");
 
   if (!normalized.title) {
     errors.title = "Listing title is required.";
@@ -256,6 +315,39 @@ export function validateSellerListingDraft(
     if (shippingCostInput === null || shippingCostInput < 0) {
       errors.shippingCost = "Enter a valid shipping cost.";
     }
+  }
+
+  if ((draft.shipFromPostalCode ?? "").length > 20) {
+    errors.shipFromPostalCode =
+      "Ship-from postal code must be 20 characters or fewer.";
+  }
+  if (!/^[A-Za-z]{2,3}$/.test((draft.shipFromCountry ?? "US").trim())) {
+    errors.shipFromCountry = "Enter a valid 2- or 3-letter country code.";
+  }
+  if (hasPackageInput && !parcel) {
+    const weight = parseNumberInput(draft.packageWeightOz ?? "");
+    if (weight === null || weight <= 0) {
+      errors.packageWeightOz = "Package weight must be greater than zero.";
+    }
+    for (const [field, value] of [
+      ["packageLengthIn", draft.packageLengthIn ?? ""],
+      ["packageWidthIn", draft.packageWidthIn ?? ""],
+      ["packageHeightIn", draft.packageHeightIn ?? ""],
+    ] as const) {
+      const parsed = parseNumberInput(value);
+      if (value.trim() && (parsed === null || parsed <= 0)) {
+        errors[field] = "Package dimensions must be greater than zero.";
+      }
+    }
+  }
+  if (
+    (draft.handlingTimeDays ?? "").trim() &&
+    (handlingTimeInput === null ||
+      !Number.isInteger(handlingTimeInput) ||
+      handlingTimeInput < 0 ||
+      handlingTimeInput > 365)
+  ) {
+    errors.handlingTimeDays = "Handling time must be a whole number of days.";
   }
 
   if (
@@ -304,6 +396,9 @@ export function createSellerListingDraftFromEvent(
   const quantity = getTagValues(event, "quantity")[0] ?? "";
   const status =
     getTagValues(event, "status")[0] === "inactive" ? "inactive" : "active";
+  const shipFromTag = event.tags.find((tag) => tag[0] === "ship_from_zip");
+  const parcelTag = event.tags.find((tag) => tag[0] === "parcel");
+  const handlingTime = getTagValues(event, "handling_time")[0] ?? "";
 
   return {
     eventId: event.id,
@@ -322,6 +417,13 @@ export function createSellerListingDraftFromEvent(
     shippingType,
     shippingCost,
     pickupLocations: getTagValues(event, "pickup_location"),
+    shipFromPostalCode: shipFromTag?.[1]?.trim() ?? "",
+    shipFromCountry: shipFromTag?.[2]?.trim().toUpperCase() || "US",
+    packageWeightOz: parcelTag?.[1]?.trim() ?? "",
+    packageLengthIn: parcelTag?.[2]?.trim() ?? "",
+    packageWidthIn: parcelTag?.[3]?.trim() ?? "",
+    packageHeightIn: parcelTag?.[4]?.trim() ?? "",
+    handlingTimeDays: handlingTime.trim(),
     quantity,
     status,
   };
@@ -357,6 +459,31 @@ export function buildSellerListingTags(params: {
     ],
     ["status", normalized.status],
   ];
+
+  if (normalized.shipFromPostalCode) {
+    tags.push([
+      "ship_from_zip",
+      normalized.shipFromPostalCode,
+      normalized.shipFromCountry,
+    ]);
+  }
+  if (normalized.parcel) {
+    const parcelTag: ProductFormValue = [
+      "parcel",
+      String(normalized.parcel.weightOz),
+    ];
+    const dimensions = [
+      normalized.parcel.lengthIn,
+      normalized.parcel.widthIn,
+      normalized.parcel.heightIn,
+    ];
+    dimensions.forEach((value) => parcelTag.push(value ? String(value) : ""));
+    while (parcelTag.at(-1) === "") parcelTag.pop();
+    tags.push(parcelTag);
+  }
+  if (normalized.handlingTimeDays !== undefined) {
+    tags.push(["handling_time", String(normalized.handlingTimeDays)]);
+  }
 
   normalized.images.forEach((image) => {
     tags.push(["image", image]);

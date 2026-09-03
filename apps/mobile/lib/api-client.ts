@@ -1,6 +1,7 @@
 import {
   createSelfSownApiClient,
   createSellerOrdersApiClient,
+  createSellerShippingApiClient,
 } from "@self-sown/api-client";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
@@ -10,5 +11,9 @@ export const mobileApiClient = createSelfSownApiClient({
 });
 
 export const mobileSellerOrdersApiClient = createSellerOrdersApiClient({
+  baseUrl: getApiBaseUrl(),
+});
+
+export const mobileSellerShippingApiClient = createSellerShippingApiClient({
   baseUrl: getApiBaseUrl(),
 });

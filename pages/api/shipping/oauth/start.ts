@@ -14,6 +14,8 @@ import {
 } from "@/utils/shipping/shippo-oauth";
 import { createShippoOAuthState } from "@/utils/db/shipping-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
+import { isListedSeller } from "@/utils/shipping/shipment-owners";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
 
@@ -31,6 +33,27 @@ export default async function handler(
   }
 
   try {
+    if (req.headers.authorization) {
+      const auth = await verifyNip98Request(req, "POST", req.body);
+      if (!auth.ok) return res.status(401).json({ error: auth.error });
+      if (req.body?.returnTarget !== "mobile") {
+        return res.status(400).json({ error: "Invalid OAuth return target" });
+      }
+      if (!(await isListedSeller(auth.pubkey))) {
+        return res
+          .status(403)
+          .json({ error: "Only registered sellers may connect Shippo" });
+      }
+      if (!(await requireProEntitlement(auth.pubkey, res))) return;
+
+      const state = `mobile-${randomBytes(24).toString("hex")}`;
+      await createShippoOAuthState(auth.pubkey, state);
+      return res.status(200).json({
+        success: true,
+        authorizeUrl: buildShippoAuthorizeUrl(state),
+      });
+    }
+
     const { pubkey, signedEvent } = (req.body || {}) as {
       pubkey?: string;
       signedEvent?: unknown;
@@ -75,6 +98,6 @@ export default async function handler(
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Shippo OAuth start failed:", message);
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Could not start shipping setup" });
   }
 }

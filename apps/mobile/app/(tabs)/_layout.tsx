@@ -58,6 +58,13 @@ export default function SellerTabsLayout() {
           tabBarLabel: "Stall",
         }}
       />
+      <Tabs.Screen
+        name="shipping"
+        options={{
+          title: "Shipping",
+          tabBarLabel: "Shipping",
+        }}
+      />
     </Tabs>
   );
 }

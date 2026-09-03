@@ -25,19 +25,27 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
       return;
     }
 
-    const rawSession = await SecureStore.getItemAsync(
-      SELLER_SESSION_STORAGE_KEY
-    );
-    const session = rawSession ? deserializeSellerSession(rawSession) : null;
+    try {
+      const rawSession = await SecureStore.getItemAsync(
+        SELLER_SESSION_STORAGE_KEY
+      );
+      const session = rawSession ? deserializeSellerSession(rawSession) : null;
 
-    if (rawSession && !session) {
-      await SecureStore.deleteItemAsync(SELLER_SESSION_STORAGE_KEY);
+      if (rawSession && !session) {
+        await SecureStore.deleteItemAsync(SELLER_SESSION_STORAGE_KEY);
+      }
+
+      set({
+        hydrated: true,
+        session,
+      });
+    } catch (error) {
+      set({
+        hydrated: true,
+        session: null,
+      });
+      throw error;
     }
-
-    set({
-      hydrated: true,
-      session,
-    });
   },
   saveSession: async (session) => {
     await SecureStore.setItemAsync(

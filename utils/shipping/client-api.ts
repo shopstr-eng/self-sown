@@ -187,7 +187,7 @@ export async function saveShippoDefaults(
 ): Promise<ShippoDefaults> {
   const header = await signedHeader(
     signer,
-    buildShippingDefaultsProof({ pubkey, method: "POST" })
+    buildShippingDefaultsProof({ pubkey, method: "POST", defaults })
   );
   const res = await fetch("/api/shipping/defaults", {
     method: "POST",
