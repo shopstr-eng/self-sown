@@ -197,23 +197,38 @@ export default async function handler(
         const renewalBranding = await loadStorefrontBranding(
           subscription.seller_pubkey
         );
-        await sendRenewalReminder(
-          subscription.buyer_email,
-          {
-            productTitle:
-              subscription.product_title || subscription.product_event_id,
-            frequency: subscription.frequency,
-            discountPercent: Number(subscription.discount_percent),
-            regularPrice: String(subscription.base_price),
-            subscriptionPrice: String(subscription.subscription_price),
-            currency: subscription.currency,
-            nextBillingDate,
-          },
-          renewalBranding
-        ).catch((err) =>
-          console.error("Failed to send renewal reminder email:", err)
-        );
 
+        // Track what actually delivered — recording a success row for a
+        // failed send would mislead ops when a buyer disputes an unexpected
+        // renewal charge.
+        let emailSent = false;
+        try {
+          // Resolves false (not throws) when the provider rejects the send —
+          // both must count as "not sent".
+          emailSent = await sendRenewalReminder(
+            subscription.buyer_email,
+            {
+              productTitle:
+                subscription.product_title || subscription.product_event_id,
+              frequency: subscription.frequency,
+              discountPercent: Number(subscription.discount_percent),
+              regularPrice: String(subscription.base_price),
+              subscriptionPrice: String(subscription.subscription_price),
+              currency: subscription.currency,
+              nextBillingDate,
+            },
+            renewalBranding
+          );
+          if (!emailSent) {
+            console.error(
+              "Renewal reminder email was not accepted by the email provider"
+            );
+          }
+        } catch (err) {
+          console.error("Failed to send renewal reminder email:", err);
+        }
+
+        let dmSent = false;
         if (subscription.buyer_pubkey) {
           const dmMessage = `Reminder: Your subscription for "${
             subscription.product_title || subscription.product_event_id
@@ -225,20 +240,38 @@ export default async function handler(
             subscription.discount_percent
           }% off). Visit your orders page to manage your subscription.`;
 
-          await sendServerSideNostrDM(
-            subscription.buyer_pubkey,
-            dmMessage,
-            "subscription-renewal"
-          ).catch((err) =>
-            console.error("Failed to send renewal Nostr DM:", err)
-          );
+          try {
+            // Resolves false (not throws) when delivery fails — both must
+            // count as "not sent".
+            dmSent = await sendServerSideNostrDM(
+              subscription.buyer_pubkey,
+              dmMessage,
+              "subscription-renewal"
+            );
+          } catch (err) {
+            console.error("Failed to send renewal Nostr DM:", err);
+          }
         }
 
-        await createSubscriptionNotification({
-          subscription_id: subscription.id,
-          type: "renewal_reminder",
-          method: subscription.buyer_pubkey ? "both" : "email",
-        });
+        if (emailSent || dmSent) {
+          await createSubscriptionNotification({
+            subscription_id: subscription.id,
+            type: "renewal_reminder",
+            method:
+              emailSent && dmSent ? "both" : emailSent ? "email" : "nostr",
+          });
+        } else {
+          // Both channels failed: record NOTHING as sent, and be loud so ops
+          // can warn the buyer manually before the charge lands.
+          // Grep: RENEWAL_REMINDER_DELIVERY_FAILED
+          console.error(
+            `RENEWAL_REMINDER_DELIVERY_FAILED stripe_subscription_id=${stripeSubscriptionId} ` +
+              `invoice_id=${invoiceUpcoming.id ?? "unknown"} event_id=${event.id} ` +
+              `subscription_id=${subscription.id} customer_email=${subscription.buyer_email} ` +
+              `buyer_pubkey=${subscription.buyer_pubkey ?? "none"} — ` +
+              `renewal reminder was NOT delivered (email and DM both failed); no notification row recorded`
+          );
+        }
 
         break;
       }

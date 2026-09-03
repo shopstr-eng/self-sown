@@ -59,7 +59,8 @@ const mockSendOrphanedSubscriptionCancellationAlert = jest.fn(
 );
 
 jest.mock("@/utils/email/email-service", () => ({
-  sendRenewalReminder: jest.fn(async () => undefined),
+  // The real helper resolves a delivery boolean — it does not throw.
+  sendRenewalReminder: jest.fn(async () => true),
   sendSubscriptionCancellation: jest.fn(async () => undefined),
   sendPaymentFailedToBuyer: jest.fn(async () => undefined),
   sendPaymentFailedToSeller: jest.fn(async () => undefined),
@@ -71,7 +72,8 @@ jest.mock("@/utils/email/email-service", () => ({
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
-  sendServerSideNostrDM: jest.fn(async () => undefined),
+  // The real helper resolves a delivery boolean — it does not throw.
+  sendServerSideNostrDM: jest.fn(async () => true),
 }));
 
 jest.mock("@/utils/email/storefront-branding", () => ({
@@ -1076,6 +1078,130 @@ describe("POST /api/stripe/subscription-webhook — renewal reminder sent", () =
       subscription_id: 42,
       type: "renewal_reminder",
       method: "email",
+    });
+  });
+
+  it("records no notification row when the email send rejects and there is no Nostr identity", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(
+      makeSubscriptionRow({ buyer_pubkey: null })
+    );
+    (sendRenewalReminder as jest.Mock).mockRejectedValueOnce(
+      new Error("smtp down")
+    );
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    // Still 200 — retrying will not fix a down mail relay, but the failure
+    // must NOT be recorded as a sent reminder.
+    expect(res.statusCode).toBe(200);
+    expect(sendRenewalReminder).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).not.toHaveBeenCalled();
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("RENEWAL_REMINDER_DELIVERY_FAILED");
+    expect(errCalls).toContain("evt_reminder_ok");
+  });
+
+  it("records only 'email' (not 'both') when the Nostr DM rejects with buyer_pubkey set", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(makeSubscriptionRow());
+    (sendServerSideNostrDM as jest.Mock).mockRejectedValueOnce(
+      new Error("relay down")
+    );
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendServerSideNostrDM).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledWith({
+      subscription_id: 42,
+      type: "renewal_reminder",
+      method: "email",
+    });
+  });
+
+  it("records only 'email' (not 'both') when the Nostr DM resolves false", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(makeSubscriptionRow());
+    (sendServerSideNostrDM as jest.Mock).mockResolvedValueOnce(false);
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledWith({
+      subscription_id: 42,
+      type: "renewal_reminder",
+      method: "email",
+    });
+  });
+
+  it("records only 'nostr' when the email send rejects but the DM succeeds", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(makeSubscriptionRow());
+    (sendRenewalReminder as jest.Mock).mockRejectedValueOnce(
+      new Error("smtp down")
+    );
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledWith({
+      subscription_id: 42,
+      type: "renewal_reminder",
+      method: "nostr",
+    });
+    // A partial success is not a total-delivery failure.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("RENEWAL_REMINDER_DELIVERY_FAILED");
+  });
+
+  // sendRenewalReminder resolves false (not throws) when the email provider
+  // rejects the send — that path must count as "not sent" too.
+  it("records no notification row when the email helper resolves false and there is no Nostr identity", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(
+      makeSubscriptionRow({ buyer_pubkey: null })
+    );
+    (sendRenewalReminder as jest.Mock).mockResolvedValueOnce(false);
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendRenewalReminder).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).not.toHaveBeenCalled();
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("RENEWAL_REMINDER_DELIVERY_FAILED");
+  });
+
+  it("records only 'nostr' (not 'both') when the email helper resolves false but the DM succeeds", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(makeSubscriptionRow());
+    (sendRenewalReminder as jest.Mock).mockResolvedValueOnce(false);
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendServerSideNostrDM).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledWith({
+      subscription_id: 42,
+      type: "renewal_reminder",
+      method: "nostr",
     });
   });
 });
