@@ -376,6 +376,9 @@ describe("seller order request signing and status envelopes", () => {
     });
     const fetchImpl = jest.fn().mockResolvedValue({ ok: true } as Response);
     global.fetch = fetchImpl as typeof fetch;
+    const querySyncSpy = jest
+      .spyOn(SimplePool.prototype, "querySync")
+      .mockResolvedValue([]);
     const publishSpy = jest
       .spyOn(SimplePool.prototype, "publish")
       .mockReturnValue([Promise.resolve("ok")] as never);
@@ -395,6 +398,141 @@ describe("seller order request signing and status envelopes", () => {
         body: JSON.stringify(giftWrap),
       })
     );
+    expect(publishSpy).toHaveBeenCalledWith(["wss://relay.example"], giftWrap);
+    expect(querySyncSpy).toHaveBeenCalledWith(
+      ["wss://relay.example"],
+      expect.objectContaining({ kinds: [10050] }),
+      expect.objectContaining({ maxWait: expect.any(Number) })
+    );
+  });
+
+  it("also publishes status updates to the buyer's kind:10050 inbox relays", async () => {
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec,
+      { writeRelays: ["wss://seller-relay.example"] }
+    );
+    const buyerSecretKey = generateSecretKey();
+    const buyerPubkey = getPublicKey(buyerSecretKey);
+    const giftWrap = createSellerOrderStatusGiftWrap({
+      session,
+      buyerPubkey,
+      orderId: "order-123",
+      productAddress: `30402:${session.pubkey}:fresh-milk`,
+      status: "confirmed",
+    });
+    const inboxList = finalizeEvent(
+      {
+        kind: 10050,
+        created_at: 1_750_000_000,
+        tags: [
+          ["r", "wss://buyer-inbox.example"],
+          ["r", "wss://seller-relay.example"],
+          ["r", "https://not-a-relay.example"],
+        ],
+        content: "",
+      },
+      buyerSecretKey
+    );
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: true } as Response) as typeof fetch;
+    jest
+      .spyOn(SimplePool.prototype, "querySync")
+      .mockResolvedValue([inboxList as Event]);
+    const publishSpy = jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValue([Promise.resolve("ok")] as never);
+
+    await expect(
+      publishSellerOrderStatusGiftWrap({
+        baseUrl: "http://127.0.0.1:5000",
+        session,
+        giftWrap,
+      })
+    ).resolves.toBeUndefined();
+
+    expect(publishSpy).toHaveBeenCalledWith(
+      ["wss://buyer-inbox.example", "wss://seller-relay.example"],
+      giftWrap
+    );
+  });
+
+  it("ignores forged inbox relay lists not signed by the buyer", async () => {
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec,
+      { writeRelays: ["wss://seller-relay.example"] }
+    );
+    const buyerPubkey = getPublicKey(generateSecretKey());
+    const giftWrap = createSellerOrderStatusGiftWrap({
+      session,
+      buyerPubkey,
+      orderId: "order-123",
+      productAddress: `30402:${session.pubkey}:fresh-milk`,
+      status: "confirmed",
+    });
+    const forgedInboxList = finalizeEvent(
+      {
+        kind: 10050,
+        created_at: 1_750_000_000,
+        tags: [["r", "wss://attacker.example"]],
+        content: "",
+      },
+      generateSecretKey() // signed by someone other than the buyer
+    );
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: true } as Response) as typeof fetch;
+    jest
+      .spyOn(SimplePool.prototype, "querySync")
+      .mockResolvedValue([forgedInboxList as Event]);
+    const publishSpy = jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValue([Promise.resolve("ok")] as never);
+
+    await expect(
+      publishSellerOrderStatusGiftWrap({
+        baseUrl: "http://127.0.0.1:5000",
+        session,
+        giftWrap,
+      })
+    ).resolves.toBeUndefined();
+
+    expect(publishSpy).toHaveBeenCalledWith(
+      ["wss://seller-relay.example"],
+      giftWrap
+    );
+  });
+
+  it("still publishes to seller relays when the inbox lookup fails", async () => {
+    const session = createSellerSessionFromNsec(
+      generateSellerNsecCredentials().nsec,
+      { writeRelays: ["wss://relay.example"] }
+    );
+    const giftWrap = createSellerOrderStatusGiftWrap({
+      session,
+      buyerPubkey: getPublicKey(generateSecretKey()),
+      orderId: "order-123",
+      productAddress: `30402:${session.pubkey}:fresh-milk`,
+      status: "confirmed",
+    });
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue({ ok: true } as Response) as typeof fetch;
+    jest
+      .spyOn(SimplePool.prototype, "querySync")
+      .mockRejectedValue(new Error("relay scan failed"));
+    const publishSpy = jest
+      .spyOn(SimplePool.prototype, "publish")
+      .mockReturnValue([Promise.resolve("ok")] as never);
+
+    await expect(
+      publishSellerOrderStatusGiftWrap({
+        baseUrl: "http://127.0.0.1:5000",
+        session,
+        giftWrap,
+      })
+    ).resolves.toBeUndefined();
+
     expect(publishSpy).toHaveBeenCalledWith(["wss://relay.example"], giftWrap);
   });
 });

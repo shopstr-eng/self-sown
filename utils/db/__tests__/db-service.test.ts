@@ -1234,6 +1234,7 @@ describe("db-service helpers", () => {
           const ephemeralPubkey = "e".repeat(64);
           const sourceMessageId = "1".repeat(64);
           const secondSourceMessageId = "2".repeat(64);
+          const thirdSourceMessageId = "3".repeat(64);
           const pool = db.getDbPool();
           const client = await pool.connect();
           try {
@@ -1242,13 +1243,15 @@ describe("db-service helpers", () => {
                  (id, pubkey, created_at, kind, tags, content, sig)
                VALUES
                  ($1, $2, 1, 1059, $3::jsonb, 'encrypted', $4),
-                 ($5, $2, 2, 1059, $3::jsonb, 'encrypted', $4)`,
+                 ($5, $2, 2, 1059, $3::jsonb, 'encrypted', $4),
+                 ($6, $2, 3, 1059, $3::jsonb, 'encrypted', $4)`,
               [
                 sourceMessageId,
                 ephemeralPubkey,
                 JSON.stringify([["p", sellerPubkey]]),
                 "f".repeat(128),
                 secondSourceMessageId,
+                thirdSourceMessageId,
               ]
             );
           } finally {
@@ -1256,7 +1259,7 @@ describe("db-service helpers", () => {
           }
 
           const cachedMessages = await db.fetchAllMessagesFromDb(sellerPubkey);
-          expect(cachedMessages).toHaveLength(2);
+          expect(cachedMessages).toHaveLength(3);
           expect(
             cachedMessages.every(
               (message) => typeof message.created_at === "number"
@@ -1405,6 +1408,44 @@ describe("db-service helpers", () => {
           await expect(
             db.getOrderStatuses(["order-secure"], ephemeralPubkey)
           ).resolves.toEqual({});
+
+          // A self-declared buyer must NOT be able to init a "canceled"
+          // state from a publicly observable wrap id — that would squat the
+          // UNIQUE (seller_pubkey, source_message_id) slot and block the
+          // real order forever. Uses a fresh wrap so the negative case can't
+          // be masked by an existing binding, and the seller must still be
+          // able to claim the wrap afterwards.
+          await expect(
+            db.transitionSellerOrderStatus({
+              actorPubkey: buyerPubkey,
+              sellerPubkey,
+              buyerPubkey,
+              orderId: "order-early-cancel",
+              expectedStatus: "pending",
+              status: "canceled",
+              messageId: thirdSourceMessageId,
+              transitionId: "squat-attempt",
+            })
+          ).resolves.toEqual({ outcome: "forbidden" });
+          await expect(
+            db.getOrderStatuses(["order-early-cancel"], sellerPubkey)
+          ).resolves.toEqual({});
+          await expect(
+            db.transitionSellerOrderStatus({
+              actorPubkey: sellerPubkey,
+              sellerPubkey,
+              buyerPubkey,
+              orderId: "order-early-cancel",
+              expectedStatus: "pending",
+              status: "confirmed",
+              messageId: thirdSourceMessageId,
+              transitionId: "seller-init-after-squat-attempt",
+            })
+          ).resolves.toEqual({
+            outcome: "updated",
+            status: "confirmed",
+            version: 1,
+          });
 
           await expect(
             db.transitionSellerOrderStatus({

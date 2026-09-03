@@ -228,22 +228,81 @@ function isSellerProductAddress(
   );
 }
 
+function isRelayUrl(relay: string): boolean {
+  return relay.length <= 2048 && /^(wss|ws):\/\/[^\s]+$/i.test(relay);
+}
+
 function getPublishRelays(session: SellerSession): string[] {
   const configured =
     session.writeRelays.length > 0 ? session.writeRelays : session.relays;
   const candidates =
     configured.length > 0 ? configured : [...DEFAULT_SELLER_RELAYS];
   const filtered = Array.from(
-    new Set(
-      candidates
-        .map((relay) => relay.trim())
-        .filter(
-          (relay) =>
-            relay.length <= 2048 && /^(wss|ws):\/\/[^\s]+$/i.test(relay)
-        )
-    )
+    new Set(candidates.map((relay) => relay.trim()).filter(isRelayUrl))
   ).slice(0, 20);
   return filtered.length > 0 ? filtered : [...DEFAULT_SELLER_RELAYS];
+}
+
+const INBOX_RELAY_LIST_KIND = 10050;
+const INBOX_RELAY_LOOKUP_MAX_WAIT_MS = 3000;
+
+function getGiftWrapRecipientPubkey(giftWrap: Event): string | null {
+  const recipientTag = giftWrap.tags.find(
+    (tag) => tag[0] === "p" && typeof tag[1] === "string" && HEX_64.test(tag[1])
+  );
+  return recipientTag?.[1] ?? null;
+}
+
+/**
+ * NIP-17 requires DM-style gift wraps to reach the recipient's inbox relays
+ * (their kind:10050 list), not just the sender's write relays. Buyers commonly
+ * use different relays than the seller, so publishing seller-side only leaves
+ * status updates undelivered. Best-effort: any failure falls back to the
+ * seller's own relays (the server-side cache-event copy remains the
+ * reliability backstop).
+ */
+async function fetchBuyerInboxRelays(
+  buyerPubkey: string,
+  scanRelays: string[]
+): Promise<string[]> {
+  try {
+    const events = await sellerOrderPublishPool.querySync(
+      scanRelays,
+      { kinds: [INBOX_RELAY_LIST_KIND], authors: [buyerPubkey] },
+      { maxWait: INBOX_RELAY_LOOKUP_MAX_WAIT_MS }
+    );
+    let newest: Event | null = null;
+    for (const event of events) {
+      if (
+        event.kind !== INBOX_RELAY_LIST_KIND ||
+        event.pubkey !== buyerPubkey ||
+        !Array.isArray(event.tags) ||
+        !verifyEvent(event)
+      ) {
+        continue;
+      }
+      if (!newest || event.created_at > newest.created_at) {
+        newest = event;
+      }
+    }
+    if (!newest) {
+      return [];
+    }
+    const relays: string[] = [];
+    for (const tag of newest.tags) {
+      const url = tag[1];
+      if (tag[0] !== "r" || typeof url !== "string") {
+        continue;
+      }
+      const trimmed = url.trim();
+      if (isRelayUrl(trimmed)) {
+        relays.push(trimmed);
+      }
+    }
+    return relays;
+  } catch {
+    return [];
+  }
 }
 
 function normalizeHttpBaseUrl(value: string): string {
@@ -506,11 +565,17 @@ export async function publishSellerOrderStatusGiftWrap(
     );
   }
 
+  const sessionRelays = getPublishRelays(input.session);
+  const buyerPubkey = getGiftWrapRecipientPubkey(input.giftWrap);
+  const buyerInboxRelays = buyerPubkey
+    ? await fetchBuyerInboxRelays(buyerPubkey, sessionRelays)
+    : [];
+  const publishTargets = Array.from(
+    new Set([...buyerInboxRelays, ...sessionRelays])
+  ).slice(0, 20);
+
   const publishResults = await Promise.allSettled(
-    sellerOrderPublishPool.publish(
-      getPublishRelays(input.session),
-      input.giftWrap
-    )
+    sellerOrderPublishPool.publish(publishTargets, input.giftWrap)
   );
   if (!publishResults.some((result) => result.status === "fulfilled")) {
     throw new SellerOrderNostrError(

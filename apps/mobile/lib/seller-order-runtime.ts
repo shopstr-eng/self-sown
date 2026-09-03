@@ -18,6 +18,7 @@ import {
 } from "@/lib/order-actions";
 import { createSellerOrderNotificationOutbox } from "@/lib/order-notification-outbox";
 import type { SellerOrdersLoaderDependencies } from "@/lib/order-query";
+import { createSecureOutboxStorage } from "@/lib/secure-outbox-storage";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -42,7 +43,7 @@ export const sellerOrdersLoaderDependencies: SellerOrdersLoaderDependencies = {
 };
 
 const notificationOutbox = createSellerOrderNotificationOutbox({
-  storage: AsyncStorage,
+  storage: createSecureOutboxStorage(AsyncStorage),
   verifyEvent,
 });
 

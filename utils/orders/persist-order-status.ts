@@ -52,6 +52,13 @@ export async function persistSellerOrderStatusThrough({
   targetStatus,
   fetchImpl = fetch,
 }: PersistSellerOrderStatusInput): Promise<void> {
+  // A terminal or otherwise unrecognized persisted status (e.g. "canceled")
+  // must never be coerced to "pending" and walked forward — that would
+  // resurrect a canceled order. Only advance from known lifecycle states.
+  if (currentStatus && !isSellerLifecycleStatus(currentStatus)) {
+    return;
+  }
+
   let current: SellerLifecycleStatus = isSellerLifecycleStatus(currentStatus)
     ? currentStatus
     : "pending";

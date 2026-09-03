@@ -3446,6 +3446,16 @@ export async function transitionSellerOrderStatus(
     );
 
     if (result.rows.length === 0) {
+      // Init is seller-only: gift-wrap IDs and their p-tags are publicly
+      // visible on relays, so knowing a wrap's id does NOT prove the caller
+      // authored it. Allowing a self-declared buyer to init a "canceled"
+      // state would let anyone squat the UNIQUE (seller_pubkey,
+      // source_message_id) slot for an observed wrap and permanently block
+      // the real order from being initialized. Buyer-cancel before the
+      // seller opens the order therefore stays forbidden until a
+      // cryptographically verifiable buyer binding (e.g. presenting the
+      // signed order rumor) exists; persistSellerOrderStatusThrough
+      // separately guards against coercing canceled orders forward.
       if (
         input.actorPubkey !== input.sellerPubkey ||
         !input.messageId ||

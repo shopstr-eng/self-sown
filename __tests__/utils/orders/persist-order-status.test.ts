@@ -84,4 +84,22 @@ describe("persistSellerOrderStatusThrough", () => {
       }
     );
   });
+
+  it("never walks a canceled order forward", async () => {
+    const fetchImpl = jest.fn();
+
+    await persistSellerOrderStatusThrough({
+      signer: { sign: jest.fn(async (event) => event) } as any,
+      origin: "https://milk.market",
+      orderId: "order-123",
+      sellerPubkey,
+      buyerPubkey,
+      sourceMessageId,
+      currentStatus: "canceled",
+      targetStatus: "shipped",
+      fetchImpl: fetchImpl as typeof fetch,
+    });
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
 });
