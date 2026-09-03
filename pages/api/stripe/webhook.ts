@@ -4,6 +4,8 @@ import {
   getStripeConnectAccount,
   getSellerNotificationEmail,
   getSubscriptionByStripeId,
+  markStripeConnectDeauthorizedByStripeId,
+  syncStripeConnectAccountStateByStripeId,
 } from "@/utils/db/db-service";
 import {
   sendPaymentFailedToBuyer,
@@ -270,6 +272,20 @@ export default async function handler(
               err
             );
           }
+          // Marketplace seller Connect accounts live in
+          // stripe_connect_accounts, not affiliates. Flip their cached flags
+          // off too, or a deauthorized seller keeps looking chargeable.
+          // Deliberately NOT wrapped in a swallowing try/catch: a DB outage
+          // must surface as a 500 + claim release so Stripe retries, rather
+          // than leaving stale flags cached. A null match just means the
+          // account isn't a marketplace seller — quiet no-op.
+          const sellerMatched =
+            await markStripeConnectDeauthorizedByStripeId(acctId);
+          if (sellerMatched) {
+            console.log(
+              `SELLER_STRIPE_DEAUTHORIZED seller=${sellerMatched} acct=${acctId}`
+            );
+          }
         }
         break;
       }
@@ -299,6 +315,26 @@ export default async function handler(
           }
         } catch (err) {
           console.error("account.updated affiliate sync failed:", err);
+        }
+        // Marketplace seller Connect accounts live in stripe_connect_accounts,
+        // not affiliates. Sync the same flags into the seller row so stale
+        // charges_enabled can't enable transfers Stripe would reject.
+        // Deliberately NOT wrapped in a swallowing try/catch: a DB outage
+        // must surface as a 500 + claim release so Stripe retries, rather
+        // than leaving stale flags cached. A null match just means the
+        // account isn't a marketplace seller — quiet no-op.
+        const sellerMatched = await syncStripeConnectAccountStateByStripeId({
+          stripeAccountId: account.id,
+          chargesEnabled: !!account.charges_enabled,
+          payoutsEnabled: !!account.payouts_enabled,
+          detailsSubmitted: !!account.details_submitted,
+        });
+        if (sellerMatched) {
+          console.log(
+            `SELLER_STRIPE_ACCOUNT_UPDATED seller=${sellerMatched} acct=${account.id} ` +
+              `charges=${account.charges_enabled} payouts=${account.payouts_enabled} ` +
+              `details=${account.details_submitted}`
+          );
         }
         break;
       }

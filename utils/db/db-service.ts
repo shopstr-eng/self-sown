@@ -4638,6 +4638,83 @@ export async function upsertStripeConnectAccount(
   }
 }
 
+// Mirror Stripe's account.updated flags into the cached seller row so stale
+// charges_enabled/payouts_enabled can't green-light transfers Stripe would
+// reject. Matches on stripe_account_id (not pubkey) because the webhook only
+// knows the account id. Returns the matched seller pubkey, or null when the
+// account isn't a marketplace seller (e.g. an affiliate or unknown account).
+// Throws on DB error: webhook callers must 500 + release the claim so Stripe
+// retries rather than silently leaving the cache stale.
+export async function syncStripeConnectAccountStateByStripeId(params: {
+  stripeAccountId: string;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+}): Promise<string | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `UPDATE stripe_connect_accounts
+          SET charges_enabled = $2,
+              payouts_enabled = $3,
+              onboarding_complete = $4,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE stripe_account_id = $1
+        RETURNING pubkey`,
+      [
+        params.stripeAccountId,
+        params.chargesEnabled,
+        params.payoutsEnabled,
+        // onboarding_complete mirrors details_submitted alone, matching the
+        // account-status.ts refresh path and initial Connect persistence —
+        // capability flags are tracked independently for payment gating.
+        params.detailsSubmitted,
+      ]
+    );
+    return (result.rows[0]?.pubkey as string | undefined) ?? null;
+  } catch (error) {
+    console.error("Failed to sync Stripe Connect account state:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// account.application.deauthorized: the seller revoked our OAuth grant, so
+// every cached capability flag is now false. The row (and stripe_account_id)
+// is retained for audit, mirroring the affiliate deauthorization pattern.
+// Returns the matched seller pubkey, or null when no seller row owns the
+// account. Throws on DB error so the webhook 500s and Stripe retries.
+export async function markStripeConnectDeauthorizedByStripeId(
+  stripeAccountId: string
+): Promise<string | null> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `UPDATE stripe_connect_accounts
+          SET charges_enabled = FALSE,
+              payouts_enabled = FALSE,
+              onboarding_complete = FALSE,
+              updated_at = CURRENT_TIMESTAMP
+        WHERE stripe_account_id = $1
+        RETURNING pubkey`,
+      [stripeAccountId]
+    );
+    return (result.rows[0]?.pubkey as string | undefined) ?? null;
+  } catch (error) {
+    console.error("Failed to mark Stripe Connect account deauthorized:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 // Save notification email for a buyer (per order) or seller (per pubkey)
 export async function saveNotificationEmail(
   email: string,
