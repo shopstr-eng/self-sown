@@ -349,7 +349,28 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       ? invoiceAny.subscription
       : invoiceAny.subscription.id;
 
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  // Recurring subscriptions live on the seller's Connect account, so a
+  // platform-account retrieve would not find them. Look up the recorded
+  // connected_account_id first; platform-created subscriptions simply have
+  // no row (or a null account) and retrieve without the option as before.
+  const dbSubscription = await getSubscriptionByStripeId(subscriptionId).catch(
+    (err) => {
+      console.warn(
+        `Subscription lookup failed for ${subscriptionId}, retrieving from platform account:`,
+        err
+      );
+      return null;
+    }
+  );
+  const connectedAccountId = (dbSubscription as any)?.connected_account_id as
+    | string
+    | null
+    | undefined;
+
+  const subscription = await stripe.subscriptions.retrieve(
+    subscriptionId,
+    connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
+  );
   const metadata = subscription.metadata;
 
   if (metadata.isMultiMerchant !== "true") return;

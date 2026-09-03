@@ -185,8 +185,17 @@ export default async function handler(
           await getSubscriptionByStripeId(paidSubscriptionId);
         if (!subscription) break;
 
+        // Recurring subscriptions live on the seller's Connect account;
+        // retrieving without { stripeAccount } from the platform account
+        // would not find them. The row stamps connected_account_id at
+        // creation time.
+        const subscriptionAccount = (subscription as any)
+          .connected_account_id as string | null | undefined;
         const stripeSubscription = (await stripe.subscriptions.retrieve(
-          paidSubscriptionId
+          paidSubscriptionId,
+          subscriptionAccount
+            ? { stripeAccount: subscriptionAccount }
+            : undefined
         )) as any;
 
         // Affiliate referral: record ONLY on the first invoice that creates
