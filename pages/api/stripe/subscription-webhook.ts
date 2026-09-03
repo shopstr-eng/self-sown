@@ -123,7 +123,20 @@ export default async function handler(
 
         const subscription =
           await getSubscriptionByStripeId(stripeSubscriptionId);
-        if (!subscription) break;
+        if (!subscription) {
+          // A renewal reminder is due at Stripe but no local subscriptions
+          // row matches, so the buyer never gets warned about the upcoming
+          // charge. Returning 200 is correct — retrying will never find the
+          // row — but this MUST be loud so ops can reconcile the orphaned
+          // subscription. Grep: ORPHANED_SUBSCRIPTION_REMINDER
+          console.error(
+            `ORPHANED_SUBSCRIPTION_REMINDER stripe_subscription_id=${stripeSubscriptionId} ` +
+              `invoice_id=${invoiceUpcoming.id ?? "unknown"} event_id=${event.id} ` +
+              `customer_email=${invoiceUpcoming.customer_email ?? "unknown"} — ` +
+              `renewal reminder was NOT sent because no subscriptions row matched`
+          );
+          break;
+        }
 
         const nextBillingDate = subscription.next_billing_date
           ? new Date(subscription.next_billing_date).toLocaleDateString(
@@ -344,7 +357,22 @@ export default async function handler(
         const subscription = await getSubscriptionByStripeId(
           deletedSubscription.id
         );
-        if (subscription) {
+        if (!subscription) {
+          // Stripe says the subscription is gone but no local subscriptions
+          // row matches, so the buyer is never told and a stale dashboard
+          // can keep showing it as active. Returning 200 is correct —
+          // retrying will never find the row — but this MUST be loud so ops
+          // can reconcile the orphaned cancellation manually.
+          // Grep: ORPHANED_SUBSCRIPTION_CANCEL
+          console.error(
+            `ORPHANED_SUBSCRIPTION_CANCEL stripe_subscription_id=${deletedSubscription.id} ` +
+              `event_id=${event.id} ` +
+              `customer=${deletedSubscription.customer ?? "unknown"} ` +
+              `status=${deletedSubscription.status ?? "unknown"} — ` +
+              `subscription deleted at Stripe but no subscriptions row matched; ` +
+              `buyer cancellation notification was NOT sent`
+          );
+        } else {
           const endDate = deletedSubscription.current_period_end
             ? new Date(
                 deletedSubscription.current_period_end * 1000

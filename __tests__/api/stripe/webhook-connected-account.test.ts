@@ -95,6 +95,10 @@ jest.mock("@/utils/stripe/pending-payments", () => ({
 
 import subscriptionWebhookHandler from "@/pages/api/stripe/subscription-webhook";
 import webhookHandler from "@/pages/api/stripe/webhook";
+import {
+  sendRenewalReminder,
+  sendSubscriptionCancellation,
+} from "@/utils/email/email-service";
 
 const SUB_ID = "sub_connected_123";
 const CONNECTED_ACCOUNT = "acct_seller_connected";
@@ -409,5 +413,142 @@ describe("POST /api/stripe/subscription-webhook — orphaned/failed renewal look
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_PAYMENT");
+  });
+});
+
+// A cancellation whose lookup finds no row still 200s (no useful retry) but
+// must be loud: otherwise the buyer keeps believing they are subscribed and
+// the seller dashboard can keep showing the sub as active.
+describe("POST /api/stripe/subscription-webhook — orphaned cancellation", () => {
+  function fireSubscriptionDeleted() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_orphan_cancel",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: SUB_ID,
+          customer: "cus_orphan",
+          status: "canceled",
+          current_period_end: 1700000000,
+        },
+      },
+    });
+  }
+
+  it("logs a loud greppable marker and still 200s when no subscriptions row matches a cancellation", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    fireSubscriptionDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_CANCEL");
+    expect(errCalls).toContain(SUB_ID);
+    expect(errCalls).toContain("evt_orphan_cancel");
+    // No buyer notification may be faked for a row that does not exist.
+    expect(sendSubscriptionCancellation).not.toHaveBeenCalled();
+    expect(mockCreateSubscriptionNotification).not.toHaveBeenCalled();
+    // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("500s and releases the event claim when the lookup throws, so Stripe retries", async () => {
+    mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
+    fireSubscriptionDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_orphan_cancel");
+    expect(sendSubscriptionCancellation).not.toHaveBeenCalled();
+    // A transient failure is NOT an orphaned cancellation.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_CANCEL");
+  });
+
+  it("does not log the orphan marker when the row exists", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      id: "local-sub-1",
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      buyer_pubkey: null,
+      buyer_email: "buyer@example.com",
+      product_title: "Test product",
+      product_event_id: "prod_1",
+    });
+    fireSubscriptionDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendSubscriptionCancellation).toHaveBeenCalled();
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_CANCEL");
+  });
+});
+
+// A renewal reminder whose lookup finds no row silently never warns the buyer
+// about the upcoming charge — it must be loud instead.
+describe("POST /api/stripe/subscription-webhook — orphaned renewal reminder", () => {
+  function fireInvoiceUpcoming() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_orphan_reminder",
+      type: "invoice.upcoming",
+      data: {
+        object: {
+          id: "in_upcoming",
+          subscription: SUB_ID,
+          customer_email: "buyer@example.com",
+        },
+      },
+    });
+  }
+
+  it("logs a loud greppable marker and still 200s when no subscriptions row matches an upcoming invoice", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_REMINDER");
+    expect(errCalls).toContain(SUB_ID);
+    expect(errCalls).toContain("evt_orphan_reminder");
+    // No reminder may be faked for a row that does not exist.
+    expect(sendRenewalReminder).not.toHaveBeenCalled();
+    expect(mockCreateSubscriptionNotification).not.toHaveBeenCalled();
+    // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("500s and releases the event claim when the lookup throws, so Stripe retries", async () => {
+    mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_orphan_reminder");
+    expect(sendRenewalReminder).not.toHaveBeenCalled();
+    // A transient failure is NOT an orphaned reminder.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_REMINDER");
   });
 });
