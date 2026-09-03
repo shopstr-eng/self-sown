@@ -5,7 +5,7 @@ description: Testcontainers can't bind ports in the sandbox; gate real-DB tests 
 
 Docker exists in the sandbox (`docker info` succeeds, images pull), but testcontainers still fails: container host ports never bind ("Port 5432/tcp not bound after 120000ms" / health-check timeouts). Do not burn time retrying RUN_TESTCONTAINERS=1 here.
 
-Working pattern for real-Postgres tests (proven with utils/db/__tests__/cashu-escrow-service-db.test.ts):
+Working pattern for real-Postgres tests (proven with utils/db/**tests**/cashu-escrow-service-db.test.ts):
 
 - Dual-gate the suite: `RUN_TESTCONTAINERS=1` for CI Docker, else a `*_TEST_DATABASE_URL` env var pointing at an existing Postgres, else skip. The skip path keeps the default suite fast.
 - Run it here with `ESCROW_CONCURRENCY_TEST_DATABASE_URL="$DATABASE_URL" npx jest <file> --runInBand` — the dev Replit Postgres is a real database and exercises true row-lock/isolation behavior.

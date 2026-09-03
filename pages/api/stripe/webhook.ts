@@ -206,9 +206,8 @@ export default async function handler(
           // Direct charges live on the seller's connected account; a
           // platform-scope retrieve would 404 them. Connect events carry the
           // account on event.account — scope the retrieve to it.
-          const chargeAccount = (
-            event as Stripe.Event & { account?: string }
-          ).account;
+          const chargeAccount = (event as Stripe.Event & { account?: string })
+            .account;
           const pi = await stripe.paymentIntents.retrieve(
             piId,
             chargeAccount ? { stripeAccount: chargeAccount } : undefined

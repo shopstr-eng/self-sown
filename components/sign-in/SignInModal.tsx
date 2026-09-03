@@ -133,10 +133,7 @@ export default function SignInModal({
   const router = useRouter();
   const { newSigner } = useContext(SignerContext);
 
-  const saveSigner = async (
-    signer: NostrSigner,
-    signerPassphrase?: string
-  ) => {
+  const saveSigner = async (signer: NostrSigner, signerPassphrase?: string) => {
     if (
       !relaysContext.isLoading &&
       relaysContext.relayList.length >= 0 &&

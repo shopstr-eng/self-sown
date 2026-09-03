@@ -49,7 +49,10 @@ function makeReqRes(query: Record<string, unknown> = {}, method = "GET") {
       return this;
     },
   };
-  return { req, res: res as NextApiResponse & { statusCode: number; body: any } };
+  return {
+    req,
+    res: res as NextApiResponse & { statusCode: number; body: any },
+  };
 }
 
 function registration(overrides: Record<string, unknown> = {}) {

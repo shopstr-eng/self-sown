@@ -31,20 +31,43 @@ describe("NIP-02 contact list updates", () => {
 
   it("only removes the selected seller when unfollowing", () => {
     const update = buildContactListUpdate(
-      [["p", sellerA], ["p", sellerB, "wss://relay.example"], ["t", "food"]],
+      [
+        ["p", sellerA],
+        ["p", sellerB, "wss://relay.example"],
+        ["t", "food"],
+      ],
       sellerB,
       false
     );
 
-    expect(update.tags).toEqual([["p", sellerA], ["t", "food"]]);
+    expect(update.tags).toEqual([
+      ["p", sellerA],
+      ["t", "food"],
+    ]);
     expect(contactPubkeys(update.tags)).toEqual([sellerA]);
   });
 
   it("selects the newest replaceable contact-list event", () => {
     const latest = latestContactList([
-        { id: "old", kind: 3, created_at: 1, tags: [], content: "", pubkey: "x", sig: "" },
-        { id: "new", kind: 3, created_at: 2, tags: [], content: "", pubkey: "x", sig: "" },
-      ]);
+      {
+        id: "old",
+        kind: 3,
+        created_at: 1,
+        tags: [],
+        content: "",
+        pubkey: "x",
+        sig: "",
+      },
+      {
+        id: "new",
+        kind: 3,
+        created_at: 2,
+        tags: [],
+        content: "",
+        pubkey: "x",
+        sig: "",
+      },
+    ]);
 
     expect(latest?.id).toBe("new");
   });

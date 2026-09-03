@@ -42,7 +42,9 @@ const workingStorage = (globalThis as any).localStorage;
 
 const FLAG = "NEXT_PUBLIC_CASHU_ESCROW_ENABLED";
 
-function makeRecord(overrides: Partial<BuyerEscrowRecord> = {}): BuyerEscrowRecord {
+function makeRecord(
+  overrides: Partial<BuyerEscrowRecord> = {}
+): BuyerEscrowRecord {
   const buyerPk = "a".repeat(64);
   return {
     escrowId: `${buyerPk}:order-1`,
@@ -115,9 +117,9 @@ describe("escrow-checkout helpers", () => {
 
     it("honors a positive staging override and clamps to the max", () => {
       expect(resolveEscrowLockSeconds("420")).toBe(420);
-      expect(resolveEscrowLockSeconds(String(ESCROW_MAX_LOCK_SECONDS * 4))).toBe(
-        ESCROW_MAX_LOCK_SECONDS
-      );
+      expect(
+        resolveEscrowLockSeconds(String(ESCROW_MAX_LOCK_SECONDS * 4))
+      ).toBe(ESCROW_MAX_LOCK_SECONDS);
     });
 
     it("ignores blank, non-numeric, and non-positive overrides", () => {
@@ -151,7 +153,11 @@ describe("escrow-checkout helpers", () => {
 
   describe("buyer escrow records", () => {
     it("round-trips records newest first", () => {
-      const older = makeRecord({ orderId: "order-old", escrowId: "a".repeat(64) + ":order-old", createdAt: 1 });
+      const older = makeRecord({
+        orderId: "order-old",
+        escrowId: "a".repeat(64) + ":order-old",
+        createdAt: 1,
+      });
       const newer = makeRecord();
       recordBuyerEscrow(older);
       recordBuyerEscrow(newer);
@@ -297,9 +303,7 @@ describe("escrow-checkout helpers", () => {
           lockedSecrets: ["locked-secret-b"],
         })
       );
-      expect(stripEscrowLockedProofs([lockedProofA, lockedProofB])).toEqual(
-        []
-      );
+      expect(stripEscrowLockedProofs([lockedProofA, lockedProofB])).toEqual([]);
     });
 
     it("is a no-op pass-through when no escrows are recorded", () => {
@@ -426,7 +430,9 @@ describe("escrow-checkout helpers", () => {
         mint: DOWN_MINT,
         proofs: [p2pkLockedProof],
       });
-      recordBuyerEscrow(makeRecord({ lockedToken: v2Token, mintUrl: DOWN_MINT }));
+      recordBuyerEscrow(
+        makeRecord({ lockedToken: v2Token, mintUrl: DOWN_MINT })
+      );
       recordBuyerEscrow(
         makeRecord({
           escrowId: `${"a".repeat(64)}:order-2`,
@@ -434,9 +440,9 @@ describe("escrow-checkout helpers", () => {
           lockedSecrets: ["locked-secret-b"],
         })
       );
-      (globalThis as any).fetch = jest.fn().mockRejectedValue(
-        new Error("mint down")
-      );
+      (globalThis as any).fetch = jest
+        .fn()
+        .mockRejectedValue(new Error("mint down"));
       const lockedB = {
         id: "009a1f293253e41e",
         amount: 200,
@@ -463,10 +469,12 @@ describe("escrow-checkout helpers", () => {
         mint: DOWN_MINT2,
         proofs: [v2LockedProof],
       });
-      recordBuyerEscrow(makeRecord({ lockedToken: v2Token, mintUrl: DOWN_MINT2 }));
-      (globalThis as any).fetch = jest.fn().mockRejectedValue(
-        new Error("mint down")
+      recordBuyerEscrow(
+        makeRecord({ lockedToken: v2Token, mintUrl: DOWN_MINT2 })
       );
+      (globalThis as any).fetch = jest
+        .fn()
+        .mockRejectedValue(new Error("mint down"));
       const result = await stripEscrowLockedProofsAsync([spendableProof]);
       expect(result).toEqual([spendableProof]);
     });
@@ -688,9 +696,9 @@ describe("escrow-checkout helpers", () => {
     });
 
     it("rethrows the decode error when no mint URL is known", async () => {
-      await expect(
-        decodeEscrowLockedProofs(v2LockedToken())
-      ).rejects.toThrow(/short keyset id/i);
+      await expect(decodeEscrowLockedProofs(v2LockedToken())).rejects.toThrow(
+        /short keyset id/i
+      );
     });
   });
 });

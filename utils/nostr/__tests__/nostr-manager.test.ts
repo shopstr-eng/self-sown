@@ -112,7 +112,9 @@ describe("NostrManager", () => {
         new Error("connection failed")
       );
 
-      await expect(mgr.relays[0].connect()).rejects.toThrow("connection failed");
+      await expect(mgr.relays[0].connect()).rejects.toThrow(
+        "connection failed"
+      );
       await mgr.relays[0].connect();
 
       expect(fakePoolInstance.ensureRelay).toHaveBeenLastCalledWith("r1", {

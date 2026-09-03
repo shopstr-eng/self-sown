@@ -81,9 +81,7 @@ export function getEscrowArbiterPubkeys(
 
 /** True only when mints AND arbiters are explicitly configured. */
 export function isEscrowConfigured(): boolean {
-  return (
-    getAllowedEscrowMints().size > 0 && getEscrowArbiterPubkeys().size > 0
-  );
+  return getAllowedEscrowMints().size > 0 && getEscrowArbiterPubkeys().size > 0;
 }
 
 /**

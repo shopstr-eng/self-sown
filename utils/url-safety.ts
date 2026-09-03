@@ -12,12 +12,12 @@ const Agent = require("undici/lib/dispatcher/agent") as new (opts: {
   connect: {
     lookup: (
       name: string,
-       options: { family?: number; all?: boolean },
-       callback: (
-         error: Error | null,
-         address: string | ResolvedAddress[],
-         family?: 4 | 6
-       ) => void
+      options: { family?: number; all?: boolean },
+      callback: (
+        error: Error | null,
+        address: string | ResolvedAddress[],
+        family?: 4 | 6
+      ) => void
     ) => void;
   };
 }) => {
@@ -112,7 +112,10 @@ export function isPrivateIPv6(ip: string): boolean {
 type ResolvedAddress = { address: string; family: 4 | 6 };
 
 function normalizeHostname(hostname: string): string {
-  return hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+  return hostname
+    .replace(/^\[|\]$/g, "")
+    .toLowerCase()
+    .replace(/\.$/, "");
 }
 
 async function resolveSafePublicAddresses(
@@ -176,24 +179,24 @@ function pinnedDispatcher(
     keepAliveMaxTimeout: 1,
     connect: {
       lookup(name, options, callback) {
-         const returnAll = options.all === true;
+        const returnAll = options.all === true;
         if (normalizeHostname(name) !== expectedHost) {
-           callback(
-             new SafeFetchError("Unexpected DNS lookup host"),
-             returnAll ? [] : "",
-             returnAll ? undefined : 4
-           );
+          callback(
+            new SafeFetchError("Unexpected DNS lookup host"),
+            returnAll ? [] : "",
+            returnAll ? undefined : 4
+          );
           return;
         }
         const matching = addresses.filter(
           (address) => !options.family || address.family === options.family
         );
-         if (returnAll) {
-           callback(null, matching.length > 0 ? matching : addresses);
-           return;
-         }
-         const selected = matching[next++ % matching.length] ?? addresses[0]!;
-         callback(null, selected.address, selected.family);
+        if (returnAll) {
+          callback(null, matching.length > 0 ? matching : addresses);
+          return;
+        }
+        const selected = matching[next++ % matching.length] ?? addresses[0]!;
+        callback(null, selected.address, selected.family);
       },
     },
   });

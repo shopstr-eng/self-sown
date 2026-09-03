@@ -3,10 +3,7 @@ import path from "node:path";
 
 const sourceRoot = path.resolve("node_modules/@img");
 const pnpmRoot = path.resolve(".next/standalone/node_modules/.pnpm");
-const nativePackages = [
-  "sharp-linux-x64",
-  "sharp-libvips-linux-x64",
-];
+const nativePackages = ["sharp-linux-x64", "sharp-libvips-linux-x64"];
 
 const sharpEntries = fs
   .readdirSync(pnpmRoot, { withFileTypes: true })

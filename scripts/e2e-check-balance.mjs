@@ -18,7 +18,10 @@ const browser = await puppeteer.launch({
 });
 const page = await browser.newPage();
 page.on("pageerror", (e) => console.log("pageerror:", String(e).slice(0, 200)));
-await page.goto(`${BASE}/wallet`, { waitUntil: "domcontentloaded", timeout: 60000 });
+await page.goto(`${BASE}/wallet`, {
+  waitUntil: "domcontentloaded",
+  timeout: 60000,
+});
 await new Promise((r) => setTimeout(r, 8000));
 const storage = await page.evaluate(() => {
   const out = {};
@@ -32,14 +35,22 @@ let total = 0;
 try {
   const tokens = JSON.parse(storage.tokens ?? "[]");
   for (const entry of tokens) {
-    for (const p of entry.proofs ?? []) total += Number(p.amount?.value ?? p.amount ?? 0);
+    for (const p of entry.proofs ?? [])
+      total += Number(p.amount?.value ?? p.amount ?? 0);
   }
   console.log("token entries:", tokens.length, "spendable sats:", total);
   console.log("token entry mints:", tokens.map((t) => t.mint).join(", "));
 } catch (e) {
-  console.log("tokens parse failed:", String(e), (storage.tokens ?? "").slice(0, 200));
+  console.log(
+    "tokens parse failed:",
+    String(e),
+    (storage.tokens ?? "").slice(0, 200)
+  );
 }
 console.log("cashu_escrows:", (storage.cashu_escrows ?? "none").slice(0, 300));
-console.log("balance header:", await page.evaluate(() => document.querySelector("h1")?.textContent));
+console.log(
+  "balance header:",
+  await page.evaluate(() => document.querySelector("h1")?.textContent)
+);
 console.log("buyerPk matches state:", storage.userPubkey === state.buyerPk);
 await browser.close();

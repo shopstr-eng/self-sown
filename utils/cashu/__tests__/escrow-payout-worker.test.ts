@@ -220,7 +220,11 @@ describe("processEscrowOutboxEntry", () => {
     });
 
     expect(result.status).toBe("processed");
-    expect(mockedSave).toHaveBeenCalledWith("buyer:order-1", "token-1", prepared);
+    expect(mockedSave).toHaveBeenCalledWith(
+      "buyer:order-1",
+      "token-1",
+      prepared
+    );
   });
 
   it("aborts the payment when the claim was lost before persisting outputs", async () => {
@@ -524,9 +528,9 @@ describe("runEscrowPayoutSweep", () => {
     expect(mockedConvertAwaiting).toHaveBeenCalledWith("buyer:order-1");
     expect(mockedConvertAwaiting).toHaveBeenCalledWith("buyer:order-2");
     // Conversion runs BEFORE the enqueue for each expired escrow.
-    expect(
-      mockedConvertAwaiting.mock.invocationCallOrder[0]!
-    ).toBeLessThan(mockedEnqueue.mock.invocationCallOrder[0]!);
+    expect(mockedConvertAwaiting.mock.invocationCallOrder[0]!).toBeLessThan(
+      mockedEnqueue.mock.invocationCallOrder[0]!
+    );
   });
 
   it("keeps sweeping when one refund enqueue throws (e.g. release already pending)", async () => {

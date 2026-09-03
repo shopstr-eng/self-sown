@@ -108,84 +108,84 @@ export default function ProductListingView({
             <div className="mx-auto flex w-full max-w-6xl justify-end px-6 pt-4">
               <SellerFollowButton sellerPubkey={sellerPubkey} />
             </div>
-          {isZapsnag ? (
-            <div className="mx-auto w-full max-w-2xl p-6">
-              <div className="overflow-hidden rounded-xl bg-white shadow-lg">
-                <img
-                  src={productData.images[0]}
-                  className="h-96 w-full object-cover"
-                />
-                <div className="p-6">
-                  <div className="justify-dark mb-2 flex items-start">
-                    <h1 className="text-2xl font-bold text-black">
-                      {productData.title}
-                    </h1>
-                    {rawEvent && (
-                      <Dropdown>
-                        <DropdownTrigger>
-                          <Button isIconOnly variant="light" size="sm">
-                            <EllipsisVerticalIcon className="h-6 w-6 text-gray-500" />
-                          </Button>
-                        </DropdownTrigger>
-                        <DropdownMenu aria-label="Event Actions">
-                          <DropdownItem
-                            key="view-raw"
-                            onPress={() => setShowRawEventModal(true)}
-                          >
-                            View Raw Event
-                          </DropdownItem>
-                          <DropdownItem
-                            key="view-id"
-                            onPress={() => setShowEventIdModal(true)}
-                          >
-                            View Event ID
-                          </DropdownItem>
-                        </DropdownMenu>
-                      </Dropdown>
-                    )}
-                  </div>
-                  <FormattedText
-                    as="p"
-                    text={productData.summary || ""}
-                    className="mb-6 whitespace-pre-wrap text-gray-600"
+            {isZapsnag ? (
+              <div className="mx-auto w-full max-w-2xl p-6">
+                <div className="overflow-hidden rounded-xl bg-white shadow-lg">
+                  <img
+                    src={productData.images[0]}
+                    className="h-96 w-full object-cover"
                   />
-                  <ZapsnagButton product={productData} />
+                  <div className="p-6">
+                    <div className="justify-dark mb-2 flex items-start">
+                      <h1 className="text-2xl font-bold text-black">
+                        {productData.title}
+                      </h1>
+                      {rawEvent && (
+                        <Dropdown>
+                          <DropdownTrigger>
+                            <Button isIconOnly variant="light" size="sm">
+                              <EllipsisVerticalIcon className="h-6 w-6 text-gray-500" />
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu aria-label="Event Actions">
+                            <DropdownItem
+                              key="view-raw"
+                              onPress={() => setShowRawEventModal(true)}
+                            >
+                              View Raw Event
+                            </DropdownItem>
+                            <DropdownItem
+                              key="view-id"
+                              onPress={() => setShowEventIdModal(true)}
+                            >
+                              View Event ID
+                            </DropdownItem>
+                          </DropdownMenu>
+                        </Dropdown>
+                      )}
+                    </div>
+                    <FormattedText
+                      as="p"
+                      text={productData.summary || ""}
+                      className="mb-6 whitespace-pre-wrap text-gray-600"
+                    />
+                    <ZapsnagButton product={productData} />
+                  </div>
                 </div>
+
+                {/* Raw Event Modal */}
+                <RawEventModal
+                  isOpen={showRawEventModal}
+                  onClose={() => setShowRawEventModal(false)}
+                  rawEvent={rawEvent}
+                />
+
+                {/* Event ID Modal */}
+                <EventIdModal
+                  isOpen={showEventIdModal}
+                  onClose={() => setShowEventIdModal(false)}
+                  rawEvent={rawEvent}
+                />
               </div>
-
-              {/* Raw Event Modal */}
-              <RawEventModal
-                isOpen={showRawEventModal}
-                onClose={() => setShowRawEventModal(false)}
-                rawEvent={rawEvent}
-              />
-
-              {/* Event ID Modal */}
-              <EventIdModal
-                isOpen={showEventIdModal}
-                onClose={() => setShowEventIdModal(false)}
-                rawEvent={rawEvent}
-              />
-            </div>
-          ) : (
-            <>
-              <CheckoutCard
-                key={productData.id}
-                productData={productData}
-                setFiatOrderIsPlaced={setFiatOrderIsPlaced}
-                setFiatOrderFailed={setFiatOrderFailed}
-                setInvoiceIsPaid={setInvoiceIsPaid}
-                setInvoiceGenerationFailed={setInvoiceGenerationFailed}
-                setCashuPaymentSent={setCashuPaymentSent}
-                setCashuPaymentFailed={setCashuPaymentFailed}
-                rawEvent={rawEvent}
-              />
-              <ProductPageRenderer
-                product={productData}
-                sellerPubkey={sellerPubkey}
-              />
-            </>
-          )}
+            ) : (
+              <>
+                <CheckoutCard
+                  key={productData.id}
+                  productData={productData}
+                  setFiatOrderIsPlaced={setFiatOrderIsPlaced}
+                  setFiatOrderFailed={setFiatOrderFailed}
+                  setInvoiceIsPaid={setInvoiceIsPaid}
+                  setInvoiceGenerationFailed={setInvoiceGenerationFailed}
+                  setCashuPaymentSent={setCashuPaymentSent}
+                  setCashuPaymentFailed={setCashuPaymentFailed}
+                  rawEvent={rawEvent}
+                />
+                <ProductPageRenderer
+                  product={productData}
+                  sellerPubkey={sellerPubkey}
+                />
+              </>
+            )}
           </>
         ) : isListingNotFound ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center px-4">

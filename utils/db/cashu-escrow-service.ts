@@ -416,9 +416,9 @@ export async function releaseEscrowOutboxClaim(
  * presumed abandoned by a dead process and returned to pending. Returns the
  * number of recovered entries.
  */
-export async function recoverStaleEscrowOutboxClaims(
-  options?: { staleBefore?: Date }
-): Promise<number> {
+export async function recoverStaleEscrowOutboxClaims(options?: {
+  staleBefore?: Date;
+}): Promise<number> {
   const pool = getDbPool();
   const staleBefore =
     options?.staleBefore ?? new Date(Date.now() - ESCROW_CLAIM_STALE_MS);

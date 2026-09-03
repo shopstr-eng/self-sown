@@ -32,9 +32,7 @@ describe("nip46-permissions", () => {
     for (const method of NIP46_BASE_PERMITTED_METHODS) {
       expect(NIP46_ESCROW_PERMITTED_METHODS).not.toContain(method);
     }
-    expect(LEGACY_CONNECT_STRING).not.toContain(
-      String(ESCROW_COMMITMENT_KIND)
-    );
+    expect(LEGACY_CONNECT_STRING).not.toContain(String(ESCROW_COMMITMENT_KIND));
     expect(LEGACY_CONNECT_STRING).not.toContain(String(ESCROW_ACTION_KIND));
   });
 

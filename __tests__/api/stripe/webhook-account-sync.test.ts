@@ -276,9 +276,7 @@ describe("POST /api/stripe/webhook — account.application.deauthorized seller c
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(200);
-    expect(mockMarkStripeConnectDeauthorized).toHaveBeenCalledWith(
-      SELLER_ACCT
-    );
+    expect(mockMarkStripeConnectDeauthorized).toHaveBeenCalledWith(SELLER_ACCT);
     const logCalls = (console.log as jest.Mock).mock.calls
       .map((args) => String(args[0]))
       .join("\n");

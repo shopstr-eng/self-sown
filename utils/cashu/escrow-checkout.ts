@@ -29,7 +29,10 @@ import {
 } from "@/utils/cashu/escrow-commitment";
 
 /** Minimal storefront shape needed for the escrow eligibility check. */
-export type EscrowStorefrontGate = { acceptsEscrow?: boolean } | null | undefined;
+export type EscrowStorefrontGate =
+  | { acceptsEscrow?: boolean }
+  | null
+  | undefined;
 
 /** True only when the deployment flag is on AND the seller opted in. */
 export function isEscrowAvailableForSeller(
@@ -45,7 +48,9 @@ export function isEscrowAvailableForSeller(
  * default. Unset/invalid => default; clamped to the protocol max. Server-side
  * commitment bounds (future, <= 30 days) apply regardless.
  */
-export function resolveEscrowLockSeconds(rawOverride: string | undefined): number {
+export function resolveEscrowLockSeconds(
+  rawOverride: string | undefined
+): number {
   const override = Number(rawOverride);
   return Number.isFinite(override) && override > 0
     ? Math.min(Math.floor(override), ESCROW_MAX_LOCK_SECONDS)
@@ -329,7 +334,8 @@ export function stripEscrowLockedProofs<T extends Proof>(proofs: T[]): T[] {
   const locked = listEscrowLockedSecrets();
   if (locked.size === 0) return proofs;
   return proofs.filter(
-    (proof) => !(proof && typeof proof.secret === "string" && locked.has(proof.secret))
+    (proof) =>
+      !(proof && typeof proof.secret === "string" && locked.has(proof.secret))
   );
 }
 

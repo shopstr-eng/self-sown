@@ -34,7 +34,10 @@ describe("verifyNip98Request", () => {
         pubkey: "f".repeat(64),
         kind: 27235,
         created_at: 1710000000,
-        tags: [["u", "https://milk.market/api?note=€"], ["method", "GET"]],
+        tags: [
+          ["u", "https://milk.market/api?note=€"],
+          ["method", "GET"],
+        ],
         content: "🥛",
         sig: "b",
       }),

@@ -140,12 +140,9 @@ describe("fetchAllFollows", () => {
       "viewer"
     );
 
-    expect(editFollowsContext).toHaveBeenLastCalledWith(
-      [sellerB],
-      1,
-      false,
-      [sellerB]
-    );
+    expect(editFollowsContext).toHaveBeenLastCalledWith([sellerB], 1, false, [
+      sellerB,
+    ]);
   });
 });
 
@@ -419,7 +416,9 @@ describe("fetchProfile", () => {
     }));
 
     const { fetchProfile } = await import("../fetch-service");
-    global.fetch = jest.fn().mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
     const editProfileContext = jest.fn();
     const nostr = {
       fetch: jest.fn().mockResolvedValue([
@@ -439,13 +438,12 @@ describe("fetchProfile", () => {
       editProfileContext
     );
 
-    expect(editProfileContext).toHaveBeenLastCalledWith(
-      expect.any(Map),
-      false
+    expect(editProfileContext).toHaveBeenLastCalledWith(expect.any(Map), false);
+    expect(editProfileContext.mock.calls.at(-1)?.[0].get(pubkey)).toMatchObject(
+      {
+        content: { name: "Ready before badges" },
+      }
     );
-    expect(editProfileContext.mock.calls.at(-1)?.[0].get(pubkey)).toMatchObject({
-      content: { name: "Ready before badges" },
-    });
     expect(fetchNip58ProfileBadges).toHaveBeenCalled();
 
     resolveBadges(
@@ -456,9 +454,9 @@ describe("fetchProfile", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(editProfileContext.mock.calls.at(-1)?.[0].get(pubkey).badges).toEqual([
-      { name: "Resolved badge" },
-    ]);
+    expect(
+      editProfileContext.mock.calls.at(-1)?.[0].get(pubkey).badges
+    ).toEqual([{ name: "Resolved badge" }]);
   });
 
   it("does not let stale or incomplete badge hydration regress a newer profile", async () => {
@@ -471,7 +469,9 @@ describe("fetchProfile", () => {
             resolveOldBadges = resolve;
           })
       )
-      .mockResolvedValueOnce(new Map([[pubkey, { complete: false, badges: [] }]]));
+      .mockResolvedValueOnce(
+        new Map([[pubkey, { complete: false, badges: [] }]])
+      );
     jest.doMock("@/utils/nostr/badges", () => ({
       fetchNip58ProfileBadges,
     }));
@@ -480,7 +480,9 @@ describe("fetchProfile", () => {
     }));
 
     const { fetchProfile } = await import("../fetch-service");
-    global.fetch = jest.fn().mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
+    global.fetch = jest
+      .fn()
+      .mockResolvedValue(makeDbPayload([])) as typeof global.fetch;
     const editProfileContext = jest.fn();
     const nostr = {
       fetch: jest
@@ -503,7 +505,15 @@ describe("fetchProfile", () => {
         ]),
     } as any;
     const existingProfiles = new Map([
-      [pubkey, { pubkey, created_at: 1, content: {}, badges: [{ name: "Kept badge" }] }],
+      [
+        pubkey,
+        {
+          pubkey,
+          created_at: 1,
+          content: {},
+          badges: [{ name: "Kept badge" }],
+        },
+      ],
     ]);
 
     await fetchProfile(
@@ -529,7 +539,9 @@ describe("fetchProfile", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    const publishedProfile = editProfileContext.mock.calls.at(-1)?.[0].get(pubkey);
+    const publishedProfile = editProfileContext.mock.calls
+      .at(-1)?.[0]
+      .get(pubkey);
     expect(publishedProfile).toMatchObject({
       created_at: 200,
       content: { name: "Newer profile" },
@@ -1153,9 +1165,7 @@ describe("fetchCashuWallet", () => {
     ) as unknown as typeof global.fetch;
     const nostr = {
       fetch: jest.fn(async (filters: { kinds?: number[] }[]) =>
-        filters[0]?.kinds?.includes(7375)
-          ? [escrowEvent, historyEvent]
-          : []
+        filters[0]?.kinds?.includes(7375) ? [escrowEvent, historyEvent] : []
       ),
     } as any;
     const editCashuWalletContext = jest.fn();
@@ -1441,10 +1451,7 @@ describe("fetchCashuWallet", () => {
       const storedTokens = JSON.parse(
         localStorage.getItem("tokens") ?? "[]"
       ).map((p: any) => p.secret);
-      expect(storedTokens).toEqual([
-        "spendable-secret",
-        "fresh-change-secret",
-      ]);
+      expect(storedTokens).toEqual(["spendable-secret", "fresh-change-secret"]);
     } finally {
       localStorage.removeItem("tokens");
       localStorage.removeItem("cashu_escrows");
@@ -1541,9 +1548,7 @@ describe("fetchCashuWallet", () => {
     ) as unknown as typeof global.fetch;
     const nostr = {
       fetch: jest.fn(async (filters: { kinds?: number[] }[]) =>
-        filters[0]?.kinds?.includes(7375)
-          ? [regularEvent, escrowEvent]
-          : []
+        filters[0]?.kinds?.includes(7375) ? [regularEvent, escrowEvent] : []
       ),
     } as any;
     const editCashuWalletContext = jest.fn();
@@ -1559,11 +1564,9 @@ describe("fetchCashuWallet", () => {
     expect(result.cashuProofs).toEqual([]);
     // …and the fully-spent REGULAR proof event was queued for deletion…
     expect(mockDeleteEvent).toHaveBeenCalledTimes(1);
-    expect(mockDeleteEvent).toHaveBeenCalledWith(
-      nostr,
-      expect.anything(),
-      ["regular-spent-event"]
-    );
+    expect(mockDeleteEvent).toHaveBeenCalledWith(nostr, expect.anything(), [
+      "regular-spent-event",
+    ]);
     // …but the escrow backup — whose proofs are every bit as spent — was
     // never queued for deletion.
     const deletionIds = mockDeleteEvent.mock.calls.flatMap(

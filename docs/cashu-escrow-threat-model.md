@@ -7,7 +7,7 @@ below is verified end-to-end.
 
 ## Trust model
 
-- The server never holds keys. It records *who may unlock funds* (buyer,
+- The server never holds keys. It records _who may unlock funds_ (buyer,
   seller, optional arbiter) as a signed commitment, and durably tracks which
   payout actions are pending.
 - The Cashu mint is trusted for proof validity and double-spend prevention,
@@ -39,10 +39,10 @@ below is verified end-to-end.
 ### 2. Durable idempotent outbox (`utils/db/cashu-escrow-service.ts`)
 
 - Registration is `INSERT ... ON CONFLICT DO NOTHING` on the derived escrow
-  id: retries are no-ops; a *conflicting* re-registration (same id, different
+  id: retries are no-ops; a _conflicting_ re-registration (same id, different
   terms) is a 409, never a silent overwrite.
 - Releases/refunds live in `cashu_escrow_outbox` (`pending → processing →
-  done`) with **one row per escrow** (the outbox id IS the escrow id): the
+done`) with **one row per escrow** (the outbox id IS the escrow id): the
   first enqueued action wins, the opposite action is rejected, so a release
   and a refund can never both become payable (tested, including racing
   opposite enqueues).
@@ -55,12 +55,12 @@ below is verified end-to-end.
 - A `processing` claim older than 15 minutes is reclaimable
   (`recoverStaleEscrowOutboxClaims`) — a process crash mid-payout cannot
   strand funds (recovery test: `requeues a stale claim and pays out exactly
-  once`).
-- **Honesty note:** the outbox alone cannot make an *external* mint payout
+once`).
+- **Honesty note:** the outbox alone cannot make an _external_ mint payout
   exactly-once. A worker that crashes after paying the mint but before
   finalizing leaves a reclaimable row; the replacement worker MUST verify
   proof state at the mint (e.g. `checkProofsStates`) before re-paying. The
-  fencing token guarantees only one worker can *record* the outcome.
+  fencing token guarantees only one worker can _record_ the outcome.
 - Failed attempts return to `pending` with the error recorded; the row is
   never deleted, so the outbox is the durable audit trail.
 - State machine: a `released` escrow can never gain a `refund` and vice
@@ -75,6 +75,7 @@ below is verified end-to-end.
   mints **and** non-empty arbiters. Anything less fails closed with 403.
 
 ### 4. Signer permissions, least privilege
+
 (`utils/nostr/signers/nip46-permissions.ts`)
 
 - The NIP-46 `connect` permitted-methods string is now an explicit, reviewed
@@ -91,6 +92,7 @@ Both tables exist in the runtime bootstrap
 and in `db/schema.sql` (self-host). Keep them in sync when migrating.
 
 ### 6. Payout worker (`utils/cashu/escrow-payout-worker.ts`,
+
 `utils/cashu/escrow-payout.ts`, `POST /api/cashu/escrow/process`)
 
 A cron-driven worker (internal scheduler, `FLOW_PROCESSOR_SECRET`-gated, no-op
@@ -303,10 +305,10 @@ unless escrow is enabled) drains the outbox:
      without `unit` — cashu-ts rejects unit-less token objects ("Token is
      not in wallet unit"). Fixed by threading `unit` through
      `decodeEscrowLockedProofs` into both redeem sites.
-  Also observed (by design, but noted): attaching the buyer's refund payload
-  rewrites the outbox row's `updated_at`, which re-arms the exponential
-  backoff — after ~5 prior attempts a fresh payload waits ~16 min for the
-  next drain. And after the payout the locked proofs are SPENT, so a second
-  wipe before redeeming correctly refuses the restore — but the buyer then
-  has no way to discover the pending payout token (record gone, escrowId
-  unknown). Tracked as follow-up work.
+     Also observed (by design, but noted): attaching the buyer's refund payload
+     rewrites the outbox row's `updated_at`, which re-arms the exponential
+     backoff — after ~5 prior attempts a fresh payload waits ~16 min for the
+     next drain. And after the payout the locked proofs are SPENT, so a second
+     wipe before redeeming correctly refuses the restore — but the buyer then
+     has no way to discover the pending payout token (record gone, escrowId
+     unknown). Tracked as follow-up work.

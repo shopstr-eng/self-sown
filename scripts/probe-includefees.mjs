@@ -17,7 +17,13 @@ while (state !== "PAID") {
   state = (await wallet.checkMintQuoteBolt11(quote.quote)).state;
 }
 const proofs = await wallet.mintProofsBolt11(500, quote.quote);
-console.log("minted:", proofs.reduce((s, p) => s + Number(p.amount), 0), "sats in", proofs.length, "proofs");
+console.log(
+  "minted:",
+  proofs.reduce((s, p) => s + Number(p.amount), 0),
+  "sats in",
+  proofs.length,
+  "proofs"
+);
 
 const sellerPk = getPublicKey(generateSecretKey());
 const buyerPk = getPublicKey(generateSecretKey());
@@ -35,16 +41,36 @@ const outputConfig = {
 
 // Attempt 1: the app's exact config
 try {
-  const r1 = await wallet.send(100, proofs, { includeFees: true }, outputConfig);
-  console.log("includeFees:true OK — send:", r1.send.reduce((s, p) => s + Number(p.amount), 0), "keep:", r1.keep.reduce((s, p) => s + Number(p.amount), 0));
+  const r1 = await wallet.send(
+    100,
+    proofs,
+    { includeFees: true },
+    outputConfig
+  );
+  console.log(
+    "includeFees:true OK — send:",
+    r1.send.reduce((s, p) => s + Number(p.amount), 0),
+    "keep:",
+    r1.keep.reduce((s, p) => s + Number(p.amount), 0)
+  );
 } catch (e) {
   console.log("includeFees:true FAILED:", e.message);
 }
 
 // Attempt 2: what the probe used before
 try {
-  const r2 = await wallet.send(100, proofs, { proofsWeHave: proofs }, outputConfig);
-  console.log("proofsWeHave OK — send:", r2.send.reduce((s, p) => s + Number(p.amount), 0), "keep:", r2.keep.reduce((s, p) => s + Number(p.amount), 0));
+  const r2 = await wallet.send(
+    100,
+    proofs,
+    { proofsWeHave: proofs },
+    outputConfig
+  );
+  console.log(
+    "proofsWeHave OK — send:",
+    r2.send.reduce((s, p) => s + Number(p.amount), 0),
+    "keep:",
+    r2.keep.reduce((s, p) => s + Number(p.amount), 0)
+  );
 } catch (e) {
   console.log("proofsWeHave FAILED:", e.message);
 }
@@ -52,7 +78,10 @@ try {
 // Attempt 3: no sendConfig at all
 try {
   const r3 = await wallet.send(100, proofs, undefined, outputConfig);
-  console.log("no sendConfig OK — send:", r3.send.reduce((s, p) => s + Number(p.amount), 0));
+  console.log(
+    "no sendConfig OK — send:",
+    r3.send.reduce((s, p) => s + Number(p.amount), 0)
+  );
 } catch (e) {
   console.log("no sendConfig FAILED:", e.message);
 }

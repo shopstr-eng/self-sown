@@ -133,7 +133,9 @@ async function fakeQuery(sql: string, params: any[] = []) {
     if (!row || row.status !== "processing" || row.claim_token !== claimToken) {
       return makeResult([], 0);
     }
-    row.prepared_outputs = prepared_outputs ? JSON.parse(prepared_outputs) : null;
+    row.prepared_outputs = prepared_outputs
+      ? JSON.parse(prepared_outputs)
+      : null;
     row.updated_at = new Date(fakeNow);
     return makeResult([], 1);
   }
@@ -329,7 +331,11 @@ describe("cashu-escrow-service", () => {
       const first = await registerEscrowCommitment(escrowId, commitment, event);
       expect(first).toEqual({ created: true, escrowId });
 
-      const replay = await registerEscrowCommitment(escrowId, commitment, event);
+      const replay = await registerEscrowCommitment(
+        escrowId,
+        commitment,
+        event
+      );
       expect(replay).toEqual({ created: false, escrowId });
       expect(registrations.size).toBe(1);
     });
@@ -388,7 +394,10 @@ describe("cashu-escrow-service", () => {
       const escrowId = await registered();
       await enqueueEscrowAction(escrowId, "release");
       const claim = await claimEscrowOutboxEntry(deriveOutboxId(escrowId));
-      await finalizeEscrowOutboxEntry(deriveOutboxId(escrowId), claim!.claimToken);
+      await finalizeEscrowOutboxEntry(
+        deriveOutboxId(escrowId),
+        claim!.claimToken
+      );
 
       await expect(enqueueEscrowAction(escrowId, "refund")).rejects.toThrow(
         /already released/
@@ -652,9 +661,7 @@ describe("cashu-escrow-service", () => {
       const { outboxId } = await enqueueEscrowAction(escrowId, "release");
       const claim = await claimEscrowOutboxEntry(outboxId, { now: fakeNow });
 
-      const prepared = [
-        { blindedMessage: { amount: "4", id: "k", B_: "ab" } },
-      ];
+      const prepared = [{ blindedMessage: { amount: "4", id: "k", B_: "ab" } }];
       // A stale/foreign fencing token must not be able to write outputs.
       await expect(
         saveEscrowPreparedOutputs(outboxId, "wrong-token", prepared)

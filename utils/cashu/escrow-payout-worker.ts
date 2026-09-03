@@ -108,8 +108,7 @@ export async function processEscrowOutboxEntry(
       {
         nowSeconds: Math.floor(now.getTime() / 1000),
         preparedOutputs:
-          (claim.preparedOutputs as SerializedOutputData[] | null) ??
-          undefined,
+          (claim.preparedOutputs as SerializedOutputData[] | null) ?? undefined,
         // Durability hook (required by the executor): the payee-locked swap
         // outputs must be recorded BEFORE the mint call, fenced by the claim
         // token so a worker that lost its claim cannot proceed to pay.

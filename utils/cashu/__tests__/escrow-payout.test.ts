@@ -298,7 +298,11 @@ describe("executeEscrowPayout", () => {
       registration,
       "release",
       { proofs },
-      { walletFactory: () => wallet, persistPreparedOutputs: persist, nowSeconds }
+      {
+        walletFactory: () => wallet,
+        persistPreparedOutputs: persist,
+        nowSeconds,
+      }
     );
 
     expect(wallet.checkProofsStates).toHaveBeenCalledWith(proofs);
@@ -321,7 +325,9 @@ describe("executeEscrowPayout", () => {
     expect(order(wallet.prepareSwapToReceive as jest.Mock)).toBeLessThan(
       order(persist)
     );
-    expect(order(persist)).toBeLessThan(order(wallet.completeSwap as jest.Mock));
+    expect(order(persist)).toBeLessThan(
+      order(wallet.completeSwap as jest.Mock)
+    );
     expect(result.outputs).toHaveLength(1);
   });
 
@@ -548,7 +554,11 @@ describe("executeEscrowPayout", () => {
         registration,
         "release",
         { proofs },
-        { walletFactory: () => wallet, persistPreparedOutputs: persist, nowSeconds }
+        {
+          walletFactory: () => wallet,
+          persistPreparedOutputs: persist,
+          nowSeconds,
+        }
       )
     ).rejects.toThrow(/claim lost/);
     expect(wallet.completeSwap).not.toHaveBeenCalled();

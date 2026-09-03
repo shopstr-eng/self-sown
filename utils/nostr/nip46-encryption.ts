@@ -26,7 +26,10 @@ export async function encryptNIP46SignerCredentials(
   if (!/^[0-9a-f]{64}$/i.test(credentials.appPrivKey)) {
     throw new Error("Invalid NIP-46 signer credentials.");
   }
-  const runtimeSigner = { ...credentials, bunker: validateBunkerUrl(credentials.bunker) };
+  const runtimeSigner = {
+    ...credentials,
+    bunker: validateBunkerUrl(credentials.bunker),
+  };
   return {
     encryptedSigner: await encryptCredential(
       JSON.stringify({ version: 1, ...runtimeSigner }),

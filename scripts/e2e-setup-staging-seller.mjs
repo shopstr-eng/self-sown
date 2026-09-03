@@ -5,7 +5,12 @@
  * writes them to /tmp/staging-seller-events.json for DB insertion, and
  * best-effort publishes both to the public relays.
  */
-import { finalizeEvent, generateSecretKey, getPublicKey, SimplePool } from "nostr-tools";
+import {
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  SimplePool,
+} from "nostr-tools";
 import { bytesToHex } from "nostr-tools/utils";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
@@ -43,7 +48,10 @@ const product = finalizeEvent(
     tags: [
       ["d", dTag],
       ["title", "Staging Escrow Test Item"],
-      ["summary", "Cheap sats-priced fixture used to exercise escrow checkout in staging."],
+      [
+        "summary",
+        "Cheap sats-priced fixture used to exercise escrow checkout in staging.",
+      ],
       ["price", "100", "SATS"],
       ["location", "United States of America"],
       ["shipping", "Free", "0", "SATS"],
@@ -60,7 +68,11 @@ const product = finalizeEvent(
 
 fs.writeFileSync(
   "/tmp/staging-seller-events.json",
-  JSON.stringify({ sellerPk, sellerSkHex: bytesToHex(sellerSk), shopProfile, product }, null, 2)
+  JSON.stringify(
+    { sellerPk, sellerSkHex: bytesToHex(sellerSk), shopProfile, product },
+    null,
+    2
+  )
 );
 console.log("product event id:", product.id);
 console.log("product d-tag:", dTag);
@@ -73,10 +85,7 @@ try {
   const results = await Promise.allSettled(
     pool.publish(relays, shopProfile).concat(pool.publish(relays, product))
   );
-  console.log(
-    "relay publish:",
-    results.map((r) => r.status).join(",")
-  );
+  console.log("relay publish:", results.map((r) => r.status).join(","));
   pool.close(relays);
 } catch (e) {
   console.log("relay publish skipped:", String(e).slice(0, 120));

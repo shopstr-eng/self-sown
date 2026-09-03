@@ -56,9 +56,7 @@ describe("stashProofsLocally", () => {
 
     expect(stashed).toBe(7);
     const tokens = JSON.parse(window.localStorage.getItem("tokens") ?? "[]");
-    expect(tokens.map((p: Proof) => p.secret)).toEqual([
-      "genuinely-spendable",
-    ]);
+    expect(tokens.map((p: Proof) => p.secret)).toEqual(["genuinely-spendable"]);
   });
 
   it("strips locked proofs even for legacy escrow records without lockedSecrets", () => {

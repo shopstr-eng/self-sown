@@ -37,10 +37,7 @@ export const buildContactListUpdate = (
 
   return {
     kind: 3,
-    created_at: Math.max(
-      Math.floor(Date.now() / 1000),
-      currentCreatedAt + 1
-    ),
+    created_at: Math.max(Math.floor(Date.now() / 1000), currentCreatedAt + 1),
     content: "",
     tags,
   };

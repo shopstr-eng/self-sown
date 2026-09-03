@@ -48,7 +48,10 @@ describe("SignerContextProvider encrypted signer storage", () => {
     );
 
     await waitFor(() =>
-      expect(addEventListener).toHaveBeenCalledWith("storage", expect.any(Function))
+      expect(addEventListener).toHaveBeenCalledWith(
+        "storage",
+        expect.any(Function)
+      )
     );
     const storageHandler = addEventListener.mock.calls
       .filter(([type]) => type === "storage")
@@ -69,9 +72,7 @@ describe("SignerContextProvider encrypted signer storage", () => {
     });
 
     expect(activeSigner.getPubKey).toHaveBeenCalled();
-    await waitFor(() =>
-      expect(screen.getByText(pubkey)).toBeInTheDocument()
-    );
+    await waitFor(() => expect(screen.getByText(pubkey)).toBeInTheDocument());
     expect(activeSigner.getPubKey).toHaveBeenCalledTimes(1);
     expect(signerFrom).not.toHaveBeenCalled();
   });

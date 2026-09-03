@@ -11,10 +11,7 @@
 
 import { useCallback, useContext, useEffect, useState } from "react";
 import { nip19 } from "nostr-tools";
-import {
-  Mint as CashuMint,
-  Wallet as CashuWallet,
-} from "@cashu/cashu-ts";
+import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import { buildEscrowActionEventTemplate } from "@/utils/cashu/escrow-commitment";
@@ -257,9 +254,7 @@ export default function BuyerEscrowList() {
       pruneResolvedBuyerEscrows([view.record.escrowId]);
     } catch (error) {
       setActionError(
-        error instanceof Error
-          ? error.message
-          : "Redeeming the refund failed."
+        error instanceof Error ? error.message : "Redeeming the refund failed."
       );
     } finally {
       setBusyId(null);
@@ -271,8 +266,8 @@ export default function BuyerEscrowList() {
       <h2 className="mb-2 text-lg font-bold text-black">Escrow payments</h2>
       <p className="mb-3 text-sm text-gray-600">
         Cashu payments you chose to lock in escrow. Release them to the seller
-        here once your order completes; after the lock date you can reclaim
-        them if it never does.
+        here once your order completes; after the lock date you can reclaim them
+        if it never does.
       </p>
       {actionError && (
         <p className="mb-3 rounded-md border-2 border-red-500 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">

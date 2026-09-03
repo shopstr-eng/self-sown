@@ -103,7 +103,13 @@ describe("escrow-commitment", () => {
   it("rejects the wrong kind", () => {
     const { event } = makeCommitment(buyerSecret);
     const wrong = finalizeEvent(
-      { ...event, kind: 1, tags: event.tags, content: event.content, created_at: NOW },
+      {
+        ...event,
+        kind: 1,
+        tags: event.tags,
+        content: event.content,
+        created_at: NOW,
+      },
       buyerSecret
     );
     expect(verify(wrong).ok).toBe(false);
@@ -112,9 +118,9 @@ describe("escrow-commitment", () => {
 
   it("rejects stale and far-future created_at (replay window)", () => {
     const { event } = makeCommitment(buyerSecret);
-    expect(
-      verify(event, NOW + ESCROW_COMMITMENT_MAX_AGE_SECONDS + 1).ok
-    ).toBe(false);
+    expect(verify(event, NOW + ESCROW_COMMITMENT_MAX_AGE_SECONDS + 1).ok).toBe(
+      false
+    );
   });
 
   it("rejects a mint outside the configured allowlist", () => {
@@ -357,7 +363,10 @@ describe("escrow action events", () => {
 
   it("rejects a tampered action (invalid signature)", () => {
     const event = makeAction();
-    const tampered = { ...event, content: event.content.replace("refund", "refund!") };
+    const tampered = {
+      ...event,
+      content: event.content.replace("refund", "refund!"),
+    };
     expect(verifyAction(tampered).ok).toBe(false);
   });
 });

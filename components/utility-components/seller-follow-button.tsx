@@ -70,8 +70,8 @@ export default function SellerFollowButton({
         aria-label={isFollowing ? "Unfollow seller" : "Follow seller"}
         className={
           isFollowing
-            ? "border-2 border-black bg-white font-bold text-black shadow-neo"
-            : "border-2 border-black bg-primary-yellow font-bold text-black shadow-neo"
+            ? "shadow-neo border-2 border-black bg-white font-bold text-black"
+            : "bg-primary-yellow shadow-neo border-2 border-black font-bold text-black"
         }
         onPress={toggleFollow}
       >

@@ -418,9 +418,7 @@ describe("escrow payout redemption", () => {
         await screen.findByRole("button", { name: "Request refund" })
       );
 
-      await waitFor(() =>
-        expect(requestEscrowRefund).toHaveBeenCalledTimes(1)
-      );
+      await waitFor(() => expect(requestEscrowRefund).toHaveBeenCalledTimes(1));
 
       // The signer was handed the escrow action template (refund, this
       // escrow), and the signed event is a real, valid Nostr event.
@@ -458,9 +456,7 @@ describe("escrow payout redemption", () => {
         await screen.findByRole("button", { name: "Complete refund" })
       );
 
-      await waitFor(() =>
-        expect(requestEscrowRefund).toHaveBeenCalledTimes(1)
-      );
+      await waitFor(() => expect(requestEscrowRefund).toHaveBeenCalledTimes(1));
       expect(buyerSigner.sign).toHaveBeenCalledWith(
         actionTemplate("refund", escrowId)
       );
@@ -557,9 +553,8 @@ describe("escrow payout redemption", () => {
       expect(buyerSigner.sign).toHaveBeenCalledWith(
         actionTemplate("release", escrowId)
       );
-      const [actionEvent, proofs] = (
-        requestEscrowReleaseApproval as jest.Mock
-      ).mock.calls[0]!;
+      const [actionEvent, proofs] = (requestEscrowReleaseApproval as jest.Mock)
+        .mock.calls[0]!;
       expect(verifyEvent(actionEvent)).toBe(true);
       expect(actionEvent.pubkey).toBe(buyerPk);
       // Only the seller can witness pre-expiry, so the buyer hands over the

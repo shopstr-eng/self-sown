@@ -88,7 +88,10 @@ describe("getLocalStorageData", () => {
     localStorage.setItem("clientPrivkey", "legacy-app-key");
     localStorage.setItem("bunkerRemotePubkey", "legacy-bunker");
     localStorage.setItem("bunkerSecret", "legacy-capability");
-    localStorage.setItem("bunkerRelays", JSON.stringify(["wss://relay.example"]));
+    localStorage.setItem(
+      "bunkerRelays",
+      JSON.stringify(["wss://relay.example"])
+    );
 
     expect(getLocalStorageData().signer).toEqual(
       expect.objectContaining({ type: "nip46", appPrivKey: "legacy-app-key" })

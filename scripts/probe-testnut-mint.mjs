@@ -71,12 +71,21 @@ async function main() {
       },
     },
   };
-  const { send } = await wallet.send(AMOUNT, proofs, { proofsWeHave: proofs }, outputConfig);
+  const { send } = await wallet.send(
+    AMOUNT,
+    proofs,
+    { proofsWeHave: proofs },
+    outputConfig
+  );
   console.log(
     "locked send proofs:",
     send.map((p) => ({ amount: p.amount, secret: p.secret.slice(0, 90) }))
   );
-  const lockedToken = getEncodedToken({ mint: MINT, proofs: send, unit: "sat" });
+  const lockedToken = getEncodedToken({
+    mint: MINT,
+    proofs: send,
+    unit: "sat",
+  });
 
   // 4. states pre-expiry
   const states = await wallet.checkProofsStates(send);
@@ -92,7 +101,11 @@ async function main() {
   const recvWallet = new CashuWallet(mint, { unit: "sat" });
   await recvWallet.loadMint();
   const signedLocked = await signP2PKProofs(send, bytesToHex(buyerSk));
-  const refunded = await recvWallet.receive({ mint: MINT, unit: "sat", proofs: signedLocked });
+  const refunded = await recvWallet.receive({
+    mint: MINT,
+    unit: "sat",
+    proofs: signedLocked,
+  });
   console.log(
     "refund received proofs:",
     refunded.length,

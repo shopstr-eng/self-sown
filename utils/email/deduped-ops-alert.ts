@@ -33,10 +33,7 @@ export async function sendDedupedOpsAlert(options: {
       const last = await getProSetting(options.dedupKey);
       if (last) {
         const lastMs = new Date(last).getTime();
-        if (
-          Number.isFinite(lastMs) &&
-          Date.now() - lastMs < cooldownMs
-        ) {
+        if (Number.isFinite(lastMs) && Date.now() - lastMs < cooldownMs) {
           return "suppressed";
         }
       }

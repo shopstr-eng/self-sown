@@ -68,7 +68,10 @@ function isEscrowBackupInfo(raw: unknown): raw is EscrowBackupInfo {
  * to self, so this is defense-in-depth against a malformed/tampered backup —
  * NOT a substitute for the payout worker's full validator.
  */
-function proofsMatchEscrowInfo(proofs: Proof[], info: EscrowBackupInfo): boolean {
+function proofsMatchEscrowInfo(
+  proofs: Proof[],
+  info: EscrowBackupInfo
+): boolean {
   if (proofs.length === 0) return false;
   let total = 0;
   for (const proof of proofs) {

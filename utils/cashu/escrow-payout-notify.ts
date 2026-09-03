@@ -32,9 +32,7 @@ export async function notifyEscrowPayoutFinalized(
     ? registration.sellerPubkey
     : registration.buyerPubkey;
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
-  const subject = isRelease
-    ? "Escrow payout released"
-    : "Escrow refund paid";
+  const subject = isRelease ? "Escrow payout released" : "Escrow refund paid";
   const resolution = isRelease ? "released to you" : "refunded to you";
   const body = [
     `Your escrowed payment of ${registration.amountSats} sats for order ${registration.orderId} has been ${resolution}.`,

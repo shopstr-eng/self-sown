@@ -50,9 +50,9 @@ describe("escrow custody invariant", () => {
     "%s: escrow message text never embeds the token",
     (file) => {
       const src = readSource(file);
-      const indices = [...src.matchAll(/This is an escrowed Cashu payment/g)].map(
-        (m) => m.index!
-      );
+      const indices = [
+        ...src.matchAll(/This is an escrowed Cashu payment/g),
+      ].map((m) => m.index!);
       expect(indices.length).toBeGreaterThan(0);
       for (const index of indices) {
         const tail = src.slice(index);

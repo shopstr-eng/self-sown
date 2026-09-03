@@ -73,7 +73,10 @@ function makeReqRes(body?: any, method = "POST") {
       return this;
     },
   };
-  return { req, res: res as NextApiResponse & { statusCode: number; body: any } };
+  return {
+    req,
+    res: res as NextApiResponse & { statusCode: number; body: any },
+  };
 }
 
 function validBody() {
@@ -193,7 +196,9 @@ describe("POST /api/cashu/escrow/release-approve", () => {
 
   it("400s when the proofs structurally mismatch the commitment", async () => {
     mockedValidate.mockImplementation(() => {
-      throw new Error("Escrow payout proof is not locked to the committed seller.");
+      throw new Error(
+        "Escrow payout proof is not locked to the committed seller."
+      );
     });
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);
@@ -249,7 +254,9 @@ describe("POST /api/cashu/escrow/release-approve", () => {
 
   it("409s on a conflicting pending refund", async () => {
     mockedEnqueue.mockRejectedValue(
-      new Error("Cannot enqueue a release: escrow already has a pending refund.")
+      new Error(
+        "Cannot enqueue a release: escrow already has a pending refund."
+      )
     );
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);

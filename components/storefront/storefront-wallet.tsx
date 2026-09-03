@@ -48,12 +48,16 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
   // Records that STILL have no backup after the retry (e.g. a remote signer
   // without NIP-44 can never encrypt one) surface a visible warning — a
   // silently-missing backup is a recovery path that doesn't exist.
-  const [escrowBackupWarning, setEscrowBackupWarning] = useState<
-    string | null
-  >(null);
+  const [escrowBackupWarning, setEscrowBackupWarning] = useState<string | null>(
+    null
+  );
   useEffect(() => {
     if (!isLoggedIn || !nostr || !signer) return;
-    republishMissingEscrowBackups(nostr, signer, walletContext.proofEvents || [])
+    republishMissingEscrowBackups(
+      nostr,
+      signer,
+      walletContext.proofEvents || []
+    )
       .then((result) => {
         setEscrowBackupWarning(
           result.unbacked.length > 0

@@ -379,9 +379,7 @@ export const fetchCart = async (
                 (event) =>
                   event.kind === 30402 &&
                   event.pubkey === sellerPubkey &&
-                  event.tags.some(
-                    (tag) => tag[0] === "d" && tag[1] === dTag
-                  )
+                  event.tags.some((tag) => tag[0] === "d" && tag[1] === dTag)
               );
               if (foundEvent) {
                 cartArrayFromRelay.push(parseTags(foundEvent) as ProductData);
@@ -617,7 +615,8 @@ export const fetchProfile = async (
           // resolution replaces them.
           mergedProfileMap.set(
             profile.pubkey,
-            profile.badges === undefined && existingProfile?.badges !== undefined
+            profile.badges === undefined &&
+              existingProfile?.badges !== undefined
               ? { ...profile, badges: existingProfile.badges }
               : profile
           );
@@ -750,7 +749,10 @@ export const fetchProfile = async (
             badgesChanged = true;
           }
 
-          if (badgesChanged && hydrationGeneration === profileHydrationGeneration) {
+          if (
+            badgesChanged &&
+            hydrationGeneration === profileHydrationGeneration
+          ) {
             editProfileContext(new Map(mergedProfileMap), false);
           }
         })
@@ -1773,10 +1775,15 @@ export const fetchCashuWallet = async (
       try {
         const rawTokens = localStorage.getItem("tokens");
         const currentTokens: unknown = rawTokens ? JSON.parse(rawTokens) : [];
-        if (Array.isArray(currentTokens) && currentTokens.some(isEscrowLocked)) {
+        if (
+          Array.isArray(currentTokens) &&
+          currentTokens.some(isEscrowLocked)
+        ) {
           localStorage.setItem(
             "tokens",
-            JSON.stringify(currentTokens.filter((p: Proof) => !isEscrowLocked(p)))
+            JSON.stringify(
+              currentTokens.filter((p: Proof) => !isEscrowLocked(p))
+            )
           );
         }
       } catch {

@@ -184,7 +184,10 @@ export async function resolveSellerPaymentMethods(
   } catch (err) {
     // Fail soft: a status lookup error just omits the card option — but log
     // it so a DB outage isn't indistinguishable from "seller has no account".
-    console.warn("[ucp] card-availability lookup failed, omitting stripe:", err);
+    console.warn(
+      "[ucp] card-availability lookup failed, omitting stripe:",
+      err
+    );
   }
   return methods;
 }

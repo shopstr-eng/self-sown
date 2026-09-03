@@ -2196,7 +2196,10 @@ export const getLocalStorageData = (): LocalStorageInterface => {
         LOCALSTORAGECONSTANTS.nwcString
       );
       if (legacyNwcString) {
-        sessionStorage.setItem(LOCALSTORAGECONSTANTS.nwcString, legacyNwcString);
+        sessionStorage.setItem(
+          LOCALSTORAGECONSTANTS.nwcString,
+          legacyNwcString
+        );
         nwcString = legacyNwcString;
       }
     }

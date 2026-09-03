@@ -272,7 +272,10 @@ describe("/api/og-image", () => {
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: false,
       status: 302,
-      headers: { get: (name: string) => name === "location" ? "http://10.0.0.1/" : null },
+      headers: {
+        get: (name: string) =>
+          name === "location" ? "http://10.0.0.1/" : null,
+      },
       body: streamBody(Buffer.alloc(0)),
     } as unknown as Response);
     const res = createResponse();

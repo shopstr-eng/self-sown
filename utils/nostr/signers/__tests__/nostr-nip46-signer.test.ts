@@ -139,7 +139,11 @@ describe("NostrNIP46Signer", () => {
       )!;
       const connection = restoredSigner.connect();
 
-      for (let i = 0; i < 150 && NostrManagerMock.mock.calls.length === 0; i += 1) {
+      for (
+        let i = 0;
+        i < 150 && NostrManagerMock.mock.calls.length === 0;
+        i += 1
+      ) {
         await new Promise((resolve) => setTimeout(resolve, 20));
       }
       expect(NostrManagerMock).toHaveBeenCalled();
@@ -157,8 +161,9 @@ describe("NostrNIP46Signer", () => {
         }),
         expect.any(Uint8Array)
       );
-      const encryptedRequest = (finalizeEvent as jest.Mock).mock.calls.at(-1)?.[0]
-        .content;
+      const encryptedRequest = (finalizeEvent as jest.Mock).mock.calls.at(
+        -1
+      )?.[0].content;
       expect(encryptedRequest).toContain(capabilitySecret);
     });
 

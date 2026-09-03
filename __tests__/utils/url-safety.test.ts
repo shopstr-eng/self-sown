@@ -125,7 +125,9 @@ describe("url-safety SSRF guards", () => {
       expect(parseHttpUrl("javascript:alert(1)")).toBeNull();
       expect(parseHttpUrl("ftp://shop.example")).toBeNull();
       expect(parseHttpUrl("not a url")).toBeNull();
-      expect(parseHttpUrl("https://user:pass@shop.example/image.png")).toBeNull();
+      expect(
+        parseHttpUrl("https://user:pass@shop.example/image.png")
+      ).toBeNull();
       expect(parseHttpUrl("https://shop.example:8080/image.png")).toBeNull();
     });
   });

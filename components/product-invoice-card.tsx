@@ -527,9 +527,9 @@ export default function ProductInvoiceCard({
   const [failureText, setFailureText] = useState("");
   // Non-fatal: payment locked fine, but the kind-7375 recovery backup of the
   // escrowed proofs didn't publish (e.g. a remote signer without NIP-44).
-  const [escrowBackupWarning, setEscrowBackupWarning] = useState<
-    string | null
-  >(null);
+  const [escrowBackupWarning, setEscrowBackupWarning] = useState<string | null>(
+    null
+  );
   const [walletRecovery, setWalletRecovery] = useState<{
     isOpen: boolean;
     amountSats: number;
@@ -6739,11 +6739,11 @@ export default function ProductInvoiceCard({
                                     Pay via escrow
                                   </span>
                                   <span className="block text-xs font-medium text-gray-600">
-                                    Your Cashu stays locked to the seller
-                                    until the order completes. If it never
-                                    does, you can reclaim it after{" "}
-                                    {formatEscrowLockDuration()}{" "}
-                                    from your orders page.
+                                    Your Cashu stays locked to the seller until
+                                    the order completes. If it never does, you
+                                    can reclaim it after{" "}
+                                    {formatEscrowLockDuration()} from your
+                                    orders page.
                                   </span>
                                 </span>
                               </label>

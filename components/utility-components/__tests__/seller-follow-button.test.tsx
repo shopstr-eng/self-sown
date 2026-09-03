@@ -1,10 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SellerFollowButton from "../seller-follow-button";
-import {
-  NostrContext,
-  SignerContext,
-} from "../nostr-context-provider";
+import { NostrContext, SignerContext } from "../nostr-context-provider";
 import { FollowsContext } from "@/utils/context/context";
 import { useState, type ReactNode } from "react";
 
@@ -87,7 +84,11 @@ describe("SellerFollowButton", () => {
         }}
       >
         <SignerContext.Provider
-          value={{ isLoggedIn: true, pubkey: "viewer", signer: { sign } as any }}
+          value={{
+            isLoggedIn: true,
+            pubkey: "viewer",
+            signer: { sign } as any,
+          }}
         >
           <FollowState>
             <SellerFollowButton sellerPubkey={sellerB} />
@@ -114,9 +115,9 @@ describe("SellerFollowButton", () => {
       ["wss://relay.example"]
     );
     expect(setDirectFollowList).toHaveBeenCalledWith([sellerA, sellerB]);
-    expect(screen.getByRole("button", { name: "Unfollow seller" })).toHaveTextContent(
-      "Following"
-    );
+    expect(
+      screen.getByRole("button", { name: "Unfollow seller" })
+    ).toHaveTextContent("Following");
   });
 
   it("uses the fetched list when toggled before follow hydration completes", async () => {
@@ -141,7 +142,11 @@ describe("SellerFollowButton", () => {
                 content: "",
                 pubkey: "viewer",
                 sig: "signature",
-                tags: [["p", sellerA], ["p", sellerB], ["t", "local"]],
+                tags: [
+                  ["p", sellerA],
+                  ["p", sellerB],
+                  ["t", "local"],
+                ],
               },
             ]),
             publish: jest.fn(async () => undefined),
@@ -149,7 +154,11 @@ describe("SellerFollowButton", () => {
         }}
       >
         <SignerContext.Provider
-          value={{ isLoggedIn: true, pubkey: "viewer", signer: { sign } as any }}
+          value={{
+            isLoggedIn: true,
+            pubkey: "viewer",
+            signer: { sign } as any,
+          }}
         >
           <FollowsContext.Provider
             value={{
@@ -170,7 +179,10 @@ describe("SellerFollowButton", () => {
 
     expect(sign).toHaveBeenCalledWith(
       expect.objectContaining({
-        tags: [["p", sellerA], ["t", "local"]],
+        tags: [
+          ["p", sellerA],
+          ["t", "local"],
+        ],
       })
     );
     expect(setDirectFollowList).toHaveBeenCalledWith([sellerA]);

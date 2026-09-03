@@ -208,7 +208,7 @@ describe("restoreTokensFromProofEvents against the staging mint", () => {
         amount: 100,
         secret: `unreachable-only-${nonce}`,
         C: "02" + "cd".repeat(32),
-      } as unknown as Proof);
+      }) as unknown as Proof;
 
     const result = await restoreTokensFromProofEvents([
       {

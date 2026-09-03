@@ -34,7 +34,9 @@ jest.mock("nostr-tools", () => ({
   generateSecretKey: jest.fn(() => new Uint8Array(32).fill(1)),
   getPublicKey: jest.fn(() => "c".repeat(64)),
   getEventHash: jest.fn(() => "rumor-1"),
-  nip19: { decode: jest.fn(() => ({ type: "nsec", data: new Uint8Array(32) })) },
+  nip19: {
+    decode: jest.fn(() => ({ type: "nsec", data: new Uint8Array(32) })),
+  },
   nip44: {
     getConversationKey: jest.fn(() => new Uint8Array(32)),
     encrypt: jest.fn(() => "ciphertext"),

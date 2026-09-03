@@ -26,25 +26,45 @@ describe("NIP-58 badge resolution", () => {
   it("caps duplicate profile references and selects deterministic replacements", () => {
     const profile = event({
       tags: Array.from({ length: MAX_NIP58_PROFILE_BADGES + 2 }, () => [
-        "a", address,
+        "a",
+        address,
       ]).flatMap((tag) => [tag, ["e", awardId]]),
     });
     expect(parseNip58ProfileBadgesEvent(profile)).toHaveLength(1);
-    expect(selectLatestNip58ProfileBadgesEvent([
-      event({ id: "f".repeat(64), created_at: 2 }),
-      event({ id: "a".repeat(64), created_at: 2 }),
-    ])?.id).toBe("a".repeat(64));
+    expect(
+      selectLatestNip58ProfileBadgesEvent([
+        event({ id: "f".repeat(64), created_at: 2 }),
+        event({ id: "a".repeat(64), created_at: 2 }),
+      ])?.id
+    ).toBe("a".repeat(64));
   });
 
   it("does not resolve an award whose issuer or recipient does not match", async () => {
     const fetchWithStatus = jest
       .fn()
       .mockResolvedValueOnce({
-        events: [event({ tags: [["a", address], ["e", awardId]] })],
+        events: [
+          event({
+            tags: [
+              ["a", address],
+              ["e", awardId],
+            ],
+          }),
+        ],
         complete: true,
       })
       .mockResolvedValueOnce({
-        events: [event({ id: awardId, pubkey: issuer, kind: 8, tags: [["a", address], ["p", "f".repeat(64)]] })],
+        events: [
+          event({
+            id: awardId,
+            pubkey: issuer,
+            kind: 8,
+            tags: [
+              ["a", address],
+              ["p", "f".repeat(64)],
+            ],
+          }),
+        ],
         complete: true,
       });
 
@@ -83,11 +103,13 @@ describe("NIP-58 badge resolution", () => {
 
     expect(fetchWithStatus).toHaveBeenCalledTimes(2);
     expect(
-      fetchWithStatus.mock.calls.every((call) => call[2] === undefined || call[2].includes(configuredRelay))
+      fetchWithStatus.mock.calls.every(
+        (call) => call[2] === undefined || call[2].includes(configuredRelay)
+      )
     ).toBe(true);
-    expect(fetchWithStatus.mock.calls.flatMap((call) => call[2] || [])).not.toContain(
-      attackerRelay
-    );
+    expect(
+      fetchWithStatus.mock.calls.flatMap((call) => call[2] || [])
+    ).not.toContain(attackerRelay);
     expect(result.get(recipient)).toEqual({ badges: [], complete: false });
   });
 });

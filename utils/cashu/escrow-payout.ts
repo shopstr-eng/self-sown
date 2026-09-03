@@ -58,9 +58,7 @@ export type EscrowPayoutMintWallet = Pick<
 /** The slice of a Cashu mint client the recovery path needs. */
 export type EscrowPayoutMintApi = Pick<CashuMint, "restore" | "getKeys">;
 
-export type EscrowWalletFactory = (
-  mintUrl: string
-) => EscrowPayoutMintWallet;
+export type EscrowWalletFactory = (mintUrl: string) => EscrowPayoutMintWallet;
 
 export type EscrowMintApiFactory = (mintUrl: string) => EscrowPayoutMintApi;
 
@@ -87,9 +85,7 @@ export interface EscrowPayoutOptions {
    * the data could not be durably recorded — the payment must not proceed
    * with outputs that exist only in process memory.
    */
-  persistPreparedOutputs?: (
-    prepared: SerializedOutputData[]
-  ) => Promise<void>;
+  persistPreparedOutputs?: (prepared: SerializedOutputData[]) => Promise<void>;
 }
 
 /**
@@ -312,9 +308,7 @@ export function validateEscrowPayoutProofs(
   }
 
   if (total < registration.amountSats) {
-    throw new Error(
-      "Escrow payout proofs do not cover the committed amount."
-    );
+    throw new Error("Escrow payout proofs do not cover the committed amount.");
   }
 }
 

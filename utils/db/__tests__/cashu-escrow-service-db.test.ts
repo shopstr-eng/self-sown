@@ -307,8 +307,9 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
         // Whichever action won, the opposite action is rejected forever.
         const winner = rows.rows[0].action as "release" | "refund";
         const opposite = winner === "release" ? "refund" : "release";
-        await expect(escrow.enqueueEscrowAction(escrowId, opposite)).rejects
-          .toThrow(/already has a pending/);
+        await expect(
+          escrow.enqueueEscrowAction(escrowId, opposite)
+        ).rejects.toThrow(/already has a pending/);
       }
     }
   );
@@ -353,10 +354,7 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
     "a stale worker fenced out by a reclaim can never finalize, and the reclaiming worker pays exactly once",
     async () => {
       const escrowId = await registerEscrow("fencing-race");
-      const { outboxId } = await escrow.enqueueEscrowAction(
-        escrowId,
-        "refund"
-      );
+      const { outboxId } = await escrow.enqueueEscrowAction(escrowId, "refund");
 
       const staleWorker = await escrow.claimEscrowOutboxEntry(outboxId);
       expect(staleWorker).not.toBeNull();
@@ -438,9 +436,9 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
       // carries the release action (and once finalized the escrow is no
       // longer locked), so it is rejected — or, rarely, deadlock-aborted.
       expect(enqueueResult.status).toBe("rejected");
-      expect(
-        (enqueueResult as PromiseRejectedResult).reason.message
-      ).toMatch(/already released|already has a pending|deadlock detected/);
+      expect((enqueueResult as PromiseRejectedResult).reason.message).toMatch(
+        /already released|already has a pending|deadlock detected/
+      );
 
       if (finalizeResult.status === "rejected") {
         // Deadlock victim: fail-closed and retryable. The claim is still
@@ -466,8 +464,9 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
       expect(registration!.status).toBe("released");
 
       // The opposite action remains rejected after resolution.
-      await expect(escrow.enqueueEscrowAction(escrowId, "refund")).rejects
-        .toThrow(/already released|already has a pending/);
+      await expect(
+        escrow.enqueueEscrowAction(escrowId, "refund")
+      ).rejects.toThrow(/already released|already has a pending/);
     }
   );
 });

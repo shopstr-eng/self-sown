@@ -21,7 +21,7 @@ changelog:
   `components/storefront/storefront-email-popup.tsx`,
   `components/free-shipping-notification.tsx`).
 - **`@getalby/lightning-tools` 8 → 9**: v9's only breaking change reworks
-  units in the 402/L402 fetch *client* response. Milk Market never uses that
+  units in the 402/L402 fetch _client_ response. Milk Market never uses that
   client API (its L402 support is a self-built server in `utils/l402/` +
   `pages/api/mcp/create-order.ts`); local usage is `LightningAddress`,
   `Invoice`, `getSatoshiValue`, `getFiatValue` only.

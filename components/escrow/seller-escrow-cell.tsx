@@ -10,10 +10,7 @@
 // redeemed into the local wallet.
 
 import { useCallback, useContext, useEffect, useState } from "react";
-import {
-  Mint as CashuMint,
-  Wallet as CashuWallet,
-} from "@cashu/cashu-ts";
+import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import { buildEscrowActionEventTemplate } from "@/utils/cashu/escrow-commitment";
@@ -169,7 +166,9 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
         </button>
       ) : (
         <span className="font-bold text-green-600">
-          {payoutRedeemed ? "Payout redeemed to wallet" : "Escrow released to you"}
+          {payoutRedeemed
+            ? "Payout redeemed to wallet"
+            : "Escrow released to you"}
         </span>
       );
   } else if (status.status === "refunded") {

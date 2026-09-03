@@ -59,10 +59,15 @@ export default async function handler(
     });
   }
 
-  const allowed = await applyRateLimit(req, res, "cashu-escrow-release-approve", {
-    limit: 10,
-    windowMs: 60_000,
-  });
+  const allowed = await applyRateLimit(
+    req,
+    res,
+    "cashu-escrow-release-approve",
+    {
+      limit: 10,
+      windowMs: 60_000,
+    }
+  );
   if (!allowed) return;
 
   const actionEvent = req.body?.actionEvent as Event | undefined;
@@ -191,7 +196,9 @@ export default async function handler(
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Escrow release approval failed.";
+      error instanceof Error
+        ? error.message
+        : "Escrow release approval failed.";
     // A pending/completed refund (or completed release) is a client-visible
     // conflict, not a server fault.
     if (message.includes("already")) {
@@ -200,6 +207,9 @@ export default async function handler(
     console.error("Cashu escrow release approval failed:", error);
     return res
       .status(500)
-      .json({ error: "Escrow release approval failed.", code: "internal_error" });
+      .json({
+        error: "Escrow release approval failed.",
+        code: "internal_error",
+      });
   }
 }

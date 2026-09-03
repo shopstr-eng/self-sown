@@ -79,7 +79,10 @@ function makeReqRes(body?: any, method = "POST") {
       return this;
     },
   };
-  return { req, res: res as NextApiResponse & { statusCode: number; body: any } };
+  return {
+    req,
+    res: res as NextApiResponse & { statusCode: number; body: any },
+  };
 }
 
 function makeActionEvent(
@@ -182,9 +185,7 @@ describe("POST /api/cashu/escrow/refund", () => {
       content: "",
       tags: [],
     };
-    const { req, res } = makeReqRes(
-      validBody({ actionEvent: badEvent })
-    );
+    const { req, res } = makeReqRes(validBody({ actionEvent: badEvent }));
     await handler(req, res);
     expect(res.statusCode).toBe(400);
     expect(res.body.code).toBe("invalid_action");
@@ -278,9 +279,7 @@ describe("POST /api/cashu/escrow/refund", () => {
     // Worker claims between our read and attach (first attach misses), then
     // fails for lack of payload and the entry returns to pending — the
     // endpoint re-reads and lands the payload on the retry.
-    mockedAttach
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
+    mockedAttach.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);
     expect(res.statusCode).toBe(200);

@@ -225,9 +225,11 @@ describe("fetchCashuWallet spent-proof cleanup against the staging mint", () => 
     // touched — a cashu-ts response-shape drift that flipped either would
     // show up here before a real boot deleted recovery material.
     expect(mockDeleteEvent).toHaveBeenCalledTimes(1);
-    expect(mockDeleteEvent).toHaveBeenCalledWith(expect.anything(), expect.anything(), [
-      "real-mint-spent-event",
-    ]);
+    expect(mockDeleteEvent).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      ["real-mint-spent-event"]
+    );
 
     // The booted wallet balance is exactly the unspent proofs.
     expect(result.cashuProofs.map((p: Proof) => p.secret).sort()).toEqual(

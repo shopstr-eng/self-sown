@@ -56,10 +56,17 @@ async function shot(page, name) {
 /** Dump visible button/label text to help drive the UI. */
 async function dumpUi(page, name) {
   const text = await page.evaluate(() => {
-    const els = [...document.querySelectorAll("button, input, [role=button], h1, h2, h3, label, p")];
+    const els = [
+      ...document.querySelectorAll(
+        "button, input, [role=button], h1, h2, h3, label, p"
+      ),
+    ];
     return els
       .filter((e) => e.offsetParent !== null)
-      .map((e) => `${e.tagName.toLowerCase()}${e.type ? `[${e.type}]` : ""}: ${(e.textContent || e.placeholder || "").trim().slice(0, 80)}`)
+      .map(
+        (e) =>
+          `${e.tagName.toLowerCase()}${e.type ? `[${e.type}]` : ""}: ${(e.textContent || e.placeholder || "").trim().slice(0, 80)}`
+      )
       .filter((s) => s.split(": ")[1])
       .join("\n");
   });
@@ -68,7 +75,9 @@ async function dumpUi(page, name) {
 }
 
 function saveState(patch) {
-  const prev = fs.existsSync(STATE) ? JSON.parse(fs.readFileSync(STATE, "utf8")) : {};
+  const prev = fs.existsSync(STATE)
+    ? JSON.parse(fs.readFileSync(STATE, "utf8"))
+    : {};
   fs.writeFileSync(STATE, JSON.stringify({ ...prev, ...patch }, null, 2));
 }
 function loadState() {
@@ -108,7 +117,13 @@ async function injectSession(page, keysOnly = false) {
     (session, keysOnlyFlag) => {
       if (keysOnlyFlag) {
         // Simulated wiped browser: ONLY the sign-in material survives.
-        const keep = ["signInMethod", "encryptedPrivateKey", "userPubkey", "userNPub", "signer"];
+        const keep = [
+          "signInMethod",
+          "encryptedPrivateKey",
+          "userPubkey",
+          "userNPub",
+          "signer",
+        ];
         for (const k of Object.keys(session)) {
           if (keep.includes(k)) localStorage.setItem(k, session[k]);
         }
@@ -168,7 +183,10 @@ async function stageA() {
   try {
     const { buyerPk } = await injectSession(page);
     log("buyer pubkey:", buyerPk);
-    await page.goto(`${BASE}/wallet`, { waitUntil: "networkidle2", timeout: 60000 });
+    await page.goto(`${BASE}/wallet`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
     await sleep(4000);
     await shot(page, "A1-wallet-fresh");
     await dumpUi(page, "A1-wallet-fresh");
@@ -186,7 +204,10 @@ async function stageFund() {
   const { browser, page } = await launch();
   try {
     await injectSession(page);
-    await page.goto(`${BASE}/wallet`, { waitUntil: "networkidle2", timeout: 60000 });
+    await page.goto(`${BASE}/wallet`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
     await sleep(3000);
 
     const before = spendableSats(await getLocalStorage(page));
@@ -296,7 +317,8 @@ async function fillField(page, labelText, value) {
   const ok = await page.evaluate(
     (label, tagName) => {
       const lbl = [...document.querySelectorAll("label")].find(
-        (l) => l.offsetParent !== null && l.textContent?.trim().startsWith(label)
+        (l) =>
+          l.offsetParent !== null && l.textContent?.trim().startsWith(label)
       );
       if (!lbl) return `no label: ${label}`;
       const container = lbl.closest("div");
@@ -347,22 +369,34 @@ async function stageCheckout() {
     await fillField(page, "City", "Seattle");
     await fillField(page, "State/Province", "WA");
     await fillField(page, "Postal code", "98101");
-    await fillField(page, "Email for Order Updates", "staging-buyer@example.com");
+    await fillField(
+      page,
+      "Email for Order Updates",
+      "staging-buyer@example.com"
+    );
     // The product's `["required", "Address"]` tag adds an extra required
     // input labeled "Enter Address".
     await fillField(page, "Enter Address", "123 Test St, Seattle WA 98101");
     // Country is a HeroUI select: open and pick "United States of America".
     await page.evaluate(() => {
       [...document.querySelectorAll("button")]
-        .find((b) => b.getAttribute("aria-label") === "Select Country" || (b.textContent?.trim() === "Country" && b.offsetParent))
+        .find(
+          (b) =>
+            b.getAttribute("aria-label") === "Select Country" ||
+            (b.textContent?.trim() === "Country" && b.offsetParent)
+        )
         ?.click();
     });
     let picked = false;
     try {
-      await page.waitForSelector("[role='listbox'] [role='option']", { visible: true, timeout: 8000 });
+      await page.waitForSelector("[role='listbox'] [role='option']", {
+        visible: true,
+        timeout: 8000,
+      });
       picked = await page.evaluate(() => {
-        const opt = [...document.querySelectorAll("[role='option']")]
-          .find((o) => o.textContent?.trim() === "United States of America");
+        const opt = [...document.querySelectorAll("[role='option']")].find(
+          (o) => o.textContent?.trim() === "United States of America"
+        );
         opt?.click();
         return !!opt;
       });
@@ -377,7 +411,9 @@ async function stageCheckout() {
     let escrowFound = false;
     for (let i = 0; i < 20 && !escrowFound; i++) {
       escrowFound = await page.evaluate(() => {
-        const cb = [...document.querySelectorAll("input[type='checkbox']")].find(
+        const cb = [
+          ...document.querySelectorAll("input[type='checkbox']"),
+        ].find(
           (c) =>
             c.offsetParent !== null &&
             c.closest("label")?.textContent?.includes("Pay via escrow")
@@ -399,25 +435,40 @@ async function stageCheckout() {
     const errors = [];
     page.on("console", (m) => {
       Promise.all(
-        m.args().map((a) =>
-          a
-            .evaluate((v) => (v instanceof Error ? `${v.message} ${v.stack ?? ""}` : String(v)))
-            .catch(() => m.text())
-        )
-      ).then((parts) => errors.push(`console.${m.type()}: ${parts.join(" | ").slice(0, 500)}`));
+        m
+          .args()
+          .map((a) =>
+            a
+              .evaluate((v) =>
+                v instanceof Error ? `${v.message} ${v.stack ?? ""}` : String(v)
+              )
+              .catch(() => m.text())
+          )
+      ).then((parts) =>
+        errors.push(`console.${m.type()}: ${parts.join(" | ").slice(0, 500)}`)
+      );
     });
-    page.on("pageerror", (e) => errors.push(`pageerror: ${String(e).slice(0, 300)}`));
-    page.on("requestfailed", (r) => errors.push(`reqfail: ${r.url().slice(0, 120)} ${r.failure()?.errorText}`));
+    page.on("pageerror", (e) =>
+      errors.push(`pageerror: ${String(e).slice(0, 300)}`)
+    );
+    page.on("requestfailed", (r) =>
+      errors.push(`reqfail: ${r.url().slice(0, 120)} ${r.failure()?.errorText}`)
+    );
     page.on("response", (r) => {
-      if (r.status() >= 400) errors.push(`http${r.status()}: ${r.url().slice(0, 120)}`);
+      if (r.status() >= 400)
+        errors.push(`http${r.status()}: ${r.url().slice(0, 120)}`);
     });
     await page.evaluate(() => {
       window.__e2eErrors = [];
       window.addEventListener("unhandledrejection", (e) =>
-        window.__e2eErrors.push("unhandledrejection: " + String(e.reason).slice(0, 300))
+        window.__e2eErrors.push(
+          "unhandledrejection: " + String(e.reason).slice(0, 300)
+        )
       );
       window.addEventListener("error", (e) =>
-        window.__e2eErrors.push("window.onerror: " + String(e.message).slice(0, 300))
+        window.__e2eErrors.push(
+          "window.onerror: " + String(e.message).slice(0, 300)
+        )
       );
     });
 
@@ -425,7 +476,8 @@ async function stageCheckout() {
     await page.waitForFunction(
       () => {
         const btn = [...document.querySelectorAll("button")].find(
-          (b) => b.offsetParent !== null && b.textContent?.includes("Pay with Cashu")
+          (b) =>
+            b.offsetParent !== null && b.textContent?.includes("Pay with Cashu")
         );
         return btn && !btn.disabled;
       },
@@ -434,7 +486,10 @@ async function stageCheckout() {
     log("Pay with Cashu button is enabled");
     await page.evaluate(() => {
       [...document.querySelectorAll("button")]
-        .find((b) => b.offsetParent !== null && b.textContent?.includes("Pay with Cashu"))
+        .find(
+          (b) =>
+            b.offsetParent !== null && b.textContent?.includes("Pay with Cashu")
+        )
         ?.click();
     });
     log("clicked Pay with Cashu — waiting for lock + backup...");
@@ -492,18 +547,29 @@ async function stageCheckout() {
 /** C: after checkout, verify the escrow record + backup + balance exclusion. */
 async function stageVerify() {
   const state = loadState();
-  if (!state.escrowId) throw new Error("no escrowId in state — run checkout first");
+  if (!state.escrowId)
+    throw new Error("no escrowId in state — run checkout first");
   const { browser, page } = await launch();
   try {
     await injectSession(page);
-    await page.goto(`${BASE}/wallet`, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await page.goto(`${BASE}/wallet`, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
+    });
     await sleep(6000);
     const storage = await getLocalStorage(page);
     const records = JSON.parse(storage.cashu_escrows ?? "[]");
     const record = records.find((r) => r.escrowId === state.escrowId);
     if (!record) throw new Error("escrow record missing from localStorage");
-    if (!record.lockedToken) throw new Error("escrow record has no lockedToken");
-    log("escrow record present:", record.escrowId, "locked:", record.amountSats, "sats");
+    if (!record.lockedToken)
+      throw new Error("escrow record has no lockedToken");
+    log(
+      "escrow record present:",
+      record.escrowId,
+      "locked:",
+      record.amountSats,
+      "sats"
+    );
 
     // Locked proofs must NOT be in the spendable set (secret intersection).
     // Nutshell 0.20 issues v2 short keyset IDs, so decode needs the mint's
@@ -517,9 +583,16 @@ async function stageVerify() {
     const spendable = JSON.parse(storage.tokens ?? "[]");
     const leaked = spendable.filter((p) => lockedSecrets.has(p.secret));
     if (leaked.length > 0)
-      throw new Error(`${leaked.length} locked proofs are in the spendable wallet!`);
+      throw new Error(
+        `${leaked.length} locked proofs are in the spendable wallet!`
+      );
     log("locked proofs absent from spendable wallet ✓");
-    log("spendable now:", spendableSats(storage), "(was", state.spendableBeforeCheckout + ")");
+    log(
+      "spendable now:",
+      spendableSats(storage),
+      "(was",
+      state.spendableBeforeCheckout + ")"
+    );
   } finally {
     await browser.close();
   }
@@ -530,7 +603,10 @@ async function stageVerify() {
   const buyerSk = Uint8Array.from(Buffer.from(state.buyerSk, "hex"));
   const pool = new SimplePool();
   const relays = ["wss://relay.damus.io", "wss://nos.lol"];
-  const events = await pool.querySync(relays, { kinds: [7375], authors: [state.buyerPk] });
+  const events = await pool.querySync(relays, {
+    kinds: [7375],
+    authors: [state.buyerPk],
+  });
   log("kind-7375 events on relays for buyer:", events.length);
   const convKey = nip44.v2.utils.getConversationKey(buyerSk, state.buyerPk);
   let backupFound = false;
@@ -540,10 +616,18 @@ async function stageVerify() {
       const payload = JSON.parse(plain);
       if (payload?.escrow?.escrowId === state.escrowId) {
         backupFound = true;
-        const lockedSum = (payload.proofs ?? []).reduce((s, p) => s + Number(p.amount), 0);
-        log("escrow backup found on relays ✓ locked sats in backup:", lockedSum);
+        const lockedSum = (payload.proofs ?? []).reduce(
+          (s, p) => s + Number(p.amount),
+          0
+        );
+        log(
+          "escrow backup found on relays ✓ locked sats in backup:",
+          lockedSum
+        );
         if (lockedSum !== state.amountSats)
-          throw new Error(`backup amount ${lockedSum} != locked ${state.amountSats}`);
+          throw new Error(
+            `backup amount ${lockedSum} != locked ${state.amountSats}`
+          );
       }
     } catch (e) {
       if (String(e).includes("backup amount")) throw e;
@@ -551,18 +635,26 @@ async function stageVerify() {
     }
   }
   pool.close(relays);
-  if (!backupFound) throw new Error("no escrow-marked kind-7375 backup found on relays");
+  if (!backupFound)
+    throw new Error("no escrow-marked kind-7375 backup found on relays");
 }
 
 /** Restore the escrow backup into a wiped-browser wallet page (merge-only,
  * idempotent — click until the relay copy lands in the context). Returns the
  * restored record + storage snapshot, or null. */
 async function restoreInWipedContext(page, state) {
-  await page.goto(`${BASE}/wallet`, { waitUntil: "networkidle2", timeout: 60000 });
+  await page.goto(`${BASE}/wallet`, {
+    waitUntil: "networkidle2",
+    timeout: 60000,
+  });
   await sleep(6000);
   const wiped = await getLocalStorage(page);
-  if (wiped.cashu_escrows) throw new Error("wipe failed: cashu_escrows present pre-restore");
-  log("wiped browser confirmed: no escrow records, spendable:", spendableSats(wiped));
+  if (wiped.cashu_escrows)
+    throw new Error("wipe failed: cashu_escrows present pre-restore");
+  log(
+    "wiped browser confirmed: no escrow records, spendable:",
+    spendableSats(wiped)
+  );
   await shot(page, "D1-wiped");
 
   // The restore reads walletContext.proofEvents, which populates
@@ -570,7 +662,11 @@ async function restoreInWipedContext(page, state) {
   const clickRestore = () =>
     page.evaluate(() => {
       [...document.querySelectorAll("button")]
-        .find((b) => b.offsetParent !== null && b.textContent?.includes("Restore Wallet From Nostr Backup"))
+        .find(
+          (b) =>
+            b.offsetParent !== null &&
+            b.textContent?.includes("Restore Wallet From Nostr Backup")
+        )
         ?.click();
     });
   let lastStatus = null;
@@ -581,7 +677,9 @@ async function restoreInWipedContext(page, state) {
       const statusText = await page.evaluate(
         () =>
           [...document.querySelectorAll("p")].find(
-            (p) => p.offsetParent !== null && /Restored|restore|verify/i.test(p.textContent ?? "")
+            (p) =>
+              p.offsetParent !== null &&
+              /Restored|restore|verify/i.test(p.textContent ?? "")
           )?.textContent ?? null
       );
       if (statusText && statusText !== lastStatus) {
@@ -601,7 +699,8 @@ async function restoreInWipedContext(page, state) {
 /** D: wipe the browser (fresh context, sign-in keys only) and restore. */
 async function stageRestore() {
   const state = loadState();
-  if (!state.escrowId) throw new Error("no escrowId in state — run checkout first");
+  if (!state.escrowId)
+    throw new Error("no escrowId in state — run checkout first");
   const { browser } = await launch();
   try {
     // A brand-new browser context = the wiped browser. Only sign-in keys.
@@ -615,15 +714,21 @@ async function stageRestore() {
     const restored = await restoreInWipedContext(page, state);
     await shot(page, "D2-restored");
     await dumpUi(page, "D2-restored");
-    if (!restored) throw new Error("escrow record did NOT reappear after restore");
-    log("escrow record restored ✓ locked token present:", !!restored.hit.lockedToken);
+    if (!restored)
+      throw new Error("escrow record did NOT reappear after restore");
+    log(
+      "escrow record restored ✓ locked token present:",
+      !!restored.hit.lockedToken
+    );
 
     // Restored locked proofs must never appear as spendable balance.
     const { getDecodedToken } = await import("@cashu/cashu-ts");
     const ks = await (await fetch(`${restored.hit.mintUrl}/v1/keysets`)).json();
     const keysetIds = ks.keysets.map((k) => k.id);
     const lockedSecrets = new Set(
-      getDecodedToken(restored.hit.lockedToken, keysetIds).proofs.map((p) => p.secret)
+      getDecodedToken(restored.hit.lockedToken, keysetIds).proofs.map(
+        (p) => p.secret
+      )
     );
     const spendable = JSON.parse(restored.storage.tokens ?? "[]");
     const leaked = spendable.filter((p) => lockedSecrets.has(p.secret));
@@ -631,7 +736,9 @@ async function stageRestore() {
       throw new Error(`${leaked.length} restored locked proofs ARE spendable!`);
     const spendableNow = spendableSats(restored.storage);
     log("restored spendable:", spendableNow, "— locked sats excluded ✓");
-    const balanceHeader = await page.evaluate(() => document.querySelector("h1")?.textContent);
+    const balanceHeader = await page.evaluate(
+      () => document.querySelector("h1")?.textContent
+    );
     log("wallet balance header:", balanceHeader);
     saveState({ restored: true, restoredSpendable: spendableNow });
     await context.close();
@@ -666,7 +773,10 @@ async function stageRefund() {
     if (!restored) throw new Error("restore failed inside refund stage");
     log("restored in refund context ✓ — proceeding to orders");
 
-    await page.goto(`${BASE}/orders`, { waitUntil: "networkidle2", timeout: 60000 });
+    await page.goto(`${BASE}/orders`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
     await sleep(8000);
     await shot(page, "E1-orders");
     await dumpUi(page, "E1-orders");
@@ -674,7 +784,9 @@ async function stageRefund() {
     // Request the refund from the restored escrow card.
     const clicked = await page.evaluate(() => {
       const btn = [...document.querySelectorAll("button")].find(
-        (b) => b.offsetParent !== null && /^(Request|Complete) refund$/.test(b.textContent?.trim() ?? "")
+        (b) =>
+          b.offsetParent !== null &&
+          /^(Request|Complete) refund$/.test(b.textContent?.trim() ?? "")
       );
       btn?.click();
       return btn?.textContent?.trim() ?? null;
@@ -684,10 +796,15 @@ async function stageRefund() {
       // Already refunded by an earlier run? Then only the redeem step remains.
       const redeemReady = await page.evaluate(() =>
         [...document.querySelectorAll("button")].some(
-          (b) => b.offsetParent !== null && b.textContent?.includes("Redeem refund to wallet")
+          (b) =>
+            b.offsetParent !== null &&
+            b.textContent?.includes("Redeem refund to wallet")
         )
       );
-      if (!redeemReady) throw new Error("no refund button on orders page — was the record restored?");
+      if (!redeemReady)
+        throw new Error(
+          "no refund button on orders page — was the record restored?"
+        );
       log("refund already processed — skipping to redeem");
     }
 
@@ -697,7 +814,9 @@ async function stageRefund() {
     await shot(page, "E2-after-request");
     const sweep = await fetch(`${BASE}/api/cashu/escrow/process`, {
       method: "POST",
-      headers: { "x-flow-processor-secret": process.env.FLOW_PROCESSOR_SECRET ?? "" },
+      headers: {
+        "x-flow-processor-secret": process.env.FLOW_PROCESSOR_SECRET ?? "",
+      },
     });
     log("sweep trigger:", sweep.status, (await sweep.text()).slice(0, 200));
 
@@ -705,18 +824,23 @@ async function stageRefund() {
     let refunded = false;
     while (Date.now() < deadline && !refunded) {
       await sleep(10000);
-      const r = await fetch(`${BASE}/api/cashu/escrow/status?escrowId=${state.escrowId}`);
+      const r = await fetch(
+        `${BASE}/api/cashu/escrow/status?escrowId=${state.escrowId}`
+      );
       const body = await r.text();
       log("status poll:", r.status, body.slice(0, 200));
       if (/refunded|payout/i.test(body)) refunded = true;
       if (!refunded) {
         await fetch(`${BASE}/api/cashu/escrow/process`, {
           method: "POST",
-          headers: { "x-flow-processor-secret": process.env.FLOW_PROCESSOR_SECRET ?? "" },
+          headers: {
+            "x-flow-processor-secret": process.env.FLOW_PROCESSOR_SECRET ?? "",
+          },
         }).catch(() => {});
       }
     }
-    if (!refunded) throw new Error("escrow never reached refunded/payout state");
+    if (!refunded)
+      throw new Error("escrow never reached refunded/payout state");
 
     // Redeem the payout back into the wallet.
     await page.reload({ waitUntil: "networkidle2" });
@@ -724,7 +848,9 @@ async function stageRefund() {
     const spendableBeforeRedeem = spendableSats(await getLocalStorage(page));
     const redeemClicked = await page.evaluate(() => {
       const btn = [...document.querySelectorAll("button")].find(
-        (b) => b.offsetParent !== null && b.textContent?.includes("Redeem refund to wallet")
+        (b) =>
+          b.offsetParent !== null &&
+          b.textContent?.includes("Redeem refund to wallet")
       );
       btn?.click();
       return !!btn;
@@ -740,17 +866,32 @@ async function stageRefund() {
         const storage = await getLocalStorage(page);
         spendableAfter = spendableSats(storage);
         const records = JSON.parse(storage.cashu_escrows ?? "[]");
-        if (spendableAfter > spendableBeforeRedeem && !records.find((r) => r.escrowId === state.escrowId))
+        if (
+          spendableAfter > spendableBeforeRedeem &&
+          !records.find((r) => r.escrowId === state.escrowId)
+        )
           break;
-      } catch { /* transient */ }
+      } catch {
+        /* transient */
+      }
     }
     await shot(page, "E3-redeemed");
-    log("spendable before redeem:", spendableBeforeRedeem, "after:", spendableAfter);
+    log(
+      "spendable before redeem:",
+      spendableBeforeRedeem,
+      "after:",
+      spendableAfter
+    );
     const finalStorage = await getLocalStorage(page);
     const remaining = JSON.parse(finalStorage.cashu_escrows ?? "[]");
     if (spendableAfter <= spendableBeforeRedeem)
       throw new Error("redeem did not increase spendable balance");
-    log("refund redeemed ✓ (+", spendableAfter - spendableBeforeRedeem, "sats); escrow records remaining:", remaining.length);
+    log(
+      "refund redeemed ✓ (+",
+      spendableAfter - spendableBeforeRedeem,
+      "sats); escrow records remaining:",
+      remaining.length
+    );
     saveState({ refunded: true, finalSpendable: spendableAfter });
     await context.close();
   } finally {
@@ -795,7 +936,10 @@ async function stageRedeem() {
   const { browser, page } = await launch();
   try {
     await injectSession(page);
-    await page.goto(`${BASE}/orders`, { waitUntil: "networkidle2", timeout: 60000 });
+    await page.goto(`${BASE}/orders`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
     await sleep(8000);
     await shot(page, "F1-orders-refunded");
     await dumpUi(page, "F1-orders-refunded");
@@ -810,20 +954,26 @@ async function stageRedeem() {
       log("mint-verified unspent before redeem:", before);
       const redeemClicked = await page.evaluate(() => {
         const btn = [...document.querySelectorAll("button")].find(
-          (b) => b.offsetParent !== null && b.textContent?.includes("Redeem refund to wallet")
+          (b) =>
+            b.offsetParent !== null &&
+            b.textContent?.includes("Redeem refund to wallet")
         );
         btn?.click();
         return !!btn;
       });
       log("redeem button clicked:", redeemClicked);
-      if (!redeemClicked) throw new Error("no redeem button — is the escrow refunded with a payout token?");
+      if (!redeemClicked)
+        throw new Error(
+          "no redeem button — is the escrow refunded with a payout token?"
+        );
 
       // Capture any error banner the handler surfaces (e.g. double-redeem).
       await sleep(15000);
       const actionError = await page.evaluate(
         () =>
           [...document.querySelectorAll("p")].find(
-            (p) => p.offsetParent !== null && p.className.includes("text-red-700")
+            (p) =>
+              p.offsetParent !== null && p.className.includes("text-red-700")
           )?.textContent ?? null
       );
       if (actionError) log("redeem error banner:", actionError);
@@ -838,22 +988,32 @@ async function stageRedeem() {
             (r) => r.escrowId === state.escrowId
           );
           if (recordGone) break;
-        } catch { /* transient */ }
+        } catch {
+          /* transient */
+        }
       }
       if (!recordGone) throw new Error("escrow record not pruned after redeem");
       const after = await unspentSatsAtMint(storage, state.mintUrl);
       log("mint-verified unspent after redeem:", after);
       const gained = after.total - before.total;
       if (gained !== state.amountSats)
-        throw new Error(`redeem gained ${gained} sats, expected ${state.amountSats}`);
-      log("refund redeemed ✓ +", gained, "sats (mint-verified); record pruned ✓");
+        throw new Error(
+          `redeem gained ${gained} sats, expected ${state.amountSats}`
+        );
+      log(
+        "refund redeemed ✓ +",
+        gained,
+        "sats (mint-verified); record pruned ✓"
+      );
       saveState({ refunded: true, finalSpendable: after.total });
     } else {
       // A prior attempt already redeemed (record pruned, payout swapped in).
       // Terminal verification: the payout token's proofs must ALL be SPENT
       // at the mint (the redeem consumed them) and the record must stay gone.
       const status = await (
-        await fetch(`${BASE}/api/cashu/escrow/status?escrowId=${encodeURIComponent(state.escrowId)}`)
+        await fetch(
+          `${BASE}/api/cashu/escrow/status?escrowId=${encodeURIComponent(state.escrowId)}`
+        )
       ).json();
       if (status.status !== "refunded" || !status.payoutToken)
         throw new Error("escrow not in refunded state with a payout token");
@@ -864,7 +1024,9 @@ async function stageRedeem() {
         ks.keysets.map((k) => k.id)
       ).proofs;
       const enc = new TextEncoder();
-      const Ys = payoutProofs.map((p) => hashToCurve(enc.encode(p.secret)).toHex(true));
+      const Ys = payoutProofs.map((p) =>
+        hashToCurve(enc.encode(p.secret)).toHex(true)
+      );
       const cs = await (
         await fetch(`${state.mintUrl}/v1/checkstate`, {
           method: "POST",
@@ -877,7 +1039,10 @@ async function stageRedeem() {
       if (!states.every((s) => s === "SPENT"))
         throw new Error("payout proofs not fully spent — redeem incomplete");
       const now = await unspentSatsAtMint(storage, state.mintUrl);
-      log("already redeemed ✓ payout spent at mint; wallet unspent:", now.total);
+      log(
+        "already redeemed ✓ payout spent at mint; wallet unspent:",
+        now.total
+      );
       saveState({ refunded: true, finalSpendable: now.total });
     }
     await shot(page, "F2-redeemed");
@@ -886,7 +1051,17 @@ async function stageRedeem() {
   }
 }
 
-const stages = { A: stageA, fund: stageFund, discover: stageDiscover, discover2: stageDiscover2, checkout: stageCheckout, verify: stageVerify, restore: stageRestore, refund: stageRefund, redeem: stageRedeem };
+const stages = {
+  A: stageA,
+  fund: stageFund,
+  discover: stageDiscover,
+  discover2: stageDiscover2,
+  checkout: stageCheckout,
+  verify: stageVerify,
+  restore: stageRestore,
+  refund: stageRefund,
+  redeem: stageRedeem,
+};
 async function main() {
   log("base:", BASE, "listing:", LISTING_ID);
   if (stageArg === "all" || stageArg === "A") await stageA();

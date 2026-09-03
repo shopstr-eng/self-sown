@@ -550,10 +550,7 @@ export default async function handler(
     // immediately — otherwise a transient failure (e.g. DB hiccup) would
     // permanently drop the event (e.g. a paid renewal).
     await releaseStripeEvent(event.id).catch((releaseErr) =>
-      console.error(
-        "subscription webhook claim release failed:",
-        releaseErr
-      )
+      console.error("subscription webhook claim release failed:", releaseErr)
     );
     return res.status(500).json({ error: "Webhook handler failed" });
   }

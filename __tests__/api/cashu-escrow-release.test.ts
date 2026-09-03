@@ -74,7 +74,10 @@ function makeReqRes(body?: any, method = "POST") {
       return this;
     },
   };
-  return { req, res: res as NextApiResponse & { statusCode: number; body: any } };
+  return {
+    req,
+    res: res as NextApiResponse & { statusCode: number; body: any },
+  };
 }
 
 function validBody() {
@@ -118,7 +121,10 @@ describe("POST /api/cashu/escrow/release", () => {
       status: "pending",
       payoutOutputs: null,
       payloadAttached: true,
-      payoutPayload: { proofs: [DUMMY_PROOF], stage: "awaiting_seller_witness" },
+      payoutPayload: {
+        proofs: [DUMMY_PROOF],
+        stage: "awaiting_seller_witness",
+      },
     });
     mockedAttach.mockResolvedValue(true);
     mockedGetRegistration.mockResolvedValue(registration());
@@ -183,7 +189,9 @@ describe("POST /api/cashu/escrow/release", () => {
 
   it("400s when the witnessed proofs fail the payout validator", async () => {
     mockedValidate.mockImplementation(() => {
-      throw new Error("Escrow lock has expired; a release can no longer be paid out.");
+      throw new Error(
+        "Escrow lock has expired; a release can no longer be paid out."
+      );
     });
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);
@@ -225,7 +233,10 @@ describe("POST /api/cashu/escrow/release", () => {
         status: "pending",
         payoutOutputs: null,
         payloadAttached: true,
-        payoutPayload: { proofs: [DUMMY_PROOF], stage: "awaiting_seller_witness" },
+        payoutPayload: {
+          proofs: [DUMMY_PROOF],
+          stage: "awaiting_seller_witness",
+        },
       })
       .mockResolvedValueOnce({
         outboxId: "outbox-1",
@@ -270,7 +281,9 @@ describe("POST /api/cashu/escrow/release", () => {
 
   it("409s on a conflicting pending refund", async () => {
     mockedEnqueue.mockRejectedValue(
-      new Error("Cannot enqueue a release: escrow already has a pending refund.")
+      new Error(
+        "Cannot enqueue a release: escrow already has a pending refund."
+      )
     );
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);

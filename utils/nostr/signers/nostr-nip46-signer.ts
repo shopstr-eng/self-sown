@@ -126,9 +126,11 @@ export class NostrNIP46Signer implements NostrSigner {
   private async ensureInitialized(): Promise<void> {
     if (this.bunker && this.appPrivKey && this.nostr) return;
     if (!this.initializationPromise) {
-      this.initializationPromise = this.initializeEncryptedSigner().finally(() => {
-        this.initializationPromise = undefined;
-      });
+      this.initializationPromise = this.initializeEncryptedSigner().finally(
+        () => {
+          this.initializationPromise = undefined;
+        }
+      );
     }
     await this.initializationPromise;
   }
@@ -138,7 +140,8 @@ export class NostrNIP46Signer implements NostrSigner {
   }
 
   private async initializeEncryptedSigner(): Promise<void> {
-    if (!this.encryptedSigner) throw new Error("Invalid NIP-46 signer credentials.");
+    if (!this.encryptedSigner)
+      throw new Error("Invalid NIP-46 signer credentials.");
     let error: Error | undefined;
     let aborted = false;
     do {
@@ -194,7 +197,10 @@ export class NostrNIP46Signer implements NostrSigner {
   ): NostrNIP46Signer | undefined {
     if (json.type !== "nip46") return undefined;
     if (typeof json.encryptedSigner === "string" && !json.bunker) {
-      return new NostrNIP46Signer({ encryptedSigner: json.encryptedSigner }, challengeHandler);
+      return new NostrNIP46Signer(
+        { encryptedSigner: json.encryptedSigner },
+        challengeHandler
+      );
     }
     if (!json.bunker) return undefined;
     return new NostrNIP46Signer(

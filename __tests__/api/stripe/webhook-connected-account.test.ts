@@ -142,13 +142,15 @@ const mockWithProSettingsLock = jest.fn(
       key,
       prev.catch(() => {}).then(() => current)
     );
-    return prev.catch(() => {}).then(async () => {
-      try {
-        return await fn();
-      } finally {
-        release();
-      }
-    });
+    return prev
+      .catch(() => {})
+      .then(async () => {
+        try {
+          return await fn();
+        } finally {
+          release();
+        }
+      });
   }
 );
 
@@ -786,7 +788,8 @@ describe("POST /api/stripe/subscription-webhook — orphaned/failed renewal look
     // queue on the per-subscription lock instead of double-sending.
     for (
       let i = 0;
-      i < 100 && mockSendOrphanedSubscriptionPaymentAlert.mock.calls.length === 0;
+      i < 100 &&
+      mockSendOrphanedSubscriptionPaymentAlert.mock.calls.length === 0;
       i++
     ) {
       await new Promise((resolve) => setImmediate(resolve));

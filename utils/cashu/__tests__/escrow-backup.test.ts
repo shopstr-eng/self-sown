@@ -63,9 +63,14 @@ function lockedProof(amount: number, nonce: string): Proof {
   } as unknown as Proof;
 }
 
-const PROOFS: Proof[] = [lockedProof(100, "ab".repeat(16)), lockedProof(21, "cd".repeat(16))];
+const PROOFS: Proof[] = [
+  lockedProof(100, "ab".repeat(16)),
+  lockedProof(21, "cd".repeat(16)),
+];
 
-function makeRecord(overrides: Partial<BuyerEscrowRecord> = {}): BuyerEscrowRecord {
+function makeRecord(
+  overrides: Partial<BuyerEscrowRecord> = {}
+): BuyerEscrowRecord {
   const { getEncodedToken } = jest.requireActual("@cashu/cashu-ts") as any;
   return {
     escrowId: `${BUYER_PK}:order-1`,
@@ -103,11 +108,13 @@ describe("escrow-backup", () => {
   beforeEach(() => {
     store.clear();
     jest.clearAllMocks();
-    mockFilterUnspentProofs.mockImplementation(async (_mint: string, proofs: Proof[]) => ({
-      unspent: proofs,
-      spentCount: 0,
-      checked: true,
-    }));
+    mockFilterUnspentProofs.mockImplementation(
+      async (_mint: string, proofs: Proof[]) => ({
+        unspent: proofs,
+        spentCount: 0,
+        checked: true,
+      })
+    );
   });
 
   describe("publishEscrowBackup", () => {
@@ -119,7 +126,11 @@ describe("escrow-backup", () => {
     it("publishes the locked proofs as an escrow-marked kind-7375 event", async () => {
       mockFinalize.mockResolvedValue({ id: "event-id" });
       const record = makeRecord();
-      const result = await publishEscrowBackup({} as any, signer as any, record);
+      const result = await publishEscrowBackup(
+        {} as any,
+        signer as any,
+        record
+      );
       expect(result).toEqual({ published: true });
       expect(mockFinalize).toHaveBeenCalledTimes(1);
       const template = mockFinalize.mock.calls[0][2];
@@ -163,7 +174,10 @@ describe("escrow-backup", () => {
         nip04OnlySigner as any,
         makeRecord()
       );
-      expect(result).toEqual({ published: false, failure: "encryption_failed" });
+      expect(result).toEqual({
+        published: false,
+        failure: "encryption_failed",
+      });
       expect(mockFinalize).not.toHaveBeenCalled();
       warn.mockRestore();
     });
@@ -194,9 +208,11 @@ describe("escrow-backup", () => {
       });
       recordBuyerEscrow(backedUp);
       recordBuyerEscrow(missing);
-      const result = await republishMissingEscrowBackups({} as any, signer as any, [
-        backupEvent(infoFor(backedUp)),
-      ]);
+      const result = await republishMissingEscrowBackups(
+        {} as any,
+        signer as any,
+        [backupEvent(infoFor(backedUp))]
+      );
       expect(result.published).toBe(1);
       expect(result.unbacked).toEqual([]);
       expect(mockFinalize).toHaveBeenCalledTimes(1);
@@ -350,7 +366,11 @@ describe("escrow-backup", () => {
           ...PROOFS[0]!,
           secret: JSON.stringify([
             "P2PK",
-            { nonce: "ef".repeat(16), data: "e".repeat(64), tags: [["locktime", String(EXPIRES_AT)]] },
+            {
+              nonce: "ef".repeat(16),
+              data: "e".repeat(64),
+              tags: [["locktime", String(EXPIRES_AT)]],
+            },
           ]),
         },
         { ...PROOFS[1]! },

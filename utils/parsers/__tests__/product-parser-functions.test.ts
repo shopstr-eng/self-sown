@@ -237,7 +237,12 @@ describe("parseTags", () => {
     // Attack strings are assembled at runtime so the source file carries no
     // literal XSS payloads (security scanners/WAFs flag the raw literals).
     const jsSchemeUrl = ["java", "script:", "alert(1)"].join("");
-    const dataHtmlUrl = ["data:text/html,", "<scr", "ipt>alert(1)</scr", "ipt>"].join("");
+    const dataHtmlUrl = [
+      "data:text/html,",
+      "<scr",
+      "ipt>alert(1)</scr",
+      "ipt>",
+    ].join("");
     const withUnsafe = {
       ...baseEvent,
       tags: [

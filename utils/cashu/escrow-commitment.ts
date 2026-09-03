@@ -377,7 +377,10 @@ export function verifyEscrowActionEvent(
   if (action === "refund" && !escrowId.startsWith(`${event.pubkey}:`)) {
     return fail("Escrow action signer does not match the escrow buyer.");
   }
-  if (event.content !== buildEscrowActionContent({ action: action as EscrowAction, escrowId })) {
+  if (
+    event.content !==
+    buildEscrowActionContent({ action: action as EscrowAction, escrowId })
+  ) {
     return fail("Escrow action content does not match its signed tags.");
   }
 

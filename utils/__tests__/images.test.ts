@@ -27,7 +27,9 @@ describe("normalizeProductImageUrl", () => {
 
   it("normalizes persisted product images as well", () => {
     expect(
-      normalizeStoredProductImages([{ id: "a", images: ["javascript:alert(1)"] }])
+      normalizeStoredProductImages([
+        { id: "a", images: ["javascript:alert(1)"] },
+      ])
     ).toEqual([{ id: "a", images: ["/no-image-placeholder.png"] }]);
   });
 });

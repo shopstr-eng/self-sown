@@ -261,9 +261,7 @@ export const ProfileWithDropdown = ({
   const pfp = profileContent?.picture || `https://robohash.org/${pubkey}`;
   const isNip05Verified = profile?.nip05Verified || false;
   const profileBadges = (profile?.badges || [])
-    .filter(
-      (badge: Nip58ProfileBadge) => badge.thumbnail || badge.image
-    )
+    .filter((badge: Nip58ProfileBadge) => badge.thumbnail || badge.image)
     .slice(0, MAX_VISIBLE_PROFILE_BADGES);
   const displayNameWithBadges = (
     <span className="inline-flex min-w-0 items-center gap-1">
@@ -275,7 +273,11 @@ export const ProfileWithDropdown = ({
           key={`${badge.definitionAddress}:${badge.awardEventId}`}
           src={badge.thumbnail || badge.image || ""}
           alt={`${badge.name} badge`}
-          title={badge.description ? `${badge.name}: ${badge.description}` : badge.name}
+          title={
+            badge.description
+              ? `${badge.name}: ${badge.description}`
+              : badge.name
+          }
           className="h-4 w-4 shrink-0 rounded-full border border-white bg-white object-cover"
           loading="lazy"
           referrerPolicy="no-referrer"
