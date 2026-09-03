@@ -73,8 +73,13 @@ export default async function handler(
         .json({ error: "You do not own this subscription" });
     }
 
-    const stripeOptions = connectedAccountId
-      ? { stripeAccount: connectedAccountId }
+    // Prefer the Connect account recorded on the subscription at creation
+    // time; a seller who reconnects a different Stripe account would
+    // otherwise target the wrong account and orphan this subscription.
+    // Fall back to the caller-supplied account for legacy rows.
+    const targetAccountId = sub.connected_account_id || connectedAccountId;
+    const stripeOptions = targetAccountId
+      ? { stripeAccount: targetAccountId }
       : undefined;
 
     if (shippingAddress) {

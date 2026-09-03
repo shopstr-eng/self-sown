@@ -6611,10 +6611,14 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             })
           )
         );
-        // The subscriptions table doesn't store the connect account; look up
-        // the seller's Stripe Connect account so the cancel targets the
-        // connected account when one exists.
-        const connectAccount = await getStripeConnectAccount(pubkey);
+        // Target the Connect account the subscription was actually created
+        // on (recorded at creation time) so a seller who reconnects a
+        // different Stripe account doesn't orphan the old subscription.
+        // Legacy rows have no stored account; fall back to the seller's
+        // current Connect account.
+        const connectedAccountId =
+          owned.connected_account_id ??
+          (await getStripeConnectAccount(pubkey))?.stripe_account_id;
         const res = await fetch(`${baseUrl}/api/stripe/cancel-subscription`, {
           method: "POST",
           headers: {
@@ -6623,7 +6627,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           },
           body: JSON.stringify({
             subscriptionId: params.subscriptionId,
-            connectedAccountId: connectAccount?.stripe_account_id,
+            connectedAccountId,
           }),
         });
         const data = await res.json();
@@ -6698,10 +6702,14 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             })
           )
         );
-        // The subscriptions table doesn't store the connect account; look up
-        // the seller's Stripe Connect account so the update targets the
-        // connected account when one exists.
-        const connectAccount = await getStripeConnectAccount(pubkey);
+        // Target the Connect account the subscription was actually created
+        // on (recorded at creation time) so a seller who reconnects a
+        // different Stripe account doesn't orphan the old subscription.
+        // Legacy rows have no stored account; fall back to the seller's
+        // current Connect account.
+        const connectedAccountId =
+          owned.connected_account_id ??
+          (await getStripeConnectAccount(pubkey))?.stripe_account_id;
         const res = await fetch(`${baseUrl}/api/stripe/update-subscription`, {
           method: "POST",
           headers: {
@@ -6710,7 +6718,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           },
           body: JSON.stringify({
             subscriptionId: params.subscriptionId,
-            connectedAccountId: connectAccount?.stripe_account_id,
+            connectedAccountId,
             shippingAddress: params.shippingAddress,
             nextBillingDate: params.nextBillingDate,
           }),

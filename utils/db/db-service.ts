@@ -788,6 +788,7 @@ async function initializeTables(): Promise<void> {
           buyer_email TEXT NOT NULL,
           seller_pubkey TEXT NOT NULL,
           product_event_id TEXT NOT NULL,
+          connected_account_id TEXT,
           quantity INTEGER NOT NULL DEFAULT 1,
           variant_info JSONB,
           frequency TEXT NOT NULL CHECK (frequency IN ('weekly', 'every_2_weeks', 'monthly', 'every_2_months', 'quarterly')),
@@ -1641,6 +1642,7 @@ async function initializeTables(): Promise<void> {
 
       DO $sub_migrate_inline$
       BEGIN
+        ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS connected_account_id TEXT;
         ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_status_check;
         ALTER TABLE subscriptions
           ADD CONSTRAINT subscriptions_status_check
@@ -4757,6 +4759,7 @@ export interface SubscriptionRecord {
   seller_pubkey: string;
   product_event_id: string;
   product_title: string | null;
+  connected_account_id: string | null;
   quantity: number;
   variant_info: any;
   frequency: string;
@@ -4788,6 +4791,7 @@ export async function createSubscription(data: {
   seller_pubkey: string;
   product_event_id: string;
   product_title?: string | null;
+  connected_account_id?: string | null;
   quantity?: number;
   variant_info?: any;
   frequency: string;
@@ -4808,10 +4812,11 @@ export async function createSubscription(data: {
     const result = await client.query(
       `INSERT INTO subscriptions (
         stripe_subscription_id, stripe_customer_id, buyer_pubkey, buyer_email,
-        seller_pubkey, product_event_id, product_title, quantity, variant_info, frequency,
+        seller_pubkey, product_event_id, product_title, connected_account_id,
+        quantity, variant_info, frequency,
         discount_percent, base_price, subscription_price, currency,
         shipping_address, status, next_billing_date, next_shipping_date
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *`,
       [
         data.stripe_subscription_id,
@@ -4821,6 +4826,7 @@ export async function createSubscription(data: {
         data.seller_pubkey,
         data.product_event_id,
         data.product_title || null,
+        data.connected_account_id || null,
         data.quantity || 1,
         data.variant_info ? JSON.stringify(data.variant_info) : null,
         data.frequency,

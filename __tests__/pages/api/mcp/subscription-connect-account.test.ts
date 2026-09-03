@@ -125,6 +125,50 @@ beforeEach(() => {
 });
 
 describe("cancel_subscription", () => {
+  test("prefers the account id stored on the subscription over the current connect account", async () => {
+    mockGetSubscriptionsBySellerPubkey.mockResolvedValue([
+      {
+        stripe_subscription_id: SUB_ID,
+        seller_pubkey: SELLER_PUBKEY,
+        connected_account_id: "acct_original",
+      },
+    ]);
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_reconnected_different",
+    });
+
+    const result = parseToolResult(
+      await toolHandlers["cancel_subscription"]!({ subscriptionId: SUB_ID })
+    );
+    expect(result.success).toBe(true);
+
+    expect(mockGetStripeConnectAccount).not.toHaveBeenCalled();
+    const { body } = lastFetchBody();
+    expect(body.connectedAccountId).toBe("acct_original");
+  });
+
+  test("falls back to the current connect account for legacy rows without a stored account", async () => {
+    mockGetSubscriptionsBySellerPubkey.mockResolvedValue([
+      {
+        stripe_subscription_id: SUB_ID,
+        seller_pubkey: SELLER_PUBKEY,
+        connected_account_id: null,
+      },
+    ]);
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: CONNECT_ACCOUNT_ID,
+    });
+
+    const result = parseToolResult(
+      await toolHandlers["cancel_subscription"]!({ subscriptionId: SUB_ID })
+    );
+    expect(result.success).toBe(true);
+
+    expect(mockGetStripeConnectAccount).toHaveBeenCalledWith(SELLER_PUBKEY);
+    const { body } = lastFetchBody();
+    expect(body.connectedAccountId).toBe(CONNECT_ACCOUNT_ID);
+  });
+
   test("passes the seller's connected account id when one exists", async () => {
     mockGetStripeConnectAccount.mockResolvedValue({
       stripe_account_id: CONNECT_ACCOUNT_ID,
@@ -172,6 +216,28 @@ describe("cancel_subscription", () => {
 });
 
 describe("update_subscription", () => {
+  test("prefers the account id stored on the subscription over the current connect account", async () => {
+    mockGetSubscriptionsBySellerPubkey.mockResolvedValue([
+      {
+        stripe_subscription_id: SUB_ID,
+        seller_pubkey: SELLER_PUBKEY,
+        connected_account_id: "acct_original",
+      },
+    ]);
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: "acct_reconnected_different",
+    });
+
+    const result = parseToolResult(
+      await toolHandlers["update_subscription"]!({ subscriptionId: SUB_ID })
+    );
+    expect(result.success).toBe(true);
+
+    expect(mockGetStripeConnectAccount).not.toHaveBeenCalled();
+    const { body } = lastFetchBody();
+    expect(body.connectedAccountId).toBe("acct_original");
+  });
+
   test("passes the seller's connected account id when one exists", async () => {
     mockGetStripeConnectAccount.mockResolvedValue({
       stripe_account_id: CONNECT_ACCOUNT_ID,
