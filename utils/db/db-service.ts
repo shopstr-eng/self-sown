@@ -4890,8 +4890,10 @@ export async function getSubscriptionById(
     if (result.rows.length === 0) return null;
     return result.rows[0];
   } catch (error) {
+    // Rethrow so callers can distinguish "no such row" (null) from a
+    // transient DB failure instead of reporting an outage as "not found".
     console.error("Failed to get subscription by id:", error);
-    return null;
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -4911,8 +4913,10 @@ export async function getSubscriptionsByBuyerPubkey(
     );
     return result.rows;
   } catch (error) {
+    // Rethrow so callers can distinguish "no rows" ([]) from a transient DB
+    // failure instead of showing an empty list during an outage.
     console.error("Failed to get subscriptions by buyer pubkey:", error);
-    return [];
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -4932,8 +4936,10 @@ export async function getSubscriptionsByBuyerEmail(
     );
     return result.rows;
   } catch (error) {
+    // Rethrow so callers can distinguish "no rows" ([]) from a transient DB
+    // failure instead of showing an empty list during an outage.
     console.error("Failed to get subscriptions by buyer email:", error);
-    return [];
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -4953,8 +4959,11 @@ export async function getSubscriptionsBySellerPubkey(
     );
     return result.rows;
   } catch (error) {
+    // Rethrow so callers can distinguish "no rows" ([]) from a transient DB
+    // failure instead of reporting an outage as an empty subscription list
+    // (which callers like the MCP tools would surface as "not found").
     console.error("Failed to get subscriptions by seller pubkey:", error);
-    return [];
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -5089,8 +5098,10 @@ export async function getSubscriptionNotifications(
     );
     return result.rows;
   } catch (error) {
+    // Rethrow so callers can distinguish "no rows" ([]) from a transient DB
+    // failure instead of showing an empty list during an outage.
     console.error("Failed to get subscription notifications:", error);
-    return [];
+    throw error;
   } finally {
     if (client) client.release();
   }
