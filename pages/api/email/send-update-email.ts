@@ -96,7 +96,19 @@ export default async function handler(
       });
     }
 
-    const dbBuyerEmail = await getBuyerNotificationEmail(orderId);
+    // Guard the lookup: getBuyerNotificationEmail rethrows on DB outage, and
+    // a transient failure shouldn't block an update email when the seller
+    // supplied a fallback address — but it must be LOUD, not mistaken for
+    // "no email on file".
+    let dbBuyerEmail: string | null = null;
+    try {
+      dbBuyerEmail = await getBuyerNotificationEmail(orderId);
+    } catch (buyerLookupError) {
+      console.error(
+        "[send-update-email] buyer notification email lookup failed (treating as unset, using body fallback):",
+        buyerLookupError
+      );
+    }
     const fallbackBuyerEmail =
       typeof buyerEmailFromBody === "string" &&
       EMAIL_PATTERN.test(buyerEmailFromBody.trim())

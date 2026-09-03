@@ -181,8 +181,10 @@ export async function resolveSellerPaymentMethods(
     }
     const account = await getStripeConnectAccount(pubkey);
     if (account?.charges_enabled) methods.push("stripe");
-  } catch {
-    // Fail soft: a status lookup error just omits the card option.
+  } catch (err) {
+    // Fail soft: a status lookup error just omits the card option — but log
+    // it so a DB outage isn't indistinguishable from "seller has no account".
+    console.warn("[ucp] card-availability lookup failed, omitting stripe:", err);
   }
   return methods;
 }

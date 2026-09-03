@@ -3774,8 +3774,10 @@ export async function getDiscountCodesByPubkey(pubkey: string): Promise<
       shipping_discount_value: Number(row.shipping_discount_value ?? 0),
     }));
   } catch (error) {
+    // Rethrow: an empty list must mean "seller has no codes", never a DB
+    // outage. Callers that want to degrade on error catch explicitly.
     console.error("Failed to fetch discount codes:", error);
-    return [];
+    throw error;
   } finally {
     if (client) {
       client.release();
@@ -3851,8 +3853,12 @@ export async function validateDiscountCode(
       shipping_discount_value: Number(shipping_discount_value ?? 0),
     };
   } catch (error) {
+    // Rethrow: { valid: false } must mean the code genuinely doesn't
+    // apply — a DB outage misreported as "invalid" silently overcharges a
+    // buyer holding a valid code. Callers that want to degrade on error
+    // catch explicitly.
     console.error("Failed to validate discount code:", error);
-    return { valid: false };
+    throw error;
   } finally {
     if (client) {
       client.release();
@@ -4531,8 +4537,11 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
     if (result.rows.length === 0) return null;
     return result.rows[0];
   } catch (error) {
+    // Rethrow: payment/webhook callers must be able to tell a transient DB
+    // outage (500 + retry, fail closed) apart from a genuinely missing
+    // account (null). Callers that prefer null-on-error catch explicitly.
     console.error("Failed to get Stripe Connect account:", error);
-    return null;
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -4680,8 +4689,10 @@ export async function getSellerNotificationEmail(
     if (result.rows.length === 0) return null;
     return result.rows[0].email;
   } catch (error) {
+    // Rethrow: null must mean "genuinely no email on file", never a DB
+    // outage. Callers that want to degrade on error catch explicitly.
     console.error("Failed to get seller notification email:", error);
-    return null;
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -4703,8 +4714,10 @@ export async function getBuyerNotificationEmail(
     if (result.rows.length === 0) return null;
     return result.rows[0].email;
   } catch (error) {
+    // Rethrow: null must mean "genuinely no email on file", never a DB
+    // outage. Callers that want to degrade on error catch explicitly.
     console.error("Failed to get buyer notification email:", error);
-    return null;
+    throw error;
   } finally {
     if (client) client.release();
   }
@@ -4743,8 +4756,10 @@ export async function getUserAuthEmail(pubkey: string): Promise<string | null> {
 
     return null;
   } catch (error) {
+    // Rethrow: null must mean "genuinely no email on file", never a DB
+    // outage. Callers that want to degrade on error catch explicitly.
     console.error("Failed to get user auth email:", error);
-    return null;
+    throw error;
   } finally {
     if (client) client.release();
   }

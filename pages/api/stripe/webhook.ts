@@ -500,26 +500,39 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     (s) => s.pubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
   );
 
+  // Resolve any missing Connect account ids for ALL splits BEFORE creating
+  // the first transfer. getStripeConnectAccount rethrows on DB error, and
+  // that throw must abort here — transfers.create below is not idempotent
+  // across a webhook retry, so a lookup outage mid-loop would 500 with some
+  // sellers already paid and the retry would pay them again. Aborting before
+  // any money moves makes the 500 + claim release + Stripe retry safe.
+  // A null row is permanent (seller genuinely has no account) and stays a
+  // per-split failedTransfer + ops alert, never a retry.
+  const resolvedAccountIds = new Map<string, string>();
+  for (const split of sellerSplits) {
+    if (split.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) continue;
+    if (split.accountId) continue;
+    const connectAccount = await getStripeConnectAccount(split.pubkey);
+    if (!connectAccount || !connectAccount.charges_enabled) {
+      const msg = `Cannot transfer to seller ${split.pubkey} — no Stripe account`;
+      console.error(msg);
+      failedTransfers.push({
+        pubkey: split.pubkey,
+        amountCents: split.amountCents,
+        error: msg,
+      });
+      continue;
+    }
+    resolvedAccountIds.set(split.pubkey, connectAccount.stripe_account_id);
+  }
+
   for (const split of sellerSplits) {
     const isPlatformAccount =
       split.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
     if (isPlatformAccount) continue;
 
-    let accountId = split.accountId;
-    if (!accountId) {
-      const connectAccount = await getStripeConnectAccount(split.pubkey);
-      if (!connectAccount || !connectAccount.charges_enabled) {
-        const msg = `Cannot transfer to seller ${split.pubkey} — no Stripe account`;
-        console.error(msg);
-        failedTransfers.push({
-          pubkey: split.pubkey,
-          amountCents: split.amountCents,
-          error: msg,
-        });
-        continue;
-      }
-      accountId = connectAccount.stripe_account_id;
-    }
+    const accountId = split.accountId || resolvedAccountIds.get(split.pubkey);
+    if (!accountId) continue; // already recorded in failedTransfers above
 
     try {
       await stripe.transfers.create({
