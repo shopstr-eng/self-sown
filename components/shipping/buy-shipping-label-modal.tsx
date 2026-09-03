@@ -11,6 +11,7 @@ import {
   MCP_SIGNED_EVENT_HEADER,
   buildMcpRequestProofTemplate,
   buildShippingBuyLabelProof,
+  buildShippingRatesProof,
 } from "@/utils/mcp/request-proof";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
@@ -69,7 +70,7 @@ export interface BuyShippingLabelModalProps {
     widthIn?: number;
     heightIn?: number;
   };
-  orderId?: string;
+  orderId: string;
   // "outbound" = ship to buyer (default). "return" = generate a return label
   // FROM the buyer's address TO the seller's ship-from defaults.
   mode?: "outbound" | "return";
@@ -164,13 +165,22 @@ export default function BuyShippingLabelModal({
       setLoadingRates(true);
       setError(null);
       try {
-        const ownershipProof = buildShippingBuyLabelProof({
+        const rateRequestBody = {
+          orderId,
+          from: {
+            street1: "Unknown",
+            city: "Unknown",
+            state: "",
+            zip: fromZip,
+            country: fromCountry || "US",
+          },
+          to: toAddress,
+          parcel,
+          carriers,
+        };
+        const ownershipProof = buildShippingRatesProof({
           pubkey,
-          shipmentId: "pending",
-          rateId: "pending",
-          // Placeholder ownership proof for rate-fetching only — never
-          // accepted by the purchase route for an actual buy.
-          orderId: orderId || "pending",
+          ...rateRequestBody,
         });
         const ownershipTemplate = buildMcpRequestProofTemplate(ownershipProof);
         const ownershipSigned = await signer.sign(ownershipTemplate);
@@ -181,18 +191,7 @@ export default function BuyShippingLabelModal({
             "Content-Type": "application/json",
             [MCP_SIGNED_EVENT_HEADER]: ownershipHeader,
           },
-          body: JSON.stringify({
-            from: {
-              street1: "Unknown",
-              city: "Unknown",
-              state: "",
-              zip: fromZip,
-              country: fromCountry || "US",
-            },
-            to: toAddress,
-            parcel,
-            carriers,
-          }),
+          body: JSON.stringify(rateRequestBody),
         });
         const data = await res.json();
         if (cancelled) return;
@@ -312,9 +311,9 @@ export default function BuyShippingLabelModal({
 
       const proof = buildShippingBuyLabelProof({
         pubkey,
+        orderId,
         shipmentId: rate.shipmentId,
         rateId: rate.id,
-        orderId,
       });
       const template = buildMcpRequestProofTemplate(proof);
       const signedEvent = await signer.sign(template);

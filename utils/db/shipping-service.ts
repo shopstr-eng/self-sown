@@ -150,15 +150,17 @@ export async function insertShippingLabel(
 
 export async function listShippingLabelsForPubkey(
   pubkey: string,
-  limit = 100
+  limit = 100,
+  orderId?: string
 ): Promise<ShippingLabelRecord[]> {
   const pool = getDbPool();
   const result = await pool.query<ShippingLabelRow>(
     `SELECT * FROM shipping_labels
      WHERE pubkey = $1
+       AND ($3::text IS NULL OR order_id = $3)
      ORDER BY purchased_at DESC
      LIMIT $2`,
-    [pubkey, limit]
+    [pubkey, limit, orderId ?? null]
   );
   return result.rows.map(mapLabelRow);
 }
@@ -347,18 +349,22 @@ const SHIPMENT_OWNER_TTL_MINUTES = 30;
 // can't reopen it for a second purchase.
 export async function rememberShipmentOwner(
   shipmentId: string,
-  pubkey: string
+  pubkey: string,
+  orderId?: string
 ): Promise<void> {
   if (!shipmentId || !pubkey) return;
   const pool = getDbPool();
   await pool.query(
-    `INSERT INTO shipping_shipment_claims (shipment_id, pubkey, status, updated_at)
-     VALUES ($1, $2, 'owned', NOW())
+    `INSERT INTO shipping_shipment_claims
+       (shipment_id, pubkey, order_id, status, updated_at)
+     VALUES ($1, $2, $3, 'owned', NOW())
      ON CONFLICT (shipment_id) DO UPDATE SET
        pubkey = EXCLUDED.pubkey,
        updated_at = NOW()
-     WHERE shipping_shipment_claims.status = 'owned'`,
-    [shipmentId, pubkey]
+     WHERE shipping_shipment_claims.status = 'owned'
+       AND shipping_shipment_claims.pubkey = EXCLUDED.pubkey
+       AND shipping_shipment_claims.order_id IS NOT DISTINCT FROM EXCLUDED.order_id`,
+    [shipmentId, pubkey, orderId ?? null]
   );
   void pruneShipmentClaimsThrottled();
 }
@@ -381,6 +387,41 @@ export async function getShipmentOwner(
   return result.rows[0]?.pubkey || null;
 }
 
+export interface ShipmentClaimRecord {
+  shipmentId: string;
+  pubkey: string;
+  orderId: string | null;
+  status: "owned" | "purchased";
+}
+
+export async function getShipmentClaim(
+  shipmentId: string
+): Promise<ShipmentClaimRecord | null> {
+  if (!shipmentId) return null;
+  const result = await getDbPool().query<{
+    shipment_id: string;
+    pubkey: string;
+    order_id: string | null;
+    status: "owned" | "purchased";
+  }>(
+    `SELECT shipment_id, pubkey, order_id, status
+     FROM shipping_shipment_claims
+     WHERE shipment_id = $1
+       AND created_at > NOW() - INTERVAL '${SHIPMENT_OWNER_TTL_MINUTES} minutes'
+     LIMIT 1`,
+    [shipmentId]
+  );
+  const row = result.rows[0];
+  return row
+    ? {
+        shipmentId: row.shipment_id,
+        pubkey: row.pubkey,
+        orderId: row.order_id,
+        status: row.status,
+      }
+    : null;
+}
+
 // Atomically claim a shipment for purchase. Returns true if the caller now owns
 // the claim, false if it was already claimed/purchased. Works for both:
 //   - outbound labels: an 'owned' row exists (from rates) and is flipped to
@@ -392,19 +433,28 @@ export async function getShipmentOwner(
 // `releaseShipmentClaim` if the purchase ultimately fails, so it can be retried.
 export async function claimShipmentForPurchase(
   shipmentId: string,
-  pubkey: string
+  pubkey: string,
+  orderId?: string
 ): Promise<boolean> {
   if (!shipmentId || !pubkey) return false;
   const pool = getDbPool();
   const result = await pool.query(
-    `INSERT INTO shipping_shipment_claims (shipment_id, pubkey, status, updated_at)
-     VALUES ($1, $2, 'purchased', NOW())
+    `INSERT INTO shipping_shipment_claims
+       (shipment_id, pubkey, order_id, status, updated_at)
+     VALUES ($1, $2, $3, 'purchased', NOW())
      ON CONFLICT (shipment_id) DO UPDATE SET
        status = 'purchased',
+       order_id = COALESCE(shipping_shipment_claims.order_id, EXCLUDED.order_id),
        updated_at = NOW()
      WHERE shipping_shipment_claims.status = 'owned'
+       AND shipping_shipment_claims.pubkey = EXCLUDED.pubkey
+       AND (
+         EXCLUDED.order_id IS NULL
+         OR shipping_shipment_claims.order_id IS NULL
+         OR shipping_shipment_claims.order_id = EXCLUDED.order_id
+       )
      RETURNING shipment_id`,
-    [shipmentId, pubkey]
+    [shipmentId, pubkey, orderId ?? null]
   );
   void pruneShipmentClaimsThrottled();
   return (result.rowCount || 0) > 0;
@@ -559,6 +609,120 @@ export async function markAutoLabelPurchased(
      WHERE claim_key = $1`,
     [claimKey, shipmentId]
   );
+}
+
+// Claim an order line for an OUTBOUND label purchase across BOTH the manual
+// mobile flow and the automatic webhook flow. Dual-writes the new
+// shipping_outbound_order_claims table and the legacy
+// shipping_label_order_claims table (claim_key = paymentRef when known, else a
+// deterministic outbound key) so a claim taken by either flow — or by an older
+// server version still using claim keys — blocks the other. Returns true only
+// for the single caller that inserts both rows; the winner MUST call
+// releaseOutboundLabelClaim if the purchase fails before Shippo charges.
+export async function claimOutboundLabelPurchase(
+  pubkey: string,
+  orderId: string,
+  paymentRef?: string | null
+): Promise<boolean> {
+  if (!pubkey || !orderId) return false;
+  const client = await getDbPool().connect();
+  const legacyClaimKey = paymentRef || `outbound:${pubkey}:${orderId}`;
+  try {
+    await client.query("BEGIN");
+    const legacyResult = await client.query(
+      `INSERT INTO shipping_label_order_claims
+         (claim_key, pubkey, order_id, status, updated_at)
+       VALUES ($1, $2, $3, 'pending', NOW())
+       ON CONFLICT DO NOTHING
+       RETURNING order_id`,
+      [legacyClaimKey, pubkey, orderId]
+    );
+    if ((legacyResult.rowCount || 0) === 0) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+
+    const result = await client.query(
+      `INSERT INTO shipping_outbound_order_claims
+         (pubkey, order_id, payment_ref, status, updated_at)
+       VALUES ($1, $2, $3, 'pending', NOW())
+       ON CONFLICT DO NOTHING
+       RETURNING order_id`,
+      [pubkey, orderId, paymentRef ?? null]
+    );
+    if ((result.rowCount || 0) === 0) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Release a still-pending outbound claim (both tables) so a failed purchase can
+// be retried. Only deletes 'pending' rows — a 'purchased' marker is permanent.
+export async function releaseOutboundLabelClaim(
+  pubkey: string,
+  orderId: string
+): Promise<void> {
+  if (!pubkey || !orderId) return;
+  const client = await getDbPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `DELETE FROM shipping_outbound_order_claims
+       WHERE pubkey = $1 AND order_id = $2 AND status = 'pending'`,
+      [pubkey, orderId]
+    );
+    await client.query(
+      `DELETE FROM shipping_label_order_claims
+       WHERE pubkey = $1 AND order_id = $2 AND status = 'pending'`,
+      [pubkey, orderId]
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Promote an outbound claim to the permanent 'purchased' marker in both tables
+// after Shippo has charged and the label history row is written.
+export async function markOutboundLabelPurchased(
+  pubkey: string,
+  orderId: string,
+  shipmentId: string | null
+): Promise<void> {
+  if (!pubkey || !orderId) return;
+  const client = await getDbPool().connect();
+  try {
+    await client.query("BEGIN");
+    await client.query(
+      `UPDATE shipping_outbound_order_claims
+       SET status = 'purchased', shipment_id = $3, updated_at = NOW()
+       WHERE pubkey = $1 AND order_id = $2`,
+      [pubkey, orderId, shipmentId]
+    );
+    await client.query(
+      `UPDATE shipping_label_order_claims
+       SET status = 'purchased', shipment_id = $3, updated_at = NOW()
+       WHERE pubkey = $1 AND order_id = $2`,
+      [pubkey, orderId, shipmentId]
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 // Count non-return labels already recorded for this seller + order. Used as a

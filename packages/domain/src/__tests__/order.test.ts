@@ -2,6 +2,7 @@ import {
   canSellerTransitionOrderStatus,
   consolidateSellerOrders,
   getNextSellerOrderStatus,
+  parseSellerProductAddress,
   parseSellerOrderMessage,
   validateSellerShippingUpdate,
   type SellerOrderEvent,
@@ -10,6 +11,28 @@ import {
 const sellerPubkey = "a".repeat(64);
 const buyerPubkey = "b".repeat(64);
 const senderPubkey = "c".repeat(64);
+
+describe("seller product address parsing", () => {
+  it("returns the validated listing coordinate parts", () => {
+    expect(
+      parseSellerProductAddress(
+        `30402:${sellerPubkey}:fresh-milk`,
+        sellerPubkey
+      )
+    ).toEqual({
+      address: `30402:${sellerPubkey}:fresh-milk`,
+      kind: 30402,
+      sellerPubkey,
+      dTag: "fresh-milk",
+    });
+  });
+
+  it("rejects a coordinate belonging to another seller", () => {
+    expect(
+      parseSellerProductAddress(`30402:${buyerPubkey}:fresh-milk`, sellerPubkey)
+    ).toBeNull();
+  });
+});
 
 function makeOrderEvent(
   overrides: Partial<SellerOrderEvent> = {}

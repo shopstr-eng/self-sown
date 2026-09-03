@@ -12,7 +12,7 @@
  * These tests pin two behaviours that directly protect seller money:
  *   1. Two identical requests => exactly one purchase, deterministic 409 on the
  *      second.
- *   2. A failed purchase releases the claim so the seller can retry.
+ *   2. An uncertain provider result retains the claim to prevent double charge.
  */
 
 const MCP_SIGNED_EVENT_HEADER = "x-mcp-signed-event";
@@ -31,16 +31,18 @@ const isPubkeyProEntitledMock = jest.fn();
 
 const claimShipmentForPurchaseMock = jest.fn();
 const releaseShipmentClaimMock = jest.fn();
-const getShipmentOwnerMock = jest.fn();
+const getShipmentClaimMock = jest.fn();
 const getShippoAccessTokenMock = jest.fn();
 const insertShippingLabelMock = jest.fn();
 const consumeSignedRequestProofMock = jest.fn();
-const claimAutoLabelPurchaseMock = jest.fn();
-const attachShipmentToClaimMock = jest.fn();
-const markAutoLabelPurchasedMock = jest.fn();
+const claimOutboundLabelPurchaseMock = jest.fn();
+const releaseOutboundLabelClaimMock = jest.fn();
 const releaseAutoLabelClaimMock = jest.fn();
-const getAutoLabelClaimMock = jest.fn();
-const lookupShipmentChargeMock = jest.fn();
+const attachShipmentToClaimMock = jest.fn();
+const resolveOrderLabelClaimConflictMock = jest.fn();
+const markOutboundLabelPurchasedMock = jest.fn();
+const getSellerOrderStateMock = jest.fn();
+const isDefinitiveShippoPurchaseFailureMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -48,8 +50,8 @@ jest.mock("@/utils/rate-limit", () => ({
 
 jest.mock("@/utils/shipping/shippo", () => ({
   buyLabel: (...args: unknown[]) => buyLabelMock(...args),
-  lookupShipmentCharge: (...args: unknown[]) =>
-    lookupShipmentChargeMock(...args),
+  isDefinitiveShippoPurchaseFailure: (...args: unknown[]) =>
+    isDefinitiveShippoPurchaseFailureMock(...args),
 }));
 
 jest.mock("@/utils/shipping/shippo-oauth", () => ({
@@ -92,19 +94,30 @@ jest.mock("@/utils/db/shipping-service", () => ({
     claimShipmentForPurchaseMock(...args),
   releaseShipmentClaim: (...args: unknown[]) =>
     releaseShipmentClaimMock(...args),
-  getShipmentOwner: (...args: unknown[]) => getShipmentOwnerMock(...args),
+  getShipmentClaim: (...args: unknown[]) => getShipmentClaimMock(...args),
   getShippoAccessToken: (...args: unknown[]) =>
     getShippoAccessTokenMock(...args),
   insertShippingLabel: (...args: unknown[]) => insertShippingLabelMock(...args),
-  claimAutoLabelPurchase: (...args: unknown[]) =>
-    claimAutoLabelPurchaseMock(...args),
-  attachShipmentToClaim: (...args: unknown[]) =>
-    attachShipmentToClaimMock(...args),
-  getAutoLabelClaim: (...args: unknown[]) => getAutoLabelClaimMock(...args),
-  markAutoLabelPurchased: (...args: unknown[]) =>
-    markAutoLabelPurchasedMock(...args),
+  claimOutboundLabelPurchase: (...args: unknown[]) =>
+    claimOutboundLabelPurchaseMock(...args),
+  releaseOutboundLabelClaim: (...args: unknown[]) =>
+    releaseOutboundLabelClaimMock(...args),
   releaseAutoLabelClaim: (...args: unknown[]) =>
     releaseAutoLabelClaimMock(...args),
+  attachShipmentToClaim: (...args: unknown[]) =>
+    attachShipmentToClaimMock(...args),
+  markOutboundLabelPurchased: (...args: unknown[]) =>
+    markOutboundLabelPurchasedMock(...args),
+}));
+
+jest.mock("@/utils/shipping/claim-reconcile", () => ({
+  buildLabelReconcileToken: (claimKey: string) => `token:${claimKey}`,
+  resolveOrderLabelClaimConflict: (...args: unknown[]) =>
+    resolveOrderLabelClaimConflictMock(...args),
+}));
+
+jest.mock("@/utils/db/db-service", () => ({
+  getSellerOrderState: (...args: unknown[]) => getSellerOrderStateMock(...args),
 }));
 
 import handler from "@/pages/api/shipping/buy-label";
@@ -171,62 +184,25 @@ function makeClaimStore() {
   };
 }
 
-// Simulates the shared per-(seller, order) purchase claim table
-// (shipping_label_order_claims): the first claimant inserts a 'pending' row,
-// later attempts see false until the row is released, and an ambiguous
-// failure HOLDS the row pending (it is never released on a maybe-charged
-// failure — only reconciliation against Shippo may release it).
-function makeOrderClaimStore() {
-  const rows = new Map<
-    string,
-    {
-      status: string;
-      shipmentId: string | null;
-      reconcileToken: string | null;
-      updatedAtMs: number;
-    }
-  >();
-  return {
-    rows,
-    claim: jest.fn(
-      async (
-        key: string,
-        _pubkey: string,
-        _orderId: string,
-        shipmentId?: string | null,
-        reconcileToken?: string | null
-      ) => {
-        if (rows.has(key)) return false;
-        rows.set(key, {
-          status: "pending",
-          shipmentId: shipmentId ?? null,
-          reconcileToken: reconcileToken ?? null,
-          updatedAtMs: Date.now(),
-        });
-        return true;
-      }
-    ),
-    get: jest.fn(async (key: string) => rows.get(key) ?? null),
-    release: jest.fn(async (key: string) => {
-      if (rows.get(key)?.status === "pending") rows.delete(key);
-    }),
-    markPurchased: jest.fn(async (key: string, shipmentId: string | null) => {
-      const row = rows.get(key);
-      if (row) {
-        row.status = "purchased";
-        row.shipmentId = shipmentId;
-        row.updatedAtMs = Date.now();
-      }
-    }),
-  };
-}
-
 beforeEach(() => {
   jest.clearAllMocks();
 
   applyRateLimitMock.mockReturnValue(true);
   isShippoOAuthConfiguredMock.mockReturnValue(true);
   consumeSignedRequestProofMock.mockResolvedValue(true);
+  claimOutboundLabelPurchaseMock.mockResolvedValue(true);
+  attachShipmentToClaimMock.mockResolvedValue(true);
+  resolveOrderLabelClaimConflictMock.mockResolvedValue("in-progress");
+  releaseOutboundLabelClaimMock.mockResolvedValue(undefined);
+  markOutboundLabelPurchasedMock.mockResolvedValue(undefined);
+  isDefinitiveShippoPurchaseFailureMock.mockReturnValue(false);
+  getSellerOrderStateMock.mockResolvedValue({
+    sellerPubkey: SELLER_PUBKEY,
+    buyerPubkey: "buyer-pubkey",
+    orderId: "order-123",
+    status: "confirmed",
+    version: 1,
+  });
   verifyEventMock.mockReturnValue(true);
   isMcpRequestProofFreshMock.mockReturnValue(true);
   matchesMcpRequestProofMock.mockReturnValue(true);
@@ -241,16 +217,11 @@ beforeEach(() => {
 
   isListedSellerMock.mockResolvedValue(true);
   isPubkeyProEntitledMock.mockResolvedValue(true);
-  getShipmentOwnerMock.mockResolvedValue(SELLER_PUBKEY);
-  claimAutoLabelPurchaseMock.mockResolvedValue(true);
-  attachShipmentToClaimMock.mockResolvedValue(true);
-  getAutoLabelClaimMock.mockResolvedValue(null);
-  markAutoLabelPurchasedMock.mockResolvedValue(undefined);
-  releaseAutoLabelClaimMock.mockResolvedValue(undefined);
-  lookupShipmentChargeMock.mockResolvedValue({
-    label: null,
-    chargeState: "none",
-    coveredWindow: true,
+  getShipmentClaimMock.mockResolvedValue({
+    shipmentId: SHIPMENT_ID,
+    pubkey: SELLER_PUBKEY,
+    orderId: "order-123",
+    status: "owned",
   });
   getShippoAccessTokenMock.mockResolvedValue("oauth.seller-token");
   insertShippingLabelMock.mockResolvedValue({ id: 42 });
@@ -268,6 +239,17 @@ beforeEach(() => {
 });
 
 describe("/api/shipping/buy-label duplicate protection", () => {
+  it("rejects a forged or non-confirmed order before claiming or charging", async () => {
+    getSellerOrderStateMock.mockResolvedValue(null);
+    const res = createResponse();
+
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+    expect(buyLabelMock).not.toHaveBeenCalled();
+  });
+
   it("buys exactly one label and returns a deterministic 409 on the duplicate", async () => {
     const store = makeClaimStore();
     claimShipmentForPurchaseMock.mockImplementation(store.claim);
@@ -301,99 +283,49 @@ describe("/api/shipping/buy-label duplicate protection", () => {
     expect(store.rows.get(SHIPMENT_ID)).toBe("purchased");
   });
 
-  it("holds the order claim after an ambiguous failure and blocks retry until reconciliation proves safety", async () => {
+  it("retains claims after an uncertain timeout so a retry cannot double-charge", async () => {
     const store = makeClaimStore();
     claimShipmentForPurchaseMock.mockImplementation(store.claim);
     releaseShipmentClaimMock.mockImplementation(store.release);
-    const orderClaims = makeOrderClaimStore();
-    claimAutoLabelPurchaseMock.mockImplementation(orderClaims.claim);
-    getAutoLabelClaimMock.mockImplementation(orderClaims.get);
-    releaseAutoLabelClaimMock.mockImplementation(orderClaims.release);
-    markAutoLabelPurchasedMock.mockImplementation(orderClaims.markPurchased);
-    const orderKey = `outbound:${SELLER_PUBKEY}:order-123`;
 
-    // First attempt: the Shippo purchase outcome is lost — a timeout after
-    // Shippo may have accepted the charge.
+    // First attempt: Shippo purchase throws.
     buyLabelMock.mockRejectedValueOnce(new Error("Shippo timeout"));
 
     const res1 = createResponse();
     await handler(makeRequest(validBody()), res1 as any);
 
-    expect(res1.statusCode).toBe(500);
-    expect(res1.jsonBody).toEqual({ error: "Shippo timeout" });
+    expect(res1.statusCode).toBe(502);
 
-    // The SHIPMENT claim is released so the shipment is retryable, but the
-    // ORDER claim is HELD pending — the charge is ambiguous and a retry must
-    // not blindly buy again.
-    expect(releaseShipmentClaimMock).toHaveBeenCalledWith(SHIPMENT_ID);
-    expect(store.rows.get(SHIPMENT_ID)).toBe("owned");
-    expect(orderClaims.rows.get(orderKey)?.status).toBe("pending");
+    expect(releaseShipmentClaimMock).not.toHaveBeenCalled();
+    expect(releaseOutboundLabelClaimMock).not.toHaveBeenCalled();
+    expect(store.rows.get(SHIPMENT_ID)).toBe("purchased");
 
-    // Immediate retry: the held claim is fresh, so a Shippo charge could
-    // still be in flight — the route refuses (409) and charges nothing.
+    // A blind retry is blocked because Shippo may have completed attempt one.
     const res2 = createResponse();
     await handler(makeRequest(validBody()), res2 as any);
 
     expect(res2.statusCode).toBe(409);
-    expect(res2.jsonBody).toEqual({
-      error:
-        "A label purchase for this order is already in progress. Retry in a couple of minutes.",
-    });
     expect(buyLabelMock).toHaveBeenCalledTimes(1);
-
-    // Only once the claim is stale AND Shippo proves no charge exists may
-    // the retry proceed — then it succeeds and charges the seller once more.
-    orderClaims.rows.get(orderKey)!.updatedAtMs = Date.now() - 10 * 60 * 1000;
-
-    const res3 = createResponse();
-    await handler(makeRequest(validBody()), res3 as any);
-
-    expect(res3.statusCode).toBe(200);
-    expect(res3.jsonBody).toMatchObject({ success: true, id: 42 });
-    expect(buyLabelMock).toHaveBeenCalledTimes(2);
-    expect(orderClaims.rows.get(orderKey)?.status).toBe("purchased");
     expect(store.rows.get(SHIPMENT_ID)).toBe("purchased");
   });
 
-  it("a held claim that Shippo proves was charged resolves to 409 already-bought and is never re-bought", async () => {
+  it("releases claims after a definitive provider rejection", async () => {
     const store = makeClaimStore();
     claimShipmentForPurchaseMock.mockImplementation(store.claim);
     releaseShipmentClaimMock.mockImplementation(store.release);
-    const orderClaims = makeOrderClaimStore();
-    claimAutoLabelPurchaseMock.mockImplementation(orderClaims.claim);
-    getAutoLabelClaimMock.mockImplementation(orderClaims.get);
-    releaseAutoLabelClaimMock.mockImplementation(orderClaims.release);
-    markAutoLabelPurchasedMock.mockImplementation(orderClaims.markPurchased);
-    const orderKey = `outbound:${SELLER_PUBKEY}:order-123`;
-
-    // An earlier attempt timed out ambiguously; its claim is held pending
-    // with the shipment attached (backdated past the in-flight window).
-    orderClaims.rows.set(orderKey, {
-      status: "pending",
-      shipmentId: SHIPMENT_ID,
-      reconcileToken: "rec_tok_seeded",
-      updatedAtMs: Date.now() - 10 * 60 * 1000,
-    });
-
-    // Shippo's transaction list proves the earlier attempt DID charge —
-    // even though it returned no usable label metadata (SUCCESS without
-    // label_url).
-    lookupShipmentChargeMock.mockResolvedValue({
-      label: null,
-      chargeState: "charged",
-      coveredWindow: true,
-    });
+    isDefinitiveShippoPurchaseFailureMock.mockReturnValue(true);
+    buyLabelMock.mockRejectedValue(new Error("Invalid rate"));
 
     const res = createResponse();
     await handler(makeRequest(validBody()), res as any);
 
-    expect(res.statusCode).toBe(409);
-    expect(res.jsonBody).toEqual({
-      error: "A label was already purchased for this order.",
-    });
-    // Never re-bought, and the claim is permanently marked purchased.
-    expect(buyLabelMock).not.toHaveBeenCalled();
-    expect(orderClaims.rows.get(orderKey)?.status).toBe("purchased");
+    expect(res.statusCode).toBe(500);
+    expect(releaseShipmentClaimMock).toHaveBeenCalledWith(SHIPMENT_ID);
+    expect(releaseOutboundLabelClaimMock).toHaveBeenCalledWith(
+      SELLER_PUBKEY,
+      "order-123"
+    );
+    expect(store.rows.get(SHIPMENT_ID)).toBe("owned");
   });
 });
 
@@ -415,7 +347,7 @@ describe("/api/shipping/buy-label authorization & entitlement", () => {
     });
 
     // Bailed before touching the shipment registry or Shippo.
-    expect(getShipmentOwnerMock).not.toHaveBeenCalled();
+    expect(getShipmentClaimMock).not.toHaveBeenCalled();
     expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
     expect(buyLabelMock).not.toHaveBeenCalled();
   });
@@ -426,7 +358,7 @@ describe("/api/shipping/buy-label authorization & entitlement", () => {
     releaseShipmentClaimMock.mockImplementation(store.release);
 
     // No 'owned' row exists for this shipment (never quoted, or it expired).
-    getShipmentOwnerMock.mockResolvedValue(null);
+    getShipmentClaimMock.mockResolvedValue(null);
 
     const res = createResponse();
     await handler(makeRequest(validBody()), res as any);
@@ -448,14 +380,19 @@ describe("/api/shipping/buy-label authorization & entitlement", () => {
     releaseShipmentClaimMock.mockImplementation(store.release);
 
     // The shipment was quoted by a different seller.
-    getShipmentOwnerMock.mockResolvedValue("some-other-seller-pubkey");
+    getShipmentClaimMock.mockResolvedValue({
+      shipmentId: SHIPMENT_ID,
+      pubkey: "some-other-seller-pubkey",
+      orderId: "order-123",
+      status: "owned",
+    });
 
     const res = createResponse();
     await handler(makeRequest(validBody()), res as any);
 
     expect(res.statusCode).toBe(403);
     expect(res.jsonBody).toEqual({
-      error: "Shipment is owned by a different pubkey",
+      error: "Shipment is not bound to this seller and order",
     });
 
     // Bailed before claiming or charging.
@@ -463,7 +400,26 @@ describe("/api/shipping/buy-label authorization & entitlement", () => {
     expect(buyLabelMock).not.toHaveBeenCalled();
   });
 
-  it("releases the claim and returns 409 when the seller has no connected Shippo token", async () => {
+  it("rejects a shipment quoted for a different order", async () => {
+    getShipmentClaimMock.mockResolvedValue({
+      shipmentId: SHIPMENT_ID,
+      pubkey: SELLER_PUBKEY,
+      orderId: "different-order",
+      status: "owned",
+    });
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(res.jsonBody).toEqual({
+      error: "Shipment is not bound to this seller and order",
+    });
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+    expect(buyLabelMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 without taking claims when the seller has no connected Shippo token", async () => {
     const store = makeClaimStore();
     claimShipmentForPurchaseMock.mockImplementation(store.claim);
     releaseShipmentClaimMock.mockImplementation(store.release);
@@ -480,12 +436,8 @@ describe("/api/shipping/buy-label authorization & entitlement", () => {
         "Connect your Shippo account in Settings → Shipping before buying labels.",
     });
 
-    // The claim was taken, then released so the shipment stays retryable.
-    expect(claimShipmentForPurchaseMock).toHaveBeenCalledWith(
-      SHIPMENT_ID,
-      SELLER_PUBKEY
-    );
-    expect(releaseShipmentClaimMock).toHaveBeenCalledWith(SHIPMENT_ID);
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+    expect(releaseShipmentClaimMock).not.toHaveBeenCalled();
     expect(store.rows.get(SHIPMENT_ID)).toBe("owned");
 
     // No charge happened.
@@ -513,7 +465,7 @@ describe("/api/shipping/buy-label Herd (Pro) entitlement gate", () => {
     });
 
     // Bailed before touching the shipment registry or Shippo.
-    expect(getShipmentOwnerMock).not.toHaveBeenCalled();
+    expect(getShipmentClaimMock).not.toHaveBeenCalled();
     expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
     expect(buyLabelMock).not.toHaveBeenCalled();
   });
@@ -532,7 +484,7 @@ describe("/api/shipping/buy-label Herd (Pro) entitlement gate", () => {
     expect(res.jsonBody).toEqual({
       error: "Could not verify membership. Please try again.",
     });
-    expect(getShipmentOwnerMock).not.toHaveBeenCalled();
+    expect(getShipmentClaimMock).not.toHaveBeenCalled();
     expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
     expect(buyLabelMock).not.toHaveBeenCalled();
   });
@@ -545,7 +497,7 @@ describe("/api/shipping/buy-label signed-event (cryptographic proof) guards", ()
   // claim store purely to prove it is never consulted.
   function expectNoAuthOrCharge() {
     expect(isListedSellerMock).not.toHaveBeenCalled();
-    expect(getShipmentOwnerMock).not.toHaveBeenCalled();
+    expect(getShipmentClaimMock).not.toHaveBeenCalled();
     expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
     expect(buyLabelMock).not.toHaveBeenCalled();
   }

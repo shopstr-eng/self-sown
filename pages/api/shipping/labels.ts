@@ -5,12 +5,15 @@ import {
   MCP_REQUEST_PROOF_KIND,
   MCP_SIGNED_EVENT_HEADER,
   isMcpRequestProofFresh,
+  matchesMcpRequestProof,
   parseSignedEventHeader,
   type McpRequestProof,
 } from "@/utils/mcp/request-proof";
 import { listShippingLabelsForPubkey } from "@/utils/db/shipping-service";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
+const ORDER_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 
 function buildListProof(pubkey: string): McpRequestProof {
   return {
@@ -31,6 +34,29 @@ export default async function handler(
   if (!(await applyRateLimit(req, res, "shipping-labels-list", RATE_LIMIT)))
     return;
 
+  if (req.headers.authorization) {
+    const auth = await verifyNip98Request(req, "GET");
+    if (!auth.ok) return res.status(401).json({ error: auth.error });
+    const rawOrderId = Array.isArray(req.query.orderId)
+      ? req.query.orderId[0]
+      : req.query.orderId;
+    if (rawOrderId !== undefined && !ORDER_ID.test(rawOrderId)) {
+      return res.status(400).json({ error: "Invalid orderId" });
+    }
+    try {
+      const labels = await listShippingLabelsForPubkey(
+        auth.pubkey,
+        200,
+        rawOrderId
+      );
+      return res.status(200).json({ success: true, labels });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      console.error("List shipping labels failed:", message);
+      return res.status(500).json({ error: "Could not load shipping labels" });
+    }
+  }
+
   const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
   const signedHeaderValue = Array.isArray(signedHeader)
     ? signedHeader[0]
@@ -47,13 +73,8 @@ export default async function handler(
     return res.status(401).json({ error: "Signed event expired" });
   }
 
-  // Verify the action tag matches a list request from this pubkey. We don't
-  // call matchesMcpRequestProof here because the only required fields are
-  // action/method/path/pubkey, which we re-derive.
   const expected = buildListProof(event.pubkey);
-  const actionTag = event.tags.find((t) => t[0] === "action")?.[1];
-  const pathTag = event.tags.find((t) => t[0] === "path")?.[1];
-  if (actionTag !== expected.action || pathTag !== expected.path) {
+  if (!matchesMcpRequestProof(event, expected)) {
     return res
       .status(401)
       .json({ error: "Signed event does not match request" });
@@ -65,6 +86,6 @@ export default async function handler(
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("List shipping labels failed:", message);
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Could not load shipping labels" });
   }
 }
