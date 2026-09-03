@@ -76,8 +76,9 @@ const ALIGN_JUSTIFY_CLASSES: Record<string, string> = {
 // Mirrors the heuristic used by the email templates.
 function hexLuminance(hex: string): number | null {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
+  const hexDigits = m?.[1];
+  if (!hexDigits) return null;
+  const n = parseInt(hexDigits, 16);
   return (
     (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) /
     255
@@ -283,7 +284,7 @@ export default function SectionElementFlow({
     const overlayText = readableTextOn(colors.secondary);
     return (
       <div className="relative overflow-hidden rounded-xl">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {}
         <img
           src={sanitizeUrl(section.image)}
           alt=""

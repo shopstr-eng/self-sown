@@ -24,7 +24,10 @@ jest.mock("@/utils/db/cashu-escrow-service", () => ({
 // Keep the real verifier but allow env-free allowlists via config mock above.
 jest.mock("@/utils/cashu/escrow-commitment", () => {
   const actual = jest.requireActual("@/utils/cashu/escrow-commitment");
-  return { ...actual, verifyEscrowCommitmentEvent: jest.fn(actual.verifyEscrowCommitmentEvent) };
+  return {
+    ...actual,
+    verifyEscrowCommitmentEvent: jest.fn(actual.verifyEscrowCommitmentEvent),
+  };
 });
 
 const mockedApplyRateLimit = applyRateLimit as jest.Mock;
@@ -46,11 +49,11 @@ function makeReqRes(body?: any, method = "POST") {
     statusCode: 200,
     body: undefined as any,
     setHeader: jest.fn(),
-    status(code: number) {
+    status(this: any, code: number) {
       this.statusCode = code;
       return this;
     },
-    json(payload: any) {
+    json(this: any, payload: any) {
       this.body = payload;
       return this;
     },
@@ -162,7 +165,9 @@ describe("POST /api/cashu/escrow/register", () => {
 
   it("registers a valid commitment and returns 201", async () => {
     mockedRegister.mockResolvedValue({ created: true, escrowId: "e1" });
-    const { req, res } = makeReqRes({ commitmentEvent: validCommitmentEvent() });
+    const { req, res } = makeReqRes({
+      commitmentEvent: validCommitmentEvent(),
+    });
     await handler(req, res);
     expect(res.statusCode).toBe(201);
     expect(res.body).toEqual({
@@ -175,7 +180,9 @@ describe("POST /api/cashu/escrow/register", () => {
 
   it("returns 200 on an idempotent replay", async () => {
     mockedRegister.mockResolvedValue({ created: false, escrowId: "e1" });
-    const { req, res } = makeReqRes({ commitmentEvent: validCommitmentEvent() });
+    const { req, res } = makeReqRes({
+      commitmentEvent: validCommitmentEvent(),
+    });
     await handler(req, res);
     expect(res.statusCode).toBe(200);
     expect(res.body.replayed).toBe(true);
@@ -183,9 +190,13 @@ describe("POST /api/cashu/escrow/register", () => {
 
   it("maps conflicting terms to a 409", async () => {
     mockedRegister.mockRejectedValue(
-      new Error("Escrow registration conflict: terms differ from the original commitment.")
+      new Error(
+        "Escrow registration conflict: terms differ from the original commitment."
+      )
     );
-    const { req, res } = makeReqRes({ commitmentEvent: validCommitmentEvent() });
+    const { req, res } = makeReqRes({
+      commitmentEvent: validCommitmentEvent(),
+    });
     await handler(req, res);
     expect(res.statusCode).toBe(409);
     expect(res.body.code).toBe("escrow_conflict");
@@ -193,7 +204,9 @@ describe("POST /api/cashu/escrow/register", () => {
 
   it("returns 500 on unexpected storage failures", async () => {
     mockedRegister.mockRejectedValue(new Error("db down"));
-    const { req, res } = makeReqRes({ commitmentEvent: validCommitmentEvent() });
+    const { req, res } = makeReqRes({
+      commitmentEvent: validCommitmentEvent(),
+    });
     await handler(req, res);
     expect(res.statusCode).toBe(500);
     expect(res.body.code).toBe("internal_error");

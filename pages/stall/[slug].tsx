@@ -79,6 +79,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         shopPubkey: "",
         ssrShopName: "",
         ssrShopAbout: "",
+        ssrStoreUrl: "",
       },
     };
   }

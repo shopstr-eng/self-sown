@@ -349,7 +349,7 @@ export function getDbPool(): Pool {
     const hostname = url.hostname;
     // Match pattern like: ep-lucky-union-aefj3mfs.us-east-2.aws.neon.tech
     // Transform to: ep-lucky-union-aefj3mfs-pooler.us-east-2.aws.neon.tech
-    const endpoint = hostname.split(".")[0];
+    const endpoint = hostname.split(".")[0] ?? "";
     const poolerHostname =
       hostname.endsWith(".neon.tech") && !endpoint.endsWith("-pooler")
         ? hostname.replace(/^([^.]+)\./, "$1-pooler.")

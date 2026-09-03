@@ -448,7 +448,7 @@ describe("ZapsnagButton Component", () => {
       ["City", "Town"],
       ["Postal / Zip Code", "123"],
       ["Country", "US"],
-    ]) {
+    ] as [string, string][]) {
       fireEvent.change(screen.getByLabelText(label), {
         target: { value },
       });
@@ -498,7 +498,7 @@ describe("ZapsnagButton Component", () => {
       ["City", "Town"],
       ["Postal / Zip Code", "123"],
       ["Country", "US"],
-    ]) {
+    ] as [string, string][]) {
       fireEvent.change(screen.getByLabelText(label), {
         target: { value },
       });

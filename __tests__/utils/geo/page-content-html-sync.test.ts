@@ -178,7 +178,7 @@ for (const claim of CLAIMS) {
     checks.push({
       claim,
       surface: `HTML page ${HTML_PAGE_FILES[page]}`,
-      text: () => htmlSource[page],
+      text: () => htmlSource[page]!,
     });
   }
 }

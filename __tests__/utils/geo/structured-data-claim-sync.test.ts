@@ -67,12 +67,6 @@ function sliceBetween(
 const HOMEPAGE_FAQ_FILE = "utils/homepage-faq.ts";
 
 // The scoped structured-data blocks for each surface.
-const homepageJsonLdBlock = sliceBetween(
-  read(STRUCTURED_DATA_FILE),
-  STRUCTURED_DATA_FILE,
-  "const homepageFaqSchema",
-  "const websiteSchema"
-);
 const faqBlock = sliceBetween(
   read(FAQ_FILE),
   FAQ_FILE,
@@ -117,7 +111,7 @@ function extractJsonLdFaq(block: string): QA[] {
   const out: QA[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(block)) !== null) {
-    out.push({ question: m[1], answer: m[2] });
+    out.push({ question: m[1]!, answer: m[2]! });
   }
   return out;
 }
@@ -132,7 +126,7 @@ function extractSharedFaqArray(src: string): QA[] {
   const out: QA[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
-    out.push({ question: m[1], answer: m[2] });
+    out.push({ question: m[1]!, answer: m[2]! });
   }
   return out;
 }
@@ -369,7 +363,7 @@ describe("structured-data pricing/fee claims stay in sync across copies", () => 
   it.each(checks)(
     "$claim.label is present in $surface",
     ({ claim, surface }) => {
-      const present = claim.pattern.test(SURFACES[surface]);
+      const present = claim.pattern.test(SURFACES[surface]!);
       if (!present) {
         throw new Error(
           `DRIFT: claim "${claim.label}" (${claim.id}) is missing from ${surface}. ` +

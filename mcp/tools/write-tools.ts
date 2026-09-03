@@ -24,6 +24,7 @@ import {
   deleteFlowStep,
   getFlowEnrollments,
   getSubscriptionsBySellerPubkey,
+  getStripeConnectAccount,
   getDbPool,
 } from "@/utils/db/db-service";
 import dns from "dns";
@@ -986,7 +987,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             pubkey,
             limit: 1,
           });
-          if (existingEvents.length > 0 && existingEvents[0].content) {
+          if (existingEvents.length > 0 && existingEvents[0]?.content) {
             existingContent = JSON.parse(existingEvents[0].content);
           }
         } catch {}
@@ -1397,7 +1398,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             pubkey,
             limit: 1,
           });
-          if (existingEvents.length > 0 && existingEvents[0].content) {
+          if (existingEvents.length > 0 && existingEvents[0]?.content) {
             existingContent = JSON.parse(existingEvents[0].content);
           }
         } catch {}
@@ -2063,7 +2064,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const stripKeys = (keys: string[]) => {
           const set = new Set(keys);
           for (let i = baseTags.length - 1; i >= 0; i--) {
-            if (set.has(baseTags[i][0])) baseTags.splice(i, 1);
+            const tag = baseTags[i];
+            if (tag?.[0] !== undefined && set.has(tag[0]))
+              baseTags.splice(i, 1);
           }
         };
 
@@ -6608,6 +6611,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             })
           )
         );
+        // The subscriptions table doesn't store the connect account; look up
+        // the seller's Stripe Connect account so the cancel targets the
+        // connected account when one exists.
+        const connectAccount = await getStripeConnectAccount(pubkey);
         const res = await fetch(`${baseUrl}/api/stripe/cancel-subscription`, {
           method: "POST",
           headers: {
@@ -6616,7 +6623,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           },
           body: JSON.stringify({
             subscriptionId: params.subscriptionId,
-            connectedAccountId: owned.connected_account_id,
+            connectedAccountId: connectAccount?.stripe_account_id,
           }),
         });
         const data = await res.json();
@@ -6691,6 +6698,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             })
           )
         );
+        // The subscriptions table doesn't store the connect account; look up
+        // the seller's Stripe Connect account so the update targets the
+        // connected account when one exists.
+        const connectAccount = await getStripeConnectAccount(pubkey);
         const res = await fetch(`${baseUrl}/api/stripe/update-subscription`, {
           method: "POST",
           headers: {
@@ -6699,7 +6710,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           },
           body: JSON.stringify({
             subscriptionId: params.subscriptionId,
-            connectedAccountId: owned.connected_account_id,
+            connectedAccountId: connectAccount?.stripe_account_id,
             shippingAddress: params.shippingAddress,
             nextBillingDate: params.nextBillingDate,
           }),
@@ -6737,7 +6748,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .optional()
         .describe("Recipient's Nostr pubkey if known (optional)"),
       enrollmentData: z
-        .record(z.any())
+        .record(z.string(), z.any())
         .optional()
         .describe(
           "Per-enrollment template variables merged into every step (e.g. { first_name: 'Alice' })"

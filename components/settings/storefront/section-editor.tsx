@@ -1702,7 +1702,9 @@ function LayoutStyleControls({
                         imageWidth:
                           e.target.value === "default"
                             ? undefined
-                            : parseInt(e.target.value),
+                            : (parseInt(e.target.value, 10) as NonNullable<
+                                StorefrontSection["imageWidth"]
+                              >),
                       })
                     }
                     className="flex-1"
@@ -2877,7 +2879,6 @@ function BlogPostOrderList({
           </span>
           <span className="text-xs text-gray-400">&#9776;</span>
           {post.image && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={post.image}
               alt={post.title}

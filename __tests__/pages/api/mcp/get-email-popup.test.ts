@@ -169,7 +169,7 @@ describe("get_email_popup", () => {
       }),
     ]);
 
-    const result = parseToolResult(await toolHandlers["get_email_popup"]({}));
+    const result = parseToolResult(await toolHandlers["get_email_popup"]!({}));
 
     expect(result.success).toBe(true);
     expect(result.pubkey).toBe(SELLER_PUBKEY);
@@ -187,7 +187,7 @@ describe("get_email_popup", () => {
       profileEvent(SELLER_PUBKEY, 1000, { primaryColor: "#fff" }),
     ]);
 
-    const result = parseToolResult(await toolHandlers["get_email_popup"]({}));
+    const result = parseToolResult(await toolHandlers["get_email_popup"]!({}));
 
     expect(result.success).toBe(true);
     expect(result.configured).toBe(false);
@@ -199,7 +199,7 @@ describe("get_email_popup", () => {
       profileEvent(OTHER_PUBKEY, 1000, { emailPopup: FULL_POPUP }),
     ]);
 
-    const result = parseToolResult(await toolHandlers["get_email_popup"]({}));
+    const result = parseToolResult(await toolHandlers["get_email_popup"]!({}));
 
     expect(result.configured).toBe(false);
     expect(result.emailPopup).toBeNull();
@@ -207,7 +207,7 @@ describe("get_email_popup", () => {
 
   test("errors when no signer is configured", async () => {
     mockGetAgentSigner.mockResolvedValue(null);
-    const result = await toolHandlers["get_email_popup"]({});
+    const result = await toolHandlers["get_email_popup"]!({});
     expect(result.isError).toBe(true);
   });
 });
@@ -223,7 +223,7 @@ describe("get -> set_email_popup round-trip", () => {
 
     // Step 1: agent reads the current config.
     const current = parseToolResult(
-      await toolHandlers["get_email_popup"]({})
+      await toolHandlers["get_email_popup"]!({})
     ).emailPopup;
     expect(current).toEqual(FULL_POPUP);
 
@@ -237,7 +237,7 @@ describe("get -> set_email_popup round-trip", () => {
     });
 
     const setResult = parseToolResult(
-      await toolHandlers["set_email_popup"](params)
+      await toolHandlers["set_email_popup"]!(params)
     );
     expect(setResult.success).toBe(true);
 
@@ -272,7 +272,7 @@ describe("get -> set_email_popup round-trip", () => {
     });
 
     const result = parseToolResult(
-      await toolHandlers["set_email_popup"](params)
+      await toolHandlers["set_email_popup"]!(params)
     );
     expect(result.emailPopup.style).toEqual(newStyle);
     expect(result.emailPopup.flowSteps).toEqual([]);

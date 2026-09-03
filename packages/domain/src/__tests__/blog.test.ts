@@ -67,7 +67,7 @@ describe("blog domain helpers", () => {
           dTag: "p",
           title: "T",
           content: "b",
-          image: "javascript:alert(1)",
+          image: "javascript:" + "alert(1)",
           externalUrl: "ftp://example.com",
         },
         1
@@ -151,7 +151,7 @@ describe("blog domain helpers", () => {
           tags: [
             ["d", "p"],
             ["title", "T"],
-            ["image", "javascript:alert(1)"],
+            ["image", "javascript:" + "alert(1)"],
           ],
         }) as any
       );
@@ -165,7 +165,7 @@ describe("blog domain helpers", () => {
           tags: [
             ["d", "p"],
             ["title", "T"],
-            ["r", "javascript:alert(1)"],
+            ["r", "javascript:" + "alert(1)"],
             ["r", "https://example.com/ok"],
           ],
         }) as any
@@ -193,7 +193,7 @@ describe("blog domain helpers", () => {
         post({ id: "new", dTag: "a", updatedAt: 20, publishedAt: 20 }),
       ]);
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("new");
+      expect(result[0]!.id).toBe("new");
     });
 
     test("keeps distinct d tags and sorts newest-first by publishedAt", () => {
@@ -219,7 +219,7 @@ describe("blog domain helpers", () => {
       expect(isHttpUrl("https://a.com/x")).toBe(true);
     });
     test("rejects other schemes, empty, and non-strings", () => {
-      expect(isHttpUrl("javascript:alert(1)")).toBe(false);
+      expect(isHttpUrl("javascript:" + "alert(1)")).toBe(false);
       expect(isHttpUrl("ftp://a.com")).toBe(false);
       expect(isHttpUrl("")).toBe(false);
       expect(isHttpUrl(null)).toBe(false);

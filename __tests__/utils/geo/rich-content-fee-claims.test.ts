@@ -82,7 +82,7 @@ describe("rich-content surfaces keep their canonical fee claims", () => {
   it.each(checks)(
     "$label is present in $surface",
     ({ surface, id, label, pattern }) => {
-      const present = pattern.test(SURFACES[surface]);
+      const present = pattern.test(SURFACES[surface]!);
       if (!present) {
         throw new Error(
           `DRIFT: claim "${label}" (${id}) is missing from ${surface}. ` +

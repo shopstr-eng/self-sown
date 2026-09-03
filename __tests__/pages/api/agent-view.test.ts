@@ -178,9 +178,9 @@ describe("/api/agent-view — endpoint representation", () => {
           links: { html: string; llms: string; skill: string };
         };
         expect(body.path).toBe(path);
-        expect(body.title).toBe(PAGE_CONTENT[path].title);
-        expect(body.description).toBe(PAGE_CONTENT[path].description);
-        expect(body.content).toBe(PAGE_CONTENT[path].markdown);
+        expect(body.title).toBe(PAGE_CONTENT[path]!.title);
+        expect(body.description).toBe(PAGE_CONTENT[path]!.description);
+        expect(body.content).toBe(PAGE_CONTENT[path]!.markdown);
         expect(body.content.length).toBeGreaterThan(0);
         expect(body.content).toContain(PAGE_FINGERPRINT[path]);
         expect(body.links.html).toBe(`https://milk.market${path}`);
@@ -200,7 +200,7 @@ describe("/api/agent-view — endpoint representation", () => {
         // Markdown syntax is stripped: no leading "# " heading markers remain.
         expect(body).not.toMatch(/^#+\s/m);
         // But the page's distinctive heading text (sans the # markers) survives.
-        const headingText = PAGE_FINGERPRINT[path].replace(/^#+\s+/, "");
+        const headingText = PAGE_FINGERPRINT[path]!.replace(/^#+\s+/, "");
         expect(body).toContain(headingText);
       }
     );

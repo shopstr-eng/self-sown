@@ -27,7 +27,7 @@ describe("buildExtractionDraft imported hero", () => {
       })
     );
 
-    const first = draft.storefront.sections![0];
+    const first = draft.storefront.sections![0]!;
     expect(first).toEqual({
       id: "imported-banner",
       type: "banner_carousel",
@@ -52,7 +52,7 @@ describe("buildExtractionDraft imported hero", () => {
       })
     );
 
-    const first = draft.storefront.sections![0];
+    const first = draft.storefront.sections![0]!;
     expect(first.type).toBe("banner_carousel");
     expect(first.bannerSlides).toEqual([
       {
@@ -86,7 +86,7 @@ describe("buildExtractionDraft imported hero", () => {
         },
       })
     );
-    const first = draft.storefront.sections![0];
+    const first = draft.storefront.sections![0]!;
     expect(first.type).toBe("hero");
     expect(first.heading).toBe("Milk Worth The Drive");
     expect(first.subheading).toBe("From our pastures to your table.");
@@ -111,8 +111,8 @@ describe("buildExtractionDraft imported hero", () => {
     );
     const sections = bareDraft.storefront.sections!;
     expect(sections).toHaveLength(1);
-    expect(sections[0].type).toBe("hero");
-    expect(sections[0].heading).toBe("Green Valley Farm");
+    expect(sections[0]!.type).toBe("hero");
+    expect(sections[0]!.heading).toBe("Green Valley Farm");
   });
 
   test("turns extracted YouTube videos into a social_posts section", () => {
@@ -303,7 +303,7 @@ describe("buildExtractionDraft layout fidelity", () => {
     const sections = draft.storefront.sections!;
     const idx = sections.findIndex((s) => s.type === "products");
     expect(idx).toBeGreaterThan(-1);
-    expect(sections[idx].id).toBe("imported-products");
+    expect(sections[idx]!.id).toBe("imported-products");
     // Ordered by source position: Early(100) < products(150) < Late(900).
     expect(sections[idx - 1]?.heading).toBe("Early Block");
     expect(sections[idx + 1]?.heading).toBe("Late Block");
@@ -333,7 +333,7 @@ describe("buildProductPageDraft lead image", () => {
     );
 
     const imageSections = draft.sections.filter((s) => s.type === "image");
-    expect(imageSections[0].image).toBe(
+    expect(imageSections[0]!.image).toBe(
       "https://farm.example/product-hero.jpg"
     );
     expect(imageSections.map((s) => s.image)).toEqual([

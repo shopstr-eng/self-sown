@@ -114,7 +114,7 @@ export function formatHandlingTime(days: number): string {
 // NOTE: Number("") coerces to 0, so blank must be rejected before Number().
 export function buildHandlingTimeTag(
   raw: string | number | undefined | null
-): string[] | undefined {
+): [string, string] | undefined {
   if (raw === undefined || raw === null) return undefined;
   const str = String(raw).trim();
   if (str === "") return undefined;

@@ -19,7 +19,12 @@ describe("seller listing deletion confirmation", () => {
   test("deletes exactly once after destructive confirmation", () => {
     const onConfirm = jest.fn();
     const showAlert = jest.fn((_title, _message, buttons) => {
-      buttons?.find((button) => button.style === "destructive")?.onPress?.();
+      buttons
+        ?.find(
+          (button: { style?: string; onPress?: () => void }) =>
+            button.style === "destructive"
+        )
+        ?.onPress?.();
     });
 
     confirmSellerListingDeletion(onConfirm, showAlert);
