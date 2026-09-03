@@ -350,3 +350,64 @@ describe("dual signing-secret verification (account + Connect endpoints)", () =>
     expect(mainRes.body).toEqual({ error: "Webhook secret not configured" });
   });
 });
+
+// A paid renewal whose lookup finds no row must be loud (ops reconciliation),
+// while a transient DB failure must 500 so Stripe retries — never silently
+// break with a 200 in either case.
+describe("POST /api/stripe/subscription-webhook — orphaned/failed renewal lookup", () => {
+  function firePaymentSucceeded() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_orphan",
+      type: "invoice.payment_succeeded",
+      data: {
+        object: {
+          id: "in_orphan",
+          subscription: SUB_ID,
+          billing_reason: "subscription_cycle",
+          amount_paid: 1000,
+          currency: "usd",
+          customer_email: "buyer@example.com",
+        },
+      },
+    });
+  }
+
+  it("logs a loud greppable marker and still 200s when no subscriptions row matches a paid renewal", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    firePaymentSucceeded();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_PAYMENT");
+    expect(errCalls).toContain(SUB_ID);
+    expect(errCalls).toContain("buyer@example.com");
+    // No local state may be touched for a row that does not exist.
+    expect(mockSubscriptionsRetrieve).not.toHaveBeenCalled();
+    expect(mockUpdateSubscriptionBillingDate).not.toHaveBeenCalled();
+    expect(mockUpdateSubscriptionStatus).not.toHaveBeenCalled();
+    // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("500s and releases the event claim when the lookup throws, so Stripe retries", async () => {
+    mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
+    firePaymentSucceeded();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_orphan");
+    expect(mockUpdateSubscriptionBillingDate).not.toHaveBeenCalled();
+    // A transient failure is NOT an orphaned payment.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_PAYMENT");
+  });
+});

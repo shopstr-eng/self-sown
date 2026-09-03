@@ -28,6 +28,7 @@
 - [Onboarding flow redirects](onboarding-flow-redirects.md) — inserting a wizard step means updating every redirect into it (incl. two Shopify-migrate auto-redirects), not just the linear Next chain.
 - [Pro feature enforcement surfaces](pro-feature-enforcement-surfaces.md) — gate server-backed Pro features (domain/MCP/email) at the write endpoint; Nostr-published design has no server write path, enforce at the serve/render layer.
 - [Stripe webhook claim release](stripe-webhook-claim-release.md) — claimStripeEvent permanently dedups; release the claim in catch on handler failure or Stripe's retry is silently dropped.
+- [DB lookups must not swallow outages as null](db-lookup-null-vs-outage.md) — webhook-consumed accessors must throw on DB error; null = genuinely missing (loud marker + 200), throw = 500 + claim release for Stripe retry.
 - [One-shot idempotency claim ordering](idempotency-claim-ordering.md) — take the once-per-key claim AFTER all skip/empty-audience early-returns, or a no-op attempt permanently burns it and the version can never run.
 - [Membership extension atomicity](membership-extension-atomicity.md) — stack paid time in one SQL stmt from GREATEST(now, current end), never read-modify-write, or concurrent settles drop a term.
 - [ON CONFLICT granters need a created flag](conflict-insert-created-flag.md) — one-time INSERT...ON CONFLICT DO NOTHING grants must return whether a row was created; gate success UI on it, not on a 200, or stale clients fake the grant.

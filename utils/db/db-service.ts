@@ -4864,8 +4864,12 @@ export async function getSubscriptionByStripeId(
     if (result.rows.length === 0) return null;
     return result.rows[0];
   } catch (error) {
+    // Rethrow so callers can distinguish "no such row" (null) from a
+    // transient DB failure. Swallowing the error as null made webhook
+    // handlers treat a DB hiccup as a missing subscription — silently
+    // dropping a paid renewal with no Stripe retry.
     console.error("Failed to get subscription:", error);
-    return null;
+    throw error;
   } finally {
     if (client) client.release();
   }

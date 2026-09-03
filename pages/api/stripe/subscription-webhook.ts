@@ -30,7 +30,10 @@ export const config = {
 };
 import { applyRateLimit } from "@/utils/rate-limit";
 import { verifyWithAnySecret } from "@/utils/stripe/webhook-secrets";
-import { claimStripeEvent } from "@/utils/stripe/processed-events";
+import {
+  claimStripeEvent,
+  releaseStripeEvent,
+} from "@/utils/stripe/processed-events";
 
 async function getRawBody(req: NextApiRequest): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -193,7 +196,24 @@ export default async function handler(
 
         const subscription =
           await getSubscriptionByStripeId(paidSubscriptionId);
-        if (!subscription) break;
+        if (!subscription) {
+          // Money moved at Stripe but no local subscriptions row matches
+          // (e.g. a legacy subscription created before local tracking).
+          // Returning 200 is correct — retrying will never find the row —
+          // but this MUST be loud so ops can reconcile the orphaned payment
+          // and grant the buyer access manually. Grep: ORPHANED_SUBSCRIPTION_PAYMENT
+          console.error(
+            `ORPHANED_SUBSCRIPTION_PAYMENT stripe_subscription_id=${paidSubscriptionId} ` +
+              `invoice_id=${invoicePaid.id ?? "unknown"} event_id=${event.id} ` +
+              `amount_paid=${invoicePaid.amount_paid ?? "unknown"} ` +
+              `currency=${invoicePaid.currency ?? "unknown"} ` +
+              `customer_email=${invoicePaid.customer_email ?? "unknown"} ` +
+              `billing_reason=${invoicePaid.billing_reason ?? "unknown"} — ` +
+              `renewal charge succeeded but no subscriptions row matched; ` +
+              `billing date and status were NOT updated`
+          );
+          break;
+        }
 
         // Recurring subscriptions live on the seller's Connect account;
         // retrieving without { stripeAccount } from the platform account
@@ -385,6 +405,15 @@ export default async function handler(
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error("Webhook handler error:", error);
+    // Release the claim so Stripe's retry is not deduped and can reprocess
+    // immediately — otherwise a transient failure (e.g. DB hiccup) would
+    // permanently drop the event (e.g. a paid renewal).
+    await releaseStripeEvent(event.id).catch((releaseErr) =>
+      console.error(
+        "subscription webhook claim release failed:",
+        releaseErr
+      )
+    );
     return res.status(500).json({ error: "Webhook handler failed" });
   }
 }
