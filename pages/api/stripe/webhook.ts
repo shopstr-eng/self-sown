@@ -99,12 +99,12 @@ export default async function handler(
     switch (event.type) {
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaid(invoice);
+        await handleInvoicePaid(invoice, event);
         break;
       }
       case "invoice.payment_failed": {
         const invoice = event.data.object as Stripe.Invoice;
-        await handleInvoicePaymentFailed(invoice);
+        await handleInvoicePaymentFailed(invoice, event.id);
         break;
       }
       case "payment_intent.succeeded": {
@@ -121,19 +121,31 @@ export default async function handler(
         // shipping label on the seller's own Shippo account if enabled.
         if (pi.metadata?.source === "mcp" && pi.metadata?.orderId) {
           const orderId = pi.metadata.orderId;
-          try {
-            const { updateMcpOrderPayment } =
-              await import("@/mcp/tools/purchase-tools");
-            await updateMcpOrderPayment(orderId, pi.id, "paid");
-          } catch (e) {
-            console.error("Failed to mark MCP order paid from webhook:", e);
-          }
-          try {
-            const { autoPurchaseForMcpOrder } =
-              await import("@/utils/shipping/auto-purchase");
-            await autoPurchaseForMcpOrder(orderId);
-          } catch (e) {
-            console.error("Auto label purchase (mcp webhook) failed:", e);
+          // A DB failure here must throw (500 + claim release → Stripe retry):
+          // swallowing it would leave a SETTLED card payment with the order
+          // never marked paid and no useful retry. A null return means no
+          // mcp_orders row matched — permanent, so be loud and move on (200;
+          // retrying will never find the row). Grep: ORPHANED_MCP_ORDER_PAYMENT
+          const { updateMcpOrderPayment } =
+            await import("@/mcp/tools/purchase-tools");
+          const updated = await updateMcpOrderPayment(orderId, pi.id, "paid");
+          if (!updated) {
+            console.error(
+              `ORPHANED_MCP_ORDER_PAYMENT order_id=${orderId} ` +
+                `payment_intent=${pi.id} event_id=${event.id} ` +
+                `amount=${pi.amount ?? "unknown"} currency=${
+                  pi.currency ?? "unknown"
+                } — agent card payment settled but no mcp_orders row matched; ` +
+                `order was NOT marked paid and no shipping label was purchased`
+            );
+          } else {
+            try {
+              const { autoPurchaseForMcpOrder } =
+                await import("@/utils/shipping/auto-purchase");
+              await autoPurchaseForMcpOrder(orderId);
+            } catch (e) {
+              console.error("Auto label purchase (mcp webhook) failed:", e);
+            }
           }
         }
         break;
@@ -177,35 +189,47 @@ export default async function handler(
         // affiliate. We key off paymentIntent.metadata.{orderId,sellerPubkey}
         // because that's what create-payment-intent + cart write through.
         const charge = event.data.object as Stripe.Charge;
-        try {
-          const piId =
-            typeof charge.payment_intent === "string"
-              ? charge.payment_intent
-              : charge.payment_intent?.id;
-          if (piId) {
-            const pi = await stripe.paymentIntents.retrieve(piId);
-            const orderId = (pi.metadata && pi.metadata.orderId) || piId;
-            const sellerPubkey = pi.metadata?.sellerPubkey;
-            if (sellerPubkey) {
-              const sellers = sellerPubkey.includes(",")
-                ? sellerPubkey.split(",")
-                : [sellerPubkey];
-              for (const sp of sellers) {
-                await reverseReferralsForOrder({
-                  orderId,
-                  sellerPubkey: sp.trim(),
-                  // Pass both amounts so the helper can scale the rebate
-                  // proportionally on partial refunds instead of clawing
-                  // the whole thing back.
-                  originalGrossSmallest: charge.amount ?? 0,
-                  refundedSmallest: charge.amount_refunded ?? 0,
-                  refundEventRef: event.id,
-                });
-              }
+        // No try/catch here on purpose: a transient failure (Stripe hiccup on
+        // the PI retrieve, DB outage in reverseReferralsForOrder) must surface
+        // as a 500 + claim release so Stripe retries. Swallowing it would
+        // silently skip the referral reversal and the seller would overpay the
+        // affiliate. Retries are safe — the reversal is keyed on event.id. A
+        // PI without sellerPubkey metadata simply has no attributable
+        // referral, so the no-op is the correct handling for that null case.
+        const piId =
+          typeof charge.payment_intent === "string"
+            ? charge.payment_intent
+            : charge.payment_intent?.id;
+        if (piId) {
+          // Direct charges live on the seller's connected account; a
+          // platform-scope retrieve would 404 them. Connect events carry the
+          // account on event.account — scope the retrieve to it.
+          const chargeAccount = (
+            event as Stripe.Event & { account?: string }
+          ).account;
+          const pi = await stripe.paymentIntents.retrieve(
+            piId,
+            chargeAccount ? { stripeAccount: chargeAccount } : undefined
+          );
+          const orderId = (pi.metadata && pi.metadata.orderId) || piId;
+          const sellerPubkey = pi.metadata?.sellerPubkey;
+          if (sellerPubkey) {
+            const sellers = sellerPubkey.includes(",")
+              ? sellerPubkey.split(",")
+              : [sellerPubkey];
+            for (const sp of sellers) {
+              await reverseReferralsForOrder({
+                orderId,
+                sellerPubkey: sp.trim(),
+                // Pass both amounts so the helper can scale the rebate
+                // proportionally on partial refunds instead of clawing
+                // the whole thing back.
+                originalGrossSmallest: charge.amount ?? 0,
+                refundedSmallest: charge.amount_refunded ?? 0,
+                refundEventRef: event.id,
+              });
             }
           }
-        } catch (e) {
-          console.warn("affiliate refund reversal failed:", e);
         }
         break;
       }
@@ -232,6 +256,9 @@ export default async function handler(
             const { markAffiliateStripeDeauthorized } =
               await import("@/utils/db/affiliates");
             const matched = await markAffiliateStripeDeauthorized(acctId);
+            // A null match is expected, not an orphan: every seller Connect
+            // account deauthorization also reaches this endpoint, and seller
+            // account state is tracked outside the affiliates table.
             if (matched) {
               console.log(
                 `AFFILIATE_STRIPE_DEAUTHORIZED affiliate=${matched} acct=${acctId}`
@@ -301,7 +328,10 @@ export default async function handler(
   }
 }
 
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
+async function handleInvoicePaymentFailed(
+  invoice: Stripe.Invoice,
+  eventId: string
+) {
   const invoiceAny = invoice as any;
   const subscriptionId = invoiceAny.subscription
     ? typeof invoiceAny.subscription === "string"
@@ -331,9 +361,24 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
   }
 
   if (subscriptionId) {
-    try {
-      const dbSubscription = await getSubscriptionByStripeId(subscriptionId);
-      if (dbSubscription?.seller_pubkey) {
+    // A thrown lookup is a transient outage: let it propagate so the webhook
+    // 500s, releases the event claim, and Stripe retries (a duplicate buyer
+    // email on retry is preferable to silent loss). A null row is permanent —
+    // retrying will never find it — so return 200 but be LOUD: the seller is
+    // otherwise never told a recurring payment failed.
+    // Grep: ORPHANED_SUBSCRIPTION_PAYMENT_FAILED
+    const dbSubscription = await getSubscriptionByStripeId(subscriptionId);
+    if (!dbSubscription) {
+      console.error(
+        `ORPHANED_SUBSCRIPTION_PAYMENT_FAILED stripe_subscription_id=${subscriptionId} ` +
+          `invoice_id=${invoice.id} event_id=${eventId} ` +
+          `customer_email=${customerEmail || "unknown"} ` +
+          `amount_due=${amountDue ?? "unknown"} currency=${currency} — ` +
+          `recurring payment failed at Stripe but no subscriptions row matched; ` +
+          `seller failure notification was NOT sent`
+      );
+    } else if (dbSubscription.seller_pubkey) {
+      try {
         const sellerEmail = await getSellerNotificationEmail(
           dbSubscription.seller_pubkey
         );
@@ -345,14 +390,19 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
             amountDisplay,
           });
         }
+      } catch (err) {
+        console.error("Failed to send payment failure email to seller:", err);
       }
-    } catch (err) {
-      console.error("Failed to send payment failure email to seller:", err);
     }
   }
 }
 
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
+function isStripeResourceMissing(err: unknown): boolean {
+  const e = err as { code?: string; statusCode?: number } | null;
+  return !!e && (e.code === "resource_missing" || e.statusCode === 404);
+}
+
+async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
   const invoiceAny = invoice as any;
   if (!invoiceAny.subscription) return;
 
@@ -362,27 +412,50 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
       : invoiceAny.subscription.id;
 
   // Recurring subscriptions live on the seller's Connect account, so a
-  // platform-account retrieve would not find them. Look up the recorded
-  // connected_account_id first; platform-created subscriptions simply have
-  // no row (or a null account) and retrieve without the option as before.
-  const dbSubscription = await getSubscriptionByStripeId(subscriptionId).catch(
-    (err) => {
-      console.warn(
-        `Subscription lookup failed for ${subscriptionId}, retrieving from platform account:`,
-        err
-      );
-      return null;
-    }
-  );
+  // platform-account retrieve would not find them. Account scope priority:
+  // the row's recorded connected_account_id wins; with no row, fall back to
+  // the Connect account the event was delivered for (event.account) before
+  // trying the platform account. A thrown DB lookup is a transient outage and
+  // must propagate (webhook 500 + claim release → Stripe retry) — swallowing
+  // it as null would retrieve from the wrong account and misfile a
+  // connected-account renewal as orphaned.
+  const dbSubscription = await getSubscriptionByStripeId(subscriptionId);
   const connectedAccountId = (dbSubscription as any)?.connected_account_id as
     | string
     | null
     | undefined;
+  const eventAccount = (event as Stripe.Event & { account?: string }).account;
+  const retrieveAccount = connectedAccountId ?? eventAccount ?? undefined;
 
-  const subscription = await stripe.subscriptions.retrieve(
-    subscriptionId,
-    connectedAccountId ? { stripeAccount: connectedAccountId } : undefined
-  );
+  let subscription: Stripe.Subscription;
+  try {
+    subscription = await stripe.subscriptions.retrieve(
+      subscriptionId,
+      retrieveAccount ? { stripeAccount: retrieveAccount } : undefined
+    );
+  } catch (err) {
+    // No local row AND the subscription is not retrievable under the scope
+    // the event was delivered for (platform endpoint → platform account,
+    // Connect endpoint → that connected account): the renewal settled on an
+    // account we have no record of, so the seller transfers below can never
+    // run and retrying is pointless. Return 200 but be LOUD so ops can
+    // reconcile the orphaned payment manually.
+    // Grep: ORPHANED_SUBSCRIPTION_INVOICE_PAID
+    if (!dbSubscription && isStripeResourceMissing(err)) {
+      console.error(
+        `ORPHANED_SUBSCRIPTION_INVOICE_PAID stripe_subscription_id=${subscriptionId} ` +
+          `invoice_id=${invoice.id} event_id=${event.id} ` +
+          `account=${retrieveAccount ?? "platform"} ` +
+          `amount_paid=${invoiceAny.amount_paid ?? "unknown"} ` +
+          `currency=${invoice.currency ?? "unknown"} — ` +
+          `invoice paid at Stripe but no subscriptions row matched and the ` +
+          `subscription is not retrievable from the delivering account; ` +
+          `seller transfers were NOT processed`
+      );
+      return;
+    }
+    throw err;
+  }
   const metadata = subscription.metadata;
 
   if (metadata.isMultiMerchant !== "true") return;

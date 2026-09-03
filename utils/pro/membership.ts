@@ -234,7 +234,8 @@ export async function startNewUserProTrial(
  * their already-stored period end passes.
  */
 export async function applyStripeSubscriptionToMembership(
-  sub: Stripe.Subscription
+  sub: Stripe.Subscription,
+  context?: { eventId?: string }
 ): Promise<void> {
   const mapped = mapStripeSubscription(sub);
 
@@ -246,9 +247,18 @@ export async function applyStripeSubscriptionToMembership(
     pubkey = existing?.pubkey ?? null;
   }
   if (!pubkey) {
-    console.warn(
-      "applyStripeSubscriptionToMembership: no pubkey for subscription",
-      mapped.subscriptionId
+    // Subscription state changed at Stripe but nothing local ties it to a
+    // seller: no mmProPubkey metadata and no pro_memberships row. The
+    // entitlement change is silently dropped unless ops reconciles manually,
+    // so this MUST be loud. Returning (not throwing) is correct — retrying
+    // will never manufacture the missing row.
+    // Grep: ORPHANED_PRO_SUBSCRIPTION
+    console.error(
+      `ORPHANED_PRO_SUBSCRIPTION stripe_subscription_id=${mapped.subscriptionId} ` +
+        `customer=${mapped.customerId || "unknown"} ` +
+        `event_id=${context?.eventId ?? "unknown"} status=${mapped.baseStatus} — ` +
+        `Pro subscription carries no pubkey metadata and no pro_memberships row ` +
+        `matched; membership state was NOT synced`
     );
     return;
   }
@@ -712,13 +722,19 @@ export async function sendProManualReceiptEmail(
  * Notify a seller of a paid Stripe Pro invoice (renewal or initial charge) via
  * both an emailed receipt and a server-side Nostr DM. Resolves the pubkey from
  * the subscription's membership row, the term from the invoice line item, and
- * includes Stripe's hosted receipt + PDF links. Best-effort: never throws, so a
- * mail/DM failure can't fail the webhook. Skips zero-amount invoices (e.g. $0
- * trial invoices) since there's nothing to receipt. (Name kept for historical
- * call sites; now sends over both channels like the Pro lifecycle reminders.)
+ * includes Stripe's hosted receipt + PDF links. Best-effort for delivery: a
+ * mail/DM send failure can't fail the webhook. The membership LOOKUP is not
+ * best-effort — a thrown lookup propagates so the webhook 500s and Stripe
+ * retries, and a null row is logged loud (ORPHANED_PRO_RECEIPT): the caller
+ * only passes genuine Pro invoices, so a missing row means a paid Pro invoice
+ * with no entitlement row to receipt against. Skips zero-amount invoices
+ * (e.g. $0 trial invoices) since there's nothing to receipt. (Name kept for
+ * historical call sites; now sends over both channels like the Pro lifecycle
+ * reminders.)
  */
 export async function sendProStripeReceiptEmail(
-  invoice: Stripe.Invoice
+  invoice: Stripe.Invoice,
+  context?: { eventId?: string }
 ): Promise<void> {
   const amountCents = invoice.amount_paid ?? 0;
   if (amountCents <= 0) return;
@@ -729,14 +745,25 @@ export async function sendProStripeReceiptEmail(
       : (invoice as any).subscription?.id;
   if (!subscriptionId) return;
 
-  let pubkey: string | null = null;
-  try {
-    const membership = await getProMembershipBySubscription(subscriptionId);
-    pubkey = membership?.pubkey ?? null;
-  } catch (err) {
-    console.error("sendProStripeReceiptEmail: membership lookup failed", err);
+  // A thrown lookup is a transient outage — let it propagate (webhook 500 +
+  // claim release → Stripe retry) rather than silently dropping a receipt for
+  // a genuinely paid invoice.
+  const membership = await getProMembershipBySubscription(subscriptionId);
+  const pubkey: string | null = membership?.pubkey ?? null;
+  if (!pubkey) {
+    // Money moved at Stripe but no pro_memberships row matched, so the seller
+    // gets no receipt. Permanent (retrying will never find the row), so the
+    // webhook still 200s — but this MUST be loud for ops reconciliation.
+    // Grep: ORPHANED_PRO_RECEIPT
+    console.error(
+      `ORPHANED_PRO_RECEIPT stripe_subscription_id=${subscriptionId} ` +
+        `invoice_id=${invoice.id ?? "unknown"} ` +
+        `event_id=${context?.eventId ?? "unknown"} ` +
+        `amount_paid=${amountCents} currency=${invoice.currency ?? "unknown"} — ` +
+        `Pro invoice paid but no pro_memberships row matched; receipt was NOT sent`
+    );
+    return;
   }
-  if (!pubkey) return;
 
   const line = invoice.lines?.data?.[0] as any;
   const interval =

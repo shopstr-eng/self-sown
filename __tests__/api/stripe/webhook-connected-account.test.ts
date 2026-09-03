@@ -73,12 +73,17 @@ jest.mock("@/utils/email/storefront-branding", () => ({
   loadStorefrontBranding: jest.fn(async () => null),
 }));
 
+const mockReverseReferralsForOrder = jest.fn(
+  async (..._args: any[]) => undefined
+);
+
 jest.mock("@/utils/db/affiliates", () => ({
   computeRebateSmallest: jest.fn(() => 0),
   isAffiliateCodeValid: jest.fn(async () => false),
   lookupAffiliateCode: jest.fn(async () => null),
   recordReferral: jest.fn(async () => undefined),
-  reverseReferralsForOrder: jest.fn(async () => undefined),
+  reverseReferralsForOrder: (...args: any[]) =>
+    mockReverseReferralsForOrder(...args),
 }));
 
 jest.mock("@/utils/rate-limit", () => ({
@@ -99,11 +104,26 @@ jest.mock("@/utils/stripe/pending-payments", () => ({
   markPendingPaymentByIntent: jest.fn(async () => undefined),
 }));
 
+const mockUpdateMcpOrderPayment = jest.fn();
+const mockAutoPurchaseForMcpOrder = jest.fn(
+  async (..._args: any[]) => undefined
+);
+
+jest.mock("@/mcp/tools/purchase-tools", () => ({
+  updateMcpOrderPayment: (...args: any[]) => mockUpdateMcpOrderPayment(...args),
+}));
+
+jest.mock("@/utils/shipping/auto-purchase", () => ({
+  autoPurchaseForMcpOrder: (...args: any[]) =>
+    mockAutoPurchaseForMcpOrder(...args),
+}));
+
 import subscriptionWebhookHandler from "@/pages/api/stripe/subscription-webhook";
 import webhookHandler from "@/pages/api/stripe/webhook";
 import {
   sendRenewalReminder,
   sendSubscriptionCancellation,
+  sendPaymentFailedToSeller,
 } from "@/utils/email/email-service";
 
 const SUB_ID = "sub_connected_123";
@@ -276,15 +296,145 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, undefined);
   });
 
-  it("still retrieves from the platform account when the DB lookup fails", async () => {
+  it("500s and releases the event claim when the DB lookup throws, so Stripe retries", async () => {
+    // A lookup outage must NOT be swallowed as "no row": falling back to a
+    // platform-account retrieve would misfile a connected-account renewal as
+    // orphaned. Fail instead and let Stripe retry once the DB recovers.
     mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
     fireInvoicePaid();
 
     const res = makeRes();
     await webhookHandler(makeReq(), res);
 
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
+    expect(mockSubscriptionsRetrieve).not.toHaveBeenCalled();
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+  });
+
+  it("logs ORPHANED_SUBSCRIPTION_INVOICE_PAID and still 200s when no row matches AND the platform account cannot see the subscription", async () => {
+    // Money moved on a connected account we have no record of: the retrieve
+    // without { stripeAccount } fails resource_missing, the seller transfers
+    // can never run, and retrying will never find the row — so 200 + loud.
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockSubscriptionsRetrieve.mockRejectedValue(
+      Object.assign(new Error("No such subscription"), {
+        code: "resource_missing",
+        statusCode: 404,
+      })
+    );
+    fireInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
     expect(res.statusCode).toBe(200);
-    expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, undefined);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+    expect(errCalls).toContain(SUB_ID);
+    expect(errCalls).toContain("evt_invoice_paid");
+    // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("still 500s when the platform retrieve fails for a non-orphan reason", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockSubscriptionsRetrieve.mockRejectedValue(new Error("stripe 500"));
+    fireInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+  });
+
+  it("does not log the orphan marker when a row exists and the retrieve succeeds", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: null,
+    });
+    fireInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+  });
+
+  // Connect events carry the delivering connected account on event.account;
+  // with no local row the retrieve must be scoped to it rather than the
+  // platform account, or a valid connected subscription would be misfiled as
+  // an orphan and its transfers skipped.
+  function fireConnectInvoicePaid() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_invoice_paid_connect",
+      type: "invoice.paid",
+      account: CONNECTED_ACCOUNT,
+      data: {
+        object: {
+          id: "in_paid_connect",
+          subscription: SUB_ID,
+          currency: "usd",
+        },
+      },
+    });
+  }
+
+  it("scopes the retrieve to event.account when no local row matches a Connect invoice.paid", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    fireConnectInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, {
+      stripeAccount: CONNECTED_ACCOUNT,
+    });
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+  });
+
+  it("logs the orphan marker only after the Connect-scoped retrieve also fails", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockSubscriptionsRetrieve.mockRejectedValue(
+      Object.assign(new Error("No such subscription"), {
+        code: "resource_missing",
+        statusCode: 404,
+      })
+    );
+    fireConnectInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, {
+      stripeAccount: CONNECTED_ACCOUNT,
+    });
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+    expect(errCalls).toContain(CONNECTED_ACCOUNT);
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 });
 
@@ -583,5 +733,259 @@ describe("POST /api/stripe/subscription-webhook — orphaned renewal reminder", 
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_REMINDER");
+  });
+});
+
+// A failed recurring payment whose lookup finds no row silently never tells
+// the seller — it must be loud instead. A thrown lookup is a transient outage
+// and must 500 so Stripe retries.
+describe("POST /api/stripe/webhook — invoice.payment_failed orphaned/failed lookup", () => {
+  function firePaymentFailed() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_pay_failed",
+      type: "invoice.payment_failed",
+      data: {
+        object: {
+          id: "in_failed",
+          subscription: SUB_ID,
+          customer_email: "buyer@example.com",
+          amount_due: 1200,
+          currency: "usd",
+        },
+      },
+    });
+  }
+
+  it("logs a loud greppable marker and still 200s when no subscriptions row matches", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    firePaymentFailed();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_PAYMENT_FAILED");
+    expect(errCalls).toContain(SUB_ID);
+    expect(errCalls).toContain("evt_pay_failed");
+    // No seller notification may be faked for a row that does not exist.
+    expect(sendPaymentFailedToSeller).not.toHaveBeenCalled();
+    // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("500s and releases the event claim when the lookup throws, so Stripe retries", async () => {
+    mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
+    firePaymentFailed();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_pay_failed");
+    expect(sendPaymentFailedToSeller).not.toHaveBeenCalled();
+    // A transient failure is NOT an orphaned payment failure.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_PAYMENT_FAILED");
+  });
+
+  it("notifies the seller and logs no marker when the row exists", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+    });
+    mockGetSellerNotificationEmail.mockResolvedValue("seller@example.com");
+    firePaymentFailed();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendPaymentFailedToSeller).toHaveBeenCalledWith(
+      "seller@example.com",
+      expect.objectContaining({ invoiceId: "in_failed" })
+    );
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_PAYMENT_FAILED");
+  });
+});
+
+// An agent (MCP) card payment that settles with no matching mcp_orders row
+// means money moved but the order is never marked paid — silent unless loud.
+describe("POST /api/stripe/webhook — payment_intent.succeeded orphaned MCP order", () => {
+  function fireMcpPaymentSucceeded() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_mcp_paid",
+      type: "payment_intent.succeeded",
+      data: {
+        object: {
+          id: "pi_mcp_orphan",
+          amount: 5000,
+          currency: "usd",
+          metadata: { source: "mcp", orderId: "order_orphan" },
+        },
+      },
+    });
+  }
+
+  beforeEach(() => {
+    mockUpdateMcpOrderPayment.mockReset();
+    mockAutoPurchaseForMcpOrder.mockClear();
+  });
+
+  it("logs a loud greppable marker and still 200s when no mcp_orders row matches", async () => {
+    mockUpdateMcpOrderPayment.mockResolvedValue(null);
+    fireMcpPaymentSucceeded();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_MCP_ORDER_PAYMENT");
+    expect(errCalls).toContain("order_orphan");
+    expect(errCalls).toContain("pi_mcp_orphan");
+    expect(errCalls).toContain("evt_mcp_paid");
+    // No label purchase against an order we could not mark paid.
+    expect(mockAutoPurchaseForMcpOrder).not.toHaveBeenCalled();
+    // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("500s and releases the event claim when the order update throws, so Stripe retries", async () => {
+    mockUpdateMcpOrderPayment.mockRejectedValue(new Error("db down"));
+    fireMcpPaymentSucceeded();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_mcp_paid");
+    expect(mockAutoPurchaseForMcpOrder).not.toHaveBeenCalled();
+    // A transient failure is NOT an orphaned order payment.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_MCP_ORDER_PAYMENT");
+  });
+
+  it("marks the order paid and auto-purchases a label when the row exists", async () => {
+    mockUpdateMcpOrderPayment.mockResolvedValue({ order_id: "order_orphan" });
+    fireMcpPaymentSucceeded();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockUpdateMcpOrderPayment).toHaveBeenCalledWith(
+      "order_orphan",
+      "pi_mcp_orphan",
+      "paid"
+    );
+    expect(mockAutoPurchaseForMcpOrder).toHaveBeenCalledWith("order_orphan");
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).not.toContain("ORPHANED_MCP_ORDER_PAYMENT");
+  });
+});
+
+// A refund whose affiliate-referral reversal fails transiently (Stripe hiccup
+// on the PI retrieve, DB outage) must 500 so Stripe retries — swallowing it
+// would silently leave the referral payable and the seller overpaying.
+describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failure", () => {
+  function fireChargeRefunded() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_refund",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: "ch_refunded",
+          payment_intent: "pi_refunded",
+          amount: 5000,
+          amount_refunded: 5000,
+        },
+      },
+    });
+    mockPaymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_refunded",
+      metadata: { orderId: "order_1", sellerPubkey: "c".repeat(64) },
+    });
+  }
+
+  it("500s and releases the event claim when the reversal throws, so Stripe retries", async () => {
+    mockReverseReferralsForOrder.mockRejectedValueOnce(new Error("db down"));
+    fireChargeRefunded();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_refund");
+  });
+
+  it("reverses the referral and 200s on the happy path", async () => {
+    fireChargeRefunded();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "order_1",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund",
+      })
+    );
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("scopes the PaymentIntent retrieve to event.account for Connect (direct-charge) refunds", async () => {
+    // A direct charge lives on the seller's connected account; a
+    // platform-scope retrieve would 404 it and (with no catch) retry-loop
+    // forever instead of reversing the referral.
+    mockConstructEvent.mockReturnValue({
+      id: "evt_refund_connect",
+      type: "charge.refunded",
+      account: CONNECTED_ACCOUNT,
+      data: {
+        object: {
+          id: "ch_refunded_connect",
+          payment_intent: "pi_refunded_connect",
+          amount: 5000,
+          amount_refunded: 5000,
+        },
+      },
+    });
+    mockPaymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_refunded_connect",
+      metadata: { orderId: "order_2", sellerPubkey: "d".repeat(64) },
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockPaymentIntentsRetrieve).toHaveBeenCalledWith(
+      "pi_refunded_connect",
+      { stripeAccount: CONNECTED_ACCOUNT }
+    );
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "order_2",
+        sellerPubkey: "d".repeat(64),
+        refundEventRef: "evt_refund_connect",
+      })
+    );
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 });

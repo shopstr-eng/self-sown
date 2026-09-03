@@ -36,12 +36,19 @@ async function getRawBody(req: NextApiRequest): Promise<Buffer> {
 
 const RATE_LIMIT = { limit: 300, windowMs: 60_000 };
 
-async function syncSubscriptionById(subscriptionId: string): Promise<void> {
+// Returns whether the subscription is a Pro membership subscription, so the
+// caller can distinguish "no membership row because this isn't ours" (normal)
+// from "no membership row for a genuinely paid Pro invoice" (orphaned).
+async function syncSubscriptionById(
+  subscriptionId: string,
+  eventId?: string
+): Promise<boolean> {
   const subscription = await withStripeRetry(() =>
     getProStripe().subscriptions.retrieve(subscriptionId)
   );
-  if (!isProMembershipSubscription(subscription)) return;
-  await applyStripeSubscriptionToMembership(subscription);
+  if (!isProMembershipSubscription(subscription)) return false;
+  await applyStripeSubscriptionToMembership(subscription, { eventId });
+  return true;
 }
 
 export default async function handler(
@@ -85,7 +92,9 @@ export default async function handler(
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         if (isProMembershipSubscription(subscription)) {
-          await applyStripeSubscriptionToMembership(subscription);
+          await applyStripeSubscriptionToMembership(subscription, {
+            eventId: event.id,
+          });
         }
         break;
       }
@@ -105,13 +114,18 @@ export default async function handler(
           typeof invoice.subscription === "string"
             ? invoice.subscription
             : invoice.subscription?.id;
-        if (subscriptionId) {
-          await syncSubscriptionById(subscriptionId);
-        }
+        const isProInvoice = subscriptionId
+          ? await syncSubscriptionById(subscriptionId, event.id)
+          : false;
         // After the membership row reflects the new paid period, email the
-        // seller a receipt for the paid invoice. Best-effort (never throws).
-        if (event.type === "invoice.payment_succeeded") {
-          await sendProStripeReceiptEmail(invoice as Stripe.Invoice);
+        // seller a receipt for the paid invoice. Only Pro invoices qualify:
+        // non-Pro subscriptions on the platform account have no membership
+        // row BY DESIGN, so receipting them would drown the genuine
+        // ORPHANED_PRO_RECEIPT signal inside sendProStripeReceiptEmail.
+        if (event.type === "invoice.payment_succeeded" && isProInvoice) {
+          await sendProStripeReceiptEmail(invoice as Stripe.Invoice, {
+            eventId: event.id,
+          });
         }
         break;
       }
