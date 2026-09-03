@@ -125,6 +125,7 @@ import {
   sendSubscriptionCancellation,
   sendPaymentFailedToSeller,
 } from "@/utils/email/email-service";
+import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
 
 const SUB_ID = "sub_connected_123";
 const CONNECTED_ACCOUNT = "acct_seller_connected";
@@ -733,6 +734,120 @@ describe("POST /api/stripe/subscription-webhook — orphaned renewal reminder", 
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_REMINDER");
+  });
+});
+
+// Happy path: the subscriptions row exists, so the buyer must actually be
+// reminded — by email always, and by Nostr DM too when buyer_pubkey is set —
+// and a subscription_notifications row must record what was sent.
+describe("POST /api/stripe/subscription-webhook — renewal reminder sent", () => {
+  const SELLER_PUBKEY = "b".repeat(64);
+  const BUYER_PUBKEY = "a".repeat(64);
+  const NEXT_BILLING = "2026-10-15T12:00:00.000Z";
+  const NEXT_BILLING_FORMATTED = "October 15, 2026";
+
+  function fireInvoiceUpcoming() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_reminder_ok",
+      type: "invoice.upcoming",
+      data: {
+        object: {
+          id: "in_upcoming_ok",
+          subscription: SUB_ID,
+          customer_email: "buyer@example.com",
+        },
+      },
+    });
+  }
+
+  function makeSubscriptionRow(
+    overrides: Partial<Record<string, unknown>> = {}
+  ) {
+    return {
+      id: 42,
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: SELLER_PUBKEY,
+      buyer_pubkey: BUYER_PUBKEY,
+      buyer_email: "buyer@example.com",
+      product_title: "Grass-Fed Beef Box",
+      product_event_id: "prod_evt_1",
+      frequency: "monthly",
+      discount_percent: 10,
+      base_price: 100,
+      subscription_price: 90,
+      currency: "usd",
+      next_billing_date: NEXT_BILLING,
+      status: "active",
+      ...overrides,
+    };
+  }
+
+  it("emails the buyer and sends a Nostr DM when buyer_pubkey is set, recording method 'both'", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(makeSubscriptionRow());
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendRenewalReminder).toHaveBeenCalledTimes(1);
+    expect(sendRenewalReminder).toHaveBeenCalledWith(
+      "buyer@example.com",
+      {
+        productTitle: "Grass-Fed Beef Box",
+        frequency: "monthly",
+        discountPercent: 10,
+        regularPrice: "100",
+        subscriptionPrice: "90",
+        currency: "usd",
+        nextBillingDate: NEXT_BILLING_FORMATTED,
+      },
+      null // loadStorefrontBranding is mocked to return null
+    );
+    expect(sendServerSideNostrDM).toHaveBeenCalledTimes(1);
+    expect(sendServerSideNostrDM).toHaveBeenCalledWith(
+      BUYER_PUBKEY,
+      expect.stringContaining("Grass-Fed Beef Box"),
+      "subscription-renewal"
+    );
+    const dmMessage = (sendServerSideNostrDM as jest.Mock).mock.calls[0][1];
+    expect(dmMessage).toContain(NEXT_BILLING_FORMATTED);
+    expect(dmMessage).toContain("90 USD");
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledWith({
+      subscription_id: 42,
+      type: "renewal_reminder",
+      method: "both",
+    });
+  });
+
+  it("sends email only when buyer_pubkey is null, recording method 'email', and falls back to product_event_id when the title is missing", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(
+      makeSubscriptionRow({ buyer_pubkey: null, product_title: null })
+    );
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(sendRenewalReminder).toHaveBeenCalledTimes(1);
+    expect(sendRenewalReminder).toHaveBeenCalledWith(
+      "buyer@example.com",
+      expect.objectContaining({
+        productTitle: "prod_evt_1",
+        nextBillingDate: NEXT_BILLING_FORMATTED,
+      }),
+      null
+    );
+    // No Nostr identity to DM.
+    expect(sendServerSideNostrDM).not.toHaveBeenCalled();
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledTimes(1);
+    expect(mockCreateSubscriptionNotification).toHaveBeenCalledWith({
+      subscription_id: 42,
+      type: "renewal_reminder",
+      method: "email",
+    });
   });
 });
 
