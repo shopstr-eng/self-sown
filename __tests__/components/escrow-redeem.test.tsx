@@ -672,6 +672,67 @@ describe("escrow payout redemption", () => {
     });
   });
 
+  describe("SellerEscrowCell — status display", () => {
+    const escrowId = `${buyerPk}:order-9`;
+
+    function renderSellerCell() {
+      return render(
+        <SignerContext.Provider
+          value={{ signer: sellerSigner, isLoggedIn: true } as never}
+        >
+          <SellerEscrowCell escrowId={escrowId} />
+        </SignerContext.Provider>
+      );
+    }
+
+    const expectedExpiryDate = new Date(1_900_000_000 * 1000).toLocaleDateString(
+      undefined,
+      { year: "numeric", month: "short", day: "numeric" }
+    );
+
+    it("shows the lock expiry date while the escrow is locked", async () => {
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({ escrowId, status: "locked" })
+      );
+
+      renderSellerCell();
+
+      await screen.findByText(`Escrowed until ${expectedExpiryDate}`);
+      expect(
+        screen.getByText(/Releases on buyer approval/)
+      ).toBeInTheDocument();
+      // A plain locked escrow offers no release action to the seller.
+      expect(
+        screen.queryByRole("button", { name: "Sign & release payout" })
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows the refunded state with no seller action", async () => {
+      mockFetchEscrowStatus.mockResolvedValue(
+        statusResponse({ escrowId, status: "refunded" })
+      );
+
+      renderSellerCell();
+
+      await screen.findByText("Refunded to buyer");
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    });
+
+    it("offers a retry when the status fetch fails, and recovers", async () => {
+      mockFetchEscrowStatus
+        .mockRejectedValueOnce(new Error("status down"))
+        .mockResolvedValue(statusResponse({ escrowId, status: "locked" }));
+
+      renderSellerCell();
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Try again" })
+      );
+
+      await screen.findByText(`Escrowed until ${expectedExpiryDate}`);
+      expect(mockFetchEscrowStatus).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe("SellerEscrowCell — sign & release payout", () => {
     const escrowId = `${buyerPk}:order-3`;
 

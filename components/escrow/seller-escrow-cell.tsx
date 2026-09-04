@@ -147,7 +147,20 @@ export default function SellerEscrowCell({ escrowId }: { escrowId: string }) {
   if (status === undefined) {
     body = <span className="text-gray-600">Checking escrow…</span>;
   } else if (status === null) {
-    body = <span className="text-gray-600">Escrow status unavailable</span>;
+    // Mirror the buyer list's failed-view affordance: retry without a
+    // dashboard reload (a transient status-endpoint failure is recoverable).
+    body = (
+      <span className="text-gray-600">
+        Escrow status unavailable{" "}
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="rounded-md border-2 border-black bg-gray-100 px-3 py-1 text-xs font-bold text-black hover:bg-gray-200"
+        >
+          Try again
+        </button>
+      </span>
+    );
   } else if (status.status === "released") {
     // The status endpoint keeps serving the (spent) payout token after
     // redemption, so consult the persisted marker, not just component state —
