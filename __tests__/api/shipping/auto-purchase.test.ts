@@ -262,5 +262,7 @@ describe("/api/shipping/auto-purchase — claim is bound to the verified PI id, 
     // ...but the claim is bound to the id Stripe actually returned.
     const arg = runAutoLabelPurchaseMock.mock.calls[0][0];
     expect(arg.claimRef).toBe("pi_VERIFIED");
+    // Explicitly NOT the client-supplied value — an echo regression must fail.
+    expect(arg.claimRef).not.toBe("pi_CLIENT");
   });
 });
