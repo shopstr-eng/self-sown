@@ -392,11 +392,12 @@ describe("escrow-backup", () => {
       warn.mockRestore();
     });
 
-    it("does not let an in-flight failure suppress a replacement signer", async () => {
+    it("a replacement signer publishes even while the old signer's attempt is in flight", async () => {
       // Race: signer A's encrypt RPC is still pending when signer B takes
-      // over. B's run skips the record (A holds the in-flight guard), then
-      // A's RPC fails permanently. That failure must bind to A's cache — a
-      // later B run with nothing in flight must still attempt the publish.
+      // over. The in-flight guard is per-signer, so B must publish
+      // immediately — production has no mechanism to re-run the effect when
+      // A's operation settles. A's late permanent failure must bind to A's
+      // cache only and not clobber B's success.
       let rejectEncrypt: ((e: Error) => void) | undefined;
       const slowFailingSigner = {
         getPubKey: async () => BUYER_PK,
@@ -434,30 +435,30 @@ describe("escrow-backup", () => {
       }
       expect(slowFailingSigner.encrypt).toHaveBeenCalledTimes(1);
 
-      // Signer swap while A is in flight: run 2 (signer B) skips the record
-      // because A still holds the in-flight guard.
+      // Signer swap while A is in flight: B is NOT blocked by A's pending
+      // attempt — it encrypts and publishes immediately, in the same call.
       const second = await republishMissingEscrowBackups(
         {} as any,
         capableSigner as any,
         []
       );
-      expect(capableSigner.encrypt).not.toHaveBeenCalled();
+      expect(capableSigner.encrypt).toHaveBeenCalledTimes(1);
+      expect(second.published).toBe(1);
       expect(second.unbacked).toEqual([]);
 
-      // A's encrypt now fails permanently — this must land on A's cache.
+      // A's encrypt now fails permanently — this must land on A's cache
+      // only (B already published, and B's cache must stay empty).
       rejectEncrypt!(new Error("unsupported method: nip44_encrypt"));
       const first = await firstRun;
       expect(first.unbacked[0]?.failure).toBe("encryption_failed");
 
-      // Run 3 (signer B again): nothing in flight and B's cache is empty,
-      // so the capable signer gets its attempt and the backup publishes.
+      // Sanity: a further B run sees the backup and does nothing.
       const third = await republishMissingEscrowBackups(
         {} as any,
         capableSigner as any,
-        []
+        [backupEvent(infoFor(record))]
       );
-      expect(capableSigner.encrypt).toHaveBeenCalledTimes(1);
-      expect(third.published).toBe(1);
+      expect(third.published).toBe(0);
       expect(third.unbacked).toEqual([]);
       warn.mockRestore();
     });

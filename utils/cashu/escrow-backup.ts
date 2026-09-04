@@ -234,10 +234,15 @@ export async function publishEscrowBackup(
   }
 }
 
-// Session-local guard so a re-render loop (proofEvents identity churn) can't
-// re-publish the same backup over and over before the refreshed proof events
-// arrive. Failed publishes are retried on the next run.
-const backupPublishInFlight = new Set<string>();
+// Session-local in-flight guard so a re-render loop (proofEvents identity
+// churn) can't stack duplicate publishes of the same backup before the
+// refreshed proof events arrive. Scoped PER SIGNER like the give-up cache:
+// a replacement signer must never be blocked by its predecessor's still-
+// pending attempt — production has no mechanism to re-run the effect when
+// the old signer's operation settles, so the new signer publishes
+// immediately (a rare duplicate backup event is benign: restore takes the
+// latest per escrow).
+const backupPublishInFlight = new WeakMap<object, Set<string>>();
 
 // Session-local give-up cache, keyed by the SIGNER OBJECT that produced the
 // failure: a record whose backup failed with encryption_failed can NEVER
@@ -291,6 +296,11 @@ export async function republishMissingEscrowBackups(
     gaveUpForSigner = new Set<string>();
     backupPublishGaveUp.set(signer, gaveUpForSigner);
   }
+  let inFlightForSigner = backupPublishInFlight.get(signer);
+  if (!inFlightForSigner) {
+    inFlightForSigner = new Set<string>();
+    backupPublishInFlight.set(signer, inFlightForSigner);
+  }
   const backedUp = new Set<string>();
   for (const ev of proofEvents || []) {
     if (isEscrowBackupInfo(ev?.escrow)) backedUp.add(ev.escrow.escrowId);
@@ -307,8 +317,8 @@ export async function republishMissingEscrowBackups(
       });
       continue;
     }
-    if (backupPublishInFlight.has(record.escrowId)) continue;
-    backupPublishInFlight.add(record.escrowId);
+    if (inFlightForSigner.has(record.escrowId)) continue;
+    inFlightForSigner.add(record.escrowId);
     try {
       const publishResult = await publishEscrowBackup(nostr, signer, record);
       if (publishResult.published) {
@@ -327,7 +337,7 @@ export async function republishMissingEscrowBackups(
         });
       }
     } finally {
-      backupPublishInFlight.delete(record.escrowId);
+      inFlightForSigner.delete(record.escrowId);
     }
   }
   return result;
