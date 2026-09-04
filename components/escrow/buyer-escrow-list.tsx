@@ -32,6 +32,13 @@ type EscrowView = {
   record: BuyerEscrowRecord;
   /** null = registered locally but unknown server-side; undefined = loading */
   status: EscrowStatusResponse | null | undefined;
+  /**
+   * true when the status fetch REJECTED (network/endpoint failure). Distinct
+   * from loading: renders an error chip + retry, and — because status stays
+   * undefined — keeps every action button gated off (they all require
+   * status != null).
+   */
+  failed?: boolean;
 };
 
 function shortNpub(hexPubkey: string): string {
@@ -53,6 +60,12 @@ function formatDate(unixSeconds: number): string {
 
 function statusChip(view: EscrowView, nowSeconds: number) {
   const { status } = view;
+  if (view.failed) {
+    return {
+      label: "Status unavailable",
+      className: "bg-red-100 text-red-800",
+    };
+  }
   if (status === undefined) {
     return { label: "Checking…", className: "bg-gray-100 text-gray-700" };
   }
@@ -134,9 +147,13 @@ export default function BuyerEscrowList() {
     );
     const nextViews = records.map((record, index) => {
       const result = results[index]!;
+      // A rejected fetch must NOT masquerade as "still loading" (the endless
+      // "Checking…" bug) — mark the card failed so it renders an error state
+      // with a retry affordance instead.
       return {
         record,
         status: result.status === "fulfilled" ? result.value : undefined,
+        failed: result.status === "rejected",
       };
     });
     // Released escrows are terminal — the payout worker spent the locked
@@ -154,7 +171,8 @@ export default function BuyerEscrowList() {
   useEffect(() => {
     if (!isEscrowClientEnabled()) return;
     void refresh().catch(() => {
-      // Status fetch failure is non-fatal: cards render in "Checking…" state.
+      // Status fetch failure is non-fatal: failed cards render a "Status
+      // unavailable" state with a retry button.
     });
   }, [refresh]);
 
@@ -334,6 +352,15 @@ export default function BuyerEscrowList() {
                     <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-bold text-green-800">
                       Redeemed to wallet
                     </span>
+                  )}
+                  {view.failed && (
+                    <button
+                      type="button"
+                      onClick={() => void refresh().catch(() => undefined)}
+                      className="rounded-md border-2 border-black bg-gray-100 px-3 py-1 text-xs font-bold text-black hover:bg-gray-200"
+                    >
+                      Try again
+                    </button>
                   )}
                   {refundable && (
                     <button

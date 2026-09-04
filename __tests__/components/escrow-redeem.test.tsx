@@ -363,6 +363,85 @@ describe("escrow payout redemption", () => {
     });
   });
 
+  describe("BuyerEscrowList — status fetch failure", () => {
+    const escrowId = `${buyerPk}:order-netfail`;
+
+    function seedBuyerRecord() {
+      localStorage.setItem(
+        "cashu_escrows",
+        JSON.stringify([
+          {
+            escrowId,
+            orderId: "order-netfail",
+            sellerPubkey: "d".repeat(64),
+            amountSats: 100,
+            mintUrl: MINT,
+            expiresAt: 1_700_000_000, // expired → refundable IF status loads
+            createdAt: 1_600_000_000,
+            lockedToken: "cashuAlocked",
+          },
+        ])
+      );
+    }
+
+    function renderBuyerList() {
+      return render(
+        <SignerContext.Provider
+          value={
+            {
+              signer: buyerSigner,
+              pubkey: buyerPk,
+              isLoggedIn: true,
+            } as never
+          }
+        >
+          <BuyerEscrowList />
+        </SignerContext.Provider>
+      );
+    }
+
+    it("renders an unavailable state with retry instead of an endless Checking…", async () => {
+      seedBuyerRecord();
+      mockFetchEscrowStatus.mockRejectedValueOnce(new Error("network down"));
+
+      renderBuyerList();
+
+      // Distinct failure chip — not the perpetual loading chip.
+      expect(await screen.findByText("Status unavailable")).toBeInTheDocument();
+      expect(screen.queryByText("Checking…")).not.toBeInTheDocument();
+
+      // Status is unknown → no action buttons are offered.
+      expect(
+        screen.queryByRole("button", { name: /refund/i })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /release payment/i })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: /redeem/i })
+      ).not.toBeInTheDocument();
+
+      // Retry re-polls and recovers — the real status and its action arrive.
+      mockFetchEscrowStatus.mockResolvedValueOnce(
+        statusResponse({
+          escrowId,
+          status: "locked",
+          expiresAt: 1_700_000_000,
+          pendingAction: null,
+        })
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+
+      expect(
+        await screen.findByText("Locked — expired, refundable")
+      ).toBeInTheDocument();
+      expect(mockFetchEscrowStatus).toHaveBeenCalledTimes(2);
+      expect(
+        screen.getByRole("button", { name: "Request refund" })
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("BuyerEscrowList — request / complete refund", () => {
     const escrowId = `${buyerPk}:order-1`;
 
