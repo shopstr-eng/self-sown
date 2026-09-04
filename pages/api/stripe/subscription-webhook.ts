@@ -143,17 +143,22 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid webhook signature" });
   }
 
+  // Claim token fences the release: a worker stalled past the stale window
+  // must not delete a reclaimer's fresh claim (see processed-events.ts).
+  // Declared outside the try so the catch-site release can read them.
+  let claimToken: number | null = null;
+  let claimFailed = false;
   try {
-    let claimed = true;
     try {
-      claimed = await claimStripeEvent(event.id, event.type);
+      claimToken = await claimStripeEvent(event.id, event.type);
     } catch (claimErr) {
+      claimFailed = true;
       console.warn(
         "claimStripeEvent failed (subscription webhook), processing anyway:",
         claimErr
       );
     }
-    if (!claimed) {
+    if (!claimFailed && claimToken === null) {
       return res.status(200).json({ received: true, deduped: true });
     }
 
@@ -566,7 +571,10 @@ export default async function handler(
     // Release the claim so Stripe's retry is not deduped and can reprocess
     // immediately — otherwise a transient failure (e.g. DB hiccup) would
     // permanently drop the event (e.g. a paid renewal).
-    await releaseStripeEvent(event.id).catch((releaseErr) =>
+    await releaseStripeEvent(
+      event.id,
+      claimFailed ? undefined : (claimToken ?? undefined)
+    ).catch((releaseErr) =>
       console.error("subscription webhook claim release failed:", releaseErr)
     );
     return res.status(500).json({ error: "Webhook handler failed" });

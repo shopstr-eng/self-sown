@@ -79,8 +79,8 @@ export default async function handler(
       .json({ error: "Webhook signature verification failed" });
   }
 
-  const claimed = await claimStripeEvent(event.id, event.type);
-  if (!claimed) {
+  const claimToken = await claimStripeEvent(event.id, event.type);
+  if (claimToken === null) {
     // Already processed — acknowledge so Stripe stops retrying.
     return res.status(200).json({ received: true, deduped: true });
   }
@@ -149,8 +149,11 @@ export default async function handler(
     console.error("pro stripe-webhook handler error:", error);
     // Release the claim so Stripe's retry can reprocess — otherwise the
     // permanent claim would dedup the retry and drop this event forever.
-    await releaseStripeEvent(event.id).catch((releaseErr) =>
-      console.error("pro stripe-webhook claim release failed:", releaseErr)
+    // Token-scoped release: a stale-reclaimed claim belongs to another worker
+    // and must not be deleted by this one's error path.
+    await releaseStripeEvent(event.id, claimToken ?? undefined).catch(
+      (releaseErr) =>
+        console.error("pro stripe-webhook claim release failed:", releaseErr)
     );
     return res.status(500).json({ error: "Webhook handler failed" });
   }

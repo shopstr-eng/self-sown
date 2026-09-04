@@ -111,7 +111,7 @@ describe("/api/pro/stripe-webhook dedup short-circuit", () => {
       data: { object: pi },
     });
     // The event has already been processed on a prior delivery.
-    claimStripeEventMock.mockResolvedValue(false);
+    claimStripeEventMock.mockResolvedValue(null);
 
     const res = createResponse();
     await handler(createRequest(), res as any);

@@ -77,7 +77,7 @@ describe("/api/pro/stripe-webhook release-on-failure retry", () => {
 
   beforeEach(() => {
     applyRateLimitMock.mockReset().mockReturnValue(true);
-    claimStripeEventMock.mockReset().mockResolvedValue(true);
+    claimStripeEventMock.mockReset().mockResolvedValue(1_700_000_000_123);
     finalizeStripeEventMock.mockReset().mockResolvedValue(undefined);
     releaseStripeEventMock.mockReset().mockResolvedValue(undefined);
     constructEventMock.mockReset();
@@ -117,7 +117,10 @@ describe("/api/pro/stripe-webhook release-on-failure retry", () => {
     expect(res.statusCode).toBe(500);
     expect(applyStripeLifetimePaymentMock).toHaveBeenCalledTimes(1);
     expect(releaseStripeEventMock).toHaveBeenCalledTimes(1);
-    expect(releaseStripeEventMock).toHaveBeenCalledWith("evt_lifetime_fail");
+    expect(releaseStripeEventMock).toHaveBeenCalledWith(
+      "evt_lifetime_fail",
+      1_700_000_000_123
+    );
   });
 
   it("releases the claim and responds 500 when the subscription handler throws", async () => {
@@ -138,7 +141,10 @@ describe("/api/pro/stripe-webhook release-on-failure retry", () => {
     expect(res.statusCode).toBe(500);
     expect(applyStripeSubscriptionToMembershipMock).toHaveBeenCalledTimes(1);
     expect(releaseStripeEventMock).toHaveBeenCalledTimes(1);
-    expect(releaseStripeEventMock).toHaveBeenCalledWith("evt_sub_fail");
+    expect(releaseStripeEventMock).toHaveBeenCalledWith(
+      "evt_sub_fail",
+      1_700_000_000_123
+    );
   });
 
   it("does NOT release the claim when the handler succeeds", async () => {

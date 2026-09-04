@@ -85,17 +85,23 @@ export default async function handler(
       .json({ error: "Webhook signature verification failed" });
   }
 
+  // The claim token (claim timestamp) fences releaseStripeEvent: if this
+  // worker stalls past the stale window and another worker reclaims the
+  // event, this worker's error path must not delete the new owner's claim.
+  // Declared outside the try so the catch-site release can read them.
+  let claimToken: number | null = null;
+  let claimFailed = false;
   try {
-    let claimed = true;
     try {
-      claimed = await claimStripeEvent(event.id, event.type);
+      claimToken = await claimStripeEvent(event.id, event.type);
     } catch (claimErr) {
       // If the claim table is unavailable, fail-open so we still process the
       // event rather than silently dropping it. Duplicate handling will at
       // worst send a duplicate email — preferable to silent loss.
+      claimFailed = true;
       console.warn("claimStripeEvent failed, processing anyway:", claimErr);
     }
-    if (!claimed) {
+    if (!claimFailed && claimToken === null) {
       return res.status(200).json({ received: true, deduped: true });
     }
 
@@ -384,7 +390,10 @@ export default async function handler(
     console.error("Webhook handler error:", error);
     // Release the claim so Stripe's retry can reprocess immediately — otherwise
     // the un-finalized claim would only be reclaimable after the stale window.
-    await releaseStripeEvent(event.id).catch((releaseErr) =>
+    await releaseStripeEvent(
+      event.id,
+      claimFailed ? undefined : (claimToken ?? undefined)
+    ).catch((releaseErr) =>
       console.error("stripe webhook claim release failed:", releaseErr)
     );
     return res.status(500).json({ error: "Webhook handler error" });
@@ -694,33 +703,18 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     );
 
     try {
-      const dbSubscription = await getSubscriptionByStripeId(subscriptionId);
-      const sellerPubkey = dbSubscription?.seller_pubkey;
-      let alertEmail: string | null = null;
-
-      if (sellerPubkey) {
-        alertEmail = await getSellerNotificationEmail(sellerPubkey);
-      }
-
-      if (!alertEmail) {
-        const { fromEmail } =
-          await import("@/utils/email/sendgrid-client").then((m) =>
-            m.getUncachableSendGridClient()
-          );
-        alertEmail = fromEmail;
-      }
-
-      if (alertEmail) {
-        await sendTransferFailureAlert(alertEmail, {
-          subscriptionId,
-          invoiceId: invoice.id,
-          failures: failedTransfers.map((f) => ({
-            sellerPubkey: f.pubkey,
-            amountCents: f.amountCents,
-            error: f.error,
-          })),
-        });
-      }
+      // Ops-side alert only: sendTransferFailureAlert resolves the shared ops
+      // recipient (explicit admin email > verified platform sender), never a
+      // seller's notification email.
+      await sendTransferFailureAlert({
+        subscriptionId,
+        invoiceId: invoice.id,
+        failures: failedTransfers.map((f) => ({
+          sellerPubkey: f.pubkey,
+          amountCents: f.amountCents,
+          error: f.error,
+        })),
+      });
     } catch (emailErr) {
       console.error("Failed to send transfer failure alert email:", emailErr);
     }

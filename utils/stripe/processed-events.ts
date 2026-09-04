@@ -50,18 +50,21 @@ async function ensureTable(client: PoolClient): Promise<void> {
 
 /**
  * Atomically claim a Stripe webhook event for processing.
- * Returns `true` when this caller should process the event, `false` when it
- * has already been finalized (`done`) or is being processed by another worker
- * whose claim is still fresh. A `processing` claim older than `STALE_CLAIM_MS`
- * is considered abandoned (crashed worker) and is reclaimed.
+ * Returns the claim token (the claim timestamp) when this caller should
+ * process the event, or `null` when it has already been finalized (`done`) or
+ * is being processed by another worker whose claim is still fresh. A
+ * `processing` claim older than `STALE_CLAIM_MS` is considered abandoned
+ * (crashed worker) and is reclaimed.
  *
  * Callers MUST call `finalizeStripeEvent` after successful processing, or
- * `releaseStripeEvent` on failure so Stripe's retry can reprocess immediately.
+ * `releaseStripeEvent` with the returned token on failure so Stripe's retry
+ * can reprocess immediately. The token fences the release: after a stale
+ * reclaim, the old worker's release must not delete the new owner's claim.
  */
 export async function claimStripeEvent(
   eventId: string,
   eventType: string
-): Promise<boolean> {
+): Promise<number | null> {
   const pool = getDbPool();
   const client = await pool.connect();
   try {
@@ -83,7 +86,7 @@ export async function claimStripeEvent(
        RETURNING event_id`,
       [eventId, eventType, now, staleBefore]
     );
-    return (result.rowCount ?? 0) > 0;
+    return (result.rowCount ?? 0) > 0 ? now : null;
   } finally {
     client.release();
   }
@@ -114,16 +117,33 @@ export async function finalizeStripeEvent(eventId: string): Promise<void> {
  * Release a previously-claimed event so Stripe's retry can reprocess it
  * immediately. Call this when handler logic throws AFTER `claimStripeEvent`
  * succeeded — otherwise the claim would dedup the retry and drop the event.
+ *
+ * Always pass the claim token returned by `claimStripeEvent`: the delete is
+ * then scoped to that claim, so a worker whose claim was stale-reclaimed by
+ * another worker cannot delete the new owner's live claim (which would let a
+ * third worker duplicate processing). The token-less unconditional delete is
+ * the fallback for callers whose claim attempt itself failed.
  */
-export async function releaseStripeEvent(eventId: string): Promise<void> {
+export async function releaseStripeEvent(
+  eventId: string,
+  claimToken?: number
+): Promise<void> {
   const pool = getDbPool();
   const client = await pool.connect();
   try {
     await ensureTable(client);
-    await client.query(
-      `DELETE FROM stripe_processed_events WHERE event_id = $1`,
-      [eventId]
-    );
+    if (claimToken === undefined) {
+      await client.query(
+        `DELETE FROM stripe_processed_events WHERE event_id = $1`,
+        [eventId]
+      );
+    } else {
+      await client.query(
+        `DELETE FROM stripe_processed_events
+           WHERE event_id = $1 AND claimed_at = $2`,
+        [eventId, claimToken]
+      );
+    }
   } finally {
     client.release();
   }

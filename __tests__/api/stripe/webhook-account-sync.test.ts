@@ -108,7 +108,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
   delete process.env.STRIPE_WEBHOOK_CONNECT_SECRET;
-  mockClaimStripeEvent.mockResolvedValue(true);
+  mockClaimStripeEvent.mockResolvedValue(1_700_000_000_456);
   mockFinalizeStripeEvent.mockResolvedValue(undefined);
   mockReleaseStripeEvent.mockResolvedValue(undefined);
   mockSyncAffiliateStripeAccountState.mockResolvedValue(null);
@@ -262,7 +262,10 @@ describe("POST /api/stripe/webhook — account.updated seller cache sync", () =>
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_account_updated");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_account_updated",
+      1_700_000_000_456
+    );
     expect(mockFinalizeStripeEvent).not.toHaveBeenCalled();
   });
 });
@@ -322,7 +325,10 @@ describe("POST /api/stripe/webhook — account.application.deauthorized seller c
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_deauthorized");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_deauthorized",
+      1_700_000_000_456
+    );
     expect(mockFinalizeStripeEvent).not.toHaveBeenCalled();
   });
 });

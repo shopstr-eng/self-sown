@@ -529,20 +529,27 @@ export async function sendProReceipt(
   return sendEmail(sellerEmail, subject, html);
 }
 
-export async function sendTransferFailureAlert(
-  adminEmail: string,
-  params: {
-    subscriptionId: string;
-    invoiceId: string;
-    failures: Array<{
-      sellerPubkey: string;
-      amountCents: number;
-      error: string;
-    }>;
-  }
-): Promise<boolean> {
+export async function sendTransferFailureAlert(params: {
+  subscriptionId: string;
+  invoiceId: string;
+  failures: Array<{
+    sellerPubkey: string;
+    amountCents: number;
+    error: string;
+  }>;
+  adminEmail?: string;
+}): Promise<boolean> {
   const { subject, html } = transferFailureAlertEmail(params);
-  return sendEmail(adminEmail, subject, html);
+  // Ops alert: route to the shared ops recipient (explicit admin email, then
+  // the verified platform sender) — never to a subscription seller. A seller
+  // can't act on platform-side transfer remediation, and in a multi-seller
+  // renewal the failure details cover OTHER sellers too.
+  const recipient = await resolveOpsAlertRecipient(
+    params.adminEmail,
+    "transfer_failure"
+  );
+  if (!recipient) return false;
+  return sendEmail(recipient, subject, html);
 }
 
 /**

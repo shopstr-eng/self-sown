@@ -60,7 +60,9 @@ const mockSendOrphanedSubscriptionCancellationAlert = jest.fn(
 const mockSendOrphanedSubscriptionReminderAlert = jest.fn(
   async (..._args: any[]) => true
 );
-const mockSendOrphanedStripeEventAlert = jest.fn(async (..._args: any[]) => true);
+const mockSendOrphanedStripeEventAlert = jest.fn(
+  async (..._args: any[]) => true
+);
 
 jest.mock("@/utils/email/email-service", () => ({
   // The real helper resolves a delivery boolean — it does not throw.
@@ -225,7 +227,7 @@ beforeEach(() => {
   process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
   delete process.env.STRIPE_SUBSCRIPTION_CONNECT_WEBHOOK_SECRET;
   delete process.env.STRIPE_WEBHOOK_CONNECT_SECRET;
-  mockClaimStripeEvent.mockResolvedValue(true);
+  mockClaimStripeEvent.mockResolvedValue(1_700_000_000_789);
   mockFinalizeStripeEvent.mockResolvedValue(undefined);
   mockReleaseStripeEvent.mockResolvedValue(undefined);
   mockProSettingsStore.clear();
@@ -392,7 +394,10 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
     expect(mockSubscriptionsRetrieve).not.toHaveBeenCalled();
     const errCalls = (console.error as jest.Mock).mock.calls
       .map((args) => String(args[0]))
@@ -431,7 +436,10 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
 
     expect(res.statusCode).toBe(500);
     expect(mockTransfersCreate).not.toHaveBeenCalled();
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
   });
 
   it("passes a deterministic per-invoice-per-seller idempotency key so a webhook retry cannot double-pay a seller", async () => {
@@ -459,20 +467,18 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     // the original transfer instead of creating a new one.
     const createdByKey = new Map<string, string>();
     let sellerBAttempts = 0;
-    mockTransfersCreate.mockImplementation(
-      async (params: any, opts: any) => {
-        if (params.destination === "acct_b" && sellerBAttempts++ === 0) {
-          throw new Error("stripe 500"); // seller B fails on attempt 1
-        }
-        const key = opts?.idempotencyKey;
-        if (createdByKey.has(key)) {
-          return { id: createdByKey.get(key), duplicate: true };
-        }
-        const id = `tr_${createdByKey.size}`;
-        createdByKey.set(key, id);
-        return { id };
+    mockTransfersCreate.mockImplementation(async (params: any, opts: any) => {
+      if (params.destination === "acct_b" && sellerBAttempts++ === 0) {
+        throw new Error("stripe 500"); // seller B fails on attempt 1
       }
-    );
+      const key = opts?.idempotencyKey;
+      if (createdByKey.has(key)) {
+        return { id: createdByKey.get(key), duplicate: true };
+      }
+      const id = `tr_${createdByKey.size}`;
+      createdByKey.set(key, id);
+      return { id };
+    });
 
     fireInvoicePaid();
     const res1 = makeRes();
@@ -548,7 +554,10 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
     const errCalls = (console.error as jest.Mock).mock.calls
       .map((args) => String(args[0]))
       .join("\n");
@@ -952,7 +961,10 @@ describe("POST /api/stripe/subscription-webhook — orphaned/failed renewal look
     await subscriptionWebhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_orphan");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_orphan",
+      1_700_000_000_789
+    );
     expect(mockUpdateSubscriptionBillingDate).not.toHaveBeenCalled();
     // A transient failure is NOT an orphaned payment.
     const errCalls = (console.error as jest.Mock).mock.calls
@@ -1039,7 +1051,10 @@ describe("POST /api/stripe/subscription-webhook — orphaned cancellation", () =
     await subscriptionWebhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_orphan_cancel");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_orphan_cancel",
+      1_700_000_000_789
+    );
     expect(sendSubscriptionCancellation).not.toHaveBeenCalled();
     // A transient failure is NOT an orphaned cancellation.
     const errCalls = (console.error as jest.Mock).mock.calls
@@ -1158,7 +1173,10 @@ describe("POST /api/stripe/subscription-webhook — orphaned renewal reminder", 
     await subscriptionWebhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_orphan_reminder");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_orphan_reminder",
+      1_700_000_000_789
+    );
     expect(sendRenewalReminder).not.toHaveBeenCalled();
     // A transient failure is NOT an orphaned reminder.
     const errCalls = (console.error as jest.Mock).mock.calls
@@ -1460,7 +1478,10 @@ describe("POST /api/stripe/webhook — invoice.payment_failed orphaned/failed lo
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_pay_failed");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_pay_failed",
+      1_700_000_000_789
+    );
     expect(sendPaymentFailedToSeller).not.toHaveBeenCalled();
     // A transient failure is NOT an orphaned payment failure.
     const errCalls = (console.error as jest.Mock).mock.calls
@@ -1552,7 +1573,10 @@ describe("POST /api/stripe/webhook — payment_intent.succeeded orphaned MCP ord
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_mcp_paid");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_mcp_paid",
+      1_700_000_000_789
+    );
     expect(mockAutoPurchaseForMcpOrder).not.toHaveBeenCalled();
     // A transient failure is NOT an orphaned order payment.
     const errCalls = (console.error as jest.Mock).mock.calls
@@ -1617,7 +1641,10 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
     await webhookHandler(makeReq(), res);
 
     expect(res.statusCode).toBe(500);
-    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_refund");
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_refund",
+      1_700_000_000_789
+    );
   });
 
   it("reverses the referral and 200s on the happy path", async () => {

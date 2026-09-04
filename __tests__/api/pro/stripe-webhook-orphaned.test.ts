@@ -105,7 +105,7 @@ describe("/api/pro/stripe-webhook — invoice.payment_succeeded Pro gating", () 
   beforeEach(() => {
     jest.clearAllMocks();
     applyRateLimitMock.mockResolvedValue(true);
-    claimStripeEventMock.mockResolvedValue(true);
+    claimStripeEventMock.mockResolvedValue(1_700_000_000_321);
     finalizeStripeEventMock.mockResolvedValue(undefined);
     releaseStripeEventMock.mockResolvedValue(undefined);
     applyStripeSubscriptionToMembershipMock.mockResolvedValue(undefined);
@@ -161,7 +161,10 @@ describe("/api/pro/stripe-webhook — invoice.payment_succeeded Pro gating", () 
     await handler(createRequest(), res as any);
 
     expect(res.statusCode).toBe(500);
-    expect(releaseStripeEventMock).toHaveBeenCalledWith("evt_pro_invoice");
+    expect(releaseStripeEventMock).toHaveBeenCalledWith(
+      "evt_pro_invoice",
+      1_700_000_000_321
+    );
     expect(sendProStripeReceiptEmailMock).not.toHaveBeenCalled();
   });
 });

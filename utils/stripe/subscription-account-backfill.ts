@@ -43,7 +43,7 @@ export interface SubscriptionAccountBackfillReport {
   verified: number;
   /** Rows actually written (0 in report-only mode). */
   stamped: number;
-  /** Seller has no (enabled) Connect account — nothing to verify against. */
+  /** Seller has no Connect account row — nothing to verify against. */
   noConnectAccount: number;
   /** Not retrievable from the seller's current account — flag for support. */
   notOnCurrentAccount: number;
@@ -74,10 +74,13 @@ export async function backfillSubscriptionConnectedAccounts(
 
   for (const row of rows) {
     const connect = await deps.getConnectAccount(row.seller_pubkey);
-    if (!connect || !connect.charges_enabled) {
+    // Existence verification only needs the account id — retrieving a
+    // subscription works on restricted/disabled accounts too, and gating on
+    // charges_enabled would leave those legacy rows permanently unstamped.
+    if (!connect) {
       report.noConnectAccount++;
       log(
-        `SKIP ${row.stripe_subscription_id}: seller ${row.seller_pubkey} has no enabled Connect account`
+        `SKIP ${row.stripe_subscription_id}: seller ${row.seller_pubkey} has no Connect account`
       );
       continue;
     }

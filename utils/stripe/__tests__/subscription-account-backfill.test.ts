@@ -14,7 +14,9 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
       stripe_account_id: "acct_current",
       charges_enabled: true,
     })),
-    retrieveSubscription: jest.fn(async () => ({ id: ROW.stripe_subscription_id })),
+    retrieveSubscription: jest.fn(async () => ({
+      id: ROW.stripe_subscription_id,
+    })),
     stamp: jest.fn(async () => true),
     apply: true,
     log: jest.fn(),
@@ -66,7 +68,7 @@ describe("backfillSubscriptionConnectedAccounts", () => {
     });
   });
 
-  it("skips rows whose seller has no enabled Connect account", async () => {
+  it("skips rows whose seller has no Connect account", async () => {
     const deps = makeDeps({
       getConnectAccount: jest.fn(async () => null),
     });
@@ -76,6 +78,27 @@ describe("backfillSubscriptionConnectedAccounts", () => {
     expect(deps.retrieveSubscription).not.toHaveBeenCalled();
     expect(deps.stamp).not.toHaveBeenCalled();
     expect(report.noConnectAccount).toBe(1);
+  });
+
+  it("still verifies and stamps when the account is restricted (charges_enabled false)", async () => {
+    // A restricted/disabled account still HOLDS the subscription — retrieving
+    // it works fine, so gating verification on charges_enabled would leave
+    // these rows permanently unstamped.
+    const deps = makeDeps({
+      getConnectAccount: jest.fn(async () => ({
+        stripe_account_id: "acct_current",
+        charges_enabled: false,
+      })),
+    });
+
+    const report = await backfillSubscriptionConnectedAccounts(deps);
+
+    expect(deps.retrieveSubscription).toHaveBeenCalledWith(
+      "sub_legacy_1",
+      "acct_current"
+    );
+    expect(deps.stamp).toHaveBeenCalledWith("sub_legacy_1", "acct_current");
+    expect(report).toMatchObject({ verified: 1, stamped: 1 });
   });
 
   it("counts unexpected retrieve failures separately and leaves the row for a re-run", async () => {

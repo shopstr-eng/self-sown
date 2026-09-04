@@ -15,7 +15,9 @@ const getProSettingMock = jest.fn();
 const getSellerNotificationEmailMock = jest.fn();
 const sendProReceiptMock = jest.fn();
 const sendServerSideNostrDMMock = jest.fn();
-const sendOrphanedStripeEventAlertMock = jest.fn(async () => true);
+const sendOrphanedStripeEventAlertMock = jest.fn((..._args: unknown[]) =>
+  Promise.resolve(true)
+);
 
 jest.mock("@/utils/db/pro-membership", () => ({
   getProMembershipBySubscription: (...args: unknown[]) =>
