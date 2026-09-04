@@ -391,6 +391,76 @@ describe("escrow-backup", () => {
       expect(second.unbacked).toEqual([]);
       warn.mockRestore();
     });
+
+    it("does not let an in-flight failure suppress a replacement signer", async () => {
+      // Race: signer A's encrypt RPC is still pending when signer B takes
+      // over. B's run skips the record (A holds the in-flight guard), then
+      // A's RPC fails permanently. That failure must bind to A's cache — a
+      // later B run with nothing in flight must still attempt the publish.
+      let rejectEncrypt: ((e: Error) => void) | undefined;
+      const slowFailingSigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt: jest.fn(
+          () =>
+            new Promise<string>((_res, rej) => {
+              rejectEncrypt = rej;
+            })
+        ),
+      };
+      const capableSigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt: jest.fn(async (_pk: string, pt: string) => `enc:${pt}`),
+      };
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-7`,
+        orderId: "order-7",
+      });
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      mockFinalize.mockResolvedValue({ id: "event-id" });
+
+      // Run 1 (signer A): starts the encrypt RPC, which stays pending.
+      const firstRun = republishMissingEscrowBackups(
+        {} as any,
+        slowFailingSigner as any,
+        []
+      );
+      for (
+        let i = 0;
+        i < 50 && slowFailingSigner.encrypt.mock.calls.length === 0;
+        i++
+      ) {
+        await new Promise((r) => setTimeout(r, 0));
+      }
+      expect(slowFailingSigner.encrypt).toHaveBeenCalledTimes(1);
+
+      // Signer swap while A is in flight: run 2 (signer B) skips the record
+      // because A still holds the in-flight guard.
+      const second = await republishMissingEscrowBackups(
+        {} as any,
+        capableSigner as any,
+        []
+      );
+      expect(capableSigner.encrypt).not.toHaveBeenCalled();
+      expect(second.unbacked).toEqual([]);
+
+      // A's encrypt now fails permanently — this must land on A's cache.
+      rejectEncrypt!(new Error("unsupported method: nip44_encrypt"));
+      const first = await firstRun;
+      expect(first.unbacked[0]?.failure).toBe("encryption_failed");
+
+      // Run 3 (signer B again): nothing in flight and B's cache is empty,
+      // so the capable signer gets its attempt and the backup publishes.
+      const third = await republishMissingEscrowBackups(
+        {} as any,
+        capableSigner as any,
+        []
+      );
+      expect(capableSigner.encrypt).toHaveBeenCalledTimes(1);
+      expect(third.published).toBe(1);
+      expect(third.unbacked).toEqual([]);
+      warn.mockRestore();
+    });
   });
 
   describe("restoreEscrowsFromProofEvents", () => {

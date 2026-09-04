@@ -239,21 +239,19 @@ export async function publishEscrowBackup(
 // arrive. Failed publishes are retried on the next run.
 const backupPublishInFlight = new Set<string>();
 
-// Session-local give-up set: a record whose backup failed with
-// encryption_failed can NEVER publish with this signer (nip04-only bunker or
-// denied permission), so retrying just re-fires a futile nip44_encrypt RPC —
-// and a possible user-facing bunker permission prompt — on every wallet visit
-// and proofEvents change. Skip the publish for the rest of the page-load
-// session, but keep reporting the record as unbacked so the warning banner
+// Session-local give-up cache, keyed by the SIGNER OBJECT that produced the
+// failure: a record whose backup failed with encryption_failed can NEVER
+// publish with that signer (nip04-only bunker or denied permission), so
+// retrying just re-fires a futile nip44_encrypt RPC — and a possible user-
+// facing bunker permission prompt — on every wallet visit and proofEvents
+// change. Skipped records still report as unbacked so the warning banner
 // stays visible. Transient failures (publish_failed/unavailable) are NOT
-// added here and keep retrying.
-const backupPublishGaveUp = new Set<string>();
-// The give-up rationale is signer-specific (THIS signer can't encrypt), so
-// the set is only valid for the signer object it was built with: a mid-
-// session signer swap (e.g. nip04-only bunker → local keys) must get a
-// fresh attempt, not stay suppressed. The context signer object is stable
-// across re-renders, so re-runs with the same signer keep the cache.
-let backupPublishGaveUpSigner: unknown = null;
+// cached and keep retrying.
+// Per-signer binding matters twice: a mid-session signer swap (bunker →
+// local keys) gets a fresh attempt, and a failure completing AFTER a swap
+// lands on the signer that actually produced it, never the replacement.
+// WeakMap so abandoned signers' entries are garbage-collected.
+const backupPublishGaveUp = new WeakMap<object, Set<string>>();
 
 export interface UnbackedEscrow {
   escrowId: string;
@@ -284,11 +282,14 @@ export async function republishMissingEscrowBackups(
 ): Promise<EscrowBackupRepublishResult> {
   const result: EscrowBackupRepublishResult = { published: 0, unbacked: [] };
   if (typeof window === "undefined" || !nostr || !signer) return result;
-  // Signer identity changed (e.g. bunker swapped for local keys): the old
-  // signer's permanent failures say nothing about the new one — retry all.
-  if (signer !== backupPublishGaveUpSigner) {
-    backupPublishGaveUp.clear();
-    backupPublishGaveUpSigner = signer;
+  // Give-ups are bound to the signer that produced them. The set is fetched
+  // (or created) once per run and CAPTURED by the async publish below, so a
+  // failure completing after a mid-flight signer swap binds to the signer
+  // that actually produced it — never to the replacement signer.
+  let gaveUpForSigner = backupPublishGaveUp.get(signer);
+  if (!gaveUpForSigner) {
+    gaveUpForSigner = new Set<string>();
+    backupPublishGaveUp.set(signer, gaveUpForSigner);
   }
   const backedUp = new Set<string>();
   for (const ev of proofEvents || []) {
@@ -296,9 +297,9 @@ export async function republishMissingEscrowBackups(
   }
   for (const record of listBuyerEscrows()) {
     if (backedUp.has(record.escrowId)) continue;
-    if (backupPublishGaveUp.has(record.escrowId)) {
-      // Permanent failure — don't re-prompt the signer, but keep the record
-      // visible as unbacked so the warning banner stays up.
+    if (gaveUpForSigner.has(record.escrowId)) {
+      // Permanent failure with THIS signer — don't re-prompt it, but keep
+      // the record visible as unbacked so the warning banner stays up.
       result.unbacked.push({
         escrowId: record.escrowId,
         orderId: record.orderId,
@@ -314,7 +315,10 @@ export async function republishMissingEscrowBackups(
         result.published += 1;
       } else {
         if (publishResult.failure === "encryption_failed") {
-          backupPublishGaveUp.add(record.escrowId);
+          // Binds to the captured per-signer set: if a signer swap happened
+          // while this encrypt RPC was in flight, the failure is recorded
+          // against THIS signer, not whichever signer is current now.
+          gaveUpForSigner.add(record.escrowId);
         }
         result.unbacked.push({
           escrowId: record.escrowId,
