@@ -57,6 +57,27 @@ while the cleartext outer event fields are attacker-selected routing metadata.
 binds the order ID to buyer and seller pubkeys. Authorize status changes against
 that record and enforce sequential transitions with an atomic compare-and-set.
 
+## seller_order_states init must stay seller-only (buyer-cancel squat vector)
+
+`transitionSellerOrderStatus` only lets the SELLER initialize a state row
+(actorPubkey === sellerPubkey). A "buyer can cancel their own pending order
+before the seller opens it" variant was tried (self-declared buyerPubkey +
+known wrap id) and **reverted**: gift-wrap ids and their p-tags are publicly
+observable on relays, so wrap-id knowledge is not authorship proof, and the
+buyer key is attacker-controlled. An attacker could init a `canceled` row for
+an observed wrap, squatting the `UNIQUE (seller_pubkey, source_message_id)`
+slot so the REAL order can never be initialized (insert no-ops on conflict).
+
+**Why:** code review caught this as broken access control / fulfillment DoS;
+pre-open buyer cancel is deferred until a server-verifiable buyer↔order
+binding exists at order creation.
+
+**How to apply:** do not re-add buyer-side init to `transitionSellerOrderStatus`
+(or sibling init paths) from caller-supplied buyer identity. The regression
+test (squat attempt → forbidden, no row, seller can still init the same wrap)
+lives in the testcontainers suite in `utils/db/__tests__/db-service.test.ts`
+(RUN_TESTCONTAINERS-gated — only enforced when run against a real DB).
+
 ## What order data IS server-trusted
 
 - `notification_emails` (keyed by `order_id`, role `buyer`/`seller`) — written at
