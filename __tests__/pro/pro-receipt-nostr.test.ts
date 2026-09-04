@@ -117,4 +117,25 @@ describe("Pro receipts reach Nostr-only sellers", () => {
     expect(sendProReceiptMock).toHaveBeenCalledTimes(1);
     expect(sendServerSideNostrDMMock).toHaveBeenCalledTimes(1);
   });
+
+  it("manual: a DM/relay failure is swallowed and never throws out of settle", async () => {
+    getSellerNotificationEmailMock.mockResolvedValue(null);
+    sendServerSideNostrDMMock.mockRejectedValue(new Error("all relays down"));
+
+    await expect(
+      sendProManualReceiptEmail(manualInvoice)
+    ).resolves.toBeUndefined();
+  });
+
+  it("stripe: a DM/relay failure is swallowed and never throws out of the webhook", async () => {
+    getProMembershipBySubscriptionMock.mockResolvedValue({
+      pubkey: "seller-pubkey",
+    });
+    getSellerNotificationEmailMock.mockResolvedValue(null);
+    sendServerSideNostrDMMock.mockRejectedValue(new Error("all relays down"));
+
+    await expect(
+      sendProStripeReceiptEmail(stripeInvoice())
+    ).resolves.toBeUndefined();
+  });
 });
