@@ -7,6 +7,7 @@
  */
 import {
   buildMultiCardQueue,
+  computeSellerCardCharge,
   isFinalMultiCardStep,
   multiCardAdvanceFailureMessage,
   runMultiCardStepAdvance,
@@ -118,5 +119,136 @@ describe("multiCardAdvanceFailureMessage", () => {
     expect(multiCardAdvanceFailureMessage("stripe.js failed to load")).toBe(
       "Your previous sellers were paid, but setting up the next seller's card form failed: stripe.js failed to load. Please retry to finish the remaining sellers."
     );
+  });
+});
+
+describe("computeSellerCardCharge", () => {
+  const products = [
+    { id: "p1", pubkey: SELLER_A },
+    { id: "p2", pubkey: SELLER_A },
+    { id: "p3", pubkey: SELLER_B },
+  ];
+
+  it("native cart: own items + per-seller shipping, rounded UP to the cent, currency uppercased", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products,
+      isSatsCart: false,
+      cartCurrency: "usd",
+      nativeCostsPerProduct: { p1: 10.001, p2: 2.002, p3: 99.99 },
+      nativeShippingPerSeller: { [SELLER_A]: 1.005 },
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    // (10.001 + 2.002) + 1.005 = 13.008 -> ceil to the cent; seller B's p3
+    // (99.99) must NOT leak into seller A's charge.
+    expect(charge).toEqual({ amount: 13.01, currency: "USD" });
+  });
+
+  it("native cart: an exact-cent total is not over-rounded", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products,
+      isSatsCart: false,
+      cartCurrency: "USD",
+      nativeCostsPerProduct: { p1: 10, p2: 5, p3: 99.99 },
+      nativeShippingPerSeller: { [SELLER_A]: 0 },
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    expect(charge).toEqual({ amount: 15, currency: "USD" });
+  });
+
+  it("native cart: a decimal exact-cent total is not floated up a cent", () => {
+    // 0.10 + 0.20 = 0.30000000000000004 in IEEE-754 — a naive
+    // Math.ceil(x * 100) turns that into 31 cents and OVERCHARGES the buyer.
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products: [
+        { id: "d1", pubkey: SELLER_A },
+        { id: "d2", pubkey: SELLER_A },
+      ],
+      isSatsCart: false,
+      cartCurrency: "USD",
+      nativeCostsPerProduct: { d1: 0.1, d2: 0.2 },
+      nativeShippingPerSeller: { [SELLER_A]: 0 },
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    expect(charge).toEqual({ amount: 0.3, currency: "USD" });
+  });
+
+  it("native cart: a genuine sub-cent fraction still rounds UP (ceil, not nearest)", () => {
+    // 13.001 is 1300.1 cents — nearest-cent would UNDER-collect at 13.00.
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products: [{ id: "frac", pubkey: SELLER_A }],
+      isSatsCart: false,
+      cartCurrency: "USD",
+      nativeCostsPerProduct: { frac: 13.001 },
+      nativeShippingPerSeller: { [SELLER_A]: 0 },
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    expect(charge).toEqual({ amount: 13.01, currency: "USD" });
+  });
+
+  it("native cart: missing cost and shipping entries contribute 0", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products: [{ id: "p-unknown", pubkey: SELLER_A }],
+      isSatsCart: false,
+      cartCurrency: "EUR",
+      nativeCostsPerProduct: {},
+      nativeShippingPerSeller: {},
+      totalCostsInSats: {},
+      shippingCostsInSats: {},
+    });
+    expect(charge).toEqual({ amount: 0, currency: "EUR" });
+  });
+
+  it("sats cart: per-seller sats aggregate + sats shipping, no cent rounding", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products,
+      isSatsCart: true,
+      cartCurrency: null,
+      nativeCostsPerProduct: { p1: 10, p2: 5 },
+      nativeShippingPerSeller: { [SELLER_A]: 3 },
+      totalCostsInSats: { [SELLER_A]: 5000 },
+      shippingCostsInSats: { [SELLER_A]: 250 },
+    });
+    expect(charge).toEqual({ amount: 5250, currency: "sats" });
+  });
+
+  it("sats cart: falls back to summing per-product sats when the seller aggregate is missing", () => {
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products,
+      isSatsCart: true,
+      cartCurrency: undefined,
+      nativeCostsPerProduct: null,
+      nativeShippingPerSeller: {},
+      totalCostsInSats: { p1: 100, p2: 200, p3: 999 },
+      shippingCostsInSats: {},
+    });
+    // 100 + 200 (own products only); no seller-level aggregate or shipping.
+    expect(charge).toEqual({ amount: 300, currency: "sats" });
+  });
+
+  it("non-sats cart WITHOUT a currency still takes the sats branch", () => {
+    // useNative requires both !isSatsCart AND a currency — a fiat-priced cart
+    // with an unresolved currency must not fabricate a native charge.
+    const charge = computeSellerCardCharge({
+      pubkey: SELLER_A,
+      products,
+      isSatsCart: false,
+      cartCurrency: null,
+      nativeCostsPerProduct: { p1: 10, p2: 5 },
+      nativeShippingPerSeller: { [SELLER_A]: 3 },
+      totalCostsInSats: { [SELLER_A]: 700 },
+      shippingCostsInSats: { [SELLER_A]: 30 },
+    });
+    expect(charge).toEqual({ amount: 730, currency: "sats" });
   });
 });
