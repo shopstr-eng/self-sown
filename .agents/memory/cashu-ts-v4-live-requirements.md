@@ -36,3 +36,11 @@ A fifth live-only behavior (found 2026-09): `wallet.send(amount, proofs)`
 SHORT-CIRCUITS when `amount` exactly equals the inputs' total — no swap, the
 inputs stay UNSPENT at the mint. Any test fixture that needs proofs marked
 SPENT must send a partial amount to force the swap.
+
+A sixth (found 2026-09): the escrow payout WORKER is stricter than the escrow
+ENDPOINTS about the Amount-serializes-as-string issue (#4). Endpoints coerce
+`Number(p.amount)`; the worker's `assertPayloadShape` fails closed on
+`typeof amount !== "number"` → "malformed proof" after finalization. Any new
+client of the escrow endpoints must normalize Amount instances to plain
+numbers BEFORE JSON-serializing proofs, or the payout leg poisons its outbox
+row with a permanently-failing payload.

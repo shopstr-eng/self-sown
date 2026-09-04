@@ -45,6 +45,33 @@ recipient who reads non-default relays silently never arrives.
 use the recipient-relay variant; keep the plain one only where default-relay
 delivery is intentional.
 
+**Cache-miss ≠ delivered (verified in staging 2026-09).** The recipient-relay
+variant resolved NIP-65 lists from the Postgres `config_events` cache only; a
+miss fell back to defaults+blastr — and blastr federation MASKED the gap in
+staging (wraps reached the payee's non-default relays within ~16s anyway).
+Federation is luck, not a guarantee. There is now a live NIP-65 indexer
+fallback (purplepag.es / relay.nostr.band, `NIP65_INDEXER_RELAYS` override)
+with verified kind/author/signature, newest-wins, best-effort cache mirror,
+and a `[nip65-fallback]` log breadcrumb. The staging e2e
+(`scripts/e2e-escrow-payout-dm-relays.mjs`) proves the fallback with an
+in-process fake relay because both public indexers are unreachable from the
+sandbox egress.
+
+**Server relay I/O uses `utils/nostr/contained-relay.ts`, never SimplePool.**
+Why: pool.publish leaks dangling socket errors as uncaughtException when a
+default relay is unreachable, and querySync waits for EVERY relay's EOSE so
+one dead indexer discards a live one's results. The contained client gives
+each relay one deadline over DNS+connect+response, a pinned public-only DNS
+lookup at the dial (`createPublicOnlyLookup` in utils/url-safety — validation
+then reconnect leaves a rebind window; nostr-tools' global
+useWebSocketImplementation can't pin per-connection), pre-parse inbound
+frame/byte budgets, and a client-side event cap (Nostr `limit` is only a
+request). Attacker-controlled NIP-65 targets never get `allowPrivate`.
+
+**Test gotcha:** `finalizeEvent` stamps `Symbol(verified)`, which survives
+object spread and short-circuits `verifyEvent` — tamper-test fixtures must be
+JSON round-tripped, or signature-verification tests pass on forged events.
+
 **Read-path symmetry (the other half of resilience):** delivering an order to the
 seller's relays + server cache only helps if the dashboard READ path actually
 merges the server copy. Profiles and products already merge DB ∪ relay for display.
