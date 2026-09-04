@@ -535,6 +535,23 @@ export async function executeEscrowPayout(
     );
   }
 
+  // Final expiry guard, immediately before touching the mint: validation ran
+  // before loadMint + checkProofsStates (network round-trips during which the
+  // lock window can close), and the mint must NOT be relied on to enforce
+  // locktime (observed: Nutshell accepts P2PK data-key spends post-locktime).
+  // A release whose window closed during those calls dies here, not at the
+  // mint. The SPENT-recovery path above is deliberately exempt: the swap
+  // already happened there, and blocking recovery would only strand outputs.
+  if (
+    action === "release" &&
+    (options?.nowSeconds ?? Math.floor(Date.now() / 1000)) >=
+      Math.floor(registration.expiresAt.getTime() / 1000)
+  ) {
+    throw new Error(
+      "Escrow lock has expired; a release can no longer be paid out."
+    );
+  }
+
   const payeePubkey =
     action === "release" ? registration.sellerPubkey : registration.buyerPubkey;
   // Inputs carry their witnesses, so the swap needs no private key. The

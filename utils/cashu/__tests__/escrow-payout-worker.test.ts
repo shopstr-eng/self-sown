@@ -127,11 +127,14 @@ describe("processEscrowOutboxEntry", () => {
       "release",
       claimed().payoutPayload,
       expect.objectContaining({
-        nowSeconds: expect.any(Number),
         preparedOutputs: undefined,
         persistPreparedOutputs: expect.any(Function),
       })
     );
+    // The worker must NOT pin the executor's clock to claim time — expiry is
+    // judged with fresh time inside the executor (mid-flight expiry race: a
+    // release claimed just before expiry must not pay the seller after it).
+    expect(executePayout.mock.calls[0]?.[3]?.nowSeconds).toBeUndefined();
     expect(mockedFinalize).toHaveBeenCalledWith(
       "buyer:order-1",
       "token-1",

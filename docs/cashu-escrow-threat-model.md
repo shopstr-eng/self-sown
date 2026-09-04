@@ -246,10 +246,20 @@ unless escrow is enabled) drains the outbox:
    silent flip. Residual: arbiter + party collusion is indistinguishable from
    a legitimate ruling; the defense is careful arbiter selection and allowlist
    revocation.
-3. **Expiry race — handled by conversion**: the worker re-checks expiry at
-   payout time; a release whose window closed mid-flight is atomically
-   converted to a pending refund (see §6). Residual: none known, but this
-   path MUST be covered by the staging kill-test below before enabling.
+3. **Expiry race — bounded, not mint-enforced**: the worker checks expiry at
+   claim time (converting an expired release to a pending refund, see §6);
+   the executor re-checks with FRESH time at validation AND again immediately
+   before the mint swap call — the worker deliberately does not forward its
+   claim-time clock, because the staging kill-test caught a release claimed
+   pre-expiry paying the seller post-expiry through that stale timestamp.
+   These executor checks are the SOLE enforcement of "no release after
+   expiry": the staging Nutshell mint (0.20.x, FakeWallet) accepts a P2PK
+   spend signed by the data key even AFTER locktime (probed directly), so a
+   mint-level rejection must never be assumed. Residual: the swap HTTP call
+   itself — a window closing between the pre-swap guard and the mint applying
+   the swap still pays the seller on a non-enforcing mint. That window is
+   irreducible without mint enforcement; see the enabling-checklist mint
+   probe requirement.
 4. **Mint liveness**: refund-after-expiry depends on the mint being reachable;
    `listExpiredLockedEscrows` + retry backoff cover transient outages, not a
    dead mint. The NUT-09 restore recovery path likewise requires the mint to
@@ -263,9 +273,43 @@ unless escrow is enabled) drains the outbox:
 
 ## Enabling checklist
 
-- [ ] End-to-end recovery test in staging: kill the payout worker mid-release,
+- [x] End-to-end recovery test in staging: kill the payout worker mid-release,
       confirm the outbox requeues and pays exactly once, and that the payee
-      proofs are recovered via /restore.
+      proofs are recovered via /restore. Proven live against the staging
+      Nutshell mint (FakeWallet) + real Postgres by
+      `utils/cashu/__tests__/escrow-worker-crash-staging.test.ts` (gated on
+      `ESCROW_CRASH_TEST_DATABASE_URL` + `ESCROW_CRASH_TEST_DESTRUCTIVE_OK=1`
+      + a reachable staging mint):
+      (a) worker killed between the mint swap and finalize while HOLDING its
+      claim (row left `processing`) — a replacement worker reclaims the stale
+      claim (same stale-claim predicate the sweeper applies, exercised
+      row-scoped so the test cannot race unrelated workers on a shared DB)
+      with a fresh fencing token, and the dead worker's token is rejected by
+      BOTH fenced writes (finalize + prepared-output persist) while the
+      replacement claim is held; the production worker path then finds all
+      inputs SPENT, reconstructs the seller-locked payout via NUT-09 /restore
+      from the persisted prepared outputs, and finalizes exactly once (a
+      later sweep skips, a duplicate finalize throws), with payout proofs
+      verifying UNSPENT and P2PK-locked to the seller at the mint;
+      (b) a release CLAIMED before the lock window closes but EXECUTED after
+      it is rejected by the executor's fresh-time expiry checks (validation,
+      then a pre-swap guard immediately before the mint call) — no spend
+      reaches the mint — and the entry requeues and converts to a pending
+      refund, which pays the buyer exactly once.
+      This test caught a real bug before flag-enable: the worker forwarded
+      its claim-time `nowSeconds` into the executor's expiry gate, so a
+      mid-flight release validated against stale time and paid the seller
+      post-expiry. Fixed — the worker no longer pins the executor's clock,
+      and the executor re-checks expiry right before the swap; both pinned by
+      unit assertions.
+- [ ] Mint locktime probe before allowlisting: the executor's expiry checks
+      are the SOLE enforcement of "no release after expiry" on mints that do
+      not enforce NUT-11 locktime — observed directly: the staging Nutshell
+      mint (0.20.x, FakeWallet) accepts a data-key spend AFTER locktime.
+      Before enabling escrow against any mint, probe that it rejects a
+      data-key spend post-locktime; for a non-enforcing mint, the residual
+      expiry window is the duration of the swap HTTP call itself (residual
+      risk 3), which must be accepted explicitly.
 - [x] Buyer wallet recovery path for locked proofs: kind-7375 backup at
       checkout (+ wallet-page re-publish of missing backups) and restore with
       per-mint UNSPENT verification; unrecoverable escrows are reported with

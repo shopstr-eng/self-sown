@@ -49,11 +49,15 @@ already running. Don't run Jest concurrently with tsc (memory contention).
 **Caveat — empty LSP diagnostics can be a false clean.** `getLatestLspDiagnostics`
 returned `{diagnostics:{}}` for files that genuinely had missing imports and
 out-of-scope identifiers (tsserver hadn't analyzed those files; empty means "no
-data", not "no errors"). After a multi-file refactor, back the LSP check with a
-cheap structural audit: grep each touched file for the symbols it uses vs. what
-it imports, and node-parse function param destructures for props you pass (e.g.
-`colors={colors}` with no `colors` in the signature). External code review caught
-what LSP missed.
+data", not "no errors") — and on a newly CREATED test file it returned clean
+while full tsc found 22 errors in it (SWC-based jest strips types without
+checking, so green tests prove nothing about types either). For new files, and
+before any review/commit gate, only the full typecheck workflow / background
+tsc run is authoritative. After a multi-file refactor, back the LSP check with
+a cheap structural audit: grep each touched file for the symbols it uses vs.
+what it imports, and node-parse function param destructures for props you pass
+(e.g. `colors={colors}` with no `colors` in the signature). External code
+review caught what LSP missed.
 
 `pgrep -f "tsserver.js"` also matches your OWN wrapper shell's command line (bash -c "...tsserver.js..."), so `kill $(pgrep -f tsserver.js)` kills your own shell mid-command (exit -1). Anchor the pattern to the process start instead: `pgrep -f "^/nix/store.*tsserver.js" | xargs -r kill`, or kill listed PIDs excluding $$.
 

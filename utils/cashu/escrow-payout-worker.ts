@@ -106,7 +106,13 @@ export async function processEscrowOutboxEntry(
       claim.action,
       claim.payoutPayload,
       {
-        nowSeconds: Math.floor(now.getTime() / 1000),
+        // Deliberately NO nowSeconds here: the executor must judge expiry
+        // with fresh time at validation, not the claim-time `now` above —
+        // otherwise a release claimed just before the lock window closes but
+        // executed after it would validate against a stale timestamp and pay
+        // the seller post-expiry (found by the staging crash-test; the
+        // staging Nutshell mint accepts data-key spends post-locktime, so
+        // the executor check is the ONLY enforcement of this rule).
         preparedOutputs:
           (claim.preparedOutputs as SerializedOutputData[] | null) ?? undefined,
         // Durability hook (required by the executor): the payee-locked swap
