@@ -17,6 +17,30 @@ if (!Number.prototype.toNumber) {
   });
 }
 
+// pg-pool calls tid.unref() unconditionally on release (and on its
+// max-lifetime timer), but under jest-environment-jsdom setTimeout returns a
+// plain number, so a random jsdom suite that pulls in the db pool dies with
+// "tid.unref is not a function". Shim unref/ref onto Number.prototype (same
+// pattern as the toNumber shim above) so numeric timer handles behave like
+// Node Timeout objects. Harmless under the node environment, where real
+// Timeout instances have their own unref/ref.
+if (!Number.prototype.unref) {
+  Object.defineProperty(Number.prototype, "unref", {
+    value: function () {
+      return this.valueOf();
+    },
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(Number.prototype, "ref", {
+    value: function () {
+      return this.valueOf();
+    },
+    writable: true,
+    configurable: true,
+  });
+}
+
 const originalWarn = console.warn;
 const originalError = console.error;
 

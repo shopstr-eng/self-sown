@@ -41,6 +41,10 @@ args = "test-ucp-geo"
 task = "workflow.run"
 args = "Staging Cashu Mint"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "typecheck"
+
 [[workflows.workflow]]
 name = "Next.js Dev Server"
 author = "agent"
@@ -74,6 +78,17 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash scripts/staging-cashu-mint.sh"
+
+[[workflows.workflow]]
+name = "typecheck"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_OPTIONS='--max-old-space-size=3072' npx tsc --noEmit --incremental false"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 expertMode = true
