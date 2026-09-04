@@ -821,11 +821,67 @@ async function initializeTables(): Promise<void> {
           pubkey TEXT NOT NULL,
           d_tag TEXT NOT NULL,
           event_id TEXT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE (pubkey, d_tag, event_id)
+          audience_source TEXT NOT NULL DEFAULT 'all',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE INDEX IF NOT EXISTS idx_blog_email_broadcasts_pubkey ON blog_email_broadcasts(pubkey);
+    `);
+
+    // Per-segment broadcast claims: pre-segment rows keyed the whole published
+    // version via UNIQUE(pubkey, d_tag, event_id). Add the segment column and
+    // replace that key with (pubkey, d_tag, event_id, audience_source) so each
+    // audience segment gets its own one-shot claim. The legacy constraint is
+    // dropped by NAME LOOKUP (not DROP ... IF EXISTS with a guessed name) so a
+    // divergent auto-generated name can't silently survive and break every
+    // segment claim as 'claim-failed'.
+    await client.query(`
+      DO $$
+      DECLARE
+        legacy_key text;
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'blog_email_broadcasts' AND column_name = 'audience_source'
+        ) THEN
+          ALTER TABLE blog_email_broadcasts
+            ADD COLUMN audience_source TEXT NOT NULL DEFAULT 'all';
+        END IF;
+
+        SELECT c.conname INTO legacy_key
+          FROM pg_constraint c
+          JOIN pg_class t ON t.oid = c.conrelid
+         WHERE t.relname = 'blog_email_broadcasts'
+           AND c.contype = 'u'
+           AND (
+             SELECT array_agg(a.attname::text ORDER BY a.attname::text)
+               FROM unnest(c.conkey) AS k(attnum)
+               JOIN pg_attribute a
+                 ON a.attrelid = t.oid AND a.attnum = k.attnum
+           ) = ARRAY['d_tag', 'event_id', 'pubkey']::text[];
+        IF legacy_key IS NOT NULL THEN
+          EXECUTE format('ALTER TABLE blog_email_broadcasts DROP CONSTRAINT %I', legacy_key);
+        END IF;
+      END $$;
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS blog_email_broadcasts_version_segment_key
+        ON blog_email_broadcasts (pubkey, d_tag, event_id, audience_source);
+
+      -- Per-recipient delivery ledger: a contact is emailed at most once per
+      -- published version ACROSS all segment sends. Claimed atomically before
+      -- each send and released if that send fails (so a retry can re-attempt).
+      -- Segment membership alone cannot dedup: a capture's source is MUTABLE
+      -- (subscription -> popup when they later claim a welcome offer), so a
+      -- membership-based exclusion would re-email them after the flip.
+      CREATE TABLE IF NOT EXISTS blog_email_broadcast_recipients (
+          pubkey TEXT NOT NULL,
+          d_tag TEXT NOT NULL,
+          event_id TEXT NOT NULL,
+          email TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (pubkey, d_tag, event_id, email)
+      );
 
       -- Subscriptions table for recurring product subscriptions
       CREATE TABLE IF NOT EXISTS subscriptions (
@@ -4339,18 +4395,22 @@ export async function isSellerEmailUnsubscribed(
 export async function claimBlogBroadcast(
   pubkey: string,
   dTag: string,
-  eventId: string
+  eventId: string,
+  audienceSource?: SellerAudienceSource
 ): Promise<boolean | null> {
   const dbPool = getDbPool();
   let client;
   try {
     client = await dbPool.connect();
+    // One claim per (published version, audience segment): a post can be
+    // emailed once to popup contacts, once to subscription contacts, and once
+    // to the full audience ('all' — the default on pre-segment rows).
     const result = await client.query(
-      `INSERT INTO blog_email_broadcasts (pubkey, d_tag, event_id)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (pubkey, d_tag, event_id) DO NOTHING
+      `INSERT INTO blog_email_broadcasts (pubkey, d_tag, event_id, audience_source)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (pubkey, d_tag, event_id, audience_source) DO NOTHING
        RETURNING id`,
-      [pubkey, dTag, eventId]
+      [pubkey, dTag, eventId, audienceSource ?? "all"]
     );
     return (result.rowCount ?? 0) > 0;
   } catch (error) {
@@ -4369,7 +4429,8 @@ export async function claimBlogBroadcast(
 export async function releaseBlogBroadcast(
   pubkey: string,
   dTag: string,
-  eventId: string
+  eventId: string,
+  audienceSource?: SellerAudienceSource
 ): Promise<void> {
   const dbPool = getDbPool();
   let client;
@@ -4377,11 +4438,132 @@ export async function releaseBlogBroadcast(
     client = await dbPool.connect();
     await client.query(
       `DELETE FROM blog_email_broadcasts
-        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
-      [pubkey, dTag, eventId]
+        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3
+          AND audience_source = $4`,
+      [pubkey, dTag, eventId, audienceSource ?? "all"]
     );
   } catch (error) {
     console.error("Failed to release blog broadcast claim:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Which audience segments already hold a broadcast claim for this published
+ * version ('all' and/or 'popup'/'subscription'). Drives cross-segment dedup:
+ * a full-audience send subtracts already-emailed segments, and a segment send
+ * after a full send has nobody new to reach. null on DB error (fail closed,
+ * same as a failed claim).
+ */
+export async function getBlogBroadcastSegments(
+  pubkey: string,
+  dTag: string,
+  eventId: string
+): Promise<string[] | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT audience_source FROM blog_email_broadcasts
+        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
+      [pubkey, dTag, eventId]
+    );
+    return result.rows.map((row) => row.audience_source as string);
+  } catch (error) {
+    logSwallowedDbOutage("Failed to read blog broadcast segments:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Emails already claimed for delivery of this published version, across ALL
+ * segment sends. A full-audience send subtracts exactly this set — current
+ * segment membership is NOT a safe substitute because a capture's source is
+ * mutable (subscription -> popup on a later welcome-offer claim), which would
+ * let a membership-based exclusion re-email the contact after the flip.
+ * null on DB error (fail closed, same as a failed claim).
+ */
+export async function getBlogBroadcastRecipients(
+  pubkey: string,
+  dTag: string,
+  eventId: string
+): Promise<string[] | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT email FROM blog_email_broadcast_recipients
+        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3`,
+      [pubkey, dTag, eventId]
+    );
+    return result.rows.map((row) => row.email as string);
+  } catch (error) {
+    logSwallowedDbOutage("Failed to read blog broadcast recipients:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Atomically claim delivery of one published version to one recipient. true =
+ * this send owns the delivery and must email them; false = another send
+ * (any segment, or a concurrent one) already claimed/delivered — skip. This
+ * per-recipient claim is what makes concurrent full + segment sends safe.
+ * null on DB error (treated as a send failure, never a silent skip).
+ */
+export async function claimBlogBroadcastRecipient(
+  pubkey: string,
+  dTag: string,
+  eventId: string,
+  email: string
+): Promise<boolean | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `INSERT INTO blog_email_broadcast_recipients (pubkey, d_tag, event_id, email)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (pubkey, d_tag, event_id, email) DO NOTHING
+       RETURNING email`,
+      [pubkey, dTag, eventId, email]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    logSwallowedDbOutage("Failed to claim blog broadcast recipient:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Release a recipient claim after that recipient's send FAILED, so a retry
+ * can re-attempt delivery. Only safe for a recipient that was not emailed.
+ */
+export async function releaseBlogBroadcastRecipient(
+  pubkey: string,
+  dTag: string,
+  eventId: string,
+  email: string
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `DELETE FROM blog_email_broadcast_recipients
+        WHERE pubkey = $1 AND d_tag = $2 AND event_id = $3 AND email = $4`,
+      [pubkey, dTag, eventId, email]
+    );
+  } catch (error) {
+    console.error("Failed to release blog broadcast recipient:", error);
   } finally {
     if (client) client.release();
   }

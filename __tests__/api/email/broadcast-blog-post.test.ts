@@ -7,6 +7,10 @@ import {
   getSellerAudienceEmails,
   claimBlogBroadcast,
   releaseBlogBroadcast,
+  getBlogBroadcastSegments,
+  getBlogBroadcastRecipients,
+  claimBlogBroadcastRecipient,
+  releaseBlogBroadcastRecipient,
   getShopSlugByPubkey,
 } from "@/utils/db/db-service";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
@@ -25,6 +29,10 @@ jest.mock("@/utils/db/db-service", () => ({
   getSellerAudienceEmails: jest.fn(),
   claimBlogBroadcast: jest.fn(),
   releaseBlogBroadcast: jest.fn(),
+  getBlogBroadcastSegments: jest.fn(),
+  getBlogBroadcastRecipients: jest.fn(),
+  claimBlogBroadcastRecipient: jest.fn(),
+  releaseBlogBroadcastRecipient: jest.fn(),
   getShopSlugByPubkey: jest.fn(),
 }));
 jest.mock("@/utils/stripe/verify-nostr-auth", () => ({
@@ -64,6 +72,10 @@ const mocked = {
   getSellerAudienceEmails: getSellerAudienceEmails as jest.Mock,
   claimBlogBroadcast: claimBlogBroadcast as jest.Mock,
   releaseBlogBroadcast: releaseBlogBroadcast as jest.Mock,
+  getBlogBroadcastSegments: getBlogBroadcastSegments as jest.Mock,
+  getBlogBroadcastRecipients: getBlogBroadcastRecipients as jest.Mock,
+  claimBlogBroadcastRecipient: claimBlogBroadcastRecipient as jest.Mock,
+  releaseBlogBroadcastRecipient: releaseBlogBroadcastRecipient as jest.Mock,
   getShopSlugByPubkey: getShopSlugByPubkey as jest.Mock,
   verifyNostrAuth: verifyNostrAuth as jest.Mock,
   requireProEntitlement: requireProEntitlement as jest.Mock,
@@ -129,6 +141,11 @@ beforeEach(() => {
     "https://milk.market/api/email/unsubscribe?token=x"
   );
   mocked.claimBlogBroadcast.mockResolvedValue(true);
+  // No prior broadcast claims or delivered recipients for this version.
+  mocked.getBlogBroadcastSegments.mockResolvedValue([]);
+  mocked.getBlogBroadcastRecipients.mockResolvedValue([]);
+  mocked.claimBlogBroadcastRecipient.mockResolvedValue(true);
+  mocked.releaseBlogBroadcastRecipient.mockResolvedValue(undefined);
   mocked.getSellerAudienceEmails.mockResolvedValue([
     "a@example.com",
     "b@example.com",
@@ -423,7 +440,8 @@ describe("broadcast-blog-post endpoint", () => {
     expect(mocked.releaseBlogBroadcast).toHaveBeenCalledWith(
       PUBKEY,
       D_TAG,
-      EVENT_ID
+      EVENT_ID,
+      undefined
     );
   });
 });

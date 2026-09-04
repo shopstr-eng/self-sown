@@ -24,6 +24,10 @@ import {
   getSellerAudienceEmails,
   claimBlogBroadcast,
   releaseBlogBroadcast,
+  getBlogBroadcastSegments,
+  getBlogBroadcastRecipients,
+  claimBlogBroadcastRecipient,
+  releaseBlogBroadcastRecipient,
   getShopSlugByPubkey,
 } from "@/utils/db/db-service";
 import { republishBlogPostToAuthorRelays } from "@/utils/nostr/server-nostr-helpers";
@@ -50,6 +54,10 @@ jest.mock("@/utils/db/db-service", () => ({
   getSellerAudienceEmails: jest.fn(),
   claimBlogBroadcast: jest.fn(),
   releaseBlogBroadcast: jest.fn(),
+  getBlogBroadcastSegments: jest.fn(),
+  getBlogBroadcastRecipients: jest.fn(),
+  claimBlogBroadcastRecipient: jest.fn(),
+  releaseBlogBroadcastRecipient: jest.fn(),
   getShopSlugByPubkey: jest.fn(),
 }));
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
@@ -93,6 +101,10 @@ const mocked = {
   getSellerAudienceEmails: getSellerAudienceEmails as jest.Mock,
   claimBlogBroadcast: claimBlogBroadcast as jest.Mock,
   releaseBlogBroadcast: releaseBlogBroadcast as jest.Mock,
+  getBlogBroadcastSegments: getBlogBroadcastSegments as jest.Mock,
+  getBlogBroadcastRecipients: getBlogBroadcastRecipients as jest.Mock,
+  claimBlogBroadcastRecipient: claimBlogBroadcastRecipient as jest.Mock,
+  releaseBlogBroadcastRecipient: releaseBlogBroadcastRecipient as jest.Mock,
   getShopSlugByPubkey: getShopSlugByPubkey as jest.Mock,
   republishBlogPostToAuthorRelays: republishBlogPostToAuthorRelays as jest.Mock,
   isPubkeyProEntitled: isPubkeyProEntitled as jest.Mock,
@@ -175,6 +187,11 @@ beforeEach(() => {
   mocked.claimDueScheduledBlogPosts.mockResolvedValue([dueRow()]);
   mocked.republishBlogPostToAuthorRelays.mockResolvedValue({ published: 3 });
   mocked.fetchBlogPostByDTagAndPubkey.mockResolvedValue(blogEvent());
+  // No prior broadcast claims or delivered recipients for this version.
+  mocked.getBlogBroadcastSegments.mockResolvedValue([]);
+  mocked.getBlogBroadcastRecipients.mockResolvedValue([]);
+  mocked.claimBlogBroadcastRecipient.mockResolvedValue(true);
+  mocked.releaseBlogBroadcastRecipient.mockResolvedValue(undefined);
   mocked.isPubkeyProEntitled.mockResolvedValue(true);
   mocked.deletePublishedScheduledBlogPost.mockResolvedValue(true);
   mocked.releaseScheduledBlogPostClaim.mockResolvedValue(true);
@@ -292,7 +309,8 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
     expect(mocked.releaseBlogBroadcast).toHaveBeenCalledWith(
       PUBKEY,
       D_TAG,
-      EVENT_ID
+      EVENT_ID,
+      undefined
     );
     // ...and the cron keeps the scheduled row (no delete) for the next tick.
     expect(mocked.releaseScheduledBlogPostClaim).toHaveBeenCalled();
