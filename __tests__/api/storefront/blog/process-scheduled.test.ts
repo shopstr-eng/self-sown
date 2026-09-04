@@ -217,7 +217,18 @@ describe("process-scheduled cron", () => {
     mocked.claimDueScheduledBlogPosts.mockResolvedValue([dueRow()]);
     const res = await run({ secret: SECRET });
     expect(res.body.results[0]).toMatchObject({ status: "error" });
-    expect(mocked.releaseScheduledBlogPostClaim).toHaveBeenCalled();
+    // The cron must pass the failure through with its reason and timestamp —
+    // these are what releaseScheduledBlogPostClaim stores as
+    // attempt_count/last_error/last_attempt_at for the seller-facing badge.
+    expect(mocked.releaseScheduledBlogPostClaim).toHaveBeenCalledWith(
+      dueRow().pubkey,
+      dueRow().d_tag,
+      dueRow().event_id,
+      {
+        error: "Publishing failed: relay down",
+        at: expect.any(Number),
+      }
+    );
     expect(mocked.deletePublishedScheduledBlogPost).not.toHaveBeenCalled();
   });
 });

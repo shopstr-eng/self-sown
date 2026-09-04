@@ -408,7 +408,7 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
     );
     // A and D confirm in cache; C never appears (publish not confirmed).
     mocked.fetchBlogPostByDTagAndPubkey.mockImplementation(
-      (dTag: string, pubkey: string) => {
+      (dTag: string) => {
         if (dTag === "post-c") return Promise.resolve(null);
         if (dTag === "post-a") return Promise.resolve(ev("evt-a", "post-a"));
         if (dTag === "post-d") return Promise.resolve(ev("evt-d", "post-d"));
