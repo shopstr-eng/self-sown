@@ -462,6 +462,72 @@ describe("escrow-backup", () => {
       expect(third.unbacked).toEqual([]);
       warn.mockRestore();
     });
+
+    it("ignores records that belong to a different account", async () => {
+      // The local store is shared across accounts in this browser profile.
+      // After an ACCOUNT switch (different pubkey), the new signer must not
+      // encrypt or publish the previous account's locked proofs — that
+      // backup would be useless for the owner (P2PK-locked to their key)
+      // and would leak their proof material onto the wrong Nostr account.
+      const OTHER_PK = "b".repeat(64);
+      const capableSigner = {
+        getPubKey: async () => OTHER_PK,
+        encrypt: jest.fn(async (_pk: string, pt: string) => `enc:${pt}`),
+      };
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-8`,
+        orderId: "order-8",
+      });
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      mockFinalize.mockResolvedValue({ id: "event-id" });
+
+      const result = await republishMissingEscrowBackups(
+        {} as any,
+        capableSigner as any,
+        []
+      );
+
+      expect(capableSigner.encrypt).not.toHaveBeenCalled();
+      expect(result.published).toBe(0);
+      // The record is not the new account's problem — don't banner it.
+      expect(result.unbacked).toEqual([]);
+      warn.mockRestore();
+    });
+
+    it("reports every record as unavailable when the signer cannot identify itself", async () => {
+      // Without the signer's pubkey no record can be attributed safely —
+      // publish nothing, but keep the banner up (retryable).
+      const brokenSigner = {
+        getPubKey: async () => {
+          throw new Error("bunker disconnected");
+        },
+        encrypt: jest.fn(async (_pk: string, pt: string) => `enc:${pt}`),
+      };
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-9`,
+        orderId: "order-9",
+      });
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+      const result = await republishMissingEscrowBackups(
+        {} as any,
+        brokenSigner as any,
+        []
+      );
+
+      expect(brokenSigner.encrypt).not.toHaveBeenCalled();
+      expect(result.published).toBe(0);
+      expect(result.unbacked).toEqual([
+        {
+          escrowId: record.escrowId,
+          orderId: record.orderId,
+          failure: "unavailable",
+        },
+      ]);
+      warn.mockRestore();
+    });
   });
 
   describe("restoreEscrowsFromProofEvents", () => {

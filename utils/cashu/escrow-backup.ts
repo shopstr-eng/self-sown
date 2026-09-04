@@ -301,11 +301,35 @@ export async function republishMissingEscrowBackups(
     inFlightForSigner = new Set<string>();
     backupPublishInFlight.set(signer, inFlightForSigner);
   }
+  // The local store is shared across accounts in this browser profile, so
+  // only process records owned by THIS signer's pubkey: after an account
+  // switch, encrypting account A's locked proofs into a backup published
+  // under account B would be useless for A's P2PK-locked recovery AND a
+  // leak of A's proof material onto B's Nostr account.
+  let signerPubkey: string;
+  try {
+    signerPubkey = await signer.getPubKey();
+  } catch {
+    // The signer can't even identify itself — no record can be attributed.
+    // Report everything as unavailable so the banner stays up and the next
+    // run retries.
+    for (const record of listBuyerEscrows()) {
+      result.unbacked.push({
+        escrowId: record.escrowId,
+        orderId: record.orderId,
+        failure: "unavailable",
+      });
+    }
+    return result;
+  }
   const backedUp = new Set<string>();
   for (const ev of proofEvents || []) {
     if (isEscrowBackupInfo(ev?.escrow)) backedUp.add(ev.escrow.escrowId);
   }
   for (const record of listBuyerEscrows()) {
+    // Escrow IDs are `<buyerPubkey>:<orderId>` — skip other accounts'
+    // records (see the signerPubkey note above).
+    if (!record.escrowId.startsWith(`${signerPubkey}:`)) continue;
     if (backedUp.has(record.escrowId)) continue;
     if (gaveUpForSigner.has(record.escrowId)) {
       // Permanent failure with THIS signer — don't re-prompt it, but keep
