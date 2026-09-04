@@ -411,6 +411,16 @@ async function ensureTablesInitialized(): Promise<void> {
 }
 
 // Auto-create all tables if they don't exist
+
+// Loud, greppable marker for read accessors that deliberately swallow a DB
+// error into an empty value (null/[]/false) so public pages degrade instead
+// of 500ing. The empty value must mean "genuinely missing" — during an
+// outage it doesn't, so the marker is what makes the outage visible.
+// Grep: DB_LOOKUP_OUTAGE
+function logSwallowedDbOutage(context: string, error: unknown) {
+  console.error(`DB_LOOKUP_OUTAGE ${context}`, error);
+}
+
 async function initializeTables(): Promise<void> {
   if (tablesInitialized) return;
 
@@ -2325,7 +2335,7 @@ export async function fetchCachedEvents(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch cached events:", error);
+    logSwallowedDbOutage("Failed to fetch cached events:", error);
     return [];
   } finally {
     if (client) {
@@ -2585,7 +2595,7 @@ export async function fetchAllProductsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch products from database:", error);
+    logSwallowedDbOutage("Failed to fetch products from database:", error);
     return [];
   } finally {
     if (client) {
@@ -2644,7 +2654,7 @@ export async function fetchProductsByPubkeyFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch products by pubkey from database:", error);
+    logSwallowedDbOutage("Failed to fetch products by pubkey from database:", error);
     return [];
   } finally {
     if (client) {
@@ -2678,7 +2688,7 @@ export async function fetchProductByIdFromDb(
       sig: row.sig,
     };
   } catch (error) {
-    console.error("Failed to fetch product by id:", error);
+    logSwallowedDbOutage("Failed to fetch product by id:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -2716,7 +2726,7 @@ export async function fetchProductByDTagAndPubkey(
       sig: row.sig,
     };
   } catch (error) {
-    console.error("Failed to fetch product by d-tag and pubkey:", error);
+    logSwallowedDbOutage("Failed to fetch product by d-tag and pubkey:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -2760,7 +2770,7 @@ export async function fetchBlogPostsByPubkeyFromDb(
       }))
       .sort((a, b) => b.created_at - a.created_at);
   } catch (error) {
-    console.error("Failed to fetch blog posts by pubkey:", error);
+    logSwallowedDbOutage("Failed to fetch blog posts by pubkey:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -2811,7 +2821,7 @@ export async function fetchStorefrontBlogPostEventsForSitemap(
       },
     }));
   } catch (error) {
-    console.error("Failed to fetch storefront blog posts for sitemap:", error);
+    logSwallowedDbOutage("Failed to fetch storefront blog posts for sitemap:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -2853,7 +2863,7 @@ export async function fetchBlogPostByDTagAndPubkey(
       sig: row.sig,
     };
   } catch (error) {
-    console.error("Failed to fetch blog post by d-tag and pubkey:", error);
+    logSwallowedDbOutage("Failed to fetch blog post by d-tag and pubkey:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -2925,7 +2935,7 @@ export async function fetchProductByTitleSlug(
     }
     return null;
   } catch (error) {
-    console.error("Failed to fetch product by title slug:", error);
+    logSwallowedDbOutage("Failed to fetch product by title slug:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -2988,7 +2998,7 @@ export async function fetchProfilePubkeyByNameSlug(
 
     return disambiguatedMatch;
   } catch (error) {
-    console.error("Failed to fetch profile pubkey by name slug:", error);
+    logSwallowedDbOutage("Failed to fetch profile pubkey by name slug:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3021,7 +3031,7 @@ export async function fetchShopProfileByPubkeyFromDb(
       sig: row.sig,
     };
   } catch (error) {
-    console.error("Failed to fetch shop profile by pubkey:", error);
+    logSwallowedDbOutage("Failed to fetch shop profile by pubkey:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3042,7 +3052,7 @@ export async function fetchShopPubkeyBySlug(
     if (result.rows.length === 0) return null;
     return result.rows[0].pubkey;
   } catch (error) {
-    console.error("Failed to fetch shop pubkey by slug:", error);
+    logSwallowedDbOutage("Failed to fetch shop pubkey by slug:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3064,7 +3074,7 @@ export async function getShopSlugByPubkey(
     if (result.rows.length === 0) return null;
     return result.rows[0].slug;
   } catch (error) {
-    console.error("Failed to fetch shop slug by pubkey:", error);
+    logSwallowedDbOutage("Failed to fetch shop slug by pubkey:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3102,7 +3112,7 @@ export async function fetchCommunityByPubkeyAndIdentifier(
       sig: row.sig,
     };
   } catch (error) {
-    console.error("Failed to fetch community by pubkey and identifier:", error);
+    logSwallowedDbOutage("Failed to fetch community by pubkey and identifier:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3136,7 +3146,7 @@ export async function fetchProfileByPubkeyFromDb(
     }
     return null;
   } catch (error) {
-    console.error("Failed to fetch profile from database:", error);
+    logSwallowedDbOutage("Failed to fetch profile from database:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -3173,7 +3183,7 @@ export async function fetchCommentsByReviewIds(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch comments by review IDs:", error);
+    logSwallowedDbOutage("Failed to fetch comments by review IDs:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -3249,7 +3259,7 @@ export async function fetchRelevantReportsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch relevant reports from database:", error);
+    logSwallowedDbOutage("Failed to fetch relevant reports from database:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -3293,7 +3303,7 @@ export async function fetchAllMessagesFromDb(
       is_read: row.is_read,
     }));
   } catch (error) {
-    console.error("Failed to fetch messages from database:", error);
+    logSwallowedDbOutage("Failed to fetch messages from database:", error);
     return [];
   } finally {
     if (client) {
@@ -3715,7 +3725,7 @@ export async function fetchAllProfilesFromDb(): Promise<NostrEvent[]> {
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch profiles from database:", error);
+    logSwallowedDbOutage("Failed to fetch profiles from database:", error);
     return [];
   } finally {
     if (client) {
@@ -3750,7 +3760,7 @@ export async function fetchAllWalletEventsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch wallet events from database:", error);
+    logSwallowedDbOutage("Failed to fetch wallet events from database:", error);
     return [];
   } finally {
     if (client) {
@@ -3792,7 +3802,7 @@ export async function fetchCommunityPostsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch community posts from database:", error);
+    logSwallowedDbOutage("Failed to fetch community posts from database:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -3827,7 +3837,7 @@ export async function fetchCommunityApprovalsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    console.error("Failed to fetch community approvals from database:", error);
+    logSwallowedDbOutage("Failed to fetch community approvals from database:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -4187,7 +4197,7 @@ export async function getPopupEmailCapturesBySeller(
     );
     return result.rows as PopupEmailCaptureRow[];
   } catch (error) {
-    console.error("Failed to list popup email captures:", error);
+    logSwallowedDbOutage("Failed to list popup email captures:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -4261,7 +4271,7 @@ export async function getSellerAudienceEmails(
       .map((row) => (typeof row.email === "string" ? row.email.trim() : ""))
       .filter((email) => email.length > 0);
   } catch (error) {
-    console.error("Failed to resolve seller audience emails:", error);
+    logSwallowedDbOutage("Failed to resolve seller audience emails:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -4287,7 +4297,7 @@ export async function unsubscribeSellerEmail(
     );
     return true;
   } catch (error) {
-    console.error("Failed to record email unsubscribe:", error);
+    logSwallowedDbOutage("Failed to record email unsubscribe:", error);
     return false;
   } finally {
     if (client) client.release();
@@ -4312,7 +4322,7 @@ export async function isSellerEmailUnsubscribed(
     );
     return result.rows.length > 0;
   } catch (error) {
-    console.error("Failed to check email unsubscribe:", error);
+    logSwallowedDbOutage("Failed to check email unsubscribe:", error);
     return false;
   } finally {
     if (client) client.release();
@@ -4344,7 +4354,7 @@ export async function claimBlogBroadcast(
     );
     return (result.rowCount ?? 0) > 0;
   } catch (error) {
-    console.error("Failed to claim blog broadcast:", error);
+    logSwallowedDbOutage("Failed to claim blog broadcast:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -4448,7 +4458,7 @@ export async function upsertScheduledBlogPost(params: {
     );
     return true;
   } catch (error) {
-    console.error("Failed to upsert scheduled blog post:", error);
+    logSwallowedDbOutage("Failed to upsert scheduled blog post:", error);
     return false;
   } finally {
     if (client) client.release();
@@ -4497,7 +4507,7 @@ export async function listScheduledBlogPosts(
     );
     return result.rows.map(mapScheduledBlogPostRow);
   } catch (error) {
-    console.error("Failed to list scheduled blog posts:", error);
+    logSwallowedDbOutage("Failed to list scheduled blog posts:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -4519,7 +4529,7 @@ export async function deleteScheduledBlogPost(
     );
     return (result.rowCount ?? 0) > 0;
   } catch (error) {
-    console.error("Failed to delete scheduled blog post:", error);
+    logSwallowedDbOutage("Failed to delete scheduled blog post:", error);
     return false;
   } finally {
     if (client) client.release();
@@ -4561,7 +4571,7 @@ export async function claimDueScheduledBlogPosts(
     );
     return result.rows.map(mapScheduledBlogPostRow);
   } catch (error) {
-    console.error("Failed to claim due scheduled blog posts:", error);
+    logSwallowedDbOutage("Failed to claim due scheduled blog posts:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -4651,7 +4661,7 @@ export async function getPopupEmailCapture(
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error("Failed to get popup email capture:", error);
+    logSwallowedDbOutage("Failed to get popup email capture:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -4676,7 +4686,7 @@ export async function getPopupEmailCaptureByPhone(
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error("Failed to get popup email capture by phone:", error);
+    logSwallowedDbOutage("Failed to get popup email capture by phone:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -5448,7 +5458,7 @@ export async function getEmailFlows(
     );
     return result.rows;
   } catch (error) {
-    console.error("Failed to get email flows:", error);
+    logSwallowedDbOutage("Failed to get email flows:", error);
     return [];
   } finally {
     if (client) client.release();
@@ -5470,7 +5480,7 @@ export async function getEmailFlow(
     if (result.rows.length === 0) return null;
     return result.rows[0];
   } catch (error) {
-    console.error("Failed to get email flow:", error);
+    logSwallowedDbOutage("Failed to get email flow:", error);
     return null;
   } finally {
     if (client) client.release();
@@ -6584,7 +6594,7 @@ export async function fetchProductByListingSlug(
       sig: row.sig,
     };
   } catch (error) {
-    console.error("Failed to fetch product by listing slug:", error);
+    logSwallowedDbOutage("Failed to fetch product by listing slug:", error);
     return null;
   } finally {
     if (client) client.release();
