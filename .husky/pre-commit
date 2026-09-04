@@ -3,4 +3,9 @@ set -e
 
 pnpm run pre-commit
 pnpm run lint
-pnpm run format:check
+# NOTE: no repo-wide `format:check` here. run-staged-checks (above) already
+# runs `prettier --write` on every staged file, so staged content is always
+# formatted; the repo-wide check only ever failed on long-drifting files
+# unrelated to the change at hand, which trained everyone to use
+# --no-verify and bypassed the hook's real protections. `pnpm run
+# format:check` remains available in package.json for a repo-wide audit.
