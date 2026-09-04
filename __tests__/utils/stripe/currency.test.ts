@@ -35,6 +35,10 @@ import {
   _resetDisplayRateCache,
   STRIPE_MINIMUM_CHARGE_USD,
   STRIPE_MINIMUM_CHARGE_CENTS,
+  ExchangeRateError,
+  isExchangeRateError,
+  EXCHANGE_RATE_ERROR_CODE,
+  EXCHANGE_RATE_BUYER_MESSAGE,
 } from "@/utils/stripe/currency";
 
 const defaultRetryConfig = { ...exchangeRateRetryConfig };
@@ -195,6 +199,45 @@ describe("satsToUSD", () => {
   it("rejects a non-number rate result (garbage response)", async () => {
     getFiatValueMock.mockResolvedValue("12.34" as unknown as number);
     await expect(satsToUSD(10000)).rejects.toThrow(/exchange rate/i);
+  });
+});
+
+describe("isExchangeRateError", () => {
+  it("recognizes an ExchangeRateError instance", () => {
+    expect(isExchangeRateError(new ExchangeRateError())).toBe(true);
+    expect(isExchangeRateError(new ExchangeRateError("custom"))).toBe(true);
+  });
+
+  it("recognizes a plain object carrying the stable code (serialized/cross-realm)", () => {
+    expect(isExchangeRateError({ code: EXCHANGE_RATE_ERROR_CODE })).toBe(true);
+  });
+
+  it("rejects unrelated errors, wrong codes, and non-objects", () => {
+    expect(isExchangeRateError(new Error("boom"))).toBe(false);
+    expect(isExchangeRateError({ code: "OTHER_ERROR" })).toBe(false);
+    expect(isExchangeRateError({ code: undefined })).toBe(false);
+    expect(isExchangeRateError(null)).toBe(false);
+    expect(isExchangeRateError(undefined)).toBe(false);
+    expect(isExchangeRateError("EXCHANGE_RATE_UNAVAILABLE")).toBe(false);
+  });
+});
+
+describe("satsToUSD ExchangeRateError wrapping", () => {
+  it("wraps an upstream rejection in an ExchangeRateError, preserving the original message", async () => {
+    getFiatValueMock.mockRejectedValue(new Error("rate service unavailable"));
+    const err = await satsToUSD(10000).catch((e) => e);
+    expect(err).toBeInstanceOf(ExchangeRateError);
+    expect((err as ExchangeRateError).code).toBe(EXCHANGE_RATE_ERROR_CODE);
+    expect((err as Error).message).toContain("rate service unavailable");
+    expect(isExchangeRateError(err)).toBe(true);
+  });
+
+  it("wraps a persistently garbage rate with the buyer-facing message", async () => {
+    getFiatValueMock.mockResolvedValue(NaN);
+    const err = await satsToUSD(10000).catch((e) => e);
+    expect(err).toBeInstanceOf(ExchangeRateError);
+    expect((err as Error).message).toBe(EXCHANGE_RATE_BUYER_MESSAGE);
+    expect(isExchangeRateError(err)).toBe(true);
   });
 });
 
