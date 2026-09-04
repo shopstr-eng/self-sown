@@ -35,9 +35,15 @@ const BASE = process.env.E2E_BASE_URL ?? "http://localhost:5000";
 // pre-swap hands sendTokens exactly price+fee, and the escrow lock swap
 // would need price+2*fee.
 const MINT = process.env.E2E_MINT_URL ?? "http://localhost:3338";
+// Staging escrow test item (100 SATS, free shipping, seller escrow-opted-in).
+// An naddr: the seller keypair and d-tag are deterministic (see
+// scripts/e2e-setup-staging-seller.mjs), so this survives DB wipes — after a
+// dev DB rebuild, rerun the setup script to re-seed product_events /
+// profile_events / authed_sellers and this identifier keeps working. The
+// event id alone would change on every setup rerun.
 const LISTING_ID =
   process.env.E2E_LISTING_ID ??
-  "c56da318edc991280441761424bbe8df524acce1f9b404ae51ba2fd782fe3ec4"; // staging escrow test item, 100 SATS, free shipping
+  "naddr1qvzqqqrkcgpzqpy99ncvwyl2cy7v9mwgxynysz9lvl9edq3dfj2m0gd0ned2upj5qq3hxarpva5kueedv4ekxun0wukhgetnwskkjar9d5knyve3xucnzdpcxgcs6sj65j";
 const CHROMIUM =
   process.env.CHROMIUM_PATH ??
   "/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium";
@@ -364,6 +370,18 @@ async function stageCheckout() {
       timeout: 90000,
     });
     await sleep(5000);
+    // The listing event comes from relays; a relay 502 renders the app's 404.
+    // Retry a few times before giving up.
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const notFound = await page.evaluate(
+        () => document.querySelector("h1")?.textContent?.trim() === "404"
+      );
+      if (!notFound) break;
+      log(`listing 404 (relay flake), reload ${attempt + 1}/4`);
+      await sleep(6000);
+      await page.reload({ waitUntil: "networkidle2", timeout: 90000 });
+      await sleep(5000);
+    }
     await page.evaluate(() => {
       [...document.querySelectorAll("button")]
         .find((b) => b.textContent?.trim() === "Buy Now")
@@ -385,12 +403,18 @@ async function stageCheckout() {
     // input labeled "Enter Address".
     await fillField(page, "Enter Address", "123 Test St, Seattle WA 98101");
     // Country is a HeroUI select: open and pick "United States of America".
+    // Both invoice cards render a "Select Country" trigger and hidden copies
+    // can sit earlier in the DOM — click only a VISIBLE one (clicking a
+    // hidden trigger is a no-op and the listbox never appears).
+    await shot(page, "B-form-before-country");
+    await dumpUi(page, "B-form-before-country");
     await page.evaluate(() => {
       [...document.querySelectorAll("button")]
+        .filter((b) => b.offsetParent !== null)
         .find(
           (b) =>
             b.getAttribute("aria-label") === "Select Country" ||
-            (b.textContent?.trim() === "Country" && b.offsetParent)
+            b.textContent?.trim() === "Country"
         )
         ?.click();
     });

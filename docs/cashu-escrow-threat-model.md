@@ -311,4 +311,20 @@ unless escrow is enabled) drains the outbox:
      next drain. And after the payout the locked proofs are SPENT, so a second
      wipe before redeeming correctly refuses the restore — but the buyer then
      has no way to discover the pending payout token (record gone, escrowId
-     unknown). Tracked as follow-up work.
+     unknown). CLOSED 2026-09-04: `GET /api/cashu/escrow/mine` (NIP-98
+     authenticated) lists the buyer's escrows with payout availability, and
+     the wallet page rediscovers refunded payouts as component-state-only
+     records (no lockedToken, never persisted) so redeem works from the
+     escrowId alone. Still-locked escrows are deliberately NOT rediscovered
+     this way — the kind-7375 restore owns those.
+
+  Staging log 2026-09-04 (`recover-all` chain, Nutshell FakeWallet mint):
+  escrow checkout → wipe → kind-7375 restore → post-expiry refund payout →
+  SECOND wipe (zero local records, spendable 0) → escrow card rediscovered
+  via `/api/cashu/escrow/mine` → "Redeem refund to wallet" from the
+  rediscovered card → +100 sats mint-verified via NUT-07, rediscovered
+  record never written to localStorage. Harness hardening along the way:
+  the country select trigger must be picked by visibility (hidden duplicate
+  triggers swallow the click), and the staging listing is addressed by a
+  deterministic naddr reseeded by `e2e-setup-staging-seller.mjs` after dev
+  DB rebuilds.
