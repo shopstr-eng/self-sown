@@ -544,6 +544,40 @@ export async function sendTransferFailureAlert(
 }
 
 /**
+ * Shared recipient resolution for ops alerts: explicit adminEmail (trimmed)
+ * wins, then the SendGrid verified from_email (the operator's own mailbox).
+ * Returns null — after logging loudly under the alert's marker — when neither
+ * is available or resolution fails, so every ops alert fails the same visible
+ * way instead of silently returning false. Keep ALL ops-alert senders on this
+ * helper: a fix applied to only one copy leaves the others stale.
+ */
+async function resolveOpsAlertRecipient(
+  adminEmail: string | undefined,
+  logMarker: string
+): Promise<string | null> {
+  let recipient = (adminEmail || "").trim();
+  try {
+    if (!recipient) {
+      const { fromEmail } = await getUncachableSendGridClient();
+      recipient = (fromEmail || "").trim();
+    }
+  } catch (err) {
+    console.error(
+      `[${logMarker}] Failed to resolve admin email recipient:`,
+      err
+    );
+    return null;
+  }
+  if (!recipient) {
+    console.error(
+      `[${logMarker}] No admin email recipient available (set DOMAINS_ADMIN_EMAIL or configure SendGrid from_email)`
+    );
+    return null;
+  }
+  return recipient;
+}
+
+/**
  * Alert the operator that a lifetime (Wrangler) member's lingering recurring
  * subscription failed to cancel and is still charging the seller. Resolves the
  * recipient the same way the custom-domain admin notice does — explicit
@@ -559,25 +593,11 @@ export async function sendProLifetimeLingeringCancelAlert(params: {
   adminEmail?: string;
 }): Promise<boolean> {
   const { subject, html } = proLifetimeLingeringCancelAlertEmail(params);
-  let recipient = (params.adminEmail || "").trim();
-  try {
-    if (!recipient) {
-      const { fromEmail } = await getUncachableSendGridClient();
-      recipient = (fromEmail || "").trim();
-    }
-  } catch (err) {
-    console.error(
-      "[pro_lifetime_lingering_subscription_cancel] Failed to resolve admin email recipient:",
-      err
-    );
-    return false;
-  }
-  if (!recipient) {
-    console.error(
-      "[pro_lifetime_lingering_subscription_cancel] No admin email recipient available (configure SendGrid from_email)"
-    );
-    return false;
-  }
+  const recipient = await resolveOpsAlertRecipient(
+    params.adminEmail,
+    "pro_lifetime_lingering_subscription_cancel"
+  );
+  if (!recipient) return false;
   return sendEmail(recipient, subject, html);
 }
 
@@ -600,25 +620,11 @@ export async function sendOrphanedSubscriptionPaymentAlert(params: {
   adminEmail?: string;
 }): Promise<boolean> {
   const { subject, html } = orphanedSubscriptionPaymentAlertEmail(params);
-  let recipient = (params.adminEmail || "").trim();
-  try {
-    if (!recipient) {
-      const { fromEmail } = await getUncachableSendGridClient();
-      recipient = (fromEmail || "").trim();
-    }
-  } catch (err) {
-    console.error(
-      "[orphaned_subscription_payment] Failed to resolve admin email recipient:",
-      err
-    );
-    return false;
-  }
-  if (!recipient) {
-    console.error(
-      "[orphaned_subscription_payment] No admin email recipient available (set DOMAINS_ADMIN_EMAIL or configure SendGrid from_email)"
-    );
-    return false;
-  }
+  const recipient = await resolveOpsAlertRecipient(
+    params.adminEmail,
+    "orphaned_subscription_payment"
+  );
+  if (!recipient) return false;
   return sendEmail(recipient, subject, html);
 }
 
@@ -638,24 +644,10 @@ export async function sendOrphanedSubscriptionCancellationAlert(params: {
   adminEmail?: string;
 }): Promise<boolean> {
   const { subject, html } = orphanedSubscriptionCancellationAlertEmail(params);
-  let recipient = (params.adminEmail || "").trim();
-  try {
-    if (!recipient) {
-      const { fromEmail } = await getUncachableSendGridClient();
-      recipient = (fromEmail || "").trim();
-    }
-  } catch (err) {
-    console.error(
-      "[orphaned_subscription_cancel] Failed to resolve admin email recipient:",
-      err
-    );
-    return false;
-  }
-  if (!recipient) {
-    console.error(
-      "[orphaned_subscription_cancel] No admin email recipient available (set DOMAINS_ADMIN_EMAIL or configure SendGrid from_email)"
-    );
-    return false;
-  }
+  const recipient = await resolveOpsAlertRecipient(
+    params.adminEmail,
+    "orphaned_subscription_cancel"
+  );
+  if (!recipient) return false;
   return sendEmail(recipient, subject, html);
 }
