@@ -1,4 +1,5 @@
 import { useEffect, useState, useContext } from "react";
+import { trackEvent } from "@/utils/analytics";
 import CryptoJS from "crypto-js";
 import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
@@ -698,6 +699,7 @@ export default function ProductForm({
 
     clear();
     productEventContext.addNewlyCreatedProductEvent(newListing);
+    trackEvent("listing_published", { mode: isEdit ? "edit" : "create" });
     if (onSubmitCallback) {
       onSubmitCallback();
     }

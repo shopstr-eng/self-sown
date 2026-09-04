@@ -6,6 +6,7 @@ import {
   Fragment,
   type ReactNode,
 } from "react";
+import { trackEvent } from "@/utils/analytics";
 import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
@@ -552,6 +553,23 @@ export default function ProductInvoiceCard({
   const [taxCalculationId, setTaxCalculationId] = useState<string | null>(null);
   const [isCalculatingTax, setIsCalculatingTax] = useState(false);
   const [stripePaymentConfirmed, setStripePaymentConfirmed] = useState(false);
+  // Analytics: remember which payment method this card instance started
+  // checkout with, so the completion effect can attribute it exactly once.
+  const orderAnalyticsRef = useRef<{ method: string | null; fired: boolean }>({
+    method: null,
+    fired: false,
+  });
+
+  useEffect(() => {
+    if (!paymentConfirmed && !stripePaymentConfirmed) return;
+    const analytics = orderAnalyticsRef.current;
+    if (!analytics.method || analytics.fired) return;
+    analytics.fired = true;
+    trackEvent("order_completed", {
+      method: analytics.method,
+      surface: "product",
+    });
+  }, [paymentConfirmed, stripePaymentConfirmed]);
   const [_stripeTimeoutSeconds, setStripeTimeoutSeconds] =
     useState<number>(600); // 10 minutes
   const [hasTimedOut, setHasTimedOut] = useState(false);
@@ -1382,6 +1400,12 @@ export default function ProductInvoiceCard({
         donationAmount: emailDonationAmount,
         donationPercentage: emailDonationPercentage,
       };
+
+      orderAnalyticsRef.current.method = paymentType || "lightning";
+      trackEvent("checkout_started", {
+        method: paymentType || "lightning",
+        surface: "product",
+      });
 
       if (paymentType === "cashu") {
         await handleCashuPayment(price, paymentData);

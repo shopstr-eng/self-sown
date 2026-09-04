@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { trackEvent } from "@/utils/analytics";
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import FormattedText from "../formatted-text";
 import SectionElementFlow, {
@@ -104,6 +105,11 @@ export default function SectionContactForm({
         );
       }
       setState("success");
+      if (isSubscription) {
+        trackEvent("email_captured", { source: "subscribe_form" });
+      } else {
+        trackEvent("contact_form_submitted");
+      }
     } catch (err) {
       setState("error");
       setError(

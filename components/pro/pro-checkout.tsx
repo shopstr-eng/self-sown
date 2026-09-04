@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { trackEvent } from "@/utils/analytics";
 import {
   CreditCardIcon,
   BoltIcon,
@@ -101,6 +102,7 @@ export default function ProCheckout({
       // membership already existed (created=false), don't fake a trial — surface
       // the real state instead so we never grant a trial twice or to a payer.
       if (created || view?.status === "trialing") {
+        trackEvent("pro_subscribed", { method: "trial", plan: term });
         onComplete("trial");
       } else {
         setError(
@@ -126,6 +128,10 @@ export default function ProCheckout({
       }
       setClientSecret(cs);
       setMethod("card");
+      trackEvent("pro_checkout_started", {
+        method: "card",
+        plan: isLifetime ? "lifetime" : term,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -142,6 +148,10 @@ export default function ProCheckout({
         : await createManualInvoice(term, m);
       setInvoice(data);
       setMethod(m);
+      trackEvent("pro_checkout_started", {
+        method: m,
+        plan: isLifetime ? "lifetime" : term,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -162,11 +172,20 @@ export default function ProCheckout({
   useEffect(() => {
     if (method !== "bitcoin" || !invoice?.invoiceId) return;
     let active = true;
+    // Overlapping in-flight polls can BOTH resolve paid (the interval fires
+    // every 4s regardless of a pending request) — the check-and-set between
+    // awaits is atomic, so only the first resolution completes.
+    let completed = false;
     const poll = setInterval(async () => {
       try {
         const data = await verifyManualInvoice(invoice.invoiceId);
-        if (active && data?.paid) {
+        if (active && !completed && data?.paid) {
+          completed = true;
           clearInterval(poll);
+          trackEvent("pro_subscribed", {
+            method: "bitcoin",
+            plan: isLifetime ? "lifetime" : term,
+          });
           onComplete("paid");
         }
       } catch {
@@ -181,6 +200,10 @@ export default function ProCheckout({
 
   const handleCardSuccess = async () => {
     setLoading(true);
+    trackEvent("pro_subscribed", {
+      method: "card",
+      plan: isLifetime ? "lifetime" : term,
+    });
     try {
       await syncStripe();
       onComplete("paid");

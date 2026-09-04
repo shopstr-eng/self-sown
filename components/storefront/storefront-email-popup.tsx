@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { trackEvent } from "@/utils/analytics";
 import {
   StorefrontColorScheme,
   StorefrontEmailPopup,
@@ -149,6 +150,7 @@ export default function StorefrontEmailPopupComponent({
 
       setDiscountCode(data.discountCode);
       setStatus("success");
+      trackEvent("email_captured", { source: "popup" });
       localStorage.setItem(`popup_dismissed_${shopPubkey}`, "1");
     } catch {
       setErrorMsg("Something went wrong. Please try again.");

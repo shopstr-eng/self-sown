@@ -1,4 +1,5 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { trackEvent } from "@/utils/analytics";
 import {
   PencilSquareIcon,
   ShareIcon,
@@ -57,6 +58,11 @@ export default function DisplayProductModal({
   const [showCustomizePageModal, setShowCustomizePageModal] = useState(false);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    if (!showModal) return;
+    trackEvent("product_view", { product: productData.id });
+  }, [showModal, productData.id]);
 
   const rawEvent = productEventContext.productEvents.find(
     (e: NostrEvent) => e.id === productData.id
