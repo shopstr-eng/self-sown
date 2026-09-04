@@ -15,6 +15,7 @@ const getProSettingMock = jest.fn();
 const getSellerNotificationEmailMock = jest.fn();
 const sendProReceiptMock = jest.fn();
 const sendServerSideNostrDMMock = jest.fn();
+const sendOrphanedStripeEventAlertMock = jest.fn(async () => true);
 
 jest.mock("@/utils/db/pro-membership", () => ({
   getProMembershipBySubscription: (...args: unknown[]) =>
@@ -59,6 +60,8 @@ jest.mock("@/utils/db/db-service", () => ({
 jest.mock("@/utils/email/email-service", () => ({
   sendProReceipt: (...args: unknown[]) => sendProReceiptMock(...args),
   sendProLifetimeLingeringCancelAlert: jest.fn(),
+  sendOrphanedStripeEventAlert: (...args: unknown[]) =>
+    sendOrphanedStripeEventAlertMock(...args),
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
@@ -135,6 +138,10 @@ describe("applyStripeSubscriptionToMembership — orphaned Pro subscription", ()
     // attribute to a seller.
     expect(applyProStripeStateMock).not.toHaveBeenCalled();
     expect(syncProStripeMetaMock).not.toHaveBeenCalled();
+    // The marker is paired with a direct ops email so a human reconciles.
+    expect(sendOrphanedStripeEventAlertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ marker: "ORPHANED_PRO_SUBSCRIPTION" })
+    );
   });
 
   it("does not log the marker when pubkey metadata is present", async () => {
@@ -146,6 +153,7 @@ describe("applyStripeSubscriptionToMembership — orphaned Pro subscription", ()
     );
 
     expect(errorLogText()).not.toContain("ORPHANED_PRO_SUBSCRIPTION");
+    expect(sendOrphanedStripeEventAlertMock).not.toHaveBeenCalled();
   });
 });
 
@@ -161,6 +169,10 @@ describe("sendProStripeReceiptEmail — orphaned Pro receipt", () => {
     expect(errorLogText()).toContain("evt_receipt_orphan");
     expect(sendProReceiptMock).not.toHaveBeenCalled();
     expect(sendServerSideNostrDMMock).not.toHaveBeenCalled();
+    // The marker is paired with a direct ops email so a human reconciles.
+    expect(sendOrphanedStripeEventAlertMock).toHaveBeenCalledWith(
+      expect.objectContaining({ marker: "ORPHANED_PRO_RECEIPT" })
+    );
   });
 
   it("lets a thrown membership lookup propagate so the webhook 500s and Stripe retries", async () => {
@@ -171,5 +183,7 @@ describe("sendProStripeReceiptEmail — orphaned Pro receipt", () => {
     );
     expect(errorLogText()).not.toContain("ORPHANED_PRO_RECEIPT");
     expect(sendProReceiptMock).not.toHaveBeenCalled();
+    // A thrown lookup is transient — no orphan alert may fire.
+    expect(sendOrphanedStripeEventAlertMock).not.toHaveBeenCalled();
   });
 });

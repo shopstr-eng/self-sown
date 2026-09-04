@@ -44,6 +44,7 @@ import { getSellerNotificationEmail } from "@/utils/db/db-service";
 import {
   sendProReceipt,
   sendProLifetimeLingeringCancelAlert,
+  sendOrphanedStripeEventAlert,
 } from "@/utils/email/email-service";
 import { sendDedupedOpsAlert } from "@/utils/email/deduped-ops-alert";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
@@ -240,6 +241,28 @@ export async function applyStripeSubscriptionToMembership(
         `event_id=${context?.eventId ?? "unknown"} status=${mapped.baseStatus} — ` +
         `Pro subscription carries no pubkey metadata and no pro_memberships row ` +
         `matched; membership state was NOT synced`
+    );
+    // A log line is only seen if someone goes looking; alert ops directly so
+    // a human reconciles promptly. Non-fatal — returning (not throwing) is
+    // correct because retrying will never manufacture the missing row.
+    await sendOrphanedStripeEventAlert({
+      title: "Orphaned Pro Subscription",
+      marker: "ORPHANED_PRO_SUBSCRIPTION",
+      logTag: "orphaned_pro_subscription",
+      summary:
+        "A Pro subscription state change at Stripe carries no pubkey metadata and no pro_memberships row matched; membership state was NOT synced.",
+      details: [
+        { label: "Stripe subscription", value: mapped.subscriptionId },
+        { label: "Customer", value: mapped.customerId || "unknown" },
+        { label: "Event", value: context?.eventId ?? "unknown" },
+        { label: "Status", value: mapped.baseStatus },
+      ],
+      adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+    }).catch((err) =>
+      console.error(
+        "[orphaned_pro_subscription] Failed to send ops alert email:",
+        err
+      )
     );
     return;
   }
@@ -742,6 +765,31 @@ export async function sendProStripeReceiptEmail(
         `event_id=${context?.eventId ?? "unknown"} ` +
         `amount_paid=${amountCents} currency=${invoice.currency ?? "unknown"} — ` +
         `Pro invoice paid but no pro_memberships row matched; receipt was NOT sent`
+    );
+    // A log line is only seen if someone goes looking; alert ops directly.
+    // Non-fatal — the webhook still 200s because the row will never appear
+    // on retry.
+    await sendOrphanedStripeEventAlert({
+      title: "Orphaned Pro Receipt",
+      marker: "ORPHANED_PRO_RECEIPT",
+      logTag: "orphaned_pro_receipt",
+      summary:
+        "A Pro invoice was paid at Stripe but no pro_memberships row matched; the seller receipt was NOT sent.",
+      details: [
+        { label: "Stripe subscription", value: subscriptionId },
+        { label: "Invoice", value: invoice.id ?? "unknown" },
+        { label: "Event", value: context?.eventId ?? "unknown" },
+        {
+          label: "Amount paid",
+          value: `${amountCents} ${invoice.currency ?? "unknown"}`,
+        },
+      ],
+      adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+    }).catch((err) =>
+      console.error(
+        "[orphaned_pro_receipt] Failed to send ops alert email:",
+        err
+      )
     );
     return;
   }

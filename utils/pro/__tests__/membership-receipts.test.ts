@@ -15,6 +15,9 @@ jest.mock("@/utils/db/pro-membership", () => ({
 
 jest.mock("@/utils/email/email-service", () => ({
   sendProReceipt: (...args: unknown[]) => sendProReceiptMock(...args),
+  // membership.ts calls this on the orphaned-receipt path; the factory must
+  // provide it or the undefined call throws before the .catch can shield.
+  sendOrphanedStripeEventAlert: jest.fn(async () => true),
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({

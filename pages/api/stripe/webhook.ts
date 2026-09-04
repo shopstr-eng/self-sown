@@ -11,6 +11,7 @@ import {
   sendPaymentFailedToBuyer,
   sendPaymentFailedToSeller,
   sendTransferFailureAlert,
+  sendOrphanedStripeEventAlert,
 } from "@/utils/email/email-service";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
@@ -139,6 +140,33 @@ export default async function handler(
                   pi.currency ?? "unknown"
                 } — agent card payment settled but no mcp_orders row matched; ` +
                 `order was NOT marked paid and no shipping label was purchased`
+            );
+            // A log line is only seen if someone goes looking; alert ops
+            // directly. Non-fatal — the 200 stands because the row will
+            // never appear on retry.
+            await sendOrphanedStripeEventAlert({
+              title: "Orphaned MCP Order Payment",
+              marker: "ORPHANED_MCP_ORDER_PAYMENT",
+              logTag: "orphaned_mcp_order_payment",
+              summary:
+                "Agent card payment settled but no mcp_orders row matched; the order was NOT marked paid and no shipping label was purchased.",
+              details: [
+                { label: "Order", value: orderId },
+                { label: "PaymentIntent", value: pi.id },
+                { label: "Event", value: event.id },
+                {
+                  label: "Amount",
+                  value: `${pi.amount ?? "unknown"} ${
+                    pi.currency ?? "unknown"
+                  }`,
+                },
+              ],
+              adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+            }).catch((err) =>
+              console.error(
+                "[orphaned_mcp_order_payment] Failed to send ops alert email:",
+                err
+              )
             );
           } else {
             try {
@@ -412,6 +440,31 @@ async function handleInvoicePaymentFailed(
           `recurring payment failed at Stripe but no subscriptions row matched; ` +
           `seller failure notification was NOT sent`
       );
+      // A log line is only seen if someone goes looking; alert ops directly.
+      // Non-fatal — the 200 stands because the row will never appear on retry.
+      await sendOrphanedStripeEventAlert({
+        title: "Orphaned Subscription Payment Failure",
+        marker: "ORPHANED_SUBSCRIPTION_PAYMENT_FAILED",
+        logTag: "orphaned_subscription_payment_failed",
+        summary:
+          "A recurring payment failed at Stripe but no subscriptions row matched; the seller failure notification was NOT sent.",
+        details: [
+          { label: "Stripe subscription", value: subscriptionId },
+          { label: "Invoice", value: invoice.id ?? "unknown" },
+          { label: "Event", value: eventId },
+          { label: "Customer email", value: customerEmail || "unknown" },
+          {
+            label: "Amount due",
+            value: `${amountDue ?? "unknown"} ${currency}`,
+          },
+        ],
+        adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+      }).catch((err) =>
+        console.error(
+          "[orphaned_subscription_payment_failed] Failed to send ops alert email:",
+          err
+        )
+      );
     } else if (dbSubscription.seller_pubkey) {
       try {
         const sellerEmail = await getSellerNotificationEmail(
@@ -486,6 +539,33 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
           `invoice paid at Stripe but no subscriptions row matched and the ` +
           `subscription is not retrievable from the delivering account; ` +
           `seller transfers were NOT processed`
+      );
+      // A log line is only seen if someone goes looking; alert ops directly.
+      // Non-fatal — the 200 stands because the row will never appear on retry.
+      await sendOrphanedStripeEventAlert({
+        title: "Orphaned Subscription Invoice Paid",
+        marker: "ORPHANED_SUBSCRIPTION_INVOICE_PAID",
+        logTag: "orphaned_subscription_invoice_paid",
+        summary:
+          "An invoice was paid at Stripe but no subscriptions row matched and the subscription is not retrievable from the delivering account; seller transfers were NOT processed.",
+        details: [
+          { label: "Stripe subscription", value: subscriptionId },
+          { label: "Invoice", value: invoice.id ?? "unknown" },
+          { label: "Event", value: event.id },
+          { label: "Account", value: retrieveAccount ?? "platform" },
+          {
+            label: "Amount paid",
+            value: `${invoiceAny.amount_paid ?? "unknown"} ${
+              invoice.currency ?? "unknown"
+            }`,
+          },
+        ],
+        adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+      }).catch((alertErr) =>
+        console.error(
+          "[orphaned_subscription_invoice_paid] Failed to send ops alert email:",
+          alertErr
+        )
       );
       return;
     }

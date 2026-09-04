@@ -1278,6 +1278,48 @@ export function orphanedSubscriptionReminderAlertEmail(params: {
   };
 }
 
+/**
+ * Generic ops alert for an ORPHANED_* Stripe event: money moved at Stripe but
+ * no local record matched. One template for every orphan marker so all of
+ * them share the same shape and stay in sync.
+ */
+export function orphanedStripeEventAlertEmail(params: {
+  title: string;
+  marker: string;
+  summary: string;
+  details: Array<{ label: string; value: string }>;
+}): { subject: string; html: string } {
+  const rows = params.details
+    .map(
+      (d) =>
+        `      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>${esc(
+          d.label
+        )}:</strong> <span style="font-family:monospace;">${esc(
+          d.value
+        )}</span></td></tr>`
+    )
+    .join("\n");
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">${esc(
+      params.title
+    )}</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
+      ${esc(params.summary)}
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef2f2;border-radius:8px;padding:16px;margin-bottom:24px;">
+${rows}
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+      Filter logs on <code>${esc(
+        params.marker
+      )}</code> for history. The webhook returned 200 deliberately — retrying will never find the row.
+    </p>`;
+  return {
+    subject: `${BRAND_NAME}: ${params.title} needs manual reconciliation`,
+    html: baseTemplate(params.title, body),
+  };
+}
+
 export function customDomainAdminNotificationEmail(params: {
   domain: string;
   domainType: "subdomain" | "apex";

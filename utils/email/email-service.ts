@@ -17,6 +17,8 @@ import {
   proLifetimeLingeringCancelAlertEmail,
   orphanedSubscriptionPaymentAlertEmail,
   orphanedSubscriptionCancellationAlertEmail,
+  orphanedSubscriptionReminderAlertEmail,
+  orphanedStripeEventAlertEmail,
   customDomainAdminNotificationEmail,
   affiliatePaidEmail,
   affiliatePausedToAffiliateEmail,
@@ -671,6 +673,31 @@ export async function sendOrphanedSubscriptionReminderAlert(params: {
   const recipient = await resolveOpsAlertRecipient(
     params.adminEmail,
     "orphaned_subscription_reminder"
+  );
+  if (!recipient) return false;
+  return sendEmail(recipient, subject, html);
+}
+
+/**
+ * Generic ops alert for an ORPHANED_* Stripe event: money moved at Stripe but
+ * no local record matched. One sender for every orphan marker so each alert
+ * shares the same recipient resolution and template shape instead of growing
+ * a parallel email path per marker. Returns whether the email was actually
+ * sent; callers must treat a false/throw as non-fatal because the webhook
+ * response must stay 200 (the row will never appear on retry).
+ */
+export async function sendOrphanedStripeEventAlert(params: {
+  title: string;
+  marker: string;
+  logTag: string;
+  summary: string;
+  details: Array<{ label: string; value: string }>;
+  adminEmail?: string;
+}): Promise<boolean> {
+  const { subject, html } = orphanedStripeEventAlertEmail(params);
+  const recipient = await resolveOpsAlertRecipient(
+    params.adminEmail,
+    params.logTag
   );
   if (!recipient) return false;
   return sendEmail(recipient, subject, html);

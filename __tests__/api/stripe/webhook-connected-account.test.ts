@@ -60,6 +60,7 @@ const mockSendOrphanedSubscriptionCancellationAlert = jest.fn(
 const mockSendOrphanedSubscriptionReminderAlert = jest.fn(
   async (..._args: any[]) => true
 );
+const mockSendOrphanedStripeEventAlert = jest.fn(async (..._args: any[]) => true);
 
 jest.mock("@/utils/email/email-service", () => ({
   // The real helper resolves a delivery boolean — it does not throw.
@@ -74,6 +75,8 @@ jest.mock("@/utils/email/email-service", () => ({
     mockSendOrphanedSubscriptionCancellationAlert(...args),
   sendOrphanedSubscriptionReminderAlert: (...args: any[]) =>
     mockSendOrphanedSubscriptionReminderAlert(...args),
+  sendOrphanedStripeEventAlert: (...args: any[]) =>
+    mockSendOrphanedStripeEventAlert(...args),
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
@@ -395,6 +398,8 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 
   it("aborts before any seller transfer when the Connect-account lookup hits a DB outage", async () => {
@@ -523,6 +528,13 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
     expect(errCalls).toContain(SUB_ID);
     expect(errCalls).toContain("evt_invoice_paid");
+    // The marker is paired with a direct ops email so a human reconciles
+    // promptly instead of discovering a missing payout from a complaint.
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marker: "ORPHANED_SUBSCRIPTION_INVOICE_PAID",
+      })
+    );
     // Nothing to retry — the row will never appear — so the claim stays.
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
@@ -541,6 +553,8 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 
   it("does not log the orphan marker when a row exists and the retrieve succeeds", async () => {
@@ -559,6 +573,8 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 
   // Connect events carry the delivering connected account on event.account;
@@ -595,6 +611,8 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 
   it("logs the orphan marker only after the Connect-scoped retrieve also fails", async () => {
@@ -619,6 +637,11 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
       .join("\n");
     expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
     expect(errCalls).toContain(CONNECTED_ACCOUNT);
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marker: "ORPHANED_SUBSCRIPTION_INVOICE_PAID",
+      })
+    );
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 });
@@ -1417,6 +1440,12 @@ describe("POST /api/stripe/webhook — invoice.payment_failed orphaned/failed lo
     expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_PAYMENT_FAILED");
     expect(errCalls).toContain(SUB_ID);
     expect(errCalls).toContain("evt_pay_failed");
+    // The marker is paired with a direct ops email so a human reconciles.
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marker: "ORPHANED_SUBSCRIPTION_PAYMENT_FAILED",
+      })
+    );
     // No seller notification may be faked for a row that does not exist.
     expect(sendPaymentFailedToSeller).not.toHaveBeenCalled();
     // Nothing to retry — the row will never appear — so the claim stays.
@@ -1438,6 +1467,8 @@ describe("POST /api/stripe/webhook — invoice.payment_failed orphaned/failed lo
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_PAYMENT_FAILED");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 
   it("notifies the seller and logs no marker when the row exists", async () => {
@@ -1460,6 +1491,8 @@ describe("POST /api/stripe/webhook — invoice.payment_failed orphaned/failed lo
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_PAYMENT_FAILED");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 });
 
@@ -1501,6 +1534,10 @@ describe("POST /api/stripe/webhook — payment_intent.succeeded orphaned MCP ord
     expect(errCalls).toContain("order_orphan");
     expect(errCalls).toContain("pi_mcp_orphan");
     expect(errCalls).toContain("evt_mcp_paid");
+    // The marker is paired with a direct ops email so a human reconciles.
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ marker: "ORPHANED_MCP_ORDER_PAYMENT" })
+    );
     // No label purchase against an order we could not mark paid.
     expect(mockAutoPurchaseForMcpOrder).not.toHaveBeenCalled();
     // Nothing to retry — the row will never appear — so the claim stays.
@@ -1522,6 +1559,8 @@ describe("POST /api/stripe/webhook — payment_intent.succeeded orphaned MCP ord
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_MCP_ORDER_PAYMENT");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 
   it("marks the order paid and auto-purchases a label when the row exists", async () => {
@@ -1542,6 +1581,8 @@ describe("POST /api/stripe/webhook — payment_intent.succeeded orphaned MCP ord
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_MCP_ORDER_PAYMENT");
+    // A transient/happy path is NOT an orphan — no ops email may fire.
+    expect(mockSendOrphanedStripeEventAlert).not.toHaveBeenCalled();
   });
 });
 
