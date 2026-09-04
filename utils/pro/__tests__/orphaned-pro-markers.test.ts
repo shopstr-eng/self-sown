@@ -63,7 +63,7 @@ jest.mock("@/utils/email/email-service", () => ({
   sendProReceipt: (...args: unknown[]) => sendProReceiptMock(...args),
   sendProLifetimeLingeringCancelAlert: jest.fn(),
   sendOrphanedStripeEventAlert: (...args: unknown[]) =>
-    sendOrphanedStripeEventAlertMock(...args),
+    (sendOrphanedStripeEventAlertMock as jest.Mock)(...args),
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({

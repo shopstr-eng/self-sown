@@ -6635,6 +6635,16 @@ export default function ProductInvoiceCard({
                   </div>
                 )}
 
+                {/* Escrow backup failures must surface HERE too: the direct
+                    Cashu path never opens the invoice view (showInvoiceCard
+                    stays false), so a banner rendered only there is invisible
+                    exactly when an escrow backup fails. */}
+                {escrowBackupWarning ? (
+                  <div className="mt-6 w-full rounded-md border-2 border-black bg-yellow-100 p-3 text-center text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    {escrowBackupWarning}
+                  </div>
+                ) : null}
+
                 <div className="mt-6 space-y-3 border-t pt-6">
                   <h3 className="mb-4 text-xl font-bold">Payment Method</h3>
 

@@ -9452,6 +9452,15 @@ export default function CartInvoiceCard({
           {/* Contact/Shipping Form */}
           {formType && (
             <>
+              {/* Escrow backup failures must surface HERE too: the direct
+                  Cashu path never opens the invoice view (showInvoiceCard
+                  stays false), so a banner rendered only there is invisible
+                  exactly when an escrow backup fails. */}
+              {escrowBackupWarning ? (
+                <div className="mb-4 w-full rounded-md border-2 border-black bg-yellow-100 p-3 text-center text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {escrowBackupWarning}
+                </div>
+              ) : null}
               {formType === "shipping" && (
                 <h2 className="mb-6 text-2xl font-bold">
                   Shipping Information
