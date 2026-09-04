@@ -1,11 +1,8 @@
 import { useContext, useEffect, useState } from "react";
 import { Button } from "@heroui/react";
 import { ClipboardIcon, CheckIcon } from "@heroicons/react/24/outline";
-import {
-  Mint as CashuMint,
-  Wallet as CashuWallet,
-  getDecodedToken,
-} from "@cashu/cashu-ts";
+import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
+import { decodeEscrowLockedProofs } from "@/utils/cashu/escrow-checkout";
 import {
   getOutgoingSendTokens,
   resolveOutgoingSendToken,
@@ -64,7 +61,13 @@ const SentTokens = () => {
     setBusyToken(entry.token);
     setMessage(null);
     try {
-      const decoded = getDecodedToken(entry.token, []);
+      // Keyset-aware decode (v2 keyset IDs need the mint's keyset list) that
+      // also surfaces the token's unit — receive() rejects a unit-less token
+      // object. Same call shape as the escrow redeem path.
+      const decoded = await decodeEscrowLockedProofs(
+        entry.token,
+        entry.mintUrl
+      );
       const { unspent, spentCount, checked } = await filterUnspentProofs(
         decoded.mint,
         decoded.proofs
@@ -98,6 +101,7 @@ const SentTokens = () => {
       const reclaimedProofs = await wallet.receive({
         mint: decoded.mint,
         proofs: fresh,
+        unit: decoded.unit,
       });
       const reclaimedSats = reclaimedProofs.reduce(
         (acc, p) => acc + proofAmountToNumber(p),

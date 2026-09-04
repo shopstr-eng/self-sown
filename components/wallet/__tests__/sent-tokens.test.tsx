@@ -6,7 +6,8 @@ import {
   NostrContext,
   SignerContext,
 } from "@/components/utility-components/nostr-context-provider";
-import { Wallet as CashuWallet, getDecodedToken } from "@cashu/cashu-ts";
+import { Wallet as CashuWallet } from "@cashu/cashu-ts";
+import { decodeEscrowLockedProofs } from "@/utils/cashu/escrow-checkout";
 import {
   filterUnspentProofs,
   persistReceivedTokens,
@@ -22,9 +23,11 @@ import {
 
 jest.mock("@cashu/cashu-ts", () => ({
   ...jest.requireActual("@cashu/cashu-ts"),
-  getDecodedToken: jest.fn(),
   Wallet: jest.fn(),
   Mint: jest.fn().mockImplementation(() => ({})),
+}));
+jest.mock("@/utils/cashu/escrow-checkout", () => ({
+  decodeEscrowLockedProofs: jest.fn(),
 }));
 jest.mock("@/utils/cashu/wallet-mint-sync", () => ({
   filterUnspentProofs: jest.fn(),
@@ -32,7 +35,7 @@ jest.mock("@/utils/cashu/wallet-mint-sync", () => ({
 }));
 jest.mock("@/utils/nostr/nostr-helper-functions");
 
-const mockGetDecodedToken = getDecodedToken as jest.Mock;
+const mockDecodeEscrowLockedProofs = decodeEscrowLockedProofs as jest.Mock;
 const MockCashuWallet = CashuWallet as jest.Mock;
 const mockFilterUnspentProofs = filterUnspentProofs as jest.Mock;
 const mockPersistReceivedTokens = persistReceivedTokens as jest.Mock;
@@ -65,7 +68,11 @@ describe("SentTokens", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    mockGetDecodedToken.mockReturnValue({ mint: MINT, proofs: PROOFS });
+    mockDecodeEscrowLockedProofs.mockResolvedValue({
+      mint: MINT,
+      proofs: PROOFS,
+      unit: "sat",
+    });
     mockGetLocalStorageData.mockReturnValue({ tokens: [], history: [] });
     mockPublishProofEvent.mockResolvedValue(undefined);
     mockReceive = jest.fn().mockResolvedValue(SWAPPED_PROOFS);
@@ -129,8 +136,18 @@ describe("SentTokens", () => {
     expect(
       await screen.findByText(/Reclaimed 100 sats back into your wallet/i)
     ).toBeVisible();
-    // The mint swap must be fed the original unspent proofs...
-    expect(mockReceive).toHaveBeenCalledWith({ mint: MINT, proofs: PROOFS });
+    // Decode goes through the keyset-aware helper with the entry's mint...
+    expect(mockDecodeEscrowLockedProofs).toHaveBeenCalledWith(
+      "cashuA_pending",
+      MINT
+    );
+    // ...the mint swap is fed the original unspent proofs AND the decoded
+    // unit (cashu-ts v4 receive rejects a unit-less token object)...
+    expect(mockReceive).toHaveBeenCalledWith({
+      mint: MINT,
+      proofs: PROOFS,
+      unit: "sat",
+    });
     // ...but only the FRESH swapped proofs may be credited to the wallet.
     expect(mockPersistReceivedTokens).toHaveBeenCalledWith(
       SWAPPED_PROOFS,

@@ -14,7 +14,9 @@ says nothing:
    initialized" until `loadMint()` has run.
 3. `wallet.receive(tokenObj)` strictly compares units: a token object without
    `unit` throws "Token is not in wallet unit" — thread the decoded token's
-   unit through.
+   unit through. Decoding a unit-less token (e.g. Send's
+   `getEncodedToken({mint, proofs})`) yields `unit: "sat"` by default, so no
+   `?? "sat"` fallback is needed after decode.
 
 **Why:** each of these broke a different stage of the same live flow while
 every mocked test passed; they are invisible without a real mint.
