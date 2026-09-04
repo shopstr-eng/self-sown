@@ -22,6 +22,8 @@ import {
   type Token,
 } from "@cashu/cashu-ts";
 import type { Event } from "nostr-tools";
+import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import type { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import {
   ESCROW_DEFAULT_LOCK_SECONDS,
@@ -668,6 +670,77 @@ export async function fetchEscrowStatus(
     );
   }
   return body as EscrowStatusResponse;
+}
+
+export interface MyEscrowSummary {
+  escrowId: string;
+  orderId: string;
+  sellerPubkey: string;
+  amountSats: number;
+  mintUrl: string;
+  /** unix seconds */
+  expiresAt: number;
+  /** unix seconds */
+  createdAt: number;
+  status: "locked" | "released" | "refunded";
+  pendingAction: "release" | "refund" | null;
+  /**
+   * True once the payout worker finalized — the bearer status endpoint then
+   * serves the payee-locked payout token for this escrowId.
+   */
+  payoutAvailable: boolean;
+}
+
+/**
+ * Buyer-authenticated (NIP-98) rediscovery of the caller's escrows. A wiped
+ * browser loses the local records — and with them the escrowIds that are the
+ * only handle to a completed refund payout (status is bearer-by-id). Returns
+ * null when the request couldn't authenticate; throws on other failures —
+ * an outage must never masquerade as "nothing to recover".
+ */
+export async function fetchMyEscrows(
+  signer: NostrSigner
+): Promise<MyEscrowSummary[] | null> {
+  if (typeof window === "undefined") return null;
+  const url = `${window.location.origin}/api/cashu/escrow/mine`;
+  const authorization = await createNip98AuthorizationHeader(
+    signer,
+    url,
+    "GET"
+  );
+  const response = await fetch(url, {
+    headers: { Authorization: authorization },
+  });
+  if (response.status === 401) return null;
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      body?.error || `Escrow rediscovery failed (${response.status}).`
+    );
+  }
+  return Array.isArray(body?.escrows)
+    ? (body.escrows as MyEscrowSummary[])
+    : [];
+}
+
+/**
+ * Server-known escrows this browser has no record of AND that are
+ * recoverable here: a finalized REFUND payout is redeemable from the
+ * escrowId alone (status serves the buyer-P2PK-locked payout token).
+ * Still-locked escrows are NOT rediscoverable this way — their lockedToken
+ * died with the browser and the server never holds it; those recover via
+ * the kind-7375 backup restore instead.
+ */
+export function selectRediscoverableEscrows(
+  serverEscrows: MyEscrowSummary[],
+  localEscrowIds: ReadonlySet<string>
+): MyEscrowSummary[] {
+  return serverEscrows.filter(
+    (e) =>
+      !localEscrowIds.has(e.escrowId) &&
+      e.status === "refunded" &&
+      e.payoutAvailable
+  );
 }
 
 export interface EscrowRefundResponse {

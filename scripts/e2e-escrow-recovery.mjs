@@ -7,11 +7,18 @@
  *   B. escrow checkout on a sats-priced listing (seller opted in)
  *   C. verify kind-7375 backup exists and locked sats are NOT spendable
  *   D. wipe localStorage (keep only sign-in keys), restore via the wallet page
- *   E. after lock expiry, request the refund from the restored record, sweep
- *      the payout worker, redeem the payout, verify balance + pruning
+ *   E. after lock expiry, request the refund from the restored record and
+ *      sweep the payout worker until the payout completes
+ *   F. redeem the payout — either from the original browser profile
+ *      ("redeem"), or after a SECOND wipe ("recover"): the kind-7375 restore
+ *      correctly refuses the SPENT locked proofs, so the escrowId comes from
+ *      the authenticated /api/cashu/escrow/mine rediscovery endpoint instead
  *
  * Usage: node scripts/e2e-escrow-recovery.mjs [stage]
- *   stage: "all" (default) or one of A,B,C,D,E to stop after that stage.
+ *   stage: "all" (default, through redeem), "recover-all" (through recover
+ *   INSTEAD of redeem — recover needs an un-redeemed payout), or one of
+ *   A, fund, discover, discover2, checkout, verify, restore, refund, redeem,
+ *   recover.
  */
 import { createRequire } from "module";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
@@ -747,7 +754,10 @@ async function stageRestore() {
   }
 }
 
-/** E: after expiry, request the refund from the restored record, sweep, redeem. */
+/** E: after expiry, request the refund from the restored record and sweep
+ * until the payout completes. Redeem is deliberately NOT done here — it is
+ * the terminal stage's job (redeem from the original profile, or recover
+ * after a second wipe), so the recover path has an un-redeemed payout. */
 async function stageRefund() {
   const state = loadState();
   if (!state.escrowId) throw new Error("no escrowId in state");
@@ -842,57 +852,8 @@ async function stageRefund() {
     if (!refunded)
       throw new Error("escrow never reached refunded/payout state");
 
-    // Redeem the payout back into the wallet.
-    await page.reload({ waitUntil: "networkidle2" });
-    await sleep(6000);
-    const spendableBeforeRedeem = spendableSats(await getLocalStorage(page));
-    const redeemClicked = await page.evaluate(() => {
-      const btn = [...document.querySelectorAll("button")].find(
-        (b) =>
-          b.offsetParent !== null &&
-          b.textContent?.includes("Redeem refund to wallet")
-      );
-      btn?.click();
-      return !!btn;
-    });
-    log("redeem button clicked:", redeemClicked);
-    if (!redeemClicked) throw new Error("no redeem button after refund");
-
-    const redeemDeadline = Date.now() + 2 * 60 * 1000;
-    let spendableAfter = spendableBeforeRedeem;
-    while (Date.now() < redeemDeadline) {
-      await sleep(5000);
-      try {
-        const storage = await getLocalStorage(page);
-        spendableAfter = spendableSats(storage);
-        const records = JSON.parse(storage.cashu_escrows ?? "[]");
-        if (
-          spendableAfter > spendableBeforeRedeem &&
-          !records.find((r) => r.escrowId === state.escrowId)
-        )
-          break;
-      } catch {
-        /* transient */
-      }
-    }
-    await shot(page, "E3-redeemed");
-    log(
-      "spendable before redeem:",
-      spendableBeforeRedeem,
-      "after:",
-      spendableAfter
-    );
-    const finalStorage = await getLocalStorage(page);
-    const remaining = JSON.parse(finalStorage.cashu_escrows ?? "[]");
-    if (spendableAfter <= spendableBeforeRedeem)
-      throw new Error("redeem did not increase spendable balance");
-    log(
-      "refund redeemed ✓ (+",
-      spendableAfter - spendableBeforeRedeem,
-      "sats); escrow records remaining:",
-      remaining.length
-    );
-    saveState({ refunded: true, finalSpendable: spendableAfter });
+    await shot(page, "E3-refunded");
+    saveState({ refunded: true });
     await context.close();
   } finally {
     await browser.close();
@@ -1051,6 +1012,97 @@ async function stageRedeem() {
   }
 }
 
+/** G: SECOND wipe, AFTER the refund payout — prove the redeemable escrow is
+ * still recoverable. The kind-7375 restore correctly refuses the SPENT
+ * locked proofs (fail-closed), so without the authenticated
+ * /api/cashu/escrow/mine rediscovery the escrowId — the only handle to the
+ * completed payout — would be lost with the money still P2PK-locked to the
+ * buyer. Requires a completed, NOT-yet-redeemed refund: run "recover-all"
+ * (or the individual stages through refund) instead of "all". */
+async function stageRecover() {
+  const state = loadState();
+  if (!state.escrowId) throw new Error("no escrowId in state");
+  if (!state.refunded)
+    throw new Error("run refund first — recover needs a completed payout");
+  const { browser } = await launch();
+  try {
+    // A brand-new browser context = a browser wiped AFTER the payout.
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    await page.setViewport({ width: 1280, height: 900 });
+    page.on("pageerror", (e) => log("pageerror:", String(e).slice(0, 300)));
+    await injectSession(page, true); // wiped browser, keys only
+
+    await page.goto(`${BASE}/orders`, {
+      waitUntil: "networkidle2",
+      timeout: 60000,
+    });
+    await sleep(8000);
+    await shot(page, "G1-orders-wiped");
+    await dumpUi(page, "G1-orders-wiped");
+
+    // Sanity: this context holds NO local record, so any escrow card on the
+    // page came from server-side rediscovery alone.
+    const wipedStorage = await getLocalStorage(page);
+    if (
+      JSON.parse(wipedStorage.cashu_escrows ?? "[]").find(
+        (r) => r.escrowId === state.escrowId
+      )
+    )
+      throw new Error("escrow record present in a supposedly wiped browser");
+
+    const before = await unspentSatsAtMint(wipedStorage, state.mintUrl);
+    log("mint-verified unspent before recover-redeem:", before);
+
+    const redeemClicked = await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find(
+        (b) =>
+          b.offsetParent !== null &&
+          b.textContent?.includes("Redeem refund to wallet")
+      );
+      btn?.click();
+      return !!btn;
+    });
+    if (!redeemClicked)
+      throw new Error(
+        "no redeem button after second wipe — server rediscovery failed"
+      );
+    log("redeem clicked on the SERVER-REDISCOVERED card ✓");
+
+    // The rediscovered record is component-state only and must NOT persist
+    // with its empty lockedToken.
+    const midStorage = await getLocalStorage(page);
+    if (JSON.parse(midStorage.cashu_escrows ?? "[]").length > 0)
+      throw new Error("rediscovered record leaked into localStorage");
+
+    const deadline = Date.now() + 2 * 60 * 1000;
+    let after = before;
+    while (Date.now() < deadline) {
+      await sleep(5000);
+      try {
+        after = await unspentSatsAtMint(
+          await getLocalStorage(page),
+          state.mintUrl
+        );
+        if (after.total > before.total) break;
+      } catch {
+        /* transient */
+      }
+    }
+    await shot(page, "G2-recovered-redeemed");
+    const gained = after.total - before.total;
+    if (gained !== state.amountSats)
+      throw new Error(
+        `recover redeem gained ${gained} sats, expected ${state.amountSats}`
+      );
+    log("recovered refund redeemed ✓ +", gained, "sats (mint-verified)");
+    saveState({ recovered: true, finalSpendable: after.total });
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+}
+
 const stages = {
   A: stageA,
   fund: stageFund,
@@ -1061,18 +1113,28 @@ const stages = {
   restore: stageRestore,
   refund: stageRefund,
   redeem: stageRedeem,
+  recover: stageRecover,
 };
 async function main() {
   log("base:", BASE, "listing:", LISTING_ID);
-  if (stageArg === "all" || stageArg === "A") await stageA();
-  if (stageArg === "all" || stageArg === "fund") await stageFund();
+  const recoverChain = stageArg === "recover-all";
+  if (stageArg === "all" || recoverChain || stageArg === "A") await stageA();
+  if (stageArg === "all" || recoverChain || stageArg === "fund")
+    await stageFund();
   if (stageArg === "discover") await stageDiscover();
   if (stageArg === "discover2") await stageDiscover2();
-  if (stageArg === "all" || stageArg === "checkout") await stageCheckout();
-  if (stageArg === "all" || stageArg === "verify") await stageVerify();
-  if (stageArg === "all" || stageArg === "restore") await stageRestore();
-  if (stageArg === "all" || stageArg === "refund") await stageRefund();
-  if (stageArg === "redeem") await stageRedeem();
+  if (stageArg === "all" || recoverChain || stageArg === "checkout")
+    await stageCheckout();
+  if (stageArg === "all" || recoverChain || stageArg === "verify")
+    await stageVerify();
+  if (stageArg === "all" || recoverChain || stageArg === "restore")
+    await stageRestore();
+  if (stageArg === "all" || recoverChain || stageArg === "refund")
+    await stageRefund();
+  // redeem and recover are alternative TERMINALS: redeem pays out from the
+  // original profile; recover needs the payout un-redeemed.
+  if (stageArg === "all" || stageArg === "redeem") await stageRedeem();
+  if (recoverChain || stageArg === "recover") await stageRecover();
   log("DONE through stage", stageArg);
 }
 main().catch((e) => {

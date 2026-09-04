@@ -484,6 +484,61 @@ export async function listExpiredLockedEscrows(
   return result.rows.map((row) => ({ escrowId: row.escrow_id }));
 }
 
+/**
+ * Every escrow registered by a buyer, newest first, with just enough outbox
+ * state for the wallet page to rediscover completed payouts after a browser
+ * wipe (served by the buyer-authenticated /api/cashu/escrow/mine endpoint).
+ * Read-only; never exposes payout payloads or outputs — payout proofs stay
+ * behind the bearer-by-id status endpoint.
+ */
+export async function listEscrowRegistrationsByBuyer(
+  buyerPubkey: string
+): Promise<
+  Array<{
+    escrowId: string;
+    orderId: string;
+    sellerPubkey: string;
+    amountSats: number;
+    mintUrl: string;
+    expiresAt: Date;
+    createdAt: Date;
+    status: EscrowRegistration["status"];
+    pendingAction: EscrowOutboxAction | null;
+    /** True once the payout worker finalized with payee-locked outputs. */
+    payoutAvailable: boolean;
+  }>
+> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `SELECT r.escrow_id, r.order_id, r.seller_pubkey, r.amount_sats,
+            r.mint_url, r.expires_at, r.created_at, r.status,
+            o.action AS outbox_action, o.status AS outbox_status,
+            (o.status = 'done'
+             AND jsonb_typeof(o.payout_outputs) = 'array'
+             AND jsonb_array_length(o.payout_outputs) > 0) AS payout_available
+     FROM cashu_escrow_registrations r
+     LEFT JOIN cashu_escrow_outbox o ON o.escrow_id = r.escrow_id
+     WHERE r.buyer_pubkey = $1
+     ORDER BY r.created_at DESC`,
+    [buyerPubkey]
+  );
+  return result.rows.map((row) => ({
+    escrowId: row.escrow_id,
+    orderId: row.order_id,
+    sellerPubkey: row.seller_pubkey,
+    amountSats: Number(row.amount_sats),
+    mintUrl: row.mint_url,
+    expiresAt: new Date(row.expires_at),
+    createdAt: new Date(row.created_at),
+    status: row.status,
+    pendingAction:
+      row.outbox_status && row.outbox_status !== "done"
+        ? row.outbox_action
+        : null,
+    payoutAvailable: Boolean(row.payout_available),
+  }));
+}
+
 /** Load a registration for the payout worker. Null when unknown. */
 export async function getEscrowRegistration(
   escrowId: string

@@ -8,6 +8,12 @@
 // worker has everything it needs to actually complete the refund. When the
 // refund has been paid out, a "Redeem" button swaps the buyer-locked payout
 // proofs into the local wallet.
+//
+// Records lost to a browser wipe are rediscovered server-side via the
+// authenticated /api/cashu/escrow/mine endpoint: any finalized refund payout
+// is redeemable from the escrowId alone (status serves the buyer-locked
+// payout token), so the card comes back with its Redeem button even though
+// the lockedToken died with the browser.
 
 import { useCallback, useContext, useEffect, useState } from "react";
 import { nip19 } from "nostr-tools";
@@ -18,12 +24,15 @@ import { buildEscrowActionEventTemplate } from "@/utils/cashu/escrow-commitment"
 import {
   BuyerEscrowRecord,
   EscrowStatusResponse,
+  MyEscrowSummary,
   decodeEscrowLockedProofs,
   fetchEscrowStatus,
+  fetchMyEscrows,
   listBuyerEscrows,
   pruneResolvedBuyerEscrows,
   requestEscrowRefund,
   requestEscrowReleaseApproval,
+  selectRediscoverableEscrows,
   signEscrowLockedProofs,
 } from "@/utils/cashu/escrow-checkout";
 import { persistReceivedTokens } from "@/utils/cashu/wallet-mint-sync";
@@ -137,15 +146,49 @@ export default function BuyerEscrowList() {
 
   const refresh = useCallback(async () => {
     const records = loadRecords();
-    if (records.length === 0) {
+    // Server-side rediscovery: a buyer who wiped their browser AFTER a
+    // refund payout executed has no local record, and the kind-7375 restore
+    // correctly refuses to resurrect the SPENT locked proofs — so the
+    // escrowId (the only handle to the completed payout; the status endpoint
+    // is bearer-by-id) would be lost with the money still locked to them.
+    // The authenticated /mine endpoint hands it back.
+    let serverEscrows: MyEscrowSummary[] = [];
+    if (signer) {
+      try {
+        serverEscrows = (await fetchMyEscrows(signer)) ?? [];
+      } catch {
+        // Rediscovery is best-effort — the local view is unaffected.
+        serverEscrows = [];
+      }
+    }
+    const rediscovered: BuyerEscrowRecord[] = selectRediscoverableEscrows(
+      serverEscrows,
+      new Set(records.map((record) => record.escrowId))
+    ).map((summary) => ({
+      escrowId: summary.escrowId,
+      orderId: summary.orderId,
+      sellerPubkey: summary.sellerPubkey,
+      amountSats: summary.amountSats,
+      mintUrl: summary.mintUrl,
+      expiresAt: summary.expiresAt,
+      createdAt: summary.createdAt,
+      // The lockedToken died with the wiped browser and is unrecoverable
+      // server-side — but redeem needs only the escrowId (it re-fetches the
+      // buyer-locked payout token from the status endpoint). This record is
+      // NEVER persisted to localStorage: a lockedToken-less record would
+      // break the backup republish and the refund/release paths.
+      lockedToken: "",
+    }));
+    const allRecords = [...records, ...rediscovered];
+    if (allRecords.length === 0) {
       setViews([]);
       return;
     }
-    setViews(records.map((record) => ({ record, status: undefined })));
+    setViews(allRecords.map((record) => ({ record, status: undefined })));
     const results = await Promise.allSettled(
-      records.map((record) => fetchEscrowStatus(record.escrowId))
+      allRecords.map((record) => fetchEscrowStatus(record.escrowId))
     );
-    const nextViews = records.map((record, index) => {
+    const nextViews = allRecords.map((record, index) => {
       const result = results[index]!;
       // A rejected fetch must NOT masquerade as "still loading" (the endless
       // "Checking…" bug) — mark the card failed so it renders an error state
@@ -166,7 +209,7 @@ export default function BuyerEscrowList() {
     setViews(
       nextViews.filter((view) => !releasedIds.includes(view.record.escrowId))
     );
-  }, [loadRecords]);
+  }, [loadRecords, signer]);
 
   useEffect(() => {
     if (!isEscrowClientEnabled()) return;
