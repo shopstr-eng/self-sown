@@ -356,4 +356,118 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
     expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
     expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalled();
   });
+
+  test("one bad row cannot block or corrupt the rest of a multi-row batch", async () => {
+    // Four due rows in ONE batch, each hitting a different outcome — and the
+    // publish-throwing row deliberately sits in the MIDDLE so a short-circuit
+    // would visibly drop the rows behind it.
+    const ev = (id: string, dTag: string) => ({
+      id,
+      pubkey: PUBKEY,
+      kind: 30023,
+      created_at: 1000,
+      content: "body",
+      tags: [
+        ["d", dTag],
+        ["title", "T"],
+        ["published_at", "900"],
+      ],
+    });
+    const rowA = dueRow({
+      d_tag: "post-a",
+      event_id: "evt-a",
+      signed_event: ev("evt-a", "post-a"),
+    });
+    const rowB = dueRow({
+      d_tag: "post-b",
+      event_id: "evt-b",
+      signed_event: ev("evt-b", "post-b"),
+    });
+    const rowC = dueRow({
+      d_tag: "post-c",
+      event_id: "evt-c",
+      signed_event: ev("evt-c", "post-c"),
+    });
+    const rowD = dueRow({
+      d_tag: "post-d",
+      event_id: "evt-d",
+      signed_event: ev("evt-d", "post-d"),
+    });
+    mocked.claimDueScheduledBlogPosts.mockResolvedValue([
+      rowA,
+      rowB,
+      rowC,
+      rowD,
+    ]);
+
+    // A/C/D publish fine; B's publish throws.
+    mocked.republishBlogPostToAuthorRelays.mockImplementation((event: any) =>
+      event.id === "evt-b"
+        ? Promise.reject(new Error("relay down"))
+        : Promise.resolve({ published: 3 })
+    );
+    // A and D confirm in cache; C never appears (publish not confirmed).
+    mocked.fetchBlogPostByDTagAndPubkey.mockImplementation(
+      (dTag: string, pubkey: string) => {
+        if (dTag === "post-c") return Promise.resolve(null);
+        if (dTag === "post-a") return Promise.resolve(ev("evt-a", "post-a"));
+        if (dTag === "post-d") return Promise.resolve(ev("evt-d", "post-d"));
+        return Promise.resolve(null);
+      }
+    );
+    // Both email-opted rows reach the real broadcast with the same audience;
+    // the FIRST send succeeds (row A) and the SECOND fails (row D), in loop
+    // order — deterministic because rows are processed sequentially.
+    mocked.getSellerAudienceEmails.mockResolvedValue(["reader@example.com"]);
+    mocked.sendEmailStrictFrom
+      .mockReset()
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+
+    const res = await run();
+
+    // Every row was attempted — the throwing row did not short-circuit the loop.
+    expect(mocked.republishBlogPostToAuthorRelays).toHaveBeenCalledTimes(4);
+    // Each row produced its OWN independent result entry, in batch order.
+    expect(res.statusCode).toBe(200);
+    expect(res.body.results).toEqual([
+      { pubkey: PUBKEY, dTag: "post-a", status: "published", published: 3, email: "sent" },
+      { pubkey: PUBKEY, dTag: "post-b", status: "error" },
+      { pubkey: PUBKEY, dTag: "post-c", status: "retry" },
+      { pubkey: PUBKEY, dTag: "post-d", status: "retry", published: 3, email: "all-failed" },
+    ]);
+    // `processed` counts only the successful publish.
+    expect(res.body.processed).toBe(1);
+
+    // Only the healthy row's schedule row was deleted...
+    expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalledTimes(1);
+    expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalledWith(
+      PUBKEY,
+      "post-a",
+      "evt-a"
+    );
+    // ...and each broken row's claim was released for retry under its OWN key.
+    const released = mocked.releaseScheduledBlogPostClaim.mock.calls.map(
+      (c) => [c[0], c[1], c[2]]
+    );
+    expect(released).toEqual([
+      [PUBKEY, "post-b", "evt-b"],
+      [PUBKEY, "post-c", "evt-c"],
+      [PUBKEY, "post-d", "evt-d"],
+    ]);
+
+    // The not-cached row never reached the broadcast; the two email rows did.
+    const claimedBroadcasts = mocked.claimBlogBroadcast.mock.calls.map(
+      (c) => c[1]
+    );
+    expect(claimedBroadcasts).toEqual(["post-a", "post-d"]);
+    expect(mocked.sendEmailStrictFrom).toHaveBeenCalledTimes(2);
+    // The all-failed row released its broadcast claim so the email can retry.
+    expect(mocked.releaseBlogBroadcast).toHaveBeenCalledWith(
+      PUBKEY,
+      "post-d",
+      "evt-d",
+      undefined
+    );
+  });
 });
