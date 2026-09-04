@@ -419,12 +419,12 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
       const claim = await escrow.claimEscrowOutboxEntry(outboxId);
       expect(claim).not.toBeNull();
 
-      // A refund enqueue racing the release finalize. The two transactions
-      // lock the outbox and registration rows in OPPOSITE order, so
-      // Postgres deadlock detection may abort one of them — that is a
-      // fail-closed, retryable outcome, NOT a double-pay. What must hold
-      // in every interleaving: the escrow resolves at most once and the
-      // outbox never gains a second row.
+      // A refund enqueue racing the release finalize. Both transactions now
+      // lock the outbox row BEFORE the registration row (the enqueue takes
+      // the existing outbox row FOR UPDATE first), so the race serializes
+      // instead of deadlock-aborting. What must hold in every interleaving:
+      // the escrow resolves at most once and the outbox never gains a
+      // second row.
       const results = await Promise.allSettled([
         escrow.finalizeEscrowOutboxEntry(outboxId, claim!.claimToken),
         escrow.enqueueEscrowAction(escrowId, "refund"),
@@ -434,20 +434,14 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
 
       // The refund enqueue must never succeed: the outbox row already
       // carries the release action (and once finalized the escrow is no
-      // longer locked), so it is rejected — or, rarely, deadlock-aborted.
+      // longer locked), so it is rejected with a business error. With the
+      // shared lock order there is no deadlock victim: the finalize always
+      // completes.
       expect(enqueueResult.status).toBe("rejected");
       expect((enqueueResult as PromiseRejectedResult).reason.message).toMatch(
-        /already released|already has a pending|deadlock detected/
+        /already released|already has a pending/
       );
-
-      if (finalizeResult.status === "rejected") {
-        // Deadlock victim: fail-closed and retryable. The claim is still
-        // held by this worker, so completing the payout must succeed.
-        expect(
-          (finalizeResult as PromiseRejectedResult).reason.message
-        ).toMatch(/deadlock detected/);
-        await escrow.finalizeEscrowOutboxEntry(outboxId, claim!.claimToken);
-      }
+      expect(finalizeResult.status).toBe("fulfilled");
 
       // Final durable state: exactly one outbox row (the release, done)
       // and the escrow released exactly once.

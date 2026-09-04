@@ -155,6 +155,17 @@ export async function enqueueEscrowAction(
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    // Lock-ordering invariant: the outbox row is always locked BEFORE the
+    // registration row, matching finalizeEscrowOutboxEntry (outbox UPDATE →
+    // registration UPDATE). An enqueue that locked the registration first
+    // deadlocked against an in-flight finalize (AB-BA); taking the existing
+    // outbox row's lock here first serializes the race instead. The
+    // first-ever enqueue finds no outbox row and takes no lock — nothing can
+    // be finalizing a nonexistent entry.
+    await client.query(
+      `SELECT outbox_id FROM cashu_escrow_outbox WHERE outbox_id = $1 FOR UPDATE`,
+      [outboxId]
+    );
     const escrow = await client.query(
       `SELECT status FROM cashu_escrow_registrations
        WHERE escrow_id = $1 FOR UPDATE`,
