@@ -8,6 +8,7 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { StorefrontColorScheme } from "@/utils/types/types";
+import { buttonLabelColor } from "@/components/storefront/sections/section-elements";
 import { resolveExplicitPaymentMethod } from "@/utils/messages/order-message-utils";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProductContext } from "@/utils/context/context";
@@ -602,7 +603,7 @@ export default function StorefrontOrderConfirmation({
               className="flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: colors.primary,
-                color: colors.secondary,
+                color: buttonLabelColor(colors.primary, colors.secondary),
               }}
             >
               <ShoppingBagIcon className="h-5 w-5" />

@@ -94,7 +94,7 @@ function readableTextOn(hex: string): string {
 // The theme's preferred label color, unless it's too close in luminance to
 // the button background (e.g. yellow-on-yellow palettes) — then fall back to
 // white/near-black so the label stays readable.
-function buttonLabelColor(bg: string, preferred: string): string {
+export function buttonLabelColor(bg: string, preferred: string): string {
   const bgLum = hexLuminance(bg);
   const prefLum = hexLuminance(preferred);
   if (bgLum === null || prefLum === null) return readableTextOn(bg);

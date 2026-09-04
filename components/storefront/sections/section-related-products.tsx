@@ -7,7 +7,10 @@ import {
   useIsCustomDomain,
   applyCustomDomainHref,
 } from "@/utils/storefront/custom-domain-context";
-import SectionElementFlow, { headingSizeClass } from "./section-elements";
+import SectionElementFlow, {
+  headingSizeClass,
+  buttonLabelColor,
+} from "./section-elements";
 
 interface Props {
   section: StorefrontSection;
@@ -92,7 +95,7 @@ export default function SectionRelatedProducts({
             className="inline-block rounded-lg px-6 py-2.5 text-base font-bold transition-transform hover:-translate-y-0.5"
             style={{
               backgroundColor: colors.primary,
-              color: colors.secondary,
+              color: buttonLabelColor(colors.primary, colors.secondary),
             }}
           >
             Browse the shop

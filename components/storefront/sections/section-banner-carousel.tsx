@@ -10,6 +10,7 @@ import {
   imageFitClass,
   safeCssColor as safeColor,
 } from "./section-style";
+import { buttonLabelColor } from "./section-elements";
 
 interface SectionBannerCarouselProps {
   section: StorefrontSection;
@@ -174,7 +175,10 @@ export default function SectionBannerCarousel({
                           className="mt-6 inline-block rounded-lg px-8 py-3 text-base font-bold transition-transform hover:-translate-y-0.5"
                           style={{
                             backgroundColor: colors.primary,
-                            color: colors.secondary,
+                            color: buttonLabelColor(
+                              colors.primary,
+                              colors.secondary
+                            ),
                           }}
                         >
                           {slide.ctaText}

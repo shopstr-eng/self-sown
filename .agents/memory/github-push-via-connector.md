@@ -72,6 +72,12 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   workflow commit local until the connection is reauthorized with the
   workflow scope (reauthorization can only be OFFERED once per connection —
   check whether a card is already outstanding before planning around it).
+- To push past a LOCAL-ONLY unpushable commit sitting beneath yours (e.g. a
+  kept-local `.github/workflows` change): don't push local HEAD — build the
+  API commit with `base_tree` = origin/main's tree and only the pushable
+  files, then `git fetch && git reset --hard origin/main && git cherry-pick
+<localSha>` to re-plant the local-only commit on top (cherry-pick has no
+  `-q` flag).
 - Task-agent/platform merge commits arrive authored as
   `Replit Agent <agent@replit.com>` or `<user>@users.noreply.replit.com`.
   Reauthor unpushed commits to the user's GitHub identity with

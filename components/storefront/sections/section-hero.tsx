@@ -7,6 +7,7 @@ import SectionElementFlow, {
   SectionButtons,
   headingSizeClass,
   bodySizeClass,
+  buttonLabelColor,
 } from "./section-elements";
 
 interface SectionHeroProps {
@@ -113,7 +114,10 @@ export default function SectionHero({
                       className="mt-8 inline-block rounded-lg px-8 py-3 text-base font-bold transition-transform hover:-translate-y-0.5"
                       style={{
                         backgroundColor: colors.primary,
-                        color: colors.secondary,
+                        color: buttonLabelColor(
+                          colors.primary,
+                          colors.secondary
+                        ),
                       }}
                     >
                       {section.ctaText}

@@ -1,6 +1,7 @@
 import { StorefrontColorScheme } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import FormattedText from "./formatted-text";
+import { buttonLabelColor } from "./sections/section-elements";
 
 interface StorefrontHeroProps {
   shopName: string;
@@ -101,7 +102,7 @@ export default function StorefrontHero({
           className="mt-8 inline-block rounded-lg px-8 py-3 text-base font-bold transition-transform hover:-translate-y-0.5"
           style={{
             backgroundColor: colors.primary,
-            color: colors.secondary,
+            color: buttonLabelColor(colors.primary, colors.secondary),
           }}
         >
           Browse Products

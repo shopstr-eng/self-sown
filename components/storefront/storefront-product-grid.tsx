@@ -4,6 +4,7 @@ import ProductCard from "@/components/utility-components/product-card";
 import { getListingSlug } from "@/utils/url-slugs";
 import { useState } from "react";
 import FormattedText from "./formatted-text";
+import { buttonLabelColor } from "@/components/storefront/sections/section-elements";
 import { Pagination } from "@heroui/react";
 
 interface StorefrontProductGridProps {
@@ -102,7 +103,7 @@ export default function StorefrontProductGrid({
                 className="mt-6 inline-block rounded-lg px-6 py-3 text-center font-bold transition-transform hover:-translate-y-0.5"
                 style={{
                   backgroundColor: colors.primary,
-                  color: colors.secondary,
+                  color: buttonLabelColor(colors.primary, colors.secondary),
                 }}
               >
                 View Product
