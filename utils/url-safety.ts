@@ -166,6 +166,43 @@ export async function isSafePublicHostname(hostname: string): Promise<boolean> {
   return (await resolveSafePublicAddresses(hostname)) !== null;
 }
 
+/**
+ * Node-style DNS lookup that resolves through the SSRF classifier and only
+ * ever returns vetted PUBLIC addresses. Pass it as the `lookup` option to
+ * ws/http connections so the connection itself is pinned to the checked
+ * address — there is no re-resolution window for DNS rebinding between
+ * validation and connect. Honors both the single-address and all-address
+ * callback shapes; SNI/certificate validation still uses the original
+ * hostname. Fails closed (error callback) for private/unresolvable hosts.
+ */
+export function createPublicOnlyLookup() {
+  return (
+    hostname: string,
+    options: { all?: boolean },
+    callback: (
+      error: Error | null,
+      address?: string | ResolvedAddress[],
+      family?: 4 | 6
+    ) => void
+  ): void => {
+    resolveSafePublicAddresses(hostname)
+      .then((addresses) => {
+        if (!addresses || addresses.length === 0) {
+          callback(new Error(`Blocked host with no public address: ${hostname}`));
+          return;
+        }
+        if (options && options.all) {
+          callback(null, addresses);
+        } else {
+          callback(null, addresses[0]!.address, addresses[0]!.family);
+        }
+      })
+      .catch((err) =>
+        callback(err instanceof Error ? err : new Error(String(err)))
+      );
+  };
+}
+
 function pinnedDispatcher(
   hostname: string,
   addresses: ResolvedAddress[]

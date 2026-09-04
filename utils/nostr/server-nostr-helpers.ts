@@ -7,17 +7,15 @@ import {
   nip44,
   verifyEvent,
 } from "nostr-tools";
-import { useWebSocketImplementation, SimplePool } from "nostr-tools/pool";
 import { NostrEvent } from "@/utils/types/types";
 import {
   cacheEvent,
   getDbPool,
   fetchRelayConfigFromDb,
 } from "@/utils/db/db-service";
-// @ts-ignore: ws provides the WebSocket implementation for Node.js, passed to nostr-tools
-import WebSocket from "ws";
-
-useWebSocketImplementation(WebSocket);
+import { fetchKind10002FromIndexers } from "@/utils/nostr/nip65-indexer-fetch";
+import { publishEventToRelay } from "@/utils/nostr/contained-relay";
+import { isSafePublicHostname } from "@/utils/url-safety";
 
 const RELAY_PUBLISH_TIMEOUT_MS = 21000;
 const BLASTR_RELAY = "wss://sendit.nosflare.com";
@@ -74,48 +72,146 @@ async function trackFailedRelayPublish(
   }
 }
 
-async function publishToRelays(
+export async function publishToRelays(
   event: any,
-  relays: string[] = getDefaultRelays()
+  relays: string[] = getDefaultRelays(),
+  timeoutMs: number = RELAY_PUBLISH_TIMEOUT_MS
 ): Promise<number> {
-  const pool = new SimplePool();
-  try {
-    const publishPromise = Promise.allSettled(pool.publish(relays, event));
-    const timeoutPromise = new Promise<PromiseSettledResult<string>[]>(
-      (resolve) =>
-        setTimeout(
-          () =>
-            resolve(
-              relays.map(() => ({
-                status: "rejected" as const,
-                reason: "timeout",
-              }))
-            ),
-          RELAY_PUBLISH_TIMEOUT_MS
-        )
-    );
-    const results = await Promise.race([publishPromise, timeoutPromise]);
-    let successCount = 0;
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        successCount++;
-      }
-    }
-    return successCount;
-  } catch (error) {
-    console.error("Failed to publish to relays:", error);
-    return 0;
-  } finally {
-    pool.close(relays);
+  // Per-relay contained sockets: one unreachable relay can neither leak a
+  // dangling socket error (observed as uncaughtException with pool.publish
+  // when a default relay was down) nor stall the whole publish. Connections
+  // are DNS-pinned to vetted public addresses (see contained-relay.ts).
+  const results = await Promise.all(
+    relays.map((url) => publishEventToRelay(url, event, { timeoutMs }))
+  );
+  return results.filter(Boolean).length;
+}
+
+// NIP-65 relay lists are author-controlled data: a key owner can list ws://
+// loopback/private-network URLs or an unbounded endpoint count, and
+// server-side delivery would then open WebSocket connections to them. Bound
+// delivery targets to a small set of secure, public WebSocket URLs.
+const MAX_RECIPIENT_RELAYS = 8;
+
+function isPrivateHostname(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal")
+  ) {
+    return true;
   }
+  // Literal IPv4: loopback/private/CGNAT/link-local ranges.
+  const v4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (v4) {
+    const a = Number(v4[1]);
+    const b = Number(v4[2]);
+    return (
+      a === 0 ||
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 169 && b === 254) ||
+      (a === 100 && b >= 64 && b <= 127)
+    );
+  }
+  // Non-dotted IPv4 notations (single-integer/octal/hex tricks like
+  // 2130706433 or 0x7f000001, both = 127.0.0.1) are rejected outright.
+  if (/^0x[0-9a-f.]+$/i.test(host) || /^[0-9.]+$/.test(host)) {
+    return true;
+  }
+  // Literal IPv6 loopback/ULA/link-local, incl. IPv4-mapped forms.
+  if (host.startsWith("[")) {
+    const v6 = host.slice(1, -1);
+    if (
+      v6 === "::1" ||
+      v6 === "::" ||
+      v6.startsWith("fc") ||
+      v6.startsWith("fd") ||
+      v6.startsWith("fe80") ||
+      v6.startsWith("::ffff:")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Keep only secure, public WebSocket relay URLs, deduped and capped. Valid
+ * entries pass through byte-identical (callers may rely on exact URLs);
+ * invalid ones are dropped, never fatal. Layers: a cheap syntax check for
+ * literals/known-bad suffixes, then the shared url-safety DNS classification
+ * under a bounded fail-closed deadline (a stuck resolver must not stall the
+ * payout path). The actual connection additionally pins DNS to vetted public
+ * addresses (contained-relay.ts), closing the rebind-after-check window.
+ */
+const RELAY_DNS_CHECK_TIMEOUT_MS = 2000;
+export async function sanitizeRelayTargetUrls(
+  urls: string[],
+  isSafePublic: (hostname: string) => Promise<boolean> = isSafePublicHostname
+): Promise<string[]> {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  for (const url of urls) {
+    if (candidates.length >= MAX_RECIPIENT_RELAYS) break;
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "wss:") continue;
+      if (isPrivateHostname(parsed.hostname)) continue;
+      const key = parsed.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push(url);
+    } catch {
+      continue;
+    }
+  }
+  const checked = await Promise.all(
+    candidates.map(async (url) => {
+      const safe = await Promise.race([
+        isSafePublic(new URL(url).hostname),
+        new Promise<false>((resolve) =>
+          setTimeout(() => resolve(false), RELAY_DNS_CHECK_TIMEOUT_MS)
+        ),
+      ]);
+      return safe ? url : null;
+    })
+  );
+  return checked.filter((u): u is string => u !== null);
 }
 
 // Resolve the relays a recipient READS from (NIP-65 kind 10002) from our
 // Postgres cache. The orders dashboard subscribes to the seller's own relays,
 // so delivering an order gift-wrap there is what makes it show up.
-async function getRecipientReadRelays(pubkey: string): Promise<string[]> {
+//
+// On a cache miss (a payee who has never been active in-app), fall back to a
+// live NIP-65 indexer fetch — the same fallback the client order-DM path
+// carries — so delivery targets the payee's own relays instead of depending
+// on default-relay federation. The fetched list is mirrored into the cache
+// best-effort so subsequent sends hit the fast path.
+export async function getRecipientReadRelays(
+  pubkey: string
+): Promise<string[]> {
   try {
-    const events = await fetchRelayConfigFromDb(pubkey);
+    let events = await fetchRelayConfigFromDb(pubkey);
+    if (events.length === 0) {
+      const fetched = await fetchKind10002FromIndexers(pubkey);
+      if (fetched) {
+        console.info(
+          `[nip65-fallback] cache miss for ${pubkey.slice(0, 8)}… resolved relay list via indexer fetch`
+        );
+        events = [fetched];
+        cacheEvent(fetched).catch(() => {});
+      } else {
+        console.info(
+          `[nip65-fallback] cache miss for ${pubkey.slice(0, 8)}… indexer fetch found nothing, using defaults`
+        );
+      }
+    }
     const out: string[] = [];
     for (const ev of events) {
       for (const tag of ev.tags) {
@@ -125,7 +221,7 @@ async function getRecipientReadRelays(pubkey: string): Promise<string[]> {
         }
       }
     }
-    return out;
+    return await sanitizeRelayTargetUrls(out);
   } catch (error) {
     console.error("Failed to resolve recipient relays:", error);
     return [];
