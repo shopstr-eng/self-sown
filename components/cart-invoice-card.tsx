@@ -104,6 +104,7 @@ import {
   resolveMultiCardOrderId,
   computeSellerCardCharge,
   runMultiCardStepAdvance,
+  multiCardAdvanceFailureMessage,
 } from "@/utils/cart/multi-seller-card";
 import { NostrWebLNProvider } from "@getalby/sdk";
 import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
@@ -3731,9 +3732,7 @@ export default function CartInvoiceCard({
       onAdvanceError: (error) => {
         console.error("Failed to set up next seller's card form:", error);
         const detail = error instanceof Error ? error.message : "Unknown error";
-        setFailureText(
-          `Your previous sellers were paid, but setting up the next seller's card form failed: ${detail}. Please retry to finish the remaining sellers.`
-        );
+        setFailureText(multiCardAdvanceFailureMessage(detail));
         setShowFailureModal(true);
       },
       finalizeOrder: async () => {

@@ -105,6 +105,14 @@ export function resolveMultiCardOrderId(
   return existing || generate();
 }
 
+// Buyer-facing failure text when configuring the NEXT seller's card form
+// throws after one or more sellers were already charged. The paid sellers'
+// results were recorded before advancing, so a resubmit resumes from the
+// remaining unpaid sellers only — the message must say exactly that.
+export function multiCardAdvanceFailureMessage(detail: string): string {
+  return `Your previous sellers were paid, but setting up the next seller's card form failed: ${detail}. Please retry to finish the remaining sellers.`;
+}
+
 // The final step finalizes the whole order (and an all-already-paid resubmit,
 // where the queue is empty, finalizes immediately).
 export function isFinalMultiCardStep(
