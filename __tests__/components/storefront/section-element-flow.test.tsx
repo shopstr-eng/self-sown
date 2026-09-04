@@ -154,7 +154,6 @@ describe("SectionButtons", () => {
           {
             ...baseSection,
             buttons: [
-              // eslint-disable-next-line no-script-url
               { label: "Evil", href: "javascript:alert(1)" },
               { label: "" },
             ],
@@ -225,5 +224,185 @@ describe("hasStructuralLayout", () => {
       hasStructuralLayout({ ...baseSection, imagePlacement: "left" })
     ).toBe(true);
     expect(hasStructuralLayout({ ...baseSection, imageWidth: 50 })).toBe(true);
+  });
+});
+
+describe("SectionElementFlow — text readability rules", () => {
+  // jsdom serializes hex inline colors as rgb() in .style but keeps custom
+  // properties verbatim — assert .style.color/.style.borderColor as rgb and
+  // --sf-text as the original hex.
+  const WHITE = "rgb(255, 255, 255)";
+  const NEAR_BLACK = "rgb(17, 24, 39)"; // #111827
+
+  function renderWithColors(
+    customColors: typeof colors,
+    section: StorefrontSection
+  ) {
+    return render(
+      <SectionElementFlow
+        section={section}
+        colors={customColors}
+        slots={slots}
+      />
+    );
+  }
+
+  // The overlay content wrapper is the direct parent of the body slot under
+  // background image placement.
+  function overlayWrapper(): HTMLElement {
+    const wrapper = screen.getByText(
+      "Raw milk from pastured cows."
+    ).parentElement;
+    if (!wrapper) throw new Error("overlay wrapper not found");
+    return wrapper;
+  }
+
+  const bgImageSection: StorefrontSection = {
+    ...baseSection,
+    imagePlacement: "background",
+  };
+
+  it("picks white overlay text (color + --sf-text) over a dark overlay color", () => {
+    // The overlay paints with colors.secondary; #111827 is dark.
+    renderWithColors({ ...colors, secondary: "#111827" }, bgImageSection);
+    const wrapper = overlayWrapper();
+    expect(wrapper.style.color).toBe(WHITE);
+    expect(wrapper.style.getPropertyValue("--sf-text")).toBe("#ffffff");
+  });
+
+  it("picks near-black overlay text (color + --sf-text) over a light overlay color", () => {
+    // #FDE68A is a light yellow overlay.
+    renderWithColors({ ...colors, secondary: "#FDE68A" }, bgImageSection);
+    const wrapper = overlayWrapper();
+    expect(wrapper.style.color).toBe(NEAR_BLACK);
+    expect(wrapper.style.getPropertyValue("--sf-text")).toBe("#111827");
+  });
+
+  const buttonSection: StorefrontSection = {
+    ...baseSection,
+    buttons: [
+      { label: "Buy now", href: "/buy", variant: "primary" },
+      { label: "Learn more", href: "/about", variant: "secondary" },
+    ],
+  };
+
+  it("falls back to a readable label when the theme label color clashes with the button background", () => {
+    // Yellow-on-yellow: #FFD23F vs #FDE68A differ by <0.3 luminance, and
+    // #FDE68A vs the white page background too.
+    renderWithColors(
+      {
+        ...colors,
+        primary: "#FFD23F",
+        secondary: "#FDE68A",
+        background: "#ffffff",
+      },
+      buttonSection
+    );
+    const primaryBtn = screen.getByRole("link", { name: "Buy now" });
+    const secondaryBtn = screen.getByRole("link", { name: "Learn more" });
+    // Neither keeps its illegible theme label color.
+    expect(primaryBtn.style.color).toBe(NEAR_BLACK);
+    expect(primaryBtn.style.color).not.toBe("rgb(253, 230, 138)"); // #FDE68A
+    expect(secondaryBtn.style.color).toBe(NEAR_BLACK);
+    expect(secondaryBtn.style.color).not.toBe(WHITE); // theme background
+  });
+
+  it("keeps the theme label color when it contrasts with the button background", () => {
+    // #FFD23F vs #0F172A differ by >0.3 luminance; #0F172A vs white too.
+    renderWithColors(
+      {
+        ...colors,
+        primary: "#FFD23F",
+        secondary: "#0F172A",
+        background: "#ffffff",
+      },
+      buttonSection
+    );
+    expect(screen.getByRole("link", { name: "Buy now" }).style.color).toBe(
+      "rgb(15, 23, 42)" // theme secondary kept on the primary button
+    );
+    expect(screen.getByRole("link", { name: "Learn more" }).style.color).toBe(
+      WHITE // theme background kept on the secondary button
+    );
+  });
+
+  const outlineSection: StorefrontSection = {
+    ...baseSection,
+    imagePlacement: "background",
+    buttons: [{ label: "Browse", href: "/shop", variant: "outline" }],
+  };
+
+  it("falls back the outline accent when the primary color blends into the overlay surface", () => {
+    // Under background placement the outline button sits on the overlay
+    // (colors.secondary #111827); primary #1F2937 is <0.3 luminance away.
+    renderWithColors(
+      { ...colors, primary: "#1F2937", secondary: "#111827" },
+      outlineSection
+    );
+    const btn = screen.getByRole("link", { name: "Browse" });
+    expect(btn.style.color).toBe(WHITE);
+    expect(btn.style.borderColor).toBe(WHITE);
+  });
+
+  it("keeps the primary outline accent when it contrasts with the overlay surface", () => {
+    // #FFD23F pops against the dark #111827 overlay.
+    renderWithColors(
+      { ...colors, primary: "#FFD23F", secondary: "#111827" },
+      outlineSection
+    );
+    const btn = screen.getByRole("link", { name: "Browse" });
+    expect(btn.style.color).toBe("rgb(255, 210, 63)"); // #FFD23F
+    expect(btn.style.borderColor).toBe("rgb(255, 210, 63)");
+  });
+
+  // Boundary tests: the palettes above are far from the decision boundaries,
+  // so they can't catch a threshold/pivot regression. Grayscale luminance is
+  // exactly NN/255 (the 0.299/0.587/0.114 weights sum to 1), which puts
+  // precise steps on both sides of each rule.
+
+  const thresholdSection: StorefrontSection = {
+    ...baseSection,
+    buttons: [{ label: "Buy now", href: "/buy", variant: "primary" }],
+  };
+
+  it("falls back one grayscale step below the 0.3 clash threshold", () => {
+    // Against a #000 button the luminance diff is the label gray itself:
+    // #4C = 76/255 ≈ 0.298 < 0.3.
+    renderWithColors(
+      { ...colors, primary: "#000000", secondary: "#4C4C4C" },
+      thresholdSection
+    );
+    expect(screen.getByRole("link", { name: "Buy now" }).style.color).toBe(
+      WHITE
+    );
+  });
+
+  it("keeps the theme label at exactly the 0.3 clash threshold (the rule is >=)", () => {
+    // #026A78 against #000: (0.299*2 + 0.587*106 + 0.114*120)/255 = 76.5/255
+    // = 0.3 exactly — the diff IS the label luminance, and >= keeps it (a
+    // regression to > would fall back to white).
+    renderWithColors(
+      { ...colors, primary: "#000000", secondary: "#026A78" },
+      thresholdSection
+    );
+    expect(screen.getByRole("link", { name: "Buy now" }).style.color).toBe(
+      "rgb(2, 106, 120)" // #026A78 kept — no fallback
+    );
+  });
+
+  it("keeps white overlay text at exactly the 0.6 luminance pivot (the rule is strict >)", () => {
+    // #999999 = 153/255 = 0.6 exactly — NOT > 0.6, so text stays white.
+    renderWithColors({ ...colors, secondary: "#999999" }, bgImageSection);
+    const wrapper = overlayWrapper();
+    expect(wrapper.style.color).toBe(WHITE);
+    expect(wrapper.style.getPropertyValue("--sf-text")).toBe("#ffffff");
+  });
+
+  it("flips to near-black overlay text one step above the 0.6 pivot", () => {
+    // #9A9A9A = 154/255 ≈ 0.604 > 0.6.
+    renderWithColors({ ...colors, secondary: "#9A9A9A" }, bgImageSection);
+    const wrapper = overlayWrapper();
+    expect(wrapper.style.color).toBe(NEAR_BLACK);
+    expect(wrapper.style.getPropertyValue("--sf-text")).toBe("#111827");
   });
 });

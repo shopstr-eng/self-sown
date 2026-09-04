@@ -63,6 +63,15 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   required_conversation_resolution, etc. — verify with a final GET).
 - If the connector 401s "Bad credentials" while status says healthy, the token
   is expired/revoked: use the reauthorize flow once.
+- GitHub's git-data endpoints answer a bare 404 "Not Found" (NOT a 403) when
+  a `createTree` includes a `.github/workflows/**` path but the token lacks
+  the `workflow` OAuth scope — while the same tree minus the workflow file
+  succeeds. Diagnose by retrying with the non-workflow files only; do not
+  trust the Contents API as a probe (Cloudflare 403s it with an HTML page).
+  Recovery: split the commit, push non-workflow files via the API, keep the
+  workflow commit local until the connection is reauthorized with the
+  workflow scope (reauthorization can only be OFFERED once per connection —
+  check whether a card is already outstanding before planning around it).
 - Task-agent/platform merge commits arrive authored as
   `Replit Agent <agent@replit.com>` or `<user>@users.noreply.replit.com`.
   Reauthor unpushed commits to the user's GitHub identity with
