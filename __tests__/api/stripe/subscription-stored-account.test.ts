@@ -255,3 +255,40 @@ describe("POST /api/stripe/update-subscription — stored connected account", ()
     expect(mockSubscriptionsRetrieve).toHaveBeenCalledWith(SUB_ID, undefined);
   });
 });
+
+// An outage must never be misread as "not found": a thrown lookup means the
+// route can't know whether the row exists, so it must 500 (loud, retryable by
+// the caller) — only a genuine null may 404.
+describe("subscription lookup outage vs not-found", () => {
+  it("cancel-subscription returns 500 (not 404) when the lookup throws", async () => {
+    mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
+
+    const res = await callHandler(cancelHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("cancel-subscription still 404s when the subscription genuinely does not exist", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+
+    const res = await callHandler(cancelHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it("update-subscription returns 500 (not 404) when the lookup throws", async () => {
+    mockGetSubscriptionByStripeId.mockRejectedValue(new Error("db down"));
+
+    const res = await callHandler(updateHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(500);
+  });
+
+  it("update-subscription still 404s when the subscription genuinely does not exist", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+
+    const res = await callHandler(updateHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(404);
+  });
+});

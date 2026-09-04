@@ -879,6 +879,25 @@ describe("db-service helpers", () => {
           "getDiscountCodesByPubkey",
           (mod) => mod.getDiscountCodesByPubkey(pk),
         ],
+        // Subscription reads feed cancel/update routes that must 500 on an
+        // outage (never misread it as "not found"). Pins task #267.
+        ["getSubscriptionById", (mod) => mod.getSubscriptionById(1)],
+        [
+          "getSubscriptionsByBuyerPubkey",
+          (mod) => mod.getSubscriptionsByBuyerPubkey(pk),
+        ],
+        [
+          "getSubscriptionsByBuyerEmail",
+          (mod) => mod.getSubscriptionsByBuyerEmail("buyer@example.com"),
+        ],
+        [
+          "getSubscriptionsBySellerPubkey",
+          (mod) => mod.getSubscriptionsBySellerPubkey(pk),
+        ],
+        [
+          "getSubscriptionNotifications",
+          (mod) => mod.getSubscriptionNotifications(1),
+        ],
       ];
 
       test.each(outageCases)(
@@ -919,6 +938,27 @@ describe("db-service helpers", () => {
         [
           "getDiscountCodesByPubkey",
           (mod) => mod.getDiscountCodesByPubkey(pk),
+          [],
+        ],
+        ["getSubscriptionById", (mod) => mod.getSubscriptionById(1), null],
+        [
+          "getSubscriptionsByBuyerPubkey",
+          (mod) => mod.getSubscriptionsByBuyerPubkey(pk),
+          [],
+        ],
+        [
+          "getSubscriptionsByBuyerEmail",
+          (mod) => mod.getSubscriptionsByBuyerEmail("buyer@example.com"),
+          [],
+        ],
+        [
+          "getSubscriptionsBySellerPubkey",
+          (mod) => mod.getSubscriptionsBySellerPubkey(pk),
+          [],
+        ],
+        [
+          "getSubscriptionNotifications",
+          (mod) => mod.getSubscriptionNotifications(1),
           [],
         ],
       ];
