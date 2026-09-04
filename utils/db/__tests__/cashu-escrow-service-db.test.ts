@@ -470,3 +470,46 @@ describe("cashu-escrow-service concurrency (real Postgres)", () => {
     }
   );
 });
+
+describe("listEscrowRegistrationsByBuyer (real Postgres)", () => {
+  maybeItTc(
+    "survives malformed payout_outputs and reports payout availability correctly",
+    async () => {
+      // A completed outbox row whose payout_outputs is not a non-empty array
+      // must yield payoutAvailable=false — never a query error. An AND-
+      // chained jsonb_typeof guard does NOT protect jsonb_array_length:
+      // PostgreSQL may evaluate boolean terms in any order, so only a CASE
+      // keeps the length call off non-arrays.
+      const cases: Array<[string, string | null, boolean]> = [
+        ["payout-null", null, false], // done row, outputs never written
+        ["payout-array", '["a"]', true],
+        ["payout-empty", "[]", false],
+        ["payout-object", '{"x":1}', false],
+        ["payout-scalar", '"str"', false],
+      ];
+      for (const [orderId, outputs] of cases) {
+        const escrowId = await registerEscrow(orderId);
+        await escrow.enqueueEscrowAction(escrowId, "refund");
+        await db
+          .getDbPool()
+          .query(
+            `UPDATE cashu_escrow_outbox
+             SET status = 'done', payout_outputs = $2::jsonb
+             WHERE escrow_id = $1`,
+            [escrowId, outputs]
+          );
+      }
+      // Plus one escrow with no outbox row at all (LEFT JOIN null side).
+      await registerEscrow("payout-no-outbox");
+
+      const rows = await escrow.listEscrowRegistrationsByBuyer(BUYER_PK);
+      const byOrder = new Map(rows.map((r) => [r.orderId, r]));
+      for (const [orderId, , expected] of cases) {
+        expect(byOrder.get(orderId)?.payoutAvailable).toBe(expected);
+      }
+      expect(byOrder.get("payout-no-outbox")?.payoutAvailable).toBe(false);
+      // A done outbox row surfaces no pending action.
+      expect(byOrder.get("payout-array")?.pendingAction).toBeNull();
+    }
+  );
+});

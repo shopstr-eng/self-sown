@@ -514,8 +514,12 @@ export async function listEscrowRegistrationsByBuyer(
             r.mint_url, r.expires_at, r.created_at, r.status,
             o.action AS outbox_action, o.status AS outbox_status,
             (o.status = 'done'
-             AND jsonb_typeof(o.payout_outputs) = 'array'
-             AND jsonb_array_length(o.payout_outputs) > 0) AS payout_available
+             -- CASE, not AND-chained terms: PostgreSQL does not guarantee
+             -- boolean evaluation order, so jsonb_array_length can otherwise
+             -- throw on a non-array payout_outputs and 500 the whole list.
+             AND CASE WHEN jsonb_typeof(o.payout_outputs) = 'array'
+                      THEN jsonb_array_length(o.payout_outputs) > 0
+                      ELSE false END) AS payout_available
      FROM cashu_escrow_registrations r
      LEFT JOIN cashu_escrow_outbox o ON o.escrow_id = r.escrow_id
      WHERE r.buyer_pubkey = $1

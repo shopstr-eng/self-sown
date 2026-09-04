@@ -132,6 +132,14 @@ describe("BuyerEscrowList server-side rediscovery", () => {
     expect(
       screen.getAllByRole("button", { name: "Redeem refund to wallet" })
     ).toHaveLength(1);
+    // The local record — and its lockedToken — is untouched: the
+    // rediscovered summary must never shadow or rewrite the real record
+    // (refund/release still need the token).
+    const stored = JSON.parse(localStorage.getItem("cashu_escrows") ?? "[]");
+    expect(
+      stored.find((r: { escrowId: string }) => r.escrowId === ESCROW_ID)
+        ?.lockedToken
+    ).toBe("cashuAlocked");
   });
 
   it("does NOT rediscover still-locked escrows (kind-7375 restore owns those)", async () => {

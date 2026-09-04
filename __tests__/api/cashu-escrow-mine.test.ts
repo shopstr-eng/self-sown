@@ -136,6 +136,21 @@ describe("GET /api/cashu/escrow/mine", () => {
     ]);
   });
 
+  it("binds the NIP-98 check to GET and ignores spoofed pubkeys in the query", async () => {
+    const { req, res } = makeReqRes();
+    (req as any).query = {
+      buyer_pubkey: "e".repeat(64),
+      seller_pubkey: "e".repeat(64),
+    };
+    await handler(req, res);
+    expect(res.statusCode).toBe(200);
+    // Method binding: a signature made for POST/another path must not pass.
+    expect(mockedVerify).toHaveBeenCalledWith(req, "GET");
+    // Identity comes ONLY from the verified auth event, never the query.
+    expect(mockedList).toHaveBeenCalledWith(BUYER_PK);
+    expect(mockedList).not.toHaveBeenCalledWith("e".repeat(64));
+  });
+
   it("500s on a DB outage instead of masquerading as an empty list", async () => {
     mockedList.mockRejectedValue(new Error("connection terminated"));
     const { req, res } = makeReqRes();
