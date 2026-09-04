@@ -5168,6 +5168,62 @@ export async function getSubscriptionById(
   }
 }
 
+/**
+ * One-time backfill support: legacy rows (created before connected_account_id
+ * existed) have NULL there. Rethrows — an operator-run backfill must fail
+ * loudly rather than silently skip rows.
+ */
+export async function listSubscriptionsMissingConnectedAccount(): Promise<
+  Array<{ stripe_subscription_id: string; seller_pubkey: string }>
+> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT stripe_subscription_id, seller_pubkey FROM subscriptions WHERE connected_account_id IS NULL`
+    );
+    return result.rows;
+  } catch (error) {
+    console.error(
+      "Failed to list subscriptions missing connected account:",
+      error
+    );
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Stamp a verified Connect account onto a legacy subscription row. The
+ * WHERE clause re-checks connected_account_id IS NULL so a concurrent
+ * creator/backfill can never overwrite an already-stamped row. Returns
+ * whether the row was actually stamped. Rethrows — see above.
+ */
+export async function stampSubscriptionConnectedAccount(
+  stripeSubscriptionId: string,
+  accountId: string
+): Promise<boolean> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `UPDATE subscriptions SET connected_account_id = $2 WHERE stripe_subscription_id = $1 AND connected_account_id IS NULL`,
+      [stripeSubscriptionId, accountId]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    console.error("Failed to stamp subscription connected account:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export async function getSubscriptionsByBuyerPubkey(
   buyerPubkey: string
 ): Promise<SubscriptionRecord[]> {
