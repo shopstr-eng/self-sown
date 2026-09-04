@@ -651,3 +651,27 @@ export async function sendOrphanedSubscriptionCancellationAlert(params: {
   if (!recipient) return false;
   return sendEmail(recipient, subject, html);
 }
+
+/**
+ * Alert the operator that an invoice.upcoming renewal reminder matched no
+ * local subscriptions row (ORPHANED_SUBSCRIPTION_REMINDER) — a buyer is about
+ * to be charged without ever being warned. Same recipient resolution as the
+ * other ops alerts; returns whether the email was actually sent, and callers
+ * must treat a false/throw as non-fatal because the webhook response must
+ * stay 200 (the row will never appear on retry).
+ */
+export async function sendOrphanedSubscriptionReminderAlert(params: {
+  stripeSubscriptionId: string;
+  invoiceId: string;
+  eventId: string;
+  customerEmail: string;
+  adminEmail?: string;
+}): Promise<boolean> {
+  const { subject, html } = orphanedSubscriptionReminderAlertEmail(params);
+  const recipient = await resolveOpsAlertRecipient(
+    params.adminEmail,
+    "orphaned_subscription_reminder"
+  );
+  if (!recipient) return false;
+  return sendEmail(recipient, subject, html);
+}

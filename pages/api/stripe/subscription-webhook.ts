@@ -11,6 +11,7 @@ import {
   sendSubscriptionCancellation,
   sendOrphanedSubscriptionPaymentAlert,
   sendOrphanedSubscriptionCancellationAlert,
+  sendOrphanedSubscriptionReminderAlert,
 } from "@/utils/email/email-service";
 import { sendServerSideNostrDM } from "@/utils/nostr/server-nostr-helpers";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
@@ -179,6 +180,22 @@ export default async function handler(
               `invoice_id=${invoiceUpcoming.id ?? "unknown"} event_id=${event.id} ` +
               `customer_email=${invoiceUpcoming.customer_email ?? "unknown"} — ` +
               `renewal reminder was NOT sent because no subscriptions row matched`
+          );
+          // A log line is only seen if someone goes looking; alert ops
+          // directly so a human reconciles before the buyer is charged
+          // unwarned. Non-fatal on failure — the 200 above stands because
+          // the row will never appear on retry.
+          await sendOrphanedSubscriptionReminderAlert({
+            stripeSubscriptionId,
+            invoiceId: invoiceUpcoming.id ?? "unknown",
+            eventId: event.id,
+            customerEmail: invoiceUpcoming.customer_email ?? "unknown",
+            adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+          }).catch((err) =>
+            console.error(
+              "[orphaned_subscription_reminder] Failed to send ops alert email:",
+              err
+            )
           );
           break;
         }

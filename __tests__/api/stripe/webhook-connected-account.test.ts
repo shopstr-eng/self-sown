@@ -57,6 +57,9 @@ const mockSendOrphanedSubscriptionPaymentAlert = jest.fn(
 const mockSendOrphanedSubscriptionCancellationAlert = jest.fn(
   async (..._args: any[]) => true
 );
+const mockSendOrphanedSubscriptionReminderAlert = jest.fn(
+  async (..._args: any[]) => true
+);
 
 jest.mock("@/utils/email/email-service", () => ({
   // The real helper resolves a delivery boolean — it does not throw.
@@ -69,6 +72,8 @@ jest.mock("@/utils/email/email-service", () => ({
     mockSendOrphanedSubscriptionPaymentAlert(...args),
   sendOrphanedSubscriptionCancellationAlert: (...args: any[]) =>
     mockSendOrphanedSubscriptionCancellationAlert(...args),
+  sendOrphanedSubscriptionReminderAlert: (...args: any[]) =>
+    mockSendOrphanedSubscriptionReminderAlert(...args),
 }));
 
 jest.mock("@/utils/nostr/server-nostr-helpers", () => ({
@@ -1079,6 +1084,46 @@ describe("POST /api/stripe/subscription-webhook — orphaned renewal reminder", 
     expect(sendRenewalReminder).not.toHaveBeenCalled();
     expect(mockCreateSubscriptionNotification).not.toHaveBeenCalled();
     // Nothing to retry — the row will never appear — so the claim stays.
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("emails ops when no subscriptions row matches an upcoming invoice, still 200ing", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSendOrphanedSubscriptionReminderAlert).toHaveBeenCalledTimes(1);
+    expect(mockSendOrphanedSubscriptionReminderAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stripeSubscriptionId: SUB_ID,
+        invoiceId: "in_upcoming",
+        eventId: "evt_orphan_reminder",
+        customerEmail: "buyer@example.com",
+      })
+    );
+    // A log line alone is only seen if someone goes looking — but the email
+    // must not replace the greppable marker either.
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("ORPHANED_SUBSCRIPTION_REMINDER");
+  });
+
+  it("still 200s when the orphaned-reminder ops alert itself throws", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockSendOrphanedSubscriptionReminderAlert.mockRejectedValueOnce(
+      new Error("sendgrid down")
+    );
+    fireInvoiceUpcoming();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    // The row will never appear on retry, so the claim stays regardless.
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 

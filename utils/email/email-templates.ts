@@ -1244,6 +1244,40 @@ export function orphanedSubscriptionCancellationAlertEmail(params: {
   };
 }
 
+export function orphanedSubscriptionReminderAlertEmail(params: {
+  stripeSubscriptionId: string;
+  invoiceId: string;
+  eventId: string;
+  customerEmail: string;
+}): { subject: string; html: string } {
+  const body = `
+    <h2 style="margin:0 0 16px;color:#111827;font-size:20px;font-weight:700;">Orphaned Renewal Reminder</h2>
+    <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.6;">
+      Stripe is about to charge a subscription renewal, but no local subscription record matched it. The buyer was NOT warned about the upcoming charge. Please reconcile this subscription manually before the renewal lands.
+    </p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fef2f2;border-radius:8px;padding:16px;margin-bottom:24px;">
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Stripe subscription:</strong> <span style="font-family:monospace;">${esc(
+        params.stripeSubscriptionId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Invoice:</strong> <span style="font-family:monospace;">${esc(
+        params.invoiceId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Event:</strong> <span style="font-family:monospace;">${esc(
+        params.eventId
+      )}</span></td></tr>
+      <tr><td style="padding:4px 0;color:#374151;font-size:14px;"><strong>Customer email:</strong> <span style="font-family:monospace;">${esc(
+        params.customerEmail
+      )}</span></td></tr>
+    </table>
+    <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+      Filter logs on <code>ORPHANED_SUBSCRIPTION_REMINDER</code> for history. The webhook returned 200 deliberately — retrying will never find the row.
+    </p>`;
+  return {
+    subject: `${BRAND_NAME}: Orphaned renewal reminder needs manual reconciliation`,
+    html: baseTemplate("Orphaned Renewal Reminder", body),
+  };
+}
+
 export function customDomainAdminNotificationEmail(params: {
   domain: string;
   domainType: "subdomain" | "apex";
