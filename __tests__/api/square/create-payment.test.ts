@@ -291,6 +291,59 @@ describe("POST /api/square/create-payment — fail closed on a stale/unavailable
   });
 });
 
+describe("POST /api/square/create-payment — order id + buyer email threading", () => {
+  const baseBody = {
+    sourceId: "cnon_card",
+    amount: 12.34,
+    currency: "USD",
+    sellerPubkey: SELLER,
+    customerEmail: "buyer@example.com",
+    productTitle: "Raw milk",
+    metadata: { orderId: "order_1" },
+  };
+
+  function lastCharge() {
+    return createSquarePaymentMock.mock.calls.at(-1)?.[1] as any;
+  }
+
+  it("ties the charge to the order via referenceId = metadata.orderId", async () => {
+    const res = await callHandler({
+      ...baseBody,
+      metadata: { orderId: "order_42" },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(lastCharge().referenceId).toBe("order_42");
+  });
+
+  it.each([
+    ["no metadata", { metadata: undefined }],
+    ["metadata without an orderId", { metadata: {} }],
+    ["a non-string orderId", { metadata: { orderId: 42 } }],
+  ])("sends NO referenceId when the request has %s", async (_label, over) => {
+    const res = await callHandler({ ...baseBody, ...over });
+    expect(res.statusCode).toBe(200);
+    expect(lastCharge().referenceId).toBeUndefined();
+  });
+
+  it("forwards a valid buyer email (trimmed) as buyerEmailAddress", async () => {
+    const res = await callHandler({
+      ...baseBody,
+      customerEmail: "  buyer@example.com  ",
+    });
+    expect(res.statusCode).toBe(200);
+    expect(lastCharge().buyerEmailAddress).toBe("buyer@example.com");
+  });
+
+  it.each(["not-an-email", "missing@tld", "two @@ signs@x.com", 42])(
+    "DROPS a malformed customerEmail (%s) — no buyerEmailAddress, charge still succeeds",
+    async (customerEmail) => {
+      const res = await callHandler({ ...baseBody, customerEmail });
+      expect(res.statusCode).toBe(200);
+      expect(lastCharge().buyerEmailAddress).toBeUndefined();
+    }
+  );
+});
+
 describe("POST /api/square/create-payment — stable idempotency key dedups a double-tap", () => {
   function keyFromCall(res: any): string {
     expect(res.statusCode).toBe(200);
