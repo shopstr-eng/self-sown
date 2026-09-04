@@ -144,6 +144,20 @@ export function describeEscrowBackupWarning(
 }
 
 /**
+ * Whether a signer.encrypt rejection means the signer can NEVER encrypt a
+ * backup (the bunker doesn't implement or forbids nip44_encrypt) versus a
+ * retryable transport error. NIP-46 bunkers report capability/permission
+ * failures only as free-form error strings, so this matches on message
+ * text. Only permanent failures may be session-cached as un-retryable.
+ */
+function isPermanentEncryptionFailure(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return /unsupported|unknown method|not implemented|not supported|method not found|permission|denied|restricted|unauthorized|forbidden|blocked/.test(
+    msg
+  );
+}
+
+/**
  * Publish the buyer-retained locked proofs to the buyer's own kind-7375
  * wallet backup, tagged with the escrow record metadata so a restore can
  * rebuild the `cashu_escrows` record. Best-effort: never throws (the
@@ -180,12 +194,24 @@ export async function publishEscrowBackup(
         JSON.stringify({ mint, unit: "sat", proofs, escrow: info })
       );
     } catch (err) {
+      // Only a demonstrated capability/permission rejection is permanent
+      // (encryption_failed, session-cached as un-retryable). Anything else —
+      // bunker timeout, disconnect, unknown error — is retryable and must
+      // classify publish_failed so the self-heal keeps trying.
+      if (isPermanentEncryptionFailure(err)) {
+        console.warn(
+          `[escrow-backup] signer could not encrypt the backup for escrow ` +
+            `${record.escrowId} (remote signer without NIP-44?):`,
+          err
+        );
+        return { published: false, failure: "encryption_failed" };
+      }
       console.warn(
-        `[escrow-backup] signer could not encrypt the backup for escrow ` +
-          `${record.escrowId} (remote signer without NIP-44?):`,
+        `[escrow-backup] encrypt attempt for escrow ${record.escrowId} ` +
+          "failed transiently; the wallet page will retry:",
         err
       );
-      return { published: false, failure: "encryption_failed" };
+      return { published: false, failure: "publish_failed" };
     }
     const backupEvent: EventTemplate = {
       kind: 7375,
@@ -222,6 +248,12 @@ const backupPublishInFlight = new Set<string>();
 // stays visible. Transient failures (publish_failed/unavailable) are NOT
 // added here and keep retrying.
 const backupPublishGaveUp = new Set<string>();
+// The give-up rationale is signer-specific (THIS signer can't encrypt), so
+// the set is only valid for the signer object it was built with: a mid-
+// session signer swap (e.g. nip04-only bunker → local keys) must get a
+// fresh attempt, not stay suppressed. The context signer object is stable
+// across re-renders, so re-runs with the same signer keep the cache.
+let backupPublishGaveUpSigner: unknown = null;
 
 export interface UnbackedEscrow {
   escrowId: string;
@@ -252,6 +284,12 @@ export async function republishMissingEscrowBackups(
 ): Promise<EscrowBackupRepublishResult> {
   const result: EscrowBackupRepublishResult = { published: 0, unbacked: [] };
   if (typeof window === "undefined" || !nostr || !signer) return result;
+  // Signer identity changed (e.g. bunker swapped for local keys): the old
+  // signer's permanent failures say nothing about the new one — retry all.
+  if (signer !== backupPublishGaveUpSigner) {
+    backupPublishGaveUp.clear();
+    backupPublishGaveUpSigner = signer;
+  }
   const backedUp = new Set<string>();
   for (const ev of proofEvents || []) {
     if (isEscrowBackupInfo(ev?.escrow)) backedUp.add(ev.escrow.escrowId);

@@ -319,6 +319,78 @@ describe("escrow-backup", () => {
       expect(first.unbacked[0]?.failure).toBe("publish_failed");
       expect(second.unbacked[0]?.failure).toBe("publish_failed");
     });
+
+    it("retries a transient encrypt failure instead of giving up", async () => {
+      // A transport-level encrypt failure (bunker timeout/disconnect) is
+      // retryable — only capability/permission rejections are permanent, so
+      // this must classify publish_failed and re-attempt on the next run.
+      const encrypt = jest.fn(async () => {
+        throw new Error("request timed out waiting for bunker response");
+      });
+      const flakySigner = { getPubKey: async () => BUYER_PK, encrypt };
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-5`,
+        orderId: "order-5",
+      });
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+      const first = await republishMissingEscrowBackups(
+        {} as any,
+        flakySigner as any,
+        []
+      );
+      const second = await republishMissingEscrowBackups(
+        {} as any,
+        flakySigner as any,
+        []
+      );
+
+      expect(encrypt).toHaveBeenCalledTimes(2);
+      expect(first.unbacked[0]?.failure).toBe("publish_failed");
+      expect(second.unbacked[0]?.failure).toBe("publish_failed");
+      warn.mockRestore();
+    });
+
+    it("retries with a replacement signer that CAN encrypt", async () => {
+      // Give-up is signer-scoped: swapping a nip04-only bunker for a local
+      // (NIP-44-capable) signer mid-session must get a fresh attempt, not
+      // stay suppressed by the old signer's cache entry.
+      const nip04OnlySigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt: jest.fn(async () => {
+          throw new Error("unsupported method: nip44_encrypt");
+        }),
+      };
+      const capableSigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt: jest.fn(async (_pk: string, pt: string) => `enc:${pt}`),
+      };
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-6`,
+        orderId: "order-6",
+      });
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+      mockFinalize.mockResolvedValue({ id: "event-id" });
+
+      const first = await republishMissingEscrowBackups(
+        {} as any,
+        nip04OnlySigner as any,
+        []
+      );
+      const second = await republishMissingEscrowBackups(
+        {} as any,
+        capableSigner as any,
+        []
+      );
+
+      expect(first.unbacked[0]?.failure).toBe("encryption_failed");
+      expect(capableSigner.encrypt).toHaveBeenCalledTimes(1);
+      expect(second.published).toBe(1);
+      expect(second.unbacked).toEqual([]);
+      warn.mockRestore();
+    });
   });
 
   describe("restoreEscrowsFromProofEvents", () => {
