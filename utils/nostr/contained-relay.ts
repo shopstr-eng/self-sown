@@ -23,7 +23,14 @@ import WebSocket from "ws";
 import { createPublicOnlyLookup } from "@/utils/url-safety";
 import type { NostrEvent } from "@/utils/types/types";
 
-const publicOnlyLookup = createPublicOnlyLookup();
+// Lazy: constructing the lookup at import time breaks any test that mocks
+// @/utils/url-safety without knowing about this export (contained-relay is
+// pulled in transitively by server-nostr-helpers).
+let publicOnlyLookup: ReturnType<typeof createPublicOnlyLookup> | undefined;
+function getPublicOnlyLookup() {
+  if (!publicOnlyLookup) publicOnlyLookup = createPublicOnlyLookup();
+  return publicOnlyLookup;
+}
 
 export interface ContainedRelayOptions {
   timeoutMs: number;
@@ -53,7 +60,7 @@ function openSocket(url: string, opts: ContainedRelayOptions): WebSocket {
     handshakeTimeout: opts.timeoutMs,
     maxPayload: MAX_FRAME_BYTES,
   };
-  if (!opts.allowPrivate) socketOpts.lookup = publicOnlyLookup;
+  if (!opts.allowPrivate) socketOpts.lookup = getPublicOnlyLookup();
   return new WebSocket(url, socketOpts);
 }
 

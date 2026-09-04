@@ -99,14 +99,14 @@ describe("decodeTokenWithKeysets against the staging mint (v2 keysets)", () => {
     expect(decoded.mint).toBe(STAGING_MINT_URL);
     expect(decoded.proofs.length).toBeGreaterThan(0);
     // The v2 keyset ID was mapped through the mint's keyset list.
-    expect(decoded.proofs[0].id).toBe(fullKeysetId);
+    expect(decoded.proofs[0]?.id).toBe(fullKeysetId);
   });
 
   test("decodes WITHOUT a caller-supplied mint by reading the token envelope", async () => {
     if (!mintAvailable) return;
     const decoded = await decodeTokenWithKeysets(token);
     expect(decoded.mint).toBe(STAGING_MINT_URL);
-    expect(decoded.proofs[0].id).toBe(fullKeysetId);
+    expect(decoded.proofs[0]?.id).toBe(fullKeysetId);
   });
 
   test("rethrows non-keyset decode errors unchanged", async () => {
