@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
+import crypto from "crypto";
 
 export default async function handler(
   req: NextApiRequest,
@@ -9,11 +10,21 @@ export default async function handler(
   if (!provider || !redirect_uri) {
     return res.status(400).json({ error: "Missing provider or redirect_uri" });
   }
+  if (provider !== "google" && provider !== "apple") {
+    return res.status(400).json({ error: "Invalid provider" });
+  }
 
-  // Store redirect URI in cookies for callback to use
+  // Correlate the callback with the browser that started the flow
+  // (login-CSRF protection). The state cookie must survive Apple's
+  // cross-site form_post, hence SameSite=None + Secure; the app is always
+  // served over HTTPS. Provider/redirect cookies stay Lax — Apple's POST
+  // omits them and the callback deliberately falls back for those.
+  const state = crypto.randomBytes(24).toString("base64url");
   res.setHeader("Set-Cookie", [
     `oauth_redirect=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
     `oauth_redirect_uri=${redirect_uri}; Path=/; HttpOnly; SameSite=Lax`,
+    `oauth_provider=${provider}; Path=/; HttpOnly; SameSite=Lax`,
+    `oauth_state=${state}; Path=/; HttpOnly; Secure; SameSite=None`,
   ]);
 
   if (provider === "google") {
@@ -34,6 +45,7 @@ export default async function handler(
     googleAuthUrl.searchParams.set("scope", "openid email profile");
     googleAuthUrl.searchParams.set("access_type", "offline");
     googleAuthUrl.searchParams.set("prompt", "consent");
+    googleAuthUrl.searchParams.set("state", state);
 
     return res.redirect(googleAuthUrl.toString());
   }
@@ -50,9 +62,8 @@ export default async function handler(
     appleAuthUrl.searchParams.set("response_type", "code");
     appleAuthUrl.searchParams.set("scope", "email name");
     appleAuthUrl.searchParams.set("response_mode", "form_post");
+    appleAuthUrl.searchParams.set("state", state);
 
     return res.redirect(appleAuthUrl.toString());
   }
-
-  return res.status(400).json({ error: "Invalid provider" });
 }

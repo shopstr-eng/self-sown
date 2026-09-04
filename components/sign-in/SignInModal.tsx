@@ -579,12 +579,19 @@ export default function SignInModal({
                     <span>Sign up with Google</span>
                   </Button>
 
-                  {/* <Button
-                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
-                    onClick={() => handleOAuthSignIn("apple")}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} flex w-full items-center justify-center gap-2`}
+                    onClick={() => handleOAuthSignIn("apple", true)}
                   >
-                    Sign up with Apple
-                  </Button> */}
+                    <Image
+                      src="/apple-icon.svg"
+                      alt="Apple"
+                      width={20}
+                      height={20}
+                      className="flex-shrink-0"
+                    />
+                    <span>Sign up with Apple</span>
+                  </Button>
 
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------
@@ -918,12 +925,19 @@ export default function SignInModal({
                     <span>Sign in with Google</span>
                   </Button>
 
-                  {/* <Button
-                    className={`${WHITEBUTTONCLASSNAMES} w-full`}
+                  <Button
+                    className={`${WHITEBUTTONCLASSNAMES} flex w-full items-center justify-center gap-2`}
                     onClick={() => handleOAuthSignIn("apple")}
                   >
-                    Sign in with Apple
-                  </Button> */}
+                    <Image
+                      src="/apple-icon.svg"
+                      alt="Apple"
+                      width={20}
+                      height={20}
+                      className="flex-shrink-0"
+                    />
+                    <span>Sign in with Apple</span>
+                  </Button>
 
                   <div className="text-center text-xs font-bold text-black">
                     ------ or ------

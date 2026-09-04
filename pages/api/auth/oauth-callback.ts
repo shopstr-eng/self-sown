@@ -2,6 +2,35 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
 import CryptoJS from "crypto-js";
+import crypto from "crypto";
+
+// Apple issues no static client secret: it is a short-lived ES256 JWT minted
+// from the Sign in with Apple private key (.p8), team ID, and key ID.
+function buildAppleClientSecret(opts: {
+  appleClientId: string;
+  appleTeamId: string;
+  appleKeyId: string;
+  applePrivateKey: string;
+}): string {
+  const b64urlJson = (obj: Record<string, unknown>) =>
+    Buffer.from(JSON.stringify(obj)).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64urlJson({ alg: "ES256", kid: opts.appleKeyId, typ: "JWT" });
+  const payload = b64urlJson({
+    iss: opts.appleTeamId,
+    iat: now,
+    exp: now + 300, // short-lived per request; Apple allows up to ~6 months
+    aud: "https://appleid.apple.com",
+    sub: opts.appleClientId,
+  });
+  const unsigned = `${header}.${payload}`;
+  const signature = crypto.sign("sha256", Buffer.from(unsigned), {
+    // Pasted secrets often carry literal \n sequences instead of newlines.
+    key: opts.applePrivateKey.replace(/\\n/g, "\n"),
+    dsaEncoding: "ieee-p1363", // JWS signature is raw r||s, not DER
+  });
+  return `${unsigned}.${signature.toString("base64url")}`;
+}
 
 // Helper function to get the base URL from the request
 function getBaseUrl(req: NextApiRequest): string {
@@ -14,15 +43,36 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { code } = req.query;
+  // Apple uses response_mode=form_post: its callback arrives as a POST with
+  // form fields in the body; Google's arrives as a GET with query params.
+  const code =
+    req.method === "POST"
+      ? (req.body?.code as string | undefined)
+      : (req.query.code as string | undefined);
+  const state =
+    req.method === "POST"
+      ? (req.body?.state as string | undefined)
+      : (req.query.state as string | undefined);
 
   if (!code) {
     return res.status(400).send("Missing authorization code");
   }
 
   try {
-    // Determine provider from referer or state - default to google since Apple is commented out
-    const provider = "google";
+    // Bind the callback to the browser that started the flow before any
+    // token exchange, or an attacker can log a victim into the attacker's
+    // account by replaying their own authorization response (login CSRF).
+    // The state cookie is SameSite=None;Secure so it survives Apple's POST.
+    const stateCookie = req.cookies["oauth_state"];
+    if (!state || !stateCookie || state !== stateCookie) {
+      throw new Error("OAuth state mismatch");
+    }
+
+    // Provider is pinned at redirect time via cookie (the callback URL is
+    // shared, and neither query nor referer identifies the provider).
+    const provider =
+      req.cookies["oauth_provider"] ||
+      (req.method === "POST" ? "apple" : "google");
 
     let email: string;
     let userId: string;
@@ -86,31 +136,72 @@ export default async function handler(
           `Missing user data from Google. Email: ${email}, UserId: ${userId}`
         );
       }
-    } else {
-      /* TODO: Implement Apple OAuth when credentials are available
-    else if (provider === "apple") {
-      const origin = req.headers.origin || req.headers.referer?.split('/api/')[0] ||
-                     `https://${req.headers.host}`;
-      const tokenResponse = await fetch("https://appleid.apple.com/auth/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          code: code as string,
-          client_id: process.env["APPLE_CLIENT_ID"]!,
-          client_secret: process.env["APPLE_CLIENT_SECRET"]!,
-          redirect_uri: `${origin}/api/auth/oauth-callback`,
-          grant_type: "authorization_code",
-        }),
-      });
+    } else if (provider === "apple") {
+      const appleClientId = process.env["APPLE_CLIENT_ID"];
+      const appleTeamId = process.env["APPLE_TEAM_ID"];
+      const appleKeyId = process.env["APPLE_KEY_ID"];
+      const applePrivateKey = process.env["APPLE_PRIVATE_KEY"];
+      if (!appleClientId || !appleTeamId || !appleKeyId || !applePrivateKey) {
+        throw new Error("Apple OAuth not configured");
+      }
+
+      // Must byte-match the redirect_uri sent to /auth/authorize.
+      const redirectUri =
+        req.cookies["oauth_redirect_uri"] ||
+        `${req.headers["x-forwarded-proto"] || "https"}://${
+          req.headers.host
+        }/api/auth/oauth-callback`;
+
+      const tokenResponse = await fetch(
+        "https://appleid.apple.com/auth/token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            code,
+            client_id: appleClientId,
+            client_secret: buildAppleClientSecret({
+              appleClientId,
+              appleTeamId,
+              appleKeyId,
+              applePrivateKey,
+            }),
+            redirect_uri: redirectUri,
+            grant_type: "authorization_code",
+          }),
+        }
+      );
 
       const tokenData = await tokenResponse.json();
-      const decoded = JSON.parse(
+      if (!tokenResponse.ok || !tokenData.id_token) {
+        throw new Error(`Token exchange failed: ${JSON.stringify(tokenData)}`);
+      }
+
+      // The id_token arrives from a server-to-server exchange authenticated by
+      // our client secret (transport trust, same as Google's userinfo call);
+      // still sanity-check the standard claims before using them.
+      const claims = JSON.parse(
         Buffer.from(tokenData.id_token.split(".")[1], "base64").toString()
       );
-      email = decoded.email;
-      userId = decoded.sub;
-    }
-    */
+      if (
+        claims.iss !== "https://appleid.apple.com" ||
+        claims.aud !== appleClientId ||
+        typeof claims.exp !== "number" ||
+        claims.exp * 1000 <= Date.now()
+      ) {
+        throw new Error("Apple id_token failed claim validation");
+      }
+
+      email = claims.email;
+      userId = claims.sub;
+      userData = { email };
+
+      if (!email || !userId) {
+        throw new Error(
+          `Missing user data from Apple. Email: ${email}, UserId: ${userId}`
+        );
+      }
+    } else {
       throw new Error(`Unsupported OAuth provider: ${provider}`);
     }
 
