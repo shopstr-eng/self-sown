@@ -213,6 +213,16 @@ export async function publishEscrowBackup(
 // arrive. Failed publishes are retried on the next run.
 const backupPublishInFlight = new Set<string>();
 
+// Session-local give-up set: a record whose backup failed with
+// encryption_failed can NEVER publish with this signer (nip04-only bunker or
+// denied permission), so retrying just re-fires a futile nip44_encrypt RPC —
+// and a possible user-facing bunker permission prompt — on every wallet visit
+// and proofEvents change. Skip the publish for the rest of the page-load
+// session, but keep reporting the record as unbacked so the warning banner
+// stays visible. Transient failures (publish_failed/unavailable) are NOT
+// added here and keep retrying.
+const backupPublishGaveUp = new Set<string>();
+
 export interface UnbackedEscrow {
   escrowId: string;
   orderId: string;
@@ -230,7 +240,10 @@ export interface EscrowBackupRepublishResult {
  * escrow-marked kind-7375 event yet (e.g. the checkout-time publish failed,
  * or the escrow predates backups). Publishes serially; never throws.
  * Records that remain unbacked are reported with their failure reason so
- * the wallet UI can warn the buyer instead of failing silently.
+ * the wallet UI can warn the buyer instead of failing silently. A record
+ * whose publish permanently failed (encryption_failed) is not retried for
+ * the rest of the page-load session — the signer can never make that backup
+ * — but it still reports as unbacked so the warning stays up.
  */
 export async function republishMissingEscrowBackups(
   nostr: Nostr | undefined,
@@ -245,6 +258,16 @@ export async function republishMissingEscrowBackups(
   }
   for (const record of listBuyerEscrows()) {
     if (backedUp.has(record.escrowId)) continue;
+    if (backupPublishGaveUp.has(record.escrowId)) {
+      // Permanent failure — don't re-prompt the signer, but keep the record
+      // visible as unbacked so the warning banner stays up.
+      result.unbacked.push({
+        escrowId: record.escrowId,
+        orderId: record.orderId,
+        failure: "encryption_failed",
+      });
+      continue;
+    }
     if (backupPublishInFlight.has(record.escrowId)) continue;
     backupPublishInFlight.add(record.escrowId);
     try {
@@ -252,6 +275,9 @@ export async function republishMissingEscrowBackups(
       if (publishResult.published) {
         result.published += 1;
       } else {
+        if (publishResult.failure === "encryption_failed") {
+          backupPublishGaveUp.add(record.escrowId);
+        }
         result.unbacked.push({
           escrowId: record.escrowId,
           orderId: record.orderId,

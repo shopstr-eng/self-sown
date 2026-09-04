@@ -249,6 +249,76 @@ describe("escrow-backup", () => {
       ]);
       warn.mockRestore();
     });
+
+    it("stops re-prompting a signer whose encryption permanently fails, but keeps the record unbacked", async () => {
+      // encryption_failed is permanent for a nip04-only bunker: the second
+      // republish run must not fire another futile encrypt RPC, but the
+      // record must still report as unbacked so the warning banner stays up.
+      const encrypt = jest.fn(async () => {
+        throw new Error("unsupported method: nip44_encrypt");
+      });
+      const nip04OnlySigner = {
+        getPubKey: async () => BUYER_PK,
+        encrypt,
+      };
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-3`,
+        orderId: "order-3",
+      });
+      recordBuyerEscrow(record);
+      const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+      const first = await republishMissingEscrowBackups(
+        {} as any,
+        nip04OnlySigner as any,
+        []
+      );
+      const second = await republishMissingEscrowBackups(
+        {} as any,
+        nip04OnlySigner as any,
+        []
+      );
+
+      expect(encrypt).toHaveBeenCalledTimes(1);
+      const expectedUnbacked = [
+        {
+          escrowId: record.escrowId,
+          orderId: record.orderId,
+          failure: "encryption_failed",
+        },
+      ];
+      expect(first.unbacked).toEqual(expectedUnbacked);
+      expect(second.unbacked).toEqual(expectedUnbacked);
+      expect(second.published).toBe(0);
+      warn.mockRestore();
+    });
+
+    it("keeps retrying transient publish failures", async () => {
+      // publish_failed is retryable (relay outage): every run must attempt
+      // the publish again — the give-up set must only catch permanent
+      // encryption failures.
+      mockFinalize.mockResolvedValue(null);
+      const record = makeRecord({
+        escrowId: `${BUYER_PK}:order-4`,
+        orderId: "order-4",
+      });
+      recordBuyerEscrow(record);
+
+      const first = await republishMissingEscrowBackups(
+        {} as any,
+        signer as any,
+        []
+      );
+      const second = await republishMissingEscrowBackups(
+        {} as any,
+        signer as any,
+        []
+      );
+
+      expect(mockFinalize).toHaveBeenCalledTimes(2);
+      expect(first.unbacked[0]?.failure).toBe("publish_failed");
+      expect(second.unbacked[0]?.failure).toBe("publish_failed");
+    });
   });
 
   describe("restoreEscrowsFromProofEvents", () => {
