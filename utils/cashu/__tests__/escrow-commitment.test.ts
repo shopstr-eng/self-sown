@@ -329,18 +329,19 @@ describe("escrow action events", () => {
   it("accepts a release signed by a non-buyer (actor authorized by the endpoint)", () => {
     // A release can be signed by EITHER party (buyer approves, seller
     // completes); the endpoints authorize the actor against the registered
-    // commitment, which is authoritative. Only refunds are buyer-bound here.
+    // commitment, which is authoritative.
     const result = verifyAction(
       makeAction({ action: "release", secret: generateSecretKey() })
     );
     expect(result.ok).toBe(true);
   });
 
-  it("rejects a signer who is not the escrow buyer", () => {
-    const event = makeAction({ secret: generateSecretKey() });
-    const result = verifyAction(event);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toMatch(/buyer/i);
+  it("accepts a refund signed by a non-buyer (actor authorized by the endpoint)", () => {
+    // The verifier checks shape and freshness only — the refund endpoint
+    // binds the signer to the registered buyer, and the resolve endpoint to
+    // the registered arbiter (both against the DB, which is authoritative).
+    const result = verifyAction(makeAction({ secret: generateSecretKey() }));
+    expect(result.ok).toBe(true);
   });
 
   it("rejects a malformed escrow id", () => {

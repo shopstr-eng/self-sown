@@ -42,6 +42,15 @@ import type {
 /** The signed payout payload carried on the outbox row. */
 export interface EscrowPayoutPayload {
   proofs: Proof[];
+  /**
+   * Set ONLY by the arbiter-resolution endpoint, after it has bound the
+   * signer to the registered, allowlisted arbiter — never taken from client
+   * input. The worker revalidates every payload before paying out, so this
+   * server-attested flag is what lets a directed payout (arbiter +
+   * counterparty witness, pre-expiry directed refund) survive the
+   * endpoint→worker handoff instead of being re-judged under party rules.
+   */
+  directedByArbiter?: boolean;
 }
 
 export interface EscrowPayoutResult {
@@ -139,15 +148,16 @@ function getUniqueTagValues(
 }
 
 /**
- * The only P2PK tags this worker knows how to pay. Anything else — in
- * particular `pubkeys`, which would silently turn a seller-only lock into a
- * 1-of-2 with a second spender — fails closed. NUT-11 tags are
+ * The only P2PK tags this worker knows how to pay. NUT-11 tags are
  * semantics-bearing at the mint, so an unrecognized tag is never safe to
- * ignore.
+ * ignore. `pubkeys` is admitted ONLY for the committed-arbiter construction
+ * (strictly validated below) — anything else that would silently widen the
+ * spender set still fails closed.
  */
 const ALLOWED_P2PK_TAGS = new Set([
   "locktime",
   "refund",
+  "pubkeys",
   "n_sigs",
   "n_sigs_refund",
   "sigflag",
@@ -192,34 +202,84 @@ function assertPayloadShape(payload: unknown): EscrowPayoutPayload {
  *   data    = seller pubkey
  *   locktime = commitment expiry (unix seconds)
  *   refund  = exactly [buyer pubkey]
- *   n_sigs / n_sigs_refund absent or 1 (no multisig yet)
  *   sigflag absent or SIG_INPUTS (SIG_ALL would require signing outputs,
  *           which the keyless server cannot do)
  *   no other tags (see ALLOWED_P2PK_TAGS)
+ * When the commitment names NO arbiter:
+ *   n_sigs / n_sigs_refund absent or 1, and no `pubkeys` tag (1-of-1 seller
+ *   lock with a buyer refund path).
+ * When the commitment names an arbiter (2-of-3 tiebreaker):
+ *   pubkeys = exactly {buyer, arbiter} and n_sigs = 2, so a dispute can be
+ *   resolved by the arbiter co-signing with either party — never weaker than
+ *   the plain construction (no extra spenders, refund path unchanged).
+ *
+ * options.directedByArbiter marks the dispute-resolution path: the witness
+ * must then include the arbiter (plus a counterparty), and a directed REFUND
+ * is allowed before expiry (the dispute case is a seller gone unresponsive;
+ * the 2-of-3 witness replaces the timelock as the authorization).
  */
 export function validateEscrowPayoutProofs(
   registration: EscrowRegistration,
   action: EscrowOutboxAction,
   proofs: Proof[],
   nowSeconds: number = Math.floor(Date.now() / 1000),
-  options?: { requireWitness?: boolean }
+  options?: { requireWitness?: boolean; directedByArbiter?: boolean }
 ): void {
   const expiresAtSeconds = Math.floor(registration.expiresAt.getTime() / 1000);
+  const arbiterPubkey = registration.arbiterPubkey
+    ? normalizeP2PKPubkey(registration.arbiterPubkey)
+    : null;
+  const directedByArbiter = options?.directedByArbiter === true && !!arbiterPubkey;
 
   // Re-check the lock window at signing time (threat model: expiry race).
   // A release enqueued before expiry must not pay the seller once the
-  // buyer's refund window has opened, and a refund must not pay early.
+  // buyer's refund window has opened (even an arbiter-directed one — the
+  // arbiter can direct a refund instead), and a party refund must not pay
+  // early.
   if (action === "release" && nowSeconds >= expiresAtSeconds) {
     throw new Error(
       "Escrow lock has expired; a release can no longer be paid out."
     );
   }
-  if (action === "refund" && nowSeconds < expiresAtSeconds) {
+  if (action === "refund" && nowSeconds < expiresAtSeconds && !directedByArbiter) {
     throw new Error("Escrow lock has not expired; refusing to refund early.");
   }
 
-  const expectedSigner =
-    action === "release" ? registration.sellerPubkey : registration.buyerPubkey;
+  // Who must witness depends on the construction and who is directing:
+  //   release, no arbiter              → seller
+  //   release, arbiter, party path     → seller AND (buyer OR arbiter)
+  //   release, arbiter-directed        → arbiter AND (buyer OR seller)
+  //   refund, party path               → buyer (refund key; the mint itself
+  //                                      enforces the locktime)
+  //   refund, arbiter-directed         → arbiter AND buyer
+  const witnessOk = (proof: Proof): boolean => {
+    const has = (pk: string) => hasP2PKSignedProof(pk, proof);
+    if (action === "release") {
+      if (!arbiterPubkey) return has(registration.sellerPubkey);
+      if (directedByArbiter) {
+        return (
+          has(arbiterPubkey) &&
+          (has(registration.buyerPubkey) || has(registration.sellerPubkey))
+        );
+      }
+      return (
+        has(registration.sellerPubkey) &&
+        (has(registration.buyerPubkey) || has(arbiterPubkey))
+      );
+    }
+    if (directedByArbiter) return has(arbiterPubkey) && has(registration.buyerPubkey);
+    return has(registration.buyerPubkey);
+  };
+  const witnessError =
+    action === "release"
+      ? directedByArbiter
+        ? "Escrow resolution proof must be witnessed by the arbiter and one party."
+        : arbiterPubkey
+          ? "Escrow release proof must be witnessed by the seller and one other party."
+          : "Escrow release proof is not signed by the seller."
+      : directedByArbiter
+        ? "Escrow resolution proof must be witnessed by the arbiter and the buyer."
+        : "Escrow refund proof is not signed by the buyer.";
 
   let total = 0;
   for (const proof of proofs) {
@@ -270,17 +330,54 @@ export function validateEscrowPayoutProofs(
       );
     }
 
+    const pubkeysTag = getUniqueTagValues(secret.tags, "pubkeys");
     const nSigs = getUniqueTagValues(secret.tags, "n_sigs");
     const nSigsRefund = getUniqueTagValues(secret.tags, "n_sigs_refund");
-    if (
-      (nSigs && nSigs[0] !== "1") ||
-      (nSigsRefund && nSigsRefund[0] !== "1") ||
-      nSigs === null ||
-      nSigsRefund === null
-    ) {
-      throw new Error(
-        "Escrow payout proof uses a multisig construction this worker cannot pay."
-      );
+    if (nSigs === null || nSigsRefund === null) {
+      throw new Error("Escrow payout proof has a duplicate multisig tag.");
+    }
+    if (arbiterPubkey) {
+      // Committed-arbiter construction: 2-of-3 {seller, buyer, arbiter}. The
+      // data key is the seller (checked above); the pubkeys tag must be
+      // exactly {buyer, arbiter} and n_sigs exactly 2 — anything weaker, or
+      // a substituted second spender, fails closed.
+      const set = (pubkeysTag ?? []).map(normalizeP2PKPubkey).sort();
+      const want = [registration.buyerPubkey, arbiterPubkey]
+        .map(normalizeP2PKPubkey)
+        .sort();
+      if (
+        pubkeysTag === null ||
+        pubkeysTag === undefined ||
+        set.length !== 2 ||
+        set[0] !== want[0] ||
+        set[1] !== want[1]
+      ) {
+        throw new Error(
+          "Escrow payout proof does not match the committed 2-of-3 arbiter lock."
+        );
+      }
+      if (!nSigs || nSigs.length !== 1 || nSigs[0] !== "2") {
+        throw new Error(
+          "Escrow payout proof must require exactly 2 signatures for the committed arbiter lock."
+        );
+      }
+      if (nSigsRefund && (nSigsRefund.length !== 1 || nSigsRefund[0] !== "1")) {
+        throw new Error("Escrow payout proof weakens the buyer's refund path.");
+      }
+    } else {
+      if (pubkeysTag !== undefined) {
+        throw new Error(
+          "Escrow payout proof adds spenders the commitment never named."
+        );
+      }
+      if (
+        (nSigs && (nSigs.length !== 1 || nSigs[0] !== "1")) ||
+        (nSigsRefund && (nSigsRefund.length !== 1 || nSigsRefund[0] !== "1"))
+      ) {
+        throw new Error(
+          "Escrow payout proof uses a multisig construction this worker cannot pay."
+        );
+      }
     }
 
     const sigflag = getUniqueTagValues(secret.tags, "sigflag");
@@ -290,20 +387,13 @@ export function validateEscrowPayoutProofs(
       );
     }
 
-    // The witness must carry a valid Schnorr signature from the entitled
-    // party over each proof's secret (verified with the real cashu-ts
-    // verifier, so library semantics are the contract). Skipped ONLY for the
-    // structural pre-check when the buyer hands RAW proofs over for the
-    // seller to witness (release-approve) — every payout path requires them.
-    if (
-      options?.requireWitness !== false &&
-      !hasP2PKSignedProof(expectedSigner, proof)
-    ) {
-      throw new Error(
-        action === "release"
-          ? "Escrow release proof is not signed by the seller."
-          : "Escrow refund proof is not signed by the buyer."
-      );
+    // The witness must satisfy the path's signature rule over each proof's
+    // secret (verified with the real cashu-ts verifier, so library semantics
+    // are the contract). Skipped ONLY for the structural pre-check when the
+    // buyer hands RAW proofs over for the seller to witness (release-approve)
+    // — every payout path requires them.
+    if (options?.requireWitness !== false && !witnessOk(proof)) {
+      throw new Error(witnessError);
     }
   }
 
@@ -372,8 +462,15 @@ export async function executeEscrowPayout(
   payload: unknown,
   options?: EscrowPayoutOptions
 ): Promise<EscrowPayoutResult> {
-  const { proofs } = assertPayloadShape(payload);
-  validateEscrowPayoutProofs(registration, action, proofs, options?.nowSeconds);
+  const parsed = assertPayloadShape(payload);
+  const proofs = parsed.proofs;
+  // directedByArbiter is server-attested (written by the resolve endpoint,
+  // persisted on the outbox row) — thread it into this revalidation or the
+  // directed payout the endpoint already authorized would be re-judged under
+  // party rules and silently rejected at payout time.
+  validateEscrowPayoutProofs(registration, action, proofs, options?.nowSeconds, {
+    directedByArbiter: parsed.directedByArbiter === true,
+  });
 
   const walletFactory = options?.walletFactory ?? defaultWalletFactory;
   const wallet = walletFactory(registration.mintUrl);

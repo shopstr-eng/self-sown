@@ -324,12 +324,12 @@ export function buildEscrowActionEventTemplate(
 }
 
 /**
- * Verify a signed escrow action event. Refunds are buyer-only, so a refund
- * signer is bound to the escrow id's buyer prefix. A "release" may be signed
- * by EITHER party (the buyer approves, the seller completes) — the endpoints
- * authorize the actor against the registered commitment, which is
- * authoritative. Pure apart from the injected clock, so it is directly
- * testable.
+ * Verify a signed escrow action event's shape, signature, and freshness.
+ * Actor authorization is NOT done here: each endpoint binds the signer to
+ * the registered commitment (buyer for refunds, seller for release
+ * completion, the registered arbiter for dispute resolution) — the
+ * registration is authoritative. Pure apart from the injected clock, so it
+ * is directly testable.
  */
 export function verifyEscrowActionEvent(
   event: Event,
@@ -371,11 +371,6 @@ export function verifyEscrowActionEvent(
   }
   if (!(ESCROW_ACTIONS as readonly string[]).includes(action)) {
     return fail("Unsupported escrow action.");
-  }
-  // Refunds are buyer-only: the signer must be the committed buyer. Release
-  // actors are authorized by the endpoints against the registration.
-  if (action === "refund" && !escrowId.startsWith(`${event.pubkey}:`)) {
-    return fail("Escrow action signer does not match the escrow buyer.");
   }
   if (
     event.content !==

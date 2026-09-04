@@ -105,6 +105,27 @@ describe("escrow-checkout helpers", () => {
         },
       });
     });
+
+    it("builds a 2-of-3 lock when the commitment names an arbiter", () => {
+      const config = buildEscrowLockOutputConfig({
+        sellerPubkey: "d".repeat(64),
+        buyerPubkey: "a".repeat(64),
+        arbiterPubkey: "b".repeat(64),
+        expiresAt: 1_900_000_000,
+      });
+      expect(config).toEqual({
+        send: {
+          type: "p2pk",
+          options: {
+            pubkey: ["d".repeat(64), "a".repeat(64), "b".repeat(64)],
+            requiredSignatures: 2,
+            locktime: 1_900_000_000,
+            refundKeys: ["a".repeat(64)],
+            sigFlag: "SIG_INPUTS",
+          },
+        },
+      });
+    });
   });
 
   describe("resolveEscrowLockSeconds", () => {

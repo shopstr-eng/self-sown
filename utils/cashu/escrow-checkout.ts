@@ -85,18 +85,26 @@ export function defaultEscrowExpiresAt(
  * OutputConfig that locks the swapped "send" proofs to the seller with a
  * buyer refund path after the locktime. Matches the construction the payout
  * worker validates (utils/cashu/escrow-payout.ts): data = seller, locktime =
- * commitment expiry, refund = exactly the buyer, SIG_INPUTS, no multisig.
+ * commitment expiry, refund = exactly the buyer, SIG_INPUTS. When the
+ * commitment names an arbiter the lock becomes a 2-of-3 over {seller, buyer,
+ * arbiter} (requiredSignatures = 2), so a dispute can be resolved by the
+ * arbiter co-signing with either party; the buyer's post-expiry refund path
+ * is unchanged.
  */
 export function buildEscrowLockOutputConfig(args: {
   sellerPubkey: string;
   buyerPubkey: string;
   expiresAt: number;
+  arbiterPubkey?: string;
 }): OutputConfig {
   return {
     send: {
       type: "p2pk",
       options: {
-        pubkey: args.sellerPubkey,
+        pubkey: args.arbiterPubkey
+          ? [args.sellerPubkey, args.buyerPubkey, args.arbiterPubkey]
+          : args.sellerPubkey,
+        ...(args.arbiterPubkey ? { requiredSignatures: 2 } : {}),
         locktime: args.expiresAt,
         refundKeys: [args.buyerPubkey],
         sigFlag: "SIG_INPUTS",
@@ -758,6 +766,31 @@ export async function requestEscrowRelease(
   payoutProofs: Proof[]
 ): Promise<EscrowReleaseResponse> {
   return postEscrowJson("/api/cashu/escrow/release", {
+    actionEvent,
+    payoutProofs,
+  });
+}
+
+export interface EscrowResolutionResponse {
+  escrowId: string;
+  status: "resolution_pending" | "resolution_processing" | "released" | "refunded";
+  enqueued: boolean;
+  /** False when the worker had already claimed the entry — retry if stuck. */
+  attached?: boolean;
+  payoutToken?: string;
+}
+
+/**
+ * Arbiter-signed dispute resolution: directs a release (pay the seller) or a
+ * refund (pay the buyer, allowed pre-expiry) for an escrow that named this
+ * arbiter. The proofs must carry the arbiter's P2PK witness plus a
+ * counterparty's (2-of-3), which the server validates before enqueueing.
+ */
+export async function requestEscrowResolution(
+  actionEvent: Event,
+  payoutProofs: Proof[]
+): Promise<EscrowResolutionResponse> {
+  return postEscrowJson("/api/cashu/escrow/resolve", {
     actionEvent,
     payoutProofs,
   });

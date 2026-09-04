@@ -161,7 +161,12 @@ unless escrow is enabled) drains the outbox:
   and `POST /api/cashu/escrow/register` must succeed BEFORE any proofs are
   swapped into the P2PK lock (data = seller pubkey, locktime = expiry, refund
   = exactly the buyer, SIG_INPUTS — the construction the payout worker
-  validates). Multi-product single-seller carts register one commitment per
+  validates). When the commitment names an arbiter, the lock is a 2-of-3 over
+  {seller, buyer, arbiter} (`pubkeys` = exactly {buyer, arbiter}, `n_sigs` = 2),
+  so a dispute can be resolved by the arbiter co-signing with either party
+  while the buyer's post-expiry refund path stays untouched; the payout
+  validator rejects any weaker or substituted construction. Multi-product
+  single-seller carts register one commitment per
   product slice, keyed `<orderId>:<productId>` to avoid id collisions.
 - **Custody stays with the buyer**: the locked proofs are NEVER sent to the
   seller. The seller's payment message references the escrow id (payment type
@@ -231,8 +236,16 @@ unless escrow is enabled) drains the outbox:
    a "contact support before expiry" pointer. Residual: a backup publish
    that never succeeds (offline buyer who also loses the device before
    visiting the wallet page) still strands the funds.
-2. **Arbiter key compromise** = misdirected release. Arbiter operations need
-   their own signed-request binding when the resolution endpoint is built.
+2. **Arbiter key compromise — mitigated, not eliminated**: a compromised
+   arbiter key alone cannot move funds. The resolution endpoint
+   (`/api/cashu/escrow/resolve`) binds the signer to the registration's
+   `arbiter_pubkey` and re-checks the operator allowlist at resolution time,
+   and the payout validator requires a 2-of-3 witness (arbiter + a
+   counterparty) on every proof — so the attacker must additionally coerce or
+   compromise a party, and a conflicting pending party action is a 409, not a
+   silent flip. Residual: arbiter + party collusion is indistinguishable from
+   a legitimate ruling; the defense is careful arbiter selection and allowlist
+   revocation.
 3. **Expiry race — handled by conversion**: the worker re-checks expiry at
    payout time; a release whose window closed mid-flight is atomically
    converted to a pending refund (see §6). Residual: none known, but this
@@ -257,7 +270,15 @@ unless escrow is enabled) drains the outbox:
       checkout (+ wallet-page re-publish of missing backups) and restore with
       per-mint UNSPENT verification; unrecoverable escrows are reported with
       a contact-support-before-expiry pointer.
-- [ ] Arbiter resolution endpoint with signed-request binding.
+- [x] Arbiter resolution endpoint with signed-request binding:
+      `/api/cashu/escrow/resolve` accepts an arbiter-signed kind-31996 action
+      event, re-binds the signer to the registration's `arbiter_pubkey` and the
+      operator allowlist, validates the arbiter+ counterparty witness with the
+      payout worker's own validator, and enqueues the directed action on the
+      one-row outbox (a directed refund is allowed pre-expiry; a directed
+      release is still blocked after expiry — the arbiter refunds instead).
+      Note: buyer checkout UI does not yet name an arbiter, so this path is
+      reachable only for registrations created with `arbiter_pubkey` set.
 - [x] Refund: `/api/cashu/escrow/refund` collects the buyer-witnessed locked
       proofs, validates them against the commitment, and attaches them to the
       outbox entry (`attachEscrowPayoutPayload`) atomically.

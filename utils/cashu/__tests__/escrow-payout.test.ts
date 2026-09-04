@@ -256,7 +256,7 @@ describe("validateEscrowPayoutProofs", () => {
     ];
     expect(() =>
       validateEscrowPayoutProofs(registration, "release", proofs, LOCKTIME - 10)
-    ).toThrow(/unsupported P2PK tag/);
+    ).toThrow(/commitment never named/);
   });
 
   it("rejects unknown tags — NUT-11 tags carry mint semantics", () => {
@@ -588,6 +588,341 @@ describe("executeEscrowPayout", () => {
           walletFactory: () => wallet,
           persistPreparedOutputs: persistMock(),
           nowSeconds,
+        }
+      )
+    ).rejects.toThrow(/not signed by the seller/);
+    expect(wallet.checkProofsStates).not.toHaveBeenCalled();
+  });
+});
+
+// ── Committed-arbiter 2-of-3 construction ────────────────────────────────────
+//
+// When the registration names an arbiter, the lock MUST be 2-of-3 over
+// {seller, buyer, arbiter} (data = seller, pubkeys = {buyer, arbiter},
+// n_sigs = 2) — never weaker, never with substituted spenders — and the
+// witness rules depend on who is directing the payout.
+
+const arbiterSecret = generateSecretKey();
+const arbiterPriv = Buffer.from(arbiterSecret).toString("hex");
+const arbiterPub = getPublicKey(arbiterSecret);
+
+/** A real P2PK-locked proof for a 2-of-3 arbiter escrow, signed by N keys. */
+function makeMultisigProof(
+  signerPrivs: string[],
+  overrides: {
+    amount?: number;
+    locktime?: number;
+    refundTo?: string;
+    lockTo?: string;
+    pubkeys?: string[];
+    nSigs?: string;
+    nSigsRefund?: string;
+    omitPubkeys?: boolean;
+    extraTags?: string[][];
+  } = {}
+): Proof {
+  const tags: string[][] = [
+    ["locktime", String(overrides.locktime ?? LOCKTIME)],
+    ["refund", overrides.refundTo ?? buyerPub],
+  ];
+  if (!overrides.omitPubkeys) {
+    tags.push(["pubkeys", ...(overrides.pubkeys ?? [buyerPub, arbiterPub])]);
+  }
+  tags.push(["n_sigs", overrides.nSigs ?? "2"]);
+  if (overrides.nSigsRefund) tags.push(["n_sigs_refund", overrides.nSigsRefund]);
+  tags.push(...(overrides.extraTags ?? []));
+  const proof: Proof = {
+    amount: overrides.amount ?? 5_000,
+    id: KEYSET_ID,
+    secret: createP2PKsecret(overrides.lockTo ?? sellerPub, tags),
+    C: validPointHex(),
+  } as unknown as Proof;
+  if (signerPrivs.length === 0) return proof;
+  // Manual witnesses: full control over exactly which keys signed.
+  return {
+    ...proof,
+    witness: JSON.stringify({
+      signatures: signerPrivs.map((sk) => schnorrSignMessage(proof.secret, sk)),
+    }),
+  };
+}
+
+const arbiterRegistration = () => makeRegistration({ arbiterPubkey: arbiterPub });
+
+describe("validateEscrowPayoutProofs — committed-arbiter 2-of-3", () => {
+  it("accepts a party release witnessed by seller + buyer", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv, buyerPriv]),
+      ])
+    ).not.toThrow();
+  });
+
+  it("accepts a party release witnessed by seller + arbiter", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv, arbiterPriv]),
+      ])
+    ).not.toThrow();
+  });
+
+  it("rejects a party release witnessed by the seller alone", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv]),
+      ])
+    ).toThrow(/seller and one other party/);
+  });
+
+  it("accepts an arbiter-directed release witnessed by arbiter + buyer", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "release",
+        [makeMultisigProof([arbiterPriv, buyerPriv])],
+        undefined,
+        { directedByArbiter: true }
+      )
+    ).not.toThrow();
+  });
+
+  it("accepts an arbiter-directed release witnessed by arbiter + seller", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "release",
+        [makeMultisigProof([arbiterPriv, sellerPriv])],
+        undefined,
+        { directedByArbiter: true }
+      )
+    ).not.toThrow();
+  });
+
+  it("rejects an arbiter-directed release witnessed by the arbiter alone", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "release",
+        [makeMultisigProof([arbiterPriv])],
+        undefined,
+        { directedByArbiter: true }
+      )
+    ).toThrow(/arbiter and one party/);
+  });
+
+  it("rejects an arbiter-directed release without the arbiter's witness", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "release",
+        [makeMultisigProof([buyerPriv, sellerPriv])],
+        undefined,
+        { directedByArbiter: true }
+      )
+    ).toThrow(/arbiter and one party/);
+  });
+
+  it("accepts an arbiter-directed refund BEFORE expiry (arbiter + buyer)", () => {
+    // The dispute case: seller unresponsive pre-expiry — the 2-of-3 witness
+    // replaces the timelock as the authorization.
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "refund",
+        [makeMultisigProof([arbiterPriv, buyerPriv])],
+        undefined,
+        { directedByArbiter: true }
+      )
+    ).not.toThrow();
+  });
+
+  it("rejects an arbiter-directed refund without the buyer's witness", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "refund",
+        [makeMultisigProof([arbiterPriv, sellerPriv])],
+        undefined,
+        { directedByArbiter: true }
+      )
+    ).toThrow(/arbiter and the buyer/);
+  });
+
+  it("still rejects a party refund before expiry on a multisig lock", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "refund", [
+        makeMultisigProof([buyerPriv]),
+      ])
+    ).toThrow(/not expired/);
+  });
+
+  it("rejects an arbiter-directed release after expiry", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(
+        arbiterRegistration(),
+        "release",
+        [makeMultisigProof([arbiterPriv, buyerPriv])],
+        LOCKTIME + 1,
+        { directedByArbiter: true }
+      )
+    ).toThrow(/lock has expired/);
+  });
+
+  it("rejects a pubkeys tag when the commitment named NO arbiter", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(makeRegistration(), "release", [
+        makeMultisigProof([sellerPriv, buyerPriv]),
+      ])
+    ).toThrow(/commitment never named/);
+  });
+
+  it("rejects a 1-of-1 lock when the commitment DID name an arbiter", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv], { omitPubkeys: true, nSigs: "1" }),
+      ])
+    ).toThrow(/2-of-3 arbiter lock/);
+  });
+
+  it("rejects a substituted second spender in the pubkeys tag", () => {
+    const outsiderPub = getPublicKey(outsiderSecret);
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv, buyerPriv], {
+          pubkeys: [buyerPub, outsiderPub],
+        }),
+      ])
+    ).toThrow(/2-of-3 arbiter lock/);
+  });
+
+  it("rejects n_sigs=1 on the committed-arbiter construction", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv, buyerPriv], { nSigs: "1" }),
+      ])
+    ).toThrow(/exactly 2 signatures/);
+  });
+
+  it("rejects a weakened refund path (n_sigs_refund > 1)", () => {
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [
+        makeMultisigProof([sellerPriv, buyerPriv], { nSigsRefund: "2" }),
+      ])
+    ).toThrow(/refund path/);
+  });
+
+  it("rejects a duplicate n_sigs tag", () => {
+    // createP2PKsecret itself refuses duplicate tags, but a hostile client
+    // can hand-craft the secret JSON — the validator must still reject it.
+    const secret = JSON.stringify([
+      "P2PK",
+      {
+        nonce: Buffer.from(generateSecretKey()).toString("hex"),
+        data: sellerPub,
+        tags: [
+          ["locktime", String(LOCKTIME)],
+          ["refund", buyerPub],
+          ["pubkeys", buyerPub, arbiterPub],
+          ["n_sigs", "2"],
+          ["n_sigs", "2"],
+        ],
+      },
+    ]);
+    const proof = {
+      amount: 5_000,
+      id: KEYSET_ID,
+      secret,
+      C: validPointHex(),
+      witness: JSON.stringify({
+        signatures: [sellerPriv, buyerPriv].map((sk) =>
+          schnorrSignMessage(secret, sk)
+        ),
+      }),
+    } as unknown as Proof;
+    expect(() =>
+      validateEscrowPayoutProofs(arbiterRegistration(), "release", [proof])
+    ).toThrow(/duplicate multisig tag/);
+  });
+});
+
+// The endpoint→worker handoff: the resolve endpoint validates with
+// directedByArbiter and persists that direction INSIDE the outbox payload
+// (server-attested). The worker revalidates every payload before paying, so
+// the executor must honor the flag or directed resolutions could never
+// execute — and must IGNORE it when the registration names no arbiter.
+describe("executeEscrowPayout — arbiter-directed payloads", () => {
+  it("executes a pre-expiry directed refund witnessed by arbiter + buyer", async () => {
+    const proofs = [makeMultisigProof([arbiterPriv, buyerPriv])];
+    const wallet = fakeWallet([{ state: "UNSPENT" }]);
+    const result = await executeEscrowPayout(
+      arbiterRegistration(),
+      "refund",
+      { proofs, directedByArbiter: true },
+      {
+        walletFactory: () => wallet,
+        persistPreparedOutputs: persistMock(),
+        nowSeconds: LOCKTIME - 10, // BEFORE expiry — a party refund would throw
+      }
+    );
+    expect(wallet.checkProofsStates).toHaveBeenCalledWith(proofs);
+    expect(wallet.prepareSwapToReceive).toHaveBeenCalledWith(
+      proofs,
+      undefined,
+      { type: "p2pk", options: { pubkey: buyerPub } }
+    );
+    expect(result.outputs).toHaveLength(1);
+  });
+
+  it("executes a directed release witnessed by arbiter + buyer (no seller sig)", async () => {
+    const proofs = [makeMultisigProof([arbiterPriv, buyerPriv])];
+    const wallet = fakeWallet([{ state: "UNSPENT" }]);
+    await executeEscrowPayout(
+      arbiterRegistration(),
+      "release",
+      { proofs, directedByArbiter: true },
+      {
+        walletFactory: () => wallet,
+        persistPreparedOutputs: persistMock(),
+        nowSeconds: LOCKTIME - 10,
+      }
+    );
+    expect(wallet.prepareSwapToReceive).toHaveBeenCalledWith(
+      proofs,
+      undefined,
+      { type: "p2pk", options: { pubkey: sellerPub } }
+    );
+  });
+
+  it("rejects the same directed proofs when the payload lacks the server flag", async () => {
+    const proofs = [makeMultisigProof([arbiterPriv, buyerPriv])];
+    const wallet = fakeWallet([{ state: "UNSPENT" }]);
+    await expect(
+      executeEscrowPayout(
+        arbiterRegistration(),
+        "refund",
+        { proofs }, // no directedByArbiter — re-judged under party rules
+        {
+          walletFactory: () => wallet,
+          persistPreparedOutputs: persistMock(),
+          nowSeconds: LOCKTIME - 10,
+        }
+      )
+    ).rejects.toThrow(/not expired/);
+    expect(wallet.checkProofsStates).not.toHaveBeenCalled();
+  });
+
+  it("the flag is inert when the registration names no arbiter", async () => {
+    const proofs = [makeSignedProof(buyerPriv)]; // buyer witness on a RELEASE
+    const wallet = fakeWallet([{ state: "UNSPENT" }]);
+    await expect(
+      executeEscrowPayout(
+        makeRegistration(),
+        "release",
+        { proofs, directedByArbiter: true },
+        {
+          walletFactory: () => wallet,
+          persistPreparedOutputs: persistMock(),
+          nowSeconds: LOCKTIME - 10,
         }
       )
     ).rejects.toThrow(/not signed by the seller/);
