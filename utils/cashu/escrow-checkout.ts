@@ -19,8 +19,8 @@ import {
   signP2PKProofs,
   type OutputConfig,
   type Proof,
-  type Token,
 } from "@cashu/cashu-ts";
+import { decodeTokenWithKeysets } from "./token-decode";
 import type { Event } from "nostr-tools";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import type { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
@@ -465,53 +465,6 @@ export function isMintAlreadySpentError(error: unknown): boolean {
  * (The cashu-ts Proof type declares amount as Amount — the cast keeps the
  * wire format honest.)
  */
-/**
- * Newer Nutshell mints issue "v2" keyset IDs (0x01-prefixed). cashu-ts maps
- * those at decode time, so getDecodedToken(token, []) throws "short keyset ID
- * v2…" for their tokens unless the mint's keyset ids are supplied. Escrow
- * callers always know the mint, so on that specific error fetch the keyset
- * list and retry. Cached per mint; failures are not cached.
- */
-const mintKeysetIdCache = new Map<string, Promise<string[]>>();
-
-export function fetchMintKeysetIds(mintUrl: string): Promise<string[]> {
-  let pending = mintKeysetIdCache.get(mintUrl);
-  if (!pending) {
-    pending = (async () => {
-      const response = await fetch(`${mintUrl}/v1/keysets`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch keysets from ${mintUrl}`);
-      }
-      const body = await response.json();
-      const ids = (body?.keysets ?? [])
-        .map((keyset: { id?: unknown }) => keyset?.id)
-        .filter((id: unknown): id is string => typeof id === "string");
-      if (ids.length === 0) {
-        throw new Error(`Mint ${mintUrl} returned no keysets`);
-      }
-      return ids;
-    })();
-    mintKeysetIdCache.set(mintUrl, pending);
-    // Never cache a failure: a transient mint outage must not poison decodes.
-    pending.catch(() => mintKeysetIdCache.delete(mintUrl));
-  }
-  return pending;
-}
-
-async function decodeTokenWithKeysets(
-  token: string,
-  mintUrl?: string
-): Promise<Token> {
-  try {
-    return getDecodedToken(token, []);
-  } catch (error) {
-    const isShortKeysetIdError =
-      error instanceof Error && /short keyset id/i.test(error.message);
-    if (!isShortKeysetIdError || !mintUrl) throw error;
-    return getDecodedToken(token, await fetchMintKeysetIds(mintUrl));
-  }
-}
-
 export async function decodeEscrowLockedProofs(
   lockedToken: string,
   mintUrl?: string

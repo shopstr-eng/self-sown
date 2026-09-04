@@ -17,6 +17,7 @@ import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { pickLatestSellerProfileEvent } from "@/mcp/tools/read-tools";
 import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { isBitcoinCurrency, SATS_PER_BTC } from "@/utils/ucp/money";
+import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 
 /**
  * Shared, protocol-neutral order engine.
@@ -784,8 +785,34 @@ async function initializeCashu(
     });
   }
 
-  const { getDecodedToken } = await import("@cashu/cashu-ts");
-  const decoded = getDecodedToken(cashuToken, []);
+  // Parse the token envelope WITHOUT network access and validate the mint
+  // BEFORE decoding: the v2-keyset decode fallback fetches the mint's
+  // /v1/keysets, so an untrusted embedded mint must never be contacted.
+  // (An unvalidated mint would also let an attacker point the server at a
+  // fake mint that always reports redemption success.)
+  const { getTokenMetadata } = await import("@cashu/cashu-ts");
+  let envelopeMint: string | undefined;
+  try {
+    envelopeMint = getTokenMetadata(cashuToken).mint;
+  } catch {
+    throw new OrderServiceError(400, {
+      error: "Invalid Cashu token: could not parse the token envelope",
+    });
+  }
+  if (!envelopeMint || !ALLOWED_MINT_URLS.has(envelopeMint)) {
+    throw new OrderServiceError(400, {
+      error:
+        "Cashu token issuer is not a supported mint. Only tokens from trusted mints are accepted.",
+      supportedMints: Array.from(ALLOWED_MINT_URLS),
+    });
+  }
+
+  // Server adapter: the fallback keyset fetch is SSRF-guarded (the mint URL
+  // above is already allowlist-validated, defense-in-depth).
+  const { decodeTokenWithKeysets } = await import(
+    "@/utils/cashu/token-decode-server"
+  );
+  const decoded = await decodeTokenWithKeysets(cashuToken, envelopeMint);
 
   if (!decoded || !decoded.proofs || decoded.proofs.length === 0) {
     throw new OrderServiceError(400, {
@@ -793,10 +820,9 @@ async function initializeCashu(
     });
   }
 
-  const tokenAmount = decoded.proofs.reduce(
-    (sum: number, p: any) => sum + (p.amount || 0),
-    0
-  );
+  // v4 decodes proof amounts as Amount instances — sum via the shared helper
+  // (a naive `sum + (p.amount || 0)` concatenates them into strings).
+  const tokenAmount = sumProofAmounts(decoded.proofs);
 
   // Fail closed on a fiat→sats conversion with no authoritative rate (see
   // resolveSatsAmount). A sats/BTC price converts deterministically.

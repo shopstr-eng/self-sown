@@ -30,6 +30,7 @@ import {
 import dns from "dns";
 import { promisify } from "util";
 import { registerTool } from "./register-tool";
+import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 import { setStock } from "@/utils/db/inventory-service";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 import {
@@ -3896,10 +3897,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             const parsed = JSON.parse(decryptedContent);
             const mintUrl = parsed.mint;
             const proofs = parsed.proofs || [];
-            const amount = proofs.reduce(
-              (sum: number, p: any) => sum + (p.amount || 0),
-              0
-            );
+            // Stored proofs may carry string amounts (Amount instances
+            // serialize as strings in the kind-7375 JSON).
+            const amount = sumProofAmounts(proofs);
 
             if (!params.mintUrl || mintUrl === params.mintUrl) {
               totalBalance += amount;
@@ -3942,14 +3942,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       if (!signer) return noSignerError();
 
       try {
-        const { getDecodedToken } = await import("@cashu/cashu-ts");
-        const decoded = getDecodedToken(params.token, []);
+        // Keyset-aware decode (v2 keyset IDs, Nutshell >= 0.20). The server
+        // adapter routes the fallback keyset fetch through the SSRF guard
+        // (public mints only).
+        const { decodeTokenWithKeysets } = await import(
+          "@/utils/cashu/token-decode-server"
+        );
+        const decoded = await decodeTokenWithKeysets(params.token);
         const mintUrl = decoded.mint;
         const proofs = decoded.proofs;
-        const totalAmount = proofs.reduce(
-          (sum: number, p: any) => sum + (p.amount || 0),
-          0
-        );
+        // v4 decodes amounts as Amount instances — `sum + (p.amount || 0)`
+        // string-concatenated them ("0100"), corrupting reported totals.
+        const totalAmount = sumProofAmounts(proofs);
 
         const pubkey = signer.getPubKey();
 
@@ -4121,11 +4125,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const totalNeeded =
           (meltQuote.amount as any).toNumber() +
           ((meltQuote.fee_reserve as any)?.toNumber?.() || 0);
-        const totalAvailable = availableProofs.reduce(
-          (sum: number, p: any) =>
-            sum + (p.amount?.toNumber?.() ?? p.amount ?? 0),
-          0
-        );
+        const totalAvailable = sumProofAmounts(availableProofs);
 
         if (totalAvailable < totalNeeded) {
           return errorResponse(
@@ -4159,11 +4159,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             amount: (meltQuote.amount as any).toNumber(),
             fee: (meltQuote.fee_reserve as any)?.toNumber?.() || 0,
             mintUrl,
-            change: meltOutcome.changeProofs.reduce(
-              (sum: number, p: any) =>
-                sum + (p.amount?.toNumber?.() ?? p.amount ?? 0),
-              0
-            ),
+            change: sumProofAmounts(meltOutcome.changeProofs),
           },
           startTime
         );

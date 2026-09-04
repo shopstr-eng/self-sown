@@ -34,9 +34,10 @@ import {
   Mint as CashuMint,
   Wallet as CashuWallet,
   Proof,
-  getDecodedToken,
   getEncodedToken,
 } from "@cashu/cashu-ts";
+import { decodeTokenWithKeysets } from "@/utils/cashu/token-decode";
+import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 import { safeMeltProofs } from "@/utils/cashu/melt-retry-service";
 import { safeSwap } from "@/utils/cashu/swap-retry-service";
 import { persistReceivedTokens } from "@/utils/cashu/wallet-mint-sync";
@@ -95,28 +96,33 @@ export default function ClaimButton({ token }: { token: string }) {
   }, []);
 
   useEffect(() => {
-    try {
-      const decodedToken = getDecodedToken(token, []);
-      const mint = decodedToken.mint;
-      setTokenMint(mint);
-      const proofs = decodedToken.proofs;
-      setProofs(proofs);
-      const newWallet = new CashuWallet(new CashuMint(mint));
-      setWallet(newWallet);
-      const totalAmount =
-        Array.isArray(proofs) && proofs.length > 0
-          ? proofs.reduce(
-              (acc, current: Proof) => acc + current.amount.toNumber(),
-              0
-            )
-          : 0;
+    let cancelled = false;
+    (async () => {
+      try {
+        // Keyset-aware decode: v2 keyset IDs (Nutshell >= 0.20) need the
+        // mint's keyset list, fetched inside the helper.
+        const decodedToken = await decodeTokenWithKeysets(token);
+        if (cancelled) return;
+        const mint = decodedToken.mint;
+        setTokenMint(mint);
+        const proofs = decodedToken.proofs;
+        setProofs(proofs);
+        const newWallet = new CashuWallet(new CashuMint(mint));
+        setWallet(newWallet);
+        // cashuB (v4) tokens decode amounts as Amount instances / strings —
+        // the shared helper accepts every shape.
+        const totalAmount = sumProofAmounts(proofs);
 
-      setTokenAmount(totalAmount);
-      setFormattedTokenAmount(formatWithCommas(totalAmount, "sats"));
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      setIsInvalidToken(true);
-    }
+        setTokenAmount(totalAmount);
+        setFormattedTokenAmount(formatWithCommas(totalAmount, "sats"));
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        if (!cancelled) setIsInvalidToken(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   const checkProofsSpent = async () => {

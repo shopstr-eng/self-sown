@@ -617,9 +617,9 @@ describe("escrow-checkout helpers", () => {
     const V2_KEYSET_ID = "01" + "ab".repeat(31);
     const MINT = "https://mint.example";
 
-    function v2LockedToken(): string {
+    function v2LockedToken(mint: string = MINT): string {
       return getEncodedToken({
-        mint: MINT,
+        mint,
         proofs: [
           {
             id: V2_KEYSET_ID,
@@ -695,10 +695,31 @@ describe("escrow-checkout helpers", () => {
       expect(unit).toBe("sat");
     });
 
-    it("rethrows the decode error when no mint URL is known", async () => {
-      await expect(decodeEscrowLockedProofs(v2LockedToken())).rejects.toThrow(
-        /short keyset id/i
+    it("resolves the mint from the token envelope when no mint URL is supplied", async () => {
+      // The mint is read from the token via getTokenMetadata (the envelope
+      // parses without keyset mapping), then keysets are fetched as usual.
+      // No fetch assertion: the module-level keyset cache may already hold
+      // this mint from an earlier test.
+      (globalThis as any).fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ keysets: [{ id: V2_KEYSET_ID }] }),
+      });
+      const { mint, proofs } = await decodeEscrowLockedProofs(
+        v2LockedToken()
       );
+      expect(mint).toBe(MINT);
+      expect(proofs).toHaveLength(1);
+    });
+
+    it("rethrows when the envelope mint's keysets cannot be fetched", async () => {
+      // A distinct mint URL so the module-level keyset cache can't satisfy
+      // this from an earlier test.
+      (globalThis as any).fetch = jest
+        .fn()
+        .mockResolvedValue({ ok: false, status: 500 });
+      await expect(
+        decodeEscrowLockedProofs(v2LockedToken("https://unreachable.example"))
+      ).rejects.toThrow(/keysets/i);
     });
   });
 });

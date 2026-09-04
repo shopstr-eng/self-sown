@@ -38,8 +38,12 @@ function isDecodableToken(token: string): boolean {
   try {
     getDecodedToken(token, []);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    // A v2 keyset ID means this IS a cashu token from a newer mint (Nutshell
+    // >= 0.20); the envelope just can't be fully decoded without the mint's
+    // keyset list. Render the token card — ClaimButton decodes with keyset
+    // resolution.
+    return error instanceof Error && /short keyset id/i.test(error.message);
   }
 }
 

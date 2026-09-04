@@ -217,6 +217,24 @@ describe("ChatMessage", () => {
       expect(screen.getByText("Here is your token:")).toBeInTheDocument();
     });
 
+    test("renders a ClaimButton for a v2-keyset token that only fails keyset mapping", () => {
+      // Token from a Nutshell >= 0.20 mint: getDecodedToken(token, []) throws
+      // the short-keyset-id error, but the envelope is still a valid token —
+      // the card must render (ClaimButton decodes with keyset resolution).
+      const v2Token =
+        "cashuBo2FtdGh0dHBzOi8vbWludC5leGFtcGxlYXVjc2F0YXSBomFpSAHYpjB30KUfYXCBo2FhFWFzeEB0ZXN0c2VjcmV0dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0c2VjcmV0dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0YWNYIQLA_-7A_-7A_-7A_-7A_-7A_-7A_-7A_-7A_-7A_-7A_w";
+      mockGetDecodedToken.mockImplementation(() => {
+        throw new Error(
+          "A short keyset ID v2 was encountered, but got no keysets to map it to."
+        );
+      });
+      renderComponent({
+        messageEvent: { content: `Here is your token: ${v2Token}` },
+      });
+      expect(screen.getByTestId("claim-button")).toHaveTextContent(v2Token);
+      expect(screen.getByText("Here is your token:")).toBeInTheDocument();
+    });
+
     test("renders as plain text if cashu token is invalid", () => {
       const invalidToken = "cashuA_invalid_token";
       mockGetDecodedToken.mockImplementation(() => {

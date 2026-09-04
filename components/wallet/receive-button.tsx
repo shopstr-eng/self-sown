@@ -28,9 +28,10 @@ import { persistReceivedTokens } from "@/utils/cashu/wallet-mint-sync";
 import {
   Mint as CashuMint,
   Wallet as CashuWallet,
-  getDecodedToken,
   Proof,
 } from "@cashu/cashu-ts";
+import { decodeTokenWithKeysets } from "@/utils/cashu/token-decode";
+import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 import {
   NostrContext,
   SignerContext,
@@ -74,7 +75,9 @@ const ReceiveButton = () => {
     setIsSpent(false);
     setIsInvalidToken(false);
     try {
-      const token = getDecodedToken(tokenString, []);
+      // Keyset-aware decode: v2 keyset IDs (Nutshell >= 0.20) need the
+      // mint's keyset list, fetched inside the helper.
+      const token = await decodeTokenWithKeysets(tokenString);
       const tokenMint = token.mint;
       const tokenProofs = token.proofs;
       const wallet = new CashuWallet(new CashuMint(tokenMint));
@@ -101,10 +104,7 @@ const ReceiveButton = () => {
         }
         setIsClaimed(true);
         handleToggleReceiveModal();
-        const transactionAmount = tokenProofs.reduce(
-          (acc, token: Proof) => acc + token.amount.toNumber(),
-          0
-        );
+        const transactionAmount = sumProofAmounts(tokenProofs);
         localStorage.setItem(
           "history",
           JSON.stringify([
