@@ -10,3 +10,7 @@ NIP-46 signers in this app CAN encrypt to self (nip44_encrypt RPC, requested in 
 **Why:** a silently-missing kind-7375 escrow backup is a recovery path that doesn't exist; a buyer who loses their browser strands the locked proofs. encryption_failed is permanent for that signer, so retrying every wallet visit re-prompts the bunker futilely (known residual: no session give-up yet).
 
 **How to apply:** any new caller of publish/republish must handle the typed result and surface the warning; new failure modes get a new EscrowBackupFailure variant, not a bare false.
+
+**Render-surface rule:** the warning must render in a view the ACTIVE payment path actually shows. Both checkout cards have an invoice view gated on `showInvoiceCard` that only the Lightning handlers open — a banner rendered only there was invisible to direct Cashu escrow payments (state set, never displayed). The banner now also renders in the main payment view of both cards.
+
+**Why:** setting state is not surfacing; check which views each payment path (Lightning vs direct Cashu vs fiat) opens before placing a warning.
