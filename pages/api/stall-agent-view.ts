@@ -21,7 +21,9 @@ import {
   sendAgentError,
   acceptsMarkdown,
   buildAgentNotFoundMarkdown,
+  buildAgentProRequiredMarkdown,
 } from "@/utils/api/agent-error";
+import { getMembershipView } from "@/utils/pro/membership";
 import {
   buildStallMarkdown,
   buildStallJson,
@@ -82,7 +84,12 @@ export default async function handler(
   const siteUrl = host ? `https://${host}` : `${PLATFORM}/stall/${slug}`;
 
   res.setHeader("Vary", "Accept, User-Agent");
-  res.setHeader("Cache-Control", "public, max-age=600, s-maxage=600");
+  // Entitlement-gated content: never shared-cacheable. A public max-age could
+  // keep serving a seller's machine-readable content for minutes AFTER their
+  // Pro membership lapses (or hold a 403 against a seller who just renewed).
+  // Representation identity also comes from request headers (x-stall-slug /
+  // x-stall-format / x-post-slug), which Vary cannot safely key on here.
+  res.setHeader("Cache-Control", "private, no-store");
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("X-Robots-Tag", "noindex");
 
@@ -117,6 +124,35 @@ export default async function handler(
         error: "Shop not found",
         code: "not_found",
         message: `No shop matches the slug "${slug}".`,
+        slug,
+      });
+    }
+
+    // Machine-readable stall/blog content is a Pro feature, mirroring the HTML
+    // page which gates OG meta/JSON-LD on membership.isPro. Lapsed sellers
+    // (read-only/hidden) get a fail-closed 403 — agents never see premium
+    // machine-readable content without an active membership. getMembershipView
+    // throws on DB outage (500 via the catch below, never a silent 403), and
+    // self-host tenants resolve as lifetime members inside getMembershipView.
+    // Checked BEFORE the heavy product/blog fetches so a lapsed seller's view
+    // costs one membership row read and leaks nothing.
+    const membership = await getMembershipView(pubkey);
+    if (!membership.isPro) {
+      if (acceptsMarkdown(req)) {
+        res.statusCode = 403;
+        res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+        return res.end(
+          buildAgentProRequiredMarkdown(
+            siteUrl,
+            `Machine-readable content for shop "${slug}" is only served while the seller's Pro membership is active.`
+          )
+        );
+      }
+      return sendAgentError(res, {
+        status: 403,
+        error: "Pro membership required",
+        code: "pro_required",
+        message: `Machine-readable content for shop "${slug}" is only served while the seller's Pro membership is active.`,
         slug,
       });
     }

@@ -105,6 +105,29 @@ export function buildAgentNotFoundMarkdown(
   ].join("\n");
 }
 
+// Markdown 403 for agents that explicitly ask for text/markdown when the
+// requested content sits behind a Pro paywall (e.g. a lapsed seller's
+// machine-readable stall/blog views). Kept free of product/pricing claims —
+// same discipline as the public discovery files.
+export function buildAgentProRequiredMarkdown(
+  path: string,
+  message?: string
+): string {
+  return [
+    "# 403 Pro Required",
+    "",
+    message ?? `Machine-readable access to \`${path}\` requires an active Pro membership.`,
+    "",
+    "## Where to look next",
+    "",
+    `- OpenAPI reference: ${AGENT_DOCUMENTATION.openapi}`,
+    `- MCP server discovery: ${AGENT_DOCUMENTATION.mcp}`,
+    `- Agent overview: ${AGENT_DOCUMENTATION.agents}`,
+    "- Documentation index: https://milk.market/llms.txt",
+    "",
+  ].join("\n");
+}
+
 // Content-negotiated 404 writer shared by the root page catch-all and the
 // stall routes (which return Next's `notFound` for browsers). Typed against
 // the raw http types so both getServerSideProps (req/res) and API-route
