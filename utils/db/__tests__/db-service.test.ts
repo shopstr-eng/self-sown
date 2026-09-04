@@ -815,6 +815,126 @@ describe("db-service helpers", () => {
         }
       });
     });
+
+    // Money-path accessors must REJECT on a DB outage so webhook/payment
+    // callers fail closed (500 + retry) instead of misreading an outage as
+    // "no row" (null/[]/{valid:false}). The empty value is only for
+    // genuinely missing rows. Pins the behavior flipped in task #268.
+    describe("money-path read accessors propagate DB outages", () => {
+      const readFailure = new Error("database offline");
+      const pk = "a".repeat(64);
+
+      async function withMockedPool(
+        queryImpl: () => Promise<{ rows: unknown[]; rowCount: number }>,
+        run: (mod: any, client: { release: jest.Mock }) => Promise<void>
+      ) {
+        await jest.isolateModulesAsync(async () => {
+          const previousDatabaseUrl = process.env.DATABASE_URL;
+          process.env.DATABASE_URL = "postgres://test@localhost/testdb";
+          const client = {
+            query: jest.fn(queryImpl),
+            release: jest.fn(),
+          };
+          const pool = {
+            connect: jest.fn(async () => client),
+            on: jest.fn(),
+            end: jest.fn(),
+          };
+          const consoleError = jest
+            .spyOn(console, "error")
+            .mockImplementation(() => undefined);
+          try {
+            jest.doMock("pg", () => ({
+              Pool: class {
+                constructor() {
+                  return pool;
+                }
+              },
+            }));
+            const mod = await import("../db-service");
+            await run(mod, client);
+            await mod.closeDbPool();
+          } finally {
+            consoleError.mockRestore();
+            process.env.DATABASE_URL = previousDatabaseUrl;
+          }
+        });
+      }
+
+      const outageCases: Array<
+        [string, (mod: any) => Promise<unknown>]
+      > = [
+        ["getStripeConnectAccount", (mod) => mod.getStripeConnectAccount(pk)],
+        [
+          "getSellerNotificationEmail",
+          (mod) => mod.getSellerNotificationEmail(pk),
+        ],
+        [
+          "getBuyerNotificationEmail",
+          (mod) => mod.getBuyerNotificationEmail("order-1"),
+        ],
+        ["getUserAuthEmail", (mod) => mod.getUserAuthEmail(pk)],
+        ["validateDiscountCode", (mod) => mod.validateDiscountCode("CODE", pk)],
+        [
+          "getDiscountCodesByPubkey",
+          (mod) => mod.getDiscountCodesByPubkey(pk),
+        ],
+      ];
+
+      test.each(outageCases)(
+        "%s rejects (never swallows) when the DB query fails",
+        async (_name, call) => {
+          await withMockedPool(
+            async () => {
+              throw readFailure;
+            },
+            async (mod, client) => {
+              await expect(call(mod)).rejects.toBe(readFailure);
+              expect(client.release).toHaveBeenCalled();
+            }
+          );
+        }
+      );
+
+      const emptyResultCases: Array<
+        [string, (mod: any) => Promise<unknown>, unknown]
+      > = [
+        ["getStripeConnectAccount", (mod) => mod.getStripeConnectAccount(pk), null],
+        [
+          "getSellerNotificationEmail",
+          (mod) => mod.getSellerNotificationEmail(pk),
+          null,
+        ],
+        [
+          "getBuyerNotificationEmail",
+          (mod) => mod.getBuyerNotificationEmail("order-1"),
+          null,
+        ],
+        ["getUserAuthEmail", (mod) => mod.getUserAuthEmail(pk), null],
+        [
+          "validateDiscountCode",
+          (mod) => mod.validateDiscountCode("CODE", pk),
+          { valid: false },
+        ],
+        [
+          "getDiscountCodesByPubkey",
+          (mod) => mod.getDiscountCodesByPubkey(pk),
+          [],
+        ],
+      ];
+
+      test.each(emptyResultCases)(
+        "%s still returns the empty value for genuinely missing rows",
+        async (_name, call, expected) => {
+          await withMockedPool(
+            async () => ({ rows: [], rowCount: 0 }),
+            async (mod) => {
+              await expect(call(mod)).resolves.toEqual(expected);
+            }
+          );
+        }
+      );
+    });
   });
 
   describe("db-service with Testcontainers (discounts, stats, cached events)", () => {

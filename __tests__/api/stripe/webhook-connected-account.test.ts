@@ -392,6 +392,38 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_INVOICE_PAID");
   });
 
+  it("aborts before any seller transfer when the Connect-account lookup hits a DB outage", async () => {
+    // The transfer loop resolves missing Connect account ids for ALL splits
+    // before the first transfers.create, which is not idempotent across a
+    // webhook retry — a lookup outage must 500 (claim release → Stripe
+    // retry) with zero transfers created, or the retry would double-pay.
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: CONNECTED_ACCOUNT,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: {
+        isMultiMerchant: "true",
+        transferGroup: "tg_outage",
+        sellerSplits: JSON.stringify([
+          { pubkey: "c".repeat(64), amountCents: 500, accountId: "" },
+        ]),
+      },
+    });
+    mockGetStripeConnectAccount.mockRejectedValue(new Error("db down"));
+    fireInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
+  });
+
   it("logs ORPHANED_SUBSCRIPTION_INVOICE_PAID and still 200s when no row matches AND the platform account cannot see the subscription", async () => {
     // Money moved on a connected account we have no record of: the retrieve
     // without { stripeAccount } fails resource_missing, the seller transfers
