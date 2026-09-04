@@ -303,6 +303,17 @@ export function eventToUcpProduct(
       ? shippingDestinationCountries(parsedShipping.shippingCurrency)
       : undefined;
 
+  // Seller's ship-out promise (whole days) from the optional handling_time
+  // tag — same validation as buildHandlingTimeTag (blank rejected BEFORE
+  // Number() because Number("")==0; then finite, >= 0, floored); anything
+  // invalid is treated as unset rather than fabricated.
+  const rawHandlingTime = getTagValue(tags, "handling_time")?.trim();
+  const parsedHandlingTime = rawHandlingTime ? Number(rawHandlingTime) : NaN;
+  const handlingTimeDays =
+    Number.isFinite(parsedHandlingTime) && parsedHandlingTime >= 0
+      ? Math.floor(parsedHandlingTime)
+      : undefined;
+
   const taxonomy = resolveTaxonomy({
     categories,
     googleOverride: getTagValue(tags, "google_product_category"),
@@ -345,6 +356,7 @@ export function eventToUcpProduct(
       pickupAvailable,
       ...(pickupLocations.length > 0 ? { pickupLocations } : {}),
       ...(destinationCountries ? { destinationCountries } : {}),
+      ...(handlingTimeDays !== undefined ? { handlingTimeDays } : {}),
     },
     paymentMethods: opts.paymentMethods || ["lightning", "cashu"],
     updatedAt: new Date((event.created_at || 0) * 1000).toISOString(),

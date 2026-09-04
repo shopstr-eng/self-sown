@@ -101,6 +101,18 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           },
           pickupAvailable: { type: "boolean" },
           pickupLocations: { type: "array", items: { type: "string" } },
+          destinationCountries: {
+            type: "array",
+            items: { type: "string", pattern: "^[A-Z]{2}$" },
+            description:
+              "ISO 3166-1 alpha-2 country code(s) the shipping rate applies to. Omitted when it can't be stated truthfully.",
+          },
+          handlingTimeDays: {
+            type: "integer",
+            minimum: 0,
+            description:
+              "Seller's ship-out promise in whole days (from the listing's handling_time tag). Omitted when unset.",
+          },
         },
         required: ["type", "cost", "pickupAvailable"],
         additionalProperties: false,

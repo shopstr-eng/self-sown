@@ -79,6 +79,38 @@ describe("eventToUcpProduct", () => {
     expect(ext.nativeCurrency).toBe("USD");
   });
 
+  it("maps the handling_time tag to shipping.handlingTimeDays", () => {
+    const event = makeEvent([
+      ["title", "Raw Milk"],
+      ["price", "12", "USD"],
+      ["shipping", "Added Cost", "5", "USD"],
+      ["handling_time", "2"],
+    ]);
+    const p = eventToUcpProduct(event);
+    expect(p.shipping.handlingTimeDays).toBe(2);
+  });
+
+  it("omits handlingTimeDays for missing or invalid handling_time tags", () => {
+    const missing = eventToUcpProduct(
+      makeEvent([
+        ["title", "Raw Milk"],
+        ["price", "12", "USD"],
+      ])
+    );
+    expect(missing.shipping.handlingTimeDays).toBeUndefined();
+
+    for (const bad of ["-1", "not-a-number", ""]) {
+      const p = eventToUcpProduct(
+        makeEvent([
+          ["title", "Raw Milk"],
+          ["price", "12", "USD"],
+          ["handling_time", bad],
+        ])
+      );
+      expect(p.shipping.handlingTimeDays).toBeUndefined();
+    }
+  });
+
   it("derives a single-country shipping destination from the shipping currency", () => {
     const event = makeEvent([
       ["title", "Raw Milk"],

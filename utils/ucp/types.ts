@@ -56,6 +56,13 @@ export interface UcpShipping {
    * never fabricate a region.
    */
   destinationCountries?: string[];
+  /**
+   * Seller's ship-out promise in whole days, from the listing's optional
+   * `handling_time` tag (the only structured delivery signal a listing
+   * carries; transit estimates only exist as live per-quote Shippo data and
+   * are never persisted). Omitted when unset — never fabricated.
+   */
+  handlingTimeDays?: number;
 }
 
 export interface UcpVariant {

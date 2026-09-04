@@ -93,6 +93,26 @@ export function buildProductJsonLd(
       }));
       shippingDetails.shippingDestination =
         regions.length === 1 ? regions[0] : regions;
+
+      // Handling time comes from the seller's own `handling_time` listing tag
+      // (whole days until ship-out). It is only emitted alongside a valid rate
+      // AND destination — Google requires both on OfferShippingDetails, so a
+      // deliveryTime-only block would be ignored rather than enrich anything.
+      // Transit time is NOT emitted: the only transit data is live per-quote
+      // Shippo estimates keyed to a buyer's destination, which can't be
+      // truthfully stated on a crawler-facing page.
+      const handlingTimeDays = product.shipping?.handlingTimeDays;
+      if (handlingTimeDays !== undefined) {
+        shippingDetails.deliveryTime = {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: handlingTimeDays,
+            maxValue: handlingTimeDays,
+            unitCode: "DAY",
+          },
+        };
+      }
     }
 
     offer.shippingDetails = shippingDetails;

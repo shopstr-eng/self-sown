@@ -145,6 +145,89 @@ describe("buildProductJsonLd", () => {
     ).toBeUndefined();
   });
 
+  it("emits deliveryTime.handlingTime from the seller's handling_time promise", () => {
+    const ld = buildProductJsonLd(
+      makeProduct({
+        shipping: {
+          type: "Added Cost",
+          cost: usd(599),
+          pickupAvailable: false,
+          destinationCountries: ["US"],
+          handlingTimeDays: 3,
+        },
+      })
+    );
+    const details = (ld.offers as Record<string, unknown>)
+      .shippingDetails as Record<string, unknown>;
+    expect(details.deliveryTime).toEqual({
+      "@type": "ShippingDeliveryTime",
+      handlingTime: {
+        "@type": "QuantitativeValue",
+        minValue: 3,
+        maxValue: 3,
+        unitCode: "DAY",
+      },
+    });
+    // Transit time is never emitted — the only transit data is live
+    // per-quote Shippo estimates, not a truthful page-level claim.
+    expect(
+      (details.deliveryTime as Record<string, unknown>).transitTime
+    ).toBeUndefined();
+  });
+
+  it("omits deliveryTime when no handling time is listed (no fabrication)", () => {
+    const ld = buildProductJsonLd(
+      makeProduct({
+        shipping: {
+          type: "Added Cost",
+          cost: usd(599),
+          pickupAvailable: false,
+          destinationCountries: ["US"],
+        },
+      })
+    );
+    const details = (ld.offers as Record<string, unknown>)
+      .shippingDetails as Record<string, unknown>;
+    expect(details.deliveryTime).toBeUndefined();
+  });
+
+  it("omits deliveryTime without a destination even when handling time is listed", () => {
+    // Google requires shippingRate AND shippingDestination on
+    // OfferShippingDetails — a deliveryTime-only block would be ignored, so
+    // it is only emitted when the full shipping snippet is valid.
+    const ld = buildProductJsonLd(
+      makeProduct({
+        shipping: {
+          type: "Added Cost",
+          cost: usd(599),
+          pickupAvailable: false,
+          handlingTimeDays: 2,
+        },
+      })
+    );
+    const details = (ld.offers as Record<string, unknown>)
+      .shippingDetails as Record<string, unknown>;
+    expect(details.shippingRate).toBeDefined();
+    expect(details.shippingDestination).toBeUndefined();
+    expect(details.deliveryTime).toBeUndefined();
+  });
+
+  it("emits no shippingDetails at all for a sats rate with handling time", () => {
+    const ld = buildProductJsonLd(
+      makeProduct({
+        shipping: {
+          type: "Added Cost",
+          cost: sats(2100),
+          pickupAvailable: false,
+          handlingTimeDays: 0,
+        },
+      })
+    );
+    expect(
+      (ld.offers as Record<string, unknown>).shippingDetails
+    ).toBeUndefined();
+  });
+
   it("emits a single DefinedRegion shippingDestination from the country code", () => {
     const ld = buildProductJsonLd(
       makeProduct({
