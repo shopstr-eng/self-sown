@@ -424,6 +424,77 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     expect(mockReleaseStripeEvent).toHaveBeenCalledWith("evt_invoice_paid");
   });
 
+  it("passes a deterministic per-invoice-per-seller idempotency key so a webhook retry cannot double-pay a seller", async () => {
+    const sellerA = "c".repeat(64);
+    const sellerB = "d".repeat(64);
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: CONNECTED_ACCOUNT,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: {
+        isMultiMerchant: "true",
+        transferGroup: "tg_retry",
+        sellerSplits: JSON.stringify([
+          { pubkey: sellerA, amountCents: 500, accountId: "acct_a" },
+          { pubkey: sellerB, amountCents: 300, accountId: "acct_b" },
+        ]),
+      },
+    });
+
+    // Emulate Stripe's server-side dedup: a repeated idempotency key returns
+    // the original transfer instead of creating a new one.
+    const createdByKey = new Map<string, string>();
+    let sellerBAttempts = 0;
+    mockTransfersCreate.mockImplementation(
+      async (params: any, opts: any) => {
+        if (params.destination === "acct_b" && sellerBAttempts++ === 0) {
+          throw new Error("stripe 500"); // seller B fails on attempt 1
+        }
+        const key = opts?.idempotencyKey;
+        if (createdByKey.has(key)) {
+          return { id: createdByKey.get(key), duplicate: true };
+        }
+        const id = `tr_${createdByKey.size}`;
+        createdByKey.set(key, id);
+        return { id };
+      }
+    );
+
+    fireInvoicePaid();
+    const res1 = makeRes();
+    await webhookHandler(makeReq(), res1);
+    expect(res1.statusCode).toBe(200); // transfer failures are caught + alerted
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(2);
+
+    // Stripe retries the same event (at-least-once delivery).
+    fireInvoicePaid();
+    const res2 = makeRes();
+    await webhookHandler(makeReq(), res2);
+    expect(res2.statusCode).toBe(200);
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(4);
+
+    // Each seller's retry carried the SAME deterministic key, so Stripe
+    // deduped seller A's second call: exactly one transfer per seller exists.
+    const calls = mockTransfersCreate.mock.calls;
+    expect(calls[0][1]).toEqual({
+      idempotencyKey: `invoice-in_paid-transfer-${sellerA}`,
+    });
+    expect(calls[2][1]).toEqual({
+      idempotencyKey: `invoice-in_paid-transfer-${sellerA}`,
+    });
+    expect(calls[1][1]).toEqual({
+      idempotencyKey: `invoice-in_paid-transfer-${sellerB}`,
+    });
+    expect(calls[3][1]).toEqual({
+      idempotencyKey: `invoice-in_paid-transfer-${sellerB}`,
+    });
+    expect(createdByKey.size).toBe(2);
+  });
+
   it("logs ORPHANED_SUBSCRIPTION_INVOICE_PAID and still 200s when no row matches AND the platform account cannot see the subscription", async () => {
     // Money moved on a connected account we have no record of: the retrieve
     // without { stripeAccount } fails resource_missing, the seller transfers

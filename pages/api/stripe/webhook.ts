@@ -570,18 +570,26 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     if (!accountId) continue; // already recorded in failedTransfers above
 
     try {
-      await stripe.transfers.create({
-        amount: split.amountCents,
-        currency: transferCurrency,
-        destination: accountId,
-        transfer_group: transferGroup,
-        metadata: {
-          subscriptionId,
-          invoiceId: invoice.id,
-          sellerPubkey: split.pubkey,
-          paymentIntentId: paymentIntentId || "",
+      // Deterministic idempotency key: if anything uncaught throws later in
+      // the loop, the 500 releases the event claim and Stripe retries the
+      // webhook — without the key, sellers whose transfers already succeeded
+      // would be paid twice. Keyed on invoice.id + seller pubkey (NOT
+      // transferGroup, which is shared across a subscription's renewals).
+      await stripe.transfers.create(
+        {
+          amount: split.amountCents,
+          currency: transferCurrency,
+          destination: accountId,
+          transfer_group: transferGroup,
+          metadata: {
+            subscriptionId,
+            invoiceId: invoice.id,
+            sellerPubkey: split.pubkey,
+            paymentIntentId: paymentIntentId || "",
+          },
         },
-      });
+        { idempotencyKey: `invoice-${invoice.id}-transfer-${split.pubkey}` }
+      );
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(
