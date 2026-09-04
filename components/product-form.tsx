@@ -40,7 +40,11 @@ import {
   finalizeAndSendNostrEvent,
   buildParcelTag,
 } from "@/utils/nostr/nostr-helper-functions";
-import { buildHandlingTimeTag } from "@/utils/parsers/product-tag-helpers";
+import {
+  buildHandlingTimeTag,
+  buildShipsToTags,
+} from "@/utils/parsers/product-tag-helpers";
+import locationSelection from "../public/locationSelection.json";
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import {
@@ -221,6 +225,7 @@ export default function ProductForm({
             oldValues.handlingTimeDays !== undefined
               ? String(oldValues.handlingTimeDays)
               : "",
+          "Ships To Countries": oldValues.shipsTo || [],
         }
       : {
           Currency: "USD",
@@ -442,6 +447,15 @@ export default function ProductForm({
     );
     if (handlingTimeTag) {
       tags.push(handlingTimeTag);
+    }
+
+    // Optional explicit ship-to countries. UCP/GEO surfaces prefer these over
+    // the currency-derived destination inference.
+    const shipsToTags = buildShipsToTags(
+      data["Ships To Countries"] as string[] | undefined
+    );
+    if (shipsToTags) {
+      tags.push(...shipsToTags);
     }
 
     const parcelTag = buildParcelTag({
@@ -1465,6 +1479,45 @@ export default function ProductForm({
                           onChange={onChange}
                           onBlur={onBlur}
                         />
+                      )}
+                    />
+                    <Controller
+                      name="Ships To Countries"
+                      control={control}
+                      render={({ field: { onChange, value } }) => (
+                        <Select
+                          classNames={{
+                            trigger:
+                              "border-2 border-black rounded-md shadow-none !bg-white min-h-12",
+                            value: "!text-black font-normal",
+                            popoverContent:
+                              "bg-white border-2 border-black rounded-md",
+                          }}
+                          variant="flat"
+                          selectionMode="multiple"
+                          aria-label="Ships To Countries"
+                          label="Ships To (countries)"
+                          labelPlacement="outside"
+                          placeholder="Not specified"
+                          description="Where you ship, shown in search results. Leave blank to infer from your shipping currency."
+                          selectedKeys={new Set((value as string[]) || [])}
+                          onSelectionChange={(keys) =>
+                            onChange(Array.from(keys as Set<string>))
+                          }
+                        >
+                          {locationSelection.countries.map(
+                            (c: { country: string; iso3166: string }) => (
+                              <SelectItem
+                                key={c.iso3166.toUpperCase()}
+                                classNames={{
+                                  base: "text-black data-[hover=true]:bg-gray-100",
+                                }}
+                              >
+                                {c.country}
+                              </SelectItem>
+                            )
+                          )}
+                        </Select>
                       )}
                     />
                     <Controller

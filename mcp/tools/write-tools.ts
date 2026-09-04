@@ -7,7 +7,10 @@ import {
 } from "@/utils/mcp/nostr-signing";
 import { ApiKeyRecord, getAgentSigner } from "@/utils/mcp/auth";
 import { EventTemplate } from "nostr-tools";
-import { buildHandlingTimeTag } from "@/utils/parsers/product-tag-helpers";
+import {
+  buildHandlingTimeTag,
+  buildShipsToTags,
+} from "@/utils/parsers/product-tag-helpers";
 import {
   cacheEvent,
   fetchAllProfilesFromDb,
@@ -1675,6 +1678,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Days until the order ships out ('0' = same day, '1' = next day). Shown to buyers on the product and checkout pages."
         ),
+      shipsToCountries: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "ISO 3166-1 alpha-2 country codes the seller ships to (e.g. ['US', 'CA']). Invalid codes are dropped; omitted means the destination is inferred from the shipping currency."
+        ),
       quantity: z.string().optional().describe("Available quantity"),
       condition: z
         .string()
@@ -1787,6 +1796,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const handlingTimeTag = buildHandlingTimeTag(params.handlingTimeDays);
         if (handlingTimeTag) {
           tags.push(handlingTimeTag);
+        }
+
+        // Explicit ship-to countries; invalid codes are dropped inside.
+        const shipsToTags = buildShipsToTags(params.shipsToCountries);
+        if (shipsToTags) {
+          tags.push(...shipsToTags);
         }
 
         if (params.images) {
@@ -1970,6 +1985,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe(
           "Updated ship-out promise in days ('0' = same day, '1' = next day). Omit to keep the existing value."
         ),
+      shipsToCountries: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Updated ship-to countries as ISO 3166-1 alpha-2 codes (e.g. ['US', 'CA']). Omit to keep the existing value."
+        ),
       quantity: z.string().optional().describe("Updated quantity"),
       condition: z.string().optional().describe("Updated condition"),
       status: z.string().optional().describe("Updated status"),
@@ -2111,6 +2132,13 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         if (handlingTimeTag) {
           stripKeys(["handling_time"]);
           baseTags.push(handlingTimeTag);
+        }
+        // Same "keep existing" contract: only strip+replace when at least one
+        // valid country code is supplied.
+        const shipsToTags = buildShipsToTags(params.shipsToCountries);
+        if (shipsToTags) {
+          stripKeys(["ships_to"]);
+          for (const t of shipsToTags) baseTags.push(t);
         }
         if (params.images) {
           stripKeys(["image"]);

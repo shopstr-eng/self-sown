@@ -111,6 +111,43 @@ describe("eventToUcpProduct", () => {
     }
   });
 
+  it("prefers explicit ships_to tags over the currency-derived destination", () => {
+    // EUR shipping can't infer a destination (multi-country currency), but
+    // the seller's explicit declaration is truthful and wins.
+    const event = makeEvent([
+      ["title", "Raw Milk"],
+      ["price", "12", "EUR"],
+      ["shipping", "Added Cost", "5", "EUR"],
+      ["ships_to", "DE"],
+      ["ships_to", "fr"],
+    ]);
+    const p = eventToUcpProduct(event);
+    expect(p.shipping.destinationCountries).toEqual(["DE", "FR"]);
+  });
+
+  it("explicit ships_to overrides a single-country currency inference", () => {
+    const event = makeEvent([
+      ["title", "Raw Milk"],
+      ["price", "12", "USD"],
+      ["shipping", "Added Cost", "5", "USD"],
+      ["ships_to", "US"],
+      ["ships_to", "CA"],
+    ]);
+    const p = eventToUcpProduct(event);
+    expect(p.shipping.destinationCountries).toEqual(["CA", "US"]);
+  });
+
+  it("falls back to currency inference when ships_to has no valid codes", () => {
+    const event = makeEvent([
+      ["title", "Raw Milk"],
+      ["price", "12", "USD"],
+      ["shipping", "Added Cost", "5", "USD"],
+      ["ships_to", "XX"],
+    ]);
+    const p = eventToUcpProduct(event);
+    expect(p.shipping.destinationCountries).toEqual(["US"]);
+  });
+
   it("derives a single-country shipping destination from the shipping currency", () => {
     const event = makeEvent([
       ["title", "Raw Milk"],

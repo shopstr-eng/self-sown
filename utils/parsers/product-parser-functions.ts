@@ -1,6 +1,7 @@
 import { ShippingOptionsType } from "@/utils/STATIC-VARIABLES";
 import { calculateTotalCost } from "@/components/utility-components/display-monetary-info";
 import { parseShippingTag } from "@/utils/parsers/product-tag-helpers";
+import { ISO_COUNTRY_CODES } from "@/utils/geo/countries";
 import { normalizeProductImageUrl } from "@/utils/images";
 import { NostrEvent, StorefrontProductPageConfig } from "@/utils/types/types";
 
@@ -72,6 +73,8 @@ export type ProductData = {
   packageWidthIn?: number;
   packageHeightIn?: number;
   handlingTimeDays?: number;
+  /** Seller's explicit ship-to countries (ISO 3166-1 alpha-2, sorted). */
+  shipsTo?: string[];
   rawEvent?: NostrEvent;
 };
 
@@ -323,6 +326,17 @@ export const parseTags = (productEvent: NostrEvent) => {
         const hd = values[0] ? Number(values[0]) : NaN;
         if (Number.isFinite(hd) && hd >= 0) {
           parsedData.handlingTimeDays = Math.floor(hd);
+        }
+        break;
+      }
+      case "ships_to": {
+        // Repeated ["ships_to", ISO] tags — the seller's explicit ship-to
+        // countries. Unknown codes are dropped (never fabricated into).
+        const code = values[0]?.trim().toUpperCase();
+        if (code && ISO_COUNTRY_CODES.has(code)) {
+          parsedData.shipsTo = [
+            ...new Set([...(parsedData.shipsTo ?? []), code]),
+          ].sort();
         }
         break;
       }

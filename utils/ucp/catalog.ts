@@ -5,6 +5,7 @@ import {
   parseShippingFromTags,
 } from "@/utils/parsers/product-tag-helpers";
 import { getListingSlug, type ListingSlugCandidate } from "@/utils/url-slugs";
+import { parseShipsToCodes } from "@/utils/geo/countries";
 import { toUcpMoney, type UcpMoney } from "./money";
 import { resolveTaxonomy } from "./taxonomy";
 import {
@@ -296,12 +297,19 @@ export function eventToUcpProduct(
   // "N/A" is an allowed shipping type that means "no shipping config", so it is
   // explicitly excluded — a listing with no/unknown shipping claims no region
   // rather than fabricating one.
+  // Explicit seller-declared ship-to countries (repeated ships_to tags) win
+  // over the currency-derived inference below — a USD-priced seller who ships
+  // to Canada too can say so, and a EUR listing can finally claim regions.
+  // Either way unknown stays omitted; we never fabricate a region.
+  const explicitShipTo = parseShipsToCodes(getAllTagValues(tags, "ships_to"));
   const destinationCountries =
-    parsedShipping &&
-    parsedShipping.shippingType !== "N/A" &&
-    shippingCost !== null
-      ? shippingDestinationCountries(parsedShipping.shippingCurrency)
-      : undefined;
+    explicitShipTo.length > 0
+      ? explicitShipTo
+      : parsedShipping &&
+          parsedShipping.shippingType !== "N/A" &&
+          shippingCost !== null
+        ? shippingDestinationCountries(parsedShipping.shippingCurrency)
+        : undefined;
 
   // Seller's ship-out promise (whole days) from the optional handling_time
   // tag — same validation as buildHandlingTimeTag (blank rejected BEFORE

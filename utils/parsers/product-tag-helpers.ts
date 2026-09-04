@@ -2,6 +2,7 @@ import {
   SHIPPING_OPTIONS,
   ShippingOptionsType,
 } from "@/utils/STATIC-VARIABLES";
+import { parseShipsToCodes } from "@/utils/geo/countries";
 
 export type ParsedShippingTag = {
   shippingType: ShippingOptionsType;
@@ -121,6 +122,21 @@ export function buildHandlingTimeTag(
   const days = Number(str);
   if (!Number.isFinite(days) || days < 0) return undefined;
   return ["handling_time", String(Math.floor(days))];
+}
+
+// Builds repeated ["ships_to", ISO] tags from raw user/agent input (array or
+// comma-joined string). Unknown/blank codes are dropped; returns undefined
+// when no valid codes remain — "unset" (create) / "keep existing" (update),
+// the same contract as buildHandlingTimeTag.
+export function buildShipsToTags(
+  raw: string[] | string | undefined | null
+): [string, string][] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const list = Array.isArray(raw) ? raw : String(raw).split(",");
+  const codes = parseShipsToCodes(list.map((v) => String(v)));
+  return codes.length > 0
+    ? codes.map((c): [string, string] => ["ships_to", c])
+    : undefined;
 }
 
 // Returns the shared ship-out promise only when every item has the same
