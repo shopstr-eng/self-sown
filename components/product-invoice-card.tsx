@@ -127,6 +127,13 @@ import {
 } from "@/utils/types/types";
 import { Controller } from "react-hook-form";
 import StripeCardForm from "./utility-components/stripe-card-form";
+import {
+  eligibleShippingOptions,
+  fetchShippingOptionsByAddresses,
+  isSpecDestinationBlocked,
+  resolvedOptionCost,
+  ResolvedShippingOption,
+} from "@/utils/nostr/fetch-shipping-options";
 
 export default function ProductInvoiceCard({
   productData,
@@ -296,6 +303,52 @@ export default function ProductInvoiceCard({
 
   const [formType, setFormType] = useState<"shipping" | "contact" | null>(null);
   const [convertedShippingCost, setConvertedShippingCost] = useState<number>(0);
+
+  // Marketplace-spec shipping options (kind-30406 refs on the product). When
+  // at least one resolves, the buyer picks one and its cost replaces the
+  // legacy `shipping` tag cost everywhere downstream.
+  const [specShippingOptions, setSpecShippingOptions] = useState<
+    ResolvedShippingOption[]
+  >([]);
+  const [selectedSpecOptionAddr, setSelectedSpecOptionAddr] = useState<
+    string | null
+  >(null);
+
+  // Resolve the product's kind-30406 shipping option refs. Options are
+  // mutable addressable events, so this fetches the latest per address.
+  useEffect(() => {
+    const refs = productData.shippingOptions;
+    if (!refs || refs.length === 0 || !nostr) return;
+    let cancelled = false;
+    (async () => {
+      const { relays } = getLocalStorageData();
+      const options = await fetchShippingOptionsByAddresses(
+        nostr,
+        relays,
+        refs.map((r) => r.reference)
+      );
+      if (cancelled) return;
+      const resolved = refs
+        .map((r) => {
+          const option = options.get(r.reference);
+          if (!option) return null;
+          return r.extraCost !== undefined
+            ? { option, extraCost: r.extraCost }
+            : { option };
+        })
+        .filter((r): r is ResolvedShippingOption => r !== null);
+      setSpecShippingOptions(resolved);
+      setSelectedSpecOptionAddr((prev) =>
+        prev && resolved.some((r) => r.option.address === prev)
+          ? prev
+          : (resolved[0]?.option.address ?? null)
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nostr, productData.shippingOptions]);
   // True when converting the seller's shipping cost into the product currency
   // required an FX lookup that the rate feed could not provide, so
   // `convertedShippingCost` fell back to 0. Fine for DISPLAY, but a card CHARGE
@@ -601,12 +654,13 @@ export default function ProductInvoiceCard({
           currency: entry.currency,
           paymentMethod: entry.paymentMethod,
           orderId: entry.orderId,
-          shippingCost:
-            entry.shippingAddress && liveShipping
-              ? String(convertedShippingCost)
-              : entry.shippingAddress && productData.shippingCost
-                ? String(productData.shippingCost)
-                : undefined,
+          // The post-FX, post-discount shipping actually included in the
+          // charged total — covers spec options (kind 30406), live quotes,
+          // and legacy costs, so the confirmation can't disagree with the
+          // charge.
+          shippingCost: entry.shippingAddress
+            ? String(shippingCostToAdd)
+            : undefined,
           selectedSize,
           selectedVolume,
           selectedWeight,
@@ -616,6 +670,7 @@ export default function ProductInvoiceCard({
             ? String(selectedBulkOption)
             : undefined,
           buyerEmail: buyerEmail || undefined,
+          shippingOption: selectedSpecOption?.option.title,
           shippingAddress: entry.shippingAddress,
           pickupLocation: selectedPickupLocation || undefined,
           sellerPubkey: entry.sellerPubkey,
@@ -1248,6 +1303,21 @@ export default function ProductInvoiceCard({
     paymentType?: "fiat" | "lightning" | "cashu" | "nwc" | "stripe"
   ) => {
     try {
+      // Hard destination block: the listing's spec shipping options declare
+      // no service to the buyer's country — never fall back to charging the
+      // legacy/live shipping cost for a destination the seller excluded.
+      if (specDestinationBlocked) {
+        throw new Error(
+          "This seller does not ship to the selected country."
+        );
+      }
+      // Fail closed on EVERY rail: when shipping (spec option or legacy cost)
+      // needs an FX conversion the rate feed can't provide, proceeding would
+      // charge with shipping silently dropped to 0 — same guard the Stripe
+      // path has, applied before any payment-specific handling.
+      if (formType === "shipping" && shippingFxFailed) {
+        throw new ExchangeRateError();
+      }
       let price =
         paymentType === "lightning" ||
         paymentType === "cashu" ||
@@ -2067,12 +2137,9 @@ export default function ProductInvoiceCard({
             currency: productData.currency || "sats",
             paymentMethod: selectedFiatOption || "fiat",
             orderId: orderId || "",
-            shippingCost:
-              addressTag && liveShipping
-                ? String(convertedShippingCost)
-                : addressTag && productData.shippingCost
-                  ? String(productData.shippingCost)
-                  : undefined,
+            // Post-FX, post-discount shipping actually charged (see the
+            // matching block in the payment-entry path above).
+            shippingCost: addressTag ? String(shippingCostToAdd) : undefined,
             selectedSize,
             selectedVolume,
             selectedWeight,
@@ -2082,6 +2149,7 @@ export default function ProductInvoiceCard({
               ? String(selectedBulkOption)
               : undefined,
             buyerEmail: buyerEmail || undefined,
+            shippingOption: selectedSpecOption?.option.title,
             shippingAddress: addressTag,
             pickupLocation: selectedPickupLocation || undefined,
             sellerPubkey: pubkey,
@@ -4910,13 +4978,93 @@ export default function ProductInvoiceCard({
   // Effective shipping inputs fed into the FX conversion below. A live USPS
   // rate (quoted in USD) overrides the seller's static shipping cost; without
   // an applicable one we keep the seller's static cost/currency unchanged.
+  // A selected spec shipping option (kind 30406) is the listing's explicit
+  // configuration, so it wins over both the legacy static cost and any live
+  // USPS quote (spec: product configuration is the source of truth). Options
+  // are country-gated (spec: `country` is required) — an option not available
+  // for the buyer's entered country can be neither selected nor charged.
+  const buyerSpecCountry = (watchedValues?.Country || "").toString().trim();
+  const visibleSpecOptions = eligibleShippingOptions(
+    specShippingOptions,
+    buyerSpecCountry
+  );
+  // Hard block (synchronously derived, so a country-change render can never
+  // submit a stale/fallback total): the listing declares spec shipping
+  // options but none serves the buyer's entered, mappable country. Falling
+  // back to the legacy/live cost here would defeat the seller's declared
+  // destination restriction, so checkout is blocked and no shipping is
+  // charged.
+  const specDestinationBlocked =
+    formType === "shipping" &&
+    isSpecDestinationBlocked(
+      specShippingOptions.length,
+      buyerSpecCountry,
+      visibleSpecOptions.length
+    );
+  const selectedSpecOption =
+    visibleSpecOptions.find(
+      (r) => r.option.address === selectedSpecOptionAddr
+    ) ?? null;
+
+  // Changing the destination country can invalidate the current selection —
+  // fall back to the first eligible option, or none (restoring the legacy
+  // shipping path) when the seller serves none of them to this country.
+  useEffect(() => {
+    if (!selectedSpecOptionAddr) return;
+    if (
+      visibleSpecOptions.some(
+        (r) => r.option.address === selectedSpecOptionAddr
+      )
+    )
+      return;
+    setSelectedSpecOptionAddr(visibleSpecOptions[0]?.option.address ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buyerSpecCountry, specShippingOptions]);
+
   const effectiveShippingCost =
-    liveShippingActive && liveShipping
-      ? liveShipping.amountUsd
-      : (productData.shippingCost ?? 0);
-  const effectiveShippingCurrency = liveShippingActive
-    ? "USD"
-    : productData.shippingCurrency || productData.currency;
+    specDestinationBlocked
+      ? 0
+      : selectedSpecOption !== null
+        ? resolvedOptionCost(selectedSpecOption)
+        : liveShippingActive && liveShipping
+          ? liveShipping.amountUsd
+          : (productData.shippingCost ?? 0);
+  const effectiveShippingCurrency = selectedSpecOption
+    ? selectedSpecOption.option.currency
+    : liveShippingActive
+      ? "USD"
+      : productData.shippingCurrency || productData.currency;
+
+  // Buyer-facing picker among the product's spec shipping options. Rendered
+  // in BOTH order-summary panes below (they are alternate views of the same
+  // checkout state), and hidden when no option resolved (legacy path).
+  const specShippingOptionPicker =
+    formType === "shipping" && visibleSpecOptions.length > 0 ? (
+      <div className="mb-2 flex items-center text-sm">
+        <span className="ml-2 font-medium">Shipping method:</span>
+        <select
+          aria-label="Shipping method"
+          className="ml-2 rounded-md border-2 border-black bg-white px-2 py-1 text-sm text-black"
+          value={selectedSpecOptionAddr ?? ""}
+          onChange={(e) => setSelectedSpecOptionAddr(e.target.value || null)}
+        >
+          {visibleSpecOptions.map((r) => (
+            <option key={r.option.address} value={r.option.address}>
+              {r.option.title} (
+              {formatWithCommas(resolvedOptionCost(r), r.option.currency)})
+            </option>
+          ))}
+        </select>
+      </div>
+    ) : null;
+
+  // Shown in place of the picker when the buyer's country is excluded by
+  // every declared option (submit is hard-blocked in onFormSubmit).
+  const specDestinationNotice = specDestinationBlocked ? (
+    <div className="mb-2 ml-2 text-sm font-medium text-red-600">
+      The seller does not ship to the entered country.
+    </div>
+  ) : null;
 
   // Convert the seller's shipping cost into the product's currency. Sellers
   // can denominate shipping in any currency (often sats), so we must FX it
@@ -6053,6 +6201,8 @@ export default function ProductInvoiceCard({
                         </span>
                       </div>
                     )}
+                    {specShippingOptionPicker}
+                    {specDestinationNotice}
                     {formType === "shipping" &&
                       rawShippingCostToAdd > 0 &&
                       (() => {
@@ -6393,6 +6543,8 @@ export default function ProductInvoiceCard({
                       </span>
                     </div>
                   )}
+                  {specShippingOptionPicker}
+                    {specDestinationNotice}
                   {rawShippingCostToAdd > 0 &&
                     formType === "shipping" &&
                     (() => {

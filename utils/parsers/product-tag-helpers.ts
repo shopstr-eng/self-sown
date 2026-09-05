@@ -3,6 +3,10 @@ import {
   ShippingOptionsType,
 } from "@/utils/STATIC-VARIABLES";
 import { parseShipsToCodes } from "@/utils/geo/countries";
+import {
+  isShippingOptionReference,
+  ShippingOptionRef,
+} from "@/utils/parsers/shipping-option-parser";
 
 export type ParsedShippingTag = {
   shippingType: ShippingOptionsType;
@@ -137,6 +141,47 @@ export function buildShipsToTags(
   return codes.length > 0
     ? codes.map((c): [string, string] => ["ships_to", c])
     : undefined;
+}
+
+// Parses a ["shipping_option", reference, extraCost?] tag (marketplace spec,
+// kind 30406). The reference must be a well-formed addressable coordinate
+// ("30406:<pubkey>:<d>" direct option, or "30405:..." collection shipping);
+// extraCost must be finite and non-negative. Malformed tags return undefined
+// and are ignored, matching the parser's tolerant posture.
+export function parseShippingOptionRefTag(
+  tag?: string[]
+): ShippingOptionRef | undefined {
+  if (!tag || tag[0] !== "shipping_option" || tag.length < 2 || tag.length > 3)
+    return;
+  const reference = tag[1];
+  if (!reference || !isShippingOptionReference(reference)) return;
+  if (tag[2] == null || !String(tag[2]).trim()) {
+    return { reference };
+  }
+  const extraCost = Number(tag[2]);
+  if (!Number.isFinite(extraCost) || extraCost < 0) return;
+  return { reference, extraCost };
+}
+
+// Builds ["shipping_option", reference, extraCost?] for the product form and
+// write tools. Blank extraCost means "no surcharge"; a negative/invalid cost
+// or malformed reference returns undefined ("don't write the tag").
+// NOTE: Number("") coerces to 0, so blank must be rejected before Number().
+export function buildShippingOptionRefTag(
+  reference: string | undefined | null,
+  extraCost?: number | string | null
+): [string, ...string[]] | undefined {
+  if (!reference) return undefined;
+  const ref = reference.trim();
+  if (!isShippingOptionReference(ref)) return undefined;
+  if (extraCost === undefined || extraCost === null) {
+    return ["shipping_option", ref];
+  }
+  const str = String(extraCost).trim();
+  if (str === "") return ["shipping_option", ref];
+  const cost = Number(str);
+  if (!Number.isFinite(cost) || cost < 0) return undefined;
+  return ["shipping_option", ref, String(cost)];
 }
 
 // Returns the shared ship-out promise only when every item has the same

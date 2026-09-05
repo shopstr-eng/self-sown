@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import { trackEvent } from "@/utils/analytics";
 import CryptoJS from "crypto-js";
 import { useRouter } from "next/router";
@@ -45,6 +45,25 @@ import {
   buildShipsToTags,
 } from "@/utils/parsers/product-tag-helpers";
 import locationSelection from "../public/locationSelection.json";
+import { v4 as uuidv4 } from "uuid";
+import {
+  buildShippingOptionEventTemplate,
+  SHIPPING_OPTION_KIND,
+  ShippingService,
+} from "@/utils/parsers/shipping-option-parser";
+import { buildShippingOptionRefTag } from "@/utils/parsers/product-tag-helpers";
+import { fetchShippingOptionsByAddresses } from "@/utils/nostr/fetch-shipping-options";
+
+// One editable shipping method in the form. Published as a kind-30406 event
+// (marketplace spec) with `d` kept stable across edits so the addressable
+// event is replaced rather than duplicated.
+type ShippingMethodDraft = {
+  d: string;
+  title: string;
+  cost: string;
+  service: ShippingService;
+  countries: string[];
+};
 import LocationDropdown from "./utility-components/dropdowns/location-dropdown";
 import ConfirmActionDropdown from "./utility-components/dropdowns/confirm-action-dropdown";
 import {
@@ -236,6 +255,27 @@ export default function ProductForm({
         },
   });
 
+  const [shippingMethods, setShippingMethods] = useState<ShippingMethodDraft[]>(
+    []
+  );
+  // Edit-hydration bookkeeping: which option refs actually hydrated into the
+  // editor (so re-saving can't silently drop refs whose events failed to load
+  // in a relay outage) and whether hydration finished (so submit can't race
+  // it).
+  const [shippingMethodsHydrated, setShippingMethodsHydrated] = useState(
+    !(oldValues?.shippingOptions && oldValues.shippingOptions.length > 0)
+  );
+  const hydratedOptionAddresses = useRef<Set<string>>(new Set());
+
+  const updateShippingMethod = (
+    index: number,
+    patch: Partial<ShippingMethodDraft>
+  ) => {
+    setShippingMethods((prev) =>
+      prev.map((m, i) => (i === index ? { ...m, ...patch } : m))
+    );
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const { relays } = getLocalStorageData();
@@ -243,6 +283,49 @@ export default function ProductForm({
       setRelayHint(relays[0] as string);
     }
   }, [signerPubKey]);
+
+  // Editing a listing with spec shipping options (kind-30406 refs): fetch the
+  // referenced option events and hydrate the methods editor. Options that no
+  // longer resolve are dropped from the editor (re-saving drops their refs).
+  useEffect(() => {
+    if (!oldValues?.shippingOptions?.length || !nostr) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { relays } = getLocalStorageData();
+        const options = await fetchShippingOptionsByAddresses(
+          nostr,
+          relays,
+          oldValues.shippingOptions!.map((r) => r.reference)
+        );
+        if (cancelled) return;
+        const methods: ShippingMethodDraft[] = [];
+        const hydrated: string[] = [];
+        for (const ref of oldValues.shippingOptions!) {
+          const option = options.get(ref.reference);
+          if (!option) continue;
+          hydrated.push(ref.reference);
+          methods.push({
+            d: option.d,
+            title: option.title,
+            cost: String(option.baseCost),
+            service: option.service,
+            countries: option.countries,
+          });
+        }
+        hydratedOptionAddresses.current = new Set(hydrated);
+        setShippingMethods(methods);
+      } catch (e) {
+        console.error("Failed to load saved shipping methods:", e);
+      } finally {
+        if (!cancelled) setShippingMethodsHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nostr]);
 
   // Load seller's saved parcel templates + shipping defaults so the form
   // can offer one-click parcel fills and pre-fill ship-from on new listings.
@@ -670,6 +753,63 @@ export default function ProductForm({
 
     if (oldValues?.pageConfig) {
       tags.push(["page_config", JSON.stringify(oldValues.pageConfig)]);
+    }
+
+    // Never let a save race option hydration — re-saving before the original
+    // refs load would silently drop them.
+    if (oldValues?.shippingOptions?.length && !shippingMethodsHydrated) {
+      return;
+    }
+
+    // Marketplace-spec shipping options: publish one kind-30406 event per
+    // method (stable d-tags replace prior versions) and reference each from
+    // the listing. A failed option publish drops just that ref — it never
+    // blocks the listing itself.
+    for (const method of shippingMethods) {
+      const methodTitle = method.title.trim();
+      const methodCost = Number(method.cost);
+      const methodCountries = method.countries.filter(Boolean);
+      if (
+        !methodTitle ||
+        !method.cost.trim() ||
+        !Number.isFinite(methodCost) ||
+        methodCost < 0 ||
+        methodCountries.length === 0
+      ) {
+        continue;
+      }
+      try {
+        const template = buildShippingOptionEventTemplate({
+          d: method.d,
+          title: methodTitle,
+          baseCost: methodCost,
+          currency: String(data["Currency"] ?? "USD"),
+          countries: methodCountries,
+          service: method.service,
+        });
+        await finalizeAndSendNostrEvent(signer!, nostr!, template);
+        const refTag = buildShippingOptionRefTag(
+          `${SHIPPING_OPTION_KIND}:${pubkey}:${method.d}`
+        );
+        if (refTag) tags.push(refTag);
+      } catch (e) {
+        console.error("Failed to publish shipping option:", e);
+      }
+    }
+
+    // Preserve pre-existing refs whose option events never hydrated (e.g.
+    // relay outage): they were never shown in the editor, so their absence
+    // from shippingMethods is not a deliberate removal. Refs that DID hydrate
+    // are governed by the editor — removal there is intentional.
+    if (oldValues?.shippingOptions) {
+      for (const ref of oldValues.shippingOptions) {
+        if (hydratedOptionAddresses.current.has(ref.reference)) continue;
+        const preserved = buildShippingOptionRefTag(
+          ref.reference,
+          ref.extraCost
+        );
+        if (preserved) tags.push(preserved);
+      }
     }
 
     const newListing = await PostListing(tags, signer!, isLoggedIn!, nostr!);
@@ -1520,6 +1660,145 @@ export default function ProductForm({
                         </Select>
                       )}
                     />
+                    <div className="mb-4 rounded-md border-2 border-black bg-white p-3">
+                      <label className="mb-1 block text-base font-semibold text-black">
+                        Shipping methods (marketplace spec)
+                      </label>
+                      <p className="mb-3 text-sm text-gray-700">
+                        Named methods published as kind-30406 events that any
+                        spec-compatible marketplace can read; buyers pick one
+                        at checkout. The classic &quot;Shipping option&quot;
+                        above stays as the fallback.
+                      </p>
+                      {!!oldValues?.shippingOptions?.length &&
+                        !shippingMethodsHydrated && (
+                          <p className="mb-2 text-sm text-gray-500">
+                            Loading saved shipping methods…
+                          </p>
+                        )}
+                      {shippingMethods.map((method, index) => (
+                        <div
+                          key={method.d}
+                          className="mb-3 rounded-md border-2 border-gray-300 p-2"
+                        >
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <Input
+                              classNames={{
+                                input: "text-sm !text-black",
+                                inputWrapper:
+                                  "border-2 border-black rounded-md shadow-none h-10 !bg-white",
+                              }}
+                              variant="flat"
+                              aria-label="Shipping method title"
+                              placeholder="Title (e.g. Standard Shipping)"
+                              value={method.title}
+                              onChange={(e) =>
+                                updateShippingMethod(index, {
+                                  title: e.target.value,
+                                })
+                              }
+                            />
+                            <Input
+                              classNames={{
+                                input: "text-sm !text-black",
+                                inputWrapper:
+                                  "border-2 border-black rounded-md shadow-none h-10 !bg-white",
+                              }}
+                              variant="flat"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              aria-label="Shipping method cost"
+                              placeholder="Cost (product currency)"
+                              value={method.cost}
+                              onChange={(e) =>
+                                updateShippingMethod(index, {
+                                  cost: e.target.value,
+                                })
+                              }
+                            />
+                            <select
+                              aria-label="Shipping service type"
+                              className="h-10 rounded-md border-2 border-black bg-white px-2 text-sm text-black"
+                              value={method.service}
+                              onChange={(e) =>
+                                updateShippingMethod(index, {
+                                  service: e.target.value as ShippingService,
+                                })
+                              }
+                            >
+                              <option value="standard">Standard</option>
+                              <option value="express">Express</option>
+                              <option value="overnight">Overnight</option>
+                              <option value="pickup">Pickup</option>
+                            </select>
+                            <Select
+                              classNames={{
+                                trigger:
+                                  "border-2 border-black rounded-md shadow-none min-h-10 !bg-white",
+                                value: "!text-black font-normal",
+                                popoverContent:
+                                  "bg-white border-2 border-black rounded-md",
+                              }}
+                              variant="flat"
+                              selectionMode="multiple"
+                              aria-label="Shipping method countries"
+                              placeholder="Countries (required)"
+                              selectedKeys={new Set(method.countries)}
+                              onSelectionChange={(keys) =>
+                                updateShippingMethod(index, {
+                                  countries: Array.from(keys as Set<string>),
+                                })
+                              }
+                            >
+                              {locationSelection.countries.map(
+                                (c: { country: string; iso3166: string }) => (
+                                  <SelectItem
+                                    key={c.iso3166.toUpperCase()}
+                                    classNames={{
+                                      base: "text-black data-[hover=true]:bg-gray-100",
+                                    }}
+                                  >
+                                    {c.country}
+                                  </SelectItem>
+                                )
+                              )}
+                            </Select>
+                          </div>
+                          <Button
+                            className="mt-2 text-red-600"
+                            size="sm"
+                            variant="light"
+                            onPress={() =>
+                              setShippingMethods((prev) =>
+                                prev.filter((_, i) => i !== index)
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant="bordered"
+                        className="border-2 border-black text-black"
+                        onPress={() =>
+                          setShippingMethods((prev) => [
+                            ...prev,
+                            {
+                              d: uuidv4(),
+                              title: "",
+                              cost: "",
+                              service: "standard",
+                              countries: [],
+                            },
+                          ])
+                        }
+                      >
+                        Add shipping method
+                      </Button>
+                    </div>
                     <Controller
                       name="Package Weight Oz"
                       control={control}
