@@ -278,10 +278,11 @@ CREATE TABLE IF NOT EXISTS mcp_api_keys (
     key_hash TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     pubkey TEXT NOT NULL,
-    permissions TEXT NOT NULL DEFAULT 'read' CHECK (permissions IN ('read', 'read_write')),
+    permissions TEXT NOT NULL DEFAULT 'read' CHECK (permissions IN ('read', 'read_write', 'full_access')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_used_at TIMESTAMP,
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    encrypted_nsec TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_mcp_api_keys_key_hash ON mcp_api_keys(key_hash);
@@ -312,6 +313,17 @@ CREATE INDEX IF NOT EXISTS idx_mcp_orders_order_id ON mcp_orders(order_id);
 CREATE INDEX IF NOT EXISTS idx_mcp_orders_buyer_pubkey ON mcp_orders(buyer_pubkey);
 CREATE INDEX IF NOT EXISTS idx_mcp_orders_seller_pubkey ON mcp_orders(seller_pubkey);
 CREATE INDEX IF NOT EXISTS idx_mcp_orders_api_key_id ON mcp_orders(api_key_id);
+
+-- MCP Request Proofs table (replay protection for signed Nostr auth proofs)
+CREATE TABLE IF NOT EXISTS mcp_request_proofs (
+    event_id TEXT NOT NULL,
+    pubkey TEXT NOT NULL,
+    action TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_mcp_request_proofs_created_at ON mcp_request_proofs(created_at);
 
 -- UCP (Universal Commerce Protocol) checkout sessions: a thin, agent-facing
 -- wrapper around a real order created by the shared order engine. Holds the

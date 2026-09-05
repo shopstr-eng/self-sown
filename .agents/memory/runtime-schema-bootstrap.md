@@ -28,7 +28,14 @@ table (stripe_processed_events, stripe_pending_payments, ucp_checkout_sessions, 
 tables, inventory, email_auth, failed_relay_publishes) is now ALSO created in
 initializeTables() — IF NOT EXISTS makes coexistence safe; lazy ensure* functions remain
 as no-ops and keep their data migrations. Any NEW lazy table must be registered there
-too, or the rename/drop trap returns.
+too, or the rename/drop trap returns. Enforcement (2026-09): Jest guard
+__tests__/utils/db/central-table-registration.test.ts fs-scans source dirs for CREATE
+TABLE and fails if the table isn't also in db-service.ts (dynamic ${} table names are
+flagged for manual review). The MCP tables (mcp_api_keys/mcp_orders/mcp_request_proofs)
+exist in THREE copies — utils/mcp/auth.ts, db-service.ts initializeTables(), AND
+db/schema.sql — which had silently diverged (columns, currency default, permissions
+CHECK); reconciled 2026-09 with idempotent ALTER self-migrations in both runtime paths.
+Any new MCP column must go in all three copies plus an ALTER.
 
 **Rule:** any new table or column for a hosted feature MUST be added to
 `initializeTables()`. Adding it only to `db/schema.sql` means the hosted DBs never get

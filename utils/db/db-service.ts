@@ -1063,10 +1063,11 @@ async function initializeTables(): Promise<void> {
           key_hash TEXT NOT NULL UNIQUE,
           name TEXT NOT NULL,
           pubkey TEXT NOT NULL,
-          permissions TEXT NOT NULL DEFAULT 'read' CHECK (permissions IN ('read', 'read_write')),
+          permissions TEXT NOT NULL DEFAULT 'read' CHECK (permissions IN ('read', 'read_write', 'full_access')),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           last_used_at TIMESTAMP,
-          is_active BOOLEAN DEFAULT TRUE
+          is_active BOOLEAN DEFAULT TRUE,
+          encrypted_nsec TEXT
       );
 
       CREATE INDEX IF NOT EXISTS idx_mcp_api_keys_key_hash ON mcp_api_keys(key_hash);
@@ -1083,9 +1084,10 @@ async function initializeTables(): Promise<void> {
           product_title TEXT,
           quantity INTEGER NOT NULL DEFAULT 1,
           amount_total NUMERIC(12,2) NOT NULL,
-          currency TEXT NOT NULL DEFAULT 'sats',
+          currency TEXT NOT NULL DEFAULT 'usd',
+          buyer_email TEXT,
           shipping_address JSONB,
-          payment_ref TEXT,
+          payment_intent_id TEXT,
           payment_status TEXT NOT NULL DEFAULT 'pending' CHECK (payment_status IN ('pending', 'processing', 'paid', 'failed', 'refunded')),
           order_status TEXT NOT NULL DEFAULT 'pending' CHECK (order_status IN ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled')),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1107,6 +1109,18 @@ async function initializeTables(): Promise<void> {
       );
 
       CREATE INDEX IF NOT EXISTS idx_mcp_request_proofs_created_at ON mcp_request_proofs(created_at);
+
+      -- Self-migrate deployments whose MCP tables predate the canonical
+      -- module DDL (utils/mcp/auth.ts): added columns + widened permissions
+      -- check. Whichever initializer runs first wins the CREATE, so both
+      -- copies must agree AND existing databases must be altered forward.
+      ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS encrypted_nsec TEXT;
+      ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT;
+      ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT;
+      ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd';
+      ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check;
+      ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check
+        CHECK (permissions IN ('read', 'read_write', 'full_access'));
 
       -- Email auth table
       CREATE TABLE IF NOT EXISTS email_auth (

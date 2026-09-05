@@ -119,12 +119,28 @@ export async function initializeApiKeysTable(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_order_id ON mcp_orders(order_id);
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_buyer_pubkey ON mcp_orders(buyer_pubkey);
+      CREATE INDEX IF NOT EXISTS idx_mcp_orders_seller_pubkey ON mcp_orders(seller_pubkey);
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_api_key_id ON mcp_orders(api_key_id);
     `);
 
     try {
       await client.query(
         `ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS encrypted_nsec TEXT`
+      );
+    } catch {}
+
+    // Self-migrate databases where initializeTables() (db-service.ts) created
+    // mcp_orders first with its older column set — the CREATE above is a
+    // no-op for them.
+    try {
+      await client.query(
+        `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT`
+      );
+      await client.query(
+        `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT`
+      );
+      await client.query(
+        `ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd'`
       );
     } catch {}
 
