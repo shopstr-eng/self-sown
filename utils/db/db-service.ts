@@ -1,6 +1,7 @@
 import { Pool, PoolClient } from "pg";
 import { NostrEvent } from "../types/types";
 import { findListingBySlug } from "../url-slugs";
+import { CHECKOUT_STATUSES } from "../ucp/checkout-status";
 
 let pool: Pool | null = null;
 let tablesInitialized = false;
@@ -1894,6 +1895,71 @@ async function initializeTables(): Promise<void> {
     `);
 
     await ensureAuthedSellersTable(client);
+
+    // Tables that also self-create lazily in their own modules. They are
+    // registered here too so a quiet dev database still contains every table
+    // prod has — otherwise the publish schema-diff reads a prod-only table as
+    // "removed" and forces a destructive rename/drop choice. The module's DDL
+    // stays the source of truth; IF NOT EXISTS makes coexistence safe, and the
+    // lazy ensure* functions keep their data migrations (they no-op on the DDL).
+    const ucpStatusList = CHECKOUT_STATUSES.map((s) => `'${s}'`).join(",");
+    await client.query(`
+      -- Stripe webhook event dedup claims (utils/stripe/processed-events.ts)
+      CREATE TABLE IF NOT EXISTS stripe_processed_events (
+        event_id TEXT PRIMARY KEY,
+        event_type TEXT NOT NULL,
+        processed_at BIGINT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'processing',
+        claimed_at BIGINT
+      );
+      ALTER TABLE stripe_processed_events
+        ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'processing';
+      ALTER TABLE stripe_processed_events
+        ADD COLUMN IF NOT EXISTS claimed_at BIGINT;
+      CREATE INDEX IF NOT EXISTS idx_stripe_processed_events_processed_at
+        ON stripe_processed_events(processed_at);
+
+      -- Stripe payment-intent lifecycle (utils/stripe/pending-payments.ts)
+      CREATE TABLE IF NOT EXISTS stripe_pending_payments (
+        intent_ref TEXT PRIMARY KEY,
+        payment_intent_id TEXT,
+        amount BIGINT NOT NULL,
+        currency TEXT NOT NULL,
+        status TEXT NOT NULL,
+        metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+        last_error_message TEXT,
+        created_at BIGINT NOT NULL,
+        updated_at BIGINT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_status
+        ON stripe_pending_payments(status);
+      CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_payment_intent_id
+        ON stripe_pending_payments(payment_intent_id);
+
+      -- UCP checkout sessions (utils/ucp/checkout-store.ts)
+      CREATE TABLE IF NOT EXISTS ucp_checkout_sessions (
+        id TEXT PRIMARY KEY,
+        api_key_id INTEGER REFERENCES mcp_api_keys(id),
+        buyer_pubkey TEXT NOT NULL,
+        seller_pubkey TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        mcp_order_id TEXT UNIQUE,
+        status TEXT NOT NULL DEFAULT 'incomplete' CHECK (status IN (${ucpStatusList})),
+        payment_method TEXT NOT NULL,
+        amount_total NUMERIC(12,2) NOT NULL DEFAULT 0,
+        currency TEXT NOT NULL DEFAULT 'usd',
+        request JSONB,
+        quote JSONB,
+        payment JSONB,
+        messages JSONB NOT NULL DEFAULT '[]'::jsonb,
+        error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_buyer ON ucp_checkout_sessions(buyer_pubkey);
+      CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_order ON ucp_checkout_sessions(mcp_order_id);
+      CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
+    `);
 
     tablesInitialized = true;
   } catch (error) {

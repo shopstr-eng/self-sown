@@ -23,8 +23,12 @@ RENAME-or-DROP choice with no ignore option. Both answers corrupt data (rename m
 webhook dedup rows AND breaks the new table's inserts — the columns differ; drop erases
 permanent dedup claims → replayed webhooks can double-pay). Fix (done 2026-09 for
 stripe_processed_events): create the missing table in the DEV database with the module's
-own DDL; the diff then sees no removal. Prevention: also register lazy tables in
-initializeTables() — IF NOT EXISTS makes coexistence safe.
+own DDL; the diff then sees no removal. Prevention (done 2026-09): every lazily-created
+table (stripe_processed_events, stripe_pending_payments, ucp_checkout_sessions, MCP
+tables, inventory, email_auth, failed_relay_publishes) is now ALSO created in
+initializeTables() — IF NOT EXISTS makes coexistence safe; lazy ensure* functions remain
+as no-ops and keep their data migrations. Any NEW lazy table must be registered there
+too, or the rename/drop trap returns.
 
 **Rule:** any new table or column for a hosted feature MUST be added to
 `initializeTables()`. Adding it only to `db/schema.sql` means the hosted DBs never get
