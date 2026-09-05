@@ -12,8 +12,19 @@ The hosted app's Postgres schema (dev AND prod) is created/migrated at RUNTIME b
 existence-guard block). `scripts/post-merge.sh` states this outright.
 
 `db/schema.sql` is a SEPARATE mirror used ONLY for self-host `psql -f db/schema.sql`
-bootstrap. It is NOT applied to the hosted dev/prod databases, and this project does
-NOT rely on Replit's publish-time schema-diff either.
+bootstrap. It is NOT applied to the hosted dev/prod databases. The app does not RELY on
+Replit's publish-time schema-diff, but the publish flow still RUNS it and it can block:
+several tables self-create lazily in their own modules (utils/stripe/processed-events.ts,
+pending-payments.ts, utils/mcp/auth.ts, utils/ucp/checkout-store.ts, etc.) rather than in
+initializeTables(). A lazy table that exists in prod (created by real traffic) but not in
+dev (e.g. stripe_processed_events — dev never receives Stripe webhooks) is seen by the
+publish diff as "removed", gets paired with an unrelated new-table "add", and forces a
+RENAME-or-DROP choice with no ignore option. Both answers corrupt data (rename mislabels
+webhook dedup rows AND breaks the new table's inserts — the columns differ; drop erases
+permanent dedup claims → replayed webhooks can double-pay). Fix (done 2026-09 for
+stripe_processed_events): create the missing table in the DEV database with the module's
+own DDL; the diff then sees no removal. Prevention: also register lazy tables in
+initializeTables() — IF NOT EXISTS makes coexistence safe.
 
 **Rule:** any new table or column for a hosted feature MUST be added to
 `initializeTables()`. Adding it only to `db/schema.sql` means the hosted DBs never get
