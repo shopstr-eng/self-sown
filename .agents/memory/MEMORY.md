@@ -126,3 +126,4 @@
 - [Ops-alert per-day dedup](ops-alert-dedup.md) — repeatable ops alerts go through the shared pro_settings-backed dedup helper (per-key advisory lock); stamp ONLY after a confirmed send, never throw into webhooks.
 - [Blog broadcast dedup ledgers](blog-broadcast-dedup-ledger.md) — per-segment version claims + immutable per-recipient ledger (capture source is mutable, membership exclusion re-emails after flips); zero-owned sends must release the version claim.
 - [pg-mem harness quirks](pg-mem-harness-quirks.md) — ON CONFLICT conflict misreports rowCount=1 with phantom row (probe+override in wrapper); none() doesn't bind $n; pass-through regex must match ALL touched tables (prefix traps).
+- [Jest fake timers fake queueMicrotask](jest-fake-timers-queuemicrotask.md) — in fake-timer suites, queueMicrotask callbacks never run; test doubles must defer via native Promise.resolve().then() or awaits deadlock into 5s timeouts.

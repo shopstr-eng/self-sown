@@ -51,6 +51,16 @@ jest.mock("@/utils/stripe/donation", () => ({
   resolveDonationCut: (...args: unknown[]) => resolveDonationCutMock(...args),
 }));
 
+jest.mock("@/utils/db/custom-domains", () => ({
+  getDomainByHost: jest.fn(async () => null),
+}));
+
+jest.mock("@/utils/stripe/apple-pay", () => ({
+  registerApplePayDomain: jest.fn(async () => undefined),
+  normalizeRegistrableHost: jest.requireActual("@/utils/stripe/apple-pay")
+    .normalizeRegistrableHost,
+}));
+
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
 import sellerStatusHandler from "@/pages/api/stripe/connect/seller-status";
 

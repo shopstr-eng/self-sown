@@ -286,6 +286,18 @@ async function routeRequest(request: NextRequest) {
     );
   }
 
+  // Apple Pay domain verification file (identical on every host; env-backed).
+  if (
+    pathname === "/.well-known/apple-developer-merchantid-domain-association"
+  ) {
+    return NextResponse.rewrite(
+      new URL(
+        "/api/.well-known/apple-developer-merchantid-domain-association",
+        request.url
+      )
+    );
+  }
+
   if (hostname === "www.milk.market") {
     const url = new URL(request.url);
     url.hostname = "milk.market";

@@ -25,6 +25,8 @@ const recordPendingPaymentMock = jest.fn();
 const updatePendingPaymentMock = jest.fn();
 const resolveDonationCutMock = jest.fn();
 const satsToUSDMock = jest.fn();
+const registerApplePayDomainMock = jest.fn();
+const getDomainByHostMock = jest.fn();
 
 jest.mock("stripe", () => {
   const Stripe = jest.fn().mockImplementation(() => ({
@@ -71,6 +73,17 @@ jest.mock("@/utils/stripe/currency", () => {
   };
 });
 
+jest.mock("@/utils/stripe/apple-pay", () => ({
+  registerApplePayDomain: (...args: unknown[]) =>
+    registerApplePayDomainMock(...args),
+  normalizeRegistrableHost: jest.requireActual("@/utils/stripe/apple-pay")
+    .normalizeRegistrableHost,
+}));
+
+jest.mock("@/utils/db/custom-domains", () => ({
+  getDomainByHost: (...args: unknown[]) => getDomainByHostMock(...args),
+}));
+
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
 
 const SELLER_A = "c".repeat(64);
@@ -108,6 +121,7 @@ function hostedCfg(over: Record<string, unknown> = {}) {
 
 const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
 const ORIGINAL_PK = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 beforeEach(() => {
   applyRateLimitMock.mockReset().mockReturnValue(true);
@@ -129,10 +143,13 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ percent: 0, cutSmallest: 0 });
   satsToUSDMock.mockReset();
+  registerApplePayDomainMock.mockReset().mockResolvedValue(undefined);
+  getDomainByHostMock.mockReset().mockResolvedValue(null);
   process.env.STRIPE_SECRET_KEY = "sk_test_platform";
   // Distinct from any split pubkey so the route treats each split as a
   // connected seller, not the platform account.
   process.env.NEXT_PUBLIC_MILK_MARKET_PK = "f".repeat(64);
+  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
 });
 
 afterAll(() => {
@@ -140,6 +157,52 @@ afterAll(() => {
   else process.env.STRIPE_SECRET_KEY = ORIGINAL_KEY;
   if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_MILK_MARKET_PK;
   else process.env.NEXT_PUBLIC_MILK_MARKET_PK = ORIGINAL_PK;
+  if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
+  else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
+});
+
+describe("POST /api/stripe/create-payment-intent — Apple Pay domain registration binding", () => {
+  const twoSellerBody = {
+    amount: 0,
+    currency: "usd",
+    sellerSplits: [
+      { sellerPubkey: SELLER_A, amountSmallest: 500, currency: "usd" },
+      { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+    ],
+  };
+
+  it("registers only the canonical platform host, on the platform account", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        headers: { host: "milk.market" },
+        body: twoSellerBody,
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(registerApplePayDomainMock).toHaveBeenCalledTimes(1);
+    expect(registerApplePayDomainMock.mock.calls[0][0]).toBe("milk.market");
+    // Multi-seller charges are platform charges: no connected account arg.
+    expect(registerApplePayDomainMock.mock.calls[0][1]).toBeUndefined();
+  });
+
+  it("never registers a request-controlled Host for multi-seller charges", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        headers: { host: "attacker.example.com" },
+        body: twoSellerBody,
+      } as any,
+      res as any
+    );
+    // Checkout itself is unaffected — registration just doesn't happen.
+    expect(res.statusCode).toBe(200);
+    expect(stripeCreateMock).toHaveBeenCalledTimes(1);
+    expect(registerApplePayDomainMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/stripe/create-payment-intent — per-split affiliate rebate clamping", () => {

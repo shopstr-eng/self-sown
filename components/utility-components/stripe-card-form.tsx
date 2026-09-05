@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { loadStripe, Stripe } from "@stripe/stripe-js";
 import {
   Elements,
+  ExpressCheckoutElement,
   PaymentElement,
   useStripe,
   useElements,
@@ -20,13 +21,18 @@ function CheckoutForm({
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Synchronous in-flight lock: React state alone can't stop a card submit
+  // and a wallet confirm from both entering confirmPayment before a rerender.
+  const inFlightRef = useRef(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
+  // Shared by the card form submit and the wallet (Apple Pay / Google Pay)
+  // express-checkout confirm: same PaymentIntent, same confirmPayment call.
+  // Wallets are card-backed, so the existing PaymentIntent needs no changes.
+  const confirmAndHandle = async () => {
+    if (!stripe || !elements || inFlightRef.current) {
       return;
     }
+    inFlightRef.current = true;
 
     setIsProcessing(true);
     setErrorMessage(null);
@@ -37,23 +43,49 @@ function CheckoutForm({
     });
 
     if (error) {
+      inFlightRef.current = false;
       setErrorMessage(error.message || "Payment failed. Please try again.");
       onPaymentError(error.message || "Payment failed");
       setIsProcessing(false);
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      // Stay locked: the parent takes over on success and the form unmounts.
       onPaymentSuccess(paymentIntent.id);
     } else {
+      inFlightRef.current = false;
       setErrorMessage("Payment was not completed. Please try again.");
       setIsProcessing(false);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await confirmAndHandle();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="w-full">
-      <div className="shadow-neo rounded-md border-2 border-black bg-white p-4">
+      {/* Wallet express checkout: Stripe shows only the wallets the current
+          device/browser supports (Apple Pay on Apple devices/Safari, Google
+          Pay on Chrome/Android, Link) and hides this block entirely when
+          none are available. */}
+      <ExpressCheckoutElement
+        onClick={({ resolve, reject }) => {
+          // Don't open a wallet sheet while a payment is already confirming.
+          // Stripe requires resolve() or reject() within a second of click.
+          if (inFlightRef.current) reject();
+          else resolve();
+        }}
+        onConfirm={confirmAndHandle}
+        onCancel={() => setIsProcessing(false)}
+      />
+
+      <div className="shadow-neo mt-3 rounded-md border-2 border-black bg-white p-4">
         <PaymentElement
           options={{
             layout: "tabs",
+            // Wallets are presented by the ExpressCheckoutElement above; keep
+            // them out of the tabs so they don't render twice.
+            wallets: { applePay: "never", googlePay: "never" },
           }}
         />
       </div>

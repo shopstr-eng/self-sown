@@ -103,6 +103,16 @@ jest.mock("@/utils/db/affiliates", () => ({
   lookupAffiliateCode: jest.fn(async () => null),
 }));
 
+jest.mock("@/utils/db/custom-domains", () => ({
+  getDomainByHost: jest.fn(async () => null),
+}));
+
+jest.mock("@/utils/stripe/apple-pay", () => ({
+  registerApplePayDomain: jest.fn(async () => undefined),
+  normalizeRegistrableHost: jest.requireActual("@/utils/stripe/apple-pay")
+    .normalizeRegistrableHost,
+}));
+
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
 import createSubscriptionHandler from "@/pages/api/stripe/create-subscription";
 import createCartSubscriptionHandler from "@/pages/api/stripe/create-cart-subscription";
