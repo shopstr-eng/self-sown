@@ -1,8 +1,11 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
-// Apple Pay domain verification. Stripe's Dashboard (Payment methods → Apple
-// Pay → add domain) hands out a domain-association file that must be served
-// byte-exact at /.well-known/apple-developer-merchantid-domain-association
+// Apple Pay domain verification. The domain-association file is NOT generated
+// per merchant in the Dashboard — Stripe hosts ONE static file, identical for
+// every merchant, at
+//   https://stripe.com/files/apple-pay/apple-developer-merchantid-domain-association
+// It must be served byte-exact at
+// /.well-known/apple-developer-merchantid-domain-association
 // (rewritten here in proxy.ts). The content is a public verification token,
 // so it lives in a plain env var; 404 until it is set, which simply means
 // Apple Pay stays unavailable on this domain (Google Pay is unaffected).
