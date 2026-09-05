@@ -6,6 +6,26 @@ import crypto from "crypto";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.
+// A pasted .p8 key arrives mangled in predictable ways: literal \n sequences,
+// surrounding quotes, or one line with spaces where newlines were (single-line
+// input fields collapse them). Normalize all of these to canonical PEM.
+function normalizeApplePrivateKey(raw: string): string {
+  let k = raw
+    .trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\n/g, "\n");
+  if (!k.includes("\n")) {
+    const m = k.match(
+      /-----BEGIN PRIVATE KEY-----\s*([\s\S]*?)\s*-----END PRIVATE KEY-----/
+    );
+    if (!m || !m[1]) return k; // unrecognized shape; let the signer report it
+    const body = m[1].replace(/\s+/g, "");
+    const wrapped = body.match(/.{1,64}/g)?.join("\n") ?? body;
+    k = `-----BEGIN PRIVATE KEY-----\n${wrapped}\n-----END PRIVATE KEY-----\n`;
+  }
+  return k;
+}
+
 function buildAppleClientSecret(opts: {
   appleClientId: string;
   appleTeamId: string;
@@ -25,8 +45,7 @@ function buildAppleClientSecret(opts: {
   });
   const unsigned = `${header}.${payload}`;
   const signature = crypto.sign("sha256", Buffer.from(unsigned), {
-    // Pasted secrets often carry literal \n sequences instead of newlines.
-    key: opts.applePrivateKey.replace(/\\n/g, "\n"),
+    key: normalizeApplePrivateKey(opts.applePrivateKey),
     dsaEncoding: "ieee-p1363", // JWS signature is raw r||s, not DER
   });
   return `${unsigned}.${signature.toString("base64url")}`;
