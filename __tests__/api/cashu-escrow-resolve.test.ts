@@ -113,7 +113,12 @@ function verifiedAction(action: "release" | "refund" = "refund") {
 }
 
 function pendingOutbox(action: "release" | "refund" = "refund") {
-  return { outboxId: "outbox-1", escrowId: ESCROW_ID, action, status: "pending" };
+  return {
+    outboxId: "outbox-1",
+    escrowId: ESCROW_ID,
+    action,
+    status: "pending",
+  };
 }
 
 beforeEach(() => {
@@ -177,7 +182,9 @@ describe("POST /api/cashu/escrow/resolve", () => {
   });
 
   it("rejects resolution on an escrow with no registered arbiter", async () => {
-    mockedGetRegistration.mockResolvedValue(registration({ arbiterPubkey: null }));
+    mockedGetRegistration.mockResolvedValue(
+      registration({ arbiterPubkey: null })
+    );
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);
     expect(res.statusCode).toBe(403);
@@ -207,7 +214,9 @@ describe("POST /api/cashu/escrow/resolve", () => {
 
   it("rejects proofs that fail payout validation", async () => {
     mockedValidate.mockImplementation(() => {
-      throw new Error("Escrow payout proof is not locked to the committed seller.");
+      throw new Error(
+        "Escrow payout proof is not locked to the committed seller."
+      );
     });
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);
@@ -218,7 +227,9 @@ describe("POST /api/cashu/escrow/resolve", () => {
 
   it("409s on a conflicting pending opposite action", async () => {
     mockedEnqueue.mockRejectedValue(
-      new Error("Cannot enqueue a refund: escrow already has a pending release.")
+      new Error(
+        "Cannot enqueue a refund: escrow already has a pending release."
+      )
     );
     const { req, res } = makeReqRes(validBody());
     await handler(req, res);

@@ -83,7 +83,8 @@ describe("fetchKind10002FromIndexers", () => {
   });
 
   it("honors the NIP65_INDEXER_RELAYS override with operator-trusted sessions", async () => {
-    process.env.NIP65_INDEXER_RELAYS = "ws://127.0.0.1:47777, wss://idx.example";
+    process.env.NIP65_INDEXER_RELAYS =
+      "ws://127.0.0.1:47777, wss://idx.example";
     queryMock.mockResolvedValue([]);
     await fetchKind10002FromIndexers(pkA);
     expect(queryMock).toHaveBeenCalledWith(

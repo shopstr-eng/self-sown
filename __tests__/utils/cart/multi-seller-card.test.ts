@@ -34,9 +34,7 @@ describe("runMultiCardStepAdvance", () => {
           calls.push("finalize");
         },
         onAdvanceError: (error) => {
-          calls.push(
-            "error:" + (error instanceof Error ? error.message : "?")
-          );
+          calls.push("error:" + (error instanceof Error ? error.message : "?"));
         },
       })
     ).resolves.toBeUndefined();

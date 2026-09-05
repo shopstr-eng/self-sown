@@ -116,7 +116,8 @@ export function buildAgentProRequiredMarkdown(
   return [
     "# 403 Pro Required",
     "",
-    message ?? `Machine-readable access to \`${path}\` requires an active Pro membership.`,
+    message ??
+      `Machine-readable access to \`${path}\` requires an active Pro membership.`,
     "",
     "## Where to look next",
     "",

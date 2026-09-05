@@ -149,9 +149,7 @@ describe("BuyerEscrowList server-side rediscovery", () => {
 
     const { container } = renderList();
 
-    await waitFor(() =>
-      expect(mockFetchMyEscrows).toHaveBeenCalledTimes(1)
-    );
+    await waitFor(() => expect(mockFetchMyEscrows).toHaveBeenCalledTimes(1));
     await waitFor(() =>
       expect(screen.queryByText(/Order order-wi/)).not.toBeInTheDocument()
     );

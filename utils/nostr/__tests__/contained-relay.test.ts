@@ -12,7 +12,17 @@ jest.mock("ws", () => {
   type Handler = (...args: any[]) => void;
   const FAKE = { id: "c".repeat(64), kind: 10002, pubkey: "d".repeat(64) };
   class FakeWebSocket {
-    static scenario: "eose" | "silent" | "error" | "ok" | "nack" | "flood" | "oversize" | "junkflood" | "byteflood" | "pubjunk" = "eose";
+    static scenario:
+      | "eose"
+      | "silent"
+      | "error"
+      | "ok"
+      | "nack"
+      | "flood"
+      | "oversize"
+      | "junkflood"
+      | "byteflood"
+      | "pubjunk" = "eose";
     static lastOptions: any;
     static closeCount = 0;
     private handlers: Record<string, Handler[]> = {};
@@ -37,17 +47,29 @@ jest.mock("ws", () => {
       setTimeout(() => {
         if (msg[0] === "REQ") {
           if (FakeWebSocket.scenario === "eose") {
-            this.emit("message", Buffer.from(JSON.stringify(["EVENT", msg[1], FAKE])));
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify(["EVENT", msg[1], FAKE]))
+            );
             this.emit("message", Buffer.from(JSON.stringify(["EOSE", msg[1]])));
           } else if (FakeWebSocket.scenario === "flood") {
             for (let i = 0; i < 20; i++)
-              this.emit("message", Buffer.from(JSON.stringify(["EVENT", msg[1], { ...FAKE, id: `${i}` }])));
+              this.emit(
+                "message",
+                Buffer.from(
+                  JSON.stringify(["EVENT", msg[1], { ...FAKE, id: `${i}` }])
+                )
+              );
             this.emit("message", Buffer.from(JSON.stringify(["EOSE", msg[1]])));
           } else if (FakeWebSocket.scenario === "oversize") {
             this.emit(
               "message",
               Buffer.from(
-                JSON.stringify(["EVENT", msg[1], { ...FAKE, content: "y".repeat(70 * 1024) }])
+                JSON.stringify([
+                  "EVENT",
+                  msg[1],
+                  { ...FAKE, content: "y".repeat(70 * 1024) },
+                ])
               )
             );
             this.emit("message", Buffer.from(JSON.stringify(["EOSE", msg[1]])));
@@ -55,24 +77,48 @@ jest.mock("ws", () => {
             // 100 valid-JSON junk frames, then the real event — early budget
             // close must drop the session before the EVENT is processed.
             for (let i = 0; i < 100; i++)
-              this.emit("message", Buffer.from(JSON.stringify(["NOTICE", `spam ${i}`])));
-            this.emit("message", Buffer.from(JSON.stringify(["EVENT", msg[1], FAKE])));
+              this.emit(
+                "message",
+                Buffer.from(JSON.stringify(["NOTICE", `spam ${i}`]))
+              );
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify(["EVENT", msg[1], FAKE]))
+            );
           } else if (FakeWebSocket.scenario === "byteflood") {
             // 10 frames of 30KB — each under the per-frame cap, over the
             // cumulative byte budget in aggregate.
             for (let i = 0; i < 10; i++)
-              this.emit("message", Buffer.from(JSON.stringify(["NOTICE", "x".repeat(30 * 1024)])));
-            this.emit("message", Buffer.from(JSON.stringify(["EVENT", msg[1], FAKE])));
+              this.emit(
+                "message",
+                Buffer.from(JSON.stringify(["NOTICE", "x".repeat(30 * 1024)]))
+              );
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify(["EVENT", msg[1], FAKE]))
+            );
           }
         } else if (msg[0] === "EVENT") {
           if (FakeWebSocket.scenario === "pubjunk") {
             for (let i = 0; i < 100; i++)
-              this.emit("message", Buffer.from(JSON.stringify(["NOTICE", `spam ${i}`])));
-            this.emit("message", Buffer.from(JSON.stringify(["OK", msg[1].id, true, ""])));
+              this.emit(
+                "message",
+                Buffer.from(JSON.stringify(["NOTICE", `spam ${i}`]))
+              );
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify(["OK", msg[1].id, true, ""]))
+            );
           } else if (FakeWebSocket.scenario === "ok") {
-            this.emit("message", Buffer.from(JSON.stringify(["OK", msg[1].id, true, ""])));
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify(["OK", msg[1].id, true, ""]))
+            );
           } else if (FakeWebSocket.scenario === "nack") {
-            this.emit("message", Buffer.from(JSON.stringify(["OK", msg[1].id, false, "blocked"])));
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify(["OK", msg[1].id, false, "blocked"]))
+            );
           }
         }
       }, 0);

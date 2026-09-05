@@ -41,6 +41,8 @@ describe("publishToRelays", () => {
 
   it("returns 0 when every relay fails", async () => {
     publishMock.mockResolvedValue(false);
-    await expect(publishToRelays(EVENT, ["wss://a.example"], 200)).resolves.toBe(0);
+    await expect(
+      publishToRelays(EVENT, ["wss://a.example"], 200)
+    ).resolves.toBe(0);
   });
 });

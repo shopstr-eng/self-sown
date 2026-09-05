@@ -194,12 +194,22 @@ describe("shipping_option reference tags", () => {
   });
 
   it("rejects malformed refs and negative extra costs", () => {
-    expect(parseShippingOptionRefTag(["shipping_option", "junk"])).toBeUndefined();
     expect(
-      parseShippingOptionRefTag(["shipping_option", `30406:${PUBKEY}:std`, "-1"])
+      parseShippingOptionRefTag(["shipping_option", "junk"])
     ).toBeUndefined();
     expect(
-      parseShippingOptionRefTag(["shipping_option", `30406:${PUBKEY}:std`, "abc"])
+      parseShippingOptionRefTag([
+        "shipping_option",
+        `30406:${PUBKEY}:std`,
+        "-1",
+      ])
+    ).toBeUndefined();
+    expect(
+      parseShippingOptionRefTag([
+        "shipping_option",
+        `30406:${PUBKEY}:std`,
+        "abc",
+      ])
     ).toBeUndefined();
     expect(parseShippingOptionRefTag(["shipping_option"])).toBeUndefined();
   });
@@ -220,7 +230,9 @@ describe("shipping_option reference tags", () => {
       `30406:${PUBKEY}:std`,
     ]);
     expect(buildShippingOptionRefTag("junk")).toBeUndefined();
-    expect(buildShippingOptionRefTag(`30406:${PUBKEY}:std`, -1)).toBeUndefined();
+    expect(
+      buildShippingOptionRefTag(`30406:${PUBKEY}:std`, -1)
+    ).toBeUndefined();
   });
 });
 

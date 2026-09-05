@@ -334,8 +334,10 @@ describe("escrow payout worker — staging crash recovery", () => {
     "recovers a worker killed mid-release (claim retained) — stale sweep, fencing, /restore, exactly once",
     async () => {
       if (!mintAvailable) return;
-      const { escrowId, outboxId, locked, sellerPub } =
-        await setupLockedEscrow("release", 3600);
+      const { escrowId, outboxId, locked, sellerPub } = await setupLockedEscrow(
+        "release",
+        3600
+      );
       const registration = await escrow.getEscrowRegistration(escrowId);
       expect(registration).not.toBeNull();
 

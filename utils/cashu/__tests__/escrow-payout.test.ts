@@ -629,7 +629,8 @@ function makeMultisigProof(
     tags.push(["pubkeys", ...(overrides.pubkeys ?? [buyerPub, arbiterPub])]);
   }
   tags.push(["n_sigs", overrides.nSigs ?? "2"]);
-  if (overrides.nSigsRefund) tags.push(["n_sigs_refund", overrides.nSigsRefund]);
+  if (overrides.nSigsRefund)
+    tags.push(["n_sigs_refund", overrides.nSigsRefund]);
   tags.push(...(overrides.extraTags ?? []));
   const proof: Proof = {
     amount: overrides.amount ?? 5_000,
@@ -647,7 +648,8 @@ function makeMultisigProof(
   };
 }
 
-const arbiterRegistration = () => makeRegistration({ arbiterPubkey: arbiterPub });
+const arbiterRegistration = () =>
+  makeRegistration({ arbiterPubkey: arbiterPub });
 
 describe("validateEscrowPayoutProofs — committed-arbiter 2-of-3", () => {
   it("accepts a party release witnessed by seller + buyer", () => {

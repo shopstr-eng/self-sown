@@ -223,22 +223,47 @@ describe("blog_email_broadcast_recipients delivery ledger (real SQL via pg-mem)"
 
   it("a recipient is claimable exactly once per version, across sends", async () => {
     expect(
-      await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "x@example.com")
+      await claimBlogBroadcastRecipient(
+        SELLER,
+        "post-1",
+        "evt-1",
+        "x@example.com"
+      )
     ).toBe(true);
     expect(
-      await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "x@example.com")
+      await claimBlogBroadcastRecipient(
+        SELLER,
+        "post-1",
+        "evt-1",
+        "x@example.com"
+      )
     ).toBe(false);
     // A different recipient — or a different published version — claims freely.
     expect(
-      await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "y@example.com")
+      await claimBlogBroadcastRecipient(
+        SELLER,
+        "post-1",
+        "evt-1",
+        "y@example.com"
+      )
     ).toBe(true);
     expect(
-      await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-2", "x@example.com")
+      await claimBlogBroadcastRecipient(
+        SELLER,
+        "post-1",
+        "evt-2",
+        "x@example.com"
+      )
     ).toBe(true);
   });
 
   it("releasing a failed delivery's claim makes the recipient re-claimable", async () => {
-    await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "x@example.com");
+    await claimBlogBroadcastRecipient(
+      SELLER,
+      "post-1",
+      "evt-1",
+      "x@example.com"
+    );
     await releaseBlogBroadcastRecipient(
       SELLER,
       "post-1",
@@ -246,13 +271,28 @@ describe("blog_email_broadcast_recipients delivery ledger (real SQL via pg-mem)"
       "x@example.com"
     );
     expect(
-      await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "x@example.com")
+      await claimBlogBroadcastRecipient(
+        SELLER,
+        "post-1",
+        "evt-1",
+        "x@example.com"
+      )
     ).toBe(true);
   });
 
   it("getBlogBroadcastRecipients lists the delivered set used for exclusion", async () => {
-    await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "a@example.com");
-    await claimBlogBroadcastRecipient(SELLER, "post-1", "evt-1", "b@example.com");
+    await claimBlogBroadcastRecipient(
+      SELLER,
+      "post-1",
+      "evt-1",
+      "a@example.com"
+    );
+    await claimBlogBroadcastRecipient(
+      SELLER,
+      "post-1",
+      "evt-1",
+      "b@example.com"
+    );
     const got = await getBlogBroadcastRecipients(SELLER, "post-1", "evt-1");
     expect(got?.sort()).toEqual(["a@example.com", "b@example.com"]);
   });

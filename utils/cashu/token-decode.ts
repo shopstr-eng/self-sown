@@ -12,11 +12,7 @@
 // SSRF-guarded fetch for the attacker-controlled mint URL) go through
 // ./token-decode-server instead of importing node-only guards here.
 
-import {
-  getDecodedToken,
-  getTokenMetadata,
-  type Token,
-} from "@cashu/cashu-ts";
+import { getDecodedToken, getTokenMetadata, type Token } from "@cashu/cashu-ts";
 
 // Fetch implementation for the keyset-list request. Defaults to global fetch;
 // server callers pass an SSRF-guarded one (see ./token-decode-server).

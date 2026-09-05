@@ -113,12 +113,10 @@ const parseResult = (result: any) =>
 
 describe("receive_cashu_tokens", () => {
   it("receives a v2-keyset token via the keyset-aware decode", async () => {
-    const fetchSpy = ((globalThis as any).fetch = jest
-      .fn()
-      .mockResolvedValue({
-        ok: true,
-        json: async () => ({ keysets: [{ id: V2_KEYSET_ID }] }),
-      }));
+    const fetchSpy = ((globalThis as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ keysets: [{ id: V2_KEYSET_ID }] }),
+    }));
 
     const result = await handler({ token: v2Token() });
     const body = parseResult(result);

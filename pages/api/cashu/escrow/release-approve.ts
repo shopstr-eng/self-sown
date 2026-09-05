@@ -205,11 +205,9 @@ export default async function handler(
       return res.status(409).json({ error: message, code: "escrow_conflict" });
     }
     console.error("Cashu escrow release approval failed:", error);
-    return res
-      .status(500)
-      .json({
-        error: "Escrow release approval failed.",
-        code: "internal_error",
-      });
+    return res.status(500).json({
+      error: "Escrow release approval failed.",
+      code: "internal_error",
+    });
   }
 }

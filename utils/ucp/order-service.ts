@@ -809,9 +809,8 @@ async function initializeCashu(
 
   // Server adapter: the fallback keyset fetch is SSRF-guarded (the mint URL
   // above is already allowlist-validated, defense-in-depth).
-  const { decodeTokenWithKeysets } = await import(
-    "@/utils/cashu/token-decode-server"
-  );
+  const { decodeTokenWithKeysets } =
+    await import("@/utils/cashu/token-decode-server");
   const decoded = await decodeTokenWithKeysets(cashuToken, envelopeMint);
 
   if (!decoded || !decoded.proofs || decoded.proofs.length === 0) {

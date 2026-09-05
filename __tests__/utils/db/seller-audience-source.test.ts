@@ -176,7 +176,13 @@ async function seedAudience() {
   // capture, one subscription capture.
   await seedBuyer("order_1", "buyer@example.com", SELLER);
   await seedBuyer("order_2", "other-buyer@example.com", OTHER);
-  await savePopupEmailCapture(SELLER, "popup@example.com", null, "WELCOME10", 10);
+  await savePopupEmailCapture(
+    SELLER,
+    "popup@example.com",
+    null,
+    "WELCOME10",
+    10
+  );
   await saveSubscriberEmailCapture(SELLER, "sub@example.com", null);
 }
 
@@ -243,7 +249,13 @@ describe("getSellerAudienceEmails source narrowing (real SQL via pg-mem)", () =>
     await seedAudience();
     // The other seller has their own popup + subscription captures. Dropping
     // p.seller_pubkey = $1 from either query must fail this test.
-    await savePopupEmailCapture(OTHER, "other-popup@example.com", null, "X5", 5);
+    await savePopupEmailCapture(
+      OTHER,
+      "other-popup@example.com",
+      null,
+      "X5",
+      5
+    );
     await saveSubscriberEmailCapture(OTHER, "other-sub@example.com", null);
 
     expect(await getSellerAudienceEmails(SELLER, "popup")).toEqual([

@@ -125,8 +125,31 @@ describe("orphanedSubscriptionCancellationAlertEmail", () => {
     // source — even quote-concatenated ones — trip WAF normalization rules
     // on blob upload. Decodes to the classic script-tag probe string.
     const hostile = String.fromCharCode(
-      60, 115, 99, 114, 105, 112, 116, 62, 97, 108, 101, 114, 116, 40, 49,
-      41, 60, 47, 115, 99, 114, 105, 112, 116, 62
+      60,
+      115,
+      99,
+      114,
+      105,
+      112,
+      116,
+      62,
+      97,
+      108,
+      101,
+      114,
+      116,
+      40,
+      49,
+      41,
+      60,
+      47,
+      115,
+      99,
+      114,
+      105,
+      112,
+      116,
+      62
     );
     const { html } = orphanedSubscriptionCancellationAlertEmail({
       ...base,

@@ -24,8 +24,29 @@ const JSONLD_LITERAL = "application/ld+json";
 // The raw-HTML-injection JSX attribute name, char-assembled so this file
 // (and its base64 blob upload) carries no literal payload for the WAF.
 const DANGEROUS_HTML_ATTR = String.fromCharCode(
-  100, 97, 110, 103, 101, 114, 111, 117, 115, 108, 121, 83, 101, 116, 73,
-  110, 110, 101, 114, 72, 84, 77, 76
+  100,
+  97,
+  110,
+  103,
+  101,
+  114,
+  111,
+  117,
+  115,
+  108,
+  121,
+  83,
+  101,
+  116,
+  73,
+  110,
+  110,
+  101,
+  114,
+  72,
+  84,
+  77,
+  76
 );
 
 // Every file allowed to reference the JSON-LD script type, with why.
@@ -124,9 +145,7 @@ describe("JSON-LD emitter allowlist", () => {
         ts.isJsxAttribute(node) &&
         node.name.getText(sourceFile) === DANGEROUS_HTML_ATTR
       ) {
-        violations.push(
-          `raw-HTML attribute at ${node.getStart(sourceFile)}`
-        );
+        violations.push(`raw-HTML attribute at ${node.getStart(sourceFile)}`);
       }
       if (
         (ts.isStringLiteral(node) ||

@@ -2710,7 +2710,10 @@ export async function fetchProductsByPubkeyFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch products by pubkey from database:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch products by pubkey from database:",
+      error
+    );
     return [];
   } finally {
     if (client) {
@@ -2877,7 +2880,10 @@ export async function fetchStorefrontBlogPostEventsForSitemap(
       },
     }));
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch storefront blog posts for sitemap:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch storefront blog posts for sitemap:",
+      error
+    );
     return [];
   } finally {
     if (client) client.release();
@@ -2919,7 +2925,10 @@ export async function fetchBlogPostByDTagAndPubkey(
       sig: row.sig,
     };
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch blog post by d-tag and pubkey:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch blog post by d-tag and pubkey:",
+      error
+    );
     return null;
   } finally {
     if (client) client.release();
@@ -3168,7 +3177,10 @@ export async function fetchCommunityByPubkeyAndIdentifier(
       sig: row.sig,
     };
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch community by pubkey and identifier:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch community by pubkey and identifier:",
+      error
+    );
     return null;
   } finally {
     if (client) client.release();
@@ -3315,7 +3327,10 @@ export async function fetchRelevantReportsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch relevant reports from database:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch relevant reports from database:",
+      error
+    );
     return [];
   } finally {
     if (client) client.release();
@@ -3858,7 +3873,10 @@ export async function fetchCommunityPostsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch community posts from database:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch community posts from database:",
+      error
+    );
     return [];
   } finally {
     if (client) client.release();
@@ -3893,7 +3911,10 @@ export async function fetchCommunityApprovalsFromDb(
       sig: row.sig,
     }));
   } catch (error) {
-    logSwallowedDbOutage("Failed to fetch community approvals from database:", error);
+    logSwallowedDbOutage(
+      "Failed to fetch community approvals from database:",
+      error
+    );
     return [];
   } finally {
     if (client) client.release();

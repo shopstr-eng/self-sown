@@ -3973,9 +3973,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         // Keyset-aware decode (v2 keyset IDs, Nutshell >= 0.20). The server
         // adapter routes the fallback keyset fetch through the SSRF guard
         // (public mints only).
-        const { decodeTokenWithKeysets } = await import(
-          "@/utils/cashu/token-decode-server"
-        );
+        const { decodeTokenWithKeysets } =
+          await import("@/utils/cashu/token-decode-server");
         const decoded = await decodeTokenWithKeysets(params.token);
         const mintUrl = decoded.mint;
         const proofs = decoded.proofs;

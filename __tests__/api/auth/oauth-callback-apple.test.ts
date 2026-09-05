@@ -224,10 +224,7 @@ describe("oauth-callback (apple)", () => {
     const res = makeRes();
     // Lax cookies (provider, redirect_uri) are omitted on Apple's cross-site
     // POST; provider falls back to POST=apple and redirect_uri is rebuilt.
-    await handler(
-      makeAppleReq({ cookies: { oauth_state: "state-123" } }),
-      res
-    );
+    await handler(makeAppleReq({ cookies: { oauth_state: "state-123" } }), res);
     const body = (global as any).fetch.mock.calls[0][1].body as URLSearchParams;
     expect(body.get("redirect_uri")).toBe(
       "https://milk.market/api/auth/oauth-callback"

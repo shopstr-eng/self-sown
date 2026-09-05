@@ -278,8 +278,7 @@ unless escrow is enabled) drains the outbox:
       proofs are recovered via /restore. Proven live against the staging
       Nutshell mint (FakeWallet) + real Postgres by
       `utils/cashu/__tests__/escrow-worker-crash-staging.test.ts` (gated on
-      `ESCROW_CRASH_TEST_DATABASE_URL` + `ESCROW_CRASH_TEST_DESTRUCTIVE_OK=1`
-      + a reachable staging mint):
+      `ESCROW_CRASH_TEST_DATABASE_URL` + `ESCROW_CRASH_TEST_DESTRUCTIVE_OK=1` + a reachable staging mint):
       (a) worker killed between the mint swap and finalize while HOLDING its
       claim (row left `processing`) — a replacement worker reclaims the stale
       claim (same stale-claim predicate the sweeper applies, exercised

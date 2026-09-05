@@ -88,7 +88,9 @@ function parsePriceUnit(
   return { price: parsed.value, unit: parsed.unit };
 }
 
-function parseDim(values: string[]): { dims: string; unit: string } | undefined {
+function parseDim(
+  values: string[]
+): { dims: string; unit: string } | undefined {
   const dims = values[0]?.trim();
   const unit = values[1]?.trim();
   if (!dims || !unit || !DIMS_RE.test(dims)) return undefined;
@@ -303,10 +305,7 @@ export function buildShippingOptionEventTemplate(draft: ShippingOptionDraft): {
   if (draft.location) tags.push(["location", draft.location]);
   if (draft.geohash) tags.push(["g", draft.geohash]);
 
-  const pushValueUnit = (
-    name: string,
-    v?: { value: number; unit: string }
-  ) => {
+  const pushValueUnit = (name: string, v?: { value: number; unit: string }) => {
     if (v && Number.isFinite(v.value) && v.value >= 0 && v.unit) {
       tags.push([name, String(v.value), v.unit]);
     }
@@ -317,10 +316,7 @@ export function buildShippingOptionEventTemplate(draft: ShippingOptionDraft): {
     }
   };
 
-  const pushPriceUnit = (
-    name: string,
-    v?: { price: number; unit: string }
-  ) => {
+  const pushPriceUnit = (name: string, v?: { price: number; unit: string }) => {
     if (v && Number.isFinite(v.price) && v.price >= 0 && v.unit) {
       tags.push([name, String(v.price), v.unit]);
     }

@@ -33,8 +33,7 @@ jest.mock("@/utils/db/pro-membership", () => ({
   listPaidProManualInvoices: (...args: unknown[]) => mockListPaid(...args),
   listSettledManualInvoicesMissingCoverage: (...args: unknown[]) =>
     mockListMissing(...args),
-  setProManualInvoiceCoverage: (...args: unknown[]) =>
-    mockSetCoverage(...args),
+  setProManualInvoiceCoverage: (...args: unknown[]) => mockSetCoverage(...args),
 }));
 
 jest.mock("@/utils/pro/stripe-pro", () => ({

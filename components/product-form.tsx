@@ -1666,9 +1666,9 @@ export default function ProductForm({
                       </label>
                       <p className="mb-3 text-sm text-gray-700">
                         Named methods published as kind-30406 events that any
-                        spec-compatible marketplace can read; buyers pick one
-                        at checkout. The classic &quot;Shipping option&quot;
-                        above stays as the fallback.
+                        spec-compatible marketplace can read; buyers pick one at
+                        checkout. The classic &quot;Shipping option&quot; above
+                        stays as the fallback.
                       </p>
                       {!!oldValues?.shippingOptions?.length &&
                         !shippingMethodsHydrated && (

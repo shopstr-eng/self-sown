@@ -43,7 +43,8 @@ jest.mock("ws", () => ({
       this.handlers.set(event, [...(this.handlers.get(event) ?? []), handler]);
       // Fire "open" only after a handler exists (construction precedes
       // handler attachment in publishEventToRelay/queryRelayEvents).
-      if (event === "open") void Promise.resolve().then(() => this.emit("open"));
+      if (event === "open")
+        void Promise.resolve().then(() => this.emit("open"));
       return this;
     }
     private emit(event: string, ...args: any[]) {

@@ -67,7 +67,9 @@ describe("registerApplePayDomain", () => {
 
   it("swallows other Stripe failures without caching (retried later)", async () => {
     mockCreate.mockRejectedValue(new Error("stripe down"));
-    await expect(registerApplePayDomain("shop-e.test")).resolves.toBeUndefined();
+    await expect(
+      registerApplePayDomain("shop-e.test")
+    ).resolves.toBeUndefined();
     await registerApplePayDomain("shop-e.test");
     expect(mockCreate).toHaveBeenCalledTimes(2);
   });

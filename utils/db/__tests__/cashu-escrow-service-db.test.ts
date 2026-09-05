@@ -484,14 +484,12 @@ describe("listEscrowRegistrationsByBuyer (real Postgres)", () => {
       for (const [orderId, outputs] of cases) {
         const escrowId = await registerEscrow(orderId);
         await escrow.enqueueEscrowAction(escrowId, "refund");
-        await db
-          .getDbPool()
-          .query(
-            `UPDATE cashu_escrow_outbox
+        await db.getDbPool().query(
+          `UPDATE cashu_escrow_outbox
              SET status = 'done', payout_outputs = $2::jsonb
              WHERE escrow_id = $1`,
-            [escrowId, outputs]
-          );
+          [escrowId, outputs]
+        );
       }
       // Plus one escrow with no outbox row at all (LEFT JOIN null side).
       await registerEscrow("payout-no-outbox");

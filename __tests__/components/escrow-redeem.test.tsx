@@ -685,10 +685,13 @@ describe("escrow payout redemption", () => {
       );
     }
 
-    const expectedExpiryDate = new Date(1_900_000_000 * 1000).toLocaleDateString(
-      undefined,
-      { year: "numeric", month: "short", day: "numeric" }
-    );
+    const expectedExpiryDate = new Date(
+      1_900_000_000 * 1000
+    ).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
 
     it("shows the lock expiry date while the escrow is locked", async () => {
       mockFetchEscrowStatus.mockResolvedValue(
@@ -724,9 +727,7 @@ describe("escrow payout redemption", () => {
         .mockResolvedValue(statusResponse({ escrowId, status: "locked" }));
 
       renderSellerCell();
-      fireEvent.click(
-        await screen.findByRole("button", { name: "Try again" })
-      );
+      fireEvent.click(await screen.findByRole("button", { name: "Try again" }));
 
       await screen.findByText(`Escrowed until ${expectedExpiryDate}`);
       expect(mockFetchEscrowStatus).toHaveBeenCalledTimes(2);

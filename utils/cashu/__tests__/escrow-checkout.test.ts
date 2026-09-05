@@ -725,9 +725,7 @@ describe("escrow-checkout helpers", () => {
         ok: true,
         json: async () => ({ keysets: [{ id: V2_KEYSET_ID }] }),
       });
-      const { mint, proofs } = await decodeEscrowLockedProofs(
-        v2LockedToken()
-      );
+      const { mint, proofs } = await decodeEscrowLockedProofs(v2LockedToken());
       expect(mint).toBe(MINT);
       expect(proofs).toHaveLength(1);
     });

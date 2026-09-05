@@ -16,7 +16,12 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { finalizeEvent, generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
+import {
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  nip19,
+} from "nostr-tools";
 import type { EventTemplate } from "nostr-tools";
 // Amount survives the module mock below (it spreads ...actual), so fixtures
 // get REAL cashu-ts v4 Amount instances — the cart path Amount.from()s them.
@@ -389,9 +394,7 @@ describe("CartInvoiceCard escrow backup warning", () => {
 
     await payViaEscrow();
 
-    expect(
-      await screen.findByText(/no recovery backup/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/no recovery backup/i)).toBeInTheDocument();
   });
 
   it("renders no warning when the backup publishes", async () => {

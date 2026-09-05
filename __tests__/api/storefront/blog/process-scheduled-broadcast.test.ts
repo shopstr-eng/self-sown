@@ -407,14 +407,12 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
         : Promise.resolve({ published: 3 })
     );
     // A and D confirm in cache; C never appears (publish not confirmed).
-    mocked.fetchBlogPostByDTagAndPubkey.mockImplementation(
-      (dTag: string) => {
-        if (dTag === "post-c") return Promise.resolve(null);
-        if (dTag === "post-a") return Promise.resolve(ev("evt-a", "post-a"));
-        if (dTag === "post-d") return Promise.resolve(ev("evt-d", "post-d"));
-        return Promise.resolve(null);
-      }
-    );
+    mocked.fetchBlogPostByDTagAndPubkey.mockImplementation((dTag: string) => {
+      if (dTag === "post-c") return Promise.resolve(null);
+      if (dTag === "post-a") return Promise.resolve(ev("evt-a", "post-a"));
+      if (dTag === "post-d") return Promise.resolve(ev("evt-d", "post-d"));
+      return Promise.resolve(null);
+    });
     // Both email-opted rows reach the real broadcast with the same audience;
     // the FIRST send succeeds (row A) and the SECOND fails (row D), in loop
     // order — deterministic because rows are processed sequentially.
@@ -431,10 +429,22 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
     // Each row produced its OWN independent result entry, in batch order.
     expect(res.statusCode).toBe(200);
     expect(res.body.results).toEqual([
-      { pubkey: PUBKEY, dTag: "post-a", status: "published", published: 3, email: "sent" },
+      {
+        pubkey: PUBKEY,
+        dTag: "post-a",
+        status: "published",
+        published: 3,
+        email: "sent",
+      },
       { pubkey: PUBKEY, dTag: "post-b", status: "error" },
       { pubkey: PUBKEY, dTag: "post-c", status: "retry" },
-      { pubkey: PUBKEY, dTag: "post-d", status: "retry", published: 3, email: "all-failed" },
+      {
+        pubkey: PUBKEY,
+        dTag: "post-d",
+        status: "retry",
+        published: 3,
+        email: "all-failed",
+      },
     ]);
     // `processed` counts only the successful publish.
     expect(res.body.processed).toBe(1);

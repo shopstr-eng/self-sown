@@ -861,9 +861,7 @@ describe("db-service helpers", () => {
         });
       }
 
-      const outageCases: Array<
-        [string, (mod: any) => Promise<unknown>]
-      > = [
+      const outageCases: Array<[string, (mod: any) => Promise<unknown>]> = [
         ["getStripeConnectAccount", (mod) => mod.getStripeConnectAccount(pk)],
         [
           "getSellerNotificationEmail",
@@ -875,10 +873,7 @@ describe("db-service helpers", () => {
         ],
         ["getUserAuthEmail", (mod) => mod.getUserAuthEmail(pk)],
         ["validateDiscountCode", (mod) => mod.validateDiscountCode("CODE", pk)],
-        [
-          "getDiscountCodesByPubkey",
-          (mod) => mod.getDiscountCodesByPubkey(pk),
-        ],
+        ["getDiscountCodesByPubkey", (mod) => mod.getDiscountCodesByPubkey(pk)],
         // Subscription reads feed cancel/update routes that must 500 on an
         // outage (never misread it as "not found"). Pins task #267.
         ["getSubscriptionById", (mod) => mod.getSubscriptionById(1)],
@@ -918,7 +913,11 @@ describe("db-service helpers", () => {
       const emptyResultCases: Array<
         [string, (mod: any) => Promise<unknown>, unknown]
       > = [
-        ["getStripeConnectAccount", (mod) => mod.getStripeConnectAccount(pk), null],
+        [
+          "getStripeConnectAccount",
+          (mod) => mod.getStripeConnectAccount(pk),
+          null,
+        ],
         [
           "getSellerNotificationEmail",
           (mod) => mod.getSellerNotificationEmail(pk),

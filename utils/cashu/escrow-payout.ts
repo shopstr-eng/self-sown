@@ -229,7 +229,8 @@ export function validateEscrowPayoutProofs(
   const arbiterPubkey = registration.arbiterPubkey
     ? normalizeP2PKPubkey(registration.arbiterPubkey)
     : null;
-  const directedByArbiter = options?.directedByArbiter === true && !!arbiterPubkey;
+  const directedByArbiter =
+    options?.directedByArbiter === true && !!arbiterPubkey;
 
   // Re-check the lock window at signing time (threat model: expiry race).
   // A release enqueued before expiry must not pay the seller once the
@@ -241,7 +242,11 @@ export function validateEscrowPayoutProofs(
       "Escrow lock has expired; a release can no longer be paid out."
     );
   }
-  if (action === "refund" && nowSeconds < expiresAtSeconds && !directedByArbiter) {
+  if (
+    action === "refund" &&
+    nowSeconds < expiresAtSeconds &&
+    !directedByArbiter
+  ) {
     throw new Error("Escrow lock has not expired; refusing to refund early.");
   }
 
@@ -267,7 +272,8 @@ export function validateEscrowPayoutProofs(
         (has(registration.buyerPubkey) || has(arbiterPubkey))
       );
     }
-    if (directedByArbiter) return has(arbiterPubkey) && has(registration.buyerPubkey);
+    if (directedByArbiter)
+      return has(arbiterPubkey) && has(registration.buyerPubkey);
     return has(registration.buyerPubkey);
   };
   const witnessError =
@@ -468,9 +474,15 @@ export async function executeEscrowPayout(
   // persisted on the outbox row) — thread it into this revalidation or the
   // directed payout the endpoint already authorized would be re-judged under
   // party rules and silently rejected at payout time.
-  validateEscrowPayoutProofs(registration, action, proofs, options?.nowSeconds, {
-    directedByArbiter: parsed.directedByArbiter === true,
-  });
+  validateEscrowPayoutProofs(
+    registration,
+    action,
+    proofs,
+    options?.nowSeconds,
+    {
+      directedByArbiter: parsed.directedByArbiter === true,
+    }
+  );
 
   const walletFactory = options?.walletFactory ?? defaultWalletFactory;
   const wallet = walletFactory(registration.mintUrl);

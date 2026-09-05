@@ -23,11 +23,7 @@
  * FLOW_PROCESSOR_SECRET in env. Gift-wrap timestamps are randomized, so relay
  * queries filter by #p only (fresh keypairs per run → any wrap is ours).
  */
-import {
-  Mint,
-  Wallet,
-  signP2PKProofs,
-} from "@cashu/cashu-ts";
+import { Mint, Wallet, signP2PKProofs } from "@cashu/cashu-ts";
 import {
   generateSecretKey,
   getPublicKey,
@@ -45,7 +41,10 @@ import pg from "pg";
 // override at this local relay to prove the indexer-fetch branch end-to-end.
 const FAKE_INDEXER_PORT = Number(process.env.E2E_FAKE_INDEXER_PORT ?? 14777);
 function startFakeIndexer(storedEvents) {
-  const wss = new WebSocketServer({ port: FAKE_INDEXER_PORT, host: "127.0.0.1" });
+  const wss = new WebSocketServer({
+    port: FAKE_INDEXER_PORT,
+    host: "127.0.0.1",
+  });
   wss.on("connection", (ws) => {
     ws.on("message", (data) => {
       let msg;
@@ -134,7 +133,9 @@ const log = (...a) => console.log(`[${new Date().toISOString()}]`, ...a);
 const results = [];
 const record = (name, ok, detail = "") => {
   results.push({ name, ok, detail });
-  log(`RESULT ${ok ? "PASS" : "FAIL"} — ${name}${detail ? ` — ${detail}` : ""}`);
+  log(
+    `RESULT ${ok ? "PASS" : "FAIL"} — ${name}${detail ? ` — ${detail}` : ""}`
+  );
 };
 
 async function postJson(path, body, headers = {}) {
@@ -214,7 +215,14 @@ async function mintProofs(wallet, amount) {
   return wallet.mintProofsBolt11(amount, quote.quote);
 }
 
-async function lockForEscrow(wallet, proofs, amount, sellerPk, buyerPk, expiresAt) {
+async function lockForEscrow(
+  wallet,
+  proofs,
+  amount,
+  sellerPk,
+  buyerPk,
+  expiresAt
+) {
   const { keep, send } = await wallet.send(
     amount,
     proofs,
@@ -349,7 +357,13 @@ async function sweepAndWait(escrowId, want) {
 
 const AMOUNT = 8;
 
-async function legRelease({ sellerSk, buyerSk, orderId, payeeRelays, expectDelivery }) {
+async function legRelease({
+  sellerSk,
+  buyerSk,
+  orderId,
+  payeeRelays,
+  expectDelivery,
+}) {
   const sellerPk = getPublicKey(sellerSk);
   const buyerPk = getPublicKey(buyerSk);
   const expiresAt = nowSec() + 3600;
@@ -392,7 +406,9 @@ async function legRelease({ sellerSk, buyerSk, orderId, payeeRelays, expectDeliv
     record(
       `control: cache-miss seller gets NO wrap on own relays (${orderId})`,
       wrap === null,
-      wrap ? "unexpected wrap found on non-default relays" : "absent as expected"
+      wrap
+        ? "unexpected wrap found on non-default relays"
+        : "absent as expected"
     );
     // Degradation proof: the DM must still exist on the default set.
     const onDefaults = await findGiftWrap(DEFAULTS_PLUS_BLAST, sellerPk, 45000);
@@ -401,14 +417,24 @@ async function legRelease({ sellerSk, buyerSk, orderId, payeeRelays, expectDeliv
     if (onDefaults) {
       const rumor = decryptWrap(onDefaults, sellerSk);
       ok = rumor.kind === 14 && rumor.content.includes(escrowId);
-      detail = ok ? "wrap found on defaults only" : "default wrap did not decrypt to this escrow";
+      detail = ok
+        ? "wrap found on defaults only"
+        : "default wrap did not decrypt to this escrow";
     }
-    record(`control: cache-miss seller's wrap degraded to defaults (${orderId})`, ok, detail);
+    record(
+      `control: cache-miss seller's wrap degraded to defaults (${orderId})`,
+      ok,
+      detail
+    );
     return;
   }
 
   if (!wrap) {
-    record(`release DM on seller's non-default relays (${orderId})`, false, "no wrap within 90s");
+    record(
+      `release DM on seller's non-default relays (${orderId})`,
+      false,
+      "no wrap within 90s"
+    );
     return;
   }
   const rumor = decryptWrap(wrap, sellerSk);
@@ -421,7 +447,9 @@ async function legRelease({ sellerSk, buyerSk, orderId, payeeRelays, expectDeliv
   record(
     `release DM on seller's non-default relays (${orderId})`,
     ok,
-    ok ? "wrap found + decrypts to the escrow notice" : `wrap found but content wrong: ${JSON.stringify(rumor).slice(0, 120)}`
+    ok
+      ? "wrap found + decrypts to the escrow notice"
+      : `wrap found but content wrong: ${JSON.stringify(rumor).slice(0, 120)}`
   );
 }
 
@@ -466,7 +494,11 @@ async function legRefund({ buyerSk, sellerPk, orderId, payeeRelays }) {
 
   const wrap = await findGiftWrap(payeeRelays, buyerPk, 90000);
   if (!wrap) {
-    record(`refund DM on buyer's non-default relays (${orderId})`, false, "no wrap within 90s");
+    record(
+      `refund DM on buyer's non-default relays (${orderId})`,
+      false,
+      "no wrap within 90s"
+    );
     return;
   }
   const rumor = decryptWrap(wrap, buyerSk);
@@ -479,7 +511,9 @@ async function legRefund({ buyerSk, sellerPk, orderId, payeeRelays }) {
   record(
     `refund DM on buyer's non-default relays (${orderId})`,
     ok,
-    ok ? "wrap found + decrypts to the escrow notice" : `wrap found but content wrong: ${JSON.stringify(rumor).slice(0, 120)}`
+    ok
+      ? "wrap found + decrypts to the escrow notice"
+      : `wrap found but content wrong: ${JSON.stringify(rumor).slice(0, 120)}`
   );
 }
 
@@ -489,7 +523,9 @@ async function main() {
   if (!FLOW_SECRET) throw new Error("FLOW_PROCESSOR_SECRET is not set");
   const fakeIndexerEvents = [];
   const fakeIndexer = startFakeIndexer(fakeIndexerEvents);
-  log(`fake NIP-65 indexer on ws://127.0.0.1:${FAKE_INDEXER_PORT} (server must have NIP65_INDEXER_RELAYS pointed at it)`);
+  log(
+    `fake NIP-65 indexer on ws://127.0.0.1:${FAKE_INDEXER_PORT} (server must have NIP65_INDEXER_RELAYS pointed at it)`
+  );
 
   const health = await fetch(`${BASE}/api/health`).catch(() => null);
   if (!health?.ok) throw new Error(`dev server not healthy at ${BASE}`);
@@ -578,7 +614,9 @@ async function main() {
   }
 
   const failed = results.filter((r) => !r.ok);
-  log(`\n==== SUMMARY: ${results.length - failed.length}/${results.length} checks passed ====`);
+  log(
+    `\n==== SUMMARY: ${results.length - failed.length}/${results.length} checks passed ====`
+  );
   for (const r of results) log(`  ${r.ok ? "✓" : "✗"} ${r.name}`);
   pool.close([...DEFAULTS_PLUS_BLAST, ...payeeRelays]);
   fakeIndexer.close();

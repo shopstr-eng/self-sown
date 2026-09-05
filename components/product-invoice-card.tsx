@@ -1307,9 +1307,7 @@ export default function ProductInvoiceCard({
       // no service to the buyer's country — never fall back to charging the
       // legacy/live shipping cost for a destination the seller excluded.
       if (specDestinationBlocked) {
-        throw new Error(
-          "This seller does not ship to the selected country."
-        );
+        throw new Error("This seller does not ship to the selected country.");
       }
       // Fail closed on EVERY rail: when shipping (spec option or legacy cost)
       // needs an FX conversion the rate feed can't provide, proceeding would
@@ -5021,14 +5019,13 @@ export default function ProductInvoiceCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buyerSpecCountry, specShippingOptions]);
 
-  const effectiveShippingCost =
-    specDestinationBlocked
-      ? 0
-      : selectedSpecOption !== null
-        ? resolvedOptionCost(selectedSpecOption)
-        : liveShippingActive && liveShipping
-          ? liveShipping.amountUsd
-          : (productData.shippingCost ?? 0);
+  const effectiveShippingCost = specDestinationBlocked
+    ? 0
+    : selectedSpecOption !== null
+      ? resolvedOptionCost(selectedSpecOption)
+      : liveShippingActive && liveShipping
+        ? liveShipping.amountUsd
+        : (productData.shippingCost ?? 0);
   const effectiveShippingCurrency = selectedSpecOption
     ? selectedSpecOption.option.currency
     : liveShippingActive
@@ -6544,7 +6541,7 @@ export default function ProductInvoiceCard({
                     </div>
                   )}
                   {specShippingOptionPicker}
-                    {specDestinationNotice}
+                  {specDestinationNotice}
                   {rawShippingCostToAdd > 0 &&
                     formType === "shipping" &&
                     (() => {

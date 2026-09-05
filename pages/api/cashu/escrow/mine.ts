@@ -44,9 +44,7 @@ export default async function handler(
 
   const auth = await verifyNip98Request(req, "GET");
   if (!auth.ok) {
-    return res
-      .status(401)
-      .json({ error: auth.error, code: "unauthorized" });
+    return res.status(401).json({ error: auth.error, code: "unauthorized" });
   }
 
   try {

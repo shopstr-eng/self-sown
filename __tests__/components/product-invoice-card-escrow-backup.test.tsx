@@ -15,7 +15,12 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { finalizeEvent, generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
+import {
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  nip19,
+} from "nostr-tools";
 import type { EventTemplate } from "nostr-tools";
 
 // ── FX helpers: fixed rate so the sats button label resolves ────────────────
@@ -87,7 +92,12 @@ jest.mock("@/utils/cashu/escrow-checkout", () => {
 // ── Mint transport: stub only the classes, keep the rest of cashu-ts real ───
 const mockLoadMint = jest.fn(async () => undefined);
 const mockMintProofs = jest.fn(async () => [
-  { id: "009a1f293253e41e", amount: 8192, secret: "funded-proof", C: "02" + "cd".repeat(32) },
+  {
+    id: "009a1f293253e41e",
+    amount: 8192,
+    secret: "funded-proof",
+    C: "02" + "cd".repeat(32),
+  },
 ]);
 jest.mock("@cashu/cashu-ts", () => {
   const actual = jest.requireActual("@cashu/cashu-ts");
@@ -350,9 +360,7 @@ describe("ProductInvoiceCard escrow backup warning", () => {
 
     await payViaEscrow();
 
-    expect(
-      await screen.findByText(/no recovery backup/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/no recovery backup/i)).toBeInTheDocument();
   });
 
   it("renders no warning when the backup publishes", async () => {

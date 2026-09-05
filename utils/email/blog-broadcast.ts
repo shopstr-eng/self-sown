@@ -151,7 +151,12 @@ export async function runBlogBroadcast(params: {
   // concurrent CROSS-segment send can overlap the blast, but the
   // per-recipient claim in the send loop guarantees each contact is emailed
   // at most once per version.
-  const claimed = await claimBlogBroadcast(pubkey, dTag, eventId, audienceSource);
+  const claimed = await claimBlogBroadcast(
+    pubkey,
+    dTag,
+    eventId,
+    audienceSource
+  );
   if (claimed === null) {
     return { kind: "claim-failed" };
   }

@@ -95,8 +95,7 @@ describe("UCP product JSON Schema ↔ catalog mapper contract", () => {
     });
     expect(props.destinationCountries).toMatchObject({ type: "array" });
     expect(
-      (props.destinationCountries as { items?: Record<string, unknown> })
-        ?.items
+      (props.destinationCountries as { items?: Record<string, unknown> })?.items
     ).toMatchObject({ type: "string", pattern: "^[A-Z]{2}$" });
   });
 });

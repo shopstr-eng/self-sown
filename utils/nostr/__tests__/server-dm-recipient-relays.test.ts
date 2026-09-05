@@ -5,10 +5,7 @@
  * instead of depending on default-relay federation.
  */
 import { getRecipientReadRelays } from "@/utils/nostr/server-nostr-helpers";
-import {
-  fetchRelayConfigFromDb,
-  cacheEvent,
-} from "@/utils/db/db-service";
+import { fetchRelayConfigFromDb, cacheEvent } from "@/utils/db/db-service";
 import { fetchKind10002FromIndexers } from "@/utils/nostr/nip65-indexer-fetch";
 
 jest.mock("@/utils/db/db-service", () => ({
@@ -145,9 +142,7 @@ describe("getRecipientReadRelays", () => {
     });
 
     it("passes valid entries through byte-identical", async () => {
-      fetchDbMock.mockResolvedValue([
-        relayEvent([["r", "wss://nostr.mom"]]),
-      ]);
+      fetchDbMock.mockResolvedValue([relayEvent([["r", "wss://nostr.mom"]])]);
       await expect(getRecipientReadRelays(PAYEE)).resolves.toEqual([
         "wss://nostr.mom",
       ]);

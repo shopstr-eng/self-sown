@@ -108,9 +108,9 @@ describe("trustedRegistrationHost", () => {
   });
 
   it("trusts the platform host", async () => {
-    await expect(
-      trustedRegistrationHost("milk.market", SELLER)
-    ).resolves.toBe("milk.market");
+    await expect(trustedRegistrationHost("milk.market", SELLER)).resolves.toBe(
+      "milk.market"
+    );
   });
 
   it("trusts a verified custom domain owned by the seller", async () => {

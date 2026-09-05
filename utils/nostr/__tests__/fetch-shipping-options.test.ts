@@ -46,16 +46,16 @@ const mockNostr = (events: any[] = [], shouldThrow = false) =>
       if (shouldThrow) throw new Error("relay down");
       return events;
     }),
-  } as any);
+  }) as any;
 
 describe("fetchShippingOptionsByAddresses", () => {
   it("groups refs into one filter per author with #d narrowing", async () => {
     const nostr = mockNostr([]);
-    await fetchShippingOptionsByAddresses(nostr, ["wss://relay"], [
-      `30406:${ALICE}:std`,
-      `30406:${ALICE}:express`,
-      `30406:${BOB}:std`,
-    ]);
+    await fetchShippingOptionsByAddresses(
+      nostr,
+      ["wss://relay"],
+      [`30406:${ALICE}:std`, `30406:${ALICE}:express`, `30406:${BOB}:std`]
+    );
     expect(nostr.fetch).toHaveBeenCalledTimes(1);
     const [filters] = nostr.fetch.mock.calls[0];
     expect(filters).toHaveLength(2);
@@ -76,9 +76,11 @@ describe("fetchShippingOptionsByAddresses", () => {
       optionEvent(ALICE, "std", 100, 5),
       optionEvent(ALICE, "std", 200, 7), // newer wins
     ]);
-    const map = await fetchShippingOptionsByAddresses(nostr, ["wss://relay"], [
-      `30406:${ALICE}:std`,
-    ]);
+    const map = await fetchShippingOptionsByAddresses(
+      nostr,
+      ["wss://relay"],
+      [`30406:${ALICE}:std`]
+    );
     expect(map.size).toBe(1);
     const option = map.get(`30406:${ALICE}:std`)!;
     expect(option.baseCost).toBe(7);
@@ -87,19 +89,22 @@ describe("fetchShippingOptionsByAddresses", () => {
 
   it("skips collection (30405) refs and malformed refs without fetching", async () => {
     const nostr = mockNostr([]);
-    const map = await fetchShippingOptionsByAddresses(nostr, ["wss://relay"], [
-      `30405:${ALICE}:stall`,
-      "garbage",
-    ]);
+    const map = await fetchShippingOptionsByAddresses(
+      nostr,
+      ["wss://relay"],
+      [`30405:${ALICE}:stall`, "garbage"]
+    );
     expect(nostr.fetch).not.toHaveBeenCalled();
     expect(map.size).toBe(0);
   });
 
   it("never rejects on relay failure — returns what it has", async () => {
     const nostr = mockNostr([], true);
-    const map = await fetchShippingOptionsByAddresses(nostr, ["wss://relay"], [
-      `30406:${ALICE}:std`,
-    ]);
+    const map = await fetchShippingOptionsByAddresses(
+      nostr,
+      ["wss://relay"],
+      [`30406:${ALICE}:std`]
+    );
     expect(map.size).toBe(0);
   });
 
@@ -113,9 +118,11 @@ describe("fetchShippingOptionsByAddresses", () => {
       tags: [["d", "broken"]], // missing title/price/country/service
     } as any;
     const nostr = mockNostr([invalid]);
-    const map = await fetchShippingOptionsByAddresses(nostr, ["wss://relay"], [
-      `30406:${ALICE}:broken`,
-    ]);
+    const map = await fetchShippingOptionsByAddresses(
+      nostr,
+      ["wss://relay"],
+      [`30406:${ALICE}:broken`]
+    );
     expect(map.size).toBe(0);
   });
 });
@@ -165,9 +172,9 @@ describe("resolveProductShippingOptions", () => {
   });
 
   it("returns an empty list when the product has no refs", () => {
-    expect(resolveProductShippingOptions({ id: "p" } as any, new Map())).toEqual(
-      []
-    );
+    expect(
+      resolveProductShippingOptions({ id: "p" } as any, new Map())
+    ).toEqual([]);
   });
 });
 

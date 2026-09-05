@@ -19,9 +19,9 @@ describe("proofAmountToNumber", () => {
   });
 
   it("unwraps cashu-ts Amount instances", () => {
-    expect(
-      proofAmountToNumber({ amount: { toNumber: () => 21 } } as any)
-    ).toBe(21);
+    expect(proofAmountToNumber({ amount: { toNumber: () => 21 } } as any)).toBe(
+      21
+    );
   });
 
   it("returns 0 for unusable values", () => {

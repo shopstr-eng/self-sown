@@ -188,7 +188,9 @@ export function createPublicOnlyLookup() {
     resolveSafePublicAddresses(hostname)
       .then((addresses) => {
         if (!addresses || addresses.length === 0) {
-          callback(new Error(`Blocked host with no public address: ${hostname}`));
+          callback(
+            new Error(`Blocked host with no public address: ${hostname}`)
+          );
           return;
         }
         if (options && options.all) {

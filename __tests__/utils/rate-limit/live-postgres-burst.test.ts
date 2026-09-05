@@ -35,10 +35,7 @@ if (RUN) {
   process.env.DATABASE_URL = process.env.RATE_LIMIT_TEST_DATABASE_URL;
 }
 
-import {
-  checkRateLimit,
-  __resetRateLimitBuckets,
-} from "@/utils/rate-limit";
+import { checkRateLimit, __resetRateLimitBuckets } from "@/utils/rate-limit";
 import * as dbService from "@/utils/db/db-service";
 
 const RUN_ID = `zz-loadtest-${Date.now()}`;

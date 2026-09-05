@@ -773,7 +773,11 @@ export async function requestEscrowRelease(
 
 export interface EscrowResolutionResponse {
   escrowId: string;
-  status: "resolution_pending" | "resolution_processing" | "released" | "refunded";
+  status:
+    | "resolution_pending"
+    | "resolution_processing"
+    | "released"
+    | "refunded";
   enqueued: boolean;
   /** False when the worker had already claimed the entry — retry if stuck. */
   attached?: boolean;

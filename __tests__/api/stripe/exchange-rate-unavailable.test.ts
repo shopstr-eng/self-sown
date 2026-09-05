@@ -221,7 +221,7 @@ describe("exchange-rate-unavailable contract across Stripe checkout routes", () 
         res
       );
       expect(res.statusCode).toBe(500);
-      expect((res.body as any)).not.toHaveProperty("code");
+      expect(res.body as any).not.toHaveProperty("code");
       expect(String((res.body as any).error)).toMatch(
         /failed to create payment intent/i
       );
@@ -260,7 +260,7 @@ describe("exchange-rate-unavailable contract across Stripe checkout routes", () 
         res
       );
       expect(res.statusCode).toBe(500);
-      expect((res.body as any)).not.toHaveProperty("code");
+      expect(res.body as any).not.toHaveProperty("code");
       expect(String((res.body as any).error)).toMatch(
         /failed to create subscription/i
       );
@@ -286,10 +286,7 @@ describe("exchange-rate-unavailable contract across Stripe checkout routes", () 
     it("returns 503 + code when the sats→USD rate lookup fails", async () => {
       getFiatValueMock.mockRejectedValue(new Error("rate feed down"));
       const res = makeRes();
-      await createCartSubscriptionHandler(
-        makeReq(cartReq("sats", 50000)),
-        res
-      );
+      await createCartSubscriptionHandler(makeReq(cartReq("sats", 50000)), res);
       expect(res.statusCode).toBe(503);
       expect((res.body as any).code).toBe(EXCHANGE_RATE_ERROR_CODE);
       expect(String((res.body as any).error)).toMatch(
@@ -301,12 +298,9 @@ describe("exchange-rate-unavailable contract across Stripe checkout routes", () 
     it("returns the normal 500 shape (no code) for a non-rate failure", async () => {
       mockSubscriptionsCreate.mockRejectedValue(new Error("stripe down"));
       const res = makeRes();
-      await createCartSubscriptionHandler(
-        makeReq(cartReq("USD", 10)),
-        res
-      );
+      await createCartSubscriptionHandler(makeReq(cartReq("USD", 10)), res);
       expect(res.statusCode).toBe(500);
-      expect((res.body as any)).not.toHaveProperty("code");
+      expect(res.body as any).not.toHaveProperty("code");
       expect(String((res.body as any).error)).toMatch(
         /failed to create cart subscription/i
       );

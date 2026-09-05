@@ -6,7 +6,9 @@ import { useProMembership } from "@/components/utility-components/pro-membership
 
 jest.mock("qrcode", () => ({
   __esModule: true,
-  default: { toDataURL: jest.fn(() => Promise.resolve("data:image/png;base64,x")) },
+  default: {
+    toDataURL: jest.fn(() => Promise.resolve("data:image/png;base64,x")),
+  },
 }));
 jest.mock("@/components/utility-components/stripe-card-form", () => ({
   __esModule: true,
