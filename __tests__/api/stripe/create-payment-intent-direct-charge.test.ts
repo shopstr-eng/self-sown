@@ -60,6 +60,8 @@ jest.mock("@/utils/stripe/apple-pay", () => ({
     registerApplePayDomainMock(...args),
   normalizeRegistrableHost: jest.requireActual("@/utils/stripe/apple-pay")
     .normalizeRegistrableHost,
+  trustedRegistrationHost: jest.requireActual("@/utils/stripe/apple-pay")
+    .trustedRegistrationHost,
 }));
 
 jest.mock("@/utils/db/custom-domains", () => ({

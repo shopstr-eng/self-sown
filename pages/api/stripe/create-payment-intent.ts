@@ -10,10 +10,9 @@ import {
 } from "@/utils/stripe/currency";
 import { getSelfHostConfig, isSelfHostTenant } from "@/utils/self-host/config";
 import {
-  normalizeRegistrableHost,
   registerApplePayDomain,
+  trustedRegistrationHost,
 } from "@/utils/stripe/apple-pay";
-import { getDomainByHost } from "@/utils/db/custom-domains";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -24,35 +23,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 // verified custom domain owned by the seller being charged. Anything else
 // (spoofed Host headers, other sellers' domains) skips registration — the
 // Host header alone is never trusted.
-async function trustedRegistrationHost(
-  hostHeader: string | string[] | undefined,
-  sellerPubkey?: string | null
-): Promise<string | null> {
-  const host = normalizeRegistrableHost(
-    Array.isArray(hostHeader) ? hostHeader[0] || "" : hostHeader || ""
-  );
-  if (!host) return null;
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    if (baseUrl) {
-      const platformHost = normalizeRegistrableHost(new URL(baseUrl).host);
-      if (platformHost && host === platformHost) return host;
-    }
-    if (sellerPubkey) {
-      const domain = await getDomainByHost(host);
-      if (
-        domain?.verified &&
-        domain.pubkey.toLowerCase() === sellerPubkey.toLowerCase()
-      ) {
-        return host;
-      }
-    }
-  } catch {
-    // Best-effort feature: a lookup/parse failure just skips registration.
-  }
-  return null;
-}
-
 interface SellerSplit {
   sellerPubkey: string;
   // Preferred: per-seller subtotal already in seller-currency smallest units

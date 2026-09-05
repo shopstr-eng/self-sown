@@ -111,6 +111,8 @@ jest.mock("@/utils/stripe/apple-pay", () => ({
   registerApplePayDomain: jest.fn(async () => undefined),
   normalizeRegistrableHost: jest.requireActual("@/utils/stripe/apple-pay")
     .normalizeRegistrableHost,
+  trustedRegistrationHost: jest.requireActual("@/utils/stripe/apple-pay")
+    .trustedRegistrationHost,
 }));
 
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";

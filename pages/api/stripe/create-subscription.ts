@@ -16,6 +16,10 @@ import {
   isSelfReferral,
   lookupAffiliateCode,
 } from "@/utils/db/affiliates";
+import {
+  registerApplePayDomain,
+  trustedRegistrationHost,
+} from "@/utils/stripe/apple-pay";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -139,6 +143,17 @@ export default async function handler(
     const stripeOptions = connectedAccountId
       ? { stripeAccount: connectedAccountId }
       : undefined;
+
+    // Direct charges run on the connected account, so Apple Pay needs the
+    // checkout domain registered THERE (platform host, or this seller's
+    // verified custom domain) before the buyer's wallet element initializes.
+    // Best-effort: registration failure never blocks checkout.
+    const subscriptionRegHost = await trustedRegistrationHost(
+      req.headers?.host,
+      sellerPubkey
+    );
+    if (subscriptionRegHost)
+      await registerApplePayDomain(subscriptionRegHost, connectedAccountId);
 
     const customers = await stripe.customers.list(
       { email: customerEmail, limit: 1 },
