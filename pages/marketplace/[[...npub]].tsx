@@ -265,8 +265,8 @@ export default function SellerView({
       {!focusedPubkey && !initialFocusedPubkey && (
         <div className="flex h-auto w-full items-center justify-center bg-black bg-cover bg-center pt-20">
           <img
-            src="/free-milk.png"
-            alt="Milk Market Banner"
+            src="/free-the-food.png"
+            alt="Free the Food — Milk Market Banner"
             className="max-h-[300px] w-full items-center justify-center object-contain py-8"
             fetchPriority="high"
           />

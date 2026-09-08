@@ -32,10 +32,11 @@ function collectSourceFiles(dir: string): string[] {
     const full = path.join(abs, entry.name);
     if (entry.isDirectory()) {
       if (entry.name === "__tests__" || entry.name === "node_modules") continue;
-      out.push(
-        ...collectSourceFiles(path.relative(REPO_ROOT, full))
-      );
-    } else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.endsWith(".test.ts")) {
+      out.push(...collectSourceFiles(path.relative(REPO_ROOT, full)));
+    } else if (
+      /\.(ts|tsx)$/.test(entry.name) &&
+      !entry.name.endsWith(".test.ts")
+    ) {
       out.push(full);
     }
   }
@@ -77,9 +78,7 @@ describe("central table registration", () => {
         }
         for (const table of tablesCreatedIn(source)) {
           if (!centralTables.has(table)) {
-            offenders.push(
-              `${table} (${path.relative(REPO_ROOT, file)})`
-            );
+            offenders.push(`${table} (${path.relative(REPO_ROOT, file)})`);
           }
         }
       }
