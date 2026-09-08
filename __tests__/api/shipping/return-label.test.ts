@@ -22,6 +22,15 @@ const MCP_SIGNED_EVENT_HEADER = "x-mcp-signed-event";
 const MCP_REQUEST_PROOF_KIND = 27235;
 
 const applyRateLimitMock = jest.fn();
+const verifyNip98RequestMock = jest.fn();
+const getSellerOrderStateMock = jest.fn();
+const isDefinitiveShippoPurchaseFailureMock = jest.fn();
+jest.mock("@/utils/nostr/nip98-auth", () => ({
+  verifyNip98Request: (...args: unknown[]) => verifyNip98RequestMock(...args),
+}));
+jest.mock("@/utils/db/db-service", () => ({
+  getSellerOrderState: (...args: unknown[]) => getSellerOrderStateMock(...args),
+}));
 const buyReturnLabelMock = jest.fn();
 const isShippoOAuthConfiguredMock = jest.fn();
 const isListedSellerMock = jest.fn();
@@ -43,6 +52,8 @@ jest.mock("@/utils/rate-limit", () => ({
 
 jest.mock("@/utils/shipping/shippo", () => ({
   buyReturnLabel: (...args: unknown[]) => buyReturnLabelMock(...args),
+  isDefinitiveShippoPurchaseFailure: (...args: unknown[]) =>
+    isDefinitiveShippoPurchaseFailureMock(...args),
 }));
 
 jest.mock("@/utils/shipping/shippo-oauth", () => ({
@@ -155,6 +166,9 @@ function makeClaimStore() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  verifyNip98RequestMock.mockResolvedValue({ ok: true, pubkey: SELLER_PUBKEY });
+  getSellerOrderStateMock.mockResolvedValue({ status: "shipped" });
+  isDefinitiveShippoPurchaseFailureMock.mockReturnValue(true);
 
   applyRateLimitMock.mockReturnValue(true);
   isShippoOAuthConfiguredMock.mockReturnValue(true);
@@ -542,5 +556,118 @@ describe("/api/shipping/return-label signed-event (cryptographic proof) guards",
     });
 
     expectNoAuthOrCharge();
+  });
+});
+
+describe("mobile return labels", () => {
+  function mobileRequest(body = validBody()) {
+    return {
+      ...makeRequest(body),
+      headers: { authorization: "Nostr proof" },
+      url: "/api/shipping/return-label",
+    };
+  }
+  beforeEach(() => {
+    claimShipmentForPurchaseMock.mockResolvedValue(true);
+  });
+  test("accepts body-bound mobile auth and locks destination to seller defaults", async () => {
+    const req = mobileRequest(
+      validBody({ to: { street1: "Attacker address" } })
+    );
+    const res = createResponse();
+    await handler(req, res as any);
+    expect(res.statusCode).toBe(200);
+    expect(verifyNip98RequestMock).toHaveBeenCalledWith(req, "POST", req.body);
+    expect(getSellerOrderStateMock).toHaveBeenCalledWith(
+      "order-123",
+      SELLER_PUBKEY
+    );
+    expect(buyReturnLabelMock).toHaveBeenCalledWith(
+      "oauth.seller-token",
+      expect.objectContaining({
+        to: expect.objectContaining({ street1: "200 Seller Ave" }),
+      })
+    );
+    expect(consumeSignedRequestProofMock).not.toHaveBeenCalled();
+    expect(insertShippingLabelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ isReturn: true, orderId: "order-123" })
+    );
+  });
+  test("rejects invalid mobile auth before looking up order or charging", async () => {
+    verifyNip98RequestMock.mockResolvedValue({
+      ok: false,
+      error: "Authorization payload mismatch",
+    });
+    const res = createResponse();
+    await handler(mobileRequest(), res as any);
+    expect(res.statusCode).toBe(401);
+    expect(getSellerOrderStateMock).not.toHaveBeenCalled();
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
+  });
+  test("rejects another seller's order", async () => {
+    getSellerOrderStateMock.mockResolvedValue(null);
+    const res = createResponse();
+    await handler(mobileRequest(), res as any);
+    expect(res.statusCode).toBe(403);
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
+  });
+  test.each(["pending", "confirmed", "canceled"])(
+    "rejects a %s mobile order",
+    async (status) => {
+      getSellerOrderStateMock.mockResolvedValue({ status });
+      const res = createResponse();
+      await handler(mobileRequest(), res as any);
+      expect(res.statusCode).toBe(409);
+      expect(buyReturnLabelMock).not.toHaveBeenCalled();
+    }
+  );
+  test.each([
+    {},
+    { weightOz: -1 },
+    { weightOz: "bad" },
+    { weightOz: 16, lengthIn: -1 },
+  ])("rejects malformed package %j", async (parcel) => {
+    const res = createResponse();
+    await handler(mobileRequest(validBody({ parcel })), res as any);
+    expect(res.statusCode).toBe(400);
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
+  });
+  test("blocks a missing saved return address before claiming or charging", async () => {
+    getShippingDefaultsForPubkeyMock.mockResolvedValue(null);
+    const res = createResponse();
+    await handler(mobileRequest(), res as any);
+    expect(res.statusCode).toBe(400);
+    expect(claimShipmentForPurchaseMock).not.toHaveBeenCalled();
+  });
+  test("blocks a disconnected Shippo account", async () => {
+    getShippoAccessTokenMock.mockResolvedValue(null);
+    const res = createResponse();
+    await handler(mobileRequest(), res as any);
+    expect(res.statusCode).toBe(409);
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
+  });
+  test("blocks a free seller before charging", async () => {
+    isPubkeyProEntitledMock.mockResolvedValue(false);
+    const res = createResponse();
+    await handler(mobileRequest(), res as any);
+    expect(res.statusCode).toBe(403);
+    expect(buyReturnLabelMock).not.toHaveBeenCalled();
+  });
+  test("retains the duplicate guard when purchase outcome is uncertain", async () => {
+    const store = makeClaimStore();
+    claimShipmentForPurchaseMock.mockImplementation(store.claim);
+    releaseShipmentClaimMock.mockImplementation(store.release);
+    isDefinitiveShippoPurchaseFailureMock.mockReturnValue(false);
+    buyReturnLabelMock.mockRejectedValueOnce(
+      new Error("Response timed out after charge")
+    );
+    const res = createResponse();
+    await handler(mobileRequest(), res as any);
+    expect(res.statusCode).toBe(409);
+    expect(releaseShipmentClaimMock).not.toHaveBeenCalled();
+    const retry = createResponse();
+    await handler(mobileRequest(), retry as any);
+    expect(retry.statusCode).toBe(409);
+    expect(buyReturnLabelMock).toHaveBeenCalledTimes(1);
   });
 });

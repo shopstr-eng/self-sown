@@ -165,7 +165,7 @@ export default function ListingsIndexScreen() {
       <ScreenTitle
         eyebrow="Seller listings"
         title="Manage mobile inventory"
-        description="Phase 3 turns the seller listings tab into a mobile-native CRUD flow built on the same Nostr listing model as the web app."
+        description="Create, edit, and remove products from your seller catalog."
       />
 
       {listingMessage ? (

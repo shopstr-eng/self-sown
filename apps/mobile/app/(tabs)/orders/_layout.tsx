@@ -2,6 +2,10 @@ import { Stack } from "expo-router";
 
 import { sellerThemeTokens } from "@/theme/tokens";
 
+export const unstable_settings = {
+  initialRouteName: "index",
+};
+
 export default function OrdersStackLayout() {
   return (
     <Stack

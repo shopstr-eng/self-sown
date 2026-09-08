@@ -7,6 +7,8 @@ import {
   serializeSellerSession,
 } from "@self-sown/nostr";
 
+import { prepareSellerSessionChange } from "../lib/session-lifecycle";
+
 const SELLER_SESSION_STORAGE_KEY = "self-sown-seller-session";
 
 type SessionStoreState = {
@@ -48,6 +50,8 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
     }
   },
   saveSession: async (session) => {
+    if (get().session && get().session?.pubkey !== session.pubkey)
+      await prepareSellerSessionChange();
     await SecureStore.setItemAsync(
       SELLER_SESSION_STORAGE_KEY,
       serializeSellerSession(session)
@@ -58,6 +62,7 @@ export const useSessionStore = create<SessionStoreState>((set, get) => ({
     });
   },
   clearSession: async () => {
+    await prepareSellerSessionChange();
     await SecureStore.deleteItemAsync(SELLER_SESSION_STORAGE_KEY);
     set({
       session: null,

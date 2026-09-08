@@ -12,7 +12,7 @@
     "build": "expo export --platform web --output-dir dist",
     "lint": "tsc --noEmit && pnpm -C ../.. exec eslint apps/mobile",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/navigation-query-smoke.mjs"
+    "test": "node scripts/navigation-query-smoke.mjs && pnpm --dir ../.. exec jest __tests__/mobile --runInBand"
   },
   "dependencies": {
     "@babel/runtime": "7.29.2",
@@ -23,10 +23,14 @@
     "@self-sown/nostr": "file:../../packages/nostr",
     "@tanstack/react-query": "5.95.0",
     "expo": "~55.0.7",
+    "expo-constants": "~55.0.17",
     "expo-crypto": "~55.0.10",
     "expo-dev-client": "~55.0.17",
+    "expo-device": "~55.0.21",
     "expo-document-picker": "~55.0.11",
     "expo-linking": "~55.0.7",
+    "expo-network": "~55.0.18",
+    "expo-notifications": "~55.0.27",
     "expo-router": "~55.0.6",
     "expo-secure-store": "~55.0.9",
     "expo-splash-screen": "~55.0.25",

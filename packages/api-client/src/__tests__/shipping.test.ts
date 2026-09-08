@@ -296,3 +296,87 @@ describe("seller shipping api client", () => {
     );
   });
 });
+
+describe("seller return label purchase", () => {
+  const body = {
+    orderId: "order-1",
+    from: {
+      name: "Buyer",
+      street1: "10 Buyer St",
+      city: "Austin",
+      state: "TX",
+      postalCode: "78701",
+      country: "US",
+    },
+    parcel: { weightOz: 16 },
+    carriers: ["USPS"],
+  };
+  const label = {
+    success: true,
+    id: 42,
+    shipmentId: "return-1",
+    trackingCode: "RETURN",
+    labelUrl: "https://example.com/return.pdf",
+    labelFormat: "PDF",
+    rate: 5.25,
+    currency: "USD",
+    carrier: "USPS",
+    service: "Priority",
+  };
+  test("signs the exact return body, maps postalCode to zip and marks the label as a return", async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(jsonResponse(label));
+    const authorize = jest.fn().mockReturnValue("Nostr signed");
+    const client = createSellerShippingApiClient({ fetchImpl });
+    const result = await client.buyReturnLabel({ body, authorize });
+    const { url, init } = requestFrom(fetchImpl);
+    expect(url).toBe("/api/shipping/return-label");
+    expect(JSON.parse(init.body as string)).toEqual({
+      ...body,
+      from: { ...body.from, postalCode: undefined, zip: "78701" },
+    });
+    expect(authorize).toHaveBeenCalledWith({
+      path: url,
+      method: "POST",
+      body: init.body,
+    });
+    expect(result).toMatchObject({
+      isReturn: true,
+      orderId: "order-1",
+      trackingCode: "RETURN",
+    });
+  });
+  test("rejects invalid package data before authorizing or sending", async () => {
+    const fetchImpl = jest.fn();
+    const client = createSellerShippingApiClient({ fetchImpl });
+    await expect(
+      client.buyReturnLabel({
+        body: { ...body, parcel: { weightOz: -1 } },
+        authorizationHeader: "Nostr signed",
+      })
+    ).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+  test("does not retry a failed purchase automatically", async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ error: "Check Shippo before retrying." }, 409)
+      );
+    const client = createSellerShippingApiClient({ fetchImpl });
+    await expect(
+      client.buyReturnLabel({ body, authorizationHeader: "Nostr signed" })
+    ).rejects.toMatchObject({ status: 409 });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+  test("rejects an unsafe purchased label URL", async () => {
+    const fetchImpl = jest
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ ...label, labelUrl: "javascript:alert(1)" })
+      );
+    const client = createSellerShippingApiClient({ fetchImpl });
+    await expect(
+      client.buyReturnLabel({ body, authorizationHeader: "Nostr signed" })
+    ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  });
+});
