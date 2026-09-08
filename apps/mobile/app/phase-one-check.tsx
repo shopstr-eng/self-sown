@@ -1,4 +1,4 @@
-import { Link, useLocalSearchParams, usePathname } from "expo-router";
+import { Redirect, Link, useLocalSearchParams, usePathname } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { API_CLIENT_PACKAGE_READY } from "@self-sown/api-client";
@@ -17,6 +17,8 @@ const acceptanceChecks = [
 export default function PhaseOneCheckScreen() {
   const pathname = usePathname();
   const params = useLocalSearchParams<{ source?: string }>();
+
+  if (!__DEV__) return <Redirect href="/" />;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>

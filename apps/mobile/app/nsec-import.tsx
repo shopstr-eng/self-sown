@@ -80,8 +80,8 @@ export default function NsecImportScreen() {
           autoCapitalize="none"
         />
         <Text style={styles.helpText}>
-          The key is stored in SecureStore. Phase 2 does not support bunker or
-          extension sign-in yet.
+          The key is stored securely on this device. This app does not support
+          bunker or extension sign-in yet.
         </Text>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <ActionButton

@@ -6,22 +6,33 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "environment": "development",
+      "env": {
+        "MOBILE_APP_VARIANT": "development"
+      },
+      "node": "22.23.2"
     },
     "preview": {
       "distribution": "internal",
+      "environment": "preview",
+      "env": {
+        "MOBILE_APP_VARIANT": "staging",
+        "EXPO_PUBLIC_API_BASE_URL": "https://self-sown.com"
+      },
       "android": {
         "buildType": "apk"
       },
-      "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://self-sown.com"
-      }
+      "node": "22.23.2"
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
       "env": {
+        "MOBILE_APP_VARIANT": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://self-sown.com"
-      }
+      },
+      "node": "22.23.2"
     }
   }
 }

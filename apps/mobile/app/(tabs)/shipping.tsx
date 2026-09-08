@@ -296,7 +296,7 @@ export default function SellerShippingScreen() {
 
       <SellerCard
         title="Purchased labels"
-        description="Recent outbound labels remain available here after app restarts."
+        description="Outbound and return labels remain available here after app restarts."
       >
         {labels.length === 0 ? (
           <Text style={styles.helper}>No labels purchased yet.</Text>
@@ -308,6 +308,7 @@ export default function SellerShippingScreen() {
             >
               <View style={styles.flex}>
                 <Text style={styles.labelTitle}>
+                  {label.isReturn ? "Return · " : "Outbound · "}
                   {label.carrier || "Carrier pending"}
                   {label.service ? ` ${label.service}` : ""}
                 </Text>

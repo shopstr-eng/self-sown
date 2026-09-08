@@ -4,7 +4,7 @@ import {
   createSellerShippingApiClient,
 } from "@self-sown/api-client";
 
-import { getApiBaseUrl } from "@/lib/api-base-url";
+import { getApiBaseUrl } from "./api-base-url";
 
 export const mobileApiClient = createSelfSownApiClient({
   baseUrl: getApiBaseUrl(),

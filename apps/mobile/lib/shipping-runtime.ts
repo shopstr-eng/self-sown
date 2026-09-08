@@ -1,13 +1,14 @@
 import type {
   BuyOrderLabelBody,
+  BuyReturnLabelBody,
   QuoteOrderShippingBody,
   SellerShippingDefaults,
 } from "@self-sown/api-client";
 import type { SellerSession } from "@self-sown/domain";
 import { createNip98AuthorizationHeader } from "@self-sown/nostr";
 
-import { getApiBaseUrl } from "@/lib/api-base-url";
-import { mobileSellerShippingApiClient } from "@/lib/api-client";
+import { getApiBaseUrl } from "./api-base-url";
+import { mobileSellerShippingApiClient } from "./api-client";
 
 const apiBaseUrl = getApiBaseUrl();
 
@@ -89,6 +90,16 @@ export function buySellerOrderLabel(
 export function listSellerOrderLabels(session: SellerSession, orderId: string) {
   return mobileSellerShippingApiClient.listLabels({
     orderId,
+    authorize: authorization(session),
+  });
+}
+
+export function buySellerReturnLabel(
+  session: SellerSession,
+  body: BuyReturnLabelBody
+) {
+  return mobileSellerShippingApiClient.buyReturnLabel({
+    body,
     authorize: authorization(session),
   });
 }
