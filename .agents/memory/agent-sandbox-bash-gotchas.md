@@ -61,6 +61,8 @@ review caught what LSP missed.
 
 `pgrep -f "tsserver.js"` also matches your OWN wrapper shell's command line (bash -c "...tsserver.js..."), so `kill $(pgrep -f tsserver.js)` kills your own shell mid-command (exit -1). Anchor the pattern to the process start instead: `pgrep -f "^/nix/store.*tsserver.js" | xargs -r kill`, or kill listed PIDs excluding $$.
 
+Same self-match trap for `pkill -f`: the bracket trick `pkill -f "tsserver[.]js"` works ONLY if the literal target string appears nowhere else in your own command line — a command containing BOTH `pkill -f "placeholde[r]"` and e.g. `cp scripts/dev-build-placeholder.mjs` still self-kills (the cp argument matches the regex). Split the kill and the literal mention into separate tool calls, or build the filename from a variable so it never appears literally.
+
 ## Long-lived local services (e.g. a Nutshell mint) must be managed workflows
 
 Background shell tasks auto-stop after ~5 minutes and detached `setsid`

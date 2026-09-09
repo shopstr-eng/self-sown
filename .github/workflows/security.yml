@@ -40,10 +40,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build application
         run: npm run build
@@ -64,35 +66,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
-      - name: Run npm audit
+      - name: Run pnpm audit
         id: npm-audit
         run: |
-          echo "Running npm audit..."
-          if npm audit --audit-level=moderate --json > npm-audit-results.json; then
-            echo "npm_audit_status=success" >> $GITHUB_OUTPUT
+          echo "Running pnpm audit..."
+          if pnpm audit --audit-level=moderate --json > pnpm-audit-results.json; then
+            echo "pnpm_audit_status=success" >> $GITHUB_OUTPUT
           else
-            echo "npm_audit_status=failure" >> $GITHUB_OUTPUT
+            echo "pnpm_audit_status=failure" >> $GITHUB_OUTPUT
           fi
           
           # Parse results
-          if [ -f npm-audit-results.json ]; then
-            vulnerabilities=$(jq '.metadata.vulnerabilities.total' npm-audit-results.json)
+          if [ -f pnpm-audit-results.json ]; then
+            vulnerabilities=$(jq '.metadata.vulnerabilities.total' pnpm-audit-results.json)
             echo "vulnerabilities_found=$vulnerabilities" >> $GITHUB_OUTPUT
           else
             echo "vulnerabilities_found=0" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload npm audit results
+      - name: Upload pnpm audit results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: npm-audit-results
-          path: npm-audit-results.json
+          path: pnpm-audit-results.json
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
@@ -118,11 +122,11 @@ jobs:
             const comment = `
             ## 🔒 Security Scan Results
             
-            **⚠️ npm audit found ${vulnerabilities} vulnerabilities**
+            **⚠️ pnpm audit found ${vulnerabilities} vulnerabilities**
             
             Please review the security report and address any critical or high-severity vulnerabilities before merging.
             
-            You can run \`npm audit fix\` locally to automatically fix compatible issues.
+            You can run \`pnpm audit fix\` locally to automatically fix compatible issues.
             
             For more details, check the uploaded npm-audit-results artifact.
             `;
@@ -168,10 +172,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Run ESLint Security Plugin
         run: |
@@ -237,10 +243,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
-          cache: 'npm'
+
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Install license checker
         run: npm install -g license-checker

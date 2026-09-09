@@ -55,3 +55,7 @@ next-env.d.ts
 # self-host (single-tenant) config — copied from milk-market.config.example.json
 # and filled in per-deploy; never commit a real one to the public repo.
 milk-market.config.json
+
+# dev-server.sh supervisor runtime state
+.next-dev-status
+.next-last-good/

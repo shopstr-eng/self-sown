@@ -64,6 +64,8 @@ const withPWA = withPWAInit({
   },
 });
 
+const isDevBuild = process.env.MM_DEV_BUILD === "1";
+
 const nextConfig = {
   allowedDevOrigins: [
     "e9ba601a-36d6-4d29-ba29-e886d75befcb-00-o2i19us8bom3.picard.replit.dev",
@@ -89,26 +91,33 @@ const nextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  experimental: {
-    // Low-memory build mode for this ~8GiB dev container: cold Turbopack
-    // builds kept getting SIGKILLed (exit 137) because --max-old-space-size
-    // only caps the V8 heap, not Turbopack's native memory or the extra
-    // compile workers. Publish builds (build:deploy, bigger machines) leave
-    // MM_BUILD_LOW_MEM unset and keep full parallelism.
-    ...(process.env.MM_BUILD_LOW_MEM === "1"
-      ? {
-          cpus: 1,
-          turbopackMemoryEviction: "full",
-          memoryBasedWorkersCount: true,
-          // The build FS cache (new default-on in 16.3.x) buffers cache
-          // serialization in memory during the build. In this memory-capped
-          // container that buffering is the difference between a passing
-          // build and a SIGKILL, and warm rebuilds here weren't faster
-          // anyway — every restart is effectively a cold build.
+  // Memory-bounded build settings for the dev-workflow preview build only
+  // (MM_DEV_BUILD is set by scripts/dev-server.sh). Cold Turbopack production
+  // builds in this ~8GiB container kept getting SIGKILLed (exit 137):
+  //  - The build FS cache (default-on in 16.3.x) buffers cache serialization
+  //    in memory during the build — measured as the difference between a
+  //    passing cold build (~7.0GB) and a SIGKILL (~7.1GB). Warm rebuilds here
+  //    weren't faster anyway (every restart rebuilds fully), so no upside.
+  //  - Turbopack runs PostCSS/Babel loaders in a pool of child PROCESSES
+  //    (the "postcss worker" that dies mid-IPC); workerThreads runs the same
+  //    work in-process, using less memory and CPU.
+  //  - Static-generation workers default to nproc-1 child processes; cpus: 2
+  //    and workerThreads cap and share that memory instead.
+  //  - Production source maps cost hundreds of MB to emit and are useless in
+  //    the dev preview.
+  // Deploy builds (scripts/deploy-build.sh) do NOT set MM_DEV_BUILD and are
+  // unchanged.
+  ...(isDevBuild
+    ? {
+        experimental: {
           turbopackFileSystemCacheForBuild: false,
-        }
-      : {}),
-  },
+          turbopackPluginRuntimeStrategy: "workerThreads",
+          turbopackSourceMaps: false,
+          cpus: 2,
+          workerThreads: true,
+        },
+      }
+    : {}),
   async rewrites() {
     return {
       beforeFiles: [

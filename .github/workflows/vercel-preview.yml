@@ -32,10 +32,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: 'npm'
           
+      - name: Enable Corepack (pnpm)
+        run: corepack enable
+
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Check required Vercel secrets
         id: vercel_precheck
