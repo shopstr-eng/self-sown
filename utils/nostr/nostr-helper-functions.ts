@@ -33,6 +33,7 @@ import { getLocalStorageJson } from "@/utils/safe-json";
 import {
   BLOG_POST_KIND,
   buildBlogPostTags,
+  DEFAULT_SELLER_RELAYS,
   type BlogPostDraft,
 } from "@milk-market/domain";
 import {
@@ -2272,13 +2273,7 @@ export function nostrExtensionLoaded() {
 }
 
 export function getDefaultRelays(): string[] {
-  return [
-    "wss://relay.damus.io",
-    "wss://nos.lol",
-    "wss://user.kingpag.es",
-    "wss://relay.primal.net",
-    "wss://relay.noswhere.com",
-  ];
+  return [...DEFAULT_SELLER_RELAYS];
 }
 
 export function withBlastr(relays: string[]): string[] {

@@ -27,3 +27,11 @@ starvation does two bad things:
   `--forceExit` or just read the `Tests:`/`Test Suites:` summary lines.
 - Known-skipped and NOT agent-runnable (leave skipped): `db-service.test.ts`
   (`RUN_TESTCONTAINERS`), `export-bundle-full-build.test.ts` (`RUN_SELF_HOST_BUILD`).
+- Known PRE-EXISTING failures on main (verified failing on a pristine stash, unrelated
+  to relay/test-infra edits; don't chase them): `__tests__/utils/apple-pay.test.ts`
+  (registerApplePayDomain cache: mockCreate called 2x not 1x) and
+  `__tests__/api/stripe/create-subscription-account-stamping.test.ts`.
+  Both live in shard 1/3; shards 2/3 and 3/3 run clean.
+- When looping shards, `npx jest ... | tail -8; echo $?` reports **tail's** exit code,
+  not Jest's — a failing shard prints `EXIT: 0`. Capture the real status with
+  `set -o pipefail`, or redirect full output to a file and grep for `^FAIL`.

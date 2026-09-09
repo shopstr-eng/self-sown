@@ -19,17 +19,12 @@ import {
   getDefaultRelays,
   withBlastr,
 } from "@/utils/nostr/nostr-helper-functions";
+import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
 
 const ALGORITHM = "aes-256-gcm";
 
-export const MCP_RELAY_ALLOWLIST = new Set([
-  "wss://relay.damus.io",
-  "wss://nos.lol",
-  "wss://user.kingpag.es",
-  "wss://relay.primal.net",
-  "wss://relay.noswhere.com",
-  "wss://sendit.nosflare.com",
-]);
+// Default relays + the blastr broadcaster, from the single shared list.
+export const MCP_RELAY_ALLOWLIST = new Set(withBlastr([...DEFAULT_SELLER_RELAYS]));
 
 function filterAllowedRelays(urls: string[]): string[] {
   const allowed: string[] = [];
