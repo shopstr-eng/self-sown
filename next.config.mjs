@@ -95,7 +95,7 @@ const nextConfig = {
     // only caps the V8 heap, not Turbopack's native memory or the extra
     // compile workers. Publish builds (build:deploy, bigger machines) leave
     // MM_BUILD_LOW_MEM unset and keep full parallelism.
-    ...(process.env.MM_BUILD_LOW_MEM
+    ...(process.env.MM_BUILD_LOW_MEM === "1"
       ? {
           cpus: 1,
           turbopackMemoryEviction: "full",
