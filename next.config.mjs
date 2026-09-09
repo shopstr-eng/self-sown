@@ -100,6 +100,12 @@ const nextConfig = {
           cpus: 1,
           turbopackMemoryEviction: "full",
           memoryBasedWorkersCount: true,
+          // The build FS cache (new default-on in 16.3.x) buffers cache
+          // serialization in memory during the build. In this memory-capped
+          // container that buffering is the difference between a passing
+          // build and a SIGKILL, and warm rebuilds here weren't faster
+          // anyway — every restart is effectively a cold build.
+          turbopackFileSystemCacheForBuild: false,
         }
       : {}),
   },
