@@ -2662,7 +2662,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           await import("@/utils/nostr/nostr-helper-functions");
 
         const defaultRelays = getDefaultRelays();
-        const relayHint = defaultRelays[0] || "wss://relay.damus.io";
+        // getDefaultRelays() always returns DEFAULT_SELLER_RELAYS (never
+        // empty); never hardcode a fallback relay literal here.
+        const relayHint = defaultRelays[0]!;
 
         const innerTags: string[][] = [
           ["p", params.recipientPubkey, relayHint],
@@ -3020,8 +3022,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
         const senderPubkey = signer.getPubKey();
         const defaultRelays = getDefaultRelays();
-        const relayHint: string =
-          defaultRelays.length > 0 ? defaultRelays[0]! : "wss://relay.damus.io";
+        // getDefaultRelays() always returns DEFAULT_SELLER_RELAYS (never
+        // empty); never hardcode a fallback relay literal here.
+        const relayHint: string = defaultRelays[0]!;
 
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const etaTimestamp =
@@ -3252,10 +3255,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
             const senderPubkey = signer.getPubKey();
             const defaultRelays = getDefaultRelays();
-            const relayHint: string =
-              defaultRelays.length > 0
-                ? defaultRelays[0]!
-                : "wss://relay.damus.io";
+            // getDefaultRelays() always returns DEFAULT_SELLER_RELAYS (never
+            // empty); never hardcode a fallback relay literal here.
+            const relayHint: string = defaultRelays[0]!;
 
             const subjectMap: Record<string, string> = {
               confirmed: "order-info",
