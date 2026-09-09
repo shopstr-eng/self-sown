@@ -91,14 +91,13 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   while the token's `/user` login is `calvadev`.
 - Task-agent/platform merge commits arrive authored as
   `Replit Agent <agent@replit.com>` or `<user>@users.noreply.replit.com`.
-  **The user does NOT want their GitHub identity (`*@users.noreply.github.com`)
-  on commits** (asked 2026-09-08 to strip it from author AND committer);
-  use `Replit Agent <agent@replit.com>` for anything agent/platform-made.
-  Reliable rewrite: cherry-pick the stack onto the base with
-  `GIT_COMMITTER_NAME/EMAIL` exported and `-c core.hooksPath=/dev/null`
-  (husky lint hook fails on pre-existing errors) — plain
-  `git rebase --exec` with only GIT_COMMITTER_* exported silently NO-OPs
-  (SHAs unchanged), and an amend-in-exec can collide with a transient
-  index.lock; if it does, `rm .git/index.lock`, amend the stopped HEAD, then
-  `git rebase --continue`. Preserve author dates via
-  `GIT_AUTHOR_DATE="$(git log -1 --format=%aI)"` on the amend.
+  **The user wants ALL commits attributed to their GitHub account
+  (`calvadev⚡️ <32919103+calvadev@users.noreply.github.com>`), never
+  the Replit platform identities** (agent@replit.com or
+  *@users.noreply.replit.com) — a first pass stripping their GitHub creds
+  (2026-09-08) was exactly backwards; reauthor BOTH author and committer.
+  Whole-range rewrite: `git filter-branch -f --env-filter` exporting
+  GIT_AUTHOR_*/GIT_COMMITTER_* name+email over `origin/main..HEAD` —
+  preserves author dates, runs no hooks, no index.lock races (both bit the
+  rebase --exec approach). Delete refs/original/* after, verify with an
+  empty `git diff <oldHEAD> HEAD`.
