@@ -112,6 +112,9 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/validate-password-auth",
   "/api/encryption/",
   "/api/health",
+  // Build-version probe for the update-available toast. Read-only, leaks only
+  // the build ID (already public in every page's __NEXT_DATA__ + chunk URLs).
+  "/api/version",
 ];
 
 // Canonical platform hosts that should NEVER be treated as a seller's

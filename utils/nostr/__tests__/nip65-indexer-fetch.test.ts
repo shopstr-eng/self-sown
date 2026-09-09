@@ -71,7 +71,7 @@ describe("fetchKind10002FromIndexers", () => {
   it("one indexer returning nothing does not discard the other's results", async () => {
     const hit = relayList(skA, 1000);
     queryMock.mockImplementation((url: string) =>
-      Promise.resolve(url.includes("purplepag.es") ? [] : [hit])
+      Promise.resolve(url.includes("user.kingpag.es") ? [] : [hit])
     );
     const result = await fetchKind10002FromIndexers(pkA);
     expect(result?.id).toBe(hit.id);

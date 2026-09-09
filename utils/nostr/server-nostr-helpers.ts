@@ -30,8 +30,8 @@ function getDefaultRelays(): string[] {
   return [
     "wss://relay.damus.io",
     "wss://nos.lol",
-    "wss://relay.nostr.band",
-    "wss://purplepag.es",
+    "wss://relay.noswhere.com",
+    "wss://user.kingpag.es",
     "wss://relay.primal.net",
   ];
 }

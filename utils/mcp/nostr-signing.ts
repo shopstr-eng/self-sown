@@ -25,9 +25,9 @@ const ALGORITHM = "aes-256-gcm";
 export const MCP_RELAY_ALLOWLIST = new Set([
   "wss://relay.damus.io",
   "wss://nos.lol",
-  "wss://purplepag.es",
+  "wss://user.kingpag.es",
   "wss://relay.primal.net",
-  "wss://relay.nostr.band",
+  "wss://relay.noswhere.com",
   "wss://sendit.nosflare.com",
 ]);
 

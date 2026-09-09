@@ -113,9 +113,9 @@ const toPlainProofs = (proofs) =>
 const DEFAULTS_PLUS_BLAST = [
   "wss://relay.damus.io",
   "wss://nos.lol",
-  "wss://purplepag.es",
+  "wss://user.kingpag.es",
   "wss://relay.primal.net",
-  "wss://relay.nostr.band",
+  "wss://relay.noswhere.com",
   "wss://sendit.nosflare.com",
 ];
 const NON_DEFAULT_CANDIDATES = [

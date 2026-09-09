@@ -727,8 +727,8 @@ async function fetchRecipientReadRelays(
   baseRelays: string[]
 ): Promise<string[]> {
   try {
-    // Always include default relays (NIP-65 indexers like purplepag.es /
-    // relay.nostr.band) for the lookup so discovery works even if the buyer's
+    // Always include default relays (NIP-65 indexers like user.kingpag.es /
+    // relay.noswhere.com) for the lookup so discovery works even if the buyer's
     // localStorage relays were customized — and is independent of our server.
     const lookupRelays = Array.from(
       new Set([...baseRelays, ...getDefaultRelays()])
@@ -2275,9 +2275,9 @@ export function getDefaultRelays(): string[] {
   return [
     "wss://relay.damus.io",
     "wss://nos.lol",
-    "wss://purplepag.es",
+    "wss://user.kingpag.es",
     "wss://relay.primal.net",
-    "wss://relay.nostr.band",
+    "wss://relay.noswhere.com",
   ];
 }
 

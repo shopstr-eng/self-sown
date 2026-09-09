@@ -97,9 +97,9 @@ export interface StripeConnectStatus {
 export const DEFAULT_SELLER_RELAYS = [
   "wss://relay.damus.io",
   "wss://nos.lol",
-  "wss://purplepag.es",
+  "wss://user.kingpag.es",
   "wss://relay.primal.net",
-  "wss://relay.nostr.band",
+  "wss://relay.noswhere.com",
 ] as const;
 
 const RESERVED_MARKETPLACE_TAGS = new Set([

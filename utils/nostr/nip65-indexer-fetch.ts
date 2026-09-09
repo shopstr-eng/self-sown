@@ -19,8 +19,8 @@ import { queryRelayEvents } from "@/utils/nostr/contained-relay";
 // Operator-overridable (comma-separated) — used by the staging e2e to point
 // at a local relay, and available to self-hosters running their own indexer.
 const DEFAULT_NIP65_INDEXER_RELAYS = [
-  "wss://purplepag.es",
-  "wss://relay.nostr.band",
+  "wss://user.kingpag.es",
+  "wss://relay.noswhere.com",
 ];
 function getIndexerRelays(): { urls: string[]; operatorConfigured: boolean } {
   const fromEnv = (process.env.NIP65_INDEXER_RELAYS ?? "")

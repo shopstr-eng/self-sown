@@ -17,9 +17,9 @@ jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   getDefaultRelays: jest.fn(() => [
     "wss://relay.damus.io",
     "wss://nos.lol",
-    "wss://purplepag.es",
+    "wss://user.kingpag.es",
     "wss://relay.primal.net",
-    "wss://relay.nostr.band",
+    "wss://relay.noswhere.com",
   ]),
   withBlastr: jest.fn((relays: string[]) => [
     ...relays,
@@ -35,9 +35,9 @@ describe("MCP_RELAY_ALLOWLIST", () => {
   it("contains the 6 known Shopstr relays", () => {
     expect(MCP_RELAY_ALLOWLIST.has("wss://relay.damus.io")).toBe(true);
     expect(MCP_RELAY_ALLOWLIST.has("wss://nos.lol")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://purplepag.es")).toBe(true);
+    expect(MCP_RELAY_ALLOWLIST.has("wss://user.kingpag.es")).toBe(true);
     expect(MCP_RELAY_ALLOWLIST.has("wss://relay.primal.net")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://relay.nostr.band")).toBe(true);
+    expect(MCP_RELAY_ALLOWLIST.has("wss://relay.noswhere.com")).toBe(true);
     expect(MCP_RELAY_ALLOWLIST.has("wss://sendit.nosflare.com")).toBe(true);
   });
 
