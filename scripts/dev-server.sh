@@ -8,8 +8,10 @@
 # row. The dominant cause turned out to be Tailwind v4's automatic source
 # detection scanning the multi-GB .local/ and .cache/ directories during the
 # globals.css compile (~4.4GB of the peak); globals.css now pins explicit
-# @source globs (source(none)) and a cold build peaks at ~2.4GB. Host memory
-# noise still fluctuates, so this supervisor keeps the safety nets:
+# @source globs (source(none)) and a cold build peaks at ~2.4GB. next.config
+# also trims dev-build memory (see the MM_DEV_BUILD block — notably the
+# Turbopack FS build cache is disabled). Host memory noise still fluctuates,
+# so this supervisor keeps the safety nets:
 #
 #  1. Bind port 5000 IMMEDIATELY with a tiny status page (workflow port check
 #     passes in seconds instead of timing out at 300s mid-build; if a

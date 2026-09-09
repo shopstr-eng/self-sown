@@ -87,15 +87,16 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   path FIRST (a `{url: "https://api.github.com/..."}` option object throws
   "requires an upstream API path starting with /"). The proxy targets
   api.github.com. Repo paths 404 "Not Found" under the wrong owner — the
-  milk-market repo is the `shopstr-eng` ORG (`/repos/shopstr-eng/milk-market`),
-  while the token's `/user` login is `calvadev`.
-- Task-agent/platform merge commits arrive authored as
-  `Replit Agent <agent@replit.com>` or `<user>@users.noreply.replit.com`.
-  **The user wants ALL commits attributed to their GitHub account
-  (`calvadev⚡️ <32919103+calvadev@users.noreply.github.com>`), never
-  the Replit platform identities** (agent@replit.com or
-  *@users.noreply.replit.com) — a first pass stripping their GitHub creds
-  (2026-09-08) was exactly backwards; reauthor BOTH author and committer.
+  repo lives under an ORG, while the token's `/user` login is a personal
+  account; always resolve owner/repo from `git remote get-url origin`.
+- Task-agent/platform merge commits arrive authored as Replit platform
+  identities (agent@replit.com or *@users.noreply.replit.com).
+  **The user wants ALL commits attributed to their own GitHub account,
+  never the Replit platform identities** — read the exact name/email from
+  `git config user.name` / `user.email` (or the connector's `/user`) at
+  rewrite time; do not hardcode them here. A first pass stripping their
+  GitHub creds (2026-09-08) was exactly backwards; reauthor BOTH author
+  and committer.
   Whole-range rewrite: `git filter-branch -f --env-filter` exporting
   GIT_AUTHOR_*/GIT_COMMITTER_* name+email over `origin/main..HEAD` —
   preserves author dates, runs no hooks, no index.lock races (both bit the
