@@ -108,6 +108,11 @@ serve_foreground() {
 }
 
 serve_something_now() {
+  # A kill between the two swap renames in assemble_and_save leaves the
+  # complete snapshot under .prev — restore it.
+  if [ ! -f "$LAST_GOOD/server.js" ] && [ -f "$LAST_GOOD.prev/server.js" ]; then
+    mv "$LAST_GOOD.prev" "$LAST_GOOD"
+  fi
   # Open the preview port immediately: last-good bundle if we have one,
   # otherwise the build-status placeholder page.
   if [ -f "$LAST_GOOD/server.js" ]; then
@@ -126,8 +131,58 @@ assemble_and_save() {
   cp -r .next/static .next/standalone/.next/static &&
     cp -r public .next/standalone/public &&
     node scripts/copy-sharp-standalone.mjs || return 1
-  rm -rf "$LAST_GOOD"
-  cp -a .next/standalone "$LAST_GOOD"
+  # Remove the previous swap's leftover (its server was stopped right after
+  # that swap, a full build before this assemble runs).
+  rm -rf "$LAST_GOOD.prev"
+  # Carry forward the previous build's content-hashed static assets so tabs
+  # holding pre-rebuild HTML don't 404 their JS chunks after the swap — dead
+  # chunks kill hydration, which leaves every HeroUI image stuck at opacity-0
+  # (invisible logo/avatars/product images despite healthy 200s). Unchanged
+  # chunks share content-hash names so the union grows only by what changed;
+  # still cap the carried tree so a long-lived container can't accumulate
+  # without limit (over the cap we skip one generation of history and stale
+  # tabs just need a refresh). A failed copy must ABORT the promotion —
+  # promoting anyway would delete the only complete historical copy.
+  if [ -d "$LAST_GOOD/.next/static" ]; then
+    local carried_mb
+    carried_mb="$(du -sm "$LAST_GOOD/.next/static" 2>/dev/null | cut -f1)"
+    if [ "${carried_mb:-0}" -gt 250 ]; then
+      echo "[dev-server] previous static tree is ${carried_mb}MB (>250MB cap) — skipping carry-forward for this build" >&2
+    elif ! cp -rn "$LAST_GOOD/.next/static/." .next/standalone/.next/static/; then
+      echo "[dev-server] ERROR: failed to preserve previous static assets — keeping last-good live, not promoting" >&2
+      return 1
+    else
+      echo "[dev-server] carried forward previous build's static assets (stale-chunk safety)"
+    fi
+  fi
+  # Stage the replacement next to the live one, then swap with two renames.
+  # The old server keeps serving from $LAST_GOOD until serve_foreground stops
+  # it AFTER we return, so never rm its files here (the old rm+cp left a
+  # seconds-long window where every lazy page/static request 404'd).
+  rm -rf "$LAST_GOOD.new"
+  if ! cp -a .next/standalone "$LAST_GOOD.new"; then
+    rm -rf "$LAST_GOOD.new"
+    return 1
+  fi
+  # Two renames, each checked. If rotating the live dir aside fails, abort
+  # BEFORE the second rename — an unchecked second mv would nest .new inside
+  # the still-present $LAST_GOOD and report success with a stale snapshot.
+  # The window where $LAST_GOOD is absent between the renames is sub-ms, and
+  # the carry-forward union means the old server's static-chunk requests keep
+  # resolving through it; stopping the old server first instead would take
+  # port 5000 down for the whole swap on every build.
+  if [ -d "$LAST_GOOD" ] && ! mv "$LAST_GOOD" "$LAST_GOOD.prev"; then
+    echo "[dev-server] ERROR: could not rotate last-good aside — not promoting" >&2
+    rm -rf "$LAST_GOOD.new"
+    return 1
+  fi
+  if ! mv "$LAST_GOOD.new" "$LAST_GOOD"; then
+    echo "[dev-server] ERROR: promotion rename failed — rolling back" >&2
+    if [ ! -e "$LAST_GOOD" ] && [ -d "$LAST_GOOD.prev" ]; then
+      mv "$LAST_GOOD.prev" "$LAST_GOOD"
+    fi
+    return 1
+  fi
 }
 
 build_once() {

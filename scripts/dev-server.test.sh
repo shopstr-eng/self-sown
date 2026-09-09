@@ -54,7 +54,7 @@ EOF
   chmod +x bin/next
 }
 
-reset() { rm -rf .next .next-last-good .next-dev-status .attempts; }
+reset() { rm -rf .next .next-last-good .next-last-good.prev .next-last-good.new .next-dev-status .attempts; }
 run_supervisor() { # run_supervisor <timeout> -> log at /tmp/ds-test.log
   timeout "$1" bash "$SUPERVISOR" > /tmp/ds-test.log 2>&1
   return 0 # timeout's exit code is the assertion target via log content
@@ -94,6 +94,21 @@ check "OOM retries happened" "retrying every" /tmp/ds-test.log
 check "compile error stops the loop" "not a memory kill" /tmp/ds-test.log
 [ "$(cat .next-dev-status 2>/dev/null)" = "broken" ] && ok "status flips to broken" || bad "status flips to broken"
 n=$(cat .attempts); [ "$n" -le 7 ] && ok "builds bounded ($n total, no infinite loop)" || bad "builds bounded (got $n)"
+
+echo "== F: previous build's static chunks carried forward across a swap =="
+# Regression: a rebuild used to replace .next/standalone wholesale, so tabs
+# holding pre-rebuild HTML 404'd their content-hashed JS chunks, hydration
+# died, and every HeroUI image (logo/avatars/product images) stayed invisible
+# despite the server returning 200s.
+write_stub oom_then_ok; reset
+mkdir -p .next-last-good/.next/static/chunks
+echo 'console.log("LASTGOOD up");' > .next-last-good/server.js
+echo 'OLD_CHUNK' > .next-last-good/.next/static/chunks/old-chunk.js
+run_supervisor 30
+check "carry-forward logged" "carried forward previous build's static assets" /tmp/ds-test.log
+[ -f .next-last-good/.next/static/chunks/old-chunk.js ] && ok "old chunk survives swap" || bad "old chunk survives swap"
+[ -f .next-last-good.prev/server.js ] && ok "previous generation retained as .prev" || bad "previous generation retained as .prev"
+grep -q FRESH_SERVER .next-last-good/server.js && ok "last-good promoted to fresh build" || bad "last-good promoted to fresh build"
 
 echo
 echo "RESULT: $pass passed, $fail failed"

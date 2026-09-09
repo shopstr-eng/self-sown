@@ -59,6 +59,8 @@ milk-market.config.json
 # dev-server.sh supervisor runtime state
 .next-dev-status
 .next-last-good/
+.next-last-good.prev/
+.next-last-good.new/
 
 # build measurement scratch
 .build-measure/
