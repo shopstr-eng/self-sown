@@ -2,14 +2,14 @@
 # Dev-preview server: memory-bounded production build, then serve standalone.
 #
 # Why this wrapper exists: a cold Turbopack production build of this app
-# (Next 16.3.4) peaks at ~7GB, and this ~8GiB VM carries ~2GB of baseline
-# usage outside our control — so a cold build only fits when nothing else
-# heavy (typecheck, tsserver, tests, host noise) is running. It used to die
-# with SIGKILL (exit 137, or a misleading PostCSS "unexpected end of file"
-# panic) many times in a row, blocking all preview verification. next.config
-# already trims dev-build memory (see the MM_DEV_BUILD block — notably the
-# Turbopack FS build cache is disabled, measured as the difference between a
-# passing cold build and a SIGKILL); this supervisor handles the rest:
+# (Next 16.3.4) used to peak at ~6.5-7GB against an ~8GiB VM with ~2GB of
+# baseline usage outside our control, so builds died with SIGKILL (exit 137,
+# or a misleading PostCSS "unexpected end of file" panic) many times in a
+# row. The dominant cause turned out to be Tailwind v4's automatic source
+# detection scanning the multi-GB .local/ and .cache/ directories during the
+# globals.css compile (~4.4GB of the peak); globals.css now pins explicit
+# @source globs (source(none)) and a cold build peaks at ~2.4GB. Host memory
+# noise still fluctuates, so this supervisor keeps the safety nets:
 #
 #  1. Bind port 5000 IMMEDIATELY with a tiny status page (workflow port check
 #     passes in seconds instead of timing out at 300s mid-build; if a
@@ -34,11 +34,12 @@ export NODE_OPTIONS='--max-old-space-size=3072'
 # module compilations = lower peak RSS.
 export RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-2}"
 
-# Cold compiles peak ~7GB. The MM_DEV_BUILD config disables the Turbopack FS
-# build cache, so every build here is effectively cold; the warm threshold
+# Cold compiles peak ~2.4GB (was ~7GB before the Tailwind source-detection
+# fix in styles/globals.css). The MM_DEV_BUILD config disables the Turbopack
+# FS build cache, so every build here is effectively cold; the warm threshold
 # only applies if that setting changes (a large .next/cache then survives
 # restarts and rebuilds are cheaper).
-COLD_REQUIRED_MB="${COLD_REQUIRED_MB:-4800}"
+COLD_REQUIRED_MB="${COLD_REQUIRED_MB:-3000}"
 WARM_REQUIRED_MB="${WARM_REQUIRED_MB:-2200}"
 WAIT_TIMEOUT_S="${WAIT_TIMEOUT_S:-180}"
 RETRY_INTERVAL_S="${RETRY_INTERVAL_S:-300}"

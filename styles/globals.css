@@ -1,6 +1,18 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap");
 
-@import "tailwindcss";
+/* source(none) + explicit @source globs: Tailwind v4's automatic source
+   detection walks the ENTIRE workspace, including the multi-GB .local/ and
+   .cache/ directories (they are not covered by our .gitignore-based ignores).
+   Measured: a bare `@import "tailwindcss"` compile peaks at ~5.3GB RSS because
+   of that scan — the dominant driver of cold `next build` OOMs. With scanning
+   scoped to the actual template globs the same compile peaks at ~0.1GB. */
+@import "tailwindcss" source(none);
+@source "../pages/**/*.{js,ts,jsx,tsx}";
+@source "../components/**/*.{js,ts,jsx,tsx}";
+@source "../utils/**/*.{js,ts,jsx,tsx}";
+@source "../app/**/*.{js,ts,jsx,tsx}";
+@source "../lib/**/*.{js,ts,jsx,tsx}";
+@source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
 @config "../tailwind.config.ts";
 
 @source inline(
