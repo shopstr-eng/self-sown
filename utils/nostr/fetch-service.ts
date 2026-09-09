@@ -58,6 +58,13 @@ interface NipProfile {
 // publish an old map over the newer context.
 let profileHydrationGeneration = 0;
 
+// Profiles, shop profiles, and products are seeded from the DB cache first;
+// the relay fetch is only a freshness upgrade. nostr-tools waits for EVERY
+// relay to EOSE, so one dead or blackholed relay would otherwise hang the
+// fetch (or reject and let a caller wipe the cached data). Bound the relay
+// wait and keep whatever arrived instead.
+const CACHED_FIRST_RELAY_TIMEOUT_MS = 10000;
+
 export function getUniqueProofs(proofs: Proof[]): Proof[] {
   const seenSecrets = new Set<string>();
   return proofs.filter((proof) => {
@@ -152,11 +159,22 @@ export const fetchAllPosts = async (
         "#t": ["milk-market-zapsnag"],
       };
 
-      const fetchedEvents = await nostr.fetch(
-        [filter, specificPubkeyFilter, zapsnagFilter],
-        {},
-        relays
-      );
+      let fetchedEvents: NostrEvent[] = [];
+      try {
+        fetchedEvents = await nostr.fetch(
+          [filter, specificPubkeyFilter, zapsnagFilter],
+          {},
+          relays,
+          {
+            resolveOnTimeout: true,
+            timeout: CACHED_FIRST_RELAY_TIMEOUT_MS,
+          }
+        );
+      } catch (error) {
+        // Relay failure must not cost us the DB-cached products already
+        // seeded above — listings and their images keep rendering.
+        console.error("Failed to fetch products from relays:", error);
+      }
       if (!fetchedEvents.length) {
         console.error("No products found with filter: ", filter);
       }
@@ -496,7 +514,18 @@ export const fetchShopProfile = async (
         authors: pubkeyShopProfileToFetch,
       };
 
-      shopEvents.push(...(await nostr.fetch([shopFilter], {}, relays)));
+      try {
+        shopEvents.push(
+          ...(await nostr.fetch([shopFilter], {}, relays, {
+            resolveOnTimeout: true,
+            timeout: CACHED_FIRST_RELAY_TIMEOUT_MS,
+          }))
+        );
+      } catch (error) {
+        // Relay failure must not cost us the DB-cached shop profiles already
+        // seeded above — the shop logo keeps rendering from the cache.
+        console.error("Failed to fetch shop profiles from relays:", error);
+      }
 
       if (shopEvents.length > 0) {
         shopEvents.sort((a, b) => b.created_at - a.created_at);
@@ -684,7 +713,17 @@ export const fetchProfile = async (
       );
       const updatedProfiles = new Map<string, NipProfile | null>();
 
-      const fetchedEvents = await nostr.fetch([subParams], {}, relays);
+      let fetchedEvents: NostrEvent[] = [];
+      try {
+        fetchedEvents = await nostr.fetch([subParams], {}, relays, {
+          resolveOnTimeout: true,
+          timeout: CACHED_FIRST_RELAY_TIMEOUT_MS,
+        });
+      } catch (error) {
+        // Relay failure must not cost us the DB-cached profiles already
+        // seeded above — avatars keep rendering from the cache.
+        console.error("Failed to fetch profiles from relays:", error);
+      }
 
       for (const event of fetchedEvents) {
         if (event.kind !== 0) continue;
@@ -2738,8 +2777,9 @@ export const fetchStorefrontData = async (
     pubkeysToFetch,
     editProfileContext
   ).catch((error) => {
+    // Never reset the context here: the DB-cached profile was already seeded
+    // above, and wiping it would blank avatars on a transient relay failure.
     console.error("Error fetching storefront profile:", error);
-    editProfileContext(new Map(), false);
   });
 
   const shopPromise = fetchShopProfile(
@@ -2748,8 +2788,10 @@ export const fetchStorefrontData = async (
     pubkeysToFetch,
     editShopContext
   ).catch((error) => {
+    // Never reset the context here: the DB-cached shop profile was already
+    // seeded above, and wiping it would blank the shop logo on a transient
+    // relay failure (editShopContext replaces the whole map).
     console.error("Error fetching storefront shop profile:", error);
-    editShopContext(new Map(), false);
   });
 
   const productRelayPromise = (async () => {
@@ -2758,7 +2800,10 @@ export const fetchStorefrontData = async (
         kinds: [30402],
         authors: [shopPubkey],
       };
-      const fetchedProducts = await nostr.fetch([productFilter], {}, relays);
+      const fetchedProducts = await nostr.fetch([productFilter], {}, relays, {
+        resolveOnTimeout: true,
+        timeout: CACHED_FIRST_RELAY_TIMEOUT_MS,
+      });
 
       if (fetchedProducts.length > 0) {
         const getEventKey = (event: NostrEvent): string => {

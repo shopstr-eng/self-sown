@@ -1223,8 +1223,11 @@ function MilkMarket({ props }: { props: AppProps }) {
                 allRelays,
                 pubkeysToFetchProfilesFor,
                 guardedEditShopContext
-              ),
-            () => guardedEditShopContext(new Map(), false)
+              )
+            // No onError reset: fetchShopProfile seeds from the DB cache
+            // first, and editShopContext replaces the whole map, so a
+            // fallback `new Map()` would blank every shop logo on a
+            // transient failure.
           ),
           runTask(
             "fetching reviews",
@@ -1453,8 +1456,10 @@ function MilkMarket({ props }: { props: AppProps }) {
               editShopContext
             );
           } catch (error) {
+            // Do not reset the shop context: editShopContext replaces the
+            // whole map, so this would blank shop logos that were already
+            // seeded from the DB cache.
             console.error("Error fetching shop profiles:", error);
-            editShopContext(new Map(), false);
           }
 
           try {
