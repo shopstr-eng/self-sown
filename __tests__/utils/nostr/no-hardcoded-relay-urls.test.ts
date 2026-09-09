@@ -16,8 +16,8 @@
  *
  * Tolerated uses:
  * - Test files and __tests__ dirs (fixtures need concrete URLs).
- * - packages/domain/src/seller.ts (the definition itself) — outside SCAN_DIRS.
- * - BLASTR_RELAY — also defined in the domain package.
+ * - packages/domain/src/seller.ts (the DEFAULT_SELLER_RELAYS and BLASTR_RELAY
+ *   definitions themselves) — allowlisted below.
  * - utils/nostr/nip65-indexer-fetch.ts: its well-known indexer list must
  *   stay a subset of DEFAULT_SELLER_RELAYS, enforced by
  *   utils/nostr/__tests__/nip65-indexer-fetch.test.ts.
@@ -26,9 +26,30 @@ import fs from "fs";
 import path from "path";
 
 const REPO_ROOT = process.cwd();
-const SCAN_DIRS = ["components", "pages", "utils", "mcp", "apps/mobile"];
+// Shared packages are scanned too: a literal there would fork the default
+// relay set for web AND mobile consumers at once. Enumerate packages/*/src
+// dynamically so a newly added package is covered without editing this list.
+const PACKAGES_ROOT = path.join(REPO_ROOT, "packages");
+const PACKAGE_SRC_DIRS = fs.existsSync(PACKAGES_ROOT)
+  ? fs
+      .readdirSync(PACKAGES_ROOT, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join("packages", entry.name, "src"))
+      .filter((rel) => fs.existsSync(path.join(REPO_ROOT, rel)))
+  : [];
+const SCAN_DIRS = [
+  "components",
+  "pages",
+  "utils",
+  "mcp",
+  "apps/mobile",
+  ...PACKAGE_SRC_DIRS,
+];
 const ALLOWLIST = new Set([
   path.join(REPO_ROOT, "utils", "nostr", "nip65-indexer-fetch.ts"),
+  // The definition site itself: DEFAULT_SELLER_RELAYS (the single source of
+  // default relays this guard protects) and BLASTR_RELAY both live here.
+  path.join(REPO_ROOT, "packages", "domain", "src", "seller.ts"),
 ]);
 // A relay URL literal: wss:// followed by a real hostname. Placeholders like
 // "wss://..." have no host character after the scheme and do not match.
