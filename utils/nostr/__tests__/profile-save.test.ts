@@ -1,4 +1,5 @@
 import { waitFor } from "@testing-library/react";
+import { BLASTR_RELAY } from "@milk-market/domain";
 import { createNostrProfileEvent } from "../nostr-helper-functions";
 import {
   cacheEventToDatabase,
@@ -84,10 +85,7 @@ describe("createNostrProfileEvent", () => {
       expect(mockTrackFailedRelayPublish).toHaveBeenCalledWith(
         signedEvent.id,
         signedEvent,
-        expect.arrayContaining([
-          "wss://relay.example",
-          "wss://sendit.nosflare.com",
-        ]),
+        expect.arrayContaining(["wss://relay.example", BLASTR_RELAY]),
         signer
       );
     });

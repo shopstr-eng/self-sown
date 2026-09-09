@@ -34,6 +34,7 @@ import {
   BLOG_POST_KIND,
   buildBlogPostTags,
   DEFAULT_SELLER_RELAYS,
+  BLASTR_RELAY,
   type BlogPostDraft,
 } from "@milk-market/domain";
 import {
@@ -2279,9 +2280,8 @@ export function getDefaultRelays(): string[] {
 export function withBlastr(relays: string[]): string[] {
   const out = [...relays];
 
-  const blastrRelay = "wss://sendit.nosflare.com";
-  if (!containsRelay(out, blastrRelay)) {
-    out.push(blastrRelay);
+  if (!containsRelay(out, BLASTR_RELAY)) {
+    out.push(BLASTR_RELAY);
   }
   return out;
 }

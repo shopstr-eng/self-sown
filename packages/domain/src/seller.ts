@@ -102,6 +102,8 @@ export const DEFAULT_SELLER_RELAYS = [
   "wss://relay.noswhere.com",
 ] as const;
 
+export const BLASTR_RELAY = "wss://sendit.nosflare.com";
+
 const RESERVED_MARKETPLACE_TAGS = new Set([
   "MilkMarket",
   "FREEMILK",

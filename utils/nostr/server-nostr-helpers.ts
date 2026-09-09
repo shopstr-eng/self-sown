@@ -16,10 +16,9 @@ import {
 import { fetchKind10002FromIndexers } from "@/utils/nostr/nip65-indexer-fetch";
 import { publishEventToRelay } from "@/utils/nostr/contained-relay";
 import { isSafePublicHostname } from "@/utils/url-safety";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@milk-market/domain";
 
 const RELAY_PUBLISH_TIMEOUT_MS = 21000;
-const BLASTR_RELAY = "wss://sendit.nosflare.com";
 
 function generateRandomTimestamp(): number {
   const now = Math.floor(Date.now() / 1000);

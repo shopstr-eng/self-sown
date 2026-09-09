@@ -14,7 +14,7 @@ import {
   getDbPool,
   fetchRelayConfigFromDb,
 } from "@/utils/db/db-service";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@milk-market/domain";
 
 const mockPublish = jest.fn();
 const mockClose = jest.fn();
@@ -117,7 +117,6 @@ const mocked = {
 const RECIPIENT = "d".repeat(64);
 
 const DEFAULT_RELAYS = [...DEFAULT_SELLER_RELAYS];
-const BLASTR_RELAY = "wss://sendit.nosflare.com";
 
 const queryMock = jest.fn();
 

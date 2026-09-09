@@ -7,7 +7,7 @@ import {
   fetchRelayConfigFromDb,
 } from "@/utils/db/db-service";
 import { verifyEvent } from "nostr-tools";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@milk-market/domain";
 
 const mockPublish = jest.fn();
 const mockClose = jest.fn();
@@ -100,7 +100,6 @@ const mocked = {
 const AUTHOR = "a".repeat(64);
 
 const DEFAULT_RELAYS = [...DEFAULT_SELLER_RELAYS];
-const BLASTR_RELAY = "wss://sendit.nosflare.com";
 
 function blogEvent(overrides: Record<string, unknown> = {}) {
   return {
