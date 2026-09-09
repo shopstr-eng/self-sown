@@ -14,11 +14,14 @@ import { verifyEvent } from "nostr-tools";
 import type { NostrEvent } from "@/utils/types/types";
 import { queryRelayEvents } from "@/utils/nostr/contained-relay";
 
-// Well-known NIP-65 indexers. Both are already in the default publish set,
-// so any kind:10002 the app published is held by at least one of them.
+// Well-known NIP-65 indexers. Every entry MUST remain a member of
+// DEFAULT_SELLER_RELAYS (packages/domain/src/seller.ts): membership in the
+// default publish set is what guarantees a kind:10002 the app published is
+// held by at least one of these indexers. A unit test in
+// utils/nostr/__tests__/nip65-indexer-fetch.test.ts fails if the lists drift.
 // Operator-overridable (comma-separated) — used by the staging e2e to point
 // at a local relay, and available to self-hosters running their own indexer.
-const DEFAULT_NIP65_INDEXER_RELAYS = [
+export const DEFAULT_NIP65_INDEXER_RELAYS = [
   "wss://user.kingpag.es",
   "wss://relay.noswhere.com",
 ];
