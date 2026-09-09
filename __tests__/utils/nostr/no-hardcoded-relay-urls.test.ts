@@ -10,6 +10,10 @@
  *
  * Pure fs/regex scan: no app imports, no relay connections.
  *
+ * The Expo mobile app (apps/mobile) is scanned too: it has no Jest config of
+ * its own, but this guard is a pure fs scan from the repo root, so extending
+ * SCAN_DIRS covers it with no mobile test setup.
+ *
  * Tolerated uses:
  * - Test files and __tests__ dirs (fixtures need concrete URLs).
  * - packages/domain/src/seller.ts (the definition itself) — outside SCAN_DIRS.
@@ -22,7 +26,7 @@ import fs from "fs";
 import path from "path";
 
 const REPO_ROOT = process.cwd();
-const SCAN_DIRS = ["components", "pages", "utils", "mcp"];
+const SCAN_DIRS = ["components", "pages", "utils", "mcp", "apps/mobile"];
 const ALLOWLIST = new Set([
   path.join(REPO_ROOT, "utils", "nostr", "nip65-indexer-fetch.ts"),
 ]);
