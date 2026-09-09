@@ -22,6 +22,7 @@ import {
   sendGiftWrappedMessageEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
+import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { validateZapReceipt } from "@/utils/nostr/zap-validator";
@@ -227,9 +228,7 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
 
       const { relays: userRelays } = getLocalStorageData();
       const targetRelays =
-        userRelays.length > 0
-          ? userRelays
-          : ["wss://relay.damus.io", "wss://nos.lol"];
+        userRelays.length > 0 ? userRelays : [...DEFAULT_SELLER_RELAYS];
 
       const zapArgs = {
         satoshi: zapAmountSats,

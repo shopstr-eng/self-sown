@@ -16,6 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { RawEventModal, EventIdModal } from "./modals/event-modals";
 import { nip19 } from "nostr-tools";
+import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 import { locationAvatar } from "./dropdowns/location-dropdown";
 import ImageCarousel from "./image-carousel";
@@ -172,7 +173,7 @@ export default function ProductCard({
       const targetRelays =
         relays.length > 0
           ? relays.slice(0, 3)
-          : ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
+          : [...DEFAULT_SELLER_RELAYS].slice(0, 3);
       const nevent = nip19.neventEncode({
         id: productData.id,
         author: productData.pubkey,
