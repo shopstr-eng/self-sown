@@ -48,6 +48,7 @@
     "@getalby/sdk": "8.0.3",
     "@heroicons/react": "2.2.0",
     "@heroui/react": "2.8.10",
+    "@heroui/theme": "2.4.26",
     "@milk-market/api-client": "file:./packages/api-client",
     "@milk-market/domain": "file:./packages/domain",
     "@milk-market/nostr": "file:./packages/nostr",

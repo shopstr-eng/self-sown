@@ -12,6 +12,11 @@
 @source "../utils/**/*.{js,ts,jsx,tsx}";
 @source "../app/**/*.{js,ts,jsx,tsx}";
 @source "../lib/**/*.{js,ts,jsx,tsx}";
+/* @heroui/theme MUST stay a direct dependency: with pnpm's isolated layout,
+   transitive deps get no top-level node_modules entry, and this glob then
+   silently matches nothing in a fresh install (deploy build) — every HeroUI
+   slot class (input label float, data-[loaded=true] image reveal, focus
+   rings) vanishes from the published stylesheet. */
 @source "../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}";
 @config "../tailwind.config.ts";
 
