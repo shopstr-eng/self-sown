@@ -34,6 +34,13 @@ pnpm install \
   --filter=milk-market... \
   --filter='!@milk-market/mobile'
 
+echo "==> Verifying stylesheet compiles with all UI marker styles"
+# Fails the publish loudly if a Tailwind @source glob into node_modules
+# silently matches nothing (e.g. a scanned package that fresh pnpm installs
+# don't materialize) — the failure mode that once shipped a stylesheet
+# missing ~880 HeroUI component classes while builds stayed green.
+node scripts/check-globals-css.mjs > /dev/null
+
 echo "==> Building Next.js (standalone output)"
 next build
 

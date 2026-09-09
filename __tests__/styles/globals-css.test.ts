@@ -14,7 +14,18 @@
  *      tailwind import),
  *   2. the compiled stylesheet grows beyond a sane byte budget (a stray broad
  *      `@source` glob reintroducing junk-file bloat shows up here),
- *   3. tailwind.config.ts `content` globs and the `@source` lines drift apart.
+ *   3. the compiled stylesheet LOSES marker selectors (a `@source` glob into
+ *      node_modules silently matching nothing — this is how the published
+ *      site lost ~880 HeroUI slot classes: label float, image reveal, focus
+ *      rings — while builds stayed green),
+ *   4. a package scanned by a node_modules `@source` glob is not a
+ *      pnpm-managed symlink into .pnpm (a stale real directory from an old
+ *      install can mask a transitive-only dependency that a fresh
+ *      `pnpm install` never materializes),
+ *   5. tailwind.config.ts `content` globs and the `@source` lines drift apart.
+ *
+ * Checks 3 and 4 live inside scripts/check-globals-css.mjs (it exits non-zero
+ * with the reason on stderr, which fails the compile test below loudly).
  */
 
 import { execFileSync } from "child_process";
@@ -77,10 +88,14 @@ describe("globals.css Tailwind source-detection guard", () => {
   });
 
   it(
-    "compiles to a stylesheet within the size budget",
+    "compiles with all marker selectors present, within the size budget",
     () => {
       // Compiled in a child Node process: Tailwind v4's loader registers
       // module customization hooks that the Jest runtime forbids in-process.
+      // The script exits non-zero (with the reason on stderr, surfaced here
+      // via the execFileSync error) when HeroUI marker selectors are missing
+      // from the compiled output or a scanned node_modules package is not a
+      // pnpm-managed symlink.
       const scriptPath = path.join(
         __dirname,
         "../../scripts/check-globals-css.mjs",
