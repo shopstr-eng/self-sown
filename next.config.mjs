@@ -89,6 +89,20 @@ const nextConfig = {
   turbopack: {
     root: process.cwd(),
   },
+  experimental: {
+    // Low-memory build mode for this ~8GiB dev container: cold Turbopack
+    // builds kept getting SIGKILLed (exit 137) because --max-old-space-size
+    // only caps the V8 heap, not Turbopack's native memory or the extra
+    // compile workers. Publish builds (build:deploy, bigger machines) leave
+    // MM_BUILD_LOW_MEM unset and keep full parallelism.
+    ...(process.env.MM_BUILD_LOW_MEM
+      ? {
+          cpus: 1,
+          turbopackMemoryEviction: "full",
+          memoryBasedWorkersCount: true,
+        }
+      : {}),
+  },
   async rewrites() {
     return {
       beforeFiles: [
