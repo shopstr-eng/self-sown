@@ -32,6 +32,7 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getSiteHost } from "@/utils/site-url";
+import { DISCOVERY_FILES } from "@/utils/testing/discovery-files";
 
 // The retired pre-cutover base domain. No longer exported from
 // utils/site-url.ts (the proxy 301 scaffolding was removed once legacy
@@ -40,19 +41,10 @@ import { getSiteHost } from "@/utils/site-url";
 const LEGACY_SITE_HOST = "milk.market";
 
 // --- Static discovery surfaces that hardcode the site origin -----------------
-
-const DISCOVERY_FILES = [
-  "public/llms.txt",
-  "public/llms-full.txt",
-  "public/agents.txt",
-  "public/skill.md",
-  "public/robots.txt",
-  "public/humans.txt",
-  "public/.well-known/mcp.json",
-  "public/.well-known/agent-card.json",
-  "public/.well-known/l402.json",
-  "public/.well-known/security.txt",
-];
+//
+// Shared with the live-routes guard and the coverage guard via
+// utils/testing/discovery-files.ts — a new agent-facing file under public/
+// must be added there (or explicitly allowlisted in the coverage test).
 
 // --- Explicit external-reference policy --------------------------------------
 //

@@ -37,19 +37,10 @@ import {
   resolveAdvertisedPath as resolveAdvertisedPathShared,
   type Resolution,
 } from "@/utils/testing/route-resolution";
-
-const DISCOVERY_FILES = [
-  "public/llms.txt",
-  "public/llms-full.txt",
-  "public/agents.txt",
-  "public/skill.md",
-  "public/robots.txt",
-  "public/humans.txt",
-  "public/.well-known/mcp.json",
-  "public/.well-known/agent-card.json",
-  "public/.well-known/l402.json",
-  "public/.well-known/security.txt",
-];
+// Shared with the site-domain guard and the coverage guard via
+// utils/testing/discovery-files.ts — a new agent-facing file under public/
+// must be added there (or explicitly allowlisted in the coverage test).
+import { DISCOVERY_FILES } from "@/utils/testing/discovery-files";
 
 // Paths the discovery files may advertise even though no route serves them
 // (intentionally external-only pointers). Kept explicit so a genuinely dead
