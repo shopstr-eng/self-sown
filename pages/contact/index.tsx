@@ -35,11 +35,11 @@ export default function ContactPage() {
               mainEntity: {
                 "@type": "Organization",
                 name: "Milk Market",
-                email: "freemilk@milk.market",
+                email: "freemilk@self-sown.com",
                 url: SITE_URL,
                 contactPoint: {
                   "@type": "ContactPoint",
-                  email: "freemilk@milk.market",
+                  email: "freemilk@self-sown.com",
                   contactType: "customer service",
                   availableLanguage: "English",
                 },
@@ -77,10 +77,10 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Email</h3>
                   <a
-                    href="mailto:freemilk@milk.market"
+                    href="mailto:freemilk@self-sown.com"
                     className="text-blue-700 underline"
                   >
-                    freemilk@milk.market
+                    freemilk@self-sown.com
                   </a>
                   <p className="mt-1 text-sm text-zinc-500">
                     General inquiries, partnerships, and support
@@ -90,7 +90,7 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Nostr</h3>
                   <a
-                    href="https://njump.me/milkmarket@milk.market"
+                    href="https://njump.me/milkmarket@self-sown.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-700 underline"
@@ -101,7 +101,7 @@ export default function ContactPage() {
                       width={16}
                       height={16}
                     />
-                    milkmarket@milk.market
+                    milkmarket@self-sown.com
                   </a>
                   <p className="mt-1 text-sm text-zinc-500">
                     Reach us on the Nostr network for encrypted messaging

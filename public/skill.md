@@ -1,8 +1,8 @@
 ---
 name: milk-market
 description: Browse and buy local food, and manage a producer stall, on Milk Market (a permissionless Bitcoin-native Nostr marketplace) via its Model Context Protocol (MCP) server.
-homepage: https://milk.market
-mcp_endpoint: https://milk.market/api/mcp
+homepage: https://self-sown.com
+mcp_endpoint: https://self-sown.com/api/mcp
 auth: Bearer API key (prefix "sk_") with scopes read, read_write, full_access
 version: 2.1.0
 ---
@@ -15,7 +15,7 @@ seller through the Model Context Protocol (MCP).
 
 ## Connect
 
-- Endpoint: `POST https://milk.market/api/mcp`
+- Endpoint: `POST https://self-sown.com/api/mcp`
 - Transport: JSON-RPC 2.0 over Streamable HTTP
 - Authentication: send `Authorization: Bearer sk_...`
 - Scopes:
@@ -53,7 +53,7 @@ If you prefer plain REST over MCP's JSON-RPC, Milk Market also speaks the
 Universal Commerce Protocol (the standard backed by Google and Shopify). It runs
 on the same catalog and order pipeline as MCP, so the two never drift.
 
-- Discovery: `GET https://milk.market/.well-known/ucp` advertises a catalog
+- Discovery: `GET https://self-sown.com/.well-known/ucp` advertises a catalog
   capability and a checkout capability, each with a JSON Schema.
 - Browse: `GET /api/ucp/catalog/search` (filters + pagination) and
   `GET /api/ucp/catalog/lookup` (single product, live inventory). No key needed.
@@ -65,12 +65,12 @@ on the same catalog and order pipeline as MCP, so the two never drift.
 
 ## Discovery
 
-- `https://milk.market/llms.txt`: site overview for LLMs
-- `https://milk.market/.well-known/mcp.json`: MCP discovery document
-- `https://milk.market/.well-known/ucp`: Universal Commerce Protocol profile
-- `https://milk.market/.well-known/agent-card.json`: Google A2A agent card
-- `https://milk.market/openapi.json`: OpenAPI description
-- `https://milk.market/agents.txt`: access policy and rate limits
+- `https://self-sown.com/llms.txt`: site overview for LLMs
+- `https://self-sown.com/.well-known/mcp.json`: MCP discovery document
+- `https://self-sown.com/.well-known/ucp`: Universal Commerce Protocol profile
+- `https://self-sown.com/.well-known/agent-card.json`: Google A2A agent card
+- `https://self-sown.com/openapi.json`: OpenAPI description
+- `https://self-sown.com/agents.txt`: access policy and rate limits
 
 ## Etiquette
 

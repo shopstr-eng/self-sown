@@ -1,32 +1,32 @@
 # agents.txt: AI agent access policy for Milk Market
-# https://milk.market
+# https://self-sown.com
 # Last updated: 2026-06-08
 
 # Milk Market welcomes well-behaved autonomous agents. This file describes how
 # agents should access the site and its API. It complements /robots.txt and
 # /llms.txt.
 
-Contact: https://milk.market/contact
-Policy: https://milk.market/about
+Contact: https://self-sown.com/contact
+Policy: https://self-sown.com/about
 Source: https://github.com/shopstr-eng/milk-market
 
 # --- Discovery ---------------------------------------------------------------
-LLMs: https://milk.market/llms.txt
-LLMs-Full: https://milk.market/llms-full.txt
-Skill: https://milk.market/skill.md
-OpenAPI: https://milk.market/openapi.json
-UCP: https://milk.market/.well-known/ucp
-MCP: https://milk.market/.well-known/mcp.json
-Agent-Card: https://milk.market/.well-known/agent-card.json
-L402: https://milk.market/.well-known/l402.json
-Web-Bot-Auth: https://milk.market/.well-known/http-message-signatures-directory
-Feed: https://milk.market/rss.xml
-Sitemap: https://milk.market/sitemap.xml
+LLMs: https://self-sown.com/llms.txt
+LLMs-Full: https://self-sown.com/llms-full.txt
+Skill: https://self-sown.com/skill.md
+OpenAPI: https://self-sown.com/openapi.json
+UCP: https://self-sown.com/.well-known/ucp
+MCP: https://self-sown.com/.well-known/mcp.json
+Agent-Card: https://self-sown.com/.well-known/agent-card.json
+L402: https://self-sown.com/.well-known/l402.json
+Web-Bot-Auth: https://self-sown.com/.well-known/http-message-signatures-directory
+Feed: https://self-sown.com/rss.xml
+Sitemap: https://self-sown.com/sitemap.xml
 
 # --- Programmatic access (preferred) -----------------------------------------
 # Use the Model Context Protocol server for structured, reliable access instead
 # of scraping HTML.
-MCP-Endpoint: https://milk.market/api/mcp
+MCP-Endpoint: https://self-sown.com/api/mcp
 MCP-Transport: JSON-RPC 2.0 over Streamable HTTP
 Auth: Bearer API key (prefix "sk_"), three scopes: read, read_write, full_access
 
@@ -36,10 +36,10 @@ Auth: Bearer API key (prefix "sk_"), three scopes: read, read_write, full_access
 # discovery profile advertises a catalog capability and a checkout capability,
 # each with its JSON Schema. Catalog reads are open; creating a checkout session
 # requires a read_write API key (same "sk_" keys as MCP).
-UCP-Discovery: https://milk.market/.well-known/ucp
-UCP-Catalog-Search: https://milk.market/api/ucp/catalog/search
-UCP-Catalog-Lookup: https://milk.market/api/ucp/catalog/lookup
-UCP-Checkout-Sessions: https://milk.market/api/ucp/checkout/sessions
+UCP-Discovery: https://self-sown.com/.well-known/ucp
+UCP-Catalog-Search: https://self-sown.com/api/ucp/catalog/search
+UCP-Catalog-Lookup: https://self-sown.com/api/ucp/catalog/lookup
+UCP-Checkout-Sessions: https://self-sown.com/api/ucp/checkout/sessions
 
 # --- Allowed actions ---------------------------------------------------------
 Allow: browse and search product listings
@@ -73,5 +73,5 @@ Rate-Limit: 300 requests/minute per API key on /api/mcp
 # RFC 7638 JWK thumbprint (kid). Agents that sign requests with HTTP Message
 # Signatures (RFC 9421) may advertise their own key directory via the
 # Signature-Agent header so we can verify them in return.
-Web-Bot-Auth-Directory: https://milk.market/.well-known/http-message-signatures-directory
+Web-Bot-Auth-Directory: https://self-sown.com/.well-known/http-message-signatures-directory
 Signature-Algorithm: ed25519

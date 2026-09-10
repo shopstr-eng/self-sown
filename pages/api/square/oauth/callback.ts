@@ -43,12 +43,13 @@ export default async function handler(
       return res.status(400).json({ error: "code and state are required" });
     }
 
-    const pubkey = await consumeSquareOAuthState(state);
-    if (!pubkey) {
+    const bound = await consumeSquareOAuthState(state);
+    if (!bound) {
       return res
         .status(400)
         .json({ error: "Invalid or expired authorization state" });
     }
+    const pubkey = bound.pubkey;
 
     // Re-check the XOR at completion: a seller could have connected Stripe in
     // the window between starting and finishing the Square flow. Never store a
@@ -62,7 +63,13 @@ export default async function handler(
       });
     }
 
-    const token = await exchangeSquareCodeForToken(code);
+    // Replay the authorize-time redirect URI: after a base-domain cutover the
+    // proxy 301s the callback page to the new domain, so reconstructing from
+    // the current base URL would no longer match Square's registered URI.
+    const token = await exchangeSquareCodeForToken(
+      code,
+      bound.redirectUri ?? undefined
+    );
 
     // Resolve the seller's primary location + its currency so checkout can
     // refuse a cart-currency mismatch later.

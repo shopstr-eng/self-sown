@@ -679,9 +679,10 @@ function MilkMarket({ props }: { props: AppProps }) {
   };
 
   // Detect when the visitor is on a seller's custom domain (anything that
-  // isn't milk.market, *.milk.market, *.replit.app, *.replit.dev, *.repl.co,
-  // or localhost). On a custom domain we suppress the Milk Market TopNav and
-  // wrap the page in the seller's storefront chrome (nav + footer + theme).
+  // isn't the platform host (SITE_HOST), *.replit.app, *.replit.dev,
+  // *.repl.co, or localhost). On a custom domain we suppress the Milk Market
+  // TopNav and wrap the page in the seller's storefront chrome (nav + footer
+  // + theme).
   //
   // The initial value comes from middleware-set request headers via
   // App.getInitialProps, so the first SSR render is already correct (no

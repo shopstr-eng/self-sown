@@ -15,7 +15,7 @@ const organizationSchema = {
   foundingDate: "2024",
   contactPoint: {
     "@type": "ContactPoint",
-    email: "freemilk@milk.market",
+    email: "freemilk@self-sown.com",
     contactType: "customer service",
     availableLanguage: "English",
   },

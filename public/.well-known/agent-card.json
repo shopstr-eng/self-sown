@@ -3,14 +3,14 @@
   "name": "Milk Market",
   "description": "A permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on Nostr. Browse and buy products, manage seller shops and listings, read and write reviews, send encrypted messages, and operate a Cashu wallet — as both buyer and seller.",
   "version": "2.0.0",
-  "url": "https://milk.market/api/mcp",
+  "url": "https://self-sown.com/api/mcp",
   "preferredTransport": "JSONRPC",
   "provider": {
     "organization": "Milk Market",
-    "url": "https://milk.market"
+    "url": "https://self-sown.com"
   },
-  "iconUrl": "https://milk.market/milk-market.png",
-  "documentationUrl": "https://milk.market/developers",
+  "iconUrl": "https://self-sown.com/milk-market.png",
+  "documentationUrl": "https://self-sown.com/developers",
   "capabilities": {
     "streaming": true,
     "pushNotifications": false,
@@ -59,11 +59,11 @@
     }
   ],
   "additionalInterfaces": [
-    { "url": "https://milk.market/api/mcp", "transport": "JSONRPC" }
+    { "url": "https://self-sown.com/api/mcp", "transport": "JSONRPC" }
   ],
   "signatures": {
     "webBotAuth": {
-      "directory": "https://milk.market/.well-known/http-message-signatures-directory",
+      "directory": "https://self-sown.com/.well-known/http-message-signatures-directory",
       "algorithm": "ed25519",
       "keyIdScheme": "rfc7638-jwk-thumbprint",
       "description": "HTTP Message Signatures (RFC 9421) public-key directory for verifiable agent identity (Web Bot Auth)."

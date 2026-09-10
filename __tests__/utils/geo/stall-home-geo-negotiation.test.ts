@@ -23,6 +23,7 @@
 import { NextRequest } from "next/server";
 import type { NextResponse } from "next/server";
 import { proxy } from "@/proxy";
+import { SITE_HOST } from "@/utils/site-url";
 import { lookupByHost } from "@/utils/storefront/host-cache";
 
 // The custom-domain branch resolves the seller slug/pubkey for the request host
@@ -103,7 +104,7 @@ function expectHtmlStorefront(res: NextResponse) {
 // --- Stall homepage content negotiation -------------------------------------
 
 describe("proxy() stall homepage negotiation — platform host /stall/<slug>", () => {
-  const HOST = "milk.market";
+  const HOST = SITE_HOST;
   const PATH = "/stall/acme";
 
   it("rewrites an LLM crawler to the agent view (markdown)", async () => {
@@ -228,7 +229,7 @@ const GEO_FILES: Array<[string, string]> = [
 ];
 
 describe("proxy() GEO files — platform host /stall/<slug>/<file>", () => {
-  const HOST = "milk.market";
+  const HOST = SITE_HOST;
 
   // The platform host only dynamically serves the per-stall feeds + sitemap;
   // these are routed regardless of Accept (explicit file paths).
@@ -337,7 +338,7 @@ describe("proxy() /.well-known/ucp discovery profile", () => {
   const PATH = "/.well-known/ucp";
 
   it("rewrites to the aggregate UCP endpoint on the platform host", async () => {
-    const res = await proxy(buildRequest("milk.market", PATH));
+    const res = await proxy(buildRequest(SITE_HOST, PATH));
     expect(inspect(res).rewritePath).toBe("/api/.well-known/ucp");
   });
 

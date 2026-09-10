@@ -1602,7 +1602,7 @@ export default function StandaloneLanding() {
                 />
               </a>
               <a
-                href="https://njump.me/milkmarket@milk.market"
+                href="https://njump.me/milkmarket@self-sown.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"

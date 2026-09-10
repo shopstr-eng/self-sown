@@ -88,7 +88,7 @@ Free and open food markets are the foundation of thriving communities; defending
     description: "Reach the Milk Market team via Nostr, GitHub, X, or email.",
     markdown: `# Contact Milk Market
 
-- Email: freemilk@milk.market
+- Email: freemilk@self-sown.com
 - Nostr: ${SITE === SITE_URL ? "https://njump.me/milkmarket" : ""}
 - X: https://x.com/milkmarketmedia
 - Source code: https://github.com/shopstr-eng/milk-market

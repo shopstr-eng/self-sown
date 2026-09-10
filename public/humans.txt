@@ -1,7 +1,7 @@
 /* TEAM */
 Project: Milk Market
-Site: https://milk.market
-Contact: freemilk@milk.market
+Site: https://self-sown.com
+Contact: freemilk@self-sown.com
 Nostr: https://njump.me/milkmarket
 X: https://x.com/milkmarketmedia
 Source: https://github.com/shopstr-eng/milk-market

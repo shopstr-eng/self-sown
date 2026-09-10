@@ -1298,8 +1298,12 @@ async function initializeTables(): Promise<void> {
       CREATE TABLE IF NOT EXISTS shipping_oauth_states (
         state TEXT PRIMARY KEY,
         pubkey TEXT NOT NULL,
+        -- Authorize-time callback URL (same cutover-continuity reason as
+        -- square_oauth_states.redirect_uri).
+        redirect_uri TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE shipping_oauth_states ADD COLUMN IF NOT EXISTS redirect_uri TEXT;
       CREATE INDEX IF NOT EXISTS idx_shipping_oauth_states_created_at
         ON shipping_oauth_states(created_at);
 
@@ -1330,8 +1334,12 @@ async function initializeTables(): Promise<void> {
       CREATE TABLE IF NOT EXISTS square_oauth_states (
         state TEXT PRIMARY KEY,
         pubkey TEXT NOT NULL,
+        -- Authorize-time callback URL: the token exchange must replay it
+        -- exactly, even if the base domain changed mid-flow (cutover).
+        redirect_uri TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE square_oauth_states ADD COLUMN IF NOT EXISTS redirect_uri TEXT;
       CREATE INDEX IF NOT EXISTS idx_square_oauth_states_created_at
         ON square_oauth_states(created_at);
 

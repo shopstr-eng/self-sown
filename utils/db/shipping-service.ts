@@ -287,7 +287,8 @@ const OAUTH_STATE_TTL_MINUTES = 15;
 
 export async function createShippoOAuthState(
   pubkey: string,
-  state: string
+  state: string,
+  redirectUri?: string
 ): Promise<void> {
   const pool = getDbPool();
   // Opportunistic cleanup of expired states.
@@ -296,27 +297,33 @@ export async function createShippoOAuthState(
      WHERE created_at < NOW() - INTERVAL '${OAUTH_STATE_TTL_MINUTES} minutes'`
   );
   await pool.query(
-    `INSERT INTO shipping_oauth_states (state, pubkey)
-     VALUES ($1, $2)
+    `INSERT INTO shipping_oauth_states (state, pubkey, redirect_uri)
+     VALUES ($1, $2, $3)
      ON CONFLICT (state) DO NOTHING`,
-    [state, pubkey]
+    [state, pubkey, redirectUri ?? null]
   );
 }
 
-// Single-use: returns the bound pubkey and deletes the row. Returns null if the
-// state is unknown or expired.
+// Single-use: returns the bound pubkey plus the authorize-time redirect URI
+// (the token exchange must replay it exactly — even if the base domain
+// changed mid-flow) and deletes the row. Returns null if the state is unknown
+// or expired.
 export async function consumeShippoOAuthState(
   state: string
-): Promise<string | null> {
+): Promise<{ pubkey: string; redirectUri: string | null } | null> {
   const pool = getDbPool();
-  const result = await pool.query<{ pubkey: string }>(
+  const result = await pool.query<{
+    pubkey: string;
+    redirect_uri: string | null;
+  }>(
     `DELETE FROM shipping_oauth_states
      WHERE state = $1
        AND created_at > NOW() - INTERVAL '${OAUTH_STATE_TTL_MINUTES} minutes'
-     RETURNING pubkey`,
+     RETURNING pubkey, redirect_uri`,
     [state]
   );
-  return result.rows[0]?.pubkey || null;
+  const row = result.rows[0];
+  return row ? { pubkey: row.pubkey, redirectUri: row.redirect_uri } : null;
 }
 
 // --- Shipment registry: ownership + duplicate-purchase guard -------------

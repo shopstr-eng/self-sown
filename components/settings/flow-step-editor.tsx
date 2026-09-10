@@ -279,7 +279,7 @@ export const FlowStepEditor = ({
             <div className="mb-1 flex gap-2">
               <span className="font-bold text-gray-500">From:</span>
               <span className="text-black">
-                {shopName || "Your Shop"} &lt;orders@milk.market&gt;
+                {shopName || "Your Shop"} &lt;orders@self-sown.com&gt;
               </span>
             </div>
             <div className="flex gap-2">

@@ -12,17 +12,25 @@
  * components, API routes, and tests alike.
  *
  * Intentionally NOT sourced from here (domain-bound identities/config that
- * change only at cutover, not per-environment): *@milk.market email
+ * change only at cutover, not per-environment): *@self-sown.com email
  * mailboxes (SendGrid-verified), the GitHub repo URL, social handles, the
  * platform NIP-05 identifier, and static files under public/.
  */
 
-const FALLBACK_SITE_URL = "https://milk.market";
+const FALLBACK_SITE_URL = "https://self-sown.com";
 
 /**
- * The platform origin, e.g. "https://milk.market".
+ * The previous base domain, retained after the 2026 cutover to self-sown.com.
+ * proxy.ts uses it to 301 legacy page traffic to SITE_HOST while continuing
+ * to serve /api/ and /.well-known/ on the old domain during the transition.
+ * This is a historical constant — it does not follow NEXT_PUBLIC_BASE_URL.
+ */
+export const LEGACY_SITE_HOST = "milk.market";
+
+/**
+ * The platform origin, e.g. "https://self-sown.com".
  * Returns NEXT_PUBLIC_BASE_URL verbatim when set (same semantics as the
- * `process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market"` expressions
+ * `process.env.NEXT_PUBLIC_BASE_URL || FALLBACK` expressions
  * this module replaces); falls back to the production domain when unset or
  * empty. Callers must not assume the value is normalized.
  */
@@ -31,7 +39,7 @@ export function getSiteUrl(): string {
 }
 
 /**
- * The platform hostname, e.g. "milk.market". Derived from getSiteUrl();
+ * The platform hostname, e.g. "self-sown.com". Derived from getSiteUrl();
  * tolerates values with or without a protocol and never throws.
  */
 export function getSiteHost(): string {

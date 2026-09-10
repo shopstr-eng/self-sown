@@ -15,32 +15,32 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 
 ## About
 
-- [About Milk Market](https://milk.market/about): Mission, how the decentralized marketplace works, and why it was built.
-- [Free Food Manifesto](https://milk.market/manifesto): The essay behind Milk Market: why our food systems are broken and how free markets, encryption, and Bitcoin fix them.
-- [FAQ](https://milk.market/faq): Common questions about payments, selling, privacy, and Nostr.
-- [Producer Guide](https://milk.market/producer-guide): Step-by-step guide for producers: account, membership, listing products, managing orders, custom storefronts, email flows with engagement analytics, Shippo shipping labels, and connecting AI agents.
-- [Contact](https://milk.market/contact): Reach the team via Nostr, GitHub, X, or email.
+- [About Milk Market](https://self-sown.com/about): Mission, how the decentralized marketplace works, and why it was built.
+- [Free Food Manifesto](https://self-sown.com/manifesto): The essay behind Milk Market: why our food systems are broken and how free markets, encryption, and Bitcoin fix them.
+- [FAQ](https://self-sown.com/faq): Common questions about payments, selling, privacy, and Nostr.
+- [Producer Guide](https://self-sown.com/producer-guide): Step-by-step guide for producers: account, membership, listing products, managing orders, custom storefronts, email flows with engagement analytics, Shippo shipping labels, and connecting AI agents.
+- [Contact](https://self-sown.com/contact): Reach the team via Nostr, GitHub, X, or email.
 
 ## Marketplace
 
-- [Marketplace](https://milk.market/marketplace): Browse all live product listings from local producers.
-- [Cart](https://milk.market/cart): Guest or Nostr-key checkout with multi-payment support.
+- [Marketplace](https://self-sown.com/marketplace): Browse all live product listings from local producers.
+- [Cart](https://self-sown.com/cart): Guest or Nostr-key checkout with multi-payment support.
 
 ## For AI Agents
 
-- [Agent policies](https://milk.market/agents.txt): Allowed actions, rate limits, and access rules for autonomous agents.
-- [Agent skill](https://milk.market/skill.md): How an agent should use Milk Market, with YAML frontmatter.
-- [MCP discovery](https://milk.market/.well-known/mcp.json): JSON-RPC 2.0 Model Context Protocol endpoint description.
-- [A2A agent card](https://milk.market/.well-known/agent-card.json): Google A2A agent card describing capabilities.
-- [L402 discovery](https://milk.market/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.
-- [Web Bot Auth directory](https://milk.market/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
-- [OpenAPI spec](https://milk.market/openapi.json): Machine-readable description of public endpoints.
-- [UCP discovery](https://milk.market/.well-known/ucp): Universal Commerce Protocol profile (REST catalog search/lookup and checkout sessions) for AI shopping agents, layered over the same catalog and order pipeline as MCP.
-- [Developer portal](https://milk.market/developers): Human-readable quickstart, error model, and versioning policy tying all machine-readable surfaces together.
+- [Agent policies](https://self-sown.com/agents.txt): Allowed actions, rate limits, and access rules for autonomous agents.
+- [Agent skill](https://self-sown.com/skill.md): How an agent should use Milk Market, with YAML frontmatter.
+- [MCP discovery](https://self-sown.com/.well-known/mcp.json): JSON-RPC 2.0 Model Context Protocol endpoint description.
+- [A2A agent card](https://self-sown.com/.well-known/agent-card.json): Google A2A agent card describing capabilities.
+- [L402 discovery](https://self-sown.com/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.
+- [Web Bot Auth directory](https://self-sown.com/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
+- [OpenAPI spec](https://self-sown.com/openapi.json): Machine-readable description of public endpoints.
+- [UCP discovery](https://self-sown.com/.well-known/ucp): Universal Commerce Protocol profile (REST catalog search/lookup and checkout sessions) for AI shopping agents, layered over the same catalog and order pipeline as MCP.
+- [Developer portal](https://self-sown.com/developers): Human-readable quickstart, error model, and versioning policy tying all machine-readable surfaces together.
 
 ## Optional
 
-- [Full text for LLMs](https://milk.market/llms-full.txt): Expanded plain-text description of the whole platform.
-- [Product feed (RSS)](https://milk.market/rss.xml): Recent product listings as an RSS feed.
-- [Security policy](https://milk.market/.well-known/security.txt): How to report security issues (RFC 9116).
-- [Sitemap](https://milk.market/sitemap.xml): XML sitemap of primary pages.
+- [Full text for LLMs](https://self-sown.com/llms-full.txt): Expanded plain-text description of the whole platform.
+- [Product feed (RSS)](https://self-sown.com/rss.xml): Recent product listings as an RSS feed.
+- [Security policy](https://self-sown.com/.well-known/security.txt): How to report security issues (RFC 9116).
+- [Sitemap](https://self-sown.com/sitemap.xml): XML sitemap of primary pages.

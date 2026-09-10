@@ -44,7 +44,7 @@ Sellers who connect a Stripe account can also turn on automatic US sales tax (fr
 
 Milk Market exposes a Model Context Protocol (MCP) server so AI agents can participate as buyers and sellers.
 
-- Endpoint: POST https://milk.market/api/mcp (JSON-RPC 2.0, Streamable HTTP transport).
+- Endpoint: POST https://self-sown.com/api/mcp (JSON-RPC 2.0, Streamable HTTP transport).
 - Authentication: bearer API keys prefixed with `sk_`, with three permission levels (read, read_write, full_access).
 - Read tools: search_products, get_product_details, list_companies, get_company_details, get_reviews, check_discount_code, get_payment_methods.
 - Purchase tools: create_order, get_order_status, list_orders, verify_payment.
@@ -59,12 +59,12 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 
 ## Links
 
-- Website: https://milk.market
-- Marketplace: https://milk.market/marketplace
-- Producer Guide: https://milk.market/producer-guide
-- About: https://milk.market/about
-- Free Food Manifesto: https://milk.market/manifesto
-- FAQ: https://milk.market/faq
-- Contact: https://milk.market/contact
+- Website: https://self-sown.com
+- Marketplace: https://self-sown.com/marketplace
+- Producer Guide: https://self-sown.com/producer-guide
+- About: https://self-sown.com/about
+- Free Food Manifesto: https://self-sown.com/manifesto
+- FAQ: https://self-sown.com/faq
+- Contact: https://self-sown.com/contact
 - Source code: https://github.com/shopstr-eng/milk-market
 - Nostr: https://njump.me/milkmarket

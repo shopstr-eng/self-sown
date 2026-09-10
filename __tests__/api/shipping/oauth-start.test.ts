@@ -19,6 +19,7 @@ const MCP_SIGNED_EVENT_HEADER = "x-mcp-signed-event";
 const applyRateLimitMock = jest.fn();
 const isShippoOAuthConfiguredMock = jest.fn();
 const buildShippoAuthorizeUrlMock = jest.fn();
+const getShippoRedirectUriMock = jest.fn();
 const createShippoOAuthStateMock = jest.fn();
 const verifyAndConsumeSignedRequestProofMock = jest.fn();
 const parseSignedEventHeaderMock = jest.fn();
@@ -34,6 +35,8 @@ jest.mock("@/utils/shipping/shippo-oauth", () => ({
     isShippoOAuthConfiguredMock(...args),
   buildShippoAuthorizeUrl: (...args: unknown[]) =>
     buildShippoAuthorizeUrlMock(...args),
+  getShippoRedirectUri: (...args: unknown[]) =>
+    getShippoRedirectUriMock(...args),
 }));
 
 jest.mock("@/utils/db/shipping-service", () => ({
@@ -100,6 +103,9 @@ beforeEach(() => {
   buildShippoAuthorizeUrlMock.mockReturnValue(
     "https://goshippo.com/oauth/authorize?state=x"
   );
+  getShippoRedirectUriMock.mockReturnValue(
+    "https://milk.market/shippo-oauth-redirect"
+  );
   createShippoOAuthStateMock.mockResolvedValue(undefined);
   parseSignedEventHeaderMock.mockReturnValue(PARSED_EVENT);
   buildShippingOAuthStartProofMock.mockReturnValue(BUILT_PROOF);
@@ -128,6 +134,11 @@ describe("/api/shipping/oauth/start signed-event (cryptographic proof) guards", 
     );
     expect(createShippoOAuthStateMock).toHaveBeenCalledTimes(1);
     expect(createShippoOAuthStateMock.mock.calls[0][0]).toBe(SELLER_PUBKEY);
+    // The authorize-time redirect URI is pinned into the state row so the
+    // token exchange still matches if the base domain flips mid-flow.
+    expect(createShippoOAuthStateMock.mock.calls[0][2]).toBe(
+      "https://milk.market/shippo-oauth-redirect"
+    );
   });
 
   it("rejects a missing pubkey with 400 before any verification", async () => {
