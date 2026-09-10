@@ -4,8 +4,9 @@ import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
 import { getListingSlug } from "@/utils/url-slugs";
+import { SITE_URL } from "@/utils/site-url";
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 function escapeXml(value: string): string {
   return value

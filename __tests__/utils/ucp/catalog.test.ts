@@ -10,6 +10,7 @@ import {
   buildUcpCatalog,
   type InventorySnapshot,
 } from "@/utils/ucp/catalog";
+import { SITE_URL } from "@/utils/site-url";
 import { UCP_BITCOIN_CURRENCY } from "@/utils/ucp/money";
 import { UCP_VENDOR_NAMESPACE } from "@/utils/ucp/types";
 import type { NostrEvent } from "@/utils/types/types";
@@ -46,7 +47,7 @@ describe("eventToUcpProduct", () => {
       ["shipping", "Added Cost", "5", "USD"],
     ]);
 
-    const p = eventToUcpProduct(event, { platformUrl: "https://milk.market" });
+    const p = eventToUcpProduct(event, { platformUrl: SITE_URL });
 
     expect(p.id).toBe("evt-1");
     expect(p.type).toBe("product");
@@ -61,9 +62,9 @@ describe("eventToUcpProduct", () => {
     expect(p.categories).toEqual(["milk"]);
     expect(p.location).toBe("Vermont");
     // Relative images become absolute against the platform URL.
-    expect(p.images).toEqual(["https://milk.market/photos/milk.jpg"]);
+    expect(p.images).toEqual([`${SITE_URL}/photos/milk.jpg`]);
     // Default canonical URL uses the d-tag slug on the platform host.
-    expect(p.url).toBe("https://milk.market/listing/raw-milk-gallon");
+    expect(p.url).toBe(`${SITE_URL}/listing/raw-milk-gallon`);
     expect(p.shipping.cost).toEqual({
       currency: "USD",
       amount: 500,
@@ -225,9 +226,9 @@ describe("eventToUcpProduct", () => {
 
   it("uses a placeholder image when none is provided", () => {
     const p = eventToUcpProduct(makeEvent([["title", "No Image"]]), {
-      platformUrl: "https://milk.market",
+      platformUrl: SITE_URL,
     });
-    expect(p.images).toEqual(["https://milk.market/milk-market.png"]);
+    expect(p.images).toEqual([`${SITE_URL}/milk-market.png`]);
   });
 
   it("keeps absolute image URLs untouched", () => {
@@ -247,7 +248,7 @@ describe("eventToUcpProduct", () => {
       ["price", "10", "USD"],
     ]);
     const p = eventToUcpProduct(event, {
-      platformUrl: "https://milk.market",
+      platformUrl: SITE_URL,
       sellerOrigin: "https://farmer.com",
     });
     expect(p.url).toBe("https://farmer.com/listing/raw-milk");
@@ -263,7 +264,7 @@ describe("eventToUcpProduct", () => {
       ["price", "10", "USD"],
     ]);
     const p = eventToUcpProduct(event, {
-      platformUrl: "https://milk.market",
+      platformUrl: SITE_URL,
       sellerOrigin: "https://farmer.com",
       listingSlug: "raw-milk-gallon-2024",
       canonicalUrl: "https://farmer.com/listing/raw-milk",
@@ -416,12 +417,12 @@ describe("buildUcpCatalog", () => {
       ),
     ];
     const catalog = buildUcpCatalog(events, {
-      platformUrl: "https://milk.market",
+      platformUrl: SITE_URL,
     });
     expect(catalog).toHaveLength(2);
     expect(catalog.map((p) => p.id).sort()).toEqual(["evt-a", "evt-b"]);
     for (const p of catalog) {
-      expect(p.url.startsWith("https://milk.market/listing/")).toBe(true);
+      expect(p.url.startsWith(`${SITE_URL}/listing/`)).toBe(true);
     }
   });
 

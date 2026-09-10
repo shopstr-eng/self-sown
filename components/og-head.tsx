@@ -1,4 +1,5 @@
 import Head from "next/head";
+import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 
 export type OgMetaProps = {
   title: string;
@@ -21,7 +22,7 @@ export type OgMetaProps = {
   jsonLd?: Record<string, unknown>[];
 };
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 function ensureAbsoluteUrl(url: string, base: string): string {
   if (!url) return "";
@@ -68,7 +69,7 @@ export default function OgHead({
       <meta property="og:locale" content={ogLocale} />
 
       <meta name="twitter:card" content="summary_large_image" />
-      <meta property="twitter:domain" content="milk.market" />
+      <meta property="twitter:domain" content={SITE_HOST} />
       <meta property="twitter:url" content={absoluteUrl} />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />

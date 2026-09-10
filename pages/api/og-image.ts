@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import sharp from "sharp";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { parseHttpUrl, safeFetch, SafeFetchError } from "@/utils/url-safety";
+import { getSiteUrl } from "@/utils/site-url";
 
 // Public image-optimization proxy for og:image/twitter:image tags. Seller
 // OG/banner/product images are uploaded to arbitrary third-party hosts and are
@@ -19,7 +20,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 200;
 // Fixed base for resolving same-origin relative paths (e.g. "/milk-market.png").
 // Never the request Host header — that would be a spoofable SSRF oracle.
-const PLATFORM_BASE = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+const PLATFORM_BASE = getSiteUrl();
 
 type CacheEntry = { buf: Buffer; contentType: string; ts: number };
 const cache = new Map<string, CacheEntry>();

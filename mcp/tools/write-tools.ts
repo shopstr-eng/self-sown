@@ -76,6 +76,7 @@ const resolve4 = promisify(dns.resolve4);
 import { getDefaultFlowSteps } from "@/utils/email/flow-email-templates";
 import { v4 as uuidv4 } from "uuid";
 import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { getSiteUrl, SITE_HOST } from "@/utils/site-url";
 
 function noSignerError() {
   return {
@@ -1118,7 +1119,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe(
-          "URL slug for the storefront (e.g. 'fresh-farm' for milk.market/stall/fresh-farm). Must be lowercase alphanumeric with hyphens."
+          `URL slug for the storefront (e.g. 'fresh-farm' for ${SITE_HOST}/stall/fresh-farm). Must be lowercase alphanumeric with hyphens.`
         ),
       storefrontFontHeading: z
         .string()
@@ -1517,7 +1518,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
   reg(
     "register_shop_slug",
-    "Register, update, or delete your shop's URL slug for the storefront. The slug becomes part of your shop URL (e.g. milk.market/stall/your-slug). Slug must be lowercase alphanumeric with hyphens, 3-50 characters. Reserved words (stall, admin, api, etc.) are not allowed. To delete, set action to 'delete'.",
+    `Register, update, or delete your shop's URL slug for the storefront. The slug becomes part of your shop URL (e.g. ${SITE_HOST}/stall/your-slug). Slug must be lowercase alphanumeric with hyphens, 3-50 characters. Reserved words (stall, admin, api, etc.) are not allowed. To delete, set action to 'delete'.`,
     {
       slug: z
         .string()
@@ -1910,8 +1911,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const signedEvent = await signAndPublishEvent(signer, eventTemplate);
 
         const handlerDTag = uuidv4();
-        const origin =
-          process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+        const origin = getSiteUrl();
 
         const handlerEvent: EventTemplate = {
           kind: 31990,
@@ -4873,7 +4873,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  const VALID_DOMAIN_TARGETS = ["milk.market", "milk-market.replit.app"];
+  const VALID_DOMAIN_TARGETS = [SITE_HOST, "milk-market.replit.app"];
 
   registerTool(
     server,
@@ -4996,7 +4996,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             );
           } catch {
             try {
-              const milkMarketIps = await resolve4("milk.market");
+              const milkMarketIps = await resolve4(SITE_HOST);
               const domainIps = await resolve4(domain);
               verified = domainIps.some((ip: string) =>
                 milkMarketIps.includes(ip)

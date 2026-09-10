@@ -2,6 +2,7 @@
 
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import type { BlogPost } from "@milk-market/domain";
+import { SITE_URL } from "@/utils/site-url";
 
 function post(overrides: Partial<BlogPost> = {}): BlogPost {
   return {
@@ -24,9 +25,9 @@ describe("buildBlogBroadcastEmail HTML escaping", () => {
         title: "<script>alert(1)</script>",
         summary: "<b>bold</b> & dangerous",
       }),
-      postUrl: "https://milk.market/stall/x/blog/y",
+      postUrl: `${SITE_URL}/stall/x/blog/y`,
       shopName: "<img src=x onerror=alert(1)>",
-      unsubscribeUrl: "https://milk.market/api/email/unsubscribe?token=z",
+      unsubscribeUrl: `${SITE_URL}/api/email/unsubscribe?token=z`,
     });
 
     // No raw HTML from the permissionless event survives into the rendered body
@@ -45,9 +46,9 @@ describe("buildBlogBroadcastEmail HTML escaping", () => {
   test("only emits http(s) image and link URLs as attributes", () => {
     const { html } = buildBlogBroadcastEmail({
       post: post({ image: "javascript:alert(1)" }),
-      postUrl: "https://milk.market/stall/x/blog/y",
+      postUrl: `${SITE_URL}/stall/x/blog/y`,
       shopName: "My Shop",
-      unsubscribeUrl: "https://milk.market/api/email/unsubscribe?token=z",
+      unsubscribeUrl: `${SITE_URL}/api/email/unsubscribe?token=z`,
     });
     // A non-http(s) image is rejected (no <img> emitted at all).
     expect(html).not.toContain("javascript:alert(1)");

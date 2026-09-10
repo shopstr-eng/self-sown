@@ -3,6 +3,7 @@ import dns from "dns";
 import { promisify } from "util";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getDomainByPubkey, markVerified } from "@/utils/db/custom-domains";
+import { SITE_HOST } from "@/utils/site-url";
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
@@ -11,14 +12,10 @@ const resolveTxt = promisify(dns.resolveTxt);
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
 const PRIMARY_HOST = (
-  process.env.REPLIT_DEPLOYMENT_HOST || "milk.market"
+  process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST
 ).toLowerCase();
 
-const VALID_CNAME_TARGETS = [
-  PRIMARY_HOST,
-  "milk.market",
-  "milk-market.replit.app",
-]
+const VALID_CNAME_TARGETS = [PRIMARY_HOST, SITE_HOST, "milk-market.replit.app"]
   .map((h) => h.toLowerCase().replace(/\.$/, ""))
   .filter((v, i, a) => a.indexOf(v) === i);
 

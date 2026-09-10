@@ -81,6 +81,9 @@ function getPrimaryRelayHint(session: SellerSession): string {
 }
 
 function getWebsiteOrigin(baseUrl: string): string {
+  // NOTE: packages/* cannot import the app's @/utils/site-url (separate
+  // workspace package also consumed by apps/mobile). This fallback must stay
+  // in sync with FALLBACK_SITE_URL in utils/site-url.ts.
   return baseUrl.replace(/\/+$/, "") || "https://milk.market";
 }
 

@@ -24,6 +24,7 @@ import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 import { buildItemListJsonLd } from "@/utils/geo/product-jsonld";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
+import { SITE_URL } from "@/utils/site-url";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -52,9 +53,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   const rawOriginalPath = context.req.headers["x-mm-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost
-    ? `https://${customHost}`
-    : "https://milk.market";
+  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
   const stallPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
   const canonicalStallUrl = `${stallOrigin}${stallPath === "/" ? "" : stallPath}`;
 

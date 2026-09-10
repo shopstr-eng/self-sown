@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { SITE_URL } from "@/utils/site-url";
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 // Optional major-version pin documented on every /api operation (enforced in
 // proxy.ts; see x-versioning-policy).

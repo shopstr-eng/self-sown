@@ -15,6 +15,7 @@ import {
   type StallContentInput,
   type StallBlogSummary,
 } from "@/utils/geo/stall-content";
+import { SITE_URL } from "@/utils/site-url";
 
 const post = (over: Partial<StallBlogSummary> = {}): StallBlogSummary => ({
   title: "Why raw milk matters",
@@ -32,7 +33,7 @@ const baseInput = (
   about: "Local raw dairy.",
   image: "",
   slug: "green-pastures",
-  siteUrl: "https://milk.market/stall/green-pastures",
+  siteUrl: `${SITE_URL}/stall/green-pastures`,
   isCustomDomain: false,
   products: [],
   blogPosts: [],
@@ -43,7 +44,7 @@ describe("buildStallSitemap blog URLs", () => {
   it("adds a /blog/<slug> entry per post on the platform host", () => {
     const xml = buildStallSitemap(baseInput({ blogPosts: [post()] }));
     expect(xml).toContain(
-      "<loc>https://milk.market/stall/green-pastures/blog/why-raw-milk-matters</loc>"
+      `<loc>${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters</loc>`
     );
   });
 
@@ -71,7 +72,7 @@ describe("buildStallRss blog items", () => {
     const rss = buildStallRss(baseInput({ blogPosts: [post()] }));
     expect(rss).toContain("<title>Why raw milk matters</title>");
     expect(rss).toContain(
-      "<link>https://milk.market/stall/green-pastures/blog/why-raw-milk-matters</link>"
+      `<link>${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters</link>`
     );
     expect(rss).toContain(
       `<pubDate>${new Date(1_700_000_000 * 1000).toUTCString()}</pubDate>`
@@ -117,7 +118,7 @@ describe("buildStallMarkdown blog section", () => {
     const md = buildStallMarkdown(baseInput({ blogPosts: [post()] }));
     expect(md).toContain("## Blog");
     expect(md).toContain(
-      "- [Why raw milk matters](https://milk.market/stall/green-pastures/blog/why-raw-milk-matters) · A short note on freshness."
+      `- [Why raw milk matters](${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters) · A short note on freshness.`
     );
   });
 
@@ -146,7 +147,7 @@ describe("buildStallJson posts", () => {
     expect(json.posts).toEqual([
       {
         title: "Why raw milk matters",
-        url: "https://milk.market/stall/green-pastures/blog/why-raw-milk-matters",
+        url: `${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters`,
         summary: "A short note on freshness.",
         image: "https://cdn.example.com/cover.jpg",
         publishedAt: 1_700_000_000,
@@ -165,7 +166,7 @@ describe("buildStallLlmsTxt posts section", () => {
     const txt = buildStallLlmsTxt(baseInput({ blogPosts: [post()] }));
     expect(txt).toContain("## Posts");
     expect(txt).toContain(
-      "- [Why raw milk matters](https://milk.market/stall/green-pastures/blog/why-raw-milk-matters): A short note on freshness."
+      `- [Why raw milk matters](${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters): A short note on freshness.`
     );
   });
 

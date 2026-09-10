@@ -35,6 +35,7 @@ import {
 } from "@/utils/context/context";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import type { ProductData } from "@/utils/parsers/product-parser-functions";
+import { SITE_HOST } from "@/utils/site-url";
 import {
   WHITEBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
@@ -1679,7 +1680,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                               }}
                               startContent={
                                 <span className="text-sm text-gray-400">
-                                  milk.market/stall/
+                                  {`${SITE_HOST}/stall/`}
                                 </span>
                               }
                             />
@@ -1703,7 +1704,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                         {shopSlug && slugStatus !== "error" && (
                           <p className="mt-1 text-xs text-gray-400">
                             Your shop will also be available at {shopSlug}
-                            .milk.market
+                            {`.${SITE_HOST}`}
                           </p>
                         )}
                       </div>

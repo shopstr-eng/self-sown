@@ -2,13 +2,14 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { HOMEPAGE_FAQ } from "@/utils/homepage-faq";
+import { SITE_URL } from "@/utils/site-url";
 
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Milk Market",
-  url: "https://milk.market",
-  logo: "https://milk.market/milk-market.png",
+  url: SITE_URL,
+  logo: `${SITE_URL}/milk-market.png`,
   description:
     "Milk Market is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
   foundingDate: "2024",
@@ -37,9 +38,9 @@ const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
   name: "Milk Market",
-  url: "https://milk.market",
-  logo: "https://milk.market/milk-market.png",
-  image: "https://milk.market/milk-market.png",
+  url: SITE_URL,
+  logo: `${SITE_URL}/milk-market.png`,
+  image: `${SITE_URL}/milk-market.png`,
   description:
     "Farm-fresh dairy marketplace connecting local farmers with buyers. Browse raw milk, cheese, butter, and more from trusted local producers with zero platform fees.",
   address: {
@@ -86,14 +87,14 @@ const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: "Milk Market",
-  url: "https://milk.market",
+  url: SITE_URL,
   description:
     "Farm-fresh dairy marketplace. Buy raw milk, cheese, and dairy products direct from local farmers with zero platform fees.",
   potentialAction: {
     "@type": "SearchAction",
     target: {
       "@type": "EntryPoint",
-      urlTemplate: "https://milk.market/marketplace?q={search_term_string}",
+      urlTemplate: `${SITE_URL}/marketplace?q={search_term_string}`,
     },
     "query-input": "required name=search_term_string",
   },

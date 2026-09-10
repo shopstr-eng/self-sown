@@ -28,6 +28,7 @@ import {
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { NostrEvent } from "@/utils/types/types";
 import { bindAffiliateRefToSeller } from "@/components/utility-components/affiliate-ref-tracker";
+import { SITE_URL } from "@/utils/site-url";
 
 type ListingPageProps = {
   ogMeta: OgMetaProps;
@@ -78,7 +79,7 @@ const LISTING_FALLBACK: OgMetaProps = {
   description: "Check out this listing on Milk Market!",
 };
 
-const PLATFORM_ORIGIN = "https://milk.market";
+const PLATFORM_ORIGIN = SITE_URL;
 
 // Resolve the exact canonical URL this listing page settles on so the JSON-LD
 // Product/Offer link matches the page's canonical link tag. That means the

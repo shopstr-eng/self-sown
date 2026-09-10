@@ -10,6 +10,7 @@ import {
   FlowEmailStorefrontStyle,
   MergeTagData,
 } from "@/utils/email/flow-email-templates";
+import { SITE_URL } from "@/utils/site-url";
 import {
   ArrowUpTrayIcon,
   LinkIcon,
@@ -44,8 +45,8 @@ const PREVIEW_SAMPLE_DATA: MergeTagData = {
   product_title: "Raw Whole Milk (Half Gallon)",
   order_id: "ord_8f2a1c",
   product_image: "",
-  shop_url: "https://milk.market",
-  review_link: "https://milk.market/orders",
+  shop_url: SITE_URL,
+  review_link: `${SITE_URL}/orders`,
 };
 
 interface InsertModalState {

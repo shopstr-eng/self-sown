@@ -5,7 +5,9 @@
 // shop-specific content instead of the HTML app shell. Browsers and SEO/social
 // bots keep getting HTML so OpenGraph/SSR behaviour is untouched.
 
-const PLATFORM = "https://milk.market";
+import { SITE_URL } from "@/utils/site-url";
+
+const PLATFORM = SITE_URL;
 
 export interface StallProductSummary {
   title: string;

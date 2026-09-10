@@ -6,6 +6,7 @@ import {
 } from "@/utils/parsers/product-tag-helpers";
 import { getListingSlug, type ListingSlugCandidate } from "@/utils/url-slugs";
 import { parseShipsToCodes } from "@/utils/geo/countries";
+import { SITE_URL } from "@/utils/site-url";
 import { toUcpMoney, type UcpMoney } from "./money";
 import { resolveTaxonomy } from "./taxonomy";
 import {
@@ -16,7 +17,7 @@ import {
   type UcpVariant,
 } from "./types";
 
-const DEFAULT_PLATFORM_URL = "https://milk.market";
+const DEFAULT_PLATFORM_URL = SITE_URL;
 const DEFAULT_PLACEHOLDER_IMAGE = "/milk-market.png";
 
 function getTagValue(tags: string[][], key: string): string | undefined {

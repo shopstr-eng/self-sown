@@ -87,6 +87,7 @@ jest.mock("@/utils/db/custom-domains", () => ({
 }));
 
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
+import { SITE_HOST } from "@/utils/site-url";
 
 const SELLER_A = "c".repeat(64);
 const SELLER_B = "d".repeat(64);
@@ -178,14 +179,14 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
     await createPaymentIntentHandler(
       {
         method: "POST",
-        headers: { host: "milk.market" },
+        headers: { host: SITE_HOST },
         body: twoSellerBody,
       } as any,
       res as any
     );
     expect(res.statusCode).toBe(200);
     expect(registerApplePayDomainMock).toHaveBeenCalledTimes(1);
-    expect(registerApplePayDomainMock.mock.calls[0][0]).toBe("milk.market");
+    expect(registerApplePayDomainMock.mock.calls[0][0]).toBe(SITE_HOST);
     // Multi-seller charges are platform charges: no connected account arg.
     expect(registerApplePayDomainMock.mock.calls[0][1]).toBeUndefined();
   });

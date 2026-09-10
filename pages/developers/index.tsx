@@ -2,13 +2,14 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import Link from "next/link";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { SITE_URL } from "@/utils/site-url";
 
 // Developer/agent portal: the one human-readable page that ties together every
 // machine-readable surface (MCP, UCP, OpenAPI, discovery documents) plus the
 // error-model and versioning contracts agents can rely on. Keep claims here
 // consistent with public/llms.txt and public/.well-known/*.
 
-const INIT_CURL = `curl -X POST https://milk.market/api/mcp \\
+const INIT_CURL = `curl -X POST ${SITE_URL}/api/mcp \\
   -H "Content-Type: application/json" \\
   -H "Accept: application/json, text/event-stream" \\
   -d '{
@@ -22,7 +23,7 @@ const INIT_CURL = `curl -X POST https://milk.market/api/mcp \\
     }
   }'`;
 
-const TOOLS_LIST_CURL = `curl -X POST https://milk.market/api/mcp \\
+const TOOLS_LIST_CURL = `curl -X POST ${SITE_URL}/api/mcp \\
   -H "Content-Type: application/json" \\
   -H "Accept: application/json, text/event-stream" \\
   -H "mcp-session-id: <session id from the initialize response>" \\
@@ -33,9 +34,9 @@ const ERROR_EXAMPLE = `{
   "code": "not_found",
   "status": 404,
   "documentation": {
-    "openapi": "https://milk.market/openapi.json",
-    "mcp": "https://milk.market/.well-known/mcp.json",
-    "agents": "https://milk.market/agents.txt"
+    "openapi": "${SITE_URL}/openapi.json",
+    "mcp": "${SITE_URL}/.well-known/mcp.json",
+    "agents": "${SITE_URL}/agents.txt"
   }
 }`;
 

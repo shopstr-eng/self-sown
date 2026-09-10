@@ -27,6 +27,7 @@ import {
   WRANGLER_EXTRA_FEATURES,
 } from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
+import { SITE_HOST } from "@/utils/site-url";
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -153,7 +154,7 @@ type ShowcaseStall = {
 const SHOWCASE_STALLS: ShowcaseStall[] = [
   {
     name: "Free Milk",
-    url: "milk.market/stall/freemilk",
+    url: `${SITE_HOST}/stall/freemilk`,
     href: "/stall/freemilk",
     image: "/stall-freemilk.png",
     alt: "Free Milk stall on Milk Market showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
@@ -167,7 +168,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
   },
   {
     name: "Your Farm",
-    url: "milk.market/stall/your-farm",
+    url: `${SITE_HOST}/stall/your-farm`,
     href: "/onboarding/new-account",
     placeholder: true,
     alt: "Open your own customizable stall on Milk Market in minutes",

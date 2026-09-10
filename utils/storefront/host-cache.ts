@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/utils/site-url";
+
 export type HostResolution = {
   slug: string | null;
   pubkey: string | null;
@@ -64,8 +66,7 @@ export async function lookupSlugByHost(
  * Always talking to the platform host avoids the loop entirely. Override
  * with MM_LOOKUP_ORIGIN in non-prod (e.g. preview deployments) if needed.
  */
-const PLATFORM_LOOKUP_ORIGIN =
-  process.env.MM_LOOKUP_ORIGIN ?? "https://milk.market";
+const PLATFORM_LOOKUP_ORIGIN = process.env.MM_LOOKUP_ORIGIN ?? SITE_URL;
 
 /**
  * Resolve a host to both its shop slug and the seller's pubkey in one

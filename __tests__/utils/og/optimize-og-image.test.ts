@@ -2,6 +2,7 @@ import {
   toOptimizedOgImageUrl,
   resolveOgImageOrigin,
 } from "@/utils/og/optimize-og-image";
+import { SITE_URL } from "@/utils/site-url";
 
 describe("toOptimizedOgImageUrl", () => {
   it("wraps an absolute https image URL in the og-image proxy", () => {
@@ -16,31 +17,30 @@ describe("toOptimizedOgImageUrl", () => {
   });
 
   it("is idempotent for already-proxied URLs", () => {
-    const wrapped =
-      "https://milk.market/api/og-image?url=https%3A%2F%2Fcdn.example.com%2Fbanner.png";
-    expect(toOptimizedOgImageUrl(wrapped, "https://milk.market")).toBe(wrapped);
+    const wrapped = `${SITE_URL}/api/og-image?url=https%3A%2F%2Fcdn.example.com%2Fbanner.png`;
+    expect(toOptimizedOgImageUrl(wrapped, SITE_URL)).toBe(wrapped);
   });
 
   it("leaves relative paths untouched (callers absolute-ize first)", () => {
     expect(
-      toOptimizedOgImageUrl("/milk-market.png", "https://milk.market")
+      toOptimizedOgImageUrl("/milk-market.png", SITE_URL)
     ).toBe("/milk-market.png");
   });
 
   it("leaves data URLs untouched (cannot be proxied)", () => {
     const dataUrl = "data:image/png;base64,iVBORw0KGgo=";
-    expect(toOptimizedOgImageUrl(dataUrl, "https://milk.market")).toBe(dataUrl);
+    expect(toOptimizedOgImageUrl(dataUrl, SITE_URL)).toBe(dataUrl);
   });
 
   it("passes through empty input and tolerates a trailing-slash origin", () => {
-    expect(toOptimizedOgImageUrl("", "https://milk.market")).toBe("");
+    expect(toOptimizedOgImageUrl("", SITE_URL)).toBe("");
     expect(
       toOptimizedOgImageUrl(
         "https://cdn.example.com/a.png",
-        "https://milk.market/"
+        `${SITE_URL}/`
       )
     ).toBe(
-      "https://milk.market/api/og-image?url=https%3A%2F%2Fcdn.example.com%2Fa.png"
+      `${SITE_URL}/api/og-image?url=https%3A%2F%2Fcdn.example.com%2Fa.png`
     );
   });
 });
@@ -53,8 +53,8 @@ describe("resolveOgImageOrigin", () => {
   });
 
   it("uses the platform origin from a platform stall URL", () => {
-    expect(resolveOgImageOrigin("https://milk.market/stall/farm", false)).toBe(
-      "https://milk.market"
+    expect(resolveOgImageOrigin(`${SITE_URL}/stall/farm`, false)).toBe(
+      SITE_URL
     );
   });
 
@@ -64,13 +64,13 @@ describe("resolveOgImageOrigin", () => {
   });
 
   it("falls back to the platform base otherwise", () => {
-    expect(resolveOgImageOrigin(undefined, false)).toBe("https://milk.market");
-    expect(resolveOgImageOrigin("", false)).toBe("https://milk.market");
+    expect(resolveOgImageOrigin(undefined, false)).toBe(SITE_URL);
+    expect(resolveOgImageOrigin("", false)).toBe(SITE_URL);
   });
 
   it("ignores an unparseable SSR store URL", () => {
     expect(resolveOgImageOrigin("not a url", false)).toBe(
-      "https://milk.market"
+      SITE_URL
     );
   });
 });

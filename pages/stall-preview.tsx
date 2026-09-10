@@ -27,6 +27,7 @@ import StorefrontPreviewPanel, {
 import StorefrontPreviewFrame from "@/components/storefront/storefront-preview-frame";
 import SectionRenderer from "@/components/storefront/section-renderer";
 import { PLACEHOLDER_PRODUCT } from "@/utils/storefront/placeholder-product";
+import { SITE_URL } from "@/utils/site-url";
 
 const API_PATH = "/api/storefront/preview-from-url";
 
@@ -201,8 +202,8 @@ export default function ConvertPage() {
           property="og:image"
           key="og:image"
           content={toOptimizedOgImageUrl(
-            "https://milk.market/milk-market.png",
-            "https://milk.market"
+            `${SITE_URL}/milk-market.png`,
+            SITE_URL
           )}
         />
         {/* key matches DynamicHead's twitter:card so next/head dedupes to a
@@ -229,8 +230,8 @@ export default function ConvertPage() {
           name="twitter:image"
           key="twitter:image"
           content={toOptimizedOgImageUrl(
-            "https://milk.market/milk-market.png",
-            "https://milk.market"
+            `${SITE_URL}/milk-market.png`,
+            SITE_URL
           )}
         />
       </Head>

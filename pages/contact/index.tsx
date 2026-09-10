@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Image } from "@heroui/react";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { SITE_URL } from "@/utils/site-url";
 import {
   BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
@@ -30,12 +31,12 @@ export default function ContactPage() {
               "@context": "https://schema.org",
               "@type": "ContactPage",
               name: "Contact Milk Market",
-              url: "https://milk.market/contact",
+              url: `${SITE_URL}/contact`,
               mainEntity: {
                 "@type": "Organization",
                 name: "Milk Market",
                 email: "freemilk@milk.market",
-                url: "https://milk.market",
+                url: SITE_URL,
                 contactPoint: {
                   "@type": "ContactPoint",
                   email: "freemilk@milk.market",

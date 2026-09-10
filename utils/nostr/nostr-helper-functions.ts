@@ -30,6 +30,7 @@ import {
 } from "@/utils/nostr/request-auth";
 import { newPromiseWithTimeout } from "@/utils/timeout";
 import { getLocalStorageJson } from "@/utils/safe-json";
+import { SITE_URL } from "@/utils/site-url";
 import {
   BLOG_POST_KIND,
   buildBlogPostTags,
@@ -267,7 +268,7 @@ export async function PostListing(
   const origin =
     window && typeof window !== undefined
       ? window.location.origin
-      : "https://milk.market";
+      : SITE_URL;
 
   const handlerEvent: EventTemplate = {
     kind: 31990,

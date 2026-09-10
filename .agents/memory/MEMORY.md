@@ -137,3 +137,4 @@
 - [Stale-chunk hydration kill](stale-chunk-hydration-kill.md) — rebuilds used to orphan old chunk hashes, killing hydration so HeroUI images stuck invisible; dev-server carries static forward, staged renames, 250MB cap; test.sh case F.
 - [Orphaned SW registrations](orphaned-sw-registrations.md) — a SW path that 404s strands its old worker forever; serve a self-destruct worker at every historical SW path (public/sw.js, service-worker.js).
 - [HeroUI theme must be a direct dep](heroui-theme-direct-dep.md) — Tailwind @source into node_modules silently no-ops for transitive deps under pnpm; publish builds lost ALL HeroUI slot classes (label float, image reveal).
+- [Site URL centralization gotchas](site-url-centralization.md) — getSiteUrl returns env verbatim (no trim/strip — pure-refactor contract); JSX text/expression child boundaries affect SSR bytes; tests stubbing NEXT_PUBLIC_BASE_URL must assert literals, not import SITE_URL.

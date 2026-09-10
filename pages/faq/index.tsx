@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { SITE_URL } from "@/utils/site-url";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 export default function Faq() {
@@ -184,7 +185,7 @@ export default function Faq() {
               "@context": "https://schema.org",
               "@type": "FAQPage",
               name: "Milk Market FAQ",
-              url: "https://milk.market/faq",
+              url: `${SITE_URL}/faq`,
               mainEntity: faqSections.flatMap((section) =>
                 section.items.map((item) => ({
                   "@type": "Question",

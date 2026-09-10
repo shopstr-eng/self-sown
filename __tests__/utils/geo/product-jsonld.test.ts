@@ -12,6 +12,7 @@ import {
   buildItemListJsonLd,
   moneyToPriceString,
 } from "@/utils/geo/product-jsonld";
+import { SITE_URL } from "@/utils/site-url";
 import { UCP_BITCOIN_CURRENCY } from "@/utils/ucp/money";
 import type { UcpMoney } from "@/utils/ucp/money";
 import type { UcpProduct } from "@/utils/ucp/types";
@@ -36,7 +37,7 @@ function makeProduct(overrides: Partial<UcpProduct> = {}): UcpProduct {
     type: "product",
     title: "Raw Milk",
     description: "Fresh from the farm",
-    url: "https://milk.market/listing/raw-milk",
+    url: `${SITE_URL}/listing/raw-milk`,
     images: ["https://cdn.example/a.png", "https://cdn.example/b.png"],
     price: usd(1200),
     categories: ["milk"],
@@ -62,7 +63,7 @@ describe("buildProductJsonLd", () => {
     expect(ld["@context"]).toBe("https://schema.org");
     expect(ld["@type"]).toBe("Product");
     expect(ld.name).toBe("Raw Milk");
-    expect(ld.url).toBe("https://milk.market/listing/raw-milk");
+    expect(ld.url).toBe(`${SITE_URL}/listing/raw-milk`);
     expect(ld.sku).toBe("evt-1");
     expect(ld.description).toBe("Fresh from the farm");
     expect(ld.image).toEqual([
@@ -73,7 +74,7 @@ describe("buildProductJsonLd", () => {
 
     const offer = ld.offers as Record<string, unknown>;
     expect(offer["@type"]).toBe("Offer");
-    expect(offer.url).toBe("https://milk.market/listing/raw-milk");
+    expect(offer.url).toBe(`${SITE_URL}/listing/raw-milk`);
     expect(offer.itemCondition).toBe("https://schema.org/NewCondition");
     expect(offer.seller).toEqual({
       "@type": "Organization",
@@ -96,7 +97,7 @@ describe("buildProductJsonLd", () => {
     expect(offer.priceCurrency).toBeUndefined();
     // The Offer is still present with url + availability so the listing is
     // discoverable; it simply carries no Google-invalid price.
-    expect(offer.url).toBe("https://milk.market/listing/raw-milk");
+    expect(offer.url).toBe(`${SITE_URL}/listing/raw-milk`);
     expect(offer.availability).toBe("https://schema.org/InStock");
     expect(offer.shippingDetails).toBeUndefined();
   });
@@ -371,30 +372,30 @@ describe("moneyToPriceString", () => {
 describe("buildItemListJsonLd", () => {
   it("builds an ordered ItemList of product links", () => {
     const products = [
-      makeProduct({ url: "https://milk.market/listing/a", title: "A" }),
-      makeProduct({ url: "https://milk.market/listing/b", title: "B" }),
+      makeProduct({ url: `${SITE_URL}/listing/a`, title: "A" }),
+      makeProduct({ url: `${SITE_URL}/listing/b`, title: "B" }),
     ];
     const ld = buildItemListJsonLd(products, {
-      url: "https://milk.market/stall/farm",
+      url: `${SITE_URL}/stall/farm`,
       name: "Farm Stall",
     });
 
     expect(ld["@context"]).toBe("https://schema.org");
     expect(ld["@type"]).toBe("ItemList");
-    expect(ld.url).toBe("https://milk.market/stall/farm");
+    expect(ld.url).toBe(`${SITE_URL}/stall/farm`);
     expect(ld.name).toBe("Farm Stall");
     expect(ld.numberOfItems).toBe(2);
     expect(ld.itemListElement).toEqual([
       {
         "@type": "ListItem",
         position: 1,
-        url: "https://milk.market/listing/a",
+        url: `${SITE_URL}/listing/a`,
         name: "A",
       },
       {
         "@type": "ListItem",
         position: 2,
-        url: "https://milk.market/listing/b",
+        url: `${SITE_URL}/listing/b`,
         name: "B",
       },
     ]);
@@ -402,7 +403,7 @@ describe("buildItemListJsonLd", () => {
 
   it("omits name when not provided and handles an empty catalog", () => {
     const ld = buildItemListJsonLd([], {
-      url: "https://milk.market/stall/empty",
+      url: `${SITE_URL}/stall/empty`,
     });
     expect(ld.name).toBeUndefined();
     expect(ld.numberOfItems).toBe(0);

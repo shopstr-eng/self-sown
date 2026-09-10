@@ -21,6 +21,7 @@ import { isVerifiedSenderError } from "@/utils/email/email-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
+import { getSiteUrl } from "@/utils/site-url";
 
 export default async function handler(
   req: NextApiRequest,
@@ -141,8 +142,7 @@ export default async function handler(
     // Cache the resolved "orders" URL per seller for this batch so we don't
     // re-query custom_domains for every execution. Used to build {{review_link}}.
     const reviewUrlCache = new Map<string, string>();
-    const baseUrlForReview =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+    const baseUrlForReview = getSiteUrl();
     const getReviewOrdersUrl = async (
       sellerPubkey: string
     ): Promise<string> => {
@@ -226,8 +226,7 @@ export default async function handler(
         // Route every http(s) CTA/link through our signed tracking redirect so
         // seller-facing click analytics work. Failures here degrade to the
         // original links (the util returns the html unchanged).
-        const baseUrl =
-          process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+        const baseUrl = getSiteUrl();
         const trackedHtml = rewriteFlowEmailLinks(html, {
           baseUrl,
           flowId: execution.flow_id,

@@ -7,6 +7,7 @@
 
 import crypto from "crypto";
 import handler from "@/pages/api/auth/oauth-callback";
+import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 
 const queryMock = jest.fn();
 jest.mock("pg", () => ({
@@ -53,10 +54,10 @@ function makeAppleReq(overrides: Record<string, unknown> = {}) {
     query: {},
     cookies: {
       oauth_provider: "apple",
-      oauth_redirect_uri: "https://milk.market/api/auth/oauth-callback",
+      oauth_redirect_uri: `${SITE_URL}/api/auth/oauth-callback`,
       oauth_state: "state-123",
     },
-    headers: { host: "milk.market", "x-forwarded-proto": "https" },
+    headers: { host: SITE_HOST, "x-forwarded-proto": "https" },
     ...overrides,
   } as any;
 }
@@ -121,7 +122,7 @@ describe("oauth-callback (apple)", () => {
     expect(body.get("client_id")).toBe(APPLE_CLIENT_ID);
     expect(body.get("code")).toBe("apple-auth-code");
     expect(body.get("redirect_uri")).toBe(
-      "https://milk.market/api/auth/oauth-callback"
+      `${SITE_URL}/api/auth/oauth-callback`
     );
     const clientSecret = body.get("client_secret")!;
     const [h, p, s] = clientSecret.split(".");
@@ -227,7 +228,7 @@ describe("oauth-callback (apple)", () => {
     await handler(makeAppleReq({ cookies: { oauth_state: "state-123" } }), res);
     const body = (global as any).fetch.mock.calls[0][1].body as URLSearchParams;
     expect(body.get("redirect_uri")).toBe(
-      "https://milk.market/api/auth/oauth-callback"
+      `${SITE_URL}/api/auth/oauth-callback`
     );
     const insert = queryMock.mock.calls.find((c) =>
       String(c[0]).includes("INSERT INTO oauth_auth")

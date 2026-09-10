@@ -1,6 +1,7 @@
 import { lookup } from "dns/promises";
 import net from "net";
 import { createRequire } from "module";
+import { SITE_URL } from "@/utils/site-url";
 
 // Importing Undici's public entry point initializes browser fetch primitives,
 // which are intentionally absent in our jsdom test environment. The Agent
@@ -32,7 +33,7 @@ const Agent = require("undici/lib/dispatcher/agent") as new (opts: {
 // `isSafePublicHostname`) or we become an SSRF amplifier.
 
 export const SAFE_FETCH_USER_AGENT =
-  "Mozilla/5.0 (compatible; MilkMarket/1.0; +https://milk.market)";
+  `Mozilla/5.0 (compatible; MilkMarket/1.0; +${SITE_URL})`;
 
 export function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split(".").map(Number);

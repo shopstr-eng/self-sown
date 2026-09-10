@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { SITE_URL } from "@/utils/site-url";
 import {
   PRIMARYBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
@@ -19,14 +20,14 @@ export default function AboutPage() {
               "@context": "https://schema.org",
               "@type": "AboutPage",
               name: "About Milk Market",
-              url: "https://milk.market/about",
+              url: `${SITE_URL}/about`,
               description:
                 "Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers.",
               mainEntity: {
                 "@type": "Organization",
                 name: "Milk Market",
-                url: "https://milk.market",
-                logo: "https://milk.market/milk-market.png",
+                url: SITE_URL,
+                logo: `${SITE_URL}/milk-market.png`,
                 foundingDate: "2024",
                 description:
                   "Decentralized, permissionless marketplace connecting local food producers directly with consumers. Zero mandatory platform fees, direct payments via Bitcoin and traditional methods.",

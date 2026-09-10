@@ -80,6 +80,7 @@ import UpdateToast from "@/components/utility-components/update-toast";
 import { ProMembershipProvider } from "@/components/utility-components/pro-membership-context";
 import AffiliateRefTracker from "@/components/utility-components/affiliate-ref-tracker";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
+import { SITE_HOST } from "@/utils/site-url";
 
 const mergeReportEvents = (
   existing: NostrEvent[],
@@ -729,7 +730,7 @@ function MilkMarket({ props }: { props: AppProps }) {
       detected = false;
     } else {
       const PLATFORM_SUFFIXES = [
-        "milk.market",
+        SITE_HOST,
         "replit.app",
         "replit.dev",
         "repl.co",

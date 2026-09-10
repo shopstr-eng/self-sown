@@ -15,6 +15,7 @@ import {
 } from "@/utils/db/custom-domains";
 import { sendCustomDomainAdminNotification } from "@/utils/email/email-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { SITE_HOST } from "@/utils/site-url";
 
 const pool = getDbPool();
 
@@ -27,7 +28,7 @@ const ADMIN_EMAIL = process.env.DOMAINS_ADMIN_EMAIL || undefined;
 const REPLIT_DEPLOYMENT_HOST =
   process.env.REPLIT_DEPLOYMENT_HOST || "milk-market.replit.app";
 const APEX_RESOLVE_HOST = (
-  process.env.CUSTOM_DOMAIN_APEX_HOST || "milk.market"
+  process.env.CUSTOM_DOMAIN_APEX_HOST || SITE_HOST
 ).toLowerCase();
 
 // Static deployment-wide verification record provided by Replit when the

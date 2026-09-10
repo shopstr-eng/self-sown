@@ -18,6 +18,7 @@ import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { getSiteUrl } from "@/utils/site-url";
 
 const MAX_AUDIENCE = 5000;
 const SEND_CONCURRENCY = 5;
@@ -86,7 +87,7 @@ export async function runBlogBroadcast(params: {
     return { kind: "skipped", reason: "no-verified-sender-domain" };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+  const baseUrl = getSiteUrl();
 
   // FAIL-CLOSED: an unsubscribe secret must be configured or we cannot ship a
   // working RFC 8058 unsubscribe. Probe by minting one URL (throws if unset).

@@ -1,5 +1,6 @@
 import type { NextApiResponse } from "next";
 import type { IncomingMessage, ServerResponse } from "http";
+import { SITE_URL } from "@/utils/site-url";
 
 // Shared structured-error helper so every machine-readable / agent-facing
 // endpoint (the /api catch-all, the platform agent-view, and the per-stall
@@ -8,9 +9,9 @@ import type { IncomingMessage, ServerResponse } from "http";
 // prose, and always find their way back to the docs from any error.
 
 export const AGENT_DOCUMENTATION = {
-  openapi: "https://milk.market/openapi.json",
-  mcp: "https://milk.market/.well-known/mcp.json",
-  agents: "https://milk.market/agents.txt",
+  openapi: `${SITE_URL}/openapi.json`,
+  mcp: `${SITE_URL}/.well-known/mcp.json`,
+  agents: `${SITE_URL}/agents.txt`,
 } as const;
 
 export type AgentErrorBody = {
@@ -100,7 +101,7 @@ export function buildAgentNotFoundMarkdown(
     `- OpenAPI reference: ${AGENT_DOCUMENTATION.openapi}`,
     `- MCP server discovery: ${AGENT_DOCUMENTATION.mcp}`,
     `- Agent overview: ${AGENT_DOCUMENTATION.agents}`,
-    "- Documentation index: https://milk.market/llms.txt",
+    `- Documentation index: ${SITE_URL}/llms.txt`,
     "",
   ].join("\n");
 }
@@ -124,7 +125,7 @@ export function buildAgentProRequiredMarkdown(
     `- OpenAPI reference: ${AGENT_DOCUMENTATION.openapi}`,
     `- MCP server discovery: ${AGENT_DOCUMENTATION.mcp}`,
     `- Agent overview: ${AGENT_DOCUMENTATION.agents}`,
-    "- Documentation index: https://milk.market/llms.txt",
+    `- Documentation index: ${SITE_URL}/llms.txt`,
     "",
   ].join("\n");
 }

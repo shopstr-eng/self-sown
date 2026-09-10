@@ -12,6 +12,7 @@ import {
   isApiVersionSupported,
   unsupportedApiVersionBody,
 } from "@/utils/api/api-version";
+import { SITE_HOST } from "@/utils/site-url";
 
 // Routes that should NOT be rewritten under /stall/<slug>/ on a custom
 // domain — they live at the root of the seller's site (or fall through to
@@ -123,7 +124,7 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
 // "replit" or "milk.market" as a substring (e.g. `myreplitfarm.com`) are
 // still routed correctly.
 const PLATFORM_HOST_SUFFIXES = [
-  "milk.market", // milk.market + *.milk.market
+  SITE_HOST, // milk.market + *.milk.market
   "replit.app", // *.replit.app
   "replit.dev", // *.replit.dev (preview)
   "repl.co",
@@ -302,9 +303,9 @@ async function routeRequest(request: NextRequest) {
     );
   }
 
-  if (hostname === "www.milk.market") {
+  if (hostname === `www.${SITE_HOST}`) {
     const url = new URL(request.url);
-    url.hostname = "milk.market";
+    url.hostname = SITE_HOST;
     return NextResponse.redirect(url, 301);
   }
 

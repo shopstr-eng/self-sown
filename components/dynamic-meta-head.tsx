@@ -20,6 +20,7 @@ import {
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { toOptimizedOgImageUrl } from "@/utils/og/optimize-og-image";
+import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 
 type MetaTagsType = {
   title: string;
@@ -28,7 +29,7 @@ type MetaTagsType = {
   url: string;
 };
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 function ensureAbsoluteUrl(url: string, base: string): string {
   if (!url) return "";
@@ -359,7 +360,7 @@ const DynamicHead = ({
         key="twitter:domain"
         content={
           displayOrigin.replace(/^https?:\/\//, "").split("/")[0] ||
-          "milk.market"
+          SITE_HOST
         }
       />
       <meta property="twitter:url" content={metaTags.url} key="twitter:url" />

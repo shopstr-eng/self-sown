@@ -69,6 +69,7 @@ jest.mock("@/utils/db/custom-domains", () => ({
 }));
 
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
+import { SITE_HOST } from "@/utils/site-url";
 
 const SELLER = "c".repeat(64);
 const SELLER_B = "d".repeat(64);
@@ -179,7 +180,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     await createPaymentIntentHandler(
       {
         method: "POST",
-        headers: { host: "milk.market" },
+        headers: { host: SITE_HOST },
         body: {
           amount: 10,
           currency: "usd",
@@ -190,7 +191,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     );
     expect(res.statusCode).toBe(200);
     expect(registerApplePayDomainMock).toHaveBeenCalledWith(
-      "milk.market",
+      SITE_HOST,
       "acct_seller"
     );
   });

@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import parseTags from "@/utils/parsers/product-parser-functions";
 import { NostrEvent, ShopProfile } from "@/utils/types/types";
+import { SITE_URL } from "@/utils/site-url";
 
 jest.mock("next/head", () => {
   return {
@@ -140,7 +141,7 @@ describe("DynamicHead", () => {
         )
       );
       expect(getMetaContent("og:url")).toBe(
-        "https://milk.market/marketplace/npub"
+        `${SITE_URL}/marketplace/npub`
       );
     });
 
@@ -177,7 +178,9 @@ describe("DynamicHead", () => {
       );
       await waitFor(() =>
         expect(getMetaContent("og:image")).toBe(
-          "https://milk.market/api/og-image?url=https%3A%2F%2Fmilk.market%2Fmilk-market.png"
+          `${SITE_URL}/api/og-image?url=${encodeURIComponent(
+            `${SITE_URL}/milk-market.png`
+          )}`
         )
       );
     });
@@ -265,7 +268,9 @@ describe("DynamicHead", () => {
       );
       await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
       expect(getMetaContent("og:image")).toBe(
-        "https://milk.market/api/og-image?url=https%3A%2F%2Fmilk.market%2Fmilk-market.png"
+        `${SITE_URL}/api/og-image?url=${encodeURIComponent(
+          `${SITE_URL}/milk-market.png`
+        )}`
       );
     });
 

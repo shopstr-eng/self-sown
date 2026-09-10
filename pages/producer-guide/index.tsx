@@ -13,6 +13,7 @@ import {
   WHITEBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { SITE_URL } from "@/utils/site-url";
 
 const VideoPlaceholder = () => (
   <div className="relative aspect-video w-full overflow-hidden rounded-lg border-3 border-black bg-gray-700">
@@ -266,61 +267,61 @@ const ProducerGuidePage = () => {
               name: "How to Sell on Milk Market",
               description:
                 "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Milk Market.",
-              url: "https://milk.market/producer-guide",
+              url: `${SITE_URL}/producer-guide`,
               step: [
                 {
                   "@type": "HowToStep",
                   name: "Create Your Account",
                   text: "Sign up for Milk Market using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
-                  url: "https://milk.market/producer-guide#step-1",
+                  url: `${SITE_URL}/producer-guide#step-1`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
                   text: "Selling is free with unlimited listings and no mandatory transaction fees. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
-                  url: "https://milk.market/producer-guide#step-2",
+                  url: `${SITE_URL}/producer-guide#step-2`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "List Your Products",
                   text: "Use the listing password to create product listings. Add details like name, description, price, photos, and pickup or delivery options.",
-                  url: "https://milk.market/producer-guide#step-3",
+                  url: `${SITE_URL}/producer-guide#step-3`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Manage Orders",
                   text: "Receive and process orders through the orders dashboard. Accept Bitcoin payments via Lightning or Cashu, card payments via Stripe or Square, or arrange cash transactions directly with customers.",
-                  url: "https://milk.market/producer-guide#step-4",
+                  url: `${SITE_URL}/producer-guide#step-4`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Customize Your Stall",
                   text: "Personalize your public stall with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
-                  url: "https://milk.market/producer-guide#step-5",
+                  url: `${SITE_URL}/producer-guide#step-5`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Self-Host Your Store",
                   text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
-                  url: "https://milk.market/producer-guide#step-6",
+                  url: `${SITE_URL}/producer-guide#step-6`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Set Up Email Flows",
                   text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop. Track opens, clicks, and conversions for every flow and one-time send.",
-                  url: "https://milk.market/producer-guide#step-7",
+                  url: `${SITE_URL}/producer-guide#step-7`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
                   text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically.",
-                  url: "https://milk.market/producer-guide#step-8",
+                  url: `${SITE_URL}/producer-guide#step-8`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Grow Your Business",
                   text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Milk Market community to expand your reach.",
-                  url: "https://milk.market/producer-guide#step-9",
+                  url: `${SITE_URL}/producer-guide#step-9`,
                 },
               ],
             }),

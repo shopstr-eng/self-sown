@@ -25,6 +25,7 @@ import {
 } from "@/utils/storefront/stall-branding";
 import { getMembershipView } from "@/utils/pro/membership";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
+import { SITE_URL } from "@/utils/site-url";
 
 type ShopSubPageProps = {
   ogMeta: OgMetaProps;
@@ -52,9 +53,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
   const rawOriginalPath = context.req.headers["x-mm-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost
-    ? `https://${customHost}`
-    : "https://milk.market";
+  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
   const stallRootPath = customHost
     ? originalPath?.split("/").slice(0, 2).join("/") || "/"
     : `/stall/${slug}`;

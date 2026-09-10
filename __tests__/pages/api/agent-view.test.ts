@@ -18,6 +18,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import handler from "@/pages/api/agent-view";
 import { PAGE_CONTENT } from "@/utils/geo/page-content";
 import { __resetRateLimitBuckets } from "@/utils/rate-limit";
+import { SITE_URL } from "@/utils/site-url";
 
 // Force the rate limiter onto its deterministic in-memory fallback. The shared
 // Postgres store is exercised in utils/__tests__/rate-limit.test.ts; here we
@@ -186,7 +187,7 @@ describe("/api/agent-view — endpoint representation", () => {
         expect(body.content).toBe(PAGE_CONTENT[path]!.markdown);
         expect(body.content.length).toBeGreaterThan(0);
         expect(body.content).toContain(PAGE_FINGERPRINT[path]);
-        expect(body.links.html).toBe(`https://milk.market${path}`);
+        expect(body.links.html).toBe(`${SITE_URL}${path}`);
       }
     );
 

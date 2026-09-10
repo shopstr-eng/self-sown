@@ -21,6 +21,7 @@ import type {
   EscrowRegistration,
 } from "@/utils/db/cashu-escrow-service";
 import { sendServerSideNostrDMToRecipientRelays } from "@/utils/nostr/server-nostr-helpers";
+import { getSiteUrl } from "@/utils/site-url";
 
 export async function notifyEscrowPayoutFinalized(
   registration: EscrowRegistration,
@@ -31,7 +32,7 @@ export async function notifyEscrowPayoutFinalized(
   const payeePubkey = isRelease
     ? registration.sellerPubkey
     : registration.buyerPubkey;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+  const baseUrl = getSiteUrl();
   const subject = isRelease ? "Escrow payout released" : "Escrow refund paid";
   const resolution = isRelease ? "released to you" : "refunded to you";
   const body = [

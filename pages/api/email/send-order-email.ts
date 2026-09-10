@@ -21,6 +21,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import Stripe from "stripe";
+import { getSiteUrl } from "@/utils/site-url";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -259,7 +260,7 @@ async function autoEnrollInFlows(params: {
   } = params;
 
   const flows = await getEmailFlows(sellerPubkey);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+  const baseUrl = getSiteUrl();
   const enrollmentData = {
     order_id: orderId,
     product_title: productTitle,

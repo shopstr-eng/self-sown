@@ -5,13 +5,15 @@
 // instead of the full HTML app shell. Browsers and SEO/social crawlers keep
 // getting the normal HTML so OpenGraph and SSR behaviour are untouched.
 
+import { SITE_URL } from "@/utils/site-url";
+
 export interface PageContent {
   title: string;
   description: string;
   markdown: string;
 }
 
-const SITE = "https://milk.market";
+const SITE = SITE_URL;
 
 export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
@@ -87,7 +89,7 @@ Free and open food markets are the foundation of thriving communities; defending
     markdown: `# Contact Milk Market
 
 - Email: freemilk@milk.market
-- Nostr: ${SITE === "https://milk.market" ? "https://njump.me/milkmarket" : ""}
+- Nostr: ${SITE === SITE_URL ? "https://njump.me/milkmarket" : ""}
 - X: https://x.com/milkmarketmedia
 - Source code: https://github.com/shopstr-eng/milk-market
 

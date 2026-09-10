@@ -7,13 +7,14 @@
 // correctly to either the whole marketplace or a single seller.
 
 import { buildUcpDiscoveryProfile } from "@/utils/ucp/discovery";
+import { SITE_URL } from "@/utils/site-url";
 import {
   UCP_CATALOG_CAPABILITY,
   UCP_CHECKOUT_CAPABILITY,
   UCP_VERSION,
 } from "@/utils/ucp/types";
 
-const BASE = "https://milk.market";
+const BASE = SITE_URL;
 
 describe("buildUcpDiscoveryProfile — platform scope", () => {
   const profile = buildUcpDiscoveryProfile({ baseUrl: `${BASE}/` });
@@ -105,7 +106,7 @@ describe("buildUcpDiscoveryProfile — seller scope (no platformUrl)", () => {
 });
 
 describe("buildUcpDiscoveryProfile — seller scope with platformUrl", () => {
-  const PLATFORM = "https://milk.market";
+  const PLATFORM = SITE_URL;
   const seller = {
     pubkey: "abc123",
     npub: "npub1abc",

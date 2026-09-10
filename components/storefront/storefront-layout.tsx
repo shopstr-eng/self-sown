@@ -53,6 +53,7 @@ import {
   isExternalStorefrontHref,
   sanitizeStorefrontNavHref,
 } from "@/utils/storefront-links";
+import { SITE_URL } from "@/utils/site-url";
 import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
 import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import {
@@ -658,7 +659,7 @@ export default function StorefrontLayout({
         "@context": "https://schema.org",
         "@type": "Store",
         name: ssrShopName,
-        url: ssrStoreUrl || `https://milk.market`,
+        url: ssrStoreUrl || SITE_URL,
       };
       if (ssrShopAbout) ssrStoreSchema.description = ssrShopAbout;
       return (
@@ -900,8 +901,8 @@ export default function StorefrontLayout({
                   (isCustomDomain && typeof window !== "undefined"
                     ? window.location.origin
                     : shopSlug
-                      ? `https://milk.market/stall/${shopSlug}`
-                      : "https://milk.market");
+                      ? `${SITE_URL}/stall/${shopSlug}`
+                      : SITE_URL);
                 const schema: Record<string, unknown> = {
                   "@context": "https://schema.org",
                   "@type": "Store",

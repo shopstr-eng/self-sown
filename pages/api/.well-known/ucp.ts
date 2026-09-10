@@ -3,6 +3,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { buildUcpDiscoveryProfile } from "@/utils/ucp/discovery";
 import { deriveBaseUrl, resolveHostScope } from "@/utils/ucp/seller-host";
 import { isSelfHost } from "@/utils/self-host/config";
+import { getSiteUrl } from "@/utils/site-url";
 
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
@@ -59,7 +60,7 @@ export default async function handler(
       buildUcpDiscoveryProfile({
         baseUrl,
         seller,
-        ...(isCustomDomain ? { platformUrl: "https://milk.market" } : {}),
+        ...(isCustomDomain ? { platformUrl: getSiteUrl() } : {}),
       })
     );
   } catch (error) {
