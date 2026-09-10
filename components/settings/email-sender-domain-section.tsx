@@ -257,7 +257,7 @@ export default function EmailSenderDomainSection() {
     if (!signer?.sign || !userPubkey) return;
     if (
       !confirm(
-        "Disconnect this email domain? Your emails will go back to being sent from the default Milk Market address."
+        "Disconnect this email domain? Your emails will go back to being sent from the default Self-sown address."
       )
     )
       return;
@@ -306,7 +306,7 @@ export default function EmailSenderDomainSection() {
           Send From Your Own Domain
         </h3>
         <p className="mt-1 text-sm text-gray-600">
-          By default your order and flow emails come from Milk Market. Connect
+          By default your order and flow emails come from Self-sown. Connect
           your own domain so customers see them coming straight from you (e.g.{" "}
           <code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
             orders@yourfarm.com

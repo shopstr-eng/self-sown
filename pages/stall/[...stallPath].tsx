@@ -177,8 +177,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             // Blog index: seed with SSR posts so crawlers see archive links in
             // the first HTML response. The component routes this to ThemedBlog.
             const ogTitle = ssrShopName
-              ? `${ssrShopName} Blog | Milk Market`
-              : "Milk Market Stall Blog";
+              ? `${ssrShopName} Blog | Self-sown`
+              : "Self-sown Stall Blog";
             return {
               props: {
                 ogMeta: {
@@ -219,7 +219,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           : "";
         const title = branding.seo?.metaTitle
           ? `${branding.seo.metaTitle}${pageSuffix}`
-          : `${branding.shopName}${pageSuffix} | Milk Market`;
+          : `${branding.shopName}${pageSuffix} | Self-sown`;
 
         return {
           props: {
@@ -244,9 +244,9 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           ogMeta: {
             ...DEFAULT_OG,
             title: ssrShopName
-              ? `${ssrShopName} | Milk Market`
-              : "Milk Market Stall",
-            description: ssrShopAbout || "Check out this shop on Milk Market!",
+              ? `${ssrShopName} | Self-sown`
+              : "Self-sown Stall",
+            description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${pathParts.join("/")}`,
           },
           shopPubkey: pubkey,
@@ -267,8 +267,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: `/stall/${pathParts.join("/")}`,
       },
       shopPubkey: "",

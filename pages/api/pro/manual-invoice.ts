@@ -20,7 +20,7 @@ import { createProManualInvoice } from "@/utils/db/pro-membership";
 import { createPlatformBitcoinInvoice } from "@/utils/pro/lightning-pro";
 
 // Issue a manual Pro invoice (one week to pay). Bitcoin invoices route to the
-// Milk Market Lightning address and auto-verify; fiat returns the platform's
+// Self-sown Lightning address and auto-verify; fiat returns the platform's
 // payment handles and is confirmed by an operator. Pass `lifetime: true`
 // (instead of a term) for a one-time Wrangler lifetime purchase.
 export default async function handler(
@@ -76,7 +76,7 @@ export default async function handler(
     if (method === "bitcoin") {
       const invoice = await createPlatformBitcoinInvoice(
         amountUsd,
-        `Milk Market ${planLabel}`
+        `Self-sown ${planLabel}`
       );
       if (!invoice) {
         return res
@@ -130,7 +130,7 @@ export default async function handler(
       amountUsd,
       fiatHandles,
       dueAt: dueAt.toISOString(),
-      note: "After paying, the Milk Market team will confirm your payment and activate your membership.",
+      note: "After paying, the Self-sown team will confirm your payment and activate your membership.",
     });
   } catch (error) {
     console.error("pro manual-invoice failed:", error);

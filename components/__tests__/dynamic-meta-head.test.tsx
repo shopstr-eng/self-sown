@@ -60,7 +60,7 @@ describe("DynamicHead", () => {
     );
     await waitFor(() => {
       expect(document.title).toBe(
-        "Milk Market - Sell Local Products Online. Zero Platform Fees."
+        "Self-sown - Sell Local Products Online. Zero Platform Fees."
       );
     });
   });
@@ -119,7 +119,7 @@ describe("DynamicHead", () => {
           profileData={new Map()}
         />
       );
-      await waitFor(() => expect(document.title).toBe("Milk Market Stall"));
+      await waitFor(() => expect(document.title).toBe("Self-sown Stall"));
     });
 
     test("should render fallback tags if npub is missing from query", async () => {
@@ -137,7 +137,7 @@ describe("DynamicHead", () => {
       );
       await waitFor(() =>
         expect(document.title).toBe(
-          "Milk Market - Sell Local Products Online. Zero Platform Fees."
+          "Self-sown - Sell Local Products Online. Zero Platform Fees."
         )
       );
       expect(getMetaContent("og:url")).toBe(
@@ -266,7 +266,7 @@ describe("DynamicHead", () => {
           profileData={new Map()}
         />
       );
-      await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
+      await waitFor(() => expect(document.title).toBe("Self-sown Listing"));
       expect(getMetaContent("og:image")).toBe(
         `${SITE_URL}/api/og-image?url=${encodeURIComponent(
           `${SITE_URL}/milk-market.png`
@@ -290,7 +290,7 @@ describe("DynamicHead", () => {
           profileData={new Map()}
         />
       );
-      await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
+      await waitFor(() => expect(document.title).toBe("Self-sown Listing"));
     });
   });
 });

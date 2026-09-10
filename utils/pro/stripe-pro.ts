@@ -1,5 +1,5 @@
 // Stripe helpers for the Pro subscription rail. The seller is the CUSTOMER and
-// Milk Market is the merchant on the PLATFORM Stripe account — deliberately
+// Self-sown is the merchant on the PLATFORM Stripe account — deliberately
 // separate from the Connect "Subscribe & Save" subscriptions that charge
 // buyers on seller accounts. Keep customer/price/webhook handling isolated.
 
@@ -47,7 +47,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
   );
   if (existing.data[0]) return existing.data[0].id;
 
-  // Reuse a single "Milk Market Pro" product across both terms.
+  // Reuse a single "Self-sown Pro" product across both terms.
   let productId: string | null = null;
   try {
     const products = await withStripeRetry(() =>
@@ -65,7 +65,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
     const product = await withStripeRetry(() =>
       stripe.products.create(
         {
-          name: "Milk Market Herd",
+          name: "Self-sown Herd",
           metadata: { mm_pro: "true" },
         },
         { idempotencyKey: stableIdempotencyKey("pro-product", { v: 1 }) }
@@ -93,7 +93,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
 /**
  * Find-or-create the one-time "Wrangler" lifetime Price on the platform
  * account. Non-recurring, $2,100. Keyed by a stable `lookup_key` and attached
- * to the same "Milk Market Pro" product so it shows up alongside the recurring
+ * to the same "Self-sown Pro" product so it shows up alongside the recurring
  * Herd prices. Mirrors `ensureProPrice` minus the `recurring` field.
  */
 export async function ensureWranglerLifetimePrice(): Promise<string> {
@@ -122,7 +122,7 @@ export async function ensureWranglerLifetimePrice(): Promise<string> {
     const product = await withStripeRetry(() =>
       stripe.products.create(
         {
-          name: "Milk Market Herd",
+          name: "Self-sown Herd",
           metadata: { mm_pro: "true" },
         },
         { idempotencyKey: stableIdempotencyKey("pro-product", { v: 1 }) }

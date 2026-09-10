@@ -45,7 +45,7 @@ export default function OgHead({
   const absoluteImage = ensureAbsoluteUrl(image, BASE_URL);
   const absoluteUrl = ensureAbsoluteUrl(url, BASE_URL);
   const ogType = type || "website";
-  const ogSiteName = siteName || "Milk Market";
+  const ogSiteName = siteName || "Self-sown";
   const ogLocale = locale || "en_US";
 
   const geoPlaceName = [locationCity, locationRegion]
@@ -83,7 +83,7 @@ export default function OgHead({
 }
 
 export const DEFAULT_OG: OgMetaProps = {
-  title: "Milk Market - Sell Local Products Online. Zero Platform Fees.",
+  title: "Self-sown - Sell Local Products Online. Zero Platform Fees.",
   description:
     "List your products in minutes and keep 100% of every sale. No $200 a month subscriptions and no one can shut you down. Built for food producers, farmers, and artisan makers tired of paying Shopify and Barn2Door.",
   image: "/milk-market.png",

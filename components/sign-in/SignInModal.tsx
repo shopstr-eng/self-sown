@@ -45,9 +45,9 @@ export default function SignInModal({
   sellerFontBody?: string;
 }) {
   // When the modal is shown on a seller's custom domain / stall, present the
-  // seller's shop name + logo instead of the Milk Market branding. Falls back
-  // to Milk Market on the main marketplace (no branding passed).
-  const brandName = sellerBranding?.shopName?.trim() || "Milk Market";
+  // seller's shop name + logo instead of the Self-sown branding. Falls back
+  // to Self-sown on the main marketplace (no branding passed).
+  const brandName = sellerBranding?.shopName?.trim() || "Self-sown";
   const brandLogo = sellerBranding?.logoUrl?.trim() || "/milk-market.png";
 
   // On a seller's custom stall / domain (branding present), new accounts have no

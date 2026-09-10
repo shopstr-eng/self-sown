@@ -29,7 +29,7 @@
 - **Image Compression**: Auto-compress (WebP + scaling) before Blossom uploads.
 - **Unread/Read Indicators** for messages and orders with auto-mark.
 
-## Shopify → Milk Market Migration
+## Shopify → Self-sown Migration
 
 Sellers import a Shopify product CSV export and republish as NIP-99 listings (kind 30402).
 

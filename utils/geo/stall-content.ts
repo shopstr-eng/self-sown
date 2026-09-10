@@ -124,7 +124,7 @@ function description(input: StallContentInput): string {
       ? input.about.slice(0, 197) + "..."
       : input.about;
   }
-  return `${input.shopName} sells local food and goods directly to buyers on Milk Market, a permissionless Bitcoin-native marketplace built on Nostr.`;
+  return `${input.shopName} sells local food and goods directly to buyers on Self-sown, a permissionless Bitcoin-native marketplace built on Nostr.`;
 }
 
 /** Tailored markdown for a stall homepage. */
@@ -162,7 +162,7 @@ export function buildStallMarkdown(input: StallContentInput): string {
   lines.push("");
   lines.push("## For AI agents");
   lines.push(
-    `This shop is part of Milk Market. Browse and buy programmatically via the Model Context Protocol server at \`${PLATFORM}/api/mcp\`. Paid endpoints support the L402 standard. See ${PLATFORM}/.well-known/l402.json.`
+    `This shop is part of Self-sown. Browse and buy programmatically via the Model Context Protocol server at \`${PLATFORM}/api/mcp\`. Paid endpoints support the L402 standard. See ${PLATFORM}/.well-known/l402.json.`
   );
   lines.push("");
   lines.push(
@@ -272,7 +272,7 @@ export function buildStallRobotsTxt(input: StallContentInput): string {
   const origin = input.isCustomDomain
     ? new URL(input.siteUrl).origin
     : input.siteUrl;
-  return `# ${input.shopName} (powered by Milk Market)
+  return `# ${input.shopName} (powered by Self-sown)
 User-agent: *
 Allow: /
 
@@ -354,7 +354,7 @@ export function buildStallRss(input: StallContentInput): string {
       const link = blogUrl(input, post.slug);
       const title = escapeXml(post.title || "Untitled post");
       const desc = escapeXml(
-        post.summary || `A blog post from ${input.shopName} on Milk Market.`
+        post.summary || `A blog post from ${input.shopName} on Self-sown.`
       );
       const pubDate = `\n      <pubDate>${new Date(
         post.publishedAt * 1000
@@ -380,7 +380,7 @@ export function buildStallRss(input: StallContentInput): string {
           ? ` (${p.price}${p.currency ? " " + escapeXml(p.currency) : ""})`
           : "";
       const desc = escapeXml(
-        p.summary || `A product from ${input.shopName} on Milk Market.`
+        p.summary || `A product from ${input.shopName} on Self-sown.`
       );
       const image = p.image
         ? `\n      <enclosure url="${escapeXml(p.image)}" type="image/jpeg" />`

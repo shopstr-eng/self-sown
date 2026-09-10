@@ -133,7 +133,7 @@ export function buildSelfHostConfigJson(
 function envExampleTemplate(config: SelfHostConfigJson): string {
   const relays = config.relays.join(",");
   const blossom = config.blossomServers.join(",");
-  return `# Milk Market self-host (single-tenant) environment.
+  return `# Self-sown self-host (single-tenant) environment.
 # Copy this file to ".env" and fill in the values. NEVER commit your real .env.
 # This template ships with NO secrets; every value below is a placeholder.
 #
@@ -199,9 +199,9 @@ MCP_ENCRYPTION_KEY=
 }
 
 function readmeMarkdown(config: SelfHostConfigJson): string {
-  return `# Milk Market - Your Self-Hosted Store
+  return `# Self-sown - Your Self-Hosted Store
 
-This bundle wires a self-hosted, single-tenant copy of Milk Market to YOUR
+This bundle wires a self-hosted, single-tenant copy of Self-sown to YOUR
 storefront. The marketplace and other sellers are hidden; this instance serves
 only your shop.
 
@@ -247,14 +247,14 @@ Your \`milk-market.config.json\` and \`.env\` are yours and are not overwritten 
 
 ## Your store pages & policies
 
-This instance shows ONLY your storefront. The Milk Market marketplace, the
+This instance shows ONLY your storefront. The Self-sown marketplace, the
 platform info pages (About, FAQ, Producer Guide, Contact), and the platform
 Terms/Privacy pages are all hidden. Publish your OWN terms, privacy, and return
 policy as storefront pages using the page builder under **Settings**.
 
 ## License
 
-Milk Market is released under the GNU AGPL/GPL v3. Running your own copy is
+Self-sown is released under the GNU AGPL/GPL v3. Running your own copy is
 fully within your rights under that license; if you distribute a modified
 version or offer it over a network, you must make your source available under
 the same license. See the LICENSE file in the cloned repo.
@@ -349,7 +349,7 @@ freely; network-distributed modifications must be shared under the same license.
 
 function setupScript(config: SelfHostConfigJson): string {
   return `#!/usr/bin/env bash
-# Milk Market self-host bootstrap. Run from the unzipped bundle directory.
+# Self-sown self-host bootstrap. Run from the unzipped bundle directory.
 set -euo pipefail
 
 REPO="\${1:-${config.upstreamRepo}}"

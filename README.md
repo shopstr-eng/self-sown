@@ -1,4 +1,4 @@
-# Milk Market
+# Self-sown
 
 A global, permissionless marketplace for food freedom.
 

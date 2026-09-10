@@ -1244,7 +1244,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             .boolean()
             .optional()
             .describe(
-              "Let Milk Market auto-generate SEO/GEO metadata for the storefront"
+              "Let Self-sown auto-generate SEO/GEO metadata for the storefront"
             ),
         })
         .optional()
@@ -1308,7 +1308,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           showPoweredBy: z
             .boolean()
             .optional()
-            .describe("Show 'Powered by Milk Market' in footer"),
+            .describe("Show 'Powered by Self-sown' in footer"),
           newsletter: z
             .object({
               enabled: z.boolean().optional(),

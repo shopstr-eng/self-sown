@@ -250,7 +250,7 @@ function AdminDomainsInner() {
             403: Access restricted
           </h1>
           <p className="mt-2 text-sm text-red-800">
-            This page is only available to Milk Market admins. Your signed-in
+            This page is only available to Self-sown admins. Your signed-in
             pubkey is not on the admin list.
           </p>
           {userPubkey && (

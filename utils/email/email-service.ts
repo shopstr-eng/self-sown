@@ -102,7 +102,7 @@ export async function sendEmail(
  * global verified sender: a seller's marketing blast must originate only from
  * their own SendGrid domain-authenticated address. If we silently fell back to
  * the global sender, any Pro seller could blast a list under the platform's
- * reputation and spoof "from Milk Market". So a sender rejection here counts as
+ * reputation and spoof "from Self-sown". So a sender rejection here counts as
  * a failed send (return false), never a global-sent one. The caller is
  * responsible for proving the seller owns `fromEmail` (resolveSellerSenderEmail)
  * BEFORE calling this — there is no other safety net.

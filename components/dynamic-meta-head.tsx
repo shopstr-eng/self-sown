@@ -40,42 +40,42 @@ function ensureAbsoluteUrl(url: string, base: string): string {
 const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
   {
     "/about": {
-      title: "About Milk Market | Bitcoin-Native Nostr Marketplace",
+      title: "About Self-sown | Bitcoin-Native Nostr Marketplace",
       description:
-        "Milk Market is a global, permissionless marketplace built on the Nostr protocol. Learn about our mission to enable censorship-resistant Bitcoin commerce worldwide.",
+        "Self-sown is a global, permissionless marketplace built on the Nostr protocol. Learn about our mission to enable censorship-resistant Bitcoin commerce worldwide.",
     },
     "/contact": {
-      title: "Contact Milk Market | Get in Touch via Nostr & GitHub",
+      title: "Contact Self-sown | Get in Touch via Nostr & GitHub",
       description:
-        "Contact the Milk Market team via Nostr, GitHub, or X. We are a decentralized open-source project. All communication happens on open protocols.",
+        "Contact the Self-sown team via Nostr, GitHub, or X. We are a decentralized open-source project. All communication happens on open protocols.",
     },
     "/faq": {
-      title: "FAQ | Milk Market - Bitcoin Nostr Marketplace Help",
+      title: "FAQ | Self-sown - Bitcoin Nostr Marketplace Help",
       description:
-        "Answers to common questions about Milk Market, the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
+        "Answers to common questions about Self-sown, the permissionless Bitcoin marketplace on Nostr. Learn about payments, Lightning Network, selling, privacy, and more.",
     },
     "/communities": {
-      title: "Local Food Communities | Milk Market",
+      title: "Local Food Communities | Self-sown",
       description:
-        "Discover and join local food buying clubs and producer communities on Milk Market. Connect with farms, dairies, and local food producers near you.",
+        "Discover and join local food buying clubs and producer communities on Self-sown. Connect with farms, dairies, and local food producers near you.",
     },
     "/privacy": {
-      title: "Privacy Policy - Milk Market | Data Protection & Privacy",
+      title: "Privacy Policy - Self-sown | Data Protection & Privacy",
       description:
-        "Learn how Milk Market handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected.",
+        "Learn how Self-sown handles your data: a decentralized Nostr and Bitcoin core plus a hosted backend for payments, email, and analytics. Read what we store and how it is protected.",
     },
     "/terms": {
-      title: "Terms of Service - Milk Market | User Agreement",
+      title: "Terms of Service - Self-sown | User Agreement",
       description:
-        "Read Milk Market's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace.",
+        "Read Self-sown's Terms of Service. Understand user responsibilities, prohibited items, transaction risks, and platform guidelines for our decentralized marketplace.",
     },
     "/producer-guide": {
-      title: "Producer Guide: How to Sell on Milk Market",
+      title: "Producer Guide: How to Sell on Self-sown",
       description:
-        "Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall.",
+        "Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Self-sown. Learn how to set up your account, list products, accept payments, and grow your stall.",
     },
     "/manifesto": {
-      title: "Free Food Manifesto | Milk Market",
+      title: "Free Food Manifesto | Self-sown",
       description:
         "Our food systems are broken. The Free Food Manifesto lays out why — and how free markets, encryption, and Bitcoin let producers and communities take food back.",
     },
@@ -137,9 +137,9 @@ const getMetaTags = (
     if (productData) {
       const slug = getListingSlug(productData, allParsed);
       return {
-        title: productData.title || "Milk Market Listing",
+        title: productData.title || "Self-sown Listing",
         description:
-          productData.summary || "Check out this product on Milk Market!",
+          productData.summary || "Check out this product on Self-sown!",
         image: ensureAbsoluteUrl(
           productData.images?.[0] || "/milk-market.png",
           canonicalOrigin
@@ -150,8 +150,8 @@ const getMetaTags = (
 
     return {
       ...defaultTags,
-      title: "Milk Market Listing",
-      description: "Check out this listing on Milk Market!",
+      title: "Self-sown Listing",
+      description: "Check out this listing on Self-sown!",
     };
   } else if (pathname.startsWith("/marketplace/") && query.npub?.[0]) {
     const slug = query.npub[0];
@@ -171,9 +171,9 @@ const getMetaTags = (
     if (shopInfo) {
       const profileSlug = getProfileSlug(shopInfo.pubkey, profileData);
       return {
-        title: `${shopInfo.content.name} Stall` || "Milk Market Stall",
+        title: `${shopInfo.content.name} Stall` || "Self-sown Stall",
         description:
-          shopInfo.content.about || "Check out this shop on Milk Market!",
+          shopInfo.content.about || "Check out this shop on Self-sown!",
         image: ensureAbsoluteUrl(
           shopInfo.content.ui.picture || "/milk-market.png",
           canonicalOrigin
@@ -183,8 +183,8 @@ const getMetaTags = (
     }
     return {
       ...defaultTags,
-      title: "Milk Market Stall",
-      description: "Check out this shop on Milk Market!",
+      title: "Self-sown Stall",
+      description: "Check out this shop on Self-sown!",
     };
   }
 
@@ -266,7 +266,7 @@ const DynamicHead = ({
 
   // For custom stalls and custom domains, prefer the seller's storefront logo
   // as the browser tab favicon (and apple-touch-icon) so the tab matches their
-  // brand instead of showing the Milk Market icon.
+  // brand instead of showing the Self-sown icon.
   //
   // The SSR favicon (from getServerSideProps' ogMeta) is used first so that
   // search-engine crawlers and social-preview bots — which don't run the
@@ -285,7 +285,7 @@ const DynamicHead = ({
   const faviconUrl = ssrFavicon || customDomainShopLogo || "/milk-market.ico";
   const appleTouchIconUrl =
     ssrFavicon || customDomainShopLogo || "/milk-market.png";
-  // Only advertise the SVG favicon on the default (un-branded) Milk Market
+  // Only advertise the SVG favicon on the default (un-branded) Self-sown
   // chrome. Custom stalls/domains set their own logo as the favicon, so we must
   // not add an SVG icon that browsers might prefer over the seller's brand.
   const useDefaultFavicon = !ssrFavicon && !customDomainShopLogo;
@@ -295,11 +295,11 @@ const DynamicHead = ({
   // storefront settings so the social preview reflects the stall, not the
   // platform defaults.
   const ogType = ssrOgMeta?.type || "website";
-  const ogSiteName = ssrOgMeta?.siteName || "Milk Market";
+  const ogSiteName = ssrOgMeta?.siteName || "Self-sown";
   const ogLocale = ssrOgMeta?.locale || "en_US";
   const keywords =
     ssrOgMeta?.keywords ||
-    "milk market, sell food online, local food marketplace, local artisans, food producers, farm to table, sustainable food, decentralized commerce, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, shopify alternative, barn2door alternative";
+    "self-sown, sell food online, local food marketplace, local artisans, food producers, farm to table, sustainable food, decentralized commerce, nostr marketplace, bitcoin payments, lightning network, cashu, peer-to-peer commerce, shopify alternative, barn2door alternative";
   const geoRegion = ssrOgMeta?.locationRegion || "";
   const geoCity = ssrOgMeta?.locationCity || "";
   const geoPlaceName = [geoCity, geoRegion].filter(Boolean).join(", ");

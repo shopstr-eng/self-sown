@@ -16,7 +16,7 @@
 
 - Buyers looking for raw milk, local food, herdshares, and related farm products
 - Sellers building storefronts for direct-to-consumer local food sales
-- AI agents and machine-readable commerce clients using Milk Market's public surfaces
+- AI agents and machine-readable commerce clients using Self-sown's public surfaces
 
 ## Primary keywords
 

@@ -183,7 +183,7 @@ export default async function handler(
           shop_name:
             execution.enrollment_data?.shop_name ||
             execution.from_name ||
-            "Milk Market",
+            "Self-sown",
         };
 
         // Build the per-recipient "leave a review" deep-link for {{review_link}}.

@@ -163,7 +163,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         const branding = resolveStallBranding(content, profileContent);
         const title = branding.seo?.metaTitle
           ? branding.seo.metaTitle
-          : `${branding.shopName}: Farm-Fresh Products | Milk Market`;
+          : `${branding.shopName}: Farm-Fresh Products | Self-sown`;
 
         // schema.org ItemList of the storefront's products so crawlers + AI
         // shopping agents can discover the stall's catalog from the SSR HTML.
@@ -216,9 +216,9 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           ogMeta: {
             ...DEFAULT_OG,
             title: ssrShopName
-              ? `${ssrShopName} | Milk Market`
-              : "Milk Market Stall",
-            description: ssrShopAbout || "Check out this shop on Milk Market!",
+              ? `${ssrShopName} | Self-sown`
+              : "Self-sown Stall",
+            description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${shopSlug}`,
           },
           shopPubkey: pubkey,
@@ -238,8 +238,8 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: `/stall/${shopSlug}`,
       },
       shopPubkey: "",

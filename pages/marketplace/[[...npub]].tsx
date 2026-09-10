@@ -32,16 +32,16 @@ function shopEventToOgMeta(
   try {
     const content = JSON.parse(shopEvent.content);
     return {
-      title: content.name ? `${content.name} Stall` : "Milk Market Stall",
-      description: content.about || "Check out this shop on Milk Market!",
+      title: content.name ? `${content.name} Stall` : "Self-sown Stall",
+      description: content.about || "Check out this shop on Self-sown!",
       image: content.ui?.picture || "/milk-market.png",
       url: urlPath,
     };
   } catch {
     return {
       ...DEFAULT_OG,
-      title: "Milk Market Stall",
-      description: "Check out this shop on Milk Market!",
+      title: "Self-sown Stall",
+      description: "Check out this shop on Self-sown!",
       url: urlPath,
     };
   }
@@ -55,9 +55,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         ogMeta: {
-          title: "Milk Market - Browse Local Food Producers",
+          title: "Self-sown - Browse Local Food Producers",
           description:
-            "Discover farms, dairies, and local food producers on Milk Market. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
+            "Discover farms, dairies, and local food producers on Self-sown. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
           image: "/milk-market.png",
           url: "/marketplace",
         } as OgMetaProps,
@@ -163,8 +163,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           ? shopEventToOgMeta(shopEvent, canonicalUrl)
           : ({
               ...DEFAULT_OG,
-              title: "Milk Market Stall",
-              description: "Check out this shop on Milk Market!",
+              title: "Self-sown Stall",
+              description: "Check out this shop on Self-sown!",
               url: canonicalUrl,
             } as OgMetaProps),
         initialFocusedPubkey: pubkey,
@@ -181,8 +181,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: urlPath,
       },
       initialFocusedPubkey: "",
@@ -226,10 +226,10 @@ export default function SellerView({
   return (
     <>
       {isSeller && ssrSellerName ? (
-        <h1 className="sr-only">{ssrSellerName} — Milk Market Stall</h1>
+        <h1 className="sr-only">{ssrSellerName} — Self-sown Stall</h1>
       ) : (
         <h1 className="sr-only">
-          Milk Market — raw milk &amp; farm-fresh dairy marketplace
+          Self-sown — raw milk &amp; farm-fresh dairy marketplace
         </h1>
       )}
       {/* SSR-rendered seller intro: in the initial HTML for crawlers and bots
@@ -266,7 +266,7 @@ export default function SellerView({
         <div className="flex h-auto w-full items-center justify-center bg-black bg-cover bg-center pt-20">
           <img
             src="/free-the-food.png"
-            alt="Free the Food — Milk Market Banner"
+            alt="Free the Food — Self-sown Banner"
             className="max-h-[300px] w-full items-center justify-center object-contain py-8"
             fetchPriority="high"
           />

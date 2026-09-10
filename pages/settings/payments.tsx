@@ -333,7 +333,7 @@ const PaymentsSettingsPage = () => {
     }
   };
 
-  // Unlink the seller's Stripe account from Milk Market so they can connect a
+  // Unlink the seller's Stripe account from Self-sown so they can connect a
   // different one. Leaves the account untouched at Stripe; only removes our link.
   const handleDisconnect = async () => {
     if (!pubkey || !signer?.sign) return;
@@ -571,7 +571,7 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Square</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Square account from Milk Market, for example
+                      Remove this Square account from Self-sown, for example
                       to switch to Stripe or a different Square account. Card
                       payments will stop until you connect a processor again.
                       Your Square account itself isn&apos;t deleted.
@@ -628,7 +628,7 @@ const PaymentsSettingsPage = () => {
                         <p className="text-xs text-gray-600">
                           We create a Stripe account for you in a few minutes.
                           You manage payouts from a simplified dashboard without
-                          leaving Milk Market.
+                          leaving Self-sown.
                         </p>
                         <Button
                           className={BLUEBUTTONCLASSNAMES}
@@ -975,7 +975,7 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Stripe</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Stripe account from Milk Market, for example
+                      Remove this Stripe account from Self-sown, for example
                       if you need to switch to a different account or fix a
                       broken connection. Card payments will stop until you
                       connect an account again. Your Stripe account itself
@@ -1047,7 +1047,7 @@ const PaymentsSettingsPage = () => {
               </ModalHeader>
               <ModalBody className="text-black">
                 <p className="text-sm">
-                  This removes your Stripe account from Milk Market. You
+                  This removes your Stripe account from Self-sown. You
                   won&apos;t be able to accept card payments until you connect
                   an account again, and you&apos;ll need to re-enter any sales
                   tax settings on the new account.
@@ -1108,7 +1108,7 @@ const PaymentsSettingsPage = () => {
               </ModalHeader>
               <ModalBody className="text-black">
                 <p className="text-sm">
-                  This removes your Square account from Milk Market. You
+                  This removes your Square account from Self-sown. You
                   won&apos;t be able to accept card payments until you connect a
                   processor again.
                 </p>

@@ -86,13 +86,13 @@ describe("ProfileWithDropdown sign-in modal branding", () => {
     );
   });
 
-  it("falls back to Milk Market branding when not wrapped in a provider", () => {
+  it("falls back to Self-sown branding when not wrapped in a provider", () => {
     renderDropdown(false);
 
     expect(
-      screen.getByRole("heading", { name: "Milk Market" })
+      screen.getByRole("heading", { name: "Self-sown" })
     ).toBeInTheDocument();
-    expect(screen.getByAltText("Milk Market logo")).toHaveAttribute(
+    expect(screen.getByAltText("Self-sown logo")).toHaveAttribute(
       "src",
       "/milk-market.png"
     );

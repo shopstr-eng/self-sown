@@ -23,7 +23,7 @@ export default function StripeConnectReturnScreen() {
       <ScreenTitle
         eyebrow="Stripe Connect"
         title="Returning to seller dashboard"
-        description="Milk Market is handing control back to the native seller workspace."
+        description="Self-sown is handing control back to the native seller workspace."
       />
     </ScreenScrollView>
   );

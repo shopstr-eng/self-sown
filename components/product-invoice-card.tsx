@@ -484,7 +484,7 @@ export default function ProductInvoiceCard({
     if (!signer || !nostr || !userPubkey) return;
 
     try {
-      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
+      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Self-sown! Please check your Self-sown order dashboard for any relevant information.`;
 
       const { nsec: nsecForSellerReceiver, npub: npubForSellerReceiver } =
         await generateKeys();
@@ -1762,7 +1762,7 @@ export default function ProductInvoiceCard({
         (userNPub || "a guest buyer") +
         " for your " +
         title +
-        " listing on Milk Market" +
+        " listing on Self-sown" +
         productDetails +
         "! Check your " +
         selectedFiatOption +
@@ -2470,7 +2470,7 @@ export default function ProductInvoiceCard({
         productData.title +
         " listing" +
         productDetails +
-        " on Milk Market! Check your Lightning address (" +
+        " on Self-sown! Check your Lightning address (" +
         lnurl +
         ") for your sats.";
       await sendPaymentAndContactMessage(
@@ -3288,7 +3288,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on Milk Market! Check your Lightning address (" +
+              " on Self-sown! Check your Lightning address (" +
               lnurl +
               ") for your sats.";
             await sendPaymentAndContactMessage(
@@ -3417,7 +3417,7 @@ export default function ProductInvoiceCard({
                 productData.title +
                 " listing" +
                 productDetails +
-                " on Milk Market: " +
+                " on Self-sown: " +
                 unusedToken;
               const __unusedOk = await sendPaymentAndContactMessage(
                 productData.pubkey,
@@ -3491,7 +3491,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on Milk Market. The funds are locked in escrow " +
+              " on Self-sown. The funds are locked in escrow " +
               escrowId +
               " until " +
               new Date(escrowExpiresAt * 1000).toLocaleDateString() +
@@ -3502,7 +3502,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on Milk Market: " +
+              " on Self-sown: " +
               sellerToken;
           const __sellerOk = await sendPaymentAndContactMessage(
             productData.pubkey,
@@ -3616,7 +3616,7 @@ export default function ProductInvoiceCard({
                 productData.title +
                 " by " +
                 userNPub +
-                " on Milk Market: " +
+                " on Self-sown: " +
                 beefDonationToken;
 
               const __beefOk = await sendPaymentAndContactMessage(
@@ -4581,7 +4581,7 @@ export default function ProductInvoiceCard({
       " listing" +
       productDetails +
       subscriptionLabel +
-      " on Milk Market! Check your Stripe account for the payment.";
+      " on Self-sown! Check your Stripe account for the payment.";
 
     const sellerProfileForStripeDonation = profileContext.profileData.get(
       productData.pubkey

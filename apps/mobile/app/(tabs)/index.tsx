@@ -269,7 +269,7 @@ export default function DashboardScreen() {
 
       <SellerCard
         title="Vendor session"
-        description="Your mobile seller workspace uses the same Milk Market identity model as the web app."
+        description="Your mobile seller workspace uses the same Self-sown identity model as the web app."
       >
         <View style={styles.rowBetween}>
           <View style={styles.metaBlock}>

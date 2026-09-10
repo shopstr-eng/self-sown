@@ -669,7 +669,7 @@ function ConfigureStep({
 
       <div className="grid gap-4 md:grid-cols-2">
         <Select
-          label="Default Milk Market category"
+          label="Default Self-sown category"
           selectedKeys={
             defaultCategory ? new Set([defaultCategory]) : new Set()
           }

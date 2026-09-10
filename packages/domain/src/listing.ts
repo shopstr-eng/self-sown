@@ -343,7 +343,7 @@ export function buildSellerListingTags(params: {
     ["alt", `Product listing: ${normalized.title}`],
     [
       "client",
-      "Milk Market",
+      "Self-sown",
       `31990:${params.pubkey}:${params.dTag}`,
       relayHint,
     ],

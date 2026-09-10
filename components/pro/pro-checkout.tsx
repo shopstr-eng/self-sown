@@ -323,7 +323,7 @@ export default function ProCheckout({
           </div>
           <p className="mb-4 text-sm text-zinc-700">
             {invoice.note ||
-              "After paying, the Milk Market team will confirm your payment and activate your membership."}
+              "After paying, the Self-sown team will confirm your payment and activate your membership."}
           </p>
           {handles ? (
             <div className="rounded-md border-2 border-black bg-gray-50 p-4">
@@ -336,7 +336,7 @@ export default function ProCheckout({
             </div>
           ) : (
             <p className="text-sm text-zinc-600">
-              Contact the Milk Market team to arrange payment.
+              Contact the Self-sown team to arrange payment.
             </p>
           )}
           <p className="mt-4 text-xs text-zinc-500">

@@ -11,11 +11,11 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
   const spec = {
     openapi: "3.1.0",
     info: {
-      title: "Milk Market API",
+      title: "Self-sown API",
       version: "2.2.0",
       description:
-        "Public and agent-facing endpoints for Milk Market, a permissionless Bitcoin-native marketplace for local food built on Nostr. Programmatic marketplace participation (search, ordering, stall management) is provided by the Model Context Protocol (MCP) server at /api/mcp using JSON-RPC 2.0; the endpoints below cover discovery, feeds, and the MCP entry point.",
-      contact: { name: "Milk Market", url: `${BASE_URL}/contact` },
+        "Public and agent-facing endpoints for Self-sown, a permissionless Bitcoin-native marketplace for local food built on Nostr. Programmatic marketplace participation (search, ordering, stall management) is provided by the Model Context Protocol (MCP) server at /api/mcp using JSON-RPC 2.0; the endpoints below cover discovery, feeds, and the MCP entry point.",
+      contact: { name: "Self-sown", url: `${BASE_URL}/contact` },
       license: {
         name: "MIT",
         url: "https://github.com/shopstr-eng/milk-market",
@@ -192,7 +192,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           operationId: "llmsTxt",
           summary: "Plain-text site description for LLMs",
           description:
-            "LLM-oriented site orientation: what Milk Market is, when to use it, and links to every machine-readable surface. A good first read for any agent.",
+            "LLM-oriented site orientation: what Self-sown is, when to use it, and links to every machine-readable surface. A good first read for any agent.",
           responses: {
             "200": {
               description: "llms.txt",
@@ -458,7 +458,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           operationId: "ucpCreateCheckoutSession",
           summary: "Create a UCP checkout session",
           description:
-            "Creates AND initializes a checkout session in one call by placing an order through Milk Market's existing order pipeline. Requires a read_write API key. Recoverable problems (e.g. no exchange rate to price a fiat order in sats) return HTTP 200 with a session whose status is 'requires_escalation' rather than an error status.",
+            "Creates AND initializes a checkout session in one call by placing an order through Self-sown's existing order pipeline. Requires a read_write API key. Recoverable problems (e.g. no exchange rate to price a fiat order in sats) return HTTP 200 with a session whose status is 'requires_escalation' rather than an error status.",
           security: [{ bearerAuth: [] }],
           parameters: [API_VERSION_PARAM],
           requestBody: {
@@ -782,7 +782,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         },
         UcpProduct: {
           type: "object",
-          description: `Universal Commerce Protocol representation of a Milk Market listing (NIP-99 kind:30402). Condensed view for in-document tooling — the canonical full JSON Schema is served at ${BASE_URL}/api/ucp/schemas/product.json. Unknown fields may be added at any time.`,
+          description: `Universal Commerce Protocol representation of a Self-sown listing (NIP-99 kind:30402). Condensed view for in-document tooling — the canonical full JSON Schema is served at ${BASE_URL}/api/ucp/schemas/product.json. Unknown fields may be added at any time.`,
           required: ["id", "type", "title", "url", "price", "availability"],
           properties: {
             id: { type: "string", description: "Nostr event id." },
@@ -858,7 +858,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
             productId: { type: "string" },
             orderId: {
               type: "string",
-              description: "Underlying Milk Market order id, when created.",
+              description: "Underlying Self-sown order id, when created.",
             },
             paymentMethod: {
               type: "string",

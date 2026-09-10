@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "scheme": "L402",
-  "name": "Milk Market L402",
-  "description": "Milk Market supports the L402 standard for paying per-request with Bitcoin over the Lightning Network. Paid endpoints answer with HTTP 402 Payment Required and a WWW-Authenticate: L402 challenge containing a macaroon and a bolt11 invoice. This document is facilitator-agnostic: it does not depend on any specific L402 gateway (e.g. Aperture, Fewsats).",
+  "name": "Self-sown L402",
+  "description": "Self-sown supports the L402 standard for paying per-request with Bitcoin over the Lightning Network. Paid endpoints answer with HTTP 402 Payment Required and a WWW-Authenticate: L402 challenge containing a macaroon and a bolt11 invoice. This document is facilitator-agnostic: it does not depend on any specific L402 gateway (e.g. Aperture, Fewsats).",
   "documentation": "https://docs.lightning.engineering/the-lightning-network/l402",
   "homepage": "https://self-sown.com",
   "authentication": {

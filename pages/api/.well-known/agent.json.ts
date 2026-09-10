@@ -8,7 +8,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
 
   return res.status(200).json({
     schema: "https://open-agents.com/schema/v1",
-    name: "Milk Market",
+    name: "Self-sown",
     version: "2.0.0",
     description:
       "A decentralized marketplace for local food and goods, built on Nostr. Browse products, view seller profiles, read reviews, place orders, create listings, manage shops, upload media, send messages, and participate in communities via MCP. Full marketplace participation as both buyer and seller.",

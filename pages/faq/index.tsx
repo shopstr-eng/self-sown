@@ -12,9 +12,9 @@ export default function Faq() {
       title: "General Information",
       items: [
         {
-          title: "What is Milk Market?",
+          title: "What is Self-sown?",
           content:
-            "Milk Market is a permissionless marketplace built on Nostr that enables peer-to-peer commerce using Bitcoin. It provides a secure and private way to buy and sell items via the Lightning Network and Cashu token payments.",
+            "Self-sown is a permissionless marketplace built on Nostr that enables peer-to-peer commerce using Bitcoin. It provides a secure and private way to buy and sell items via the Lightning Network and Cashu token payments.",
         },
         {
           title: "What is Nostr?",
@@ -29,7 +29,7 @@ export default function Faq() {
         {
           title: "What payment methods are accepted?",
           content:
-            "Milk Market supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe or Square and other fiat options such as Cash App, Venmo, and PayPal. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
+            "Self-sown supports Bitcoin payments through the Lightning Network, Cashu, and Nostr Wallet Connect, as well as credit and debit card payments via Stripe or Square and other fiat options such as Cash App, Venmo, and PayPal. Shoppers and sellers can also arrange cash payments directly during pickup or delivery.",
         },
         {
           title: "Will I be charged sales tax?",
@@ -44,12 +44,12 @@ export default function Faq() {
         {
           title: "What is Nostr Wallet Connect?",
           content:
-            "Nostr Wallet Connect (NIP-47) is a secure protocol that lets you connect your personal Lightning wallet (like Alby or Umbrel) to Milk Market. When you check out, Milk Market will ask your wallet to pay the invoice directly, so you don't have to copy and paste. You can set this up in 'Settings' -> 'Wallet Connection'.",
+            "Nostr Wallet Connect (NIP-47) is a secure protocol that lets you connect your personal Lightning wallet (like Alby or Umbrel) to Self-sown. When you check out, Self-sown will ask your wallet to pay the invoice directly, so you don't have to copy and paste. You can set this up in 'Settings' -> 'Wallet Connection'.",
         },
         {
-          title: "Does Milk Market control my funds with NIP-47?",
+          title: "Does Self-sown control my funds with NIP-47?",
           content:
-            "No. Milk Market never sees your private keys or has control of your funds. The NWC connection only gives Milk Market permission to request payments for purchases you initiate. Depending on your wallet settings, you may need to approve each payment, or you can configure a spending budget that allows automatic payments up to a certain amount.",
+            "No. Self-sown never sees your private keys or has control of your funds. The NWC connection only gives Self-sown permission to request payments for purchases you initiate. Depending on your wallet settings, you may need to approve each payment, or you can configure a spending budget that allows automatic payments up to a certain amount.",
         },
       ],
     },
@@ -57,14 +57,14 @@ export default function Faq() {
       title: "Selling",
       items: [
         {
-          title: "How do I start selling on Milk Market?",
+          title: "How do I start selling on Self-sown?",
           content:
             "To start selling, you'll simply need to: 1) Sign in with your email, Google account, or existing Nostr keys, 2) Set up your profile in settings, 3) List your products with descriptions and images, 4) Start receiving orders!",
         },
         {
           title: "How much does it cost to sell?",
           content:
-            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
         },
         {
           title: "Is there a free trial of Herd?",
@@ -74,7 +74,7 @@ export default function Faq() {
         {
           title: "What types of items can I sell?",
           content:
-            "Milk Market supports a wide range of local food and goods, including raw milk and dairy, meat, eggs, produce, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
+            "Self-sown supports a wide range of local food and goods, including raw milk and dairy, meat, eggs, produce, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
         },
         {
           title: "How does shipping work?",
@@ -129,7 +129,7 @@ export default function Faq() {
         {
           title: "How do I create an account or sign in?",
           content:
-            "Milk Market offers multiple ways to sign in. You can sign in with your email address or Google account for a familiar experience, with no Nostr knowledge required. If you already have a Nostr account, you can sign in using a browser extension (Alby, nos2x, etc.) or bunker application (Amber, nsec.app, etc.) to keep your private key secure. It is also possible to sign in by pasting your nsec and setting a passphrase, but this is not recommended as it could potentially leak your private key.",
+            "Self-sown offers multiple ways to sign in. You can sign in with your email address or Google account for a familiar experience, with no Nostr knowledge required. If you already have a Nostr account, you can sign in using a browser extension (Alby, nos2x, etc.) or bunker application (Amber, nsec.app, etc.) to keep your private key secure. It is also possible to sign in by pasting your nsec and setting a passphrase, but this is not recommended as it could potentially leak your private key.",
         },
         {
           title: "How are my messages and data kept private?",
@@ -149,12 +149,12 @@ export default function Faq() {
         {
           title: "Is there a rating system?",
           content:
-            "Yes, Milk Market implements NIP-85 for reviews, allowing buyers to leave feedback for sellers and their products, helping build trust in the marketplace. To leave a review, find the leave a review button at the bottom of an order message window. Merchants are also able to carry over their reviews to other marketplaces that support NIP-85.",
+            "Yes, Self-sown implements NIP-85 for reviews, allowing buyers to leave feedback for sellers and their products, helping build trust in the marketplace. To leave a review, find the leave a review button at the bottom of an order message window. Merchants are also able to carry over their reviews to other marketplaces that support NIP-85.",
         },
         {
           title: "How do I contact a seller?",
           content:
-            "You can contact sellers through Milk Market's encrypted messaging system. Simply navigate to a listing and click on the merchant profile to send a secure message. Messages are sent as encrypted Nostr DMs, and email notifications are also delivered so the seller is alerted even if they're offline. If you signed in with email or Google, all of this works seamlessly without needing a separate Nostr client.",
+            "You can contact sellers through Self-sown's encrypted messaging system. Simply navigate to a listing and click on the merchant profile to send a secure message. Messages are sent as encrypted Nostr DMs, and email notifications are also delivered so the seller is alerted even if they're offline. If you signed in with email or Google, all of this works seamlessly without needing a separate Nostr client.",
         },
         {
           title: "Am I able to return an item?",
@@ -184,7 +184,7 @@ export default function Faq() {
             __html: safeJsonLdString({
               "@context": "https://schema.org",
               "@type": "FAQPage",
-              name: "Milk Market FAQ",
+              name: "Self-sown FAQ",
               url: `${SITE_URL}/faq`,
               mainEntity: faqSections.flatMap((section) =>
                 section.items.map((item) => ({
@@ -219,7 +219,7 @@ export default function Faq() {
               Frequently Asked Questions
             </h1>
             <p className="mt-4 text-center text-lg text-zinc-600">
-              Answers to common questions about using Milk Market
+              Answers to common questions about using Self-sown
             </p>
           </div>
 

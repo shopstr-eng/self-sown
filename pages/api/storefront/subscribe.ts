@@ -128,7 +128,7 @@ export default async function handler(
                 recipient_email: email,
                 recipient_pubkey: null,
                 enrollment_data: {
-                  shop_name: activeFlow.from_name || "Milk Market",
+                  shop_name: activeFlow.from_name || "Self-sown",
                 },
               });
               enrollmentId = enrollment.id;

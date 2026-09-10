@@ -661,8 +661,8 @@ async function sendProReceiptNostrDM(
           : "Fiat";
 
     const activeLine = details.lifetime
-      ? `We received your Milk Market payment of ${amount}. Your Wrangler lifetime access is active and never expires. Here are the details for your records:`
-      : `We received your Milk Market payment of ${amount}. Your Herd features stay active. Here are the details for your records:`;
+      ? `We received your Self-sown payment of ${amount}. Your Wrangler lifetime access is active and never expires. Here are the details for your records:`
+      : `We received your Self-sown payment of ${amount}. Your Herd features stay active. Here are the details for your records:`;
     const lines: string[] = [activeLine, ""];
     if (date) lines.push(`Date: ${date}`);
     lines.push(`Amount: ${amount}`);
@@ -680,7 +680,7 @@ async function sendProReceiptNostrDM(
     await sendServerSideNostrDM(
       pubkey,
       lines.join("\n"),
-      `Milk Market - payment receipt (${amount})`
+      `Self-sown - payment receipt (${amount})`
     );
   } catch (err) {
     console.error("sendProReceiptNostrDM failed:", err);

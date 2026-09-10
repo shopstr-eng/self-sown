@@ -1,10 +1,10 @@
 # Self-Host (Single-Tenant Wrangler Export)
 
-A **Wrangler** (lifetime) seller can run their OWN private copy of Milk Market
+A **Wrangler** (lifetime) seller can run their OWN private copy of Self-sown
 that serves exactly one storefront — theirs. The marketplace, discovery, AND all
 platform pages (about/faq/producer-guide/contact/terms/privacy) are hidden,
 every served page (settings included) wears the seller's storefront theme with
-no Milk Market chrome, Pro/Herd is unlocked only for the owner pubkey, and card
+no Self-sown chrome, Pro/Herd is unlocked only for the owner pubkey, and card
 payments run on the seller's OWN standard Stripe account (direct charges, no
 Connect, no platform fees). When self-host is **off**, every code path below is
 inert and the hosted platform behaves exactly as before.
@@ -57,7 +57,7 @@ server-only config module) and delegates each decision to the pure helpers:
 
 ## UI lockdown & theming (`pages/_app.tsx` + `components/storefront/storefront-theme-wrapper.tsx`)
 
-So the seller only ever sees their OWN branded store (never Milk Market chrome),
+So the seller only ever sees their OWN branded store (never Self-sown chrome),
 self-host forces the storefront theme for EVERY served page — settings and all
 non-stall pages included — not just the stall:
 
@@ -73,7 +73,7 @@ non-stall pages included — not just the stall:
   Pro lookup. `usePublicMembershipStatus` is NOT changed globally; the override
   is local to the wrapper and default-false, so hosted behavior is untouched.
 
-Combined with `isSelfHostBlockedPage`, the net result: no Milk Market TopNav or
+Combined with `isSelfHostBlockedPage`, the net result: no Self-sown TopNav or
 footer anywhere, all platform pages hidden, and settings + every page wear the
 seller's storefront theme — all inert when self-host is off.
 
@@ -200,6 +200,6 @@ Stripe key was added). Fold any drift back into `setup.sh` / the env template.
 
 ## License
 
-Milk Market is GNU AGPL/GPL v3. Running and modifying your own copy is within
+Self-sown is GNU AGPL/GPL v3. Running and modifying your own copy is within
 your rights; network-distributed modifications must be shared under the same
 license.

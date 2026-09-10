@@ -101,7 +101,7 @@ export default function NewListingScreen() {
       <ScreenTitle
         eyebrow="Seller listings"
         title="Create a mobile listing"
-        description="This mobile-first form publishes the core listing fields through the same Milk Market product event model used on the web."
+        description="This mobile-first form publishes the core listing fields through the same Self-sown product event model used on the web."
       />
       <ListingEditor
         draft={draft}

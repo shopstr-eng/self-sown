@@ -56,7 +56,7 @@ body:
     id: user-impact
     attributes:
       label: User Impact
-      description: Explain how this feature would benefit users of Milk Market.
+      description: Explain how this feature would benefit users of Self-sown.
       placeholder: How would this feature benefit users?
     validations:
       required: true

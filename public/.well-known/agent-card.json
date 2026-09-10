@@ -1,12 +1,12 @@
 {
   "protocolVersion": "0.3.0",
-  "name": "Milk Market",
+  "name": "Self-sown",
   "description": "A permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on Nostr. Browse and buy products, manage seller shops and listings, read and write reviews, send encrypted messages, and operate a Cashu wallet — as both buyer and seller.",
   "version": "2.0.0",
   "url": "https://self-sown.com/api/mcp",
   "preferredTransport": "JSONRPC",
   "provider": {
-    "organization": "Milk Market",
+    "organization": "Self-sown",
     "url": "https://self-sown.com"
   },
   "iconUrl": "https://self-sown.com/milk-market.png",

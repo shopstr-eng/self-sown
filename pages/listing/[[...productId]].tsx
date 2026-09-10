@@ -75,8 +75,8 @@ function resolveListingStateFromEvent(
 
 const LISTING_FALLBACK: OgMetaProps = {
   ...DEFAULT_OG,
-  title: "Milk Market Listing",
-  description: "Check out this listing on Milk Market!",
+  title: "Self-sown Listing",
+  description: "Check out this listing on Self-sown!",
 };
 
 const PLATFORM_ORIGIN = SITE_URL;

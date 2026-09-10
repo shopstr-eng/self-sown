@@ -680,7 +680,7 @@ function MilkMarket({ props }: { props: AppProps }) {
 
   // Detect when the visitor is on a seller's custom domain (anything that
   // isn't the platform host (SITE_HOST), *.replit.app, *.replit.dev,
-  // *.repl.co, or localhost). On a custom domain we suppress the Milk Market
+  // *.repl.co, or localhost). On a custom domain we suppress the Self-sown
   // TopNav and wrap the page in the seller's storefront chrome (nav + footer
   // + theme).
   //

@@ -423,7 +423,7 @@ describe("stall page non-Pro seller never serves product-as-landing OG meta", ()
 
     const { ogMeta } = result.props;
     // Seller stall meta, NOT the pinned product's title/description.
-    expect(ogMeta.title).toBe("Happy Farm | Milk Market");
+    expect(ogMeta.title).toBe("Happy Farm | Self-sown");
     // No structured data at all — neither Product nor ItemList JSON-LD.
     expect(ogMeta.jsonLd).toBeUndefined();
   });

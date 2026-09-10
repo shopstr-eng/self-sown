@@ -96,7 +96,7 @@ export default async function handler(
         const enrollmentData = {
           buyer_name: "",
           product_title: cartItemsSummary || "your creamy goodness",
-          shop_name: activeFlow.from_name || "Milk Market",
+          shop_name: activeFlow.from_name || "Self-sown",
           shop_url: `${baseUrl}/${cart.seller_pubkey}`,
         };
 

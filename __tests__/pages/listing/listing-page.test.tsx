@@ -180,8 +180,8 @@ function createEvent({
 }
 
 const defaultOgMeta = {
-  title: "Milk Market Listing",
-  description: "Check out this listing on Milk Market!",
+  title: "Self-sown Listing",
+  description: "Check out this listing on Self-sown!",
   image: "/milk-market.png",
   url: `/listing/${relayHintedIdentifier}`,
 };

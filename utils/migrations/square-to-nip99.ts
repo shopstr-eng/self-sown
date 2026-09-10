@@ -144,7 +144,7 @@ export function buildListingFromSquareItem(
     );
   }
 
-  // Warn when variations span a real price range — a Milk Market listing
+  // Warn when variations span a real price range — a Self-sown listing
   // carries a single price, so the seller should know which one we picked.
   const majorPrices = pricedVariations
     .map((v) =>
@@ -179,7 +179,7 @@ export function buildListingFromSquareItem(
   const tags: ProductFormValues = [
     ["d", dTag],
     ["alt", "Product listing: " + title],
-    ["client", "Milk Market", "31990:" + pubkey + ":" + dTag, relayHint],
+    ["client", "Self-sown", "31990:" + pubkey + ":" + dTag, relayHint],
     ["title", title],
     ["summary", description],
     ["price", price.toFixed(decimals), currency],

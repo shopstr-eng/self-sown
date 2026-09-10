@@ -262,7 +262,7 @@ const ReceiveButton = () => {
               </ModalHeader>
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  Your Milk Market wallet balance should now be updated.
+                  Your Self-sown wallet balance should now be updated.
                 </div>
               </ModalBody>
             </ModalContent>
@@ -296,8 +296,8 @@ const ReceiveButton = () => {
               </ModalHeader>
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  The token you are trying to claim is already in your Milk
-                  Market wallet.
+                  The token you are trying to claim is already in your
+                  Self-sown wallet.
                 </div>
               </ModalBody>
             </ModalContent>

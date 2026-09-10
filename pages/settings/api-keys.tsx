@@ -214,7 +214,7 @@ const ApiKeysPage = () => {
               <div className="mb-3 flex items-start gap-2">
                 <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600" />
                 <p className="text-sm text-gray-700">
-                  Use the endpoint URL below to connect AI agents to Milk Market
+                  Use the endpoint URL below to connect AI agents to Self-sown
                   via the Model Context Protocol (MCP). Include your API key in
                   the{" "}
                   <code className="rounded bg-gray-200 px-1">

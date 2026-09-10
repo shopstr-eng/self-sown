@@ -5037,7 +5037,7 @@ export async function setStripeTaxEnabled(
   }
 }
 
-// Remove a seller's Stripe Connect link from Milk Market. This only unlinks the
+// Remove a seller's Stripe Connect link from Self-sown. This only unlinks the
 // account in our database (so the seller can connect a different one); it does
 // NOT delete or close the account at Stripe, which may still hold a balance or
 // pending payouts. Returns whether a row was actually removed.

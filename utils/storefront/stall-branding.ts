@@ -31,12 +31,12 @@ export type ResolvedStallBranding = {
   about: string;
   /**
    * OG/preview image. Custom (seoMeta.ogImage) → stall banner → stall icon →
-   * user icon → Milk Market default.
+   * user icon → Self-sown default.
    */
   image: string;
   /**
    * Browser-tab favicon. Stall icon → user icon → "" (empty means the
-   * consumer should fall back to the Milk Market default icon). There is no
+   * consumer should fall back to the Self-sown default icon). There is no
    * custom favicon field in stall settings, so nothing supersedes the stall
    * icon here.
    */
@@ -47,7 +47,7 @@ export type ResolvedStallBranding = {
 /**
  * Resolve a stall's branding values following the fallback hierarchy:
  * custom stall settings (where applicable) → stall icon/info → user (Nostr
- * profile) icon/info → Milk Market default.
+ * profile) icon/info → Self-sown default.
  *
  * The resolved values are used for both the favicon and the OG/preview meta
  * tags so they render in the server HTML and are picked up by search engines
@@ -98,7 +98,7 @@ export function buildStallOgMeta(params: {
       ? about.length > 160
         ? about.slice(0, 157) + "..."
         : about
-      : `Shop farm-fresh products from ${shopName} on Milk Market. Direct from the producer to your door.`;
+      : `Shop farm-fresh products from ${shopName} on Self-sown. Direct from the producer to your door.`;
 
   return {
     title,

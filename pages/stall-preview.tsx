@@ -179,22 +179,22 @@ export default function ConvertPage() {
   return (
     <>
       <Head>
-        <title>Turn your website into a Milk Market stall — free preview</title>
+        <title>Turn your website into a Self-sown stall — free preview</title>
         <meta
           name="description"
-          content="Paste your website address and instantly preview how your shop would look as a Milk Market stall. No account needed."
+          content="Paste your website address and instantly preview how your shop would look as a Self-sown stall. No account needed."
         />
         {/* key="..." matches DynamicHead's keyed tags so next/head dedupes to
             one og:title/og:description on this page (these win). */}
         <meta
           property="og:title"
           key="og:title"
-          content="See your website as a Milk Market stall"
+          content="See your website as a Self-sown stall"
         />
         <meta
           property="og:description"
           key="og:description"
-          content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
+          content="Instant, free preview — paste a URL and see your shop reimagined as a Self-sown stall."
         />
         {/* key="og:image" matches DynamicHead's globally-rendered tag so
             next/head dedupes to a single og:image on this page. */}
@@ -219,12 +219,12 @@ export default function ConvertPage() {
         <meta
           name="twitter:title"
           key="twitter:title"
-          content="See your website as a Milk Market stall"
+          content="See your website as a Self-sown stall"
         />
         <meta
           name="twitter:description"
           key="twitter:description"
-          content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
+          content="Instant, free preview — paste a URL and see your shop reimagined as a Self-sown stall."
         />
         <meta
           name="twitter:image"
@@ -245,7 +245,7 @@ export default function ConvertPage() {
               Free instant preview — no account needed
             </span>
             <h1 className="mt-5 text-4xl font-black md:text-6xl">
-              See your website as a Milk Market stall
+              See your website as a Self-sown stall
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-700">
               Paste your shop&apos;s web address and we&apos;ll instantly build

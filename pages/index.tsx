@@ -157,7 +157,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
     url: `${SITE_HOST}/stall/freemilk`,
     href: "/stall/freemilk",
     image: "/stall-freemilk.png",
-    alt: "Free Milk stall on Milk Market showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
+    alt: "Free Milk stall on Self-sown showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
   },
   {
     name: "Naughty Goat Co.",
@@ -171,7 +171,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
     url: `${SITE_HOST}/stall/your-farm`,
     href: "/onboarding/new-account",
     placeholder: true,
-    alt: "Open your own customizable stall on Milk Market in minutes",
+    alt: "Open your own customizable stall on Self-sown in minutes",
   },
 ];
 
@@ -418,14 +418,14 @@ export default function StandaloneLanding() {
           <div className="flex min-w-0 items-center space-x-2">
             <Image
               src="/milk-market.png"
-              alt="Milk Market logo - local food and artisan marketplace"
+              alt="Self-sown logo - local food and artisan marketplace"
               width={32}
               height={32}
               className="h-8 w-8 shrink-0"
               loading="eager"
             />
             <span className="hidden truncate text-lg font-bold sm:inline-block sm:text-xl">
-              Milk Market
+              Self-sown
             </span>
           </div>
 
@@ -678,7 +678,7 @@ export default function StandaloneLanding() {
       <section className="border-b-2 border-black bg-white py-12">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <p className="text-lg text-zinc-600 md:text-xl">
-            Milk Market is built for farmers, food makers, and artisan producers
+            Self-sown is built for farmers, food makers, and artisan producers
             who are tired of handing over 2.9% + 30 cents per sale plus $39 to
             $2,300 a month just to run their own store. List your products in
             minutes. Get paid directly. Keep everything you earn.
@@ -700,7 +700,7 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-600">
               Every seller gets a customizable stall with their own products,
-              prices, and branding. Here are real, live shops on Milk Market.
+              prices, and branding. Here are real, live shops on Self-sown.
             </p>
           </div>
 
@@ -773,7 +773,7 @@ export default function StandaloneLanding() {
 
             <div className="rounded-lg border-2 border-green-200 bg-green-50 p-8">
               <h3 className="mb-4 text-xl font-black text-green-700">
-                With Milk Market
+                With Self-sown
               </h3>
               <ul className="space-y-3 text-zinc-700">
                 <li className="flex items-start gap-2">
@@ -791,7 +791,7 @@ export default function StandaloneLanding() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Even if Milk Market disappeared tomorrow, your store would
+                  Even if Self-sown disappeared tomorrow, your store would
                   stay online
                 </li>
               </ul>
@@ -986,15 +986,15 @@ export default function StandaloneLanding() {
               <p className="text-zinc-600">
                 Barn2Door charges $99 to $299 a month plus 2.9% + 30 cents per
                 transaction. At $200 a month, that is $2,400 a year in
-                subscription fees before you sell a single item. On Milk Market
+                subscription fees before you sell a single item. On Self-sown
                 that is $0. You can choose to donate to support the platform,
                 but it is always your call.
               </p>
               <p className="mt-3 text-sm text-zinc-500">
-                That 0% is Milk Market&apos;s own fee. Bitcoin payments have no
+                That 0% is Self-sown&apos;s own fee. Bitcoin payments have no
                 fees at all. If you choose to accept cards through Stripe or
                 Square, that processor charges its own standard processing fee,
-                and Milk Market still adds nothing on top.
+                and Self-sown still adds nothing on top.
               </p>
             </div>
             <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-center">
@@ -1002,7 +1002,7 @@ export default function StandaloneLanding() {
               <h3 className="mb-2 text-xl font-bold">Own Your Store</h3>
               <p className="text-zinc-600">
                 Your store and your customer list belong to you. No one can
-                freeze your account or take your store away. Even if Milk Market
+                freeze your account or take your store away. Even if Self-sown
                 disappeared tomorrow, your store would stay online, because your
                 data lives on Nostr, an open network that runs independently of
                 us.
@@ -1037,7 +1037,7 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
-      {/* Comparison - Milk Market vs Shopify vs Barn2Door */}
+      {/* Comparison - Self-sown vs Shopify vs Barn2Door */}
       <section
         id="compare"
         className="relative z-10 border-b-2 border-black bg-white py-16"
@@ -1049,7 +1049,7 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-600">
               Barn2Door starts at $99 a month plus a $399 setup fee. Shopify
-              adds transaction fees on top of its monthly plans. Milk Market is
+              adds transaction fees on top of its monthly plans. Self-sown is
               free to start and has no mandatory fees. Here&apos;s how we
               compare.
             </p>
@@ -1061,7 +1061,7 @@ export default function StandaloneLanding() {
                 <tr className="border-b-2 border-black">
                   <th className="p-2 text-xs font-black sm:p-4 sm:text-sm"></th>
                   <th className="bg-primary-yellow border-x-2 border-black p-2 text-center text-xs font-black sm:p-4 sm:text-base">
-                    Milk Market
+                    Self-sown
                   </th>
                   <th className="p-2 text-center text-xs font-bold text-zinc-700 sm:p-4 sm:text-base">
                     Shopify
@@ -1545,12 +1545,12 @@ export default function StandaloneLanding() {
             <div className="mb-6 flex items-center justify-center space-x-2">
               <Image
                 src="/milk-market.png"
-                alt="Milk Market logo - decentralized local food marketplace"
+                alt="Self-sown logo - decentralized local food marketplace"
                 width={32}
                 height={32}
                 className="h-8 w-8"
               />
-              <span className="text-xl font-bold">Milk Market</span>
+              <span className="text-xl font-bold">Self-sown</span>
             </div>
             <p className="mb-6 text-lg font-bold">
               Rearchitecting the food system. Freeing the food.
@@ -1596,7 +1596,7 @@ export default function StandaloneLanding() {
               >
                 <Image
                   src="/github-mark-white.png"
-                  alt="Milk Market open source code on GitHub"
+                  alt="Self-sown open source code on GitHub"
                   width={24}
                   height={24}
                 />
@@ -1609,7 +1609,7 @@ export default function StandaloneLanding() {
               >
                 <Image
                   src="/nostr-icon-white-transparent-256x256.png"
-                  alt="Milk Market on Nostr decentralized network"
+                  alt="Self-sown on Nostr decentralized network"
                   width={32}
                   height={32}
                 />
@@ -1622,7 +1622,7 @@ export default function StandaloneLanding() {
               >
                 <Image
                   src="/x-logo-white.png"
-                  alt="Follow Milk Market on X (Twitter)"
+                  alt="Follow Self-sown on X (Twitter)"
                   width={24}
                   height={24}
                 />
@@ -1635,7 +1635,7 @@ export default function StandaloneLanding() {
               >
                 <Image
                   src="/youtube-icon.png"
-                  alt="Milk Market YouTube channel - local food and farming videos"
+                  alt="Self-sown YouTube channel - local food and farming videos"
                   width={24}
                   height={24}
                 />
@@ -1648,7 +1648,7 @@ export default function StandaloneLanding() {
               >
                 <Image
                   src="/instagram-icon.png"
-                  alt="Milk Market on Instagram"
+                  alt="Self-sown on Instagram"
                   width={24}
                   height={24}
                 />
@@ -1661,14 +1661,14 @@ export default function StandaloneLanding() {
               >
                 <Image
                   src="/tiktok-icon.png"
-                  alt="Milk Market on TikTok"
+                  alt="Self-sown on TikTok"
                   width={24}
                   height={24}
                 />
               </a>
             </div>
             <p className="text-sm text-zinc-500">
-              &copy; {new Date().getFullYear()} Milk Market LLC. All rights
+              &copy; {new Date().getFullYear()} Self-sown LLC. All rights
               reserved.
             </p>
           </div>

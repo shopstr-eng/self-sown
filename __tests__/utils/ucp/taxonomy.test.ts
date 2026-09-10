@@ -2,7 +2,7 @@
 
 // Unit coverage for the UCP/GEO product taxonomy mapper (utils/ucp/taxonomy.ts).
 // Shopping agents and search engines rely on standard Google/Shopify taxonomy
-// codes; this maps Milk Market's free-form category tags onto them and lets
+// codes; this maps Self-sown's free-form category tags onto them and lets
 // sellers override per product.
 
 import { taxonomyFromCategories, resolveTaxonomy } from "@/utils/ucp/taxonomy";

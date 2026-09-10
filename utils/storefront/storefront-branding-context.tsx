@@ -26,7 +26,7 @@ export function StorefrontBrandingProvider({
 /**
  * Seller branding (shop name + logo) for the current custom-domain / stall
  * context. Returns null on the main marketplace, so consumers fall back to the
- * default Milk Market presentation.
+ * default Self-sown presentation.
  */
 export function useStorefrontBranding(): StorefrontBranding | null {
   return useContext(StorefrontBrandingContext);

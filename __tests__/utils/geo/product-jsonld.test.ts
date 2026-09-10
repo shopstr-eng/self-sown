@@ -336,12 +336,12 @@ describe("buildProductJsonLd", () => {
         taxonomy: undefined,
       })
     );
-    expect(ld.name).toBe("Milk Market Listing");
+    expect(ld.name).toBe("Self-sown Listing");
     expect(ld.image).toBeUndefined();
-    expect(ld.brand).toEqual({ "@type": "Brand", name: "Milk Market" });
+    expect(ld.brand).toEqual({ "@type": "Brand", name: "Self-sown" });
     expect((ld.offers as Record<string, unknown>).seller).toEqual({
       "@type": "Organization",
-      name: "Milk Market seller",
+      name: "Self-sown seller",
     });
     expect(ld.category).toBeUndefined();
   });

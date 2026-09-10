@@ -1,8 +1,8 @@
-# agents.txt: AI agent access policy for Milk Market
+# agents.txt: AI agent access policy for Self-sown
 # https://self-sown.com
 # Last updated: 2026-06-08
 
-# Milk Market welcomes well-behaved autonomous agents. This file describes how
+# Self-sown welcomes well-behaved autonomous agents. This file describes how
 # agents should access the site and its API. It complements /robots.txt and
 # /llms.txt.
 
@@ -67,7 +67,7 @@ Rate-Limit: 300 requests/minute per API key on /api/mcp
 # Identify your agent with a descriptive User-Agent. Decentralized identity is
 # available via Nostr NIP-05 at /.well-known/nostr.json.
 #
-# Web Bot Auth (verifiable agent identity): Milk Market publishes its HTTP
+# Web Bot Auth (verifiable agent identity): Self-sown publishes its HTTP
 # Message Signature public keys (Ed25519, JWK Set) at
 # /.well-known/http-message-signatures-directory. Keys are identified by their
 # RFC 7638 JWK thumbprint (kid). Agents that sign requests with HTTP Message

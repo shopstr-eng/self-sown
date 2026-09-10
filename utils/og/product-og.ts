@@ -39,11 +39,11 @@ export function eventToProductOgMeta(
       jsonLd = undefined;
     }
     return {
-      title: cfg?.metaTitle || productData.title || "Milk Market Listing",
+      title: cfg?.metaTitle || productData.title || "Self-sown Listing",
       description:
         cfg?.metaDescription ||
         productData.summary ||
-        "Check out this product on Milk Market!",
+        "Check out this product on Self-sown!",
       image:
         cfg?.ogImage ||
         productData.images?.[0] ||
@@ -55,8 +55,8 @@ export function eventToProductOgMeta(
   }
   return {
     ...DEFAULT_OG,
-    title: "Milk Market Listing",
-    description: "Check out this listing on Milk Market!",
+    title: "Self-sown Listing",
+    description: "Check out this listing on Self-sown!",
     url: urlPath,
   };
 }

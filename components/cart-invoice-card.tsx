@@ -994,7 +994,7 @@ export default function CartInvoiceCard({
     const actualUserPubkey = await signer.getPubKey?.();
     if (!actualUserPubkey) return false;
 
-    const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
+    const inquiryMessage = `I just placed an order for your ${productTitle} listing on Self-sown! Please check your Self-sown order dashboard for any relevant information.`;
 
     // 1) Seller-critical delivery FIRST, fully isolated. This is the copy the
     //    seller actually needs; if it fails we must NOT report the inquiry as
@@ -3814,7 +3814,7 @@ export default function CartInvoiceCard({
       sellerProductTitles +
       ")" +
       subscriptionLabel +
-      " on Milk Market! Check your " +
+      " on Self-sown! Check your " +
       (isStripe ? "Stripe" : "Square") +
       " account for the payment.";
 
@@ -4382,7 +4382,7 @@ export default function CartInvoiceCard({
             (userNPub || "a guest buyer") +
             " for your cart order (" +
             sellerProductTitles +
-            ") on Milk Market! Check your " +
+            ") on Self-sown! Check your " +
             sellerFiatOption +
             " account for the payment.";
 
@@ -4563,7 +4563,7 @@ export default function CartInvoiceCard({
           (userNPub || "a guest buyer") +
           " for your cart order (" +
           productTitles +
-          ") on Milk Market! Check your " +
+          ") on Self-sown! Check your " +
           selectedFiatOption +
           " account for the payment.";
 
@@ -4989,7 +4989,7 @@ export default function CartInvoiceCard({
       (userNPub || "a guest buyer") +
       " for your cart order (" +
       productTitles +
-      ") on Milk Market! Check your Lightning address (" +
+      ") on Self-sown! Check your Lightning address (" +
       lnurl +
       ") for your sats.";
     for (const product of products) {
@@ -6209,7 +6209,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market! Check your Lightning address (" +
+                  " on Self-sown! Check your Lightning address (" +
                   lnurl +
                   ") for your sats.";
               } else {
@@ -6220,7 +6220,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market! Check your Lightning address (" +
+                  " on Self-sown! Check your Lightning address (" +
                   lnurl +
                   ") for your sats.";
               }
@@ -6374,7 +6374,7 @@ export default function CartInvoiceCard({
                     title +
                     " listing" +
                     productDetails +
-                    " on Milk Market: " +
+                    " on Self-sown: " +
                     unusedToken;
                 } else {
                   paymentMessage =
@@ -6384,7 +6384,7 @@ export default function CartInvoiceCard({
                     title +
                     " listing" +
                     productDetails +
-                    " on Milk Market: " +
+                    " on Self-sown: " +
                     unusedToken;
                 }
                 await sendPaymentAndContactMessageWithKeys(
@@ -6488,7 +6488,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market." +
+                  " on Self-sown." +
                   escrowSuffix
                 : "This is a Cashu token payment from " +
                   (userNPub || "a guest buyer") +
@@ -6498,7 +6498,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market: " +
+                  " on Self-sown: " +
                   sellerToken;
             } else {
               paymentMessage = escrowSuffix
@@ -6508,7 +6508,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market." +
+                  " on Self-sown." +
                   escrowSuffix
                 : "This is a Cashu token payment from " +
                   (userNPub || "a guest buyer") +
@@ -6516,7 +6516,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market: " +
+                  " on Self-sown: " +
                   sellerToken;
             }
             await sendPaymentAndContactMessageWithKeys(
@@ -6666,7 +6666,7 @@ export default function CartInvoiceCard({
                 title +
                 " by " +
                 (userNPub || "a guest buyer") +
-                " on Milk Market: " +
+                " on Self-sown: " +
                 beefDonationToken;
               try {
                 const __beefOk = await sendPaymentAndContactMessage(
@@ -8615,7 +8615,7 @@ export default function CartInvoiceCard({
                           {milkMarketDonationAmount > 0 && (
                             <div className="flex justify-between text-sm text-orange-600">
                               <span className="ml-2">
-                                Milk Market Donation (
+                                Self-sown Donation (
                                 {milkMarketDonationPercentage}%):
                               </span>
                               <span>
@@ -9135,7 +9135,7 @@ export default function CartInvoiceCard({
                         {milkMarketDonationAmount > 0 && (
                           <div className="flex justify-between text-sm text-orange-600">
                             <span className="ml-2">
-                              Milk Market Donation (
+                              Self-sown Donation (
                               {milkMarketDonationPercentage}%):
                             </span>
                             <span>

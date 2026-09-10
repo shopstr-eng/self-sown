@@ -45,14 +45,14 @@ describe("UpdateToast", () => {
     render(<UpdateToast />);
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
     expect(
-      screen.queryByText(/new version of Milk Market/i)
+      screen.queryByText(/new version of Self-sown/i)
     ).not.toBeInTheDocument();
   });
 
   it("prompts a refresh when a newer build is live", async () => {
     mockVersion("build-new");
     render(<UpdateToast />);
-    const prompt = await screen.findByText(/new version of Milk Market/i);
+    const prompt = await screen.findByText(/new version of Self-sown/i);
     expect(prompt).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
     expect(mockReload).toHaveBeenCalledTimes(1);
@@ -61,24 +61,24 @@ describe("UpdateToast", () => {
   it("dismisses for that build but re-shows if another build ships", async () => {
     mockVersion("build-new");
     render(<UpdateToast />);
-    await screen.findByText(/new version of Milk Market/i);
+    await screen.findByText(/new version of Self-sown/i);
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(
-      screen.queryByText(/new version of Milk Market/i)
+      screen.queryByText(/new version of Self-sown/i)
     ).not.toBeInTheDocument();
 
     // A later check reporting the SAME build stays dismissed…
     fireEvent.focus(window);
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
     expect(
-      screen.queryByText(/new version of Milk Market/i)
+      screen.queryByText(/new version of Self-sown/i)
     ).not.toBeInTheDocument();
 
     // …but a further update re-prompts.
     mockVersion("build-newer");
     fireEvent.focus(window);
     expect(
-      await screen.findByText(/new version of Milk Market/i)
+      await screen.findByText(/new version of Self-sown/i)
     ).toBeInTheDocument();
   });
 
@@ -87,19 +87,19 @@ describe("UpdateToast", () => {
     render(<UpdateToast />);
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
     expect(
-      screen.queryByText(/new version of Milk Market/i)
+      screen.queryByText(/new version of Self-sown/i)
     ).not.toBeInTheDocument();
   });
 
   it("retracts the prompt if the origin switches to a dev server", async () => {
     mockVersion("build-new");
     render(<UpdateToast />);
-    await screen.findByText(/new version of Milk Market/i);
+    await screen.findByText(/new version of Self-sown/i);
     mockVersion("dev");
     fireEvent.focus(window);
     await waitFor(() =>
       expect(
-        screen.queryByText(/new version of Milk Market/i)
+        screen.queryByText(/new version of Self-sown/i)
       ).not.toBeInTheDocument()
     );
   });
@@ -118,7 +118,7 @@ describe("UpdateToast", () => {
 
     // (Then the async check lands and the prompt appears.)
     expect(
-      await screen.findByText(/new version of Milk Market/i)
+      await screen.findByText(/new version of Self-sown/i)
     ).toBeInTheDocument();
   });
 
@@ -185,7 +185,7 @@ describe("UpdateToast", () => {
     render(<UpdateToast />);
     await waitFor(() => expect(global.fetch).toHaveBeenCalled());
     expect(
-      screen.queryByText(/new version of Milk Market/i)
+      screen.queryByText(/new version of Self-sown/i)
     ).not.toBeInTheDocument();
   });
 });

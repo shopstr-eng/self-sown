@@ -37,14 +37,14 @@ const ProUpgradePage = () => {
             <CardBody className="p-8">
               <div className="mb-6 flex flex-row items-center justify-center gap-3">
                 <Image
-                  alt="Milk Market logo"
+                  alt="Self-sown logo"
                   height={50}
                   radius="sm"
                   src="/milk-market.png"
                   width={50}
                 />
                 <h1 className="text-center text-3xl font-bold text-black">
-                  Milk Market Herd
+                  Self-sown Herd
                 </h1>
               </div>
 

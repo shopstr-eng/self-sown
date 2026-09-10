@@ -63,7 +63,7 @@ export default function NsecImportScreen() {
       <ScreenTitle
         eyebrow="Vendor access"
         title="Import an existing nsec"
-        description="Use this when you already manage the same Milk Market seller identity on web and want to continue with that account on mobile."
+        description="Use this when you already manage the same Self-sown seller identity on web and want to continue with that account on mobile."
       />
 
       <SellerCard title="Nostr secret key">

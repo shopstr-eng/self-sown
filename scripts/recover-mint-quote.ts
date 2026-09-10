@@ -1,5 +1,5 @@
 /**
- * One-shot recovery script for a stuck Milk Market mint quote.
+ * One-shot recovery script for a stuck Self-sown mint quote.
  *
  * Use this when a buyer paid a Lightning invoice but the proofs were never
  * claimed by the browser (status `paid_unclaimed` in their

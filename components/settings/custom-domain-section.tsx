@@ -534,7 +534,7 @@ export default function CustomDomainSection() {
 
           {domain.tlsStatus === "dns_verified" && (
             <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
-              DNS verified! A Milk Market admin will attach your domain to the
+              DNS verified! A Self-sown admin will attach your domain to the
               deployment shortly to provision a TLS certificate. This is usually
               done within 24 hours.
             </div>

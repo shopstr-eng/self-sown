@@ -102,7 +102,7 @@ export function buildListingFromShopifyProduct(
     );
   }
 
-  // Warn if the variants span a non-trivial price range — Milk Market
+  // Warn if the variants span a non-trivial price range — Self-sown
   // listings carry a single price, so the seller should be aware which one
   // we picked.
   const variantPrices = product.variants
@@ -172,7 +172,7 @@ export function buildListingFromShopifyProduct(
   const tags: ProductFormValues = [
     ["d", dTag],
     ["alt", "Product listing: " + title],
-    ["client", "Milk Market", "31990:" + pubkey + ":" + dTag, relayHint],
+    ["client", "Self-sown", "31990:" + pubkey + ":" + dTag, relayHint],
     ["title", title],
     ["summary", description],
     ["price", price.toFixed(2), currency],
@@ -189,7 +189,7 @@ export function buildListingFromShopifyProduct(
 
   validImages.forEach((img) => tags.push(["image", img]));
 
-  // Default Milk Market category + housekeeping tags
+  // Default Self-sown category + housekeeping tags
   if (defaultCategory) tags.push(["t", defaultCategory]);
   tags.push(["t", "MilkMarket"]);
   tags.push(["t", "FREEMILK"]);

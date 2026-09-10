@@ -889,14 +889,14 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
     if (seoMeta.autoGenerate !== false) {
       const autoTitle = name
-        ? `${name}: Farm-Fresh Products | Milk Market`
+        ? `${name}: Farm-Fresh Products | Self-sown`
         : undefined;
       const autoDescription = about
         ? about.length > 160
           ? about.slice(0, 157) + "..."
           : about
         : name
-          ? `Shop farm-fresh products from ${name} on Milk Market. Direct from the producer to your door.`
+          ? `Shop farm-fresh products from ${name} on Self-sown. Direct from the producer to your door.`
           : undefined;
       const autoKeywords = name
         ? `${name}, farm fresh, raw milk, dairy, local farm, ${shopSlug}`
@@ -2448,8 +2448,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                           </label>
                           <p className="ml-7 text-sm text-gray-500">
                             Adds a hard offset shadow to bordered cards across
-                            your stall, the same look used on the main Milk
-                            Market marketplace.
+                            your stall, the same look used on the main
+                            Self-sown marketplace.
                           </p>
                         </div>
 

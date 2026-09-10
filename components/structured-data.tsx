@@ -7,11 +7,11 @@ import { SITE_URL } from "@/utils/site-url";
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Milk Market",
+  name: "Self-sown",
   url: SITE_URL,
   logo: `${SITE_URL}/milk-market.png`,
   description:
-    "Milk Market is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
+    "Self-sown is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
   foundingDate: "2024",
   contactPoint: {
     "@type": "ContactPoint",
@@ -28,7 +28,7 @@ const organizationSchema = {
   ],
   founder: {
     "@type": "Person",
-    name: "Milk Market Team",
+    name: "Self-sown Team",
     description:
       "Advocates for food sovereignty and direct farm-to-consumer commerce, with expertise in decentralized marketplace technology and dairy supply chains.",
   },
@@ -37,7 +37,7 @@ const organizationSchema = {
 const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
-  name: "Milk Market",
+  name: "Self-sown",
   url: SITE_URL,
   logo: `${SITE_URL}/milk-market.png`,
   image: `${SITE_URL}/milk-market.png`,
@@ -86,7 +86,7 @@ const homepageFaqSchema = {
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Milk Market",
+  name: "Self-sown",
   url: SITE_URL,
   description:
     "Farm-fresh dairy marketplace. Buy raw milk, cheese, and dairy products direct from local farmers with zero platform fees.",

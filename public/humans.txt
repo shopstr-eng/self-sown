@@ -1,5 +1,5 @@
 /* TEAM */
-Project: Milk Market
+Project: Self-sown
 Site: https://self-sown.com
 Contact: freemilk@self-sown.com
 Nostr: https://njump.me/milkmarket

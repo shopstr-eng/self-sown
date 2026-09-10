@@ -167,7 +167,7 @@ export default async function handler(
           recipient_email: email,
           recipient_pubkey: null,
           enrollment_data: {
-            shop_name: flow.from_name || "Milk Market",
+            shop_name: flow.from_name || "Self-sown",
             shop_url: shopUrl,
             discount_code: contact.discount_code || "",
             discount_percentage:

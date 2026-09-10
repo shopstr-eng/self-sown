@@ -17,12 +17,12 @@ const SITE = SITE_URL;
 
 export const PAGE_CONTENT: Record<string, PageContent> = {
   "/": {
-    title: "Milk Market - Sell Local Products Online. Zero Platform Fees.",
+    title: "Self-sown - Sell Local Products Online. Zero Platform Fees.",
     description:
       "List your products in minutes and keep 100% of every sale. No $200 a month subscriptions and no one can shut you down. Built for food producers, farmers, and artisan makers tired of paying Shopify and Barn2Door, with payments in Bitcoin, cards, or cash.",
-    markdown: `# Milk Market
+    markdown: `# Self-sown
 
-Milk Market is the online store built for farmers, food makers, and artisan producers who are tired of handing over 2.9% and 30 cents per sale plus $39 to $2,300 a month just to run their own store. List your products in minutes, get paid directly, and keep everything you earn. Because it runs on Nostr, an open and decentralized network, your store and customer list belong to you, and no one can freeze your account or shut you down.
+Self-sown is the online store built for farmers, food makers, and artisan producers who are tired of handing over 2.9% and 30 cents per sale plus $39 to $2,300 a month just to run their own store. List your products in minutes, get paid directly, and keep everything you earn. Because it runs on Nostr, an open and decentralized network, your store and customer list belong to you, and no one can freeze your account or shut you down.
 
 ## What you can buy and sell
 Raw milk and dairy, meat, eggs, fresh produce, baked goods, honey, and other local and handmade goods.
@@ -33,18 +33,18 @@ Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and m
 ## Get started
 - Browse the [marketplace](${SITE}/marketplace)
 - Become a seller with the [Producer Guide](${SITE}/producer-guide)
-- Learn more [about Milk Market](${SITE}/about) or read the [FAQ](${SITE}/faq)
+- Learn more [about Self-sown](${SITE}/about) or read the [FAQ](${SITE}/faq)
 
 ## For AI agents
 Use the Model Context Protocol server at \`${SITE}/api/mcp\`. See [/llms.txt](${SITE}/llms.txt), [/agents.txt](${SITE}/agents.txt), and [/skill.md](${SITE}/skill.md).`,
   },
   "/about": {
-    title: "About Milk Market",
+    title: "About Self-sown",
     description:
-      "Milk Market's mission: connecting local food producers directly with buyers through a permissionless, censorship-resistant marketplace on Nostr.",
-    markdown: `# About Milk Market
+      "Self-sown's mission: connecting local food producers directly with buyers through a permissionless, censorship-resistant marketplace on Nostr.",
+    markdown: `# About Self-sown
 
-Milk Market connects local food producers directly with buyers through a permissionless, censorship-resistant marketplace built on the **Nostr protocol**.
+Self-sown connects local food producers directly with buyers through a permissionless, censorship-resistant marketplace built on the **Nostr protocol**.
 
 Anyone can become a producer without asking permission. Listings live on Nostr relays, so no single company can remove a producer from the network. Raw milk and dairy were the founding use case, but the marketplace serves local food broadly: meat, eggs, produce, baked goods, honey, and handmade goods.
 
@@ -56,22 +56,22 @@ Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-g
   "/manifesto": {
     title: "Free Food Manifesto",
     description:
-      "The essay behind Milk Market: why our food systems are broken, and how free markets, encryption, and Bitcoin let producers and communities take food back.",
+      "The essay behind Self-sown: why our food systems are broken, and how free markets, encryption, and Bitcoin let producers and communities take food back.",
     markdown: `# Free Food Manifesto
 
 This is a machine-readable summary. The authoritative essay is rendered at [${SITE}/manifesto](${SITE}/manifesto).
 
-Our food systems are broken: grocery chains game convenience, greenwashed labels hide sourcing, animals and soil are mistreated, and 77 local farms close every day while regulation pushes producers out of the sales cycle. Raw milk — the founding use case of Milk Market — is treated like a controlled substance across much of the developed world.
+Our food systems are broken: grocery chains game convenience, greenwashed labels hide sourcing, animals and soil are mistreated, and 77 local farms close every day while regulation pushes producers out of the sales cycle. Raw milk — the founding use case of Self-sown — is treated like a controlled substance across much of the developed world.
 
 The essay argues that technology is the strongest tool against this regulatory capture: encrypted communication (Nostr) to organize buyers, co-ops, and pickup spots without platform surveillance, and Bitcoin as sound money for direct producer-to-consumer trade without banks or debasement.
 
 Free and open food markets are the foundation of thriving communities; defending them takes community. — Cristian Alvarez-Hernandez, Founder & CEO`,
   },
   "/faq": {
-    title: "Milk Market FAQ",
+    title: "Self-sown FAQ",
     description:
-      "Answers to common questions about Milk Market - payments, selling, privacy, Nostr, and AI-agent access.",
-    markdown: `# Milk Market FAQ
+      "Answers to common questions about Self-sown - payments, selling, privacy, Nostr, and AI-agent access.",
+    markdown: `# Self-sown FAQ
 
 **What can I sell?** Local food and goods of all kinds. Raw milk and dairy are one example, alongside meat, eggs, produce, baked goods, honey, and handmade goods.
 
@@ -81,12 +81,12 @@ Free and open food markets are the foundation of thriving communities; defending
 
 **How is my data handled?** Orders and messages are end-to-end encrypted (NIP-17). The platform caches public listings in PostgreSQL for search and fast page loads.
 
-**Can AI agents use Milk Market?** Yes, via the Model Context Protocol server at \`${SITE}/api/mcp\`. See [/llms.txt](${SITE}/llms.txt) and [/skill.md](${SITE}/skill.md).`,
+**Can AI agents use Self-sown?** Yes, via the Model Context Protocol server at \`${SITE}/api/mcp\`. See [/llms.txt](${SITE}/llms.txt) and [/skill.md](${SITE}/skill.md).`,
   },
   "/contact": {
-    title: "Contact Milk Market",
-    description: "Reach the Milk Market team via Nostr, GitHub, X, or email.",
-    markdown: `# Contact Milk Market
+    title: "Contact Self-sown",
+    description: "Reach the Self-sown team via Nostr, GitHub, X, or email.",
+    markdown: `# Contact Self-sown
 
 - Email: freemilk@self-sown.com
 - Nostr: ${SITE === SITE_URL ? "https://njump.me/milkmarket" : ""}
@@ -96,12 +96,12 @@ Free and open food markets are the foundation of thriving communities; defending
 Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,
   },
   "/producer-guide": {
-    title: "Milk Market Producer Guide",
+    title: "Self-sown Producer Guide",
     description:
-      "Step-by-step guide to selling local food on Milk Market - account, membership, listings, orders, storefront, email flows, and AI agents.",
+      "Step-by-step guide to selling local food on Self-sown - account, membership, listings, orders, storefront, email flows, and AI agents.",
     markdown: `# Producer Guide
 
-How to start selling local food and goods on Milk Market.
+How to start selling local food and goods on Self-sown.
 
 1. **Create your account** with a Nostr identity (new or existing).
 2. **Choose your membership**: a free plan with unlimited listings, Herd ($21/month or $168/year, saving 33%) with a 30-day free trial for new sellers, or Wrangler (one-time $2,100) for lifetime access to every Herd feature, plus the option to self-host a private, single-tenant copy of your store on your own server.
@@ -118,17 +118,17 @@ To accept card payments, connect either Stripe or Square (one card processor per
 Start at the [marketplace](${SITE}/marketplace) or read the [FAQ](${SITE}/faq).`,
   },
   "/terms": {
-    title: "Milk Market Terms of Service",
-    description: "Terms governing use of the Milk Market marketplace.",
+    title: "Self-sown Terms of Service",
+    description: "Terms governing use of the Self-sown marketplace.",
     markdown: `# Terms of Service
 
 This is a machine-readable summary. The authoritative terms are rendered at [${SITE}/terms](${SITE}/terms).
 
-Milk Market is a permissionless marketplace; producers and buyers transact directly. The platform provides discovery, caching, payments tooling, and storefronts but is not a party to individual transactions. Use of the AI-agent (MCP) interface is subject to the policies in [/agents.txt](${SITE}/agents.txt).`,
+Self-sown is a permissionless marketplace; producers and buyers transact directly. The platform provides discovery, caching, payments tooling, and storefronts but is not a party to individual transactions. Use of the AI-agent (MCP) interface is subject to the policies in [/agents.txt](${SITE}/agents.txt).`,
   },
   "/privacy": {
-    title: "Milk Market Privacy Policy",
-    description: "How Milk Market handles data and privacy.",
+    title: "Self-sown Privacy Policy",
+    description: "How Self-sown handles data and privacy.",
     markdown: `# Privacy Policy
 
 This is a machine-readable summary. The authoritative policy is rendered at [${SITE}/privacy](${SITE}/privacy).

@@ -22,7 +22,7 @@ describe("buildUcpDiscoveryProfile — platform scope", () => {
   it("is marketplace-scoped with no seller block", () => {
     expect(profile.scope).toBe("marketplace");
     expect(profile.seller).toBeUndefined();
-    expect(profile.name).toBe("Milk Market");
+    expect(profile.name).toBe("Self-sown");
   });
 
   it("advertises the version and supported_versions", () => {

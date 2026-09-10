@@ -1,15 +1,15 @@
 ---
 name: milk-market
-description: Browse and buy local food, and manage a producer stall, on Milk Market (a permissionless Bitcoin-native Nostr marketplace) via its Model Context Protocol (MCP) server.
+description: Browse and buy local food, and manage a producer stall, on Self-sown (a permissionless Bitcoin-native Nostr marketplace) via its Model Context Protocol (MCP) server.
 homepage: https://self-sown.com
 mcp_endpoint: https://self-sown.com/api/mcp
 auth: Bearer API key (prefix "sk_") with scopes read, read_write, full_access
 version: 2.1.0
 ---
 
-# Milk Market Skill
+# Self-sown Skill
 
-Milk Market is a permissionless marketplace for local food and decentralized
+Self-sown is a permissionless marketplace for local food and decentralized
 food systems, built on Nostr. Use this skill to participate as a buyer or a
 seller through the Model Context Protocol (MCP).
 
@@ -23,7 +23,7 @@ seller through the Model Context Protocol (MCP).
   - `read_write`: place and track orders
   - `full_access`: manage your own listings, stall, profile, and wallet
 
-Get an API key from the Milk Market app (Settings → API keys) or via the
+Get an API key from the Self-sown app (Settings → API keys) or via the
 onboarding endpoint.
 
 ## Common tasks
@@ -49,7 +49,7 @@ Use `send_direct_message` for encrypted (NIP-17) messages to buyers or sellers.
 
 ## Universal Commerce Protocol (UCP)
 
-If you prefer plain REST over MCP's JSON-RPC, Milk Market also speaks the
+If you prefer plain REST over MCP's JSON-RPC, Self-sown also speaks the
 Universal Commerce Protocol (the standard backed by Google and Shopify). It runs
 on the same catalog and order pipeline as MCP, so the two never drift.
 
@@ -58,7 +58,7 @@ on the same catalog and order pipeline as MCP, so the two never drift.
 - Browse: `GET /api/ucp/catalog/search` (filters + pagination) and
   `GET /api/ucp/catalog/lookup` (single product, live inventory). No key needed.
 - Buy: `POST /api/ucp/checkout/sessions` creates a checkout session that places a
-  Milk Market order; `GET /api/ucp/checkout/sessions/{id}` tracks its status.
+  Self-sown order; `GET /api/ucp/checkout/sessions/{id}` tracks its status.
   These require a `read_write` API key (the same `sk_` keys as MCP).
 - Schemas: `/api/ucp/schemas/product.json` and
   `/api/ucp/schemas/checkout-session.json`; everything is also in `/openapi.json`.

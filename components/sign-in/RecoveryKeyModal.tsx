@@ -46,7 +46,7 @@ export default function RecoveryKeyModal({
 
   const handleDownload = () => {
     const content = [
-      "MILK MARKET - ACCOUNT RECOVERY KEY",
+      "SELF-SOWN - ACCOUNT RECOVERY KEY",
       "===================================",
       "",
       `Email: ${email}`,

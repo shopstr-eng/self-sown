@@ -78,7 +78,7 @@ export default async function handler(
 
         const enrollmentData = {
           buyer_name: "",
-          shop_name: activeFlow.from_name || "Milk Market",
+          shop_name: activeFlow.from_name || "Self-sown",
           shop_url: `${baseUrl}/${candidate.seller_pubkey}`,
         };
 

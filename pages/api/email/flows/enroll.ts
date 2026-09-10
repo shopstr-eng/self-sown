@@ -89,7 +89,7 @@ export default async function handler(
     const mergedData = {
       ...(enrollment_data || {}),
       shop_name:
-        enrollment_data?.shop_name || activeFlow.from_name || "Milk Market",
+        enrollment_data?.shop_name || activeFlow.from_name || "Self-sown",
     };
 
     const enrollment = await enrollInFlow({

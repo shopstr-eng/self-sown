@@ -30,11 +30,11 @@ export default function ContactPage() {
             __html: safeJsonLdString({
               "@context": "https://schema.org",
               "@type": "ContactPage",
-              name: "Contact Milk Market",
+              name: "Contact Self-sown",
               url: `${SITE_URL}/contact`,
               mainEntity: {
                 "@type": "Organization",
-                name: "Milk Market",
+                name: "Self-sown",
                 email: "freemilk@self-sown.com",
                 url: SITE_URL,
                 contactPoint: {
@@ -65,7 +65,7 @@ export default function ContactPage() {
 
           <h1 className="mb-4 text-4xl font-black md:text-5xl">Contact Us</h1>
           <p className="mb-12 text-lg text-zinc-600">
-            Have questions about Milk Market? We&apos;re here to help farmers
+            Have questions about Self-sown? We&apos;re here to help farmers
             and buyers connect with confidence.
           </p>
 

@@ -126,7 +126,7 @@ async function buildInstructions(domain: string, token: string) {
           type: "TXT",
           host: "@",
           value: REPLIT_VERIFY_TXT_VALUE,
-          note: `Add this TXT record so Replit can verify the domain before issuing a TLS certificate. In the host/name field enter "@" (or leave it blank, since the record should sit at the root of your domain, ${domain}). The value is the same for every Milk Market storefront because it identifies our deployment, not your individual domain.`,
+          note: `Add this TXT record so Replit can verify the domain before issuing a TLS certificate. In the host/name field enter "@" (or leave it blank, since the record should sit at the root of your domain, ${domain}). The value is the same for every Self-sown storefront because it identifies our deployment, not your individual domain.`,
         }
       : null,
     recommended: type === "apex" ? "apex" : "subdomain",

@@ -1,6 +1,6 @@
 // Self-host (single-tenant) runtime configuration.
 //
-// A "Wrangler" (lifetime) seller can run their OWN private copy of Milk Market
+// A "Wrangler" (lifetime) seller can run their OWN private copy of Self-sown
 // that serves exactly one storefront — their own. When self-host mode is on:
 //   - the public marketplace + discovery routes are hidden (see proxy.ts),
 //   - the Pro/Herd entitlement is unlocked ONLY for the configured tenant

@@ -1,4 +1,4 @@
-# Milk Market security policy — https://self-sown.com
+# Self-sown security policy — https://self-sown.com
 # Conforms to RFC 9116. https://www.rfc-editor.org/rfc/rfc9116
 
 Contact: mailto:freemilk@self-sown.com

@@ -124,14 +124,14 @@ const ProducerGuidePage = () => {
       id: "passphrase-faq",
       question: "What is a passphrase? What is it used for?",
       answer:
-        "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Milk Market.",
+        "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Self-sown.",
     },
     {
       id: "payment-methods-faq",
       question: "What payment methods do customers use?",
       answer: (
         <>
-          Milk Market supports Bitcoin payments through Lightning Network and
+          Self-sown supports Bitcoin payments through Lightning Network and
           Cashu tokens, as well as credit and debit card payments via Stripe or
           Square. You can also arrange cash payments directly with customers
           during pickup or delivery and other payment options like{" "}
@@ -192,7 +192,7 @@ const ProducerGuidePage = () => {
       id: "listing-passphrase-faq",
       question: "What is the listing passphrase? How do I get it?",
       answer:
-        "The listing passphrase is a password set by Milk Market to prevent spam and ensure that trusted producers can list products. You can get it by contacting Milk Market or other producers in the Milk Market community.",
+        "The listing passphrase is a password set by Self-sown to prevent spam and ensure that trusted producers can list products. You can get it by contacting Self-sown or other producers in the Self-sown community.",
     },
     {
       id: "process-payments-faq",
@@ -264,21 +264,21 @@ const ProducerGuidePage = () => {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "HowTo",
-              name: "How to Sell on Milk Market",
+              name: "How to Sell on Self-sown",
               description:
-                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Milk Market.",
+                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Self-sown.",
               url: `${SITE_URL}/producer-guide`,
               step: [
                 {
                   "@type": "HowToStep",
                   name: "Create Your Account",
-                  text: "Sign up for Milk Market using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
+                  text: "Sign up for Self-sown using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
                   url: `${SITE_URL}/producer-guide#step-1`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
                   url: `${SITE_URL}/producer-guide#step-2`,
                 },
                 {
@@ -302,7 +302,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Self-Host Your Store",
-                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
+                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Self-sown on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
                   url: `${SITE_URL}/producer-guide#step-6`,
                 },
                 {
@@ -320,7 +320,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Grow Your Business",
-                  text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Milk Market community to expand your reach.",
+                  text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Self-sown community to expand your reach.",
                   url: `${SITE_URL}/producer-guide#step-9`,
                 },
               ],
@@ -339,7 +339,7 @@ const ProducerGuidePage = () => {
                   name: "What is a passphrase? What is it used for?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Milk Market.",
+                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Self-sown.",
                   },
                 },
                 {
@@ -347,7 +347,7 @@ const ProducerGuidePage = () => {
                   name: "What payment methods do customers use?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Milk Market supports Bitcoin payments through Lightning Network and Cashu tokens, as well as credit and debit card payments via Stripe. You can also arrange cash payments directly with customers during pickup or delivery and other payment options like Cash App, Venmo, PayPal, etc.",
+                    text: "Self-sown supports Bitcoin payments through Lightning Network and Cashu tokens, as well as credit and debit card payments via Stripe. You can also arrange cash payments directly with customers during pickup or delivery and other payment options like Cash App, Venmo, PayPal, etc.",
                   },
                 },
                 {
@@ -363,7 +363,7 @@ const ProducerGuidePage = () => {
                   name: "What is the listing passphrase? How do I get it?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "The listing passphrase is a password set by Milk Market to prevent spam and ensure that trusted producers can list products. You can get it by contacting Milk Market or other producers in the Milk Market community.",
+                    text: "The listing passphrase is a password set by Self-sown to prevent spam and ensure that trusted producers can list products. You can get it by contacting Self-sown or other producers in the Self-sown community.",
                   },
                 },
                 {
@@ -482,8 +482,8 @@ const ProducerGuidePage = () => {
                   Producer Guide
                 </h1>
                 <p className="text-primary-blue mx-auto max-w-3xl text-lg">
-                  Learn how to start selling your local food and goods on Milk
-                  Market &mdash; from raw milk and dairy to meat, eggs, produce,
+                  Learn how to start selling your local food and goods on
+                  Self-sown &mdash; from raw milk and dairy to meat, eggs, produce,
                   baked goods, honey, and handmade goods.
                 </p>
               </div>
@@ -505,7 +505,7 @@ const ProducerGuidePage = () => {
                       Create Your Account
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Sign up for Milk Market using your Nostr identity or
+                      Sign up for Self-sown using your Nostr identity or
                       create a new one. Your Nostr key ensures secure, private
                       communication with customers.
                     </p>
@@ -773,7 +773,7 @@ const ProducerGuidePage = () => {
                     </h3>
                     <p className="mb-4 text-base text-white">
                       Want full control? On the Wrangler lifetime plan you can
-                      run your own copy of Milk Market on your own server.
+                      run your own copy of Self-sown on your own server.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                       <li>Run a single-tenant store that&apos;s just yours</li>
@@ -900,7 +900,7 @@ const ProducerGuidePage = () => {
                       </h3>
                       <p className="mb-4 text-base text-white">
                         Build your customer base and expand your reach within
-                        the Milk Market community.
+                        the Self-sown community.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                         <li id="step-9-1">
@@ -912,7 +912,7 @@ const ProducerGuidePage = () => {
                         <li id="step-9-3">
                           Share your story and growing practices
                         </li>
-                        <li id="step-9-4">Leverage the Milk Market network</li>
+                        <li id="step-9-4">Leverage the Self-sown network</li>
                       </ul>
                     </div>
                   </div>

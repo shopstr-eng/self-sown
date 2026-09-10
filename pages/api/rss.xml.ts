@@ -41,7 +41,7 @@ export default async function handler(
         const link = `${BASE_URL}/listing/${slug}`;
         const title = escapeXml(data.title || "Untitled listing");
         const description = escapeXml(
-          data.summary || "A local food listing on Milk Market."
+          data.summary || "A local food listing on Self-sown."
         );
         const pubDate = new Date(
           (event.created_at || Math.floor(Date.now() / 1000)) * 1000
@@ -70,10 +70,10 @@ export default async function handler(
   const feed = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Milk Market - Local Food Listings</title>
+    <title>Self-sown - Local Food Listings</title>
     <link>${BASE_URL}/marketplace</link>
     <atom:link href="${BASE_URL}/rss.xml" rel="self" type="application/rss+xml" />
-    <description>Recent product listings from local food producers on Milk Market, a permissionless Bitcoin-native marketplace built on Nostr.</description>
+    <description>Recent product listings from local food producers on Self-sown, a permissionless Bitcoin-native marketplace built on Nostr.</description>
     <language>en-us</language>
     <lastBuildDate>${lastBuild}</lastBuildDate>
     <ttl>60</ttl>

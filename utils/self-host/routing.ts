@@ -4,7 +4,7 @@
 // and the unit tests share the EXACT same rules. The proxy reads MM_SELF_HOST*
 // from the environment and delegates each per-path decision to the helpers here.
 
-// Pages that describe Milk Market the PLATFORM — the public marketplace, Nostr
+// Pages that describe Self-sown the PLATFORM — the public marketplace, Nostr
 // discovery shortcuts, the Pro/Herd billing surface, and the platform marketing,
 // info, and legal/policy pages — are all hidden on a seller's own single-tenant
 // instance. On self-host the only UI the owner should ever see is their own

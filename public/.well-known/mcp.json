@@ -1,9 +1,9 @@
 {
   "$schema": "https://modelcontextprotocol.io/schema/mcp.json",
-  "name": "Milk Market",
-  "description": "Model Context Protocol server for Milk Market — a permissionless, Bitcoin-native marketplace for local food and decentralized food systems built on Nostr. Browse and buy products, manage shops and listings, send messages, and operate a Cashu wallet.",
+  "name": "Self-sown",
+  "description": "Model Context Protocol server for Self-sown — a permissionless, Bitcoin-native marketplace for local food and decentralized food systems built on Nostr. Browse and buy products, manage shops and listings, send messages, and operate a Cashu wallet.",
   "version": "2.0.0",
-  "vendor": "Milk Market",
+  "vendor": "Self-sown",
   "homepage": "https://self-sown.com",
   "documentation": "https://self-sown.com/skill.md",
   "transport": {
@@ -40,6 +40,6 @@
     "algorithm": "ed25519",
     "keyFormat": "jwk",
     "keyIdScheme": "rfc7638-jwk-thumbprint",
-    "description": "HTTP Message Signatures (RFC 9421) public-key directory for verifiable agent identity (Web Bot Auth). Milk Market publishes its Ed25519 verification keys here; agents may advertise their own directory via the Signature-Agent header."
+    "description": "HTTP Message Signatures (RFC 9421) public-key directory for verifiable agent identity (Web Bot Auth). Self-sown publishes its Ed25519 verification keys here; agents may advertise their own directory via the Signature-Agent header."
   }
 }

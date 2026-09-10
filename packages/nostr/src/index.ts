@@ -460,7 +460,7 @@ export function createSellerListingEventTemplate(
 export function createSellerListingDeleteEventTemplate(
   session: SellerSession,
   eventIds: string[],
-  reason = "Milk Market deletion request"
+  reason = "Self-sown deletion request"
 ): EventTemplateWithPubkey {
   return {
     pubkey: session.pubkey,

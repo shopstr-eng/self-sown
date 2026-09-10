@@ -1,10 +1,10 @@
-# Milk Market
+# Self-sown
 
-> Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. Producers sell raw milk and dairy, meat, eggs, produce, baked goods, honey, and other local goods directly to buyers, with no platform gatekeeping. Payments work over Bitcoin (Lightning, Cashu ecash), cards (Stripe or Square), and manual fiat. AI agents can browse and buy, and sellers can manage their stalls, through a Model Context Protocol (MCP) server.
+> Self-sown is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. Producers sell raw milk and dairy, meat, eggs, produce, baked goods, honey, and other local goods directly to buyers, with no platform gatekeeping. Payments work over Bitcoin (Lightning, Cashu ecash), cards (Stripe or Square), and manual fiat. AI agents can browse and buy, and sellers can manage their stalls, through a Model Context Protocol (MCP) server.
 
-## When to use Milk Market
+## When to use Self-sown
 
-Use Milk Market when an agent or application needs to:
+Use Self-sown when an agent or application needs to:
 
 - Search a live catalog of local-food products (raw milk and dairy, meat, eggs, produce, baked goods, honey) from independent producers.
 - Read structured product details (price, availability, shipping options, seller identity) as JSON, JSON-LD, or RSS.
@@ -15,8 +15,8 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 
 ## About
 
-- [About Milk Market](https://self-sown.com/about): Mission, how the decentralized marketplace works, and why it was built.
-- [Free Food Manifesto](https://self-sown.com/manifesto): The essay behind Milk Market: why our food systems are broken and how free markets, encryption, and Bitcoin fix them.
+- [About Self-sown](https://self-sown.com/about): Mission, how the decentralized marketplace works, and why it was built.
+- [Free Food Manifesto](https://self-sown.com/manifesto): The essay behind Self-sown: why our food systems are broken and how free markets, encryption, and Bitcoin fix them.
 - [FAQ](https://self-sown.com/faq): Common questions about payments, selling, privacy, and Nostr.
 - [Producer Guide](https://self-sown.com/producer-guide): Step-by-step guide for producers: account, membership, listing products, managing orders, custom storefronts, email flows with engagement analytics, Shippo shipping labels, and connecting AI agents.
 - [Contact](https://self-sown.com/contact): Reach the team via Nostr, GitHub, X, or email.
@@ -29,7 +29,7 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 ## For AI Agents
 
 - [Agent policies](https://self-sown.com/agents.txt): Allowed actions, rate limits, and access rules for autonomous agents.
-- [Agent skill](https://self-sown.com/skill.md): How an agent should use Milk Market, with YAML frontmatter.
+- [Agent skill](https://self-sown.com/skill.md): How an agent should use Self-sown, with YAML frontmatter.
 - [MCP discovery](https://self-sown.com/.well-known/mcp.json): JSON-RPC 2.0 Model Context Protocol endpoint description.
 - [A2A agent card](https://self-sown.com/.well-known/agent-card.json): Google A2A agent card describing capabilities.
 - [L402 discovery](https://self-sown.com/.well-known/l402.json): Facilitator-agnostic L402 (HTTP 402) pay-per-request standard for paid endpoints.

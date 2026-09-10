@@ -22,7 +22,7 @@ export default function UpgradeBanner({
 
   const title = feature
     ? `${feature} is a Herd feature`
-    : "Unlock Milk Market Herd";
+    : "Unlock Self-sown Herd";
 
   const body =
     membership.isReadOnly || membership.isHidden

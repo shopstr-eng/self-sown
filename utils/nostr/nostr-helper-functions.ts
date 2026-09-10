@@ -85,7 +85,7 @@ export async function deleteEvent(
 ) {
   const deletionEvent = createNostrDeleteEvent(
     event_ids_to_delete,
-    "Milk Market deletion request",
+    "Self-sown deletion request",
     deletedKind
   );
 

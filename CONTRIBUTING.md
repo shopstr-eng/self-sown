@@ -1,6 +1,6 @@
-# Contributing to Milk Market
+# Contributing to Self-sown
 
-Welcome to Milk Market! 🥛⚡ We're excited to have you contribute to our global, permissionless marketplace for milk-first commerce.
+Welcome to Self-sown! 🥛⚡ We're excited to have you contribute to our global, permissionless marketplace for milk-first commerce.
 
 ## Table of Contents
 
@@ -349,7 +349,7 @@ If you need to set up additional services, you can create a `docker-compose.yml`
 
 ---
 
-Thank you for contributing to Milk Market! 🚀 Your contributions help build the future of permissionless commerce.
+Thank you for contributing to Self-sown! 🚀 Your contributions help build the future of permissionless commerce.
 
 ## Questions?
 

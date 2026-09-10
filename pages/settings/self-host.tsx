@@ -183,7 +183,7 @@ const SelfHostPage = () => {
                   using the page builder in Settings.
                 </p>
                 <p className="mt-3 text-xs text-gray-500">
-                  Milk Market is open source under the AGPL/GPL v3. Full
+                  Self-sown is open source under the AGPL/GPL v3. Full
                   instructions are inside the bundle.
                 </p>
               </div>

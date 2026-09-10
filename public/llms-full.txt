@@ -1,10 +1,10 @@
-# Milk Market - Full Description for LLMs
+# Self-sown - Full Description for LLMs
 
-> Milk Market is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers directly with buyers. Raw milk and dairy are one example among many: meat, eggs, produce, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
+> Self-sown is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers directly with buyers. Raw milk and dairy are one example among many: meat, eggs, produce, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
 
-## What Milk Market is
+## What Self-sown is
 
-Milk Market is an open marketplace for local and decentralized food systems. Anyone can become a producer without asking permission. Sellers publish product listings as Nostr events (kind 30402); buyers browse them on the website or through AI agents. The platform is designed to be censorship-resistant: because data lives on Nostr relays, no single company can remove a producer from the network.
+Self-sown is an open marketplace for local and decentralized food systems. Anyone can become a producer without asking permission. Sellers publish product listings as Nostr events (kind 30402); buyers browse them on the website or through AI agents. The platform is designed to be censorship-resistant: because data lives on Nostr relays, no single company can remove a producer from the network.
 
 Raw milk and dairy were the founding use case, but the marketplace is for local food broadly: meat, eggs, fresh produce, baked goods, honey, preserves, and handmade goods.
 
@@ -12,7 +12,7 @@ Raw milk and dairy were the founding use case, but the marketplace is for local 
 
 - Buyers can check out as a guest (just an email) or with their own Nostr keys.
 - Supported payments: Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and manual fiat methods (Venmo, Cash App, Zelle, etc.).
-- Milk Market charges no platform fee on sales. Bitcoin payments have no fees at all, and if a seller accepts cards through Stripe or Square, that processor charges its own standard processing fee.
+- Self-sown charges no platform fee on sales. Bitcoin payments have no fees at all, and if a seller accepts cards through Stripe or Square, that processor charges its own standard processing fee.
 - Carts can mix payment methods and currencies. Free-shipping thresholds and payment-method discounts are supported.
 - On card (Stripe) checkouts, sales tax is automatically calculated from the buyer's shipping address and shown at checkout when the seller has turned it on.
 - Orders are delivered as encrypted Nostr messages (NIP-17 gift wraps) to the seller, plus optional email confirmations.
@@ -42,7 +42,7 @@ Sellers who connect a Stripe account can also turn on automatic US sales tax (fr
 
 ## For AI agents
 
-Milk Market exposes a Model Context Protocol (MCP) server so AI agents can participate as buyers and sellers.
+Self-sown exposes a Model Context Protocol (MCP) server so AI agents can participate as buyers and sellers.
 
 - Endpoint: POST https://self-sown.com/api/mcp (JSON-RPC 2.0, Streamable HTTP transport).
 - Authentication: bearer API keys prefixed with `sk_`, with three permission levels (read, read_write, full_access).
@@ -50,7 +50,7 @@ Milk Market exposes a Model Context Protocol (MCP) server so AI agents can parti
 - Purchase tools: create_order, get_order_status, list_orders, verify_payment.
 - Write tools (full_access): manage profiles, listings, reviews, community posts, messages, relays, media uploads, discount codes, and Cashu wallet operations.
 - Paid endpoints follow the L402 standard: a Lightning create_order responds with HTTP 402 and a `WWW-Authenticate: L402` challenge (macaroon + bolt11 invoice). See /.well-known/l402.json (facilitator-agnostic).
-- Universal Commerce Protocol (UCP): for agents that prefer plain REST over MCP's JSON-RPC, Milk Market also speaks UCP (the commerce standard backed by Google and Shopify), layered over the same catalog and order pipeline as MCP so the two never drift. Discovery at /.well-known/ucp advertises two capabilities: a catalog (GET /api/ucp/catalog/search with filters + pagination, and GET /api/ucp/catalog/lookup for a single product with live inventory; no key needed) and checkout (POST /api/ucp/checkout/sessions creates a session that places a Milk Market order, GET /api/ucp/checkout/sessions/{id} tracks its status; a read_write `sk_` API key is required). JSON Schemas for the product and checkout-session shapes are at /api/ucp/schemas/product.json and /api/ucp/schemas/checkout-session.json, and /openapi.json documents every endpoint.
+- Universal Commerce Protocol (UCP): for agents that prefer plain REST over MCP's JSON-RPC, Self-sown also speaks UCP (the commerce standard backed by Google and Shopify), layered over the same catalog and order pipeline as MCP so the two never drift. Discovery at /.well-known/ucp advertises two capabilities: a catalog (GET /api/ucp/catalog/search with filters + pagination, and GET /api/ucp/catalog/lookup for a single product with live inventory; no key needed) and checkout (POST /api/ucp/checkout/sessions creates a session that places a Self-sown order, GET /api/ucp/checkout/sessions/{id} tracks its status; a read_write `sk_` API key is required). JSON Schemas for the product and checkout-session shapes are at /api/ucp/schemas/product.json and /api/ucp/schemas/checkout-session.json, and /openapi.json documents every endpoint.
 - Discovery: /.well-known/mcp.json (JSON-RPC), /.well-known/ucp (Universal Commerce Protocol), /.well-known/agent-card.json (Google A2A), /.well-known/l402.json (L402 payments), /.well-known/agent.json (legacy open-agents schema), /openapi.json (OpenAPI), /agents.txt (policies), /skill.md (agent skill).
 
 Custom seller storefronts (a seller's own domain or /stall/<slug>) serve the same tailored treatment: agents requesting markdown/JSON/plain-text get shop-specific content, and each storefront exposes its own /llms.txt, /robots.txt, and /rss.xml.

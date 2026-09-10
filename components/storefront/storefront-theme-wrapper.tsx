@@ -165,7 +165,7 @@ function StorefrontThemeWrapperInner({
 
   useEffect(() => {
     // Only mark the body storefront-themed when the seller's chrome will
-    // actually render. `body.sf-active` hides the Milk Market TopNav via
+    // actually render. `body.sf-active` hides the Self-sown TopNav via
     // globals.css (`body.sf-active [data-main-nav]`), so setting it for a
     // seller with no custom storefront (or a lapsed/non-Pro seller) strips
     // the platform navbar and leaves the page with no nav at all. Custom

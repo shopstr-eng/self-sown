@@ -62,7 +62,7 @@ export default async function handler(
       return res.status(200).json({
         paid: false,
         message:
-          "Fiat invoices are confirmed manually by the Milk Market team.",
+          "Fiat invoices are confirmed manually by the Self-sown team.",
       });
     }
 

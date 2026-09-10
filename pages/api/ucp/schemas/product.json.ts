@@ -54,7 +54,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     $id: `${base}/api/ucp/schemas/product.json`,
     title: "UCP Product",
     description:
-      "Universal Commerce Protocol representation of a Milk Market listing (NIP-99 kind:30402).",
+      "Universal Commerce Protocol representation of a Self-sown listing (NIP-99 kind:30402).",
     type: "object",
     $defs: {
       money,
@@ -93,7 +93,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
           type: {
             type: "string",
             description:
-              "Milk Market shipping option (Pickup, Free, Added Cost, …).",
+              "Self-sown shipping option (Pickup, Free, Added Cost, …).",
           },
           cost: {
             description: "Shipping cost, or null when not quotable up front.",

@@ -279,7 +279,7 @@ export default function StorefrontFooterComponent({
           >
             Powered by{" "}
             <Link href="/" className="underline" style={{ color: accent }}>
-              Milk Market
+              Self-sown
             </Link>
           </div>
         )}

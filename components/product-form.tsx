@@ -496,7 +496,7 @@ export default function ProductForm({
       ["alt", ("Product listing: " + data["Product Name"]) as string],
       [
         "client",
-        "Milk Market",
+        "Self-sown",
         "31990:" + pubkey + ":" + (oldValues?.d || hashHex),
         relayHint || "",
       ],
@@ -1359,7 +1359,7 @@ export default function ProductForm({
 
               <div className="mx-0 my-4 flex items-start text-left">
                 <Tooltip
-                  content="This donation helps fund Milk Market and keep the marketplace running. You can change it at any time."
+                  content="This donation helps fund Self-sown and keep the marketplace running. You can change it at any time."
                   placement="top"
                   className="max-w-xs"
                 >

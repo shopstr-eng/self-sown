@@ -494,12 +494,12 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
           </div>
         </div>
 
-        {/* Milk Market Donation */}
+        {/* Self-sown Donation */}
         <div className="space-y-2">
           <label className="flex items-center gap-1.5 text-base font-bold text-black">
-            Milk Market donation (%)
+            Self-sown donation (%)
             <Tooltip
-              content="This donation helps fund Milk Market and keep the marketplace running. You can change it at any time."
+              content="This donation helps fund Self-sown and keep the marketplace running. You can change it at any time."
               placement="top"
               className="max-w-xs"
             >

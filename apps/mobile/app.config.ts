@@ -1,7 +1,7 @@
 import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
-  name: "Milk Market Vendor",
+  name: "Self-sown Vendor",
   slug: "milk-market-mobile",
   version: "0.1.0",
   orientation: "portrait",

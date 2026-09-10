@@ -97,7 +97,7 @@ describe("SignInModal", () => {
 
   it("doesn't render when closed", () => {
     renderModal(false);
-    expect(screen.queryByText("Milk Market")).toBeNull();
+    expect(screen.queryByText("Self-sown")).toBeNull();
   });
 
   it("redirects to keys from Sign Up options", async () => {
@@ -333,28 +333,28 @@ describe("SignInModal", () => {
       const logo = screen.getByAltText("Happy Cow Dairy logo");
       expect(logo).toHaveAttribute("src", "https://example.com/happy-cow.png");
 
-      expect(screen.queryByText("Milk Market")).toBeNull();
+      expect(screen.queryByText("Self-sown")).toBeNull();
     });
 
-    it("falls back to Milk Market name + logo when no branding is provided", () => {
+    it("falls back to Self-sown name + logo when no branding is provided", () => {
       renderModalWithBranding();
 
       expect(
-        screen.getByRole("heading", { name: "Milk Market" })
+        screen.getByRole("heading", { name: "Self-sown" })
       ).toBeInTheDocument();
 
-      const logo = screen.getByAltText("Milk Market logo");
+      const logo = screen.getByAltText("Self-sown logo");
       expect(logo).toHaveAttribute("src", "/milk-market.png");
     });
 
-    it("falls back to Milk Market when branding fields are blank", () => {
+    it("falls back to Self-sown when branding fields are blank", () => {
       renderModalWithBranding({ shopName: "   ", logoUrl: "" });
 
       expect(
-        screen.getByRole("heading", { name: "Milk Market" })
+        screen.getByRole("heading", { name: "Self-sown" })
       ).toBeInTheDocument();
 
-      const logo = screen.getByAltText("Milk Market logo");
+      const logo = screen.getByAltText("Self-sown logo");
       expect(logo).toHaveAttribute("src", "/milk-market.png");
     });
   });
@@ -393,7 +393,7 @@ describe("SignInModal", () => {
       );
     });
 
-    it("falls back to Milk Market branding when not wrapped in a provider", () => {
+    it("falls back to Self-sown branding when not wrapped in a provider", () => {
       render(
         <ProtectedRoute>
           <div>protected content</div>
@@ -401,9 +401,9 @@ describe("SignInModal", () => {
       );
 
       expect(
-        screen.getByRole("heading", { name: "Milk Market" })
+        screen.getByRole("heading", { name: "Self-sown" })
       ).toBeInTheDocument();
-      expect(screen.getByAltText("Milk Market logo")).toHaveAttribute(
+      expect(screen.getByAltText("Self-sown logo")).toHaveAttribute(
         "src",
         "/milk-market.png"
       );

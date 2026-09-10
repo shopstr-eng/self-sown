@@ -184,7 +184,7 @@ export default function ListingsIndexScreen() {
       {!listings.length ? (
         <EmptyState
           title="No seller listings yet"
-          description="Create your first mobile listing to publish it through the shared Milk Market product event model."
+          description="Create your first mobile listing to publish it through the shared Self-sown product event model."
         />
       ) : (
         listings.map((listing) => (

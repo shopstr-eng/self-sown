@@ -280,7 +280,7 @@ async function autoEnrollInFlows(params: {
   if (postPurchaseFlow) {
     const flowData = {
       ...enrollmentData,
-      shop_name: postPurchaseFlow.from_name || "Milk Market",
+      shop_name: postPurchaseFlow.from_name || "Self-sown",
     };
     await tryEnroll(postPurchaseFlow.id, buyerEmail, buyerPubkey, flowData);
   }
@@ -297,7 +297,7 @@ async function autoEnrollInFlows(params: {
     if (isFirstOrder) {
       const flowData = {
         ...enrollmentData,
-        shop_name: welcomeFlow.from_name || "Milk Market",
+        shop_name: welcomeFlow.from_name || "Self-sown",
       };
       await tryEnroll(welcomeFlow.id, buyerEmail, buyerPubkey, flowData);
     }

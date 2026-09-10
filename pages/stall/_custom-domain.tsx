@@ -40,7 +40,7 @@ export default function CustomDomainPage() {
           href={SITE_URL}
           className="bg-primary-blue mt-6 rounded-lg px-6 py-3 font-bold text-white"
         >
-          Visit Milk Market
+          Visit Self-sown
         </Link>
       </div>
     );

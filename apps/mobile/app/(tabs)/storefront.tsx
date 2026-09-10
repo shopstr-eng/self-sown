@@ -377,7 +377,7 @@ export default function StorefrontScreen() {
           label="Stall name"
           value={draft.shopName}
           onChangeText={(value) => handleFieldChange("shopName", value)}
-          placeholder="Milk Market Farm"
+          placeholder="Self-sown Farm"
           error={errors.shopName}
         />
         <SellerField

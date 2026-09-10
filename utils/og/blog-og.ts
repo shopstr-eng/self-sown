@@ -17,8 +17,8 @@ export function eventToBlogOgMeta(
   if (!post) {
     return {
       ...DEFAULT_OG,
-      title: "Milk Market Blog",
-      description: "Read the latest from this Milk Market stall.",
+      title: "Self-sown Blog",
+      description: "Read the latest from this Self-sown stall.",
       url: urlPath,
     };
   }
@@ -37,8 +37,8 @@ export function eventToBlogOgMeta(
   }
 
   return {
-    title: post.title || "Milk Market Blog",
-    description: post.summary || "Read this post from a Milk Market stall.",
+    title: post.title || "Self-sown Blog",
+    description: post.summary || "Read this post from a Self-sown stall.",
     image: post.image || "/milk-market.png",
     url: urlPath,
     type: "article",

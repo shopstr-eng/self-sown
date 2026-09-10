@@ -40,10 +40,10 @@ export const getServerSideProps: GetServerSideProps<
           return {
             props: {
               ogMeta: {
-                title: community.name || "Milk Market Community",
+                title: community.name || "Self-sown Community",
                 description:
                   community.description ||
-                  "Check out this community on Milk Market!",
+                  "Check out this community on Self-sown!",
                 image: community.image || "/milk-market.png",
                 url: `/communities/${naddrStr}`,
               },
