@@ -1,7 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { getSiteUrl } from "@/utils/site-url";
 
 export default function handler(_req: NextApiRequest, res: NextApiResponse) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+  // Single source of truth for the platform origin (utils/site-url.ts). Its
+  // fallback is the production domain — this publicly served discovery
+  // document must never advertise a localhost URL to agents when the env is
+  // unset.
+  const baseUrl = getSiteUrl();
 
   res.setHeader("Cache-Control", "public, max-age=3600");
   res.setHeader("Access-Control-Allow-Origin", "*");
