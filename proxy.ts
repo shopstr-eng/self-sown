@@ -140,6 +140,7 @@ const PLATFORM_HOST_EXACT = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 const AGENT_VIEW_PATHS = new Set([
   "/",
   "/about",
+  "/manifesto",
   "/faq",
   "/contact",
   "/producer-guide",

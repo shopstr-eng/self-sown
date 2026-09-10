@@ -1558,6 +1558,9 @@ export default function StandaloneLanding() {
               <Link href="/about" className="text-sm hover:underline">
                 About Us
               </Link>
+              <Link href="/manifesto" className="text-sm hover:underline">
+                Manifesto
+              </Link>
               <Link href="/contact" className="text-sm hover:underline">
                 Contact
               </Link>

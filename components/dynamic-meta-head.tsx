@@ -73,6 +73,11 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
       description:
         "Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Milk Market. Learn how to set up your account, list products, accept payments, and grow your stall.",
     },
+    "/manifesto": {
+      title: "Free Food Manifesto | Milk Market",
+      description:
+        "Our food systems are broken. The Free Food Manifesto lays out why — and how free markets, encryption, and Bitcoin let producers and communities take food back.",
+    },
   };
 
 const getMetaTags = (

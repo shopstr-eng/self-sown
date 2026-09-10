@@ -16,6 +16,7 @@ const SELF_HOST_BLOCKED_PAGE_PREFIXES = [
   "/pro",
   "/communities",
   "/about",
+  "/manifesto",
   "/faq",
   "/producer-guide",
   "/contact",

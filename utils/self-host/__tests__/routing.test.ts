@@ -26,6 +26,7 @@ describe("isSelfHostBlockedPage", () => {
     for (const p of [
       "/about",
       "/about/team",
+      "/manifesto",
       "/faq",
       "/producer-guide",
       "/producer-guide/raw-milk",

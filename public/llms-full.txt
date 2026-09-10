@@ -63,6 +63,7 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 - Marketplace: https://milk.market/marketplace
 - Producer Guide: https://milk.market/producer-guide
 - About: https://milk.market/about
+- Free Food Manifesto: https://milk.market/manifesto
 - FAQ: https://milk.market/faq
 - Contact: https://milk.market/contact
 - Source code: https://github.com/shopstr-eng/milk-market

@@ -5,7 +5,7 @@
 //
 // Unlike the per-stall surfaces (stall homepage, blog posts, GEO files) which
 // rewrite to /api/stall-agent-view, the public marketing/legal pages —
-//   /, /about, /faq, /contact, /producer-guide, /terms, /privacy
+//   /, /about, /manifesto, /faq, /contact, /producer-guide, /terms, /privacy
 // — are served as tailored markdown/JSON/plain-text via /api/agent-view for
 // agents (Accept header or known LLM UA) while browsers and HTML-only
 // social/SEO bots keep getting the HTML SSR page (so OpenGraph/link previews
@@ -38,6 +38,7 @@ const TWITTERBOT_UA = "Twitterbot/1.0";
 const MARKETING_PATHS = [
   "/",
   "/about",
+  "/manifesto",
   "/faq",
   "/contact",
   "/producer-guide",
@@ -183,7 +184,14 @@ describe("proxy() marketing-page negotiation — platform host", () => {
 // negotiates separately as the stall homepage.)
 describe("proxy() marketing-page negotiation — custom domains fall through", () => {
   const HOST = "farmer.example";
-  const SELLER_PATHS = ["/about", "/faq", "/contact", "/terms", "/privacy"];
+  const SELLER_PATHS = [
+    "/about",
+    "/manifesto",
+    "/faq",
+    "/contact",
+    "/terms",
+    "/privacy",
+  ];
 
   it.each(SELLER_PATHS)(
     "does NOT divert an LLM crawler on %s to /api/agent-view",

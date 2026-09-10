@@ -51,6 +51,20 @@ To rebuild local and decentralized food supply chains, giving producers a direct
 
 Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-guide) · [FAQ](${SITE}/faq) · [Contact](${SITE}/contact)`,
   },
+  "/manifesto": {
+    title: "Free Food Manifesto",
+    description:
+      "The essay behind Milk Market: why our food systems are broken, and how free markets, encryption, and Bitcoin let producers and communities take food back.",
+    markdown: `# Free Food Manifesto
+
+This is a machine-readable summary. The authoritative essay is rendered at [${SITE}/manifesto](${SITE}/manifesto).
+
+Our food systems are broken: grocery chains game convenience, greenwashed labels hide sourcing, animals and soil are mistreated, and 77 local farms close every day while regulation pushes producers out of the sales cycle. Raw milk — the founding use case of Milk Market — is treated like a controlled substance across much of the developed world.
+
+The essay argues that technology is the strongest tool against this regulatory capture: encrypted communication (Nostr) to organize buyers, co-ops, and pickup spots without platform surveillance, and Bitcoin as sound money for direct producer-to-consumer trade without banks or debasement.
+
+Free and open food markets are the foundation of thriving communities; defending them takes community. — Cristian Alvarez-Hernandez, Founder & CEO`,
+  },
   "/faq": {
     title: "Milk Market FAQ",
     description:

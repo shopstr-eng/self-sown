@@ -16,6 +16,7 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 ## About
 
 - [About Milk Market](https://milk.market/about): Mission, how the decentralized marketplace works, and why it was built.
+- [Free Food Manifesto](https://milk.market/manifesto): The essay behind Milk Market: why our food systems are broken and how free markets, encryption, and Bitcoin fix them.
 - [FAQ](https://milk.market/faq): Common questions about payments, selling, privacy, and Nostr.
 - [Producer Guide](https://milk.market/producer-guide): Step-by-step guide for producers: account, membership, listing products, managing orders, custom storefronts, email flows with engagement analytics, Shippo shipping labels, and connecting AI agents.
 - [Contact](https://milk.market/contact): Reach the team via Nostr, GitHub, X, or email.

@@ -3,8 +3,9 @@
 // Endpoint-layer coverage for the platform marketing/legal agent view.
 //
 // marketing-page-negotiation.test.ts proves proxy.ts ROUTES the platform-host
-// marketing/legal pages (/, /about, /faq, /contact, /producer-guide, /terms,
-// /privacy) to /api/agent-view with the right negotiated format. It stops at
+// marketing/legal pages (/, /about, /manifesto, /faq, /contact,
+// /producer-guide, /terms, /privacy) to /api/agent-view with the right
+// negotiated format. It stops at
 // the routing decision. This block exercises pages/api/agent-view.ts DIRECTLY
 // to prove the endpoint then produces the correct representation: a non-empty
 // body, the right content-type, the content that matches the requested page,
@@ -35,6 +36,7 @@ jest.mock("@/utils/db/db-service", () => ({
 const MARKETING_PATHS = [
   "/",
   "/about",
+  "/manifesto",
   "/faq",
   "/contact",
   "/producer-guide",
@@ -47,6 +49,7 @@ const MARKETING_PATHS = [
 const PAGE_FINGERPRINT: Record<string, string> = {
   "/": "# Milk Market",
   "/about": "# About Milk Market",
+  "/manifesto": "# Free Food Manifesto",
   "/faq": "# Milk Market FAQ",
   "/contact": "# Contact Milk Market",
   "/producer-guide": "# Producer Guide",
