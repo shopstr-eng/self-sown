@@ -49,7 +49,7 @@ const scannedPackages = [
   ...new Set(
     [...css.matchAll(NODE_MODULES_SOURCE_RE)]
       .map((m) => m[1])
-      .filter((p) => p !== undefined),
+      .filter((p) => p !== undefined)
   ),
 ];
 
@@ -62,7 +62,7 @@ for (const pkg of scannedPackages) {
     fail(
       `@source scans node_modules/${pkg}, but that package is not installed ` +
         `at the top level. Under pnpm only DIRECT dependencies get a top-level ` +
-        `entry — add "${pkg}" to package.json dependencies.`,
+        `entry — add "${pkg}" to package.json dependencies.`
     );
   }
   if (!stat.isSymbolicLink()) {
@@ -71,7 +71,7 @@ for (const pkg of scannedPackages) {
         `A stale directory from an old install can mask a missing direct ` +
         `dependency: the @source glob compiles fine locally but matches ` +
         `nothing after a fresh pnpm install. Remove node_modules and ` +
-        `reinstall, and make sure "${pkg}" is a direct dependency.`,
+        `reinstall, and make sure "${pkg}" is a direct dependency.`
     );
   }
   const resolved = require.resolve(`${pkg}/package.json`);
@@ -79,7 +79,7 @@ for (const pkg of scannedPackages) {
     fail(
       `"${pkg}" resolved to ${resolved}, which is outside pnpm's .pnpm store. ` +
         `The @source glob must scan the pnpm-managed copy or fresh installs ` +
-        `can silently change what gets compiled.`,
+        `can silently change what gets compiled.`
     );
   }
 }
@@ -101,14 +101,16 @@ const REQUIRED_MARKERS = [
   "data-\\[loaded\\=true\\]\\:opacity-100",
 ];
 
-const missing = REQUIRED_MARKERS.filter((marker) => !result.css.includes(marker));
+const missing = REQUIRED_MARKERS.filter(
+  (marker) => !result.css.includes(marker)
+);
 if (missing.length > 0) {
   fail(
     `compiled stylesheet is missing marker selector(s):\n` +
       missing.map((m) => `  - ${m}`).join("\n") +
       `\nA Tailwind @source glob into node_modules is silently matching ` +
       `nothing. Check that the scanned package (see styles/globals.css) is a ` +
-      `direct dependency and pnpm-managed (symlink into .pnpm).`,
+      `direct dependency and pnpm-managed (symlink into .pnpm).`
   );
 }
 

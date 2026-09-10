@@ -87,27 +87,23 @@ describe("globals.css Tailwind source-detection guard", () => {
     expect(fromCss).toEqual(fromConfig);
   });
 
-  it(
-    "compiles with all marker selectors present, within the size budget",
-    () => {
-      // Compiled in a child Node process: Tailwind v4's loader registers
-      // module customization hooks that the Jest runtime forbids in-process.
-      // The script exits non-zero (with the reason on stderr, surfaced here
-      // via the execFileSync error) when HeroUI marker selectors are missing
-      // from the compiled output or a scanned node_modules package is not a
-      // pnpm-managed symlink.
-      const scriptPath = path.join(
-        __dirname,
-        "../../scripts/check-globals-css.mjs",
-      );
-      const stdout = execFileSync(process.execPath, [scriptPath], {
-        encoding: "utf8",
-        timeout: 110_000,
-      });
-      const bytes = parseInt(stdout.trim(), 10);
-      expect(Number.isNaN(bytes)).toBe(false);
-      expect(bytes).toBeLessThan(MAX_COMPILED_CSS_BYTES);
-    },
-    120_000,
-  );
+  it("compiles with all marker selectors present, within the size budget", () => {
+    // Compiled in a child Node process: Tailwind v4's loader registers
+    // module customization hooks that the Jest runtime forbids in-process.
+    // The script exits non-zero (with the reason on stderr, surfaced here
+    // via the execFileSync error) when HeroUI marker selectors are missing
+    // from the compiled output or a scanned node_modules package is not a
+    // pnpm-managed symlink.
+    const scriptPath = path.join(
+      __dirname,
+      "../../scripts/check-globals-css.mjs"
+    );
+    const stdout = execFileSync(process.execPath, [scriptPath], {
+      encoding: "utf8",
+      timeout: 110_000,
+    });
+    const bytes = parseInt(stdout.trim(), 10);
+    expect(Number.isNaN(bytes)).toBe(false);
+    expect(bytes).toBeLessThan(MAX_COMPILED_CSS_BYTES);
+  }, 120_000);
 });

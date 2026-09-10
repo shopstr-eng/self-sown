@@ -17,8 +17,7 @@ jest.mock("@/utils/db/db-client", () => ({
   cacheEventsToDatabase: jest.fn().mockResolvedValue(undefined),
 }));
 
-const SELLER_PUBKEY =
-  "a".repeat(64);
+const SELLER_PUBKEY = "a".repeat(64);
 const BUYER_PUBKEY = "b".repeat(64);
 
 const profileEvent: NostrEvent = {
@@ -83,9 +82,7 @@ function mockDbFetch() {
 /** A NostrManager whose relays are all dead: every fetch rejects. */
 function deadNostr() {
   return {
-    fetch: jest
-      .fn()
-      .mockRejectedValue(new Error("connection timed out")),
+    fetch: jest.fn().mockRejectedValue(new Error("connection timed out")),
     fetchWithStatus: jest
       .fn()
       .mockResolvedValue({ events: [], complete: false }),
@@ -163,9 +160,7 @@ describe("cached-first fetch resilience to relay outages", () => {
 
     expect(contextUpdates.length).toBeGreaterThan(0);
     expect(contextUpdates[0]!.map((e) => e.id)).toContain("product-event-id");
-    expect(result.productEvents.map((e) => e.id)).toContain(
-      "product-event-id"
-    );
+    expect(result.productEvents.map((e) => e.id)).toContain("product-event-id");
     expect(result.profileSetFromProducts.has(SELLER_PUBKEY)).toBe(true);
   });
 

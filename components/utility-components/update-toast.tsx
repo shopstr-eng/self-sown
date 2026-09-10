@@ -65,7 +65,7 @@ export default function UpdateToast() {
   return (
     <div
       role="status"
-      className="fixed bottom-4 right-4 z-[9999] flex max-w-sm items-center gap-3 border-2 border-black bg-yellow-300 p-4 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+      className="fixed right-4 bottom-4 z-[9999] flex max-w-sm items-center gap-3 border-2 border-black bg-yellow-300 p-4 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
     >
       <span className="text-sm font-bold">
         A new version of Milk Market is live.
@@ -81,7 +81,7 @@ export default function UpdateToast() {
         type="button"
         aria-label="Dismiss"
         onClick={() => setDismissedBuildId(serverBuildId)}
-        className="shrink-0 text-lg font-bold leading-none"
+        className="shrink-0 text-lg leading-none font-bold"
       >
         ×
       </button>

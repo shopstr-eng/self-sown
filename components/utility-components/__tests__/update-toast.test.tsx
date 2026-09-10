@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import "@testing-library/jest-dom";
 import UpdateToast from "../update-toast";

@@ -24,7 +24,9 @@ import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
 const ALGORITHM = "aes-256-gcm";
 
 // Default relays + the blastr broadcaster, from the single shared list.
-export const MCP_RELAY_ALLOWLIST = new Set(withBlastr([...DEFAULT_SELLER_RELAYS]));
+export const MCP_RELAY_ALLOWLIST = new Set(
+  withBlastr([...DEFAULT_SELLER_RELAYS])
+);
 
 function filterAllowedRelays(urls: string[]): string[] {
   const allowed: string[] = [];

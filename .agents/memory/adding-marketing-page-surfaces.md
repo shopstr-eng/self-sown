@@ -11,7 +11,7 @@ Adding a top-level marketing/info page (like /about, /faq, /manifesto) touches a
 4. `components/dynamic-meta-head.tsx` — STATIC_PAGE_META (title/description/canonical/OG).
 5. `pages/api/sitemap.xml.ts` — static URL list.
 6. `proxy.ts` — AGENT_VIEW_PATHS set, or agents/LLM crawlers get HTML instead of markdown/JSON.
-7. `utils/geo/page-content.ts` — PAGE_CONTENT entry backing /api/agent-view (404s without it). Long essays get a summary + "authoritative version rendered at" link, per /terms and /privacy precedent — passing long prose through the plain-text stripper mangles paired asterisks (e.g. "f*cked").
+7. `utils/geo/page-content.ts` — PAGE_CONTENT entry backing /api/agent-view (404s without it). Long essays get a summary + "authoritative version rendered at" link, per /terms and /privacy precedent — passing long prose through the plain-text stripper mangles paired asterisks (e.g. "f\*cked").
 8. `utils/self-host/routing.ts` — SELF_HOST_BLOCKED_PAGE_PREFIXES, or single-tenant self-hosts rewrite the platform page to a seller page instead of redirecting home.
 9. `public/llms.txt` + `public/llms-full.txt` — link lists.
 10. Tests with mirrored path lists that must ALL be updated in lockstep: `__tests__/utils/geo/marketing-page-negotiation.test.ts` (MARKETING_PATHS + SELLER_PATHS), `__tests__/pages/api/agent-view.test.ts` (MARKETING_PATHS + PAGE_FINGERPRINT), `utils/self-host/__tests__/routing.test.ts` (blocked-pages list).
