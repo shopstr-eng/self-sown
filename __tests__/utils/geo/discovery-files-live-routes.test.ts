@@ -29,11 +29,14 @@
 //
 // Failures name the discovery file and the dead path.
 
-import { readdirSync, readFileSync, statSync } from "fs";
+import { readFileSync } from "fs";
 import { join } from "path";
 import { getSiteHost } from "@/utils/site-url";
-
-const ROOT = process.cwd();
+import {
+  ROUTE_RESOLUTION_ROOT as ROOT,
+  resolveAdvertisedPath as resolveAdvertisedPathShared,
+  type Resolution,
+} from "@/utils/testing/route-resolution";
 
 const DISCOVERY_FILES = [
   "public/llms.txt",
@@ -64,233 +67,15 @@ const ROOT_RELATIVE_RE =
 // advertised endpoints — a prefix matching no route is not a dead link.
 const DIRECTIVE_LINE_RE = /^\s*(disallow|allow|rate-limit|crawl-delay)\s*:/i;
 
-const PAGE_EXTENSIONS = [".tsx", ".ts", ".jsx", ".js"];
-
-// This repo's soft-404 catch-alls (pages/[...notFound].tsx,
-// pages/api/[...notFound].ts). They "route" everything, so letting them
-// satisfy a lookup would make the whole test vacuous.
-function isNotFoundCatchAll(name: string): boolean {
-  return /notfound/i.test(name);
-}
-
-function isFile(p: string): boolean {
-  try {
-    return statSync(p).isFile();
-  } catch {
-    return false;
-  }
-}
-
-function isDir(p: string): boolean {
-  try {
-    return statSync(p).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
 function stripWww(host: string): string {
   return host.startsWith("www.") ? host.slice("www.".length) : host;
 }
 
-function isTemplateSegment(segment: string): boolean {
-  return (
-    (segment.startsWith("{") && segment.endsWith("}")) ||
-    (segment.startsWith("<") && segment.endsWith(">")) ||
-    (segment.startsWith("[") && segment.endsWith("]"))
-  );
-}
-
-function isDynamicEntry(name: string): boolean {
-  return (
-    name.startsWith("[") &&
-    !name.startsWith("_") &&
-    !isNotFoundCatchAll(name)
-  );
-}
-
-function routableEntries(dir: string): string[] {
-  try {
-    return readdirSync(dir).filter(
-      (name) => !name.startsWith("_") && !isNotFoundCatchAll(name)
-    );
-  } catch {
-    return [];
-  }
-}
-
-function hasIndexRoute(dir: string): boolean {
-  return PAGE_EXTENSIONS.some((ext) => isFile(join(dir, `index${ext}`)));
-}
-
-// An optional catch-all ([[...npub]].tsx) routes the bare directory path too
-// (e.g. /marketplace), not just paths below it.
-function hasOptionalCatchAll(dir: string): boolean {
-  return routableEntries(dir).some(
-    (entry) =>
-      /^\[\[\.\.\..+\]\]\.(tsx|ts|jsx|js)$/.test(entry) &&
-      isFile(join(dir, entry))
-  );
-}
-
-function dirRoutesBarePath(dir: string): boolean {
-  return hasIndexRoute(dir) || hasOptionalCatchAll(dir);
-}
-
-/**
- * Walks the pages/ tree for a route matching the segments. Literal segments
- * match literal files/dirs first and dynamic [param] entries second (mirroring
- * Next.js routing, so /listing/abc resolves via [id].tsx). Template segments
- * ({id}, <slug>, [slug]) match dynamic entries only.
- */
-function segmentsResolve(dir: string, segments: string[]): boolean {
-  if (!isDir(dir)) return false;
-  const head = segments[0];
-  if (head === undefined) return false;
-  const rest = segments.slice(1);
-  const template = isTemplateSegment(head);
-
-  if (rest.length === 0) {
-    if (!template) {
-      for (const ext of PAGE_EXTENSIONS) {
-        if (isFile(join(dir, head + ext))) return true;
-      }
-      if (isDir(join(dir, head)) && dirRoutesBarePath(join(dir, head)))
-        return true;
-    }
-    for (const entry of routableEntries(dir)) {
-      if (!isDynamicEntry(entry)) continue;
-      const full = join(dir, entry);
-      if (isFile(full) && PAGE_EXTENSIONS.some((ext) => entry.endsWith(ext)))
-        return true;
-      if (isDir(full) && hasIndexRoute(full)) return true;
-    }
-    return false;
-  }
-
-  if (
-    !template &&
-    isDir(join(dir, head)) &&
-    segmentsResolve(join(dir, head), rest)
-  ) {
-    return true;
-  }
-  for (const entry of routableEntries(dir)) {
-    if (!isDynamicEntry(entry)) continue;
-    const full = join(dir, entry);
-    if (isDir(full) && segmentsResolve(full, rest)) return true;
-  }
-  return false;
-}
-
-/** A pages/ route exists for the path (e.g. "/api/mcp", "/stall/[slug]"). */
-function pageRouteExists(pathname: string): boolean {
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments.length === 0) {
-    return PAGE_EXTENSIONS.some((ext) =>
-      isFile(join(ROOT, "pages", `index${ext}`))
-    );
-  }
-  return segmentsResolve(join(ROOT, "pages"), segments);
-}
-
-/** A trailing-slash reference is a route PREFIX: its pages/ dir must exist. */
-function prefixRouteExists(pathname: string): boolean {
-  const dir = join(ROOT, "pages", pathname.replace(/\/+$/, ""));
-  return isDir(dir) && routableEntries(dir).length > 0;
-}
-
-/** Static (non-parameterized) rewrites from next.config.mjs. */
-function loadStaticRewrites(): Map<string, string> {
-  const config = readFileSync(join(ROOT, "next.config.mjs"), "utf8");
-  const rewrites = new Map<string, string>();
-  const re = /source:\s*"([^"]+)"[\s\S]*?destination:\s*"([^"]+)"/g;
-  for (const match of config.matchAll(re)) {
-    const source = match[1];
-    const destination = match[2];
-    if (source === undefined || destination === undefined) continue;
-    // Parameterized/regex sources can't be matched against concrete paths.
-    if (/[:(]/.test(source) || /[:(]/.test(destination)) continue;
-    rewrites.set(source, (destination.split("?")[0] ?? "") as string);
-  }
-  return rewrites;
-}
-
-/** Paths the proxy intercepts directly (pathname === "…" literals). */
-function loadProxyHandledPaths(): Set<string> {
-  const proxy = readFileSync(join(ROOT, "proxy.ts"), "utf8");
-  const paths = new Set<string>();
-  for (const match of proxy.matchAll(/pathname\s*===\s*"([^"]+)"/g)) {
-    if (match[1] !== undefined) paths.add(match[1]);
-  }
-  return paths;
-}
-
-const STATIC_REWRITES = loadStaticRewrites();
-const PROXY_HANDLED_PATHS = loadProxyHandledPaths();
-
-interface Resolution {
-  ok: boolean;
-  detail?: string;
-}
-
-function fail(detail: string): Resolution {
-  return { ok: false, detail };
-}
-
-const NO_ROUTE_DETAIL =
-  "no matching public/ file, pages/ route, next.config.mjs rewrite, or " +
-  "proxy-handled route. If the route was renamed or removed, update the " +
-  "discovery file; if the path is intentionally external-only, add it to " +
-  "DEAD_PATH_ALLOWLIST in __tests__/utils/geo/discovery-files-live-routes.test.ts";
-
+// Resolution against the real route tree is shared with the OpenAPI dead-path
+// test (utils/testing/route-resolution.ts); this test's allowlist threads
+// through here.
 function resolveAdvertisedPath(pathname: string): Resolution {
-  if (DEAD_PATH_ALLOWLIST.has(pathname)) return { ok: true };
-
-  // A trailing-slash reference is a route prefix, not an endpoint.
-  if (pathname.length > 1 && pathname.endsWith("/")) {
-    return prefixRouteExists(pathname)
-      ? { ok: true }
-      : fail(`route prefix has no routes under pages/: ${NO_ROUTE_DETAIL}`);
-  }
-
-  if (pathname === "/") {
-    return pageRouteExists("/")
-      ? { ok: true }
-      : fail(`homepage route missing: ${NO_ROUTE_DETAIL}`);
-  }
-
-  // 1. Static file under public/.
-  if (isFile(join(ROOT, "public", pathname))) return { ok: true };
-
-  // 2. Static rewrite in next.config.mjs whose destination resolves.
-  const destination = STATIC_REWRITES.get(pathname);
-  if (destination !== undefined) {
-    return pageRouteExists(destination)
-      ? { ok: true }
-      : fail(
-          `next.config.mjs rewrites it to "${destination}", but no pages/ ` +
-            `route exists for that destination`
-        );
-  }
-
-  // 3. A pages/ route (page or API route, dynamic segments included).
-  if (pageRouteExists(pathname)) return { ok: true };
-
-  // 4. A proxy.ts-intercepted path (e.g. /.well-known/ucp). The proxy
-  //    rewrites these to an internal API route of the same name; require
-  //    that backing route to exist so a renamed API route is caught.
-  if (PROXY_HANDLED_PATHS.has(pathname)) {
-    const backing = `/api${pathname}`;
-    return pageRouteExists(backing)
-      ? { ok: true }
-      : fail(
-          `proxy.ts intercepts it, but the backing route "${backing}" has ` +
-            `no pages/ entry`
-        );
-  }
-
-  return fail(NO_ROUTE_DETAIL);
+  return resolveAdvertisedPathShared(pathname, DEAD_PATH_ALLOWLIST);
 }
 
 /** The hosts that mean "this site": configured host + production fallback. */
