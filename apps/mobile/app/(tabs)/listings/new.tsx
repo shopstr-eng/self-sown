@@ -6,8 +6,8 @@ import {
   createEmptySellerListingDraft,
   validateSellerListingDraft,
   type SellerListingDraftValidationErrors,
-} from "@milk-market/domain";
-import { createSellerListingDTag } from "@milk-market/nostr";
+} from "@self-sown/domain";
+import { createSellerListingDTag } from "@self-sown/nostr";
 
 import { ListingEditor } from "@/components/listing-editor";
 import { ScreenScrollView, ScreenTitle } from "@/components/seller-ui";

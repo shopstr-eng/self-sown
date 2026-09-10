@@ -5,7 +5,7 @@ import { buildUcpCatalog } from "@/utils/ucp/catalog";
 export function registerResources(server: McpServer) {
   server.resource(
     "product-catalog",
-    "milkmarket://catalog/products",
+    "selfsown://catalog/products",
     {
       description:
         "Full product catalog with all available listings, in the canonical UCP product shape (shared with the /api/ucp/catalog endpoints)",
@@ -18,7 +18,7 @@ export function registerResources(server: McpServer) {
       return {
         contents: [
           {
-            uri: "milkmarket://catalog/products",
+            uri: "selfsown://catalog/products",
             mimeType: "application/json",
             text: JSON.stringify({ count: products.length, products }, null, 2),
           },

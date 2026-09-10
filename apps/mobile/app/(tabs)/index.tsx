@@ -10,8 +10,8 @@ import {
   View,
 } from "react-native";
 
-import { createSignedStripeConnectAuthEvent } from "@milk-market/nostr";
-import { STRIPE_CONNECT_COUNTRIES } from "@milk-market/api-client";
+import { createSignedStripeConnectAuthEvent } from "@self-sown/nostr";
+import { STRIPE_CONNECT_COUNTRIES } from "@self-sown/api-client";
 
 import {
   ActionButton,

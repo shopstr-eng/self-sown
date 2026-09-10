@@ -37,7 +37,7 @@ import {
   DEFAULT_SELLER_RELAYS,
   BLASTR_RELAY,
   type BlogPostDraft,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   encryptNIP46SignerCredentials,
   type NIP46SignerCredentials,

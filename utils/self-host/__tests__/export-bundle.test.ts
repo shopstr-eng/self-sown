@@ -138,7 +138,7 @@ describe("buildExportEntries", () => {
         "README.md",
         "SETUP.md",
         "manifest.json",
-        "milk-market.config.json",
+        "self-sown.config.json",
         "setup.sh",
       ].sort()
     );
@@ -184,7 +184,7 @@ describe("buildExportEntries", () => {
   });
 
   it("config json carries only public fields + sanitized branding", () => {
-    const parsed = JSON.parse(byName["milk-market.config.json"]!);
+    const parsed = JSON.parse(byName["self-sown.config.json"]!);
     expect(parsed.pubkey).toBe(PUBKEY);
     expect(parsed.slug).toBe("my-farm");
     expect(parsed.ownStripe).toBe(false);
@@ -194,7 +194,7 @@ describe("buildExportEntries", () => {
 
   it("manifest documents the no-secrets guarantee", () => {
     const manifest = JSON.parse(byName["manifest.json"]!);
-    expect(manifest.bundle).toBe("milk-market-self-host");
+    expect(manifest.bundle).toBe("self-sown-self-host");
     expect(manifest.pubkey).toBe(PUBKEY);
     expect(manifest.generatedAt).toBe("2026-01-01T00:00:00.000Z");
     expect(String(manifest.note).toLowerCase()).toContain("no secrets");

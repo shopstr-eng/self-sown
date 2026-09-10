@@ -99,7 +99,7 @@ const getMetaTags = (
   const defaultTags = {
     title: DEFAULT_OG.title,
     description: DEFAULT_OG.description,
-    image: ensureAbsoluteUrl("/milk-market.png", canonicalOrigin),
+    image: ensureAbsoluteUrl("/self-sown.png", canonicalOrigin),
     url: `${canonicalOrigin}${cleanPath === "/" ? "" : cleanPath}`,
   };
 
@@ -141,7 +141,7 @@ const getMetaTags = (
         description:
           productData.summary || "Check out this product on Self-sown!",
         image: ensureAbsoluteUrl(
-          productData.images?.[0] || "/milk-market.png",
+          productData.images?.[0] || "/self-sown.png",
           canonicalOrigin
         ),
         url: `${canonicalOrigin}/listing/${slug || productId}`,
@@ -175,7 +175,7 @@ const getMetaTags = (
         description:
           shopInfo.content.about || "Check out this shop on Self-sown!",
         image: ensureAbsoluteUrl(
-          shopInfo.content.ui.picture || "/milk-market.png",
+          shopInfo.content.ui.picture || "/self-sown.png",
           canonicalOrigin
         ),
         url: `${canonicalOrigin}/marketplace/${profileSlug}`,
@@ -282,9 +282,9 @@ const DynamicHead = ({
         profileData.get(customDomainShopPubkey)?.content?.picture ||
         ""
       : "";
-  const faviconUrl = ssrFavicon || customDomainShopLogo || "/milk-market.ico";
+  const faviconUrl = ssrFavicon || customDomainShopLogo || "/self-sown.ico";
   const appleTouchIconUrl =
-    ssrFavicon || customDomainShopLogo || "/milk-market.png";
+    ssrFavicon || customDomainShopLogo || "/self-sown.png";
   // Only advertise the SVG favicon on the default (un-branded) Self-sown
   // chrome. Custom stalls/domains set their own logo as the favicon, so we must
   // not add an SVG icon that browsers might prefer over the seller's brand.

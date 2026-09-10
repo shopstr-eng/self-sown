@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "@heroui/react";
 import { copyToClipboard } from "@/utils/clipboard";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 
 type ContactSource = "popup" | "subscription";
 
@@ -254,7 +254,7 @@ export default function ContactsDashboard({
 
         {loading && contacts === null ? (
           <div className="flex justify-center py-16">
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           </div>
         ) : !filtered.length ? (
           <EmptyState

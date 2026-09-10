@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import {
   Button,
   Input,
@@ -54,7 +54,7 @@ import {
   buildStripeAccountStatusProof,
 } from "@/utils/mcp/request-proof";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import currencySelection from "@/public/currencySelection.json";
 import {
   StorefrontConfig,
@@ -75,7 +75,7 @@ import {
 import {
   DEFAULT_PAYMENT_METHOD_ORDER,
   orderedPaymentMethodGroups,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import SectionEditor from "./storefront/section-editor";
 import { useDragReorder } from "@/utils/hooks/useDragReorder";
 import FooterEditor from "./storefront/footer-editor";
@@ -419,7 +419,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
   const watchBanner = watch("banner");
   const watchPicture = watch("picture");
-  const defaultImage = "/milk-market.png";
+  const defaultImage = "/self-sown.png";
 
   // Track every settings value driving the form so we can detect when any of
   // them change after a successful save. The "Saved" confirmation should stay
@@ -1202,7 +1202,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   };
 
   if (isFetchingShop) {
-    return <MilkMarketSpinner />;
+    return <SelfSownSpinner />;
   }
 
   return (

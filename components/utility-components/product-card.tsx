@@ -16,7 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { RawEventModal, EventIdModal } from "./modals/event-modals";
 import { nip19 } from "nostr-tools";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS } from "@self-sown/domain";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 import { locationAvatar } from "./dropdowns/location-dropdown";
 import ImageCarousel from "./image-carousel";

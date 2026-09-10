@@ -61,7 +61,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           github-comment: true
           alias-domains: |
-            milk-market-pr-${{ github.event.number }}.vercel.app
+            self-sown-pr-${{ github.event.number }}.vercel.app
 
       - name: Record non-blocking deployment failure
         if: steps.vercel_precheck.outputs.can_deploy == 'true' && steps.vercel_deploy.outcome == 'failure'

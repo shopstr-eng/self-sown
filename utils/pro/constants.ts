@@ -32,10 +32,21 @@ export const PRO_STRIPE_GRACE_DAYS = 3; // small buffer for dunning/webhook lag
 export const PRO_READONLY_DAYS = 30; // read-only month before hiding
 
 // Stripe Price lookup keys (find-or-create on the platform account).
-export const PRO_MONTHLY_LOOKUP_KEY = "milkmarket_pro_monthly_v1";
-export const PRO_ANNUAL_LOOKUP_KEY = "milkmarket_pro_annual_v1";
+// Renamed from milkmarket_* in the Self-sown rebrand — when changing these,
+// update the matching Price lookup keys in the Stripe dashboard first (or
+// find-or-create will mint duplicate Prices).
+export const PRO_MONTHLY_LOOKUP_KEY = "selfsown_pro_monthly_v1";
+export const PRO_ANNUAL_LOOKUP_KEY = "selfsown_pro_annual_v1";
 // One-time price for the Wrangler lifetime tier (non-recurring).
-export const WRANGLER_LIFETIME_LOOKUP_KEY = "milkmarket_wrangler_lifetime_v2";
+export const WRANGLER_LIFETIME_LOOKUP_KEY = "selfsown_wrangler_lifetime_v1";
+// Pre-rename keys. Find-or-create queries BOTH lists and reuses a legacy-keyed
+// Price, so checkout keeps working if the dashboard rename lags the deploy.
+export const LEGACY_PRO_LOOKUP_KEYS: Record<ProTerm, string> = {
+  monthly: "milkmarket_pro_monthly_v1",
+  yearly: "milkmarket_pro_annual_v1",
+};
+export const LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY =
+  "milkmarket_wrangler_lifetime_v2";
 
 export const DAY_MS = 24 * 60 * 60 * 1000;
 

@@ -1,4 +1,4 @@
-import type { SellerOrderStatus } from "@milk-market/domain";
+import type { SellerOrderStatus } from "@self-sown/domain";
 
 import { StatusPill } from "@/components/seller-ui";
 import { getSellerOrderStatusLabel } from "@/lib/order-presenter";

@@ -109,9 +109,16 @@ function readFileConfig(): FileConfig {
   // matches the existing behavior (buildSelfHostConfig ignores the file when
   // self-host is off) and means the hosted runtime never touches the filesystem.
   if (!truthyEnv(process.env.MM_SELF_HOST)) return {};
+  const explicit = process.env.MM_SELF_HOST_CONFIG_PATH?.trim();
+  const cwd = process.cwd();
+  // Pre-rename installs ship milk-market.config.json — keep reading it when no
+  // self-sown.config.json exists so existing self-hosters don't break on
+  // upgrade.
   const candidate =
-    process.env.MM_SELF_HOST_CONFIG_PATH?.trim() ||
-    path.join(process.cwd(), "milk-market.config.json");
+    explicit ||
+    (fs.existsSync(/* turbopackIgnore: true */ path.join(cwd, "self-sown.config.json"))
+      ? path.join(cwd, "self-sown.config.json")
+      : path.join(cwd, "milk-market.config.json"));
   try {
     // The `turbopackIgnore` hints stop Turbopack's Node File Tracer from
     // conservatively bundling the WHOLE project into every API route that

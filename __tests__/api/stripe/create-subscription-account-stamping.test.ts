@@ -10,7 +10,7 @@
 // subscription lives on the platform account and splits via transfers).
 
 const PLATFORM_PK = "c".repeat(64);
-process.env.NEXT_PUBLIC_MILK_MARKET_PK = PLATFORM_PK;
+process.env.NEXT_PUBLIC_SELF_SOWN_PK = PLATFORM_PK;
 
 const mockCustomersList = jest.fn();
 const mockCustomersCreate = jest.fn();
@@ -60,7 +60,7 @@ jest.mock("@/utils/stripe/retry-service", () => ({
 jest.mock("@/utils/stripe/donation", () => ({
   getSellerDonationPercent: jest.fn(async () => null),
   isPlatformPubkey: jest.fn(
-    (pk: string) => pk === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    (pk: string) => pk === process.env.NEXT_PUBLIC_SELF_SOWN_PK
   ),
   computeDonationCutSmallest: jest.fn(() => 0),
 }));

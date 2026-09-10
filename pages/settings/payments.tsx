@@ -42,7 +42,7 @@ import {
   buildStripeDisconnectProof,
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import {
   STRIPE_CONNECT_COUNTRIES,
   COUNTRIES_WITH_REGIONAL_TAX,
@@ -504,7 +504,7 @@ const PaymentsSettingsPage = () => {
           </p>
 
           {loading || squareLoading ? (
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           ) : (
             <div className="shadow-neo space-y-4 rounded-md border-2 border-black bg-white p-5">
               {squareStatus?.connected ? (
@@ -842,7 +842,7 @@ const PaymentsSettingsPage = () => {
                       </div>
 
                       {taxLoading ? (
-                        <MilkMarketSpinner />
+                        <SelfSownSpinner />
                       ) : (
                         taxStatus?.taxEnabled && (
                           <div className="space-y-3">

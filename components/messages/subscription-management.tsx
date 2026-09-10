@@ -17,7 +17,7 @@ import {
   SignerContext,
   NostrContext,
 } from "@/components/utility-components/nostr-context-provider";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import {
   BLUEBUTTONCLASSNAMES,
@@ -514,7 +514,7 @@ const SubscriptionManagement = ({
   if (isLoading) {
     return (
       <div className="flex h-[66vh] items-center justify-center">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

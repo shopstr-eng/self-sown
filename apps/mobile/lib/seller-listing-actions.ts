@@ -3,8 +3,8 @@ import {
   type NostrEventRecord,
   type SellerListingDraft,
   type SellerSession,
-} from "@milk-market/domain";
-import { deleteSellerListing, publishSellerListing } from "@milk-market/nostr";
+} from "@self-sown/domain";
+import { deleteSellerListing, publishSellerListing } from "@self-sown/nostr";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
 

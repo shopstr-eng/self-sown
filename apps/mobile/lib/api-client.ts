@@ -1,11 +1,11 @@
 import {
-  createMilkMarketApiClient,
+  createSelfSownApiClient,
   createSellerOrdersApiClient,
-} from "@milk-market/api-client";
+} from "@self-sown/api-client";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
 
-export const mobileApiClient = createMilkMarketApiClient({
+export const mobileApiClient = createSelfSownApiClient({
   baseUrl: getApiBaseUrl(),
 });
 

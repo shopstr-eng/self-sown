@@ -1,5 +1,5 @@
 {
-  "name": "@milk-market/api-client",
+  "name": "@self-sown/api-client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@milk-market/domain": "file:../domain"
+    "@self-sown/domain": "file:../domain"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --emitDeclarationOnly",

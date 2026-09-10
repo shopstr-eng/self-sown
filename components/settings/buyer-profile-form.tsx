@@ -13,7 +13,7 @@ import {
 } from "@/components/utility-components/nostr-context-provider";
 import { createNostrProfileEvent } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 
 interface BuyerProfileFormProps {
   isOnboarding?: boolean;
@@ -107,7 +107,7 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
   }, [watch]);
 
   if (isFetchingProfile) {
-    return <MilkMarketSpinner />;
+    return <SelfSownSpinner />;
   }
 
   return (

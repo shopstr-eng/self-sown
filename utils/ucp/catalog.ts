@@ -18,7 +18,7 @@ import {
 } from "./types";
 
 const DEFAULT_PLATFORM_URL = SITE_URL;
-const DEFAULT_PLACEHOLDER_IMAGE = "/milk-market.png";
+const DEFAULT_PLACEHOLDER_IMAGE = "/self-sown.png";
 
 function getTagValue(tags: string[][], key: string): string | undefined {
   const tag = tags.find((t) => t[0] === key);

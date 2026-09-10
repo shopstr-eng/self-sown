@@ -48,7 +48,7 @@ export function eventToProductOgMeta(
         cfg?.ogImage ||
         productData.images?.[0] ||
         galleryImage ||
-        "/milk-market.png",
+        "/self-sown.png",
       url: urlPath,
       ...(jsonLd ? { jsonLd } : {}),
     };

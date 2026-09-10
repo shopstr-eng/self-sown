@@ -73,7 +73,7 @@ export function resolveStallBranding(
 
   const favicon = stallIcon || userIcon || "";
   const image =
-    seo?.ogImage || stallBanner || stallIcon || userIcon || "/milk-market.png";
+    seo?.ogImage || stallBanner || stallIcon || userIcon || "/self-sown.png";
 
   return { shopName, about, image, favicon, seo };
 }

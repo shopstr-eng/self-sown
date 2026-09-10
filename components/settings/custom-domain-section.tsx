@@ -17,7 +17,7 @@ import {
   createNostrProfileEvent,
   getLocalUserProfileKey,
 } from "@/utils/nostr/nostr-helper-functions";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 
 type DnsInstruction = {
   type: string;
@@ -522,7 +522,7 @@ export default function CustomDomainSection() {
                 )}
                 {verifyResult.observed.txt && (
                   <p>
-                    Observed TXT (_milkmarket.{verifyResult.domain}):{" "}
+                    Observed TXT (_self-sown.{verifyResult.domain}):{" "}
                     {verifyResult.observed.txt.length
                       ? verifyResult.observed.txt.join(", ")
                       : "(none)"}

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 
 type StorefrontLoadErrorProps = {
   /** Called to re-attempt the lookup. */
@@ -27,7 +27,7 @@ export default function StorefrontLoadError({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6 pt-20 text-center">
-      <MilkMarketSpinner />
+      <SelfSownSpinner />
       <h1 className="mt-6 text-2xl font-bold">Having trouble loading</h1>
       <p className="mt-3 max-w-md text-gray-500">
         We couldn&apos;t load this {label} right now. This is usually a brief

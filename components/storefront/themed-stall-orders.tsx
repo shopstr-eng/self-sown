@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { Button, useDisclosure } from "@heroui/react";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
 import MessageFeed from "@/components/messages/message-feed";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import SignInModal from "@/components/sign-in/SignInModal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ChatsContext } from "@/utils/context/context";
@@ -144,7 +144,7 @@ export default function ThemedStallOrders({
     if (stillLoading) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center">
-          <MilkMarketSpinner />
+          <SelfSownSpinner />
         </div>
       );
     }

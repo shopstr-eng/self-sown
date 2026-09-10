@@ -2,7 +2,7 @@
 
 import { useCallback, useContext, useEffect, useState } from "react";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 
 type DnsRecord = {
   key: string;

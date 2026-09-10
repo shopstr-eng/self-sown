@@ -267,7 +267,7 @@ export default function Component() {
       const statuses: Record<string, boolean> = {};
       for (const pubkey of uniqueSellerPubkeys) {
         if (cancelled) return;
-        if (pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+        if (pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) {
           statuses[pubkey] = true;
           continue;
         }

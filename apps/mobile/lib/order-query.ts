@@ -1,17 +1,17 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import type { CachedSellerMessage } from "@milk-market/api-client";
+import type { CachedSellerMessage } from "@self-sown/api-client";
 import {
   consolidateSellerOrders,
   parseSellerOrderMessage,
   type SellerOrder,
   type SellerOrderStatus,
   type SellerSession,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import type {
   CachedSellerGiftWrap,
   SellerOrderGiftWrapBatchResult,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 export const SELLER_ORDERS_QUERY_ROOT = ["seller-orders"] as const;
 

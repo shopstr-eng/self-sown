@@ -66,9 +66,9 @@ jobs:
       postgres:
         image: postgres:15-alpine
         env:
-          POSTGRES_USER: milkmarket
-          POSTGRES_PASSWORD: milkmarket
-          POSTGRES_DB: milkmarket
+          POSTGRES_USER: selfsown
+          POSTGRES_PASSWORD: selfsown
+          POSTGRES_DB: selfsown
         ports:
           - 5432:5432
         options: >-
@@ -79,7 +79,7 @@ jobs:
 
     env:
       RUN_SELF_HOST_BUILD: "1"
-      DATABASE_URL: postgresql://milkmarket:milkmarket@localhost:5432/milkmarket
+      DATABASE_URL: postgresql://selfsown:selfsown@localhost:5432/selfsown
 
     steps:
       - name: Check out repository

@@ -23,8 +23,8 @@ describe("toOptimizedOgImageUrl", () => {
 
   it("leaves relative paths untouched (callers absolute-ize first)", () => {
     expect(
-      toOptimizedOgImageUrl("/milk-market.png", SITE_URL)
-    ).toBe("/milk-market.png");
+      toOptimizedOgImageUrl("/self-sown.png", SITE_URL)
+    ).toBe("/self-sown.png");
   });
 
   it("leaves data URLs untouched (cannot be proxied)", () => {

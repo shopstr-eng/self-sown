@@ -3,7 +3,8 @@
  *
  * Use this when a buyer paid a Lightning invoice but the proofs were never
  * claimed by the browser (status `paid_unclaimed` in their
- * `milkmarket.pendingMintQuotes` localStorage entry). This calls the mint
+ * `selfsown.pendingMintQuotes` localStorage entry; pre-rebrand clients stored
+ * it under `milkmarket.pendingMintQuotes`). This calls the mint
  * directly with the quote ID, mints the owed proofs, and prints a
  * `cashuB…` token the buyer can redeem in any Cashu wallet (or melt to a
  * Lightning address).

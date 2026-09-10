@@ -69,7 +69,7 @@ describe("agent.json discovery endpoint base URL", () => {
       expect(url).not.toMatch(/\[::1\]/);
     }
     // Falls back to the production domain from utils/site-url.ts.
-    expect(res.jsonBody?.logo).toBe("https://self-sown.com/milk-market.png");
+    expect(res.jsonBody?.logo).toBe("https://self-sown.com/self-sown.png");
   });
 
   it("never emits localhost URLs when NEXT_PUBLIC_BASE_URL is empty", () => {
@@ -81,7 +81,7 @@ describe("agent.json discovery endpoint base URL", () => {
 
   it("follows NEXT_PUBLIC_BASE_URL when stubbed", () => {
     const res = callHandler("https://cutover.example");
-    expect(res.jsonBody?.logo).toBe("https://cutover.example/milk-market.png");
+    expect(res.jsonBody?.logo).toBe("https://cutover.example/self-sown.png");
     const endpoints = res.jsonBody?.endpoints as Record<string, string>;
     expect(endpoints.mcp).toBe("https://cutover.example/api/mcp");
     expect(endpoints.manifest).toBe(

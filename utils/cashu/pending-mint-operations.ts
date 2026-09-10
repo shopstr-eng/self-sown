@@ -1,7 +1,47 @@
 import { Wallet as CashuWallet, Proof } from "@cashu/cashu-ts";
 import { withMintRetry } from "./mint-retry-service";
 
-const STORAGE_KEY = "milkmarket.pendingMintQuotes";
+const STORAGE_KEY = "selfsown.pendingMintQuotes";
+// Pre-rename key. Migrated lazily on first read so existing wallets keep
+// their pending quotes without any user action.
+const LEGACY_STORAGE_KEY = "milkmarket.pendingMintQuotes";
+
+function migrateLegacyKey(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const legacyRaw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyRaw === null) return;
+    const currentRaw = window.localStorage.getItem(STORAGE_KEY);
+    if (currentRaw === null) {
+      window.localStorage.setItem(STORAGE_KEY, legacyRaw);
+    } else {
+      // An old tab can still write to the legacy key after a new tab created
+      // selfsown.* — merge (deduped by quoteId) instead of dropping it, and
+      // only remove the legacy key once the union is durably written.
+      try {
+        const legacy = JSON.parse(legacyRaw);
+        const current = JSON.parse(currentRaw);
+        if (Array.isArray(legacy) && Array.isArray(current)) {
+          const seen = new Set(current.map((q: PendingMintQuote) => q?.quoteId));
+          const merged = [
+            ...current,
+            ...legacy.filter(
+              (q: PendingMintQuote) => q && !seen.has(q.quoteId)
+            ),
+          ];
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        }
+        // Non-array payloads: leave legacy in place rather than risk a loss.
+        else return;
+      } catch {
+        return; // unparseable — keep the legacy key so nothing is lost
+      }
+    }
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // best-effort migration; a blocked storage API must not break reads
+  }
+}
 
 export type PendingMintQuoteStatus =
   | "awaiting_payment"
@@ -29,6 +69,7 @@ export const PAID_UNCLAIMED_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function readAll(): PendingMintQuote[] {
   if (typeof window === "undefined") return [];
+  migrateLegacyKey();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];

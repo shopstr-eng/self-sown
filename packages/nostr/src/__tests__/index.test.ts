@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
 import { SimplePool } from "nostr-tools";
-import type { SellerListingDraft } from "@milk-market/domain";
+import type { SellerListingDraft } from "@self-sown/domain";
 
 import {
   SellerNostrError,

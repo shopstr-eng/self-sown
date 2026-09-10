@@ -11,7 +11,7 @@
   "categories": ["marketplace", "milk", "raw"],
   "icons": [
     {
-      "src": "/milk-market.png",
+      "src": "/self-sown.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
@@ -23,63 +23,63 @@
       "short_name": "Landing",
       "description": "View the landing page",
       "url": "/",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Marketplace",
       "short_name": "Market",
       "description": "Browse the marketplace",
       "url": "/marketplace",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Orders",
       "short_name": "Orders",
       "description": "View your orders",
       "url": "/orders",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Settings",
       "short_name": "Settings",
       "description": "Manage your site settings",
       "url": "/settings",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Profile",
       "short_name": "Profile",
       "description": "Manage your profile settings",
       "url": "/settings/market-profile",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Market Stall",
       "short_name": "Market",
       "description": "Manage your storefront, products, and discounts",
       "url": "/settings/stall",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Wallet",
       "short_name": "Wallet",
       "description": "Manage your wallet",
       "url": "/wallet",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "Shopping Cart",
       "short_name": "Cart",
       "description": "View your shopping cart",
       "url": "/cart",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     },
     {
       "name": "FAQ",
       "short_name": "FAQ",
       "description": "View frequently asked questions",
       "url": "/faq",
-      "icons": [{ "src": "/milk-market.png", "sizes": "144x144" }]
+      "icons": [{ "src": "/self-sown.png", "sizes": "144x144" }]
     }
   ]
 }

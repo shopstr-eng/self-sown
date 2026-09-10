@@ -20,7 +20,7 @@ import {
   isProfileContentPopulated,
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
 interface MarketProfileFormProps {
@@ -198,7 +198,7 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
   }, [watch]);
 
   if (isFetchingProfile) {
-    return <MilkMarketSpinner />;
+    return <SelfSownSpinner />;
   }
 
   return (

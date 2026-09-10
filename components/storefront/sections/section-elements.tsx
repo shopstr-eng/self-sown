@@ -3,7 +3,7 @@ import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import {
   resolveSectionElements,
   StorefrontSectionElement,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { sanitizeStorefrontSectionLink } from "@/utils/storefront-links";
 

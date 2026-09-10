@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import MilkMarketSlider from "../mm-slider";
+import SelfSownSlider from "../mm-slider";
 import { FollowsContext } from "@/utils/context/context";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 
@@ -45,12 +45,12 @@ Object.defineProperty(window, "localStorage", {
 const renderWithContext = (contextValue: any) => {
   return render(
     <FollowsContext.Provider value={contextValue}>
-      <MilkMarketSlider />
+      <SelfSownSlider />
     </FollowsContext.Provider>
   );
 };
 
-describe("MilkMarketSlider", () => {
+describe("SelfSownSlider", () => {
   const defaultFollowsContext = {
     followList: [],
     firstDegreeFollowsLength: 0,

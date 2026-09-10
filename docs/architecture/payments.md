@@ -43,8 +43,8 @@ When a seller buys lifetime (Wrangler) access while holding a recurring Herd sub
 ## Donations (platform fee)
 
 - **Field**: Sellers' donation percent lives in Nostr profile JSON under `mm_donation` (was `shopstr_donation` upstream). Defaults to 2.1% when absent. Profile form writes only `mm_donation` and strips stale `shopstr_donation`.
-- **Cashu/Lightning**: Donation eCash sent to `process.env.NEXT_PUBLIC_MILK_MARKET_PK`; skipped with a warn if unset.
-- **Stripe parity**: `utils/stripe/donation.ts` reads `mm_donation` from cached `profile_events`, defaults to 2.1%, caches per-seller for 5 min, skips when seller equals `NEXT_PUBLIC_MILK_MARKET_PK`, falls back to no fee when cut would be ≥ gross. Wired into:
+- **Cashu/Lightning**: Donation eCash sent to `(process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_SELF_SOWN_PK)`; skipped with a warn if unset.
+- **Stripe parity**: `utils/stripe/donation.ts` reads `mm_donation` from cached `profile_events`, defaults to 2.1%, caches per-seller for 5 min, skips when seller equals `NEXT_PUBLIC_SELF_SOWN_PK`, falls back to no fee when cut would be ≥ gross. Wired into:
   - `create-payment-intent.ts` — `application_fee_amount` for single-merchant; embeds per-seller fees in multi-merchant `sellerSplits` metadata.
   - `process-transfers.ts` — withholds cut from each `Transfer.amount` (prefers embedded values, falls back to fresh profile lookup).
   - `create-subscription.ts` / `create-cart-subscription.ts` — `application_fee_percent` on direct-charge subs; `create-invoice.ts` — `application_fee_amount` on direct-billed invoices.

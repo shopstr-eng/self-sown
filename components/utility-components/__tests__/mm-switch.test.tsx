@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import MilkMarketSwitch from "../mm-switch";
+import SelfSownSwitch from "../mm-switch";
 
 const mockUseTheme = { theme: "light" };
 jest.mock("next-themes", () => ({
@@ -28,7 +28,7 @@ jest.mock("@heroui/react", () => ({
   ),
 }));
 
-describe("MilkMarketSwitch", () => {
+describe("SelfSownSwitch", () => {
   const mockSetWotFilter = jest.fn();
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe("MilkMarketSwitch", () => {
 
   it("should call setWotFilter with the inverted value when clicked", () => {
     render(
-      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+      <SelfSownSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
     );
     const switchControl = screen.getByRole("switch");
 
@@ -49,7 +49,7 @@ describe("MilkMarketSwitch", () => {
 
   it("should call router.push when the 'Trust' label is clicked", () => {
     render(
-      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+      <SelfSownSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
     );
     const trustLabel = screen.getByText("Trust");
 
@@ -60,7 +60,7 @@ describe("MilkMarketSwitch", () => {
 
   it("applies the primary-yellow selected wrapper styling", () => {
     render(
-      <MilkMarketSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
+      <SelfSownSwitch wotFilter={false} setWotFilter={mockSetWotFilter} />
     );
 
     const switchControl = screen.getByRole("switch");

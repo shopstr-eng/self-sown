@@ -15,18 +15,18 @@ jest.mock("nostr-tools", () => ({
 
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   getDefaultRelays: jest.fn(() => [
-    ...jest.requireActual("@milk-market/domain").DEFAULT_SELLER_RELAYS,
+    ...jest.requireActual("@self-sown/domain").DEFAULT_SELLER_RELAYS,
   ]),
   withBlastr: jest.fn((relays: string[]) => [
     ...relays,
-    jest.requireActual("@milk-market/domain").BLASTR_RELAY,
+    jest.requireActual("@self-sown/domain").BLASTR_RELAY,
   ]),
 }));
 
 jest.mock("@/utils/db/db-service", () => ({ cacheEvent: jest.fn() }));
 
 import { McpRelayManager, MCP_RELAY_ALLOWLIST } from "../nostr-signing";
-import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@self-sown/domain";
 
 describe("MCP_RELAY_ALLOWLIST", () => {
   it("contains every shared default relay plus the blastr broadcaster", () => {

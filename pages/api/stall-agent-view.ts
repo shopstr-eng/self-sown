@@ -15,7 +15,7 @@ import {
   getBlogPostSlug,
   findBlogPostBySlug,
 } from "@/utils/url-slugs";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { applyRateLimit } from "@/utils/rate-limit";
 import {
   sendAgentError,

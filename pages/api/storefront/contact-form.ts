@@ -12,7 +12,7 @@ import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import {
   parseSellerShopProfileEvent,
   type StorefrontConfig,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 // This endpoint is public and visitor-driven (no seller proof), so it is a spam
 // vector for a seller's inbox. We rate-limit it tighter than the popup capture

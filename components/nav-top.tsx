@@ -246,7 +246,7 @@ const TopNav = ({
               alt="Self-sown logo"
               height={40}
               radius="sm"
-              src={shopLogoURL != "" ? shopLogoURL : "/milk-market.png"}
+              src={shopLogoURL != "" ? shopLogoURL : "/self-sown.png"}
               width={40}
             />
             <span className="ml-2 text-xl text-white md:hidden lg:flex">

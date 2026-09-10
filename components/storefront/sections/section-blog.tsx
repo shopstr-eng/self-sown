@@ -10,7 +10,7 @@ import {
   parseBlogPostEvent,
   dedupeLatestBlogPosts,
   type BlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import {
   applyCustomDomainHref,

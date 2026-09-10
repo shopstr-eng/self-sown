@@ -6,7 +6,7 @@ import ProductCard from "./utility-components/product-card";
 import DisplayProductModal from "./display-product-modal";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { Button, Pagination } from "@heroui/react";
-import MilkMarketSpinner from "./utility-components/mm-spinner";
+import SelfSownSpinner from "./utility-components/mm-spinner";
 import { useRouter } from "next/router";
 import parseTags, {
   ProductData,
@@ -329,7 +329,7 @@ const DisplayProducts = ({
       <div className="w-full bg-white px-4 md:pl-4">
         {!isMyListings && isProductsLoading ? (
           <div className="mt-6 mb-6 flex items-center justify-center">
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           </div>
         ) : null}
         {filteredProducts.length > 0 && (

@@ -10,7 +10,7 @@ import { trackEvent } from "@/utils/analytics";
 import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { formatHandlingTime } from "@/utils/parsers/product-tag-helpers";
 import {
   CashuWalletContext,
@@ -108,7 +108,7 @@ import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
 import { NostrWebLNProvider } from "@getalby/sdk";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
 import SignInModal from "./sign-in/SignInModal";
@@ -742,7 +742,7 @@ export default function ProductInvoiceCard({
   };
 
   const [isStripeMerchant, setIsStripeMerchant] = useState(
-    productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)
   );
   const [sellerConnectedAccountId, setSellerConnectedAccountId] = useState<
     string | null
@@ -750,7 +750,7 @@ export default function ProductInvoiceCard({
 
   useEffect(() => {
     const checkSellerStripe = async () => {
-      if (productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+      if (productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) {
         setIsStripeMerchant(true);
         return;
       }
@@ -775,7 +775,7 @@ export default function ProductInvoiceCard({
 
   useEffect(() => {
     const fetchConnectedAccountId = async () => {
-      if (productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) return;
+      if (productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) return;
       try {
         const res = await fetch("/api/stripe/connect/seller-status", {
           method: "POST",
@@ -1426,7 +1426,7 @@ export default function ProductInvoiceCard({
         productData.pubkey
       );
       const isPlatformSeller =
-        productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+        productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
       const onPlatformPayment =
         paymentType === "cashu" ||
         paymentType === "nwc" ||
@@ -3650,7 +3650,7 @@ export default function ProductInvoiceCard({
       // Step 2: Send donation message
       if (donationToken) {
         const donationMessage = "Sale donation: " + donationToken;
-        const donationRecipient = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+        const donationRecipient = (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
         if (donationRecipient) {
           try {
             const __donationOk = await sendPaymentAndContactMessage(
@@ -3667,7 +3667,7 @@ export default function ProductInvoiceCard({
           }
         } else {
           console.warn(
-            "NEXT_PUBLIC_MILK_MARKET_PK not set; skipping donation message."
+            "NEXT_PUBLIC_SELF_SOWN_PK not set; skipping donation message."
           );
         }
       }

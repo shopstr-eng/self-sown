@@ -1,25 +1,25 @@
 import type {
   NostrEventRecord,
   StripeConnectStatus,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export * from "./orders";
 
 export const API_CLIENT_PACKAGE_READY = true as const;
 
-export class MilkMarketApiError extends Error {
+export class SelfSownApiError extends Error {
   public readonly status: number;
   public readonly payload?: unknown;
 
   constructor(message: string, status: number, payload?: unknown) {
     super(message);
-    this.name = "MilkMarketApiError";
+    this.name = "SelfSownApiError";
     this.status = status;
     this.payload = payload;
   }
 }
 
-export interface CreateMilkMarketApiClientOptions {
+export interface CreateSelfSownApiClientOptions {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
 }
@@ -147,8 +147,8 @@ function joinUrl(baseUrl: string, path: string): string {
   return `${trimTrailingSlash(baseUrl)}${path}`;
 }
 
-export function createMilkMarketApiClient(
-  options: CreateMilkMarketApiClientOptions = {}
+export function createSelfSownApiClient(
+  options: CreateSelfSownApiClientOptions = {}
 ) {
   const baseUrl = options.baseUrl ?? "";
   const fetchImpl = options.fetchImpl ?? fetch;
@@ -182,7 +182,7 @@ export function createMilkMarketApiClient(
         typeof (payload as { error?: unknown }).error === "string"
           ? ((payload as { error: string }).error as string)
           : `Request failed with status ${response.status}`;
-      throw new MilkMarketApiError(message, response.status, payload);
+      throw new SelfSownApiError(message, response.status, payload);
     }
 
     return payload as T;
@@ -296,4 +296,4 @@ export function createMilkMarketApiClient(
   };
 }
 
-export type MilkMarketApiClient = ReturnType<typeof createMilkMarketApiClient>;
+export type SelfSownApiClient = ReturnType<typeof createSelfSownApiClient>;

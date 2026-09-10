@@ -157,7 +157,7 @@ MM_SELF_HOST_UPSTREAM_REPO=${config.upstreamRepo}
 
 # === Required ================================================================
 # [required] PostgreSQL connection string. Apply db/schema.sql to a fresh DB first.
-DATABASE_URL=postgresql://user:password@host:5432/milkmarket
+DATABASE_URL=postgresql://user:password@host:5432/selfsown
 # [required] The public URL your store is served from (NO trailing slash).
 # Used for links, emails, SEO/social tags, and payment redirects.
 NEXT_PUBLIC_BASE_URL=https://yourstore.example
@@ -207,7 +207,7 @@ only your shop.
 
 ## What's in here
 
-- \`milk-market.config.json\`: your public store config (pubkey, slug, relays,
+- \`self-sown.config.json\`: your public store config (pubkey, slug, relays,
   Blossom servers${
     config.branding ? ", branding snapshot" : ""
   }). **No secrets.**
@@ -220,7 +220,7 @@ only your shop.
 
 \`\`\`bash
 bash setup.sh                            # clones ${config.upstreamRepo} + applies your config
-cd milk-market
+cd self-sown
 cp ../.env.example .env                   # then fill in .env (see SETUP.md)
 psql "$DATABASE_URL" -f db/schema.sql     # create the database tables
 pnpm install
@@ -236,13 +236,13 @@ and the AI agent API are all optional add-ons. \`SETUP.md\` explains every value
 Your store tracks the public repo. To pull the latest code:
 
 \`\`\`bash
-cd milk-market
+cd self-sown
 git pull
 pnpm install
 pnpm build && pnpm start
 \`\`\`
 
-Your \`milk-market.config.json\` and \`.env\` are yours and are not overwritten by
+Your \`self-sown.config.json\` and \`.env\` are yours and are not overwritten by
 \`git pull\`.
 
 ## Your store pages & policies
@@ -269,9 +269,9 @@ function setupMarkdown(config: SelfHostConfigJson): string {
 \`\`\`bash
 bash setup.sh
 # or manually:
-git clone ${config.upstreamRepo} milk-market
-cd milk-market
-cp ../milk-market.config.json ./milk-market.config.json
+git clone ${config.upstreamRepo} self-sown
+cd self-sown
+cp ../self-sown.config.json ./self-sown.config.json
 \`\`\`
 
 ## 2. Database (PostgreSQL)
@@ -334,7 +334,7 @@ builder to add policy pages and link them from your storefront footer.
 ## 6. Stay updated
 
 \`\`\`bash
-cd milk-market
+cd self-sown
 git pull
 pnpm install
 pnpm build && pnpm start
@@ -353,13 +353,13 @@ function setupScript(config: SelfHostConfigJson): string {
 set -euo pipefail
 
 REPO="\${1:-${config.upstreamRepo}}"
-TARGET="\${2:-milk-market}"
+TARGET="\${2:-self-sown}"
 
 echo "Cloning \$REPO into ./\$TARGET ..."
 git clone "\$REPO" "\$TARGET"
 
 echo "Applying your store config ..."
-cp "milk-market.config.json" "\$TARGET/milk-market.config.json"
+cp "self-sown.config.json" "\$TARGET/self-sown.config.json"
 
 echo ""
 echo "Done. Next steps:"
@@ -373,14 +373,14 @@ echo "  pnpm install && pnpm build && pnpm start"
 function manifestJson(config: SelfHostConfigJson, generatedAt: string): string {
   return JSON.stringify(
     {
-      bundle: "milk-market-self-host",
+      bundle: "self-sown-self-host",
       version: 1,
       generatedAt,
       pubkey: config.pubkey,
       slug: config.slug,
       upstreamRepo: config.upstreamRepo,
       contents: [
-        "milk-market.config.json",
+        "self-sown.config.json",
         ".env.example",
         "setup.sh",
         "README.md",
@@ -400,7 +400,7 @@ export function buildExportEntries(input: ExportBundleInput): ZipEntry[] {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   return [
     {
-      name: "milk-market.config.json",
+      name: "self-sown.config.json",
       data: JSON.stringify(config, null, 2) + "\n",
     },
     { name: ".env.example", data: envExampleTemplate(config) },

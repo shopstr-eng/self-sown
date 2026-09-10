@@ -202,7 +202,7 @@ export default function ConvertPage() {
           property="og:image"
           key="og:image"
           content={toOptimizedOgImageUrl(
-            `${SITE_URL}/milk-market.png`,
+            `${SITE_URL}/self-sown.png`,
             SITE_URL
           )}
         />
@@ -230,7 +230,7 @@ export default function ConvertPage() {
           name="twitter:image"
           key="twitter:image"
           content={toOptimizedOgImageUrl(
-            `${SITE_URL}/milk-market.png`,
+            `${SITE_URL}/self-sown.png`,
             SITE_URL
           )}
         />

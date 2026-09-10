@@ -1,9 +1,9 @@
 import { Link, useLocalSearchParams, usePathname } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 
-import { API_CLIENT_PACKAGE_READY } from "@milk-market/api-client";
-import { CATEGORIES } from "@milk-market/domain";
-import { NOSTR_PACKAGE_READY } from "@milk-market/nostr";
+import { API_CLIENT_PACKAGE_READY } from "@self-sown/api-client";
+import { CATEGORIES } from "@self-sown/domain";
+import { NOSTR_PACKAGE_READY } from "@self-sown/nostr";
 
 import { sellerThemeTokens } from "@/theme/tokens";
 
@@ -11,7 +11,7 @@ const acceptanceChecks = [
   "The app boots inside a native simulator through the Expo dev client.",
   "Expo Router can navigate to a standalone stack route.",
   "Workspace imports resolve at runtime from all shared packages.",
-  "The custom milkmarket:// scheme can open this route directly.",
+  "The custom selfsown:// scheme can open this route directly.",
 ];
 
 export default function PhaseOneCheckScreen() {
@@ -60,7 +60,7 @@ export default function PhaseOneCheckScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Deep-link test URL</Text>
         <Text style={styles.codeBlock}>
-          milkmarket://phase-one-check?source=deeplink
+          selfsown://phase-one-check?source=deeplink
         </Text>
         <Text style={styles.helpText}>
           Open that URL from the simulator to confirm the custom scheme lands on

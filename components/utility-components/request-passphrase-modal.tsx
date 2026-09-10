@@ -10,7 +10,7 @@ import {
 } from "@heroui/react";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { useRouter } from "next/router";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 
 export default function PassphraseChallengeModal({
   actionOnSubmit,
@@ -165,7 +165,7 @@ export default function PassphraseChallengeModal({
           >
             {isLoading ? (
               <div className="flex items-center justify-center">
-                <MilkMarketSpinner />
+                <SelfSownSpinner />
               </div>
             ) : (
               "Submit"

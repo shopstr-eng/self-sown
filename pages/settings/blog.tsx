@@ -32,7 +32,7 @@ import {
   signNostrBlogPost,
   deleteEvent,
 } from "@/utils/nostr/nostr-helper-functions";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import {
   BLOG_POST_KIND,
   parseBlogPostEvent,
@@ -41,7 +41,7 @@ import {
   type BlogPost,
   type BlogPostDraft,
   type ScheduledBlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 const BROADCAST_PATH = "/api/email/broadcast-blog-post";
 const SCHEDULED_POST_PATH = "/api/storefront/blog/scheduled-post";

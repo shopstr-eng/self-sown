@@ -19,7 +19,7 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import * as nip49 from "nostr-tools/nip49";
 import { getPublicKey } from "nostr-tools";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { RelaysContext } from "../../utils/context/context";
 import { useRouter } from "next/router";
 import FailureModal from "../../components/utility-components/failure-modal";
@@ -48,7 +48,7 @@ export default function SignInModal({
   // seller's shop name + logo instead of the Self-sown branding. Falls back
   // to Self-sown on the main marketplace (no branding passed).
   const brandName = sellerBranding?.shopName?.trim() || "Self-sown";
-  const brandLogo = sellerBranding?.logoUrl?.trim() || "/milk-market.png";
+  const brandLogo = sellerBranding?.logoUrl?.trim() || "/self-sown.png";
 
   // On a seller's custom stall / domain (branding present), new accounts have no
   // association to the marketplace and are always buyers — skip the role
@@ -711,7 +711,7 @@ export default function SignInModal({
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
-                              <MilkMarketSpinner />
+                              <SelfSownSpinner />
                             </div>
                           ) : (
                             <>Bunker Sign-up</>
@@ -1018,7 +1018,7 @@ export default function SignInModal({
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
-                              <MilkMarketSpinner />
+                              <SelfSownSpinner />
                             </div>
                           ) : (
                             <>Bunker Sign-in</>

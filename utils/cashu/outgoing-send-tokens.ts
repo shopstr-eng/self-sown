@@ -1,4 +1,42 @@
-const STORAGE_KEY = "milkmarket.outgoingSendTokens";
+const STORAGE_KEY = "selfsown.outgoingSendTokens";
+// Pre-rename key. Migrated lazily on first read so users never lose track of
+// an unclaimed (potentially live-money) token.
+const LEGACY_STORAGE_KEY = "milkmarket.outgoingSendTokens";
+
+function migrateLegacyKey(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const legacyRaw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacyRaw === null) return;
+    const currentRaw = window.localStorage.getItem(STORAGE_KEY);
+    if (currentRaw === null) {
+      window.localStorage.setItem(STORAGE_KEY, legacyRaw);
+    } else {
+      // An old tab can still write to the legacy key after a new tab created
+      // selfsown.* — merge (deduped by token) instead of dropping it, and
+      // only remove the legacy key once the union is durably written.
+      try {
+        const legacy = JSON.parse(legacyRaw);
+        const current = JSON.parse(currentRaw);
+        if (Array.isArray(legacy) && Array.isArray(current)) {
+          const seen = new Set(current.map((t: OutgoingSendToken) => t?.token));
+          const merged = [
+            ...current,
+            ...legacy.filter(
+              (t: OutgoingSendToken) => t && !seen.has(t.token)
+            ),
+          ];
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+        } else return;
+      } catch {
+        return; // unparseable — keep the legacy key so nothing is lost
+      }
+    }
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // best-effort migration; a blocked storage API must not break reads
+  }
+}
 
 export type OutgoingSendTokenStatus = "unclaimed" | "claimed" | "reclaimed";
 
@@ -20,6 +58,7 @@ export const RESOLVED_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 function readAll(): OutgoingSendToken[] {
   if (typeof window === "undefined") return [];
+  migrateLegacyKey();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];

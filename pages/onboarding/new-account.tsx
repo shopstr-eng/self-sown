@@ -124,7 +124,7 @@ const Keys = () => {
                   alt="Self-sown logo"
                   height={50}
                   radius="sm"
-                  src="/milk-market.png"
+                  src="/self-sown.png"
                   width={50}
                 />
                 <h1 className="text-center text-3xl font-bold text-black">

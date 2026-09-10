@@ -134,7 +134,7 @@ jest.mock("../../../components/ZapsnagButton", () => () => (
   <div data-testid="zapsnag-button" />
 ));
 
-// Downstream uses the MilkMarketSpinner (mm-spinner) instead of the upstream
+// Downstream uses the SelfSownSpinner (mm-spinner) instead of the upstream
 // shopstr-spinner. Mock it with a stable testid for not-found/loading states.
 jest.mock("@/components/utility-components/mm-spinner", () => ({
   __esModule: true,
@@ -182,7 +182,7 @@ function createEvent({
 const defaultOgMeta = {
   title: "Self-sown Listing",
   description: "Check out this listing on Self-sown!",
-  image: "/milk-market.png",
+  image: "/self-sown.png",
   url: `/listing/${relayHintedIdentifier}`,
 };
 

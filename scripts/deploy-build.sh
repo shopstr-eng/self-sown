@@ -31,8 +31,8 @@ echo "==> Installing production deps (web only)"
 pnpm install \
   --frozen-lockfile \
   --prefer-offline \
-  --filter=milk-market... \
-  --filter='!@milk-market/mobile'
+  --filter=self-sown... \
+  --filter='!@self-sown/mobile'
 
 echo "==> Verifying stylesheet compiles with all UI marker styles"
 # Fails the publish loudly if a Tailwind @source glob into node_modules

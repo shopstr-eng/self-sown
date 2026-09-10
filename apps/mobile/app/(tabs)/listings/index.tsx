@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 
-import { selectSellerListingSummaries } from "@milk-market/domain";
+import { selectSellerListingSummaries } from "@self-sown/domain";
 
 import {
   ActionButton,

@@ -75,7 +75,7 @@ const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
 import { getDefaultFlowSteps } from "@/utils/email/flow-email-templates";
 import { v4 as uuidv4 } from "uuid";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import { getSiteUrl, SITE_HOST } from "@/utils/site-url";
 
 function noSignerError() {
@@ -4873,12 +4873,20 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  const VALID_DOMAIN_TARGETS = [SITE_HOST, "milk-market.replit.app"];
+  const DOMAIN_CNAME_TARGET =
+    process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST;
+  // The pre-rebrand replit.app host stays accepted: existing sellers already
+  // CNAME to it and it still resolves to the deployment.
+  const VALID_DOMAIN_TARGETS = [
+    SITE_HOST,
+    DOMAIN_CNAME_TARGET,
+    "milk-market.replit.app",
+  ];
 
   registerTool(
     server,
     "manage_custom_domain",
-    "Register, verify, get, or delete a custom domain for your storefront. You must have a shop slug set up first. After registering, add a CNAME record pointing your domain to milk-market.replit.app, then use the 'verify' action to check DNS propagation.",
+    "Register, verify, get, or delete a custom domain for your storefront. You must have a shop slug set up first. After registering, add a CNAME record pointing your domain to the deployment host shown after registering, then use the 'verify' action to check DNS propagation.",
     {
       action: z
         .enum(["register", "get", "verify", "delete"])
@@ -4949,8 +4957,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               instructions: {
                 type: "CNAME",
                 host: cleanDomain,
-                value: "milk-market.replit.app",
-                note: "Add a CNAME record pointing your domain to milk-market.replit.app. Verification may take up to 48 hours after DNS propagation.",
+                value: DOMAIN_CNAME_TARGET,
+                note: `Add a CNAME record pointing your domain to ${DOMAIN_CNAME_TARGET}. Verification may take up to 48 hours after DNS propagation.`,
               },
             },
             startTime
@@ -5019,7 +5027,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               verified,
               message: verified
                 ? "Domain verified successfully!"
-                : "DNS records not found yet. Make sure your CNAME record points to milk-market.replit.app and wait for DNS propagation (can take up to 48 hours).",
+                : "DNS records not found yet. Make sure your CNAME record points to the deployment host and wait for DNS propagation (can take up to 48 hours).",
             },
             startTime
           );
@@ -6542,13 +6550,13 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe(
-          "Absolute https:// or milkmarket:// URL to return to after onboarding completes"
+          "Absolute https:// or selfsown:// URL to return to after onboarding completes"
         ),
       refreshUrl: z
         .string()
         .optional()
         .describe(
-          "Absolute https:// or milkmarket:// URL Stripe sends the user to if the link expires"
+          "Absolute https:// or selfsown:// URL Stripe sends the user to if the link expires"
         ),
     },
     async (params) => {

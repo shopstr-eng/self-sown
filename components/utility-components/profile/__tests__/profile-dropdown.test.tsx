@@ -94,7 +94,7 @@ describe("ProfileWithDropdown sign-in modal branding", () => {
     ).toBeInTheDocument();
     expect(screen.getByAltText("Self-sown logo")).toHaveAttribute(
       "src",
-      "/milk-market.png"
+      "/self-sown.png"
     );
   });
 });

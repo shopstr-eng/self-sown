@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { ShopMapContext } from "@/utils/context/context";
 import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { matchShopSlug } from "@/utils/storefront/match-shop-slug";
 import { GetServerSideProps } from "next";
@@ -278,7 +278,7 @@ export default function ShopPage({
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center pt-20">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

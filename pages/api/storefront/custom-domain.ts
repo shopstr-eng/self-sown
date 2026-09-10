@@ -83,8 +83,8 @@ function dnsHostForDomain(domain: string): string {
 
 function dnsHostForTxt(domain: string): string {
   const labels = domain.toLowerCase().trim().split(".");
-  if (labels.length <= 2) return "_milkmarket";
-  return `_milkmarket.${labels.slice(0, labels.length - 2).join(".")}`;
+  if (labels.length <= 2) return "_self-sown";
+  return `_self-sown.${labels.slice(0, labels.length - 2).join(".")}`;
 }
 
 async function buildInstructions(domain: string, token: string) {
@@ -96,7 +96,7 @@ async function buildInstructions(domain: string, token: string) {
       : `Resolve A record of ${APEX_RESOLVE_HOST} and use those IPs (or contact ${ADMIN_EMAIL || "support"}).`;
   const recordHost = dnsHostForDomain(domain);
   const txtHost = dnsHostForTxt(domain);
-  const fqdnHint = `Full record name: _milkmarket.${domain}`;
+  const fqdnHint = `Full record name: _self-sown.${domain}`;
   return {
     domainType: type,
     txt: {

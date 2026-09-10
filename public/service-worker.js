@@ -54,7 +54,7 @@ self.addEventListener("push", function (event) {
     event.waitUntil(
       self.registration.showNotification(data.title, {
         body: data.message,
-        icon: "/milk-market.png",
+        icon: "/self-sown.png",
         data: {
           url: data.url ?? "/",
         },

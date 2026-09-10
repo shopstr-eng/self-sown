@@ -5,7 +5,7 @@ import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import ThemedStallOrders from "@/components/storefront/themed-stall-orders";
 import ThemedBlog from "@/components/storefront/themed-blog";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { matchShopSlug } from "@/utils/storefront/match-shop-slug";
 import { GetServerSideProps } from "next";
@@ -16,7 +16,7 @@ import {
   fetchProfileByPubkeyFromDb,
   fetchBlogPostsByPubkeyFromDb,
 } from "@/utils/db/db-service";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { findBlogPostBySlug } from "@/utils/url-slugs";
 import { eventToBlogOgMeta } from "@/utils/og/blog-og";
 import {
@@ -33,7 +33,7 @@ type ShopSubPageProps = {
   ssrShopName: string;
   ssrShopAbout: string;
   ssrStoreUrl: string;
-  ssrBlogPosts: import("@milk-market/domain").BlogPost[] | null;
+  ssrBlogPosts: import("@self-sown/domain").BlogPost[] | null;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
@@ -312,7 +312,7 @@ export default function ShopSubPage({
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center pt-20">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

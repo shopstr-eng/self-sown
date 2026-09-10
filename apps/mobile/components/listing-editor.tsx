@@ -9,7 +9,7 @@ import {
   type SellerListingDraft,
   type SellerListingDraftValidationErrors,
   type SellerListingStatus,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 import { ActionButton, SellerCard, SellerField } from "@/components/seller-ui";
 import { sellerThemeTokens } from "@/theme/tokens";

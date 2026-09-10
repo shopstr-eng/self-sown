@@ -117,10 +117,10 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
     // 2. Run the generated bootstrap. We point its REPO arg at the checked-out
     //    tree (process.cwd()) so the clone target is this exact commit — the
     //    code actually under test — rather than whatever is live on the public
-    //    remote. setup.sh clones into ./milk-market and copies the config in.
-    run("bash", ["setup.sh", process.cwd(), "milk-market"], bundleDir);
-    appDir = path.join(bundleDir, "milk-market");
-    expect(fs.existsSync(path.join(appDir, "milk-market.config.json"))).toBe(
+    //    remote. setup.sh clones into ./self-sown and copies the config in.
+    run("bash", ["setup.sh", process.cwd(), "self-sown"], bundleDir);
+    appDir = path.join(bundleDir, "self-sown");
+    expect(fs.existsSync(path.join(appDir, "self-sown.config.json"))).toBe(
       true
     );
 
@@ -129,7 +129,7 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
     //    CI Postgres service.
     const databaseUrl =
       process.env.DATABASE_URL ||
-      "postgresql://milkmarket:milkmarket@localhost:5432/milkmarket";
+      "postgresql://selfsown:selfsown@localhost:5432/selfsown";
     const dotenv = [
       "MM_SELF_HOST=1",
       `MM_SELF_HOST_PUBKEY=${PUBKEY}`,

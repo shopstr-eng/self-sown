@@ -93,7 +93,7 @@ describe("no hardcoded relay URL literals", () => {
 
     if (offenders.length > 0) {
       throw new Error(
-        `Hardcoded relay URL literals fork the default relay set. Import DEFAULT_SELLER_RELAYS from @milk-market/domain (or getDefaultRelays() from utils/nostr/nostr-helper-functions) instead. If the literal is genuinely required, add the file to ALLOWLIST in __tests__/utils/nostr/no-hardcoded-relay-urls.test.ts with a comment justifying it. Offenders:\n${offenders.join("\n")}`
+        `Hardcoded relay URL literals fork the default relay set. Import DEFAULT_SELLER_RELAYS from @self-sown/domain (or getDefaultRelays() from utils/nostr/nostr-helper-functions) instead. If the literal is genuinely required, add the file to ALLOWLIST in __tests__/utils/nostr/no-hardcoded-relay-urls.test.ts with a comment justifying it. Offenders:\n${offenders.join("\n")}`
       );
     }
     expect(offenders).toEqual([]);

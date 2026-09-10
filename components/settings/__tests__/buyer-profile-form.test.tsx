@@ -59,7 +59,7 @@ jest.mock("@/components/utility-components/nostr-context-provider", () => {
   };
 });
 
-// Downstream uses MilkMarketSpinner (mm-spinner), not the upstream shopstr-spinner.
+// Downstream uses SelfSownSpinner (mm-spinner), not the upstream shopstr-spinner.
 jest.mock("@/components/utility-components/mm-spinner", () => () => null);
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   createNostrProfileEvent: jest.fn(),

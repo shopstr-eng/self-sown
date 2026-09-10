@@ -15,7 +15,7 @@ import {
   type NostrEventRecord,
   type SellerListingDraft,
   type SellerSession,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export * from "./order-messages";
 

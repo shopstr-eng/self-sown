@@ -1,13 +1,13 @@
 import * as SecureStore from "expo-secure-store";
 import { create } from "zustand";
 
-import type { SellerSession } from "@milk-market/domain";
+import type { SellerSession } from "@self-sown/domain";
 import {
   deserializeSellerSession,
   serializeSellerSession,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
-const SELLER_SESSION_STORAGE_KEY = "milk-market-seller-session";
+const SELLER_SESSION_STORAGE_KEY = "self-sown-seller-session";
 
 type SessionStoreState = {
   hydrated: boolean;

@@ -18,7 +18,7 @@ jest.mock("pg", () => ({
   })),
 }));
 
-const APPLE_CLIENT_ID = "com.example.milkmarket.web";
+const APPLE_CLIENT_ID = "com.example.selfsown.web";
 let applePrivateKeyPem: string;
 
 function makeIdToken(payload: Record<string, unknown>): string {

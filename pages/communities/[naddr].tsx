@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import { CommunityContext } from "@/utils/context/context";
 import { Community } from "@/utils/types/types";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import CommunityFeed from "@/components/communities/CommunityFeed";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { GetServerSideProps } from "next";
@@ -44,7 +44,7 @@ export const getServerSideProps: GetServerSideProps<
                 description:
                   community.description ||
                   "Check out this community on Self-sown!",
-                image: community.image || "/milk-market.png",
+                image: community.image || "/self-sown.png",
                 url: `/communities/${naddrStr}`,
               },
               community,
@@ -100,7 +100,7 @@ const SingleCommunityPage = ({
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-white">
-        <MilkMarketSpinner label="Loading Community..." />
+        <SelfSownSpinner label="Loading Community..." />
       </div>
     );
   }

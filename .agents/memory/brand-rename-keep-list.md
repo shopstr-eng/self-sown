@@ -1,19 +1,12 @@
 ---
-name: Brand rename keep-list
-description: During the Milk Market → Self-sown rename, these identifiers were deliberately NOT renamed — renaming them breaks external contracts or user data
+name: Self-sown rename alias layer
+description: the Milk Market -> Self-sown identifier rename is DONE; the legacy milkmarket aliases that remain are deliberate compatibility contracts — never remove them
 ---
 
-# Brand rename keep-list (Milk Market → Self-sown)
+The full identifier rename (prose + code: packages, storage keys, TXT prefix, Stripe lookup keys, env var, mobile IDs, assets) is complete. Old identifiers that still appear in the codebase are intentional aliases, not leftovers.
 
-Only spaced/title-case brand prose ("Milk Market", "MILK MARKET") was renamed. These spaceless identifiers MUST keep the old name:
+**Rule:** treat every remaining `milkmarket`/`milk-market` identifier as a compatibility contract. New identifiers use compact `selfsown` (storage keys, schemes, lookup keys) vs kebab `self-sown` (packages, files, config).
 
-- `milkmarket://` mobile deep-link scheme — baked into installed mobile apps and Stripe Connect return/refresh URLs.
-- `_milkmarket.<domain>` DNS TXT prefix — existing seller domain verifications depend on it.
-- localStorage keys `milkmarket.pendingMintQuotes`, `milkmarket.outgoingSendTokens` — renaming orphans user wallet state.
-- Stripe lookup key `milkmarket_wrangler_lifetime_v1` — must match the Stripe dashboard Price.
-- Env var names `NEXT_PUBLIC_MILK_MARKET_PK`, `NEXT_PUBLIC_BEEF_INITIATIVE_NPUB` — secrets/config are keyed by these names.
-- npm package names / Expo slug (`milk-market`, `milk-market-mobile`), GitHub repo URLs, `milkmarket@` NIP-05 handle, and public asset filenames (public/milk-market.png etc. — logo swap is a separate follow-up).
+**Why:** old browser tabs, saved wallets, existing seller DNS records, published Nostr events, and a lagging Stripe dashboard all still carry old identifiers; deleting an alias silently strands live money or breaks verification/checkout.
 
-**Why:** a rename that touches these either breaks live integrations (Stripe, DNS verification, deep links) or silently destroys user data (storage keys).
-
-**How to apply:** for any future rename or brand audit, sed only the spaced brand forms, then scan with a whitespace-tolerant multiline pattern (`Milk\s*\n\s*Market` style) — single-line sed misses JSX-wrapped prose (4 occurrences survived the first pass this way). A guard test for this is tracked as a follow-up task.
+**How to apply:** when touching a renamed surface, keep both code paths (merge-migrate storage, dual-accept DNS/schemes/lookup keys, env `||` fallback). Never mechanically rename Nostr event tags, Stripe `mm_*` metadata keys, or external account URLs — those are protocol/externally-owned identifiers, not brand text.

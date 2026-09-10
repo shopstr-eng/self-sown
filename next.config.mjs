@@ -84,9 +84,9 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: [
-    "@milk-market/domain",
-    "@milk-market/nostr",
-    "@milk-market/api-client",
+    "@self-sown/domain",
+    "@self-sown/nostr",
+    "@self-sown/api-client",
   ],
   turbopack: {
     root: process.cwd(),

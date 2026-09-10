@@ -131,7 +131,7 @@ export default async function handler(
 
     let connectedAccountId: string | null = null;
     const isPlatformAccount =
-      sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+      sellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
 
     if (!isPlatformAccount) {
       const connectAccount = await getStripeConnectAccount(sellerPubkey);

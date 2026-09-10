@@ -30,7 +30,7 @@ const CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES = [
 
 // Any path ending in a known static-asset extension is served as-is from
 // /public on the custom domain. Without this, root-level files like
-// `/instagram-icon.png`, `/milk-market.png`, `/workbox-*.js`,
+// `/instagram-icon.png`, `/self-sown.png`, `/workbox-*.js`,
 // `/currencySelection.json`, uploaded fonts, etc. get rewritten to
 // `/stall/<slug>/<file>` and return the storefront HTML instead of the
 // real asset.

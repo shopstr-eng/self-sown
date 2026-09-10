@@ -9,7 +9,7 @@ const organizationSchema = {
   "@type": "Organization",
   name: "Self-sown",
   url: SITE_URL,
-  logo: `${SITE_URL}/milk-market.png`,
+  logo: `${SITE_URL}/self-sown.png`,
   description:
     "Self-sown is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
   foundingDate: "2024",
@@ -39,8 +39,8 @@ const localBusinessSchema = {
   "@type": "LocalBusiness",
   name: "Self-sown",
   url: SITE_URL,
-  logo: `${SITE_URL}/milk-market.png`,
-  image: `${SITE_URL}/milk-market.png`,
+  logo: `${SITE_URL}/self-sown.png`,
+  image: `${SITE_URL}/self-sown.png`,
   description:
     "Farm-fresh dairy marketplace connecting local farmers with buyers. Browse raw milk, cheese, butter, and more from trusted local producers with zero platform fees.",
   address: {

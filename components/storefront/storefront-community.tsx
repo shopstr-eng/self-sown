@@ -2,7 +2,7 @@ import { StorefrontColorScheme } from "@/utils/types/types";
 import { Community } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import CommunityFeed from "@/components/communities/CommunityFeed";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 
 interface StorefrontCommunityProps {
   shopPubkey: string;
@@ -19,7 +19,7 @@ export default function StorefrontCommunity({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

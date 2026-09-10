@@ -9,7 +9,7 @@
     "organization": "Self-sown",
     "url": "https://self-sown.com"
   },
-  "iconUrl": "https://self-sown.com/milk-market.png",
+  "iconUrl": "https://self-sown.com/self-sown.png",
   "documentationUrl": "https://self-sown.com/developers",
   "capabilities": {
     "streaming": true,

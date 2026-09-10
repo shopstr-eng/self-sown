@@ -34,7 +34,7 @@ import parseTags from "@/utils/parsers/product-parser-functions";
 import Link from "next/link";
 import StorefrontProductGrid from "./storefront-product-grid";
 import ProductListingView from "@/components/listing/product-listing-view";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { NostrEvent } from "@/utils/types/types";
 import SectionRenderer from "./section-renderer";
 import FormattedText from "./formatted-text";
@@ -1278,7 +1278,7 @@ export default function StorefrontLayout({
             <div
               className={`flex min-h-[60vh] items-center justify-center ${navPadClass}`}
             >
-              <MilkMarketSpinner />
+              <SelfSownSpinner />
             </div>
           )
         ) : (

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import MilkMarketSpinner from "../mm-spinner";
+import SelfSownSpinner from "../mm-spinner";
 import { useTheme } from "next-themes";
 
 jest.mock("next-themes", () => ({
@@ -18,11 +18,11 @@ jest.mock("@heroui/react", () => ({
 
 const mockedUseTheme = useTheme as jest.Mock;
 
-describe("MilkMarketSpinner", () => {
+describe("SelfSownSpinner", () => {
   it("renders with the primary-yellow spinner styling", () => {
     mockedUseTheme.mockReturnValue({ theme: "light" });
 
-    render(<MilkMarketSpinner />);
+    render(<SelfSownSpinner />);
 
     const spinner = screen.getByTestId("spinner");
     expect(spinner).toHaveAttribute(

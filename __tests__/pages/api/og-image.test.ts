@@ -237,13 +237,13 @@ describe("/api/og-image", () => {
 
     const res = createResponse();
     await handler(
-      createRequest({ url: "/milk-market.png" }),
+      createRequest({ url: "/self-sown.png" }),
       res as unknown as NextApiResponse
     );
 
     expect(res.statusCode).toBe(200);
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
-      `${SITE_URL}/milk-market.png`
+      `${SITE_URL}/self-sown.png`
     );
   });
 

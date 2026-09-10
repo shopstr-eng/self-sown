@@ -14,7 +14,7 @@ import * as keypressHandler from "@/utils/keypress-handler";
 import { useRouter } from "next/router";
 
 jest.mock("../../utility-components/mm-spinner", () => {
-  return function MockMilkMarketSpinner() {
+  return function MockSelfSownSpinner() {
     return <div data-testid="spinner"></div>;
   };
 });

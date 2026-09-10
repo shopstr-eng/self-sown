@@ -5,7 +5,7 @@ import { FollowsContext } from "../../utils/context/context";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
-const MilkMarketSlider = () => {
+const SelfSownSlider = () => {
   const followsContext = useContext(FollowsContext);
 
   const [wot, setWot] = useState(3);
@@ -68,4 +68,4 @@ const MilkMarketSlider = () => {
   );
 };
 
-export default MilkMarketSlider;
+export default SelfSownSlider;

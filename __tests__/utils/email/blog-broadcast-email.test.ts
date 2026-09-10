@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
-import type { BlogPost } from "@milk-market/domain";
+import type { BlogPost } from "@self-sown/domain";
 import { SITE_URL } from "@/utils/site-url";
 
 function post(overrides: Partial<BlogPost> = {}): BlogPost {

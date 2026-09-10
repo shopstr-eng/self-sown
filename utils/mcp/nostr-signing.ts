@@ -19,7 +19,7 @@ import {
   getDefaultRelays,
   withBlastr,
 } from "@/utils/nostr/nostr-helper-functions";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS } from "@self-sown/domain";
 
 const ALGORITHM = "aes-256-gcm";
 

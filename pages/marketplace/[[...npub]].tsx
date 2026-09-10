@@ -34,7 +34,7 @@ function shopEventToOgMeta(
     return {
       title: content.name ? `${content.name} Stall` : "Self-sown Stall",
       description: content.about || "Check out this shop on Self-sown!",
-      image: content.ui?.picture || "/milk-market.png",
+      image: content.ui?.picture || "/self-sown.png",
       url: urlPath,
     };
   } catch {
@@ -58,7 +58,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           title: "Self-sown - Browse Local Food Producers",
           description:
             "Discover farms, dairies, and local food producers on Self-sown. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
-          image: "/milk-market.png",
+          image: "/self-sown.png",
           url: "/marketplace",
         } as OgMetaProps,
         initialFocusedPubkey: "",

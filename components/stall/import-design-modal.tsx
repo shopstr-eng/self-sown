@@ -23,7 +23,7 @@ import {
   WHITEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import {
   IMPORT_DESIGN_DRAFT_KEY,
   type ImportedStoreDesign,

@@ -23,7 +23,7 @@ import {
   type StorefrontSectionElement,
   type StorefrontSectionButton,
   type BlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { ReviewsContext } from "@/utils/context/context";

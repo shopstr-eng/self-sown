@@ -11,7 +11,7 @@ import {
   generateKeys,
 } from "@/utils/nostr/nostr-helper-functions";
 import { ChatsContext, ProfileMapContext } from "../../utils/context/context";
-import MilkMarketSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/mm-spinner";
 import ChatPanel from "./chat-panel";
 import ChatButton from "./chat-button";
 import { NostrMessageEvent, ChatObject } from "../../utils/types/types";
@@ -381,7 +381,7 @@ const Messages = ({
           <div className="flex h-[66vh] items-center justify-center">
             {isChatsLoading ? (
               <div className="flex items-center justify-center">
-                <MilkMarketSpinner />
+                <SelfSownSpinner />
               </div>
             ) : (
               <div className="bg-dark-fg shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">

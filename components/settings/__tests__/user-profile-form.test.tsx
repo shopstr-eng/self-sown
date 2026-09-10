@@ -155,7 +155,7 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
 }));
 const mockFileUploaderButton = FileUploaderButton as jest.Mock;
 
-// Downstream uses MilkMarketSpinner (mm-spinner), not the upstream shopstr-spinner.
+// Downstream uses SelfSownSpinner (mm-spinner), not the upstream shopstr-spinner.
 jest.mock("@/components/utility-components/mm-spinner", () => () => null);
 
 const mockUserPubkey = "test_pubkey_123";
@@ -248,7 +248,7 @@ describe("UserProfileForm", () => {
 
   // SKIPPED: Upstream's UserProfileForm renders the form even without a pubkey.
   // Downstream's page gates rendering on `!userPubkey` (isFetchingProfile -> true)
-  // and shows MilkMarketSpinner instead of the form, so the label never appears.
+  // and shows SelfSownSpinner instead of the form, so the label never appears.
   // test("does not fetch profile if userPubkey is missing", ...)
 
   test("displays default image when no picture is available", async () => {

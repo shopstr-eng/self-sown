@@ -123,7 +123,7 @@ function hostedCfg(over: Record<string, unknown> = {}) {
 }
 
 const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
-const ORIGINAL_PK = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+const ORIGINAL_PK = process.env.NEXT_PUBLIC_SELF_SOWN_PK;
 const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 beforeEach(() => {
@@ -151,15 +151,15 @@ beforeEach(() => {
   process.env.STRIPE_SECRET_KEY = "sk_test_platform";
   // Distinct from any split pubkey so the route treats each split as a
   // connected seller, not the platform account.
-  process.env.NEXT_PUBLIC_MILK_MARKET_PK = "f".repeat(64);
+  process.env.NEXT_PUBLIC_SELF_SOWN_PK = "f".repeat(64);
   process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
 });
 
 afterAll(() => {
   if (ORIGINAL_KEY === undefined) delete process.env.STRIPE_SECRET_KEY;
   else process.env.STRIPE_SECRET_KEY = ORIGINAL_KEY;
-  if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-  else process.env.NEXT_PUBLIC_MILK_MARKET_PK = ORIGINAL_PK;
+  if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+  else process.env.NEXT_PUBLIC_SELF_SOWN_PK = ORIGINAL_PK;
   if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
   else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
 });

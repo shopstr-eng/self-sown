@@ -1,6 +1,6 @@
 import { OgMetaProps, DEFAULT_OG } from "@/components/og-head";
 import { NostrEvent } from "@/utils/types/types";
-import { parseBlogPostEvent } from "@milk-market/domain";
+import { parseBlogPostEvent } from "@self-sown/domain";
 import { buildArticleJsonLd } from "@/utils/geo/blog-jsonld";
 
 // Build OpenGraph meta (+ schema.org BlogPosting JSON-LD) for a single blog
@@ -39,7 +39,7 @@ export function eventToBlogOgMeta(
   return {
     title: post.title || "Self-sown Blog",
     description: post.summary || "Read this post from a Self-sown stall.",
-    image: post.image || "/milk-market.png",
+    image: post.image || "/self-sown.png",
     url: urlPath,
     type: "article",
     ...(jsonLd ? { jsonLd } : {}),

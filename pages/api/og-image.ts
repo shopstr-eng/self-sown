@@ -18,7 +18,7 @@ const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const CACHE_MAX_ENTRIES = 200;
-// Fixed base for resolving same-origin relative paths (e.g. "/milk-market.png").
+// Fixed base for resolving same-origin relative paths (e.g. "/self-sown.png").
 // Never the request Host header — that would be a spoofable SSRF oracle.
 const PLATFORM_BASE = getSiteUrl();
 

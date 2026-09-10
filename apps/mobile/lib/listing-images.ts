@@ -1,7 +1,7 @@
 import * as DocumentPicker from "expo-document-picker";
 
-import { uploadSellerListingMedia } from "@milk-market/nostr";
-import type { SellerSession } from "@milk-market/domain";
+import { uploadSellerListingMedia } from "@self-sown/nostr";
+import type { SellerSession } from "@self-sown/domain";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";
 import {

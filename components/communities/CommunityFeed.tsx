@@ -17,7 +17,7 @@ import {
   fetchPendingPosts,
 } from "@/utils/nostr/fetch-service";
 import { Button, Textarea, Card, CardBody, Divider, Chip } from "@heroui/react";
-import MilkMarketSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/mm-spinner";
 import {
   WHITEBUTTONCLASSNAMES,
   BLACKBUTTONCLASSNAMES,
@@ -334,7 +334,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
 
       {isLoading ? (
         <div className="flex justify-center py-8">
-          <MilkMarketSpinner label="Loading posts..." />
+          <SelfSownSpinner label="Loading posts..." />
         </div>
       ) : (
         <div className="space-y-6">

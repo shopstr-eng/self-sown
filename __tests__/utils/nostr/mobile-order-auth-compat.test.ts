@@ -5,7 +5,7 @@ import {
   createSellerMessagesListProof,
   createSellerSessionFromNsec,
   generateSellerNsecCredentials,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import {

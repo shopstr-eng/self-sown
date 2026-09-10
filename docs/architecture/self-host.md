@@ -12,7 +12,7 @@ inert and the hosted platform behaves exactly as before.
 ## Configuration (`utils/self-host/config.ts`)
 
 Server-only (imports `fs`/`path`). Reads env first, with an optional
-`milk-market.config.json` at the repo root as fallback; **env always wins**.
+`self-sown.config.json` at the repo root as fallback; **env always wins**.
 
 - `getSelfHostConfig()` → `{ enabled, tenantPubkey, tenantSlug, relays, blossomServers, ownStripe, upstreamRepo }` (memoized; `__resetSelfHostConfigCacheForTests()` clears it).
 - `isSelfHost()` → master switch.
@@ -107,7 +107,7 @@ The ZIP is assembled by the pure, fs-free `utils/self-host/export-bundle.ts`
 `utils/self-host/zip.ts` (`createZip`, STORE method + CRC32 — **adds no
 packages**, keeping lockfiles pristine for `--frozen-lockfile` deploys).
 
-Contents: `milk-market.config.json` (the caller's PUBLIC config — pubkey, slug,
+Contents: `self-sown.config.json` (the caller's PUBLIC config — pubkey, slug,
 relays, Blossom servers, optional branding snapshot), `.env.example`
 (placeholders only), `README.md`, `SETUP.md`, `setup.sh` (git clone upstream +
 apply config), `manifest.json`. **Never** includes secrets or another seller's
@@ -131,7 +131,7 @@ download via `useProMembership().exportSelfHostStore()`.
 3. Copy `.env.example` → `.env`; set `DATABASE_URL`, optional `STRIPE_SECRET_KEY`
    (+ `MM_SELF_HOST_OWN_STRIPE=1`), optional `SENDGRID_API_KEY`.
 4. `pnpm install && pnpm build && pnpm start`.
-5. Update later with `git pull` (your `.env` + `milk-market.config.json` are not
+5. Update later with `git pull` (your `.env` + `self-sown.config.json` are not
    overwritten).
 
 ## Boot smoke check
@@ -146,7 +146,7 @@ the loop without needing a full Next build:
 2. `bash -n` the generated `setup.sh` (syntax-checks the bootstrap without
    running it) and assert it is strict-mode bash that clones the upstream repo.
 3. Feed the generated `.env.example` (env path) AND the committed
-   `milk-market.config.json` (file-fallback path, for `git pull` sellers) back
+   `self-sown.config.json` (file-fallback path, for `git pull` sellers) back
    through the ACTUAL runtime reader `buildSelfHostConfig`. This is the key
    guarantee: the bundle's output is in the exact shape the running instance
    consumes, so config drift between export and runtime is caught.
@@ -187,8 +187,8 @@ self-host runtime, generate a bundle from a Wrangler account's settings page (or
 call the exported pure builder), then in a scratch directory:
 
 ```bash
-bash setup.sh                 # clones MM_SELF_HOST_UPSTREAM_REPO → ./milk-market
-cd milk-market
+bash setup.sh                 # clones MM_SELF_HOST_UPSTREAM_REPO → ./self-sown
+cd self-sown
 cp ../.env.example .env        # set DATABASE_URL; optionally add STRIPE_SECRET_KEY
 psql "$DATABASE_URL" -f db/schema.sql
 pnpm install && pnpm build && pnpm start

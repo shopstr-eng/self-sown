@@ -156,7 +156,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
     name: "Free Milk",
     url: `${SITE_HOST}/stall/freemilk`,
     href: "/stall/freemilk",
-    image: "/stall-freemilk.png",
+    image: "/self-sown-hero.png",
     alt: "Free Milk stall on Self-sown showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
   },
   {
@@ -417,7 +417,7 @@ export default function StandaloneLanding() {
         <div className="flex min-w-0 items-center gap-x-6">
           <div className="flex min-w-0 items-center space-x-2">
             <Image
-              src="/milk-market.png"
+              src="/self-sown.png"
               alt="Self-sown logo - local food and artisan marketplace"
               width={32}
               height={32}
@@ -537,7 +537,7 @@ export default function StandaloneLanding() {
         {/* Background Milk Cartons */}
         <div className="pointer-events-none absolute top-[15%] left-[10%] opacity-[0.06]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={80}
             height={80}
@@ -546,7 +546,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute top-[20%] right-[12%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={100}
             height={100}
@@ -555,7 +555,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute bottom-[20%] left-[8%] opacity-[0.07]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={90}
             height={90}
@@ -564,7 +564,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute right-[15%] bottom-[15%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={70}
             height={70}
@@ -810,7 +810,7 @@ export default function StandaloneLanding() {
         {/* Background Milk Cartons */}
         <div className="pointer-events-none absolute top-[12%] left-[8%] opacity-[0.06]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={95}
             height={95}
@@ -819,7 +819,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute right-[10%] bottom-[15%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={85}
             height={85}
@@ -1343,7 +1343,7 @@ export default function StandaloneLanding() {
         {/* Background Milk Cartons */}
         <div className="pointer-events-none absolute top-[18%] left-[12%] opacity-[0.06]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={90}
             height={90}
@@ -1352,7 +1352,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute right-[8%] bottom-[20%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={80}
             height={80}
@@ -1544,7 +1544,7 @@ export default function StandaloneLanding() {
           <div className="border-t border-zinc-700 pt-8 text-center">
             <div className="mb-6 flex items-center justify-center space-x-2">
               <Image
-                src="/milk-market.png"
+                src="/self-sown.png"
                 alt="Self-sown logo - decentralized local food marketplace"
                 width={32}
                 height={32}

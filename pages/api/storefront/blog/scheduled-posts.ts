@@ -5,7 +5,7 @@ import { listScheduledBlogPosts } from "@/utils/db/db-service";
 import {
   parseBlogPostEvent,
   type ScheduledBlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 const AUTH_PATH = "/api/storefront/blog/scheduled-posts";
 

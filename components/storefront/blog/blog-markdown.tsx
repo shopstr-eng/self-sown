@@ -2,7 +2,7 @@
 
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { isHttpUrl } from "@milk-market/domain";
+import { isHttpUrl } from "@self-sown/domain";
 
 // Renders a blog post's Markdown body. Raw HTML is NOT enabled (react-markdown
 // strips it by default — we never add rehype-raw), and every link/image URL is

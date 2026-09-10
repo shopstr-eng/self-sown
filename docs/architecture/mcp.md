@@ -4,7 +4,7 @@ Model Context Protocol server lets AI agents participate as buyers and sellers �
 
 ## Architecture
 
-- **Endpoint**: `pages/api/mcp/index.ts` — Streamable HTTP transport. Server factory: `mcp/server.ts`. Read tools: `mcp/tools/read-tools.ts`. Write tools: `mcp/tools/write-tools.ts`. Resources: `mcp/resources.ts` (catalog via `milkmarket://catalog/products`).
+- **Endpoint**: `pages/api/mcp/index.ts` — Streamable HTTP transport. Server factory: `mcp/server.ts`. Read tools: `mcp/tools/read-tools.ts`. Write tools: `mcp/tools/write-tools.ts`. Resources: `mcp/resources.ts` (catalog via `selfsown://catalog/products`).
 - **Signing**: `utils/mcp/nostr-signing.ts` — `McpNostrSigner`, `McpRelayManager`, encrypted nsec storage, `signAndPublishEvent()`.
 - **Auth**: `utils/mcp/auth.ts` — PBKDF2-hashed Bearer keys (prefix `sk_`), three permission levels (`read`, `read_write`, `full_access`). Agents set nsec post-onboarding via `POST /api/mcp/set-nsec`.
 - **Routes**: `api-keys.ts`, `create-order.ts`, `verify-payment.ts`, `onboard.ts`, `set-nsec.ts`, `status.ts`. Manifest at `pages/api/.well-known/agent.json.ts`. Settings UI: `pages/settings/api-keys.tsx`.

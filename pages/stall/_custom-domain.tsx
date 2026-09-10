@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { SITE_URL } from "@/utils/site-url";
 
@@ -20,7 +20,7 @@ export default function CustomDomainPage() {
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

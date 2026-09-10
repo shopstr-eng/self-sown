@@ -19,7 +19,7 @@ import {
   isProfileContentPopulated,
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
@@ -188,7 +188,7 @@ const UserProfilePage = () => {
         <div className="mx-auto h-full w-full px-4 lg:w-1/2">
           <SettingsBreadCrumbs />
           {isFetchingProfile ? (
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           ) : (
             <>
               <div className="bg-light-fg dark:bg-dark-fg mb-20 h-40 rounded-lg">

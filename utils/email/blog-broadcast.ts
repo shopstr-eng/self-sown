@@ -17,7 +17,7 @@ import { sendEmailStrictFrom } from "@/utils/email/email-service";
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { getBlogPostSlug } from "@/utils/url-slugs";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { getSiteUrl } from "@/utils/site-url";
 
 const MAX_AUDIENCE = 5000;

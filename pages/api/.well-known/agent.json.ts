@@ -17,7 +17,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
     version: "2.0.0",
     description:
       "A decentralized marketplace for local food and goods, built on Nostr. Browse products, view seller profiles, read reviews, place orders, create listings, manage shops, upload media, send messages, and participate in communities via MCP. Full marketplace participation as both buyer and seller.",
-    logo: `${baseUrl}/milk-market.png`,
+    logo: `${baseUrl}/self-sown.png`,
     capabilities: {
       tools: [
         {

@@ -11,7 +11,7 @@ import {
   ModalFooter,
   Input,
 } from "@heroui/react";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import {
   SignerContext,
@@ -239,7 +239,7 @@ const CommunityManagementPage = () => {
               </div>
 
               {isLoading && myCommunities.length === 0 ? (
-                <MilkMarketSpinner label="Loading your communities..." />
+                <SelfSownSpinner label="Loading your communities..." />
               ) : myCommunities.length > 0 ? (
                 <div className="space-y-4">
                   {myCommunities.map((community) => (

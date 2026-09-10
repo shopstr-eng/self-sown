@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { setLocalStorageDataOnSignIn } from "@/utils/nostr/nostr-helper-functions";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { RelaysContext } from "@/utils/context/context";
 
 export default function OAuthSuccess() {
@@ -80,7 +80,7 @@ export default function OAuthSuccess() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
         <p className="mt-4 text-lg font-bold">Completing sign-in...</p>
       </div>
     </div>

@@ -22,7 +22,7 @@ import {
 } from "@/components/utility-components/modals/event-modals";
 import ProductPageRenderer from "@/components/storefront/product-page-renderer";
 import FormattedText from "@/components/storefront/formatted-text";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/mm-spinner";
 import { NostrEvent } from "@/utils/types/types";
 import SellerFollowButton from "@/components/utility-components/seller-follow-button";
 
@@ -216,7 +216,7 @@ export default function ProductListingView({
           </div>
         ) : (
           <div className="flex min-h-[60vh] items-center justify-center">
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           </div>
         )}
         {invoiceGenerationFailed ? (

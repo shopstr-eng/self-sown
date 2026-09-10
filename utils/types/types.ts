@@ -1,4 +1,4 @@
-import type { StorefrontConfig } from "@milk-market/domain";
+import type { StorefrontConfig } from "@self-sown/domain";
 import { Event } from "nostr-tools";
 
 export type {
@@ -39,7 +39,7 @@ export type {
   StorefrontSocialPostPlatform,
   StorefrontTestimonial,
   StorefrontTimelineItem,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export type ItemType = "products" | "profiles" | "chats" | "communities";
 

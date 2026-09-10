@@ -2,10 +2,10 @@ import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
   name: "Self-sown Vendor",
-  slug: "milk-market-mobile",
+  slug: "self-sown-mobile",
   version: "0.1.0",
   orientation: "portrait",
-  scheme: "milkmarket",
+  scheme: ["selfsown", "milkmarket"],
   userInterfaceStyle: "automatic",
   plugins: [
     "expo-router",
@@ -23,10 +23,10 @@ const config: ExpoConfig = {
   },
   ios: {
     supportsTablet: true,
-    bundleIdentifier: "com.milkmarket.mobile",
+    bundleIdentifier: "com.selfsown.mobile",
   },
   android: {
-    package: "com.milkmarket.mobile",
+    package: "com.selfsown.mobile",
   },
   web: {
     bundler: "metro",

@@ -19,7 +19,7 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 
 const BUNDLE_CONTENTS = [
-  "milk-market.config.json: your store config (pubkey, slug, relays, Blossom servers, branding). No secrets.",
+  "self-sown.config.json: your store config (pubkey, slug, relays, Blossom servers, branding). No secrets.",
   ".env.example: environment template with placeholders only. Copy to .env and fill in.",
   "setup.sh: clones the public code and drops your config in place.",
   "README.md & SETUP.md: step-by-step instructions to get running.",

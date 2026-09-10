@@ -11,7 +11,7 @@ import { trackEvent } from "@/utils/analytics";
 import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   CashuWalletContext,
   ChatsContext,
@@ -108,7 +108,7 @@ import {
   multiCardAdvanceFailureMessage,
 } from "@/utils/cart/multi-seller-card";
 import { NostrWebLNProvider } from "@getalby/sdk";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import SignInModal from "./sign-in/SignInModal";
@@ -1934,7 +1934,7 @@ export default function CartInvoiceCard({
         > = {};
 
         for (const pubkey of uniqueSellerPubkeys) {
-          if (pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+          if (pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) {
             accounts[pubkey] = "platform";
             processors[pubkey] = {
               processor: "stripe",
@@ -2041,7 +2041,7 @@ export default function CartInvoiceCard({
     setIsSquareMerchant(false);
     setSquareSellerStatus(null);
     if (!isSingleSeller || !singleSellerPubkey) return;
-    if (singleSellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) return;
+    if (singleSellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) return;
     (async () => {
       try {
         const res = await fetch("/api/square/seller-status", {
@@ -2746,7 +2746,7 @@ export default function CartInvoiceCard({
           const sellerProfileForEmailDonation =
             profileContext.profileData.get(sellerPubkey);
           const isPlatformSeller =
-            sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+            sellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
           // Multi-seller card carts charge each seller on their OWN processor,
           // so resolve this seller's effective method (stripe vs square) and
           // whether a platform donation applies (Stripe only; Square charges go
@@ -6555,7 +6555,7 @@ export default function CartInvoiceCard({
         // Step 2: Send donation message
         if (donationToken) {
           const donationMessage = "Sale donation: " + donationToken;
-          const donationRecipient = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+          const donationRecipient = (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
           if (donationRecipient) {
             try {
               const __donationOk = await sendPaymentAndContactMessage(
@@ -6573,7 +6573,7 @@ export default function CartInvoiceCard({
             }
           } else {
             console.warn(
-              "NEXT_PUBLIC_MILK_MARKET_PK not set; skipping donation message."
+              "NEXT_PUBLIC_SELF_SOWN_PK not set; skipping donation message."
             );
           }
         }
@@ -8540,11 +8540,11 @@ export default function CartInvoiceCard({
                       }
 
                       // Calculate milk market donation for this product
-                      const milkMarketDonationPercentage =
+                      const platformDonationPercentage =
                         profileContext.profileData.get(product.pubkey)?.content
                           ?.mm_donation ?? 0;
-                      const milkMarketDonationAmount = Math.ceil(
-                        (basePrice * milkMarketDonationPercentage) / 100
+                      const platformDonationAmount = Math.ceil(
+                        (basePrice * platformDonationPercentage) / 100
                       );
 
                       return (
@@ -8612,16 +8612,16 @@ export default function CartInvoiceCard({
                               </span>
                             </div>
                           )}
-                          {milkMarketDonationAmount > 0 && (
+                          {platformDonationAmount > 0 && (
                             <div className="flex justify-between text-sm text-orange-600">
                               <span className="ml-2">
                                 Self-sown Donation (
-                                {milkMarketDonationPercentage}%):
+                                {platformDonationPercentage}%):
                               </span>
                               <span>
                                 -
                                 {formatWithCommas(
-                                  milkMarketDonationAmount,
+                                  platformDonationAmount,
                                   product.currency
                                 )}
                               </span>
@@ -9047,11 +9047,11 @@ export default function CartInvoiceCard({
                     }
 
                     // Calculate milk market donation for this product
-                    const milkMarketDonationPercentage =
+                    const platformDonationPercentage =
                       profileContext.profileData.get(product.pubkey)?.content
                         ?.mm_donation ?? 0;
-                    const milkMarketDonationAmount = Math.ceil(
-                      (basePrice * milkMarketDonationPercentage) / 100
+                    const platformDonationAmount = Math.ceil(
+                      (basePrice * platformDonationPercentage) / 100
                     );
 
                     return (
@@ -9132,16 +9132,16 @@ export default function CartInvoiceCard({
                             </span>
                           </div>
                         )}
-                        {milkMarketDonationAmount > 0 && (
+                        {platformDonationAmount > 0 && (
                           <div className="flex justify-between text-sm text-orange-600">
                             <span className="ml-2">
                               Self-sown Donation (
-                              {milkMarketDonationPercentage}%):
+                              {platformDonationPercentage}%):
                             </span>
                             <span>
                               -
                               {formatWithCommas(
-                                milkMarketDonationAmount,
+                                platformDonationAmount,
                                 product.currency
                               )}
                             </span>
