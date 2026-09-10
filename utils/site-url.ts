@@ -20,14 +20,6 @@
 const FALLBACK_SITE_URL = "https://self-sown.com";
 
 /**
- * The previous base domain, retained after the 2026 cutover to self-sown.com.
- * proxy.ts uses it to 301 legacy page traffic to SITE_HOST while continuing
- * to serve /api/ and /.well-known/ on the old domain during the transition.
- * This is a historical constant — it does not follow NEXT_PUBLIC_BASE_URL.
- */
-export const LEGACY_SITE_HOST = "milk.market";
-
-/**
  * The platform origin, e.g. "https://self-sown.com".
  * Returns NEXT_PUBLIC_BASE_URL verbatim when set (same semantics as the
  * `process.env.NEXT_PUBLIC_BASE_URL || FALLBACK` expressions

@@ -15,8 +15,9 @@
 //   1. URLs on the configured site host (resolveExpectedHost()) are correct.
 //   2. URLs on LEGACY_SITE_HOST are allowed ONLY as historical references —
 //      an operational endpoint path (/api/*, /.well-known/*) on the legacy
-//      host is stale cutover drift and fails, because legacy page traffic
-//      301-redirects but a legacy API endpoint advertised to agents rots.
+//      host is stale cutover drift and fails: legacy page URLs still resolve
+//      (the old domain is served as platform traffic), but a legacy API
+//      endpoint advertised to agents rots the moment the domain is dropped.
 //   3. URLs on EXTERNAL_HOST_ALLOWLIST are legitimate external references.
 //   4. ANY other host fails as an unrecognized origin: it is either a stale
 //      site domain from a partial cutover, a typo'd domain, or a new external
@@ -30,7 +31,13 @@
 
 import { readFileSync } from "fs";
 import { join } from "path";
-import { getSiteHost, LEGACY_SITE_HOST } from "@/utils/site-url";
+import { getSiteHost } from "@/utils/site-url";
+
+// The retired pre-cutover base domain. No longer exported from
+// utils/site-url.ts (the proxy 301 scaffolding was removed once legacy
+// traffic faded); kept here as explicit test policy so a stale operational
+// endpoint on the old domain is still flagged as drift.
+const LEGACY_SITE_HOST = "milk.market";
 
 // --- Static discovery surfaces that hardcode the site origin -----------------
 
@@ -63,9 +70,9 @@ const EXTERNAL_HOST_ALLOWLIST = new Set([
   "www.rfc-editor.org", // RFC 9116 reference (security.txt)
 ]);
 
-// Paths that must never be advertised on the legacy host: page paths 301 to
-// the new origin, but operational endpoints advertised to agents must point
-// at the configured origin directly.
+// Paths that must never be advertised on the legacy host: operational
+// endpoints advertised to agents must point at the configured origin
+// directly, not at the retired domain.
 const OPERATIONAL_PATH_RE = /^\/(api|\.well-known)(\/|$)/;
 
 // Absolute URLs only. Excludes quotes/brackets/backticks so JSON and markdown
@@ -208,12 +215,12 @@ function checkContent(
       if (OPERATIONAL_PATH_RE.test(url.pathname)) {
         problems.push(
           `${label}: stale operational endpoint on the legacy host: ` +
-            `${url.raw} — legacy page traffic 301-redirects, but agents must ` +
-            `be sent to the configured origin "${expectedHost}" directly`
+            `${url.raw} — agents must be sent to the configured origin ` +
+            `"${expectedHost}" directly`
         );
       }
       // Bare/page-path legacy URLs are allowed as intentional historical
-      // references (they redirect).
+      // references (the retired domain is still served as platform traffic).
       continue;
     }
     if (EXTERNAL_HOST_ALLOWLIST.has(url.host)) continue;

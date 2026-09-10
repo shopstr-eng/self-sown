@@ -3,7 +3,6 @@ import {
   getSiteHost,
   SITE_URL,
   SITE_HOST,
-  LEGACY_SITE_HOST,
 } from "@/utils/site-url";
 
 describe("site-url", () => {
@@ -31,10 +30,6 @@ describe("site-url", () => {
   it("treats an empty env var as unset", () => {
     process.env.NEXT_PUBLIC_BASE_URL = "";
     expect(getSiteUrl()).toBe("https://self-sown.com");
-  });
-
-  it("pins the legacy (pre-cutover) base domain for proxy redirects", () => {
-    expect(LEGACY_SITE_HOST).toBe("milk.market");
   });
 
   it("derives the host even without a protocol and never throws", () => {

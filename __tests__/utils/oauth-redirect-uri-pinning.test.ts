@@ -4,6 +4,12 @@
 // authorize-time redirect URI pinned in the OAuth state row — not one
 // reconstructed from the current base URL, which flips when
 // NEXT_PUBLIC_BASE_URL changes domains mid-flow.
+//
+// Decision (post-cutover cleanup): the redirect_uri pinning in
+// square_oauth_states / shipping_oauth_states is KEPT, not dropped. It is
+// harmless — existing state rows may still carry a pinned URI, and the
+// fallback to the current base URL covers rows without one. Dropping the
+// column/logic would add migration risk for zero runtime benefit.
 
 import { exchangeSquareCodeForToken } from "@/utils/square/square-oauth";
 import { exchangeShippoCodeForToken } from "@/utils/shipping/shippo-oauth";

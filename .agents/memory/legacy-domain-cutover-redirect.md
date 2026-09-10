@@ -1,15 +1,14 @@
 ---
-name: Legacy-domain cutover redirect
-description: Rules the milk.market→self-sown.com cutover redirect established — any future domain move or proxy host-routing change must preserve them
+name: Legacy-domain cutover redirect (retired)
+description: milk.market→self-sown.com cutover rules — the 301 scaffolding is gone; what remains and what a future domain move must preserve
 ---
 
-# Legacy-domain cutover redirect
+# Legacy-domain cutover redirect (retired)
 
-- The legacy host (`LEGACY_SITE_HOST`, a historical constant that never follows env) stays in `PLATFORM_HOST_SUFFIXES` — it is never treated as a seller custom domain, so `/api/` keeps working on it.
-- Page traffic on the legacy host 301s to `SITE_HOST` with path+query preserved; the Host comparison is port-stripped and the destination is built from the configured canonical origin (scheme/host/port), never from the incoming request URL.
-- `/api/` and `/.well-known/` NEVER redirect.
-- OAuth callback pages (Square/Shippo) DO redirect; continuity is preserved by pinning the authorize-time `redirect_uri` in the OAuth state row (`square_oauth_states` / `shipping_oauth_states`) and replaying it at token exchange instead of reconstructing from the current base URL.
+- The post-cutover 301 block and `LEGACY_SITE_HOST` are REMOVED (legacy traffic had faded). milk.market stays in `PLATFORM_HOST_SUFFIXES` in proxy.ts as a string literal — still owned and pointing at the deployment — so old links serve platform traffic instead of the "Domain Not Configured" placeholder. Remove the entry only if the domain is dropped.
+- OAuth `redirect_uri` pinning in `square_oauth_states` / `shipping_oauth_states` was KEPT (decision recorded in __tests__/utils/oauth-redirect-uri-pinning.test.ts): harmless, existing rows may still carry pinned URIs, and it protects any in-flight flow from base-URL changes.
+- The discovery-files drift guard keeps milk.market as a local test constant: operational endpoints (/api/*, /.well-known/*) on the retired domain are still flagged as stale cutover drift.
 
-**Why:** Stripe treats any 3xx webhook response as a delivery failure, and NIP-05 / Apple Pay / agent-discovery files must stay reachable on the old domain during transition. Square/Shippo require the exchange `redirect_uri` to exactly match the authorize-time one.
+**Why:** Stripe treats any 3xx webhook response as a delivery failure and Square/Shippo require the exchange `redirect_uri` to exactly match the authorize-time one — those constraints outlived the redirect itself. Serving (not redirecting) the old domain only works while the domain is owned; the suffix entry is the guard against "Domain Not Configured".
 
-**How to apply:** any change to proxy.ts host routing must keep the `/api/` + `/.well-known/` exemption; any new OAuth-style provider must pin `redirect_uri` in its state row the same way. Cutover sequencing: deploy the pinning/routing code while the OLD base URL is still configured, wait >15 min (the OAuth state TTL) so unpinned legacy state rows expire, THEN flip NEXT_PUBLIC_BASE_URL and publish again — simultaneous code+domain flip leaves a ~15-min window where in-flight OAuth connects fail once (seller retries).
+**How to apply:** a future domain move should re-introduce a time-boxed 301 (port-stripped host compare, destination built from the configured canonical origin, /api/ + /.well-known/ exempt) plus OAuth redirect_uri pinning, then retire it the same way once traffic fades. Cutover sequencing: deploy pinning/routing while the OLD base URL is configured, wait >15 min (OAuth state TTL), THEN flip NEXT_PUBLIC_BASE_URL.

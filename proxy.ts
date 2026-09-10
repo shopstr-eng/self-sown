@@ -12,7 +12,7 @@ import {
   isApiVersionSupported,
   unsupportedApiVersionBody,
 } from "@/utils/api/api-version";
-import { SITE_HOST, SITE_URL, LEGACY_SITE_HOST } from "@/utils/site-url";
+import { SITE_HOST } from "@/utils/site-url";
 
 // Routes that should NOT be rewritten under /stall/<slug>/ on a custom
 // domain — they live at the root of the seller's site (or fall through to
@@ -125,10 +125,11 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
 // still routed correctly.
 const PLATFORM_HOST_SUFFIXES = [
   SITE_HOST, // <apex> + *.<apex>
-  // Previous base domain, kept here so that after the cutover its remaining
-  // API/.well-known traffic is still served (as platform traffic, never as a
-  // seller custom domain) while page traffic 301s to SITE_HOST below.
-  LEGACY_SITE_HOST,
+  // Previous base domain (pre-cutover). The domain is still owned and points
+  // at this deployment, so it must keep serving as platform traffic — never
+  // as a seller custom domain — or old links would render the "Domain Not
+  // Configured" placeholder. If the domain is ever dropped, remove this entry.
+  "milk.market",
   "replit.app", // *.replit.app
   "replit.dev", // *.replit.dev (preview)
   "repl.co",
@@ -305,33 +306,6 @@ async function routeRequest(request: NextRequest) {
         request.url
       )
     );
-  }
-
-  // Legacy base domain (post-cutover milk.market): 301 page traffic to the
-  // canonical host, preserving path + query so previously-sent email deep
-  // links (order confirmations, HMAC-signed review/unsubscribe links with
-  // 90-day click TTLs) keep working. Every *.milk.market subdomain redirects
-  // too — subdomains were never stall-mapped, they just served the platform
-  // app. /api/ and /.well-known/ traffic is NOT redirected: webhook senders
-  // (Stripe) treat 3xx as delivery failure, and verification/discovery files
-  // must stay reachable on the old domain during the transition window; those
-  // paths fall through and are served as platform traffic (LEGACY_SITE_HOST
-  // is in PLATFORM_HOST_SUFFIXES).
-  // hostStripPort: a port-bearing Host header (milk.market:443) must not
-  // bypass the redirect.
-  const legacyHost = hostStripPort(hostname);
-  if (
-    SITE_HOST !== LEGACY_SITE_HOST &&
-    (legacyHost === LEGACY_SITE_HOST ||
-      legacyHost.endsWith(`.${LEGACY_SITE_HOST}`)) &&
-    !pathname.startsWith("/api/") &&
-    !pathname.startsWith("/.well-known/")
-  ) {
-    // Build the destination from the configured canonical origin — not the
-    // incoming request URL — so http:// or port-bearing legacy requests still
-    // land on the canonical scheme/host/port. Path + query carry over.
-    const origin = SITE_URL.includes("://") ? SITE_URL : `https://${SITE_URL}`;
-    return NextResponse.redirect(new URL(`${pathname}${search}`, origin), 301);
   }
 
   if (hostname === `www.${SITE_HOST}`) {
@@ -678,7 +652,7 @@ async function routeRequest(request: NextRequest) {
     }
 
     // API routes: gate to the allow-list. Storefront browsing + checkout +
-    // account flows on the custom domain still call back into milk.market's
+    // account flows on the custom domain still call back into the platform's
     // shared APIs (Stripe, Lightning, email, etc.) so they need to pass.
     if (pathname.startsWith("/api/")) {
       const allowed = CUSTOM_DOMAIN_API_ALLOWLIST.some((p) =>
