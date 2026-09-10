@@ -140,9 +140,7 @@ describe("DynamicHead", () => {
           "Self-sown - Sell Local Products Online. Zero Platform Fees."
         )
       );
-      expect(getMetaContent("og:url")).toBe(
-        `${SITE_URL}/marketplace/npub`
-      );
+      expect(getMetaContent("og:url")).toBe(`${SITE_URL}/marketplace/npub`);
     });
 
     test("should use fallback image for a shop with picture set to null", async () => {

@@ -1,7 +1,4 @@
-import type {
-  NostrEventRecord,
-  StripeConnectStatus,
-} from "@self-sown/domain";
+import type { NostrEventRecord, StripeConnectStatus } from "@self-sown/domain";
 
 export * from "./orders";
 

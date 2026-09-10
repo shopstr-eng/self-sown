@@ -347,7 +347,6 @@ export default function ProductInvoiceCard({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nostr, productData.shippingOptions]);
   // True when converting the seller's shipping cost into the product currency
   // required an FX lookup that the rate feed could not provide, so
@@ -742,7 +741,9 @@ export default function ProductInvoiceCard({
   };
 
   const [isStripeMerchant, setIsStripeMerchant] = useState(
-    productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+    productData.pubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK)
   );
   const [sellerConnectedAccountId, setSellerConnectedAccountId] = useState<
     string | null
@@ -750,7 +751,11 @@ export default function ProductInvoiceCard({
 
   useEffect(() => {
     const checkSellerStripe = async () => {
-      if (productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) {
+      if (
+        productData.pubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+          process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+      ) {
         setIsStripeMerchant(true);
         return;
       }
@@ -775,7 +780,12 @@ export default function ProductInvoiceCard({
 
   useEffect(() => {
     const fetchConnectedAccountId = async () => {
-      if (productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) return;
+      if (
+        productData.pubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+          process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+      )
+        return;
       try {
         const res = await fetch("/api/stripe/connect/seller-status", {
           method: "POST",
@@ -1426,7 +1436,9 @@ export default function ProductInvoiceCard({
         productData.pubkey
       );
       const isPlatformSeller =
-        productData.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+        productData.pubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+          process.env.NEXT_PUBLIC_MILK_MARKET_PK);
       const onPlatformPayment =
         paymentType === "cashu" ||
         paymentType === "nwc" ||
@@ -1518,7 +1530,6 @@ export default function ProductInvoiceCard({
     }
     // handleOrderTypeSelection is stable enough — only the inputs that decide
     // the auto-selection should retrigger this effect.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOrderTypeSelection, productData?.shippingType]);
 
   const handleNWCError = (error: any) => {
@@ -3650,7 +3661,9 @@ export default function ProductInvoiceCard({
       // Step 2: Send donation message
       if (donationToken) {
         const donationMessage = "Sale donation: " + donationToken;
-        const donationRecipient = (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+        const donationRecipient =
+          process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+          process.env.NEXT_PUBLIC_MILK_MARKET_PK;
         if (donationRecipient) {
           try {
             const __donationOk = await sendPaymentAndContactMessage(
@@ -5016,7 +5029,6 @@ export default function ProductInvoiceCard({
     )
       return;
     setSelectedSpecOptionAddr(visibleSpecOptions[0]?.option.address ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buyerSpecCountry, specShippingOptions]);
 
   const effectiveShippingCost = specDestinationBlocked
@@ -5154,7 +5166,6 @@ export default function ProductInvoiceCard({
     // `convertedShippingCost` is intentionally omitted from deps: the setters
     // use the functional form with equality checks to avoid re-running the
     // async FX lookup in an infinite loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     formType,
     effectiveShippingCost,
@@ -5259,7 +5270,6 @@ export default function ProductInvoiceCard({
       cancelled = true;
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -5348,7 +5358,6 @@ export default function ProductInvoiceCard({
     };
     // liveQuoteKey encodes every input the quote depends on; the address/parcel
     // values read inside stay consistent with it on each run.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveQuoteKey]);
 
   // Debounced Stripe Tax lookup — fires when the shipping form has at least a
@@ -5441,7 +5450,6 @@ export default function ProductInvoiceCard({
       clearTimeout(t);
       setIsCalculatingTax(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],

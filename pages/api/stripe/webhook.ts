@@ -621,7 +621,10 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     error: string;
   }[] = [];
   const nonPlatformSplits = sellerSplits.filter(
-    (s) => s.pubkey !== (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+    (s) =>
+      s.pubkey !==
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK)
   );
 
   // Resolve any missing Connect account ids for ALL splits BEFORE creating
@@ -634,7 +637,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
   // per-split failedTransfer + ops alert, never a retry.
   const resolvedAccountIds = new Map<string, string>();
   for (const split of sellerSplits) {
-    if (split.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) continue;
+    if (
+      split.pubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+    )
+      continue;
     if (split.accountId) continue;
     const connectAccount = await getStripeConnectAccount(split.pubkey);
     if (!connectAccount || !connectAccount.charges_enabled) {
@@ -652,7 +660,9 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
 
   for (const split of sellerSplits) {
     const isPlatformAccount =
-      split.pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+      split.pubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK);
     if (isPlatformAccount) continue;
 
     const accountId = split.accountId || resolvedAccountIds.get(split.pubkey);

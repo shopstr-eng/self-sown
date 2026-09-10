@@ -1934,7 +1934,11 @@ export default function CartInvoiceCard({
         > = {};
 
         for (const pubkey of uniqueSellerPubkeys) {
-          if (pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) {
+          if (
+            pubkey ===
+            (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+              process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+          ) {
             accounts[pubkey] = "platform";
             processors[pubkey] = {
               processor: "stripe",
@@ -2041,7 +2045,12 @@ export default function CartInvoiceCard({
     setIsSquareMerchant(false);
     setSquareSellerStatus(null);
     if (!isSingleSeller || !singleSellerPubkey) return;
-    if (singleSellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK)) return;
+    if (
+      singleSellerPubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+    )
+      return;
     (async () => {
       try {
         const res = await fetch("/api/square/seller-status", {
@@ -2746,7 +2755,9 @@ export default function CartInvoiceCard({
           const sellerProfileForEmailDonation =
             profileContext.profileData.get(sellerPubkey);
           const isPlatformSeller =
-            sellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+            sellerPubkey ===
+            (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+              process.env.NEXT_PUBLIC_MILK_MARKET_PK);
           // Multi-seller card carts charge each seller on their OWN processor,
           // so resolve this seller's effective method (stripe vs square) and
           // whether a platform donation applies (Stripe only; Square charges go
@@ -2843,7 +2854,6 @@ export default function CartInvoiceCard({
     } else {
       handleOrderTypeSelection("contact");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOrderTypeSelection, uniqueShippingTypes, products.length]);
 
   const handleOrderTypeSelection = async (selectedOrderType: string) => {
@@ -3053,7 +3063,6 @@ export default function CartInvoiceCard({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     appliedShippingDiscounts,
     formType,
@@ -6555,7 +6564,9 @@ export default function CartInvoiceCard({
         // Step 2: Send donation message
         if (donationToken) {
           const donationMessage = "Sale donation: " + donationToken;
-          const donationRecipient = (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+          const donationRecipient =
+            process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+            process.env.NEXT_PUBLIC_MILK_MARKET_PK;
           if (donationRecipient) {
             try {
               const __donationOk = await sendPaymentAndContactMessage(
@@ -7423,7 +7434,6 @@ export default function CartInvoiceCard({
       clearTimeout(t);
       setIsCalculatingTax(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -7536,7 +7546,6 @@ export default function CartInvoiceCard({
       cancelled = true;
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -7703,7 +7712,6 @@ export default function CartInvoiceCard({
       clearTimeout(t);
       setIsFetchingLiveRates(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -8615,8 +8623,8 @@ export default function CartInvoiceCard({
                           {platformDonationAmount > 0 && (
                             <div className="flex justify-between text-sm text-orange-600">
                               <span className="ml-2">
-                                Self-sown Donation (
-                                {platformDonationPercentage}%):
+                                Self-sown Donation ({platformDonationPercentage}
+                                %):
                               </span>
                               <span>
                                 -
@@ -9135,8 +9143,8 @@ export default function CartInvoiceCard({
                         {platformDonationAmount > 0 && (
                           <div className="flex justify-between text-sm text-orange-600">
                             <span className="ml-2">
-                              Self-sown Donation (
-                              {platformDonationPercentage}%):
+                              Self-sown Donation ({platformDonationPercentage}
+                              %):
                             </span>
                             <span>
                               -

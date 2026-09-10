@@ -77,7 +77,11 @@ export function isPlatformPubkey(
   sellerPubkey: string | undefined | null
 ): boolean {
   if (!sellerPubkey) return false;
-  return sellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+  return (
+    sellerPubkey ===
+    (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+      process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+  );
 }
 
 export async function resolveDonationCut(

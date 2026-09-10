@@ -156,7 +156,6 @@ export default function ThemedBlog({
             </div>
           )}
           {post.image && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={post.image}
               alt={post.title}
@@ -208,7 +207,7 @@ export default function ThemedBlog({
                 >
                   {post.image && (
                     <div className="aspect-video overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {}
                       <img
                         src={post.image}
                         alt={post.title}

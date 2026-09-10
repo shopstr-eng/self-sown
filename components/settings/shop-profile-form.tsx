@@ -2448,8 +2448,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                           </label>
                           <p className="ml-7 text-sm text-gray-500">
                             Adds a hard offset shadow to bordered cards across
-                            your stall, the same look used on the main
-                            Self-sown marketplace.
+                            your stall, the same look used on the main Self-sown
+                            marketplace.
                           </p>
                         </div>
 

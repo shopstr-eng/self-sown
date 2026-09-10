@@ -1441,7 +1441,6 @@ const OrdersDashboard = ({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, orders, router.query.review, signer, userPubkey]);
 
   const canShowReturnButton = (order: OrderData) => {

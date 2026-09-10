@@ -2,10 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { listScheduledBlogPosts } from "@/utils/db/db-service";
-import {
-  parseBlogPostEvent,
-  type ScheduledBlogPost,
-} from "@self-sown/domain";
+import { parseBlogPostEvent, type ScheduledBlogPost } from "@self-sown/domain";
 
 const AUTH_PATH = "/api/storefront/blog/scheduled-posts";
 

@@ -220,7 +220,7 @@ export default function SectionBlog({
                   <div className="md:flex">
                     {featured.image && (
                       <div className="md:w-1/2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {}
                         <img
                           src={featured.image}
                           alt={featured.title}
@@ -268,7 +268,6 @@ export default function SectionBlog({
                         style={{ borderColor: colors.primary + "22" }}
                       >
                         {post.image && (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={post.image}
                             alt={post.title}
@@ -298,7 +297,7 @@ export default function SectionBlog({
                       >
                         {post.image && (
                           <div className="aspect-video overflow-hidden">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {}
                             <img
                               src={post.image}
                               alt={post.title}

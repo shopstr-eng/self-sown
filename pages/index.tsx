@@ -791,8 +791,8 @@ export default function StandaloneLanding() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Even if Self-sown disappeared tomorrow, your store would
-                  stay online
+                  Even if Self-sown disappeared tomorrow, your store would stay
+                  online
                 </li>
               </ul>
             </div>

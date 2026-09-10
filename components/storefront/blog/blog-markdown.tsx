@@ -81,7 +81,6 @@ export default function BlogMarkdown({ content }: { content: string }) {
           ),
           img: ({ src, alt }) =>
             typeof src === "string" && isHttpUrl(src) ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={src}
                 alt={alt || ""}

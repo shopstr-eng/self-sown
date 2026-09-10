@@ -266,9 +266,7 @@ export async function PostListing(
   const handlerDTag = uuidv4();
 
   const origin =
-    window && typeof window !== undefined
-      ? window.location.origin
-      : SITE_URL;
+    window && typeof window !== undefined ? window.location.origin : SITE_URL;
 
   const handlerEvent: EventTemplate = {
     kind: 31990,

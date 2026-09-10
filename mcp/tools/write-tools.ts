@@ -4873,8 +4873,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  const DOMAIN_CNAME_TARGET =
-    process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST;
+  const DOMAIN_CNAME_TARGET = process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST;
   // The pre-rebrand replit.app host stays accepted: existing sellers already
   // CNAME to it and it still resolves to the deployment.
   const VALID_DOMAIN_TARGETS = [

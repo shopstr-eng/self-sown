@@ -359,8 +359,7 @@ const DynamicHead = ({
         property="twitter:domain"
         key="twitter:domain"
         content={
-          displayOrigin.replace(/^https?:\/\//, "").split("/")[0] ||
-          SITE_HOST
+          displayOrigin.replace(/^https?:\/\//, "").split("/")[0] || SITE_HOST
         }
       />
       <meta property="twitter:url" content={metaTags.url} key="twitter:url" />

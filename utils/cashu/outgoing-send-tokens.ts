@@ -22,9 +22,7 @@ function migrateLegacyKey(): void {
           const seen = new Set(current.map((t: OutgoingSendToken) => t?.token));
           const merged = [
             ...current,
-            ...legacy.filter(
-              (t: OutgoingSendToken) => t && !seen.has(t.token)
-            ),
+            ...legacy.filter((t: OutgoingSendToken) => t && !seen.has(t.token)),
           ];
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
         } else return;

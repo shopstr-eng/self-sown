@@ -200,7 +200,6 @@ const PaymentsSettingsPage = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pubkey, signer]);
 
   // Begin the Square OAuth flow: sign the proof, get the authorize URL, and
@@ -571,8 +570,8 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Square</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Square account from Self-sown, for example
-                      to switch to Stripe or a different Square account. Card
+                      Remove this Square account from Self-sown, for example to
+                      switch to Stripe or a different Square account. Card
                       payments will stop until you connect a processor again.
                       Your Square account itself isn&apos;t deleted.
                     </p>
@@ -975,12 +974,11 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Stripe</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Stripe account from Self-sown, for example
-                      if you need to switch to a different account or fix a
-                      broken connection. Card payments will stop until you
-                      connect an account again. Your Stripe account itself
-                      isn&apos;t deleted; you can still manage or close it from
-                      Stripe.
+                      Remove this Stripe account from Self-sown, for example if
+                      you need to switch to a different account or fix a broken
+                      connection. Card payments will stop until you connect an
+                      account again. Your Stripe account itself isn&apos;t
+                      deleted; you can still manage or close it from Stripe.
                     </p>
                     <Button
                       className={`${DANGERBUTTONCLASSNAMES} mt-1`}

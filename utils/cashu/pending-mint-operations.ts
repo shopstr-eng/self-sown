@@ -22,7 +22,9 @@ function migrateLegacyKey(): void {
         const legacy = JSON.parse(legacyRaw);
         const current = JSON.parse(currentRaw);
         if (Array.isArray(legacy) && Array.isArray(current)) {
-          const seen = new Set(current.map((q: PendingMintQuote) => q?.quoteId));
+          const seen = new Set(
+            current.map((q: PendingMintQuote) => q?.quoteId)
+          );
           const merged = [
             ...current,
             ...legacy.filter(

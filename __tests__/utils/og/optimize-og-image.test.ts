@@ -22,9 +22,9 @@ describe("toOptimizedOgImageUrl", () => {
   });
 
   it("leaves relative paths untouched (callers absolute-ize first)", () => {
-    expect(
-      toOptimizedOgImageUrl("/self-sown.png", SITE_URL)
-    ).toBe("/self-sown.png");
+    expect(toOptimizedOgImageUrl("/self-sown.png", SITE_URL)).toBe(
+      "/self-sown.png"
+    );
   });
 
   it("leaves data URLs untouched (cannot be proxied)", () => {
@@ -35,10 +35,7 @@ describe("toOptimizedOgImageUrl", () => {
   it("passes through empty input and tolerates a trailing-slash origin", () => {
     expect(toOptimizedOgImageUrl("", SITE_URL)).toBe("");
     expect(
-      toOptimizedOgImageUrl(
-        "https://cdn.example.com/a.png",
-        `${SITE_URL}/`
-      )
+      toOptimizedOgImageUrl("https://cdn.example.com/a.png", `${SITE_URL}/`)
     ).toBe(
       `${SITE_URL}/api/og-image?url=https%3A%2F%2Fcdn.example.com%2Fa.png`
     );
@@ -69,8 +66,6 @@ describe("resolveOgImageOrigin", () => {
   });
 
   it("ignores an unparseable SSR store URL", () => {
-    expect(resolveOgImageOrigin("not a url", false)).toBe(
-      SITE_URL
-    );
+    expect(resolveOgImageOrigin("not a url", false)).toBe(SITE_URL);
   });
 });

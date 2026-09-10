@@ -150,7 +150,9 @@ export default async function handler(
 
     let connectedAccountId: string | null = null;
     const isPlatformAccount =
-      effectiveSellerPubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+      effectiveSellerPubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK);
 
     if (!isPlatformAccount) {
       const connectAccount = await getStripeConnectAccount(
@@ -424,7 +426,10 @@ async function handleMultiMerchantSubscription(
 
   const sellerAccounts: Record<string, string> = {};
   for (const pubkey of sellerPubkeys) {
-    const isPlatformAccount = pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+    const isPlatformAccount =
+      pubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK);
     if (!isPlatformAccount) {
       const connectAccount = await getStripeConnectAccount(pubkey);
       if (!connectAccount || !connectAccount.charges_enabled) {
@@ -558,7 +563,10 @@ async function handleMultiMerchantSubscription(
   }
 
   for (const [pubkey, amountCents] of Object.entries(sellerAmounts)) {
-    const isPlatformAccount = pubkey === (process.env.NEXT_PUBLIC_SELF_SOWN_PK || process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+    const isPlatformAccount =
+      pubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
+        process.env.NEXT_PUBLIC_MILK_MARKET_PK);
     const donationPercent = isPlatformAccount
       ? 0
       : await getSellerDonationPercent(pubkey);

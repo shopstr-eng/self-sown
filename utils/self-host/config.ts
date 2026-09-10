@@ -116,7 +116,9 @@ function readFileConfig(): FileConfig {
   // upgrade.
   const candidate =
     explicit ||
-    (fs.existsSync(/* turbopackIgnore: true */ path.join(cwd, "self-sown.config.json"))
+    (fs.existsSync(
+      /* turbopackIgnore: true */ path.join(cwd, "self-sown.config.json")
+    )
       ? path.join(cwd, "self-sown.config.json")
       : path.join(cwd, "milk-market.config.json"));
   try {
