@@ -23,17 +23,25 @@ RESULT=1
 
 mkdir -p "$WORK/bin" "$WORK/public" "$WORK/scripts"
 cp "$ROOT/scripts/dev-build-placeholder.mjs" "$WORK/scripts/"
-# Stub the shared assembly script the supervisor now delegates to: fold
-# .next/static + public into .next/standalone like the real one, and record
-# whether --strict-sharp was passed so the test can pin the flag.
-cat > "$WORK/scripts/prepare-standalone.mjs" <<'EOF'
+echo 'PUBLIC_MARKER' > "$WORK/public/marker.txt"
+# Exercise the REAL bundle-assembly script the supervisor delegates to, so a
+# CLI/behavior change there (renamed flag, different output layout, new
+# requirement) fails this test instead of drifting against a hand-written
+# re-implementation. Only its Sharp-repair dependency is stubbed — the real
+# repair needs a real pnpm standalone bundle — and the stub records how it
+# was invoked so the test still pins the --strict-sharp contract.
+cp "$ROOT/scripts/prepare-standalone.mjs" "$WORK/scripts/"
+cat > "$WORK/scripts/copy-sharp-standalone.mjs" <<'EOF'
 import fs from "node:fs";
-fs.cpSync(".next/static", ".next/standalone/.next/static", { recursive: true });
-fs.cpSync("public", ".next/standalone/public", { recursive: true });
-if (process.argv.includes("--strict-sharp")) {
-  fs.writeFileSync(".strict-sharp-flag", "yes");
+export function repairSharpStandalone() {
+  if (fs.existsSync(".sharp-broken")) {
+    throw new Error("STUB Sharp repair failure");
+  }
+  fs.writeFileSync(
+    ".sharp-repair-called",
+    process.argv.includes("--strict-sharp") ? "strict" : "non-strict"
+  );
 }
-console.log("prepare-standalone ok");
 EOF
 cd "$WORK"
 export PATH="$WORK/bin:$PATH"
@@ -65,7 +73,7 @@ EOF
   chmod +x bin/next
 }
 
-reset() { rm -rf .next .next-last-good .next-last-good.prev .next-last-good.new .next-dev-status .attempts .strict-sharp-flag; }
+reset() { rm -rf .next .next-last-good .next-last-good.prev .next-last-good.new .next-dev-status .attempts .sharp-repair-called; }
 run_supervisor() { # run_supervisor <timeout> -> log at /tmp/ds-test.log
   timeout "$1" bash "$SUPERVISOR" > /tmp/ds-test.log 2>&1
   return 0 # timeout's exit code is the assertion target via log content
@@ -76,7 +84,11 @@ write_stub oom_then_ok; reset
 run_supervisor 30
 check "fresh build served after OOM retries" "serving .next/standalone/server.js" /tmp/ds-test.log
 [ -f .next-last-good/server.js ] && ok "last-good snapshot saved" || bad "last-good snapshot saved"
-[ -f .strict-sharp-flag ] && ok "assembly delegated with --strict-sharp" || bad "assembly delegated with --strict-sharp"
+[ "$(cat .sharp-repair-called 2>/dev/null)" = "strict" ] && ok "assembly delegated with --strict-sharp" || bad "assembly delegated with --strict-sharp"
+# The real prepare-standalone.mjs ran: it folds .next/static + public into
+# the bundle (the stub `next` build never populates those inside standalone).
+[ -d .next-last-good/.next/static ] && ok "real script folded .next/static into the bundle" || bad "real script folded .next/static into the bundle"
+grep -qF PUBLIC_MARKER .next-last-good/public/marker.txt 2>/dev/null && ok "real script folded public/ into the bundle" || bad "real script folded public/ into the bundle"
 
 echo "== B: OOM streak with last-good, self-heal swap =="
 write_stub always_oom; reset
@@ -121,6 +133,28 @@ check "carry-forward logged" "carried forward previous build's static assets" /t
 [ -f .next-last-good/.next/static/chunks/old-chunk.js ] && ok "old chunk survives swap" || bad "old chunk survives swap"
 [ -f .next-last-good.prev/server.js ] && ok "previous generation retained as .prev" || bad "previous generation retained as .prev"
 grep -q FRESH_SERVER .next-last-good/server.js && ok "last-good promoted to fresh build" || bad "last-good promoted to fresh build"
+
+echo "== G: real prepare-standalone.mjs CLI contract (strict vs non-strict Sharp) =="
+# Directly exercise the copied real script: with --strict-sharp a Sharp repair
+# failure must exit non-zero (the supervisor/deploy fail-loud contract);
+# without the flag it must warn and exit 0 (the `pnpm start` contract). This
+# pins the flag the supervisor passes — a rename/behavior change in the real
+# script fails here.
+reset
+mkdir -p .next/standalone .next/static
+echo 'console.log("x");' > .next/standalone/server.js
+touch .sharp-broken
+if node scripts/prepare-standalone.mjs --strict-sharp >/dev/null 2>&1; then
+  bad "--strict-sharp exits non-zero on Sharp failure"
+else
+  ok "--strict-sharp exits non-zero on Sharp failure"
+fi
+if node scripts/prepare-standalone.mjs >/dev/null 2>&1; then
+  ok "non-strict warns and exits zero on Sharp failure"
+else
+  bad "non-strict warns and exits zero on Sharp failure"
+fi
+rm -f .sharp-broken
 
 echo
 echo "RESULT: $pass passed, $fail failed"
