@@ -130,7 +130,11 @@ download via `useProMembership().exportSelfHostStore()`.
 2. Create a PostgreSQL database; apply `db/schema.sql`.
 3. Copy `.env.example` → `.env`; set `DATABASE_URL`, optional `STRIPE_SECRET_KEY`
    (+ `MM_SELF_HOST_OWN_STRIPE=1`), optional `SENDGRID_API_KEY`.
-4. `pnpm install && pnpm build && pnpm start`.
+4. `pnpm install && pnpm build && pnpm start` (`pnpm start` boots the
+   standalone server `.next/standalone/server.js` via
+   `scripts/start-standalone.mjs` — the app builds with `output: "standalone"`,
+   where `next start` is unsupported; the script first folds `.next/static` +
+   `public` into the bundle and repairs Sharp natives, best-effort).
 5. Update later with `git pull` (your `.env` + `self-sown.config.json` are not
    overwritten).
 

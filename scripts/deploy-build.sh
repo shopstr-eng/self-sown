@@ -45,9 +45,9 @@ echo "==> Building Next.js (standalone output)"
 next build
 
 echo "==> Folding static + public into the standalone bundle"
-cp -r .next/static .next/standalone/.next/static
-cp -r public .next/standalone/public
-node scripts/copy-sharp-standalone.mjs
+# Shared with `pnpm start` (scripts/start-standalone.mjs). --strict-sharp keeps
+# the deploy build failing loudly if the Sharp native repair can't run.
+node scripts/prepare-standalone.mjs --strict-sharp
 
 echo "==> Post-build cleanup (drop only large, runtime-irrelevant items)"
 # IMPORTANT: do NOT remove .replit, replit.nix, package.json, pnpm-lock.yaml,

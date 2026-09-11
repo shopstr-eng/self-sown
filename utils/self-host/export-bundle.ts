@@ -319,6 +319,11 @@ pnpm build
 pnpm start
 \`\`\`
 
+\`pnpm start\` boots the standalone production server
+(\`node .next/standalone/server.js\` — this app builds with
+\`output: "standalone"\`, where \`next start\` is not supported). It serves on
+port 3000 by default; set \`PORT\` (and \`HOSTNAME\`) to change that.
+
 The site serves your storefront at the root URL. Everything visitors see is
 your branded storefront; the marketplace, discovery, platform info pages
 (About, FAQ, Producer Guide, Contact), the platform Terms/Privacy pages, and
