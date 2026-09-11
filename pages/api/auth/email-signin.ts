@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import CryptoJS from "crypto-js";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { withSchemaDdlLock } from "@/utils/db/db-service";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60 * 1000 };
 
@@ -29,7 +30,8 @@ export default async function handler(
   try {
     await client.connect();
 
-    await client.query(`
+    await withSchemaDdlLock(client, async () => {
+      await client.query(`
       CREATE TABLE IF NOT EXISTS email_auth (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
@@ -39,6 +41,7 @@ export default async function handler(
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    });
 
     const passwordHash = CryptoJS.SHA256(email + password).toString();
 

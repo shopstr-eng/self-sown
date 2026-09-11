@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { getDbPool } from "@/utils/db/db-service";
+import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 
 export type PendingPaymentStatus =
   | "creating"
@@ -24,7 +24,8 @@ let tableInitialized = false;
 
 async function ensureTable(client: PoolClient): Promise<void> {
   if (tableInitialized) return;
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS stripe_pending_payments (
       intent_ref TEXT PRIMARY KEY,
       payment_intent_id TEXT,
@@ -41,10 +42,11 @@ async function ensureTable(client: PoolClient): Promise<void> {
     `CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_status
        ON stripe_pending_payments(status)`
   );
-  await client.query(
-    `CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_payment_intent_id
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_payment_intent_id
        ON stripe_pending_payments(payment_intent_id)`
-  );
+    );
+  });
   tableInitialized = true;
 }
 

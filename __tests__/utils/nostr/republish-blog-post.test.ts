@@ -88,6 +88,9 @@ jest.mock("@/utils/db/db-service", () => ({
   cacheEvent: jest.fn(),
   getDbPool: jest.fn(),
   fetchRelayConfigFromDb: jest.fn(),
+  // Passthrough: the advisory-lock wrapper is covered separately.
+  withSchemaDdlLock: async (client: any, fn: (c: any) => Promise<unknown>) =>
+    fn(client),
 }));
 
 const mocked = {
@@ -141,7 +144,13 @@ beforeEach(() => {
   mocked.fetchRelayConfigFromDb.mockResolvedValue(relayListEvents());
   mocked.cacheEvent.mockResolvedValue(undefined);
   queryMock.mockResolvedValue({ rows: [] });
-  mocked.getDbPool.mockReturnValue({ query: queryMock });
+  mocked.getDbPool.mockReturnValue({
+    query: queryMock,
+    connect: jest.fn(async () => ({
+      query: queryMock,
+      release: jest.fn(),
+    })),
+  });
   // Default: every relay accepts the event (FakeRelaySocket ACKs OK=true).
 });
 

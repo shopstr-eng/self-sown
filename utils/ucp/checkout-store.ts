@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { getDbPool } from "@/utils/db/db-service";
+import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 import { randomBytes } from "crypto";
 import {
   CHECKOUT_STATUSES,
@@ -84,7 +84,8 @@ export async function initCheckoutSessionsTable(): Promise<void> {
   let client: PoolClient | undefined;
   try {
     client = await pool.connect();
-    await client.query(`
+    await withSchemaDdlLock(client, async (client) => {
+      await client.query(`
       CREATE TABLE IF NOT EXISTS ucp_checkout_sessions (
         id TEXT PRIMARY KEY,
         api_key_id INTEGER REFERENCES mcp_api_keys(id),
@@ -139,6 +140,7 @@ export async function initCheckoutSessionsTable(): Promise<void> {
       END
       $migrate$;
     `);
+    });
     tableReady = true;
   } catch (error) {
     console.error("Failed to initialize ucp_checkout_sessions table:", error);

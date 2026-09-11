@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { getDbPool } from "@/utils/db/db-service";
+import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 
 let tableInitialized = false;
 
@@ -15,7 +15,8 @@ const STALE_CLAIM_MS = 15 * 60 * 1000;
 
 async function ensureTable(client: PoolClient): Promise<void> {
   if (tableInitialized) return;
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS stripe_processed_events (
       event_id TEXT PRIMARY KEY,
       event_type TEXT NOT NULL,
@@ -41,10 +42,11 @@ async function ensureTable(client: PoolClient): Promise<void> {
        SET status = 'done'
      WHERE claimed_at IS NULL AND status <> 'done'`
   );
-  await client.query(
-    `CREATE INDEX IF NOT EXISTS idx_stripe_processed_events_processed_at
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_stripe_processed_events_processed_at
        ON stripe_processed_events(processed_at)`
-  );
+    );
+  });
   tableInitialized = true;
 }
 

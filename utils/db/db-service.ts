@@ -11,10 +11,87 @@ let tablesInitializationPromise: Promise<void> | null = null;
 // Queue for serializing cache operations
 let cacheQueue: Promise<void> = Promise.resolve();
 
+// Transaction-scoped advisory lock serializing every schema-DDL batch
+// (initializeTables plus the lazy ensure*Table helpers here and in
+// inventory-service / mcp/auth / stripe/* / ucp/checkout-store) across
+// connections and server processes. On a fresh database, two boot-time DDL
+// batches taking AccessExclusiveLock on the same relations in different
+// orders deadlock (Postgres 40P01); funnelling all DDL through one advisory
+// lock makes that impossible.
+//
+// The lock is transaction-scoped (pg_advisory_xact_lock inside one explicit
+// BEGIN/COMMIT), NOT session-scoped: getDbPool() rewrites Neon URLs to the
+// transaction-pooling -pooler endpoint, where consecutive queries on one
+// PoolClient can land on different backend sessions — a session-level lock
+// could leak on one backend while failing to cover the DDL on another. A
+// transaction pins the whole batch to a single backend even through a
+// transaction pooler, and the lock is always released at COMMIT/ROLLBACK
+// (or when the connection dies), so there is no unlock to fail.
+const SCHEMA_DDL_LOCK_KEY = 727423001;
+
+// Clients currently inside a withSchemaDdlLock transaction. Nested calls on
+// the same client (the ensure* helpers invoked mid-way through
+// initializeTables) must not re-open a transaction — the outer one already
+// holds the xact lock.
+const ddlLockHeldBy = new WeakSet<object>();
+
+export async function withSchemaDdlLock<T>(
+  client: Pick<PoolClient, "query">,
+  fn: (client: Pick<PoolClient, "query">) => Promise<T>
+): Promise<T> {
+  if (ddlLockHeldBy.has(client)) {
+    return fn(client);
+  }
+  await client.query("BEGIN");
+  ddlLockHeldBy.add(client);
+  try {
+    await client.query(`SELECT pg_advisory_xact_lock($1)`, [
+      SCHEMA_DDL_LOCK_KEY,
+    ]);
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      // Connection already dead; the server aborts the transaction (and
+      // releases the lock) when the connection closes.
+    }
+    throw error;
+  } finally {
+    ddlLockHeldBy.delete(client);
+  }
+}
+
+// Single-flight schema bootstrap. The stored promise always has rejection
+// handlers attached because most getDbPool() callers only want the pool and
+// never await initialization — a boot-time DDL failure must be logged, not
+// surface as an unhandledRejection (which can crash the process under
+// --unhandled-rejections=strict). Awaiters of the stored promise still
+// receive the rejection.
+function startTablesInitialization(): Promise<void> {
+  if (!tablesInitializationPromise) {
+    const initPromise = initializeTables();
+    initPromise.catch((error) => {
+      console.error("Failed to initialize database tables:", error);
+    });
+    const tracked = initPromise.finally(() => {
+      if (!tablesInitialized) {
+        tablesInitializationPromise = null;
+      }
+    });
+    tracked.catch(() => {});
+    tablesInitializationPromise = tracked;
+  }
+  return tablesInitializationPromise;
+}
+
 export async function ensureFailedRelayPublishesTable(
-  client: PoolClient
+  client: Pick<PoolClient, "query">
 ): Promise<void> {
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS failed_relay_publishes (
       event_id TEXT PRIMARY KEY,
       owner_pubkey TEXT,
@@ -25,23 +102,24 @@ export async function ensureFailedRelayPublishesTable(
     )
   `);
 
-  await client.query(`
+    await client.query(`
     ALTER TABLE failed_relay_publishes
     ADD COLUMN IF NOT EXISTS event_data TEXT
   `);
 
-  await client.query(`
+    await client.query(`
     ALTER TABLE failed_relay_publishes
     ADD COLUMN IF NOT EXISTS owner_pubkey TEXT
   `);
 
-  // Legacy rows pre-dating the owner_pubkey column have NULL ownership and
-  // can no longer be listed, retried, cleared, or claimed by anyone, so they
-  // would otherwise sit in the table forever. Drop them once on schema setup.
-  await client.query(`
+    // Legacy rows pre-dating the owner_pubkey column have NULL ownership and
+    // can no longer be listed, retried, cleared, or claimed by anyone, so they
+    // would otherwise sit in the table forever. Drop them once on schema setup.
+    await client.query(`
     DELETE FROM failed_relay_publishes
     WHERE owner_pubkey IS NULL
   `);
+  });
 }
 
 export async function trackFailedRelayPublishRecord({
@@ -185,21 +263,23 @@ const SEED_AUTHED_SELLER_PUBKEYS = [
 // Tracks which npubs have successfully entered the listing password. The
 // marketplace only displays products from pubkeys recorded here.
 export async function ensureAuthedSellersTable(
-  client: PoolClient
+  client: Pick<PoolClient, "query">
 ): Promise<void> {
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS authed_sellers (
       pubkey TEXT PRIMARY KEY,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  await client.query(
-    `INSERT INTO authed_sellers (pubkey)
+    await client.query(
+      `INSERT INTO authed_sellers (pubkey)
      SELECT UNNEST($1::text[])
      ON CONFLICT (pubkey) DO NOTHING`,
-    [SEED_AUTHED_SELLER_PUBKEYS]
-  );
+      [SEED_AUTHED_SELLER_PUBKEYS]
+    );
+  });
 }
 
 // Records that the given pubkey has entered the listing password. No-op for
@@ -241,7 +321,8 @@ let rateLimitTableInitialized = false;
 
 async function ensureRateLimitCountersTable(client: PoolClient): Promise<void> {
   if (rateLimitTableInitialized) return;
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS rate_limit_counters (
       bucket TEXT NOT NULL,
       rate_key TEXT NOT NULL,
@@ -251,10 +332,11 @@ async function ensureRateLimitCountersTable(client: PoolClient): Promise<void> {
       PRIMARY KEY (bucket, rate_key)
     )
   `);
-  await client.query(`
+    await client.query(`
     CREATE INDEX IF NOT EXISTS idx_rate_limit_counters_reset_at
       ON rate_limit_counters(reset_at)
   `);
+  });
   rateLimitTableInitialized = true;
 }
 
@@ -374,16 +456,7 @@ export function getDbPool(): Pool {
 
     // Auto-create tables on first connection (only once)
     if (!tablesInitialized && !tablesInitializationPromise) {
-      tablesInitializationPromise = initializeTables()
-        .catch((error) => {
-          console.error("Failed to initialize database tables:", error);
-          throw error;
-        })
-        .finally(() => {
-          if (!tablesInitialized) {
-            tablesInitializationPromise = null;
-          }
-        });
+      startTablesInitialization();
     }
   }
   return pool;
@@ -396,20 +469,7 @@ async function ensureTablesInitialized(): Promise<void> {
 
   getDbPool();
 
-  if (!tablesInitializationPromise) {
-    tablesInitializationPromise = initializeTables()
-      .catch((error) => {
-        console.error("Failed to initialize database tables:", error);
-        throw error;
-      })
-      .finally(() => {
-        if (!tablesInitialized) {
-          tablesInitializationPromise = null;
-        }
-      });
-  }
-
-  await tablesInitializationPromise;
+  await startTablesInitialization();
 }
 
 // Auto-create all tables if they don't exist
@@ -432,7 +492,10 @@ async function initializeTables(): Promise<void> {
   try {
     client = await dbPool.connect();
 
-    await client.query(`
+    // Serialize the whole DDL batch against concurrent boot-time DDL from
+    // other pooled connections or server processes (see withSchemaDdlLock).
+    await withSchemaDdlLock(client, async (client) => {
+      await client.query(`
       -- Products table (kind 30402 - listings)
       CREATE TABLE IF NOT EXISTS product_events (
           id TEXT PRIMARY KEY,
@@ -1987,6 +2050,13 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
     `);
 
+    });
+
+    // Publish the initialized state only after the schema transaction has
+    // COMMITTED (withSchemaDdlLock resolves post-commit). Setting it inside
+    // the callback would let a commit failure strand us "initialized" with
+    // the schema rolled back, and let concurrent callers observe committed
+    // state before it exists.
     tablesInitialized = true;
   } catch (error) {
     console.error("Failed to initialize tables:", error);
