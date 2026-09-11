@@ -38,17 +38,25 @@ describe("normalizeRegistrableHost", () => {
 });
 
 describe("registerApplePayDomain", () => {
-  it("registers on the platform account when no connected account is given", async () => {
+  it("registers on BOTH domain APIs of the platform account", async () => {
     await registerApplePayDomain("shop-a.test");
     expect(mockCreate).toHaveBeenCalledWith(
       { domain_name: "shop-a.test" },
       undefined
     );
+    expect(mockPmdCreate).toHaveBeenCalledWith(
+      { domain_name: "shop-a.test" },
+      undefined
+    );
   });
 
-  it("registers on the connected account for direct charges", async () => {
+  it("registers on BOTH domain APIs of the connected account for direct charges", async () => {
     await registerApplePayDomain("shop-b.test", "acct_123");
     expect(mockCreate).toHaveBeenCalledWith(
+      { domain_name: "shop-b.test" },
+      { stripeAccount: "acct_123" }
+    );
+    expect(mockPmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop-b.test" },
       { stripeAccount: "acct_123" }
     );
@@ -75,6 +83,20 @@ describe("registerApplePayDomain", () => {
     ).resolves.toBeUndefined();
     await registerApplePayDomain("shop-e.test");
     expect(mockCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not cache when paymentMethodDomains fails (legacy ok is not enough)", async () => {
+    mockPmdCreate.mockRejectedValueOnce(new Error("pmd down"));
+    await registerApplePayDomain("shop-g.test");
+    // Legacy succeeded, but the pair must NOT be cached while the payment
+    // method domains registration failed — the next checkout retries both.
+    await registerApplePayDomain("shop-g.test");
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+    // Once both succeed the pair caches and later checkouts skip the API.
+    await registerApplePayDomain("shop-g.test");
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
   });
 
   it("skips hosts that cannot be registered", async () => {
