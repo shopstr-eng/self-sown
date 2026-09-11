@@ -46,6 +46,11 @@ jest.mock("@/utils/db/db-service", () => ({
   getStripeConnectAccount: (...args: any[]) =>
     mockGetStripeConnectAccount(...args),
   createSubscription: (...args: any[]) => mockCreateSubscription(...args),
+  // utils/stripe/apple-pay.ts → utils/db/custom-domains.ts calls getDbPool()
+  // at module scope; without this the suite dies at import time. The pool is
+  // never queried here (requests carry no Host header, so the Apple Pay
+  // trusted-host check returns null before any domain lookup).
+  getDbPool: jest.fn(() => ({ query: jest.fn() })),
 }));
 
 jest.mock("@/utils/rate-limit", () => ({
