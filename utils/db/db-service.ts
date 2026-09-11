@@ -1,4 +1,5 @@
 import { Pool, PoolClient } from "pg";
+import { getSelfHostConfig } from "../self-host/config";
 import { NostrEvent } from "../types/types";
 import { findListingBySlug } from "../url-slugs";
 import { CHECKOUT_STATUSES } from "../ucp/checkout-status";
@@ -3205,14 +3206,35 @@ export async function fetchShopPubkeyBySlug(
       `SELECT pubkey FROM shop_slugs WHERE slug = $1 LIMIT 1`,
       [slug.toLowerCase().trim()]
     );
-    if (result.rows.length === 0) return null;
+    if (result.rows.length === 0) return selfHostTenantSlugFallback(slug);
     return result.rows[0].pubkey;
   } catch (error) {
     logSwallowedDbOutage("Failed to fetch shop pubkey by slug:", error);
-    return null;
+    // On self-host the tenant slug's owner is known from config regardless of
+    // DB state, so fall back on error too: a brand-new install's first
+    // requests can arrive while initializeTables() is still creating the
+    // schema asynchronously at boot, and that race must not 404 the
+    // storefront. Platform behavior is unchanged (fallback returns null when
+    // self-host is off).
+    return selfHostTenantSlugFallback(slug);
   } finally {
     if (client) client.release();
   }
+}
+
+// A single-tenant self-host instance starts with an EMPTY slug registry: the
+// seller claimed their slug in the PLATFORM's database, not this one. The
+// instance already knows its tenant via MM_SELF_HOST_PUBKEY/MM_SELF_HOST_SLUG,
+// so resolve the tenant slug from config on a DB miss instead of 404ing the
+// storefront root until something syncs the row. Platform (multi-tenant)
+// behavior is unchanged: the fallback returns null when self-host is off, and
+// an existing DB row always wins.
+function selfHostTenantSlugFallback(slug: string): string | null {
+  const cfg = getSelfHostConfig();
+  if (!cfg.enabled || !cfg.tenantPubkey || !cfg.tenantSlug) return null;
+  return slug.toLowerCase().trim() === cfg.tenantSlug.toLowerCase()
+    ? cfg.tenantPubkey
+    : null;
 }
 
 /** Resolve a seller's registered storefront slug (pubkey → slug), or null. */

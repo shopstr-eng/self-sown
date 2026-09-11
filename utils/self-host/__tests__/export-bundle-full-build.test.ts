@@ -158,41 +158,12 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
 
     await waitForServer(BOOT_TIMEOUT_MS);
 
-    // 5. Seed the slug registry. A fresh self-host database starts empty, but
-    //    the stall's SSR slug→pubkey lookup (fetchShopPubkeyBySlug) is
-    //    DB-backed, so without this row "/" 404s even though the tenant is
-    //    configured via env. A real seller's row exists because they claimed
-    //    the slug on the platform before exporting. Retried briefly because
-    //    initializeTables() creates the schema asynchronously at boot.
-    run(
-      "node",
-      [
-        "-e",
-        `const { Client } = require("pg");
-         (async () => {
-           let lastErr;
-           for (let attempt = 0; attempt < 15; attempt++) {
-             try {
-               const c = new Client({ connectionString: process.env.SEED_DATABASE_URL });
-               await c.connect();
-               await c.query(
-                 "INSERT INTO shop_slugs (pubkey, slug) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-                 ["${PUBKEY}", "${SLUG}"]
-               );
-               await c.end();
-               return;
-             } catch (e) {
-               lastErr = e;
-               await new Promise((r) => setTimeout(r, 2000));
-             }
-           }
-           console.error(lastErr);
-           process.exit(1);
-         })();`,
-      ],
-      appDir,
-      { SEED_DATABASE_URL: databaseUrl }
-    );
+    // 5. NO manual database seeding. A fresh self-host database starts empty —
+    //    the seller claimed their slug in the PLATFORM's database, not this
+    //    one — so the stall's SSR slug→pubkey lookup (fetchShopPubkeyBySlug)
+    //    must resolve the tenant from the MM_SELF_HOST_* config on a DB miss.
+    //    Seeding shop_slugs here would mask a regression of that fallback and
+    //    re-break real sellers following the bundle's SETUP.md.
   }, SETUP_TIMEOUT_MS);
 
   afterAll(() => {
