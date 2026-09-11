@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 // Real, full compile-and-boot verification of the self-host export bundle.
 //
 // The companion suite (export-bundle-boot.test.ts) closes the loop on the
@@ -154,6 +157,42 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
     });
 
     await waitForServer(BOOT_TIMEOUT_MS);
+
+    // 5. Seed the slug registry. A fresh self-host database starts empty, but
+    //    the stall's SSR slug→pubkey lookup (fetchShopPubkeyBySlug) is
+    //    DB-backed, so without this row "/" 404s even though the tenant is
+    //    configured via env. A real seller's row exists because they claimed
+    //    the slug on the platform before exporting. Retried briefly because
+    //    initializeTables() creates the schema asynchronously at boot.
+    run(
+      "node",
+      [
+        "-e",
+        `const { Client } = require("pg");
+         (async () => {
+           let lastErr;
+           for (let attempt = 0; attempt < 15; attempt++) {
+             try {
+               const c = new Client({ connectionString: process.env.SEED_DATABASE_URL });
+               await c.connect();
+               await c.query(
+                 "INSERT INTO shop_slugs (pubkey, slug) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+                 ["${PUBKEY}", "${SLUG}"]
+               );
+               await c.end();
+               return;
+             } catch (e) {
+               lastErr = e;
+               await new Promise((r) => setTimeout(r, 2000));
+             }
+           }
+           console.error(lastErr);
+           process.exit(1);
+         })();`,
+      ],
+      appDir,
+      { SEED_DATABASE_URL: databaseUrl }
+    );
   }, SETUP_TIMEOUT_MS);
 
   afterAll(() => {
@@ -184,13 +223,21 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
   it("redirects /marketplace home (marketplace hidden)", async () => {
     const res = await fetch(`${BASE}/marketplace`, { redirect: "manual" });
     expect(res.status).toBe(307);
-    expect(new URL(res.headers.get("location")!).pathname).toBe("/");
+    const location = res.headers.get("location");
+    expect(location).toBeTruthy();
+    // Location may be absolute or origin-relative depending on the proxy; the
+    // base makes the assertion robust to either.
+    expect(new URL(location!, BASE).pathname).toBe("/");
   });
 
   it("redirects /pro home (platform billing hidden)", async () => {
     const res = await fetch(`${BASE}/pro`, { redirect: "manual" });
     expect(res.status).toBe(307);
-    expect(new URL(res.headers.get("location")!).pathname).toBe("/");
+    const location = res.headers.get("location");
+    expect(location).toBeTruthy();
+    // Location may be absolute or origin-relative depending on the proxy; the
+    // base makes the assertion robust to either.
+    expect(new URL(location!, BASE).pathname).toBe("/");
   });
 
   it("offers Lightning/Cashu only — card is off without a Stripe key", async () => {
