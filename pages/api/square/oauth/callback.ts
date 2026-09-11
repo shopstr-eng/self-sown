@@ -72,14 +72,17 @@ export default async function handler(
     );
 
     // Resolve the seller's primary location + its currency so checkout can
-    // refuse a cart-currency mismatch later.
+    // refuse a cart-currency mismatch later. Country is captured too: Apple
+    // Pay's payment request requires the merchant's countryCode.
     let locationId: string | null = null;
     let locationCurrency: string | null = null;
+    let locationCountry: string | null = null;
     try {
       const locations = await fetchSquareLocations(token.accessToken);
       const primary = pickPrimaryLocation(locations);
       locationId = primary?.id ?? null;
       locationCurrency = primary?.currency ?? null;
+      locationCountry = primary?.country ?? null;
     } catch (e) {
       // Non-fatal: store the connection; the seller can re-sync, and checkout
       // fails closed (no location => Square not offered) until resolved.
@@ -94,6 +97,7 @@ export default async function handler(
       merchantId: token.merchantId,
       locationId,
       locationCurrency,
+      locationCountry,
       scope: SQUARE_OAUTH_SCOPES.join(" "),
       status: "connected",
     });

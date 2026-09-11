@@ -1315,6 +1315,7 @@ async function initializeTables(): Promise<void> {
       -- are stored together. Charges land directly on the seller's Square
       -- account (no platform split). location_id + location_currency are
       -- captured at connect so checkout can refuse a currency mismatch.
+      -- location_country feeds Apple Pay's payment request (countryCode).
       CREATE TABLE IF NOT EXISTS square_oauth_connections (
         pubkey TEXT PRIMARY KEY,
         access_token TEXT NOT NULL,
@@ -1323,6 +1324,7 @@ async function initializeTables(): Promise<void> {
         merchant_id TEXT,
         location_id TEXT,
         location_currency TEXT,
+        location_country TEXT,
         scope TEXT,
         status TEXT NOT NULL DEFAULT 'connected',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1340,6 +1342,7 @@ async function initializeTables(): Promise<void> {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       ALTER TABLE square_oauth_states ADD COLUMN IF NOT EXISTS redirect_uri TEXT;
+      ALTER TABLE square_oauth_connections ADD COLUMN IF NOT EXISTS location_country TEXT;
       CREATE INDEX IF NOT EXISTS idx_square_oauth_states_created_at
         ON square_oauth_states(created_at);
 

@@ -492,6 +492,7 @@ export default function CartInvoiceCard({
     locationId: string;
     environment: "sandbox" | "production";
     currency: string;
+    countryCode?: string;
   } | null>(null);
   const [squareCheckout, setSquareCheckout] = useState<{
     sellerPubkey: string;
@@ -501,6 +502,7 @@ export default function CartInvoiceCard({
     applicationId: string;
     locationId: string;
     environment: "sandbox" | "production";
+    countryCode?: string;
     metadata: Record<string, unknown>;
   } | null>(null);
 
@@ -520,6 +522,7 @@ export default function CartInvoiceCard({
           locationId: string;
           environment: "sandbox" | "production";
           currency: string;
+          countryCode?: string;
         };
       }
     >
@@ -1929,6 +1932,7 @@ export default function CartInvoiceCard({
               locationId: string;
               environment: "sandbox" | "production";
               currency: string;
+              countryCode?: string;
             };
           }
         > = {};
@@ -1997,6 +2001,10 @@ export default function CartInvoiceCard({
                             ? "production"
                             : "sandbox",
                         currency: String(sq.currency).toUpperCase(),
+                        countryCode:
+                          typeof sq.countryCode === "string"
+                            ? sq.countryCode
+                            : undefined,
                       },
                     };
                   }
@@ -2076,6 +2084,10 @@ export default function CartInvoiceCard({
             environment:
               data.environment === "production" ? "production" : "sandbox",
             currency: String(data.currency).toUpperCase(),
+            countryCode:
+              typeof data.countryCode === "string"
+                ? data.countryCode
+                : undefined,
           });
         }
       } catch {
@@ -3535,6 +3547,7 @@ export default function CartInvoiceCard({
         applicationId: squareSellerStatus.applicationId,
         locationId: squareSellerStatus.locationId,
         environment: squareSellerStatus.environment,
+        countryCode: squareSellerStatus.countryCode,
         metadata: {
           orderId,
           productId: products.map((p) => p.id).join(","),
@@ -3603,6 +3616,7 @@ export default function CartInvoiceCard({
         applicationId: proc.square.applicationId,
         locationId: proc.square.locationId,
         environment: proc.square.environment,
+        countryCode: proc.square.countryCode,
         metadata,
       });
       setMultiCardIndex(index);
@@ -8894,6 +8908,7 @@ export default function CartInvoiceCard({
                           applicationId={squareCheckout.applicationId}
                           locationId={squareCheckout.locationId}
                           environment={squareCheckout.environment}
+                          countryCode={squareCheckout.countryCode}
                           sellerPubkey={squareCheckout.sellerPubkey}
                           amount={squareCheckout.amount}
                           currency={squareCheckout.currency}

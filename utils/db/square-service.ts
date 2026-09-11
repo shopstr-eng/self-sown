@@ -16,6 +16,7 @@ export interface SquareConnectionRecord {
   merchantId: string | null;
   locationId: string | null;
   locationCurrency: string | null;
+  locationCountry: string | null;
   scope: string | null;
   status: string;
   createdAt: string;
@@ -30,6 +31,7 @@ interface SquareConnectionRow {
   merchant_id: string | null;
   location_id: string | null;
   location_currency: string | null;
+  location_country: string | null;
   scope: string | null;
   status: string;
   created_at: string;
@@ -45,6 +47,7 @@ function mapConnectionRow(row: SquareConnectionRow): SquareConnectionRecord {
     merchantId: row.merchant_id,
     locationId: row.location_id,
     locationCurrency: row.location_currency,
+    locationCountry: row.location_country,
     scope: row.scope,
     status: row.status,
     createdAt: row.created_at,
@@ -60,6 +63,7 @@ export interface UpsertSquareConnectionInput {
   merchantId?: string | null;
   locationId?: string | null;
   locationCurrency?: string | null;
+  locationCountry?: string | null;
   scope?: string | null;
   status?: string;
 }
@@ -71,8 +75,8 @@ export async function upsertSquareConnection(
   const result = await pool.query<SquareConnectionRow>(
     `INSERT INTO square_oauth_connections
        (pubkey, access_token, refresh_token, expires_at, merchant_id,
-        location_id, location_currency, scope, status, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+        location_id, location_currency, location_country, scope, status, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
      ON CONFLICT (pubkey) DO UPDATE SET
        access_token = EXCLUDED.access_token,
        refresh_token = EXCLUDED.refresh_token,
@@ -80,6 +84,7 @@ export async function upsertSquareConnection(
        merchant_id = EXCLUDED.merchant_id,
        location_id = EXCLUDED.location_id,
        location_currency = EXCLUDED.location_currency,
+       location_country = EXCLUDED.location_country,
        scope = EXCLUDED.scope,
        status = EXCLUDED.status,
        updated_at = NOW()
@@ -92,6 +97,7 @@ export async function upsertSquareConnection(
       input.merchantId ?? null,
       input.locationId ?? null,
       input.locationCurrency ?? null,
+      input.locationCountry ?? null,
       input.scope ?? null,
       input.status ?? "connected",
     ]
@@ -151,6 +157,23 @@ export async function updateSquareTokens(
       input.refreshToken ?? null,
       input.expiresAt ?? null,
     ]
+  );
+}
+
+// Persist ONLY the location country (Apple Pay payment-request field). Kept
+// separate from updateSquareTokens so the seller-status lazy backfill never
+// touches token fields.
+export async function updateSquareLocationCountry(
+  pubkey: string,
+  country: string
+): Promise<void> {
+  const pool = getDbPool();
+  await pool.query(
+    `UPDATE square_oauth_connections
+        SET location_country = $2,
+            updated_at = NOW()
+      WHERE pubkey = $1`,
+    [pubkey, country]
   );
 }
 

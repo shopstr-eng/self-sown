@@ -1,5 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getSquareConnection } from "@/utils/db/square-service";
+import {
+  getSquareConnection,
+  updateSquareLocationCountry,
+} from "@/utils/db/square-service";
+import {
+  getValidSquareAccessToken,
+  fetchSquareLocations,
+  pickPrimaryLocation,
+} from "@/utils/square/square-api";
 import { applyRateLimit } from "@/utils/rate-limit";
 import {
   isSquareConfigured,
@@ -52,6 +60,29 @@ export default async function handler(
     // is missing, report the account present but card payments off (fail closed).
     const chargesEnabled = !!conn.locationId && !!conn.locationCurrency;
 
+    // Apple Pay's payment request needs the merchant's countryCode. Connections
+    // made before the column existed have none — backfill once from the
+    // locations API (preferring the stored location) and persist. Non-fatal:
+    // card checkout doesn't need it, Apple Pay just stays hidden until set.
+    let countryCode = conn.locationCountry;
+    if (chargesEnabled && !countryCode) {
+      try {
+        const access = await getValidSquareAccessToken(pubkey);
+        if (access) {
+          const locations = await fetchSquareLocations(access.accessToken);
+          const match =
+            locations.find((l) => l.id === conn.locationId) ??
+            pickPrimaryLocation(locations);
+          if (match?.country) {
+            countryCode = match.country;
+            await updateSquareLocationCountry(pubkey, match.country);
+          }
+        }
+      } catch (e) {
+        console.warn("Square country backfill failed (non-fatal):", e);
+      }
+    }
+
     return res.status(200).json({
       configured: true,
       hasSquareAccount: true,
@@ -60,6 +91,7 @@ export default async function handler(
       environment: getSquareEnvironment(),
       locationId: chargesEnabled ? conn.locationId : undefined,
       currency: chargesEnabled ? conn.locationCurrency : undefined,
+      countryCode: chargesEnabled ? (countryCode ?? undefined) : undefined,
     });
   } catch (error) {
     console.error("Seller Square status check error:", error);
