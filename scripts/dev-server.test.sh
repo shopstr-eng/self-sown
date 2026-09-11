@@ -23,7 +23,18 @@ RESULT=1
 
 mkdir -p "$WORK/bin" "$WORK/public" "$WORK/scripts"
 cp "$ROOT/scripts/dev-build-placeholder.mjs" "$WORK/scripts/"
-echo 'console.log("copy-sharp ok");' > "$WORK/scripts/copy-sharp-standalone.mjs"
+# Stub the shared assembly script the supervisor now delegates to: fold
+# .next/static + public into .next/standalone like the real one, and record
+# whether --strict-sharp was passed so the test can pin the flag.
+cat > "$WORK/scripts/prepare-standalone.mjs" <<'EOF'
+import fs from "node:fs";
+fs.cpSync(".next/static", ".next/standalone/.next/static", { recursive: true });
+fs.cpSync("public", ".next/standalone/public", { recursive: true });
+if (process.argv.includes("--strict-sharp")) {
+  fs.writeFileSync(".strict-sharp-flag", "yes");
+}
+console.log("prepare-standalone ok");
+EOF
 cd "$WORK"
 export PATH="$WORK/bin:$PATH"
 # Supervisor knobs: no memory gating, instant retries.
@@ -54,7 +65,7 @@ EOF
   chmod +x bin/next
 }
 
-reset() { rm -rf .next .next-last-good .next-last-good.prev .next-last-good.new .next-dev-status .attempts; }
+reset() { rm -rf .next .next-last-good .next-last-good.prev .next-last-good.new .next-dev-status .attempts .strict-sharp-flag; }
 run_supervisor() { # run_supervisor <timeout> -> log at /tmp/ds-test.log
   timeout "$1" bash "$SUPERVISOR" > /tmp/ds-test.log 2>&1
   return 0 # timeout's exit code is the assertion target via log content
@@ -65,6 +76,7 @@ write_stub oom_then_ok; reset
 run_supervisor 30
 check "fresh build served after OOM retries" "serving .next/standalone/server.js" /tmp/ds-test.log
 [ -f .next-last-good/server.js ] && ok "last-good snapshot saved" || bad "last-good snapshot saved"
+[ -f .strict-sharp-flag ] && ok "assembly delegated with --strict-sharp" || bad "assembly delegated with --strict-sharp"
 
 echo "== B: OOM streak with last-good, self-heal swap =="
 write_stub always_oom; reset

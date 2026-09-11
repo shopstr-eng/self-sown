@@ -128,9 +128,12 @@ serve_something_now() {
 # Assemble the servable standalone bundle and snapshot it as the new
 # last-good (OUTSIDE .next, which `next build` wipes on every run).
 assemble_and_save() {
-  cp -r .next/static .next/standalone/.next/static &&
-    cp -r public .next/standalone/public &&
-    node scripts/copy-sharp-standalone.mjs || return 1
+  # Delegate the standalone-bundle assembly (fold .next/static + public in,
+  # repair Sharp) to the shared script that `pnpm start` and the deploy build
+  # also run, so the preview can't silently drift from the shipped start path.
+  # --strict-sharp keeps the old direct copy-sharp-standalone.mjs behaviour:
+  # fail loudly instead of booting with broken image optimization.
+  node scripts/prepare-standalone.mjs --strict-sharp || return 1
   # Remove the previous swap's leftover (its server was stopped right after
   # that swap, a full build before this assemble runs).
   rm -rf "$LAST_GOOD.prev"
