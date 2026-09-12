@@ -20,6 +20,10 @@
 #   C. Missing bundle  -> a build that produced no standalone server.js fails
 #                         loudly too (guards against `|| true` creeping onto
 #                         the assembly call)
+#   D. Node download   -> the portable-Node tarball is checksum-verified
+#                         before extraction; a matching download is bundled
+#   E. Checksum mismatch -> a corrupted/tampered tarball fails the build
+#                         loudly and is never extracted into the bundle
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -87,6 +91,49 @@ cat > "$WORK/.runtime/bin/node" <<'EOF'
 #!/usr/bin/env bash
 echo "v22.22.0-test"
 EOF
+
+# Download fixtures for the checksum-verification scenarios: a fake portable
+# Node dist tarball, the SHASUMS256.txt the stub curl serves for it, and a
+# corrupted variant of the same tarball (valid xz, different bytes).
+mkdir -p "$WORK/fixtures/dist/node-v22.22.0-linux-x64/bin"
+cat > "$WORK/fixtures/dist/node-v22.22.0-linux-x64/bin/node" <<'EOF'
+#!/usr/bin/env bash
+echo "v22.22.0-downloaded"
+EOF
+chmod +x "$WORK/fixtures/dist/node-v22.22.0-linux-x64/bin/node"
+tar -cJf "$WORK/fixtures/node-good.tar.xz" -C "$WORK/fixtures/dist" node-v22.22.0-linux-x64
+FIXTURE_SHA="$(sha256sum "$WORK/fixtures/node-good.tar.xz" | awk '{print $1}')"
+printf '%s  %s\n' "$FIXTURE_SHA" "node-v22.22.0-linux-x64.tar.xz" > "$WORK/fixtures/SHASUMS256.txt"
+echo '# tampered' >> "$WORK/fixtures/dist/node-v22.22.0-linux-x64/bin/node"
+tar -cJf "$WORK/fixtures/node-corrupt.tar.xz" -C "$WORK/fixtures/dist" node-v22.22.0-linux-x64
+rm -rf "$WORK/fixtures/dist"
+
+# Stub curl: serves the Node tarball and SHASUMS256.txt from the fixtures
+# above. CURL_SERVE_CORRUPT=1 serves the corrupted tarball.
+cat > "$WORK/bin/curl" <<EOF
+#!/usr/bin/env bash
+out=""
+url=""
+while [ \$# -gt 0 ]; do
+  case "\$1" in
+    -o) out="\$2"; shift 2 ;;
+    -*) shift ;;
+    *) url="\$1"; shift ;;
+  esac
+done
+case "\$url" in
+  *SHASUMS256.txt) src="$WORK/fixtures/SHASUMS256.txt" ;;
+  *.tar.xz)
+    if [ "\${CURL_SERVE_CORRUPT:-}" = "1" ]; then
+      src="$WORK/fixtures/node-corrupt.tar.xz"
+    else
+      src="$WORK/fixtures/node-good.tar.xz"
+    fi ;;
+  *) echo "STUB curl: unexpected URL \$url" >&2; exit 1 ;;
+esac
+if [ -n "\$out" ]; then cp "\$src" "\$out"; else cat "\$src"; fi
+EOF
+
 chmod +x "$WORK/bin/"* "$WORK/.runtime/bin/node"
 
 cd "$WORK"
@@ -139,6 +186,31 @@ unset NEXT_STUB_NO_STANDALONE
 [ "$rc" -ne 0 ] && ok "deploy build exits non-zero with no bundle" || bad "deploy build exits non-zero with no bundle"
 grep -qF "server.js not found" /tmp/db-test.log && ok "real script's missing-bundle guard reported" || bad "real script's missing-bundle guard reported"
 if grep -qF "Post-build cleanup" /tmp/db-test.log; then bad "build aborted at the assembly step"; else ok "build aborted at the assembly step"; fi
+
+echo "== D: Node download is checksum-verified before bundling =="
+reset_state
+# Drop the pre-bundled runtime so the real download/verify/extract block runs
+# (against the stub curl + fixture tarball).
+rm -rf .runtime
+export NODE_TARBALL_SHA256="$FIXTURE_SHA"
+rc=$(run_deploy)
+unset NODE_TARBALL_SHA256
+[ "$rc" -eq 0 ] && ok "deploy build exits zero" || bad "deploy build exits zero (rc=$rc)"
+grep -qF "Verifying Node" /tmp/db-test.log && ok "checksum verification step ran" || bad "checksum verification step ran"
+grep -qF "bundled v22.22.0-downloaded" /tmp/db-test.log && ok "verified tarball extracted and bundled" || bad "verified tarball extracted and bundled"
+[ -x .runtime/bin/node ] && ok "bundled node is executable" || bad "bundled node is executable"
+
+echo "== E: checksum mismatch fails the build before extraction =="
+reset_state
+rm -rf .runtime
+export NODE_TARBALL_SHA256="$FIXTURE_SHA"
+export CURL_SERVE_CORRUPT=1
+rc=$(run_deploy)
+unset NODE_TARBALL_SHA256 CURL_SERVE_CORRUPT
+[ "$rc" -ne 0 ] && ok "deploy build exits non-zero on checksum mismatch" || bad "deploy build exits non-zero on checksum mismatch"
+grep -qF "checksum mismatch" /tmp/db-test.log && ok "mismatch reported loudly" || bad "mismatch reported loudly"
+[ ! -e .runtime/bin/node ] && ok "tampered tarball never bundled" || bad "tampered tarball never bundled"
+if grep -qF "Final size" /tmp/db-test.log; then bad "build aborted at checksum verification"; else ok "build aborted at checksum verification"; fi
 
 echo
 echo "RESULT: $pass passed, $fail failed"

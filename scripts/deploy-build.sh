@@ -123,9 +123,32 @@ echo "==> Bundling portable Node 22 binary for runtime"
 # autoscale runtime container.
 NODE_VERSION="v22.22.0"
 NODE_DIST="node-${NODE_VERSION}-linux-x64"
+# Pinned SHA-256 of ${NODE_DIST}.tar.xz, from
+# https://nodejs.org/dist/${NODE_VERSION}/SHASUMS256.txt — update together
+# with NODE_VERSION. The pin (not the fetched checksum file) is the source of
+# truth, so a tampered download server can't substitute both the tarball and
+# its checksum. NODE_TARBALL_SHA256 overrides the pin for the test sandbox.
+NODE_SHA256="${NODE_TARBALL_SHA256:-9aa8e9d2298ab68c600bd6fb86a6c13bce11a4eca1ba9b39d79fa021755d7c37}"
 mkdir -p .runtime
 if [ ! -x ".runtime/bin/node" ]; then
   curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.xz" -o /tmp/node.tar.xz
+  echo "==> Verifying Node ${NODE_VERSION} tarball checksum"
+  # Cross-check the pin against the official checksum file so a stale pin is
+  # caught loudly at version-bump time instead of misreporting tampering.
+  PUBLISHED_SHA256="$(curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/SHASUMS256.txt" | awk -v f="${NODE_DIST}.tar.xz" '$2 == f {print $1}')"
+  if [ -z "$PUBLISHED_SHA256" ]; then
+    echo "ERROR: ${NODE_DIST}.tar.xz not found in nodejs.org SHASUMS256.txt for ${NODE_VERSION}" >&2
+    exit 1
+  fi
+  if [ "$NODE_SHA256" != "$PUBLISHED_SHA256" ]; then
+    echo "ERROR: pinned Node checksum does not match nodejs.org SHASUMS256.txt — update NODE_SHA256 together with NODE_VERSION" >&2
+    exit 1
+  fi
+  ACTUAL_SHA256="$(sha256sum /tmp/node.tar.xz | awk '{print $1}')"
+  if [ "$ACTUAL_SHA256" != "$NODE_SHA256" ]; then
+    echo "ERROR: Node tarball checksum mismatch (expected $NODE_SHA256, got $ACTUAL_SHA256) — refusing to bundle a corrupted or tampered download" >&2
+    exit 1
+  fi
   tar -xJf /tmp/node.tar.xz -C /tmp
   mkdir -p .runtime/bin
   cp "/tmp/${NODE_DIST}/bin/node" .runtime/bin/node
