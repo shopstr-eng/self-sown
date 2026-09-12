@@ -142,7 +142,7 @@
 - [Orphaned SW registrations](orphaned-sw-registrations.md) — a SW path that 404s strands its old worker forever; serve a self-destruct worker at every historical SW path (public/sw.js, service-worker.js).
 - [HeroUI theme must be a direct dep](heroui-theme-direct-dep.md) — Tailwind @source into node_modules silently no-ops for transitive deps under pnpm; publish builds lost ALL HeroUI slot classes (label float, image reveal).
 - [Site URL centralization gotchas](site-url-centralization.md) — getSiteUrl returns env verbatim (no trim/strip — pure-refactor contract); JSX text/expression child boundaries affect SSR bytes; tests stubbing NEXT_PUBLIC_BASE_URL must assert literals, not import SITE_URL.
-- [Legacy-domain cutover redirect (retired)](legacy-domain-cutover-redirect.md) — 301 scaffolding + LEGACY_SITE_HOST removed; milk.market stays in PLATFORM_HOST_SUFFIXES while owned; OAuth redirect_uri pinning kept; reintroduce time-boxed 301 for any future move.
+- [Legacy-domain cutover redirect](legacy-domain-cutover-redirect.md) — milk.market page traffic 301s to canonical host (path+query, port-stripped, /api + /.well-known exempt, suffix entry stays); no-op until base-URL flips; time-boxed.
 - [Brand rename alias layer](brand-rename-keep-list.md) — rename to selfsown/self-sown is DONE; remaining milkmarket identifiers are deliberate compat aliases — never remove.
 - [Editing .replit](editing-dot-replit.md) — direct Edit is blocked; write full TOML to a temp file and call verifyAndReplaceDotReplit in CodeExecution.
 - [replit.nix channel caps Node at 18](replit-nix-channel-node-cap.md) — nixpkgs 22.11 has no nodejs-22_x and replit.nix is still evaluated at env-build; runtime Node 22 comes from .replit modules, never bump replit.nix to match .nvmrc.

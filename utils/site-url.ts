@@ -52,3 +52,14 @@ export const SITE_URL = getSiteUrl();
 
 /** Module-level convenience constant: hostname of SITE_URL. */
 export const SITE_HOST = getSiteHost();
+
+/**
+ * The retired base domain ("milk.market"), still owned and pointing at this
+ * deployment. Page traffic on it 301s to SITE_HOST (preserving path + query,
+ * so previously-sent email deep links with long click TTLs keep working);
+ * /api/ and /.well-known/ traffic is exempt (webhook senders treat 3xx as
+ * delivery failure; verification/discovery files must stay reachable) and is
+ * served as platform traffic via PLATFORM_HOST_SUFFIXES. Time-boxed: retire
+ * the redirect (again) once legacy traffic fades.
+ */
+export const LEGACY_SITE_HOST = "milk.market";
