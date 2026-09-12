@@ -26,9 +26,6 @@ on:
           - beta
           - rc
 
-env:
-  NODE_VERSION_MATRIX: '[18.x, 20.x, 22.x]'
-
 jobs:
   test:
     name: Test on Node.js ${{ matrix.node-version }}
@@ -37,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [22.x]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -85,7 +82,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -181,7 +178,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -278,7 +275,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Enable Corepack (pnpm)
