@@ -8,7 +8,7 @@
   "theme_color": "#E8E8E8",
   "orientation": "any",
   "scope": "/",
-  "categories": ["marketplace", "milk", "raw"],
+  "categories": ["marketplace", "food", "local"],
   "icons": [
     {
       "src": "/self-sown.png",
