@@ -24,7 +24,11 @@
 #                         before extraction; a matching download is bundled
 #   E. Checksum mismatch -> a corrupted/tampered tarball fails the build
 #                         loudly and is never extracted into the bundle
-#   F. Guard           -> without the publish-only marker the script refuses
+#   F. Stale pin       -> a SHASUMS256.txt that disagrees with the pinned
+#                         NODE_SHA256 (someone bumped NODE_VERSION without the
+#                         pin) fails the build with the update-together
+#                         message, before any extraction
+#   G. Guard           -> without the publish-only marker the script refuses
 #                         to run and deletes nothing
 set -uo pipefail
 
@@ -109,9 +113,16 @@ printf '%s  %s\n' "$FIXTURE_SHA" "node-v22.22.0-linux-x64.tar.xz" > "$WORK/fixtu
 echo '# tampered' >> "$WORK/fixtures/dist/node-v22.22.0-linux-x64/bin/node"
 tar -cJf "$WORK/fixtures/node-corrupt.tar.xz" -C "$WORK/fixtures/dist" node-v22.22.0-linux-x64
 rm -rf "$WORK/fixtures/dist"
+# A SHASUMS256.txt that disagrees with the pin, simulating nodejs.org after a
+# NODE_VERSION bump that forgot NODE_SHA256. The stale entry must not be a
+# real checksum of anything the sandbox serves — the point is that the pin
+# stops matching the published file.
+printf '%s  %s\n' "$(printf '%s' "$FIXTURE_SHA" | tr '0-9a-f' '1-9a-f0')" "node-v22.22.0-linux-x64.tar.xz" > "$WORK/fixtures/SHASUMS256-stale.txt"
 
 # Stub curl: serves the Node tarball and SHASUMS256.txt from the fixtures
 # above. CURL_SERVE_CORRUPT=1 serves the corrupted tarball.
+# CURL_SERVE_STALE_SHASUMS=1 serves a SHASUMS256.txt that disagrees with the
+# pinned checksum (the version-bump-without-pin case).
 cat > "$WORK/bin/curl" <<EOF
 #!/usr/bin/env bash
 out=""
@@ -124,7 +135,12 @@ while [ \$# -gt 0 ]; do
   esac
 done
 case "\$url" in
-  *SHASUMS256.txt) src="$WORK/fixtures/SHASUMS256.txt" ;;
+  *SHASUMS256.txt)
+    if [ "\${CURL_SERVE_STALE_SHASUMS:-}" = "1" ]; then
+      src="$WORK/fixtures/SHASUMS256-stale.txt"
+    else
+      src="$WORK/fixtures/SHASUMS256.txt"
+    fi ;;
   *.tar.xz)
     if [ "\${CURL_SERVE_CORRUPT:-}" = "1" ]; then
       src="$WORK/fixtures/node-corrupt.tar.xz"
@@ -154,7 +170,7 @@ reset_state() {
   echo 'PUBLIC_MARKER' > public/marker.txt
 }
 run_deploy() { # run_deploy -> rc on stdout, log at /tmp/db-test.log
-  # Scenarios A-E simulate the publish environment, which is the only place
+  # Scenarios A-F simulate the publish environment, which is the only place
   # the [deployment] build command in .replit sets this marker.
   SELF_SOWN_PUBLISH_BUILD=1 timeout 120 bash "$DEPLOY_BUILD" > /tmp/db-test.log 2>&1
   echo $?
@@ -216,7 +232,23 @@ grep -qF "checksum mismatch" /tmp/db-test.log && ok "mismatch reported loudly" |
 [ ! -e .runtime/bin/node ] && ok "tampered tarball never bundled" || bad "tampered tarball never bundled"
 if grep -qF "Final size" /tmp/db-test.log; then bad "build aborted at checksum verification"; else ok "build aborted at checksum verification"; fi
 
-echo "== F: without the publish marker the script refuses and deletes nothing =="
+echo "== F: a stale NODE_SHA256 pin fails the build before extraction =="
+reset_state
+rm -rf .runtime
+# Pin matches the tarball the stub curl serves, but nodejs.org's
+# SHASUMS256.txt disagrees — the version-bump-without-pin case. The build
+# must die on the update-together error, not the tampering error.
+export NODE_TARBALL_SHA256="$FIXTURE_SHA"
+export CURL_SERVE_STALE_SHASUMS=1
+rc=$(run_deploy)
+unset NODE_TARBALL_SHA256 CURL_SERVE_STALE_SHASUMS
+[ "$rc" -ne 0 ] && ok "deploy build exits non-zero on stale pin" || bad "deploy build exits non-zero on stale pin"
+grep -qF "update NODE_SHA256 together with NODE_VERSION" /tmp/db-test.log && ok "stale-pin error reported loudly" || bad "stale-pin error reported loudly"
+if grep -qF "checksum mismatch" /tmp/db-test.log; then bad "stale pin not misreported as tampering"; else ok "stale pin not misreported as tampering"; fi
+[ ! -e .runtime/bin/node ] && ok "nothing extracted or bundled" || bad "nothing extracted or bundled"
+if grep -qF "Final size" /tmp/db-test.log; then bad "build aborted at the pin cross-check"; else ok "build aborted at the pin cross-check"; fi
+
+echo "== G: without the publish marker the script refuses and deletes nothing =="
 reset_state
 # Sentinels for everything the destructive cleanup would remove: repo dirs,
 # .git, $HOME caches, and a file under the temp dir.
