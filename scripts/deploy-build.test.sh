@@ -34,6 +34,12 @@
 #                         not-found message, before any extraction
 #   H. Guard           -> without the publish-only marker the script refuses
 #                         to run and deletes nothing
+#   I. Node drift      -> a .nvmrc major that disagrees with the bundled
+#                         NODE_VERSION fails the build before any install or
+#                         build (published runtime must be the major the repo
+#                         builds and tests on)
+#   J. Missing .nvmrc  -> without the .nvmrc source of truth the build fails
+#                         loudly instead of guessing
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -42,7 +48,14 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"; exit $RESULT' EXIT
 RESULT=1
 
-REAL_NODE="$(command -v node)"
+# The sandbox stubs delegate to the real node. It is not always on PATH (e.g.
+# Nix-based shells where only the workflow environment has it) — without this
+# fallback the stub becomes `exec ""` and every scenario fails rc=127.
+REAL_NODE="$(command -v node || ls -d /nix/store/*-nodejs-2*/bin/node 2>/dev/null | sort -V | tail -1)"
+if [ -z "$REAL_NODE" ]; then
+  echo "ERROR: no node binary found on PATH or in /nix/store" >&2
+  exit 1
+fi
 
 mkdir -p "$WORK/bin" "$WORK/scripts" "$WORK/home" "$WORK/tmp" "$WORK/.runtime/bin"
 
@@ -172,6 +185,9 @@ export PATH="$WORK/bin:$PATH"
 # Keep the script's $HOME and temp-dir cleanup inside the sandbox.
 export HOME="$WORK/home"
 export TMPDIR="$WORK/tmp"
+# The .nvmrc source of truth the drift guard checks; deploy-build.sh preserves
+# it through cleanup, so it persists across scenarios (I/J rewrite + restore).
+echo 22 > .nvmrc
 
 pass=0; fail=0
 ok()   { pass=$((pass+1)); echo "  PASS: $1"; }
@@ -300,6 +316,29 @@ if grep -qF "Pre-build cleanup" /tmp/db-test.log; then bad "refusal happens befo
 [ -f "$HOME/.cache/keep" ] && [ -f "$HOME/.local/share/pnpm/keep" ] && ok "HOME caches untouched" || bad "HOME caches untouched"
 [ -f "$TMPDIR/keep" ] && ok "temp dir untouched" || bad "temp dir untouched"
 rm -rf node_modules .git __tests__
+
+echo "== I: a .nvmrc major that disagrees with NODE_VERSION fails the build fast =="
+reset_state
+# .nvmrc says 20 while the bundled-runtime pin is v22 — the exact drift this
+# guard exists to catch. The pre-bundled .runtime is present, so without the
+# guard this build would succeed.
+echo 20 > .nvmrc
+rc=$(run_deploy)
+echo 22 > .nvmrc
+[ "$rc" -ne 0 ] && ok "deploy build exits non-zero on Node major drift" || bad "deploy build exits non-zero on Node major drift"
+grep -qF "disagrees with .nvmrc" /tmp/db-test.log && ok "drift error reported loudly" || bad "drift error reported loudly"
+grep -qF "Update NODE_VERSION, NODE_SHA256, and .nvmrc together" /tmp/db-test.log && ok "drift error names the update-together set" || bad "drift error names the update-together set"
+if grep -qF "Pre-build cleanup" /tmp/db-test.log; then bad "build aborted before install/build"; else ok "build aborted before install/build"; fi
+
+echo "== J: a missing .nvmrc fails the build fast =="
+reset_state
+rm -f .nvmrc
+rc=$(run_deploy)
+echo 22 > .nvmrc
+[ "$rc" -ne 0 ] && ok "deploy build exits non-zero with no .nvmrc" || bad "deploy build exits non-zero with no .nvmrc"
+grep -qF ".nvmrc is missing or declares no Node version" /tmp/db-test.log && ok "missing-.nvmrc error reported loudly" || bad "missing-.nvmrc error reported loudly"
+if grep -qF "disagrees with .nvmrc" /tmp/db-test.log; then bad "missing .nvmrc not misreported as drift"; else ok "missing .nvmrc not misreported as drift"; fi
+if grep -qF "Pre-build cleanup" /tmp/db-test.log; then bad "build aborted before install/build"; else ok "build aborted before install/build"; fi
 
 echo
 echo "RESULT: $pass passed, $fail failed"

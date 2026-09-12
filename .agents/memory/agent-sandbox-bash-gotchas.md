@@ -63,6 +63,23 @@ review caught what LSP missed.
 
 Same self-match trap for `pkill -f`: the bracket trick `pkill -f "tsserver[.]js"` works ONLY if the literal target string appears nowhere else in your own command line — a command containing BOTH `pkill -f "placeholde[r]"` and e.g. `cp scripts/dev-build-placeholder.mjs` still self-kills (the cp argument matches the regex). Split the kill and the literal mention into separate tool calls, or build the filename from a variable so it never appears literally.
 
+## `node` is not on the agent shell's PATH
+
+The agent bash sandbox PATH is bare (`/usr/local/sbin:/usr/local/bin:...`), so
+`command -v node` fails even though the workflows run Node fine (Node 22 lives
+in the nix store, e.g. `/nix/store/*-nodejs-22*/bin/node`). Any script that
+captures `REAL_NODE="$(command -v node)"` and stubs over it silently degrades:
+the stub becomes `exec ""` and every run exits 127 with confusing missing-file
+errors (this made most of scripts/deploy-build.test.sh's scenarios fail while
+looking like logic bugs).
+**Why:** the workflow environment provides Node, not the interactive shell.
+**How to apply:** before debugging a test harness failing with rc=127 /
+"command not found" here, check `command -v node`; either prepend the nix
+store node bin dir to PATH for the run, or give the harness a nix-store
+fallback (deploy-build.test.sh now has one). Stale-log trap when instrumenting
+a harness that writes one shared log file: poll-copying catches the PREVIOUS
+run's leftover — capture per-invocation copies instead.
+
 ## Long-lived local services (e.g. a Nutshell mint) must be managed workflows
 
 Background shell tasks auto-stop after ~5 minutes and detached `setsid`

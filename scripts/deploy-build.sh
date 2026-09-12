@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deployment build script for Replit Autoscale.
 #
-# Produces a Next.js standalone bundle. Autoscale provides its own Node.js
-# runtime via the `nodejs-22` Nix module declared in .replit, so we do NOT
-# bundle a custom Node binary. We also preserve all top-level config files
-# (.replit, replit.nix, package.json, pnpm-lock.yaml) that Autoscale needs
-# to boot the app.
+# Produces a Next.js standalone bundle. Autoscale's runtime container ships an
+# older Node on PATH, so we bundle a portable Node binary (pinned below, kept
+# in sync with .nvmrc by the drift guard) and boot the app with it. We also
+# preserve all top-level config files (.replit, replit.nix, package.json,
+# pnpm-lock.yaml) that Autoscale needs to boot the app.
 
 set -e
 
@@ -23,6 +23,37 @@ if [ "${SELF_SOWN_PUBLISH_BUILD:-}" != "1" ]; then
   echo "SELF_SOWN_PUBLISH_BUILD=1. Refusing to run here; nothing was deleted." >&2
   exit 1
 fi
+
+# Published Node runtime pin — the single place the published Node version is
+# chosen (see the portable-runtime bundling step below). NODE_SHA256 is the
+# pinned SHA-256 of ${NODE_DIST}.tar.xz, from
+# https://nodejs.org/dist/${NODE_VERSION}/SHASUMS256.txt — update together
+# with NODE_VERSION. The pin (not the fetched checksum file) is the source of
+# truth, so a tampered download server can't substitute both the tarball and
+# its checksum. NODE_TARBALL_SHA256 overrides the pin for the test sandbox.
+NODE_VERSION="v22.22.0"
+NODE_DIST="node-${NODE_VERSION}-linux-x64"
+NODE_SHA256="${NODE_TARBALL_SHA256:-9aa8e9d2298ab68c600bd6fb86a6c13bce11a4eca1ba9b39d79fa021755d7c37}"
+
+# Drift guard: .nvmrc is the source of truth for the Node major the app is
+# built and tested on; NODE_VERSION pins the runtime the published bundle
+# actually ships. Fail the publish loudly — before any install or build — if
+# the two disagree on the major, or the published app runs a Node nobody
+# developed or tested against.
+NVMRC_MAJOR="$(sed -n 's/^v\?\([0-9][0-9]*\).*/\1/p' .nvmrc 2>/dev/null | head -1)"
+if [ -z "$NVMRC_MAJOR" ]; then
+  echo "ERROR: .nvmrc is missing or declares no Node version — it is the source" >&2
+  echo "of truth for the Node major the published runtime must match." >&2
+  exit 1
+fi
+case "${NODE_VERSION#v}" in
+  "$NVMRC_MAJOR".*) ;;
+  *)
+    echo "ERROR: bundled Node runtime ${NODE_VERSION} disagrees with .nvmrc (${NVMRC_MAJOR}.x)" >&2
+    echo "— the published app must run the Node major the repo builds and tests" >&2
+    echo "against. Update NODE_VERSION, NODE_SHA256, and .nvmrc together." >&2
+    exit 1 ;;
+esac
 
 echo "==> Pre-build cleanup (remove dev artifacts that bloat the image)"
 rm -rf \
@@ -136,14 +167,8 @@ echo "==> Bundling portable Node 22 binary for runtime"
 # because Nix binaries depend on a custom dynamic linker
 # (/nix/store/...-glibc/lib/ld-linux-x86-64.so.2) that does not exist in the
 # autoscale runtime container.
-NODE_VERSION="v22.22.0"
-NODE_DIST="node-${NODE_VERSION}-linux-x64"
-# Pinned SHA-256 of ${NODE_DIST}.tar.xz, from
-# https://nodejs.org/dist/${NODE_VERSION}/SHASUMS256.txt — update together
-# with NODE_VERSION. The pin (not the fetched checksum file) is the source of
-# truth, so a tampered download server can't substitute both the tarball and
-# its checksum. NODE_TARBALL_SHA256 overrides the pin for the test sandbox.
-NODE_SHA256="${NODE_TARBALL_SHA256:-9aa8e9d2298ab68c600bd6fb86a6c13bce11a4eca1ba9b39d79fa021755d7c37}"
+# NODE_VERSION / NODE_DIST / NODE_SHA256 are pinned at the top of this script,
+# next to the .nvmrc drift guard.
 mkdir -p .runtime
 if [ ! -x ".runtime/bin/node" ]; then
   curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.xz" -o /tmp/node.tar.xz
