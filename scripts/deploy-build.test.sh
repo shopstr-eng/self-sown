@@ -28,7 +28,11 @@
 #                         NODE_SHA256 (someone bumped NODE_VERSION without the
 #                         pin) fails the build with the update-together
 #                         message, before any extraction
-#   G. Guard           -> without the publish-only marker the script refuses
+#   G. Missing entry   -> a SHASUMS256.txt with NO entry for the tarball
+#                         filename (typo'd NODE_VERSION, wrong arch suffix, or
+#                         a pulled release) fails the build with the
+#                         not-found message, before any extraction
+#   H. Guard           -> without the publish-only marker the script refuses
 #                         to run and deletes nothing
 set -uo pipefail
 
@@ -118,11 +122,18 @@ rm -rf "$WORK/fixtures/dist"
 # real checksum of anything the sandbox serves — the point is that the pin
 # stops matching the published file.
 printf '%s  %s\n' "$(printf '%s' "$FIXTURE_SHA" | tr '0-9a-f' '1-9a-f0')" "node-v22.22.0-linux-x64.tar.xz" > "$WORK/fixtures/SHASUMS256-stale.txt"
+# A SHASUMS256.txt with no entry for the tarball filename at all, simulating
+# nodejs.org after a NODE_VERSION bump to a release/arch that was never (or is
+# no longer) published. It is a well-formed checksum file for OTHER files — the
+# lookup must come back empty, not error.
+printf '%s  %s\n' "$FIXTURE_SHA" "node-v22.22.0-linux-arm64.tar.xz" > "$WORK/fixtures/SHASUMS256-missing.txt"
 
 # Stub curl: serves the Node tarball and SHASUMS256.txt from the fixtures
 # above. CURL_SERVE_CORRUPT=1 serves the corrupted tarball.
 # CURL_SERVE_STALE_SHASUMS=1 serves a SHASUMS256.txt that disagrees with the
 # pinned checksum (the version-bump-without-pin case).
+# CURL_SERVE_MISSING_SHASUMS=1 serves a SHASUMS256.txt that has no entry for
+# the tarball filename (an unpublished/pulled version or wrong arch suffix).
 cat > "$WORK/bin/curl" <<EOF
 #!/usr/bin/env bash
 out=""
@@ -138,6 +149,8 @@ case "\$url" in
   *SHASUMS256.txt)
     if [ "\${CURL_SERVE_STALE_SHASUMS:-}" = "1" ]; then
       src="$WORK/fixtures/SHASUMS256-stale.txt"
+    elif [ "\${CURL_SERVE_MISSING_SHASUMS:-}" = "1" ]; then
+      src="$WORK/fixtures/SHASUMS256-missing.txt"
     else
       src="$WORK/fixtures/SHASUMS256.txt"
     fi ;;
@@ -170,7 +183,7 @@ reset_state() {
   echo 'PUBLIC_MARKER' > public/marker.txt
 }
 run_deploy() { # run_deploy -> rc on stdout, log at /tmp/db-test.log
-  # Scenarios A-F simulate the publish environment, which is the only place
+  # Scenarios A-G simulate the publish environment, which is the only place
   # the [deployment] build command in .replit sets this marker.
   SELF_SOWN_PUBLISH_BUILD=1 timeout 120 bash "$DEPLOY_BUILD" > /tmp/db-test.log 2>&1
   echo $?
@@ -248,7 +261,25 @@ if grep -qF "checksum mismatch" /tmp/db-test.log; then bad "stale pin not misrep
 [ ! -e .runtime/bin/node ] && ok "nothing extracted or bundled" || bad "nothing extracted or bundled"
 if grep -qF "Final size" /tmp/db-test.log; then bad "build aborted at the pin cross-check"; else ok "build aborted at the pin cross-check"; fi
 
-echo "== G: without the publish marker the script refuses and deletes nothing =="
+echo "== G: a tarball absent from SHASUMS256.txt fails the build before extraction =="
+reset_state
+rm -rf .runtime
+# Pin matches the tarball the stub curl serves, but nodejs.org's SHASUMS256.txt
+# has no entry for the tarball filename — the typo'd-version / pulled-release /
+# wrong-arch case. The build must die on the not-found error, not the
+# update-together or tampering errors.
+export NODE_TARBALL_SHA256="$FIXTURE_SHA"
+export CURL_SERVE_MISSING_SHASUMS=1
+rc=$(run_deploy)
+unset NODE_TARBALL_SHA256 CURL_SERVE_MISSING_SHASUMS
+[ "$rc" -ne 0 ] && ok "deploy build exits non-zero on missing SHASUMS entry" || bad "deploy build exits non-zero on missing SHASUMS entry"
+grep -qF "not found in nodejs.org SHASUMS256.txt" /tmp/db-test.log && ok "missing-entry error reported loudly" || bad "missing-entry error reported loudly"
+if grep -qF "update NODE_SHA256 together" /tmp/db-test.log; then bad "missing entry not misreported as stale pin"; else ok "missing entry not misreported as stale pin"; fi
+if grep -qF "checksum mismatch" /tmp/db-test.log; then bad "missing entry not misreported as tampering"; else ok "missing entry not misreported as tampering"; fi
+[ ! -e .runtime/bin/node ] && ok "nothing extracted or bundled" || bad "nothing extracted or bundled"
+if grep -qF "Final size" /tmp/db-test.log; then bad "build aborted at the missing-entry guard"; else ok "build aborted at the missing-entry guard"; fi
+
+echo "== H: without the publish marker the script refuses and deletes nothing =="
 reset_state
 # Sentinels for everything the destructive cleanup would remove: repo dirs,
 # .git, $HOME caches, and a file under the temp dir.
