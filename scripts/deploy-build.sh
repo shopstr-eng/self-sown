@@ -9,6 +9,21 @@
 
 set -e
 
+# Publish-only guard: this script's pre/post-build cleanup does rm -rf on
+# node_modules, .git, __tests__, $HOME caches, and the temp dir. It exists
+# solely as the Replit Autoscale build step and is catastrophic on a dev
+# machine or in the workspace. The [deployment] build command in .replit sets
+# SELF_SOWN_PUBLISH_BUILD=1 when invoking it; anything else (a developer or
+# agent running `bash scripts/deploy-build.sh` / `pnpm run build:deploy` by
+# hand) is refused BEFORE anything is deleted.
+if [ "${SELF_SOWN_PUBLISH_BUILD:-}" != "1" ]; then
+  echo "ERROR: scripts/deploy-build.sh is the Replit publish-time build and" >&2
+  echo "permanently deletes node_modules, .git, tests, and local caches." >&2
+  echo "It only runs from the [deployment] build command in .replit, which sets" >&2
+  echo "SELF_SOWN_PUBLISH_BUILD=1. Refusing to run here; nothing was deleted." >&2
+  exit 1
+fi
+
 echo "==> Pre-build cleanup (remove dev artifacts that bloat the image)"
 rm -rf \
   .next \

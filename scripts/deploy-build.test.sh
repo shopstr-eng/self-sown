@@ -24,6 +24,8 @@
 #                         before extraction; a matching download is bundled
 #   E. Checksum mismatch -> a corrupted/tampered tarball fails the build
 #                         loudly and is never extracted into the bundle
+#   F. Guard           -> without the publish-only marker the script refuses
+#                         to run and deletes nothing
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -152,7 +154,9 @@ reset_state() {
   echo 'PUBLIC_MARKER' > public/marker.txt
 }
 run_deploy() { # run_deploy -> rc on stdout, log at /tmp/db-test.log
-  timeout 120 bash "$DEPLOY_BUILD" > /tmp/db-test.log 2>&1
+  # Scenarios A-E simulate the publish environment, which is the only place
+  # the [deployment] build command in .replit sets this marker.
+  SELF_SOWN_PUBLISH_BUILD=1 timeout 120 bash "$DEPLOY_BUILD" > /tmp/db-test.log 2>&1
   echo $?
 }
 
@@ -211,6 +215,28 @@ unset NODE_TARBALL_SHA256 CURL_SERVE_CORRUPT
 grep -qF "checksum mismatch" /tmp/db-test.log && ok "mismatch reported loudly" || bad "mismatch reported loudly"
 [ ! -e .runtime/bin/node ] && ok "tampered tarball never bundled" || bad "tampered tarball never bundled"
 if grep -qF "Final size" /tmp/db-test.log; then bad "build aborted at checksum verification"; else ok "build aborted at checksum verification"; fi
+
+echo "== F: without the publish marker the script refuses and deletes nothing =="
+reset_state
+# Sentinels for everything the destructive cleanup would remove: repo dirs,
+# .git, $HOME caches, and a file under the temp dir.
+mkdir -p node_modules .git __tests__ "$HOME/.cache" "$HOME/.local/share/pnpm"
+echo 'KEEP' > node_modules/keep
+echo 'KEEP' > .git/keep
+echo 'KEEP' > __tests__/keep
+echo 'KEEP' > "$HOME/.cache/keep"
+echo 'KEEP' > "$HOME/.local/share/pnpm/keep"
+echo 'KEEP' > "$TMPDIR/keep"
+# No SELF_SOWN_PUBLISH_BUILD — this is a developer/agent running it by hand.
+timeout 30 bash "$DEPLOY_BUILD" > /tmp/db-test.log 2>&1
+rc=$?
+[ "$rc" -ne 0 ] && ok "unmarked run exits non-zero" || bad "unmarked run exits non-zero"
+grep -qF "Refusing to run" /tmp/db-test.log && ok "clear publish-only message printed" || bad "clear publish-only message printed"
+if grep -qF "Pre-build cleanup" /tmp/db-test.log; then bad "refusal happens before any cleanup"; else ok "refusal happens before any cleanup"; fi
+[ -f node_modules/keep ] && [ -f .git/keep ] && [ -f __tests__/keep ] && ok "repo dirs untouched" || bad "repo dirs untouched"
+[ -f "$HOME/.cache/keep" ] && [ -f "$HOME/.local/share/pnpm/keep" ] && ok "HOME caches untouched" || bad "HOME caches untouched"
+[ -f "$TMPDIR/keep" ] && ok "temp dir untouched" || bad "temp dir untouched"
+rm -rf node_modules .git __tests__
 
 echo
 echo "RESULT: $pass passed, $fail failed"

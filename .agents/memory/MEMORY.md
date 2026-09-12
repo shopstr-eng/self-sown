@@ -144,3 +144,5 @@
 - [Site URL centralization gotchas](site-url-centralization.md) — getSiteUrl returns env verbatim (no trim/strip — pure-refactor contract); JSX text/expression child boundaries affect SSR bytes; tests stubbing NEXT_PUBLIC_BASE_URL must assert literals, not import SITE_URL.
 - [Legacy-domain cutover redirect (retired)](legacy-domain-cutover-redirect.md) — 301 scaffolding + LEGACY_SITE_HOST removed; milk.market stays in PLATFORM_HOST_SUFFIXES while owned; OAuth redirect_uri pinning kept; reintroduce time-boxed 301 for any future move.
 - [Brand rename alias layer](brand-rename-keep-list.md) — rename to selfsown/self-sown is DONE; remaining milkmarket identifiers are deliberate compat aliases — never remove.
+- [Editing .replit](editing-dot-replit.md) — direct Edit is blocked; write full TOML to a temp file and call verifyAndReplaceDotReplit in CodeExecution.
+- [Deploy-build publish guard](deploy-build-publish-guard.md) — deploy-build.sh refuses to run without SELF_SOWN_PUBLISH_BUILD=1, set only by the .replit [deployment] build command; keep the two in lockstep.
