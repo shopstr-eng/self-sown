@@ -25,7 +25,7 @@ rm -rf \
   "$HOME/.cache" \
   "$HOME/.pnpm-store" \
   "$HOME/.local/share/pnpm" \
-  /tmp/* 2>/dev/null || true
+  "${TMPDIR:-/tmp}"/* 2>/dev/null || true
 
 echo "==> Installing production deps (web only)"
 pnpm install \

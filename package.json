@@ -35,6 +35,7 @@
     "test:integration": "RUN_TESTCONTAINERS=1 jest utils/db/__tests__/db-service.test.ts --runInBand",
     "test:db": "RUN_TESTCONTAINERS=1 jest \"utils/db/__tests__/.*-db\\.test\\.ts$\" --runInBand",
     "test:self-host-build": "RUN_SELF_HOST_BUILD=1 jest utils/self-host/__tests__/export-bundle-full-build.test.ts --runInBand",
+    "test:build-scripts": "bash scripts/dev-server.test.sh && bash scripts/deploy-build.test.sh",
     "test:watch": "jest --watch",
     "prepare": "husky",
     "pre-commit": "node scripts/run-staged-checks.mjs"

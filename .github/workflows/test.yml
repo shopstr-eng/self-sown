@@ -54,6 +54,30 @@ jobs:
       - name: Run Testcontainers integration test
         run: npm run test:integration
 
+  build-scripts:
+    name: Build-script regression harnesses
+    runs-on: ubuntu-latest
+
+    # Shell harnesses that exercise the real deploy/preview bundle-assembly
+    # path (scripts/deploy-build.sh, scripts/dev-server.sh ->
+    # scripts/prepare-standalone.mjs) against stub build tools. They need no
+    # dependencies — bash + node only — so this job skips pnpm install.
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+
+      # npm (not pnpm): setup-node guarantees npm and this dependency-free
+      # job skips the corepack/pnpm setup the other jobs need — the harnesses
+      # are plain bash + node.
+      - name: Run build-script harnesses
+        run: npm run test:build-scripts
+
   self-host-build:
     name: Self-host full build + boot
     runs-on: ubuntu-latest
