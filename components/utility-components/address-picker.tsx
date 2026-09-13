@@ -431,7 +431,7 @@ export default function AddressPicker({
         className="shadow-neo flex w-full items-center justify-between rounded-md border-2 border-black bg-white px-4 py-4 text-left"
         onClick={() => setIsExpanded((current) => !current)}
       >
-        <span className="text-md flex items-center gap-3 font-semibold text-black">
+        <span className="text-base flex items-center gap-3 font-semibold text-black">
           <span aria-hidden="true" className="text-lg leading-none">
             ⭐
           </span>

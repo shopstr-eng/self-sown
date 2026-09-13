@@ -65,6 +65,17 @@ if (eslintFiles.length > 0) {
   run(localBin("eslint"), ["--fix", "--", ...eslintFiles]);
 }
 
+// Dead-color-class guard: scans the whole source tree (fast, pure Node), but
+// only worthwhile when a component/style file or the palette itself changed.
+const themeColorTriggers = [
+  ...jestFiles,
+  ...byExtension([".css"]),
+  ...stagedFiles.filter((file) => file === "tailwind.config.ts"),
+];
+if (themeColorTriggers.length > 0) {
+  run(process.execPath, ["scripts/check-theme-colors.mjs"]);
+}
+
 if (prettierFiles.length > 0) {
   run(localBin("prettier"), ["--write", "--", ...prettierFiles]);
 }

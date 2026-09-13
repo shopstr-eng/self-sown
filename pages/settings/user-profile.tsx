@@ -240,7 +240,7 @@ const UserProfilePage = () => {
                 }}
               >
                 <span
-                  className="lg:text-md pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm"
+                  className="lg:text-base pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm"
                   suppressHydrationWarning
                 >
                   {userNPub}
@@ -265,7 +265,7 @@ const UserProfilePage = () => {
               {userNSec ? (
                 <div className="mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 border-black p-2">
                   <span
-                    className="lg:text-md pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm"
+                    className="lg:text-base pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm"
                     suppressHydrationWarning
                   >
                     {viewState === "shown"

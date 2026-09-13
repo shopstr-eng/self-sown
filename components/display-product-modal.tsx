@@ -206,10 +206,10 @@ export default function DisplayProductModal({
               </Chip>
               <CompactCategories categories={productData.categories} />
               <div>
-                <p className="text-md">
+                <p className="text-base">
                   {displayDate(productData.createdAt)[0]}
                 </p>
-                <p className="text-md">
+                <p className="text-base">
                   {displayDate(productData.createdAt)[1]}
                 </p>
               </div>
