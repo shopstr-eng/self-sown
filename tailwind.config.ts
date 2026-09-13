@@ -34,6 +34,9 @@ const config: Config = {
       },
     },
   },
+  // HeroUI compiles its internal dark: utilities against this setting; no app
+  // code uses dark: classes anymore and _app forces light, so no dark theme
+  // is ever activated.
   darkMode: "class",
   plugins: [heroui()],
 };

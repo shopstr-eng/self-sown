@@ -147,3 +147,4 @@
 - [Editing .replit](editing-dot-replit.md) — direct Edit is blocked; write full TOML to a temp file and call verifyAndReplaceDotReplit in CodeExecution.
 - [replit.nix channel caps Node at 18](replit-nix-channel-node-cap.md) — nixpkgs 22.11 has no nodejs-22_x and replit.nix is still evaluated at env-build; runtime Node 22 comes from .replit modules, never bump replit.nix to match .nvmrc.
 - [Deploy-build publish guard](deploy-build-publish-guard.md) — deploy-build.sh refuses to run without SELF_SOWN_PUBLISH_BUILD=1, set only by the .replit [deployment] build command; keep the two in lockstep.
+- [Brand palette consolidation](brand-palette-consolidation.md) — app is forced light-only; keep darkMode:'class' (HeroUI needs it); never add dark: classes.

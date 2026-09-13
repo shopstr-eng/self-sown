@@ -1782,7 +1782,7 @@ function App(props: AppProps) {
   return (
     <>
       <HeroUIProvider>
-        <NextThemesProvider attribute="class">
+        <NextThemesProvider attribute="class" forcedTheme="light">
           <NostrContextProvider>
             <SignerContextProvider>
               <ProMembershipProvider>
