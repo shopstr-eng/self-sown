@@ -58,8 +58,11 @@ export function bodySizeClass(
 // joining tokens on explicit whitespace here makes that merged-class bug
 // impossible by construction instead of merely caught by tests. The static
 // guard in __tests__/components/storefront/section-class-builder-guard.test.ts
-// fails on any inline conditional string inside a section file's className
-// template literal.
+// fails on any conditional string inside a section file's className template
+// literal — and, via a TypeScript-AST walk of every template literal in the
+// file, on the same pattern one level removed (conditional template assigned
+// to a variable that then feeds className), with an allowlist for the few
+// legitimate non-class uses (display text, CSS blocks, font fallbacks).
 export function joinClassNames(
   ...tokens: Array<string | false | null | undefined>
 ): string {

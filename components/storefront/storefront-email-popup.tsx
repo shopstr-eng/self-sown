@@ -231,7 +231,10 @@ export default function StorefrontEmailPopupComponent({
             className={
               isFullscreen
                 ? "relative h-full w-full overflow-hidden"
-                : `relative w-full max-w-md overflow-hidden rounded-2xl ${neoShadows ? "border-2" : "shadow-2xl"}`
+                : joinClassNames(
+                    "relative w-full max-w-md overflow-hidden rounded-2xl",
+                    neoShadows ? "border-2" : "shadow-2xl"
+                  )
             }
             style={{
               backgroundColor: bg,

@@ -24,18 +24,29 @@
 // sections directory and fails on:
 //
 //   1. a `headingSize ?` / `bodySize ?` conditional string anywhere except
-//      section-elements.tsx (the builders' own home), and
+//      section-elements.tsx (the builders' own home),
 //   2. ANY conditional operator (ternary, &&, ||) at the top level of a
 //      `${...}` interpolation inside a className template literal —
 //      regardless of operand shape. A static lookup-map index
 //      (`${SIZE_CLASSES[size]}`), plain interpolation (`${align}`), or a
 //      builder call (`${headingClassName(section, ...)}`) stays allowed, as
 //      do operators nested inside a call's arguments (the function returns
-//      one complete class string).
+//      one complete class string), and
+//   3. the SAME conditional at the top level of a `${...}` interpolation in
+//      ANY other template literal in the file — building the string in a
+//      variable first (`const cls = `flex ${cond ? "md:flex-row" :
+//      "flex-col"}`;` then `className={cls}`) is the identical bug one level
+//      removed, and must not be a way around the className-prefix scan. The
+//      whole-file walk uses the TypeScript parser, so comments and strings
+//      can't smuggle or hide a template. The few legitimate non-class
+//      template conditionals in these files (display text, CSS blocks, font
+//      fallbacks) are named in NON_CLASS_TEMPLATE_ALLOWLIST below; the guard
+//      fails on an unused allowlist entry so the list can't silently rot.
 //
 // Writing a new section with conditional classes? Compose them with
 // joinClassNames("static tokens", cond ? "a" : "b") from section-elements.tsx
-// — never `${cond ? "a" : "b"}` inside a className template literal.
+// — never `${cond ? "a" : "b"}` inside a template literal that feeds a
+// className, whether written inline or assigned to a variable first.
 //
 // The same hand-written pattern also lived in storefront chrome components
 // outside the sections folder (footer, email popup, layout, theme wrapper,
@@ -48,6 +59,7 @@
 
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative } from "path";
+import ts from "typescript";
 
 const SECTIONS_DIR = join(
   process.cwd(),
@@ -225,6 +237,135 @@ function hasTopLevelConditional(expr: string): boolean {
   return false;
 }
 
+// ---------------------------------------------------------------------------
+// Whole-file template-literal scanner.
+//
+// classNameInterpolations only sees templates that start immediately after
+// `className={``. The same merged-class bug can hide one level removed —
+// build the string in a variable (`const cls = `flex ${cond ? "md:flex-row" :
+// "flex-col"}`;`) and pass `className={cls}` — so this walk parses the file
+// with the TypeScript compiler and extracts the expression text of every
+// ${...} interpolation of every template literal, wherever the template
+// appears (variable initializer, call argument, JSX attribute, …). A real
+// parser keeps comments and quoted strings from being mistaken for code (the
+// joinClassNames INVARIANT comment itself contains an example template), and
+// tagged/nested templates are covered for free.
+// ---------------------------------------------------------------------------
+
+// Expression text of every template-literal interpolation in the file.
+function templateLiteralExpressions(source: string, fileName: string): string[] {
+  const sf = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    ts.ScriptKind.TSX
+  );
+  const out: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isTemplateExpression(node)) {
+      for (const span of node.templateSpans) {
+        out.push(span.expression.getText(sf));
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
+function normalizeWhitespace(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+// Legitimate non-class template conditionals the whole-file scan must not
+// flag. Each entry matches when `snippet` (whitespace-normalized) is a
+// substring of the offending interpolation's normalized text. Adding a new
+// legitimate use? Prefer joinClassNames for anything that feeds a className —
+// this list is ONLY for conditionals that provably build display text, CSS
+// blocks, keys, or other non-class strings. Unused entries fail the guard.
+const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
+  file: string;
+  snippet: string;
+  reason: string;
+}> = [
+  // Review emoji rendered as Chip text, never a class.
+  {
+    file: "components/storefront/sections/section-reviews.tsx",
+    snippet: 'value === "1" ? "👍" : "👎"',
+    reason: "thumbs-up/down emoji in Chip label text",
+  },
+  {
+    file: "components/storefront/sections/section-product-reviews.tsx",
+    snippet: 'value === "1" ? "👍" : "👎"',
+    reason: "thumbs-up/down emoji in Chip label text",
+  },
+  // Shipping-cost suffix appended to display text; the branch is itself a
+  // text template, not a class token.
+  {
+    file: "components/storefront/sections/section-product-shipping-returns.tsx",
+    snippet: "product.shippingCost ? `: ${product.shippingCost} ${product.currency}` :",
+    reason: "shipping-cost suffix in shipping-returns display text",
+  },
+  // React element key for bold/emphasis inline nodes.
+  {
+    file: "components/storefront/storefront-policy-page.tsx",
+    snippet: 'isBold ? "b" : "e"',
+    reason: "react key suffix for inline bold/emphasis nodes",
+  },
+  // Uploaded-font family-name fallbacks inside @font-face CSS text.
+  ...[
+    "components/storefront/storefront-layout.tsx",
+    "components/storefront/storefront-preview-frame.tsx",
+    "components/storefront/storefront-theme-wrapper.tsx",
+  ].flatMap((file) => [
+    {
+      file,
+      snippet: '|| "CustomHeading"',
+      reason: "custom heading-font family-name fallback in @font-face CSS text",
+    },
+    {
+      file,
+      snippet: '|| "CustomBody"',
+      reason: "custom body-font family-name fallback in @font-face CSS text",
+    },
+  ]),
+  // Neo-shadow CSS overrides: the ternary picks between large blocks of CSS
+  // text (its operands are templates of selectors, not class tokens).
+  {
+    file: "components/storefront/storefront-layout.tsx",
+    snippet: "storefront.neoShadows ? `",
+    reason: "neo-shadow CSS override block in <style> text",
+  },
+  {
+    file: "components/storefront/storefront-theme-wrapper.tsx",
+    snippet: "storefront?.neoShadows ? `",
+    reason: "neo-shadow CSS override block in <style> text",
+  },
+  // Currency fallback for the featured product's price display.
+  {
+    file: "components/storefront/storefront-product-grid.tsx",
+    snippet: 'featuredProduct.currency?.toUpperCase() || "USD"',
+    reason: "currency-code fallback in price display text",
+  },
+  // Pluralization and restore-status suffixes in wallet message text.
+  {
+    file: "components/storefront/storefront-wallet.tsx",
+    snippet: 'skippedCount === 1 ? "" : "s"',
+    reason: "pluralization suffix in wallet restore message",
+  },
+  {
+    file: "components/storefront/storefront-wallet.tsx",
+    snippet: 'restoredCount === 1 ? "" : "s"',
+    reason: "pluralization suffix in wallet restore message",
+  },
+  {
+    file: "components/storefront/storefront-wallet.tsx",
+    snippet: "skippedCount > 0 ? ` ${skippedCount} skipped",
+    reason: "skipped-mint suffix in wallet restore message",
+  },
+];
+
 function collectSectionSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -283,6 +424,35 @@ describe("storefront section class-builder guard", () => {
     }
   }
 
+  // Whole-file template check: the identical bug one level removed — build
+  // the string in a variable first (`const cls = `flex ${cond ? "md:flex-row"
+  // : "flex-col"}`;`) and pass className={cls} — must not slip past the
+  // className-prefix scan above. Every template literal in these files is
+  // walked; a top-level conditional in any interpolation is flagged unless
+  // it is a named non-class use in NON_CLASS_TEMPLATE_ALLOWLIST.
+  const usedAllowlistEntries = new Set<number>();
+  for (const file of [...scannedFiles, ...scannedChromeFiles]) {
+    const rel = relative(process.cwd(), file);
+    const source = readFileSync(file, "utf8");
+
+    for (const expr of templateLiteralExpressions(source, rel)) {
+      if (!hasTopLevelConditional(expr)) continue;
+      const normalized = normalizeWhitespace(expr);
+      const allowIdx = NON_CLASS_TEMPLATE_ALLOWLIST.findIndex(
+        (entry) =>
+          entry.file === rel && normalized.includes(normalizeWhitespace(entry.snippet))
+      );
+      if (allowIdx !== -1) {
+        usedAllowlistEntries.add(allowIdx);
+        continue;
+      }
+      offenders.push({
+        file: rel,
+        label: `conditional operator in template literal interpolation \`\${${expr.trim()}}\` (compose classNames with joinClassNames)`,
+      });
+    }
+  }
+
   it("finds no hand-written headingSize/bodySize conditional class suffixes outside section-elements.tsx", () => {
     const sizeOffenders = offenders.filter((o) =>
       o.label.includes("conditional string suffix")
@@ -295,6 +465,22 @@ describe("storefront section class-builder guard", () => {
       o.label.includes("className template interpolation")
     );
     expect(templateOffenders).toEqual([]);
+  });
+
+  it("finds no conditional class-building template literal, even when assigned to a variable before className", () => {
+    const wholeFileOffenders = offenders.filter((o) =>
+      o.label.includes("conditional operator in template literal interpolation")
+    );
+    expect(wholeFileOffenders).toEqual([]);
+  });
+
+  it("keeps the non-class template allowlist tight (no unused entries)", () => {
+    // An entry whose expression was edited or deleted would silently rot into
+    // a loophole for anything matching its snippet — fail loudly instead.
+    const unused = NON_CLASS_TEMPLATE_ALLOWLIST.filter(
+      (_, idx) => !usedAllowlistEntries.has(idx)
+    );
+    expect(unused).toEqual([]);
   });
 
   it("scans every section file (guard against a silently broken walk)", () => {
@@ -360,6 +546,53 @@ describe("storefront section class-builder guard", () => {
       expect(exprs.length).toBeGreaterThan(0);
       expect(exprs.some(hasTopLevelConditional)).toBe(false);
     }
+  });
+
+  it("detects conditionals in templates assigned to variables before className (guard self-check)", () => {
+    // The bug shape this layer exists to catch: the className-prefix scan is
+    // blind to it, the whole-file walk must not be.
+    const variableAssigned = [
+      'const cls = `flex ${cond ? "md:flex-row" : "flex-col"}`;',
+      "<div className={cls} />",
+    ].join("\n");
+    expect(
+      templateLiteralExpressions(variableAssigned, "sample.tsx").some(
+        hasTopLevelConditional
+      )
+    ).toBe(true);
+    // Every operand shape the inline scan catches, one level removed.
+    for (const expr of [
+      'const cls = `font-bold${section.headingSize ? "" : "md:text-5xl"}`;',
+      "const cls = `base${enabled ? activeClass : inactiveClass}`;",
+      'const cls = `flex gap-3 ${cond && "md:flex-row-reverse"}`;',
+      "const cls = `base ${override || defaultClass}`;",
+    ]) {
+      expect(
+        templateLiteralExpressions(expr, "sample.tsx").some(
+          hasTopLevelConditional
+        )
+      ).toBe(true);
+    }
+    // Legitimate non-class uses stay allowed without an allowlist entry when
+    // their conditional is nested inside a call's arguments.
+    const nested = "const label = `${items.map((x) => (x.on ? 1 : 0)).join(\",\")}`;";
+    expect(
+      templateLiteralExpressions(nested, "sample.tsx").some(
+        hasTopLevelConditional
+      )
+    ).toBe(false);
+  });
+
+  it("does not mistake comments or quoted strings for template literals (guard self-check)", () => {
+    // The joinClassNames INVARIANT comment itself carries an example
+    // template; a text walk that ignores comments would flag the very file
+    // that defines the fix.
+    const commented = [
+      '// const cls = `flex ${cond ? "md:flex-row" : "flex-col"}`;',
+      '/* const cls = `flex ${cond ? "md:flex-row" : "flex-col"}`; */',
+      'const note = "see `flex ${cond ? "a" : "b"}` for the bad shape";',
+    ].join("\n");
+    expect(templateLiteralExpressions(commented, "sample.tsx")).toEqual([]);
   });
 
   it("applies the generic class-template scan to section-elements.tsx too", () => {
