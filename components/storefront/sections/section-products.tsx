@@ -3,8 +3,8 @@ import StorefrontProductGrid from "../storefront-product-grid";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import FormattedText from "../formatted-text";
 import SectionElementFlow, {
-  headingSizeClass,
-  bodySizeClass,
+  headingClassName,
+  bodyClassName,
 } from "./section-elements";
 
 interface SectionProductsProps {
@@ -76,12 +76,11 @@ export default function SectionProducts({
         slots={{
           heading: section.heading && (
             <h2
-              className={`font-heading mb-4 max-w-full min-w-0 ${headingSizeClass(
+              className={`font-heading mb-4 max-w-full min-w-0 ${headingClassName(
                 section,
-                "text-2xl"
-              )} font-bold break-words ${
-                section.headingSize ? "" : "sm:text-3xl"
-              }`.trim()}
+                "text-2xl",
+                "sm:text-3xl"
+              )} break-words`}
               style={{
                 color: "var(--sf-text)",
                 overflowWrap: "anywhere",
@@ -93,12 +92,11 @@ export default function SectionProducts({
           ),
           subheading: section.subheading && (
             <p
-              className={`font-body mb-8 max-w-full min-w-0 ${bodySizeClass(
+              className={`font-body mb-8 max-w-full min-w-0 ${bodyClassName(
                 section,
-                "text-base"
-              )} break-words opacity-70 ${
-                section.bodySize ? "" : "sm:text-lg"
-              }`.trim()}
+                "text-base",
+                "sm:text-lg"
+              )} break-words opacity-70`}
               style={{
                 overflowWrap: "anywhere",
                 wordBreak: "break-word",

@@ -2,8 +2,8 @@ import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import FormattedText from "../formatted-text";
 import SectionElementFlow, {
-  headingSizeClass,
-  bodySizeClass,
+  headingClassName,
+  bodyClassName,
 } from "./section-elements";
 
 interface Props {
@@ -28,10 +28,11 @@ export default function SectionProductDescription({
         slots={{
           heading: (
             <h2
-              className={`font-heading mb-4 ${headingSizeClass(
+              className={`font-heading mb-4 ${headingClassName(
                 section,
-                "text-2xl"
-              )} font-bold ${section.headingSize ? "" : "md:text-3xl"}`.trim()}
+                "text-2xl",
+                "md:text-3xl"
+              )}`}
               style={{ color: colors.text }}
             >
               {heading}
@@ -41,12 +42,11 @@ export default function SectionProductDescription({
             <FormattedText
               text={body}
               as="div"
-              className={`font-body ${bodySizeClass(
+              className={`font-body ${bodyClassName(
                 section,
-                "text-base"
-              )} leading-relaxed whitespace-pre-line opacity-80${
-                section.bodySize ? "" : " md:text-lg"
-              }`}
+                "text-base",
+                "md:text-lg"
+              )} leading-relaxed whitespace-pre-line opacity-80`}
             />
           ),
         }}

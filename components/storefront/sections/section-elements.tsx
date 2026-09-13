@@ -48,6 +48,47 @@ export function bodySizeClass(
   return (section.bodySize && BODY_SIZE_CLASSES[section.bodySize]) || fallback;
 }
 
+// Joins whole class tokens with single spaces, dropping blanks.
+// INVARIANT: every storefront section heading/body className must be composed
+// through this joiner (directly or via headingClassName/bodyClassName below).
+// The `font-boldmd:text-5xl` regression came from a hand-written template
+// literal (`font-bold${cond ? "" : "md:text-5xl"}`) missing its separating
+// space; joining tokens on explicit whitespace here makes that merged-class
+// bug impossible by construction instead of merely caught by tests.
+export function joinClassNames(
+  ...tokens: Array<string | false | null | undefined>
+): string {
+  return tokens.filter(Boolean).join(" ");
+}
+
+// Full heading size/weight core: the size class (explicit headingSize or the
+// section's historical base size), bold weight, and the legacy responsive
+// upsize applied only when no explicit size is set.
+export function headingClassName(
+  section: StorefrontSection,
+  baseSize: string,
+  legacyResponsiveSize: string
+): string {
+  return joinClassNames(
+    headingSizeClass(section, baseSize),
+    "font-bold",
+    section.headingSize ? undefined : legacyResponsiveSize
+  );
+}
+
+// Body-text equivalent of headingClassName; pass no legacyResponsiveSize when
+// the element has no historical responsive upsize.
+export function bodyClassName(
+  section: StorefrontSection,
+  baseSize: string,
+  legacyResponsiveSize?: string
+): string {
+  return joinClassNames(
+    bodySizeClass(section, baseSize),
+    section.bodySize ? undefined : legacyResponsiveSize
+  );
+}
+
 // Static class map (Tailwind can't compile dynamic widths); keys mirror the
 // sanitizer's IMAGE_WIDTHS allowlist. Width applies from md up — mobile always
 // gets the full width.

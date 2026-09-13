@@ -8,7 +8,7 @@ import {
   applyCustomDomainHref,
 } from "@/utils/storefront/custom-domain-context";
 import SectionElementFlow, {
-  headingSizeClass,
+  headingClassName,
   buttonLabelColor,
 } from "./section-elements";
 
@@ -113,10 +113,11 @@ export default function SectionRelatedProducts({
         slots={{
           heading: (
             <h2
-              className={`font-heading mb-6 ${headingSizeClass(
+              className={`font-heading mb-6 ${headingClassName(
                 section,
-                "text-2xl"
-              )} font-bold ${section.headingSize ? "" : "md:text-3xl"}`.trim()}
+                "text-2xl",
+                "md:text-3xl"
+              )}`}
               style={{ color: colors.text }}
             >
               {heading}
