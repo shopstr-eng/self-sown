@@ -1589,7 +1589,7 @@ export default function StandaloneLanding() {
             </div>
             <div className="mb-6 flex flex-wrap items-center justify-center gap-6">
               <a
-                href="https://github.com/shopstr-eng/milk-market"
+                href="https://github.com/shopstr-eng/self-sown"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"

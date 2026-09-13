@@ -39,7 +39,7 @@ git --version
 
 ### 1. Fork the Repository
 
-1. Visit [https://github.com/shopstr-eng/milk-market](https://github.com/shopstr-eng/milk-market)
+1. Visit [https://github.com/shopstr-eng/self-sown](https://github.com/shopstr-eng/self-sown)
 2. Click the "Fork" button in the top-right corner
 3. Select your GitHub account to create the fork
 
@@ -53,7 +53,7 @@ git clone https://github.com/YOUR-USERNAME/self-sown.git
 cd self-sown
 
 # Add the original repository as upstream
-git remote add upstream https://github.com/shopstr-eng/milk-market.git
+git remote add upstream https://github.com/shopstr-eng/self-sown.git
 
 # Verify remotes
 git remote -v
@@ -64,8 +64,8 @@ You should see:
 ```
 origin    https://github.com/YOUR-USERNAME/self-sown.git (fetch)
 origin    https://github.com/YOUR-USERNAME/self-sown.git (push)
-upstream  https://github.com/shopstr-eng/milk-market.git (fetch)
-upstream  https://github.com/shopstr-eng/milk-market.git (push)
+upstream  https://github.com/shopstr-eng/self-sown.git (fetch)
+upstream  https://github.com/shopstr-eng/self-sown.git (push)
 ```
 
 ## Local Development Setup

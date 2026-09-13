@@ -42,7 +42,7 @@ export default function AboutPage() {
                   name: "United States",
                 },
                 sameAs: [
-                  "https://github.com/shopstr-eng/milk-market",
+                  "https://github.com/shopstr-eng/self-sown",
                   "https://www.youtube.com/@self-sown",
                 ],
               },

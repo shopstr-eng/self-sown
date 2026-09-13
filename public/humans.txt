@@ -3,7 +3,7 @@ Project: Self-sown
 Site: https://self-sown.com
 Contact: hello@self-sown.com
 Nostr: https://njump.me/self-sown@self-sown.com
-Source: https://github.com/shopstr-eng/milk-market
+Source: https://github.com/shopstr-eng/self-sown
 
 /* WHAT */
 A permissionless, Bitcoin-native marketplace for local food and decentralized

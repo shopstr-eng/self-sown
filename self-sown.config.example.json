@@ -5,5 +5,5 @@
   "relays": ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"],
   "blossomServers": ["https://blossom.primal.net"],
   "ownStripe": false,
-  "upstreamRepo": "https://github.com/shopstr-eng/milk-market"
+  "upstreamRepo": "https://github.com/shopstr-eng/self-sown"
 }

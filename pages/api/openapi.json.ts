@@ -18,7 +18,7 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
       contact: { name: "Self-sown", url: `${BASE_URL}/contact` },
       license: {
         name: "MIT",
-        url: "https://github.com/shopstr-eng/milk-market",
+        url: "https://github.com/shopstr-eng/self-sown",
       },
     },
     servers: [{ url: BASE_URL }],

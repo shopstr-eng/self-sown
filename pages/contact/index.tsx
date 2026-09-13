@@ -131,7 +131,7 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Open Source</h3>
                   <a
-                    href="https://github.com/shopstr-eng/milk-market"
+                    href="https://github.com/shopstr-eng/self-sown"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-700 underline"

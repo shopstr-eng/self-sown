@@ -3,7 +3,7 @@
 
 Contact: mailto:hello@self-sown.com
 Contact: https://self-sown.com/contact
-Contact: https://github.com/shopstr-eng/milk-market/security/advisories
+Contact: https://github.com/shopstr-eng/self-sown/security/advisories
 Expires: 2027-12-31T23:59:59.000Z
 Preferred-Languages: en
 Canonical: https://self-sown.com/.well-known/security.txt

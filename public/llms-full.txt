@@ -66,5 +66,5 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 - Free Food Manifesto: https://self-sown.com/manifesto
 - FAQ: https://self-sown.com/faq
 - Contact: https://self-sown.com/contact
-- Source code: https://github.com/shopstr-eng/milk-market
+- Source code: https://github.com/shopstr-eng/self-sown
 - Nostr: https://njump.me/self-sown@self-sown.com

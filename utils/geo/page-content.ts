@@ -90,7 +90,7 @@ Free and open food markets are the foundation of thriving communities; defending
 
 - Email: hello@self-sown.com
 - Nostr: ${SITE === SITE_URL ? "https://njump.me/self-sown@self-sown.com" : ""}
-- Source code: https://github.com/shopstr-eng/milk-market
+- Source code: https://github.com/shopstr-eng/self-sown
 
 Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,
   },

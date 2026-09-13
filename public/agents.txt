@@ -8,7 +8,7 @@
 
 Contact: https://self-sown.com/contact
 Policy: https://self-sown.com/about
-Source: https://github.com/shopstr-eng/milk-market
+Source: https://github.com/shopstr-eng/self-sown
 
 # --- Discovery ---------------------------------------------------------------
 LLMs: https://self-sown.com/llms.txt
