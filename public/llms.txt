@@ -19,7 +19,7 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 - [Free Food Manifesto](https://self-sown.com/manifesto): The essay behind Self-sown: why our food systems are broken and how free markets, encryption, and Bitcoin fix them.
 - [FAQ](https://self-sown.com/faq): Common questions about payments, selling, privacy, and Nostr.
 - [Producer Guide](https://self-sown.com/producer-guide): Step-by-step guide for producers: account, membership, listing products, managing orders, custom storefronts, email flows with engagement analytics, Shippo shipping labels, and connecting AI agents.
-- [Contact](https://self-sown.com/contact): Reach the team via Nostr, GitHub, X, or email.
+- [Contact](https://self-sown.com/contact): Reach the team via Nostr, GitHub, or email.
 
 ## Marketplace
 

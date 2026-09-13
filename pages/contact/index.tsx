@@ -35,11 +35,11 @@ export default function ContactPage() {
               mainEntity: {
                 "@type": "Organization",
                 name: "Self-sown",
-                email: "freemilk@self-sown.com",
+                email: "hello@self-sown.com",
                 url: SITE_URL,
                 contactPoint: {
                   "@type": "ContactPoint",
-                  email: "freemilk@self-sown.com",
+                  email: "hello@self-sown.com",
                   contactType: "customer service",
                   availableLanguage: "English",
                 },
@@ -77,10 +77,10 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Email</h3>
                   <a
-                    href="mailto:freemilk@self-sown.com"
+                    href="mailto:hello@self-sown.com"
                     className="text-blue-700 underline"
                   >
-                    freemilk@self-sown.com
+                    hello@self-sown.com
                   </a>
                   <p className="mt-1 text-sm text-zinc-500">
                     General inquiries, partnerships, and support
@@ -90,7 +90,7 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Nostr</h3>
                   <a
-                    href="https://njump.me/milkmarket@self-sown.com"
+                    href="https://njump.me/self-sown@self-sown.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-700 underline"
@@ -101,7 +101,7 @@ export default function ContactPage() {
                       width={16}
                       height={16}
                     />
-                    milkmarket@self-sown.com
+                    self-sown@self-sown.com
                   </a>
                   <p className="mt-1 text-sm text-zinc-500">
                     Reach us on the Nostr network for encrypted messaging
@@ -112,21 +112,7 @@ export default function ContactPage() {
                   <h3 className="mb-2 text-lg font-bold">Social Media</h3>
                   <div className="flex flex-wrap gap-4">
                     <a
-                      href="https://x.com/milkmarketmedia"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
-                    >
-                      <Image
-                        src="/x-logo-black.png"
-                        alt="X (Twitter) logo"
-                        width={16}
-                        height={16}
-                      />
-                      X / Twitter
-                    </a>
-                    <a
-                      href="https://www.youtube.com/@milkmarketmedia"
+                      href="https://www.youtube.com/@self-sown"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-blue-700 underline"
@@ -138,34 +124,6 @@ export default function ContactPage() {
                         height={16}
                       />
                       YouTube
-                    </a>
-                    <a
-                      href="https://www.instagram.com/milkmarketmedia/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
-                    >
-                      <Image
-                        src="/instagram-icon.png"
-                        alt="Instagram logo"
-                        width={16}
-                        height={16}
-                      />
-                      Instagram
-                    </a>
-                    <a
-                      href="https://www.tiktok.com/@milkmarket.media"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
-                    >
-                      <Image
-                        src="/tiktok-icon.png"
-                        alt="TikTok logo"
-                        width={16}
-                        height={16}
-                      />
-                      TikTok
                     </a>
                   </div>
                 </div>

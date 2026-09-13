@@ -1,5 +1,5 @@
 ---
-name: milk-market
+name: self-sown
 description: Browse and buy local food, and manage a producer stall, on Self-sown (a permissionless Bitcoin-native Nostr marketplace) via its Model Context Protocol (MCP) server.
 homepage: https://self-sown.com
 mcp_endpoint: https://self-sown.com/api/mcp

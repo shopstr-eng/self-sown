@@ -1,9 +1,8 @@
 /* TEAM */
 Project: Self-sown
 Site: https://self-sown.com
-Contact: freemilk@self-sown.com
-Nostr: https://njump.me/milkmarket
-X: https://x.com/milkmarketmedia
+Contact: hello@self-sown.com
+Nostr: https://njump.me/self-sown@self-sown.com
 Source: https://github.com/shopstr-eng/milk-market
 
 /* WHAT */

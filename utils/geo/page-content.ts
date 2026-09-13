@@ -85,12 +85,11 @@ Free and open food markets are the foundation of thriving communities; defending
   },
   "/contact": {
     title: "Contact Self-sown",
-    description: "Reach the Self-sown team via Nostr, GitHub, X, or email.",
+    description: "Reach the Self-sown team via Nostr, GitHub, or email.",
     markdown: `# Contact Self-sown
 
-- Email: freemilk@self-sown.com
-- Nostr: ${SITE === SITE_URL ? "https://njump.me/milkmarket" : ""}
-- X: https://x.com/milkmarketmedia
+- Email: hello@self-sown.com
+- Nostr: ${SITE === SITE_URL ? "https://njump.me/self-sown@self-sown.com" : ""}
 - Source code: https://github.com/shopstr-eng/milk-market
 
 Want to browse local food? Visit the [marketplace](${SITE}/marketplace).`,

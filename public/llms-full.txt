@@ -67,4 +67,4 @@ Agents that send `Accept: text/markdown`, `Accept: application/json`, or identif
 - FAQ: https://self-sown.com/faq
 - Contact: https://self-sown.com/contact
 - Source code: https://github.com/shopstr-eng/milk-market
-- Nostr: https://njump.me/milkmarket
+- Nostr: https://njump.me/self-sown@self-sown.com

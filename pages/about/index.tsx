@@ -43,10 +43,7 @@ export default function AboutPage() {
                 },
                 sameAs: [
                   "https://github.com/shopstr-eng/milk-market",
-                  "https://x.com/milkmarketmedia",
-                  "https://www.youtube.com/@milkmarketmedia",
-                  "https://www.instagram.com/milkmarketmedia/",
-                  "https://www.tiktok.com/@milkmarket.media",
+                  "https://www.youtube.com/@self-sown",
                 ],
               },
             }),

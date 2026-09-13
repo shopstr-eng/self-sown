@@ -15,16 +15,13 @@ const organizationSchema = {
   foundingDate: "2024",
   contactPoint: {
     "@type": "ContactPoint",
-    email: "freemilk@self-sown.com",
+    email: "hello@self-sown.com",
     contactType: "customer service",
     availableLanguage: "English",
   },
   sameAs: [
     "https://github.com/shopstr-eng/milk-market",
-    "https://x.com/milkmarketmedia",
-    "https://www.youtube.com/@milkmarketmedia",
-    "https://www.instagram.com/milkmarketmedia/",
-    "https://www.tiktok.com/@milkmarket.media",
+    "https://www.youtube.com/@self-sown",
   ],
   founder: {
     "@type": "Person",

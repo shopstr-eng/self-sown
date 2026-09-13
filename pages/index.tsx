@@ -1376,7 +1376,7 @@ export default function StandaloneLanding() {
 
           <div className="mt-8 text-center">
             <a
-              href="https://www.youtube.com/@milkmarketmedia"
+              href="https://www.youtube.com/@self-sown"
               target="_blank"
               rel="noopener noreferrer"
               className={`${WHITEBUTTONCLASSNAMES} inline-flex items-center gap-2`}
@@ -1602,7 +1602,7 @@ export default function StandaloneLanding() {
                 />
               </a>
               <a
-                href="https://njump.me/milkmarket@self-sown.com"
+                href="https://njump.me/self-sown@self-sown.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
@@ -1615,20 +1615,7 @@ export default function StandaloneLanding() {
                 />
               </a>
               <a
-                href="https://x.com/milkmarketmedia"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
-              >
-                <Image
-                  src="/x-logo-white.png"
-                  alt="Follow Self-sown on X (Twitter)"
-                  width={24}
-                  height={24}
-                />
-              </a>
-              <a
-                href="https://www.youtube.com/@milkmarketmedia"
+                href="https://www.youtube.com/@self-sown"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
@@ -1636,32 +1623,6 @@ export default function StandaloneLanding() {
                 <Image
                   src="/youtube-icon.png"
                   alt="Self-sown YouTube channel - local food and farming videos"
-                  width={24}
-                  height={24}
-                />
-              </a>
-              <a
-                href="https://www.instagram.com/milkmarketmedia/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
-              >
-                <Image
-                  src="/instagram-icon.png"
-                  alt="Self-sown on Instagram"
-                  width={24}
-                  height={24}
-                />
-              </a>
-              <a
-                href="https://www.tiktok.com/@milkmarket.media"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
-              >
-                <Image
-                  src="/tiktok-icon.png"
-                  alt="Self-sown on TikTok"
                   width={24}
                   height={24}
                 />
