@@ -21,6 +21,7 @@ import {
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
 import StorefrontFooterNewsletter from "./storefront-footer-newsletter";
+import { joinClassNames } from "./sections/section-elements";
 
 interface StorefrontFooterProps {
   footer: StorefrontFooter;
@@ -270,9 +271,10 @@ export default function StorefrontFooterComponent({
 
         {showPoweredBy && (
           <div
-            className={`${
-              enabledPolicies.length > 0 ? "mt-4" : "mt-8 border-t pt-6"
-            } text-center text-sm opacity-40`}
+            className={joinClassNames(
+              enabledPolicies.length > 0 ? "mt-4" : "mt-8 border-t pt-6",
+              "text-center text-sm opacity-40"
+            )}
             style={
               enabledPolicies.length > 0 ? {} : { borderColor: text + "11" }
             }

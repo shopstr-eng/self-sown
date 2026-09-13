@@ -36,6 +36,15 @@
 // Writing a new section with conditional classes? Compose them with
 // joinClassNames("static tokens", cond ? "a" : "b") from section-elements.tsx
 // — never `${cond ? "a" : "b"}` inside a className template literal.
+//
+// The same hand-written pattern also lived in storefront chrome components
+// outside the sections folder (footer, email popup, layout, theme wrapper,
+// preview frame/toggle), where a dropped space would strip styling from the
+// storefront shell the same way. Those components now compose conditional
+// classes through the same joinClassNames helper, and the generic
+// className-template scan below also covers every top-level
+// components/storefront/*.tsx file. (The legacy headingSize/bodySize check
+// stays sections-scoped: those fields only exist on sections.)
 
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative } from "path";
@@ -46,6 +55,8 @@ const SECTIONS_DIR = join(
   "storefront",
   "sections"
 );
+
+const STOREFRONT_DIR = join(process.cwd(), "components", "storefront");
 
 // The shared builders legitimately branch on headingSize/bodySize. The
 // allowlist exempts section-elements.tsx from ONLY the legacy size-field
@@ -226,8 +237,21 @@ function collectSectionSources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+// Top-level storefront chrome components (footer, layout, email popup, theme
+// wrapper, previews, …) get ONLY the generic className-template scan — the
+// legacy headingSize/bodySize check is sections-specific. Subdirectories
+// (sections/ and anything added later) are intentionally not walked here:
+// sections/ is covered by collectSectionSources above.
+function collectStorefrontChromeSources(dir: string): string[] {
+  return readdirSync(dir)
+    .filter((entry) => entry.endsWith(".tsx"))
+    .filter((entry) => statSync(join(dir, entry)).isFile())
+    .map((entry) => join(dir, entry));
+}
+
 describe("storefront section class-builder guard", () => {
   const scannedFiles = collectSectionSources(SECTIONS_DIR);
+  const scannedChromeFiles = collectStorefrontChromeSources(STOREFRONT_DIR);
   const offenders: Array<{ file: string; label: string }> = [];
 
   for (const file of scannedFiles) {
@@ -240,9 +264,15 @@ describe("storefront section class-builder guard", () => {
         if (re.test(source)) offenders.push({ file: rel, label });
       }
     }
+  }
 
-    // Generic class-template check: NO file is exempt — section-elements.tsx
-    // composes its JSX conditional classes through joinClassNames too.
+  // Generic class-template check: NO file is exempt — section-elements.tsx
+  // composes its JSX conditional classes through joinClassNames too, and the
+  // storefront chrome components outside sections/ are held to the same bar.
+  for (const file of [...scannedFiles, ...scannedChromeFiles]) {
+    const rel = relative(process.cwd(), file);
+    const source = readFileSync(file, "utf8");
+
     for (const expr of classNameInterpolations(source)) {
       if (hasTopLevelConditional(expr)) {
         offenders.push({
@@ -272,6 +302,21 @@ describe("storefront section class-builder guard", () => {
     // fail loudly instead of silently scanning nothing.
     expect(scannedFiles.length).toBeGreaterThanOrEqual(20);
     expect(scannedFiles).toContain(join(SECTIONS_DIR, "section-elements.tsx"));
+  });
+
+  it("scans the storefront chrome components outside sections/ (guard against a silently broken walk)", () => {
+    // Same loud-failure contract for the top-level components/storefront/*.tsx
+    // scan: the chrome files this guard was extended for must be present.
+    expect(scannedChromeFiles.length).toBeGreaterThanOrEqual(15);
+    for (const expected of [
+      "storefront-footer.tsx",
+      "storefront-email-popup.tsx",
+      "storefront-layout.tsx",
+      "storefront-theme-wrapper.tsx",
+      "preview-device-toggle.tsx",
+    ]) {
+      expect(scannedChromeFiles).toContain(join(STOREFRONT_DIR, expected));
+    }
   });
 
   it("detects inline conditionals in className templates whatever the operand shape (guard self-check)", () => {

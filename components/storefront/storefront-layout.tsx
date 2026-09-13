@@ -21,6 +21,7 @@ import {
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import SignInModal from "@/components/sign-in/SignInModal";
+import { joinClassNames } from "./sections/section-elements";
 import {
   ShopProfile,
   StorefrontConfig,
@@ -781,9 +782,11 @@ export default function StorefrontLayout({
           <div className="flex flex-1 items-center">{logoNode}</div>
         ) : (
           <div
-            className={`flex flex-1 items-center ${navLayoutResolved.linkGapClass} ${
+            className={joinClassNames(
+              "flex flex-1 items-center",
+              navLayoutResolved.linkGapClass,
               navLayoutResolved.linkJustifyClass || "justify-center"
-            }`}
+            )}
           >
             {desktopNavLinkItems}
           </div>
@@ -1005,7 +1008,10 @@ export default function StorefrontLayout({
         <style>{themedCss}</style>
       </Head>
       <div
-        className={`sf-layout min-h-screen w-full max-w-full overflow-x-hidden ${storefront.neoShadows ? "sf-neo" : ""}`}
+        className={joinClassNames(
+          "sf-layout min-h-screen w-full max-w-full overflow-x-hidden",
+          storefront.neoShadows ? "sf-neo" : undefined
+        )}
         style={{
           ...cssVars,
           ...fontStyles,
@@ -1014,9 +1020,11 @@ export default function StorefrontLayout({
         }}
       >
         <nav
-          className={`fixed top-0 right-0 left-0 z-50 ${navHeightClass} border-b transition-[background-color,border-color,transform] duration-300 ${
-            navHiddenNow ? "-translate-y-full" : ""
-          }`}
+          className={joinClassNames(
+            "fixed top-0 right-0 left-0 z-50 border-b transition-[background-color,border-color,transform] duration-300",
+            navHeightClass,
+            navHiddenNow ? "-translate-y-full" : undefined
+          )}
           style={{
             backgroundColor: navTransparentNow ? "transparent" : navBg,
             borderColor: navTransparentNow ? "transparent" : navAccent + "33",
@@ -1038,9 +1046,11 @@ export default function StorefrontLayout({
           ) : navLayoutResolved.logoPosition === "center" ? (
             <div className="mx-auto grid h-full max-w-6xl grid-cols-3 items-center px-4 md:px-6">
               <div
-                className={`hidden items-center ${navLayoutResolved.linkGapClass} lg:flex ${
+                className={joinClassNames(
+                  "hidden items-center lg:flex",
+                  navLayoutResolved.linkGapClass,
                   navLayoutResolved.linkJustifyClass || "justify-start"
-                }`}
+                )}
               >
                 {desktopNavLinkItems}
               </div>
@@ -1361,9 +1371,10 @@ export default function StorefrontLayout({
               </div>
             ) : (
               <div
-                className={`mx-auto max-w-6xl px-4 py-8 md:px-6 ${
-                  landingStyle === "hero" ? navPadClass : ""
-                }`}
+                className={joinClassNames(
+                  "mx-auto max-w-6xl px-4 py-8 md:px-6",
+                  landingStyle === "hero" ? navPadClass : undefined
+                )}
               >
                 <StorefrontProductGrid
                   products={sellerProducts}

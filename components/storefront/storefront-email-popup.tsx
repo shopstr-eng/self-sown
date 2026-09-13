@@ -7,6 +7,7 @@ import {
 } from "@/utils/types/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { copyToClipboard } from "@/utils/clipboard";
+import { joinClassNames } from "./sections/section-elements";
 
 interface StorefrontEmailPopupProps {
   config: StorefrontEmailPopup;
@@ -203,7 +204,10 @@ export default function StorefrontEmailPopupComponent({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className={`fixed inset-0 z-[9999] flex items-center justify-center ${isFullscreen ? "" : "p-4"}`}
+          className={joinClassNames(
+            "fixed inset-0 z-[9999] flex items-center justify-center",
+            isFullscreen ? undefined : "p-4"
+          )}
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           onClick={(e) => {
             if (e.target === e.currentTarget) handleDismiss();

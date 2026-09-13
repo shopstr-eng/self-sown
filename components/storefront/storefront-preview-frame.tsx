@@ -1,6 +1,7 @@
 import Head from "next/head";
 import { useMemo } from "react";
 import { StorefrontColorScheme } from "@/utils/types/types";
+import { joinClassNames } from "./sections/section-elements";
 
 const GOOGLE_FONT_OPTIONS = [
   "Inter",
@@ -148,7 +149,10 @@ export default function StorefrontPreviewFrame({
         </Head>
         <div className="flex w-full justify-center bg-gray-100 py-4">
           <div
-            className={`sf-preview-frame storefront-themed overflow-hidden rounded border border-gray-300 shadow-xs ${className || ""}`}
+            className={joinClassNames(
+              "sf-preview-frame storefront-themed overflow-hidden rounded border border-gray-300 shadow-xs",
+              className
+            )}
             style={{ ...style, width: "100%", maxWidth }}
           >
             {children}
@@ -166,7 +170,7 @@ export default function StorefrontPreviewFrame({
         <style>{themedCss}</style>
       </Head>
       <div
-        className={`sf-preview-frame storefront-themed ${className || ""}`}
+        className={joinClassNames("sf-preview-frame storefront-themed", className)}
         style={style}
       >
         {children}

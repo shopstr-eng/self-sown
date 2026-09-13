@@ -12,6 +12,7 @@ import { ShopMapContext, ProfileMapContext } from "@/utils/context/context";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import SignInModal from "@/components/sign-in/SignInModal";
+import { joinClassNames } from "./sections/section-elements";
 import {
   StorefrontConfig,
   StorefrontColorScheme,
@@ -476,7 +477,10 @@ function StorefrontThemeWrapperInner({
           <style>{themedCss}</style>
         </Head>
         <div
-          className={`storefront-themed min-h-screen ${storefront?.neoShadows ? "sf-neo" : ""}`}
+          className={joinClassNames(
+            "storefront-themed min-h-screen",
+            storefront?.neoShadows ? "sf-neo" : undefined
+          )}
           style={{
             ...cssVars,
             ...fontStyles,
