@@ -450,6 +450,41 @@ describe("section heading class lists (font-bold + sm:text-3xl)", () => {
   }
 });
 
+// The blog section's empty-shop editor-preview branch renders a SECOND heading
+// markup copy (no posts yet + isPreview). It must thread headingSize through
+// headingSizeClass exactly like the main heading, so a seller's custom size
+// applies there too. Empty shop = no fetch needed: an empty shopPubkey flips
+// `loaded` immediately.
+describe("section-blog empty-state heading class list", () => {
+  const renderEmptyStateHeading = async (section: StorefrontSection) => {
+    render(
+      <SectionBlog
+        section={{ heading: "From the blog", ...section }}
+        colors={colors}
+        shopPubkey=""
+        shopSlug="goat-co"
+        isPreview
+      />
+    );
+    return screen.findByRole("heading", { name: "From the blog" });
+  };
+
+  it("keeps font-bold and sm:text-3xl as separate tokens when headingSize is unset", async () => {
+    const heading = await renderEmptyStateHeading({ id: "s1", type: "blog" });
+    expectSeparateBoldAndSize(heading, "sm:text-3xl");
+    expect(classTokens(heading)).toContain("text-2xl"); // legacy base size
+  });
+
+  it("drops the legacy size tokens entirely when headingSize is set", async () => {
+    const heading = await renderEmptyStateHeading({
+      id: "s1",
+      type: "blog",
+      headingSize: "sm",
+    });
+    expectNoLegacySize(heading, ["sm:text-3xl", "text-2xl"]);
+  });
+});
+
 describe("storefront section heading class lists", () => {
   for (const {
     name,

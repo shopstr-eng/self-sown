@@ -145,7 +145,10 @@ export default function SectionBlog({
       <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center">
         {section.heading && (
           <h2
-            className="font-heading mb-2 text-2xl font-bold sm:text-3xl"
+            className={`font-heading mb-2 ${headingSizeClass(
+              section,
+              "text-2xl"
+            )} font-bold ${section.headingSize ? "" : "sm:text-3xl"}`.trim()}
             style={{ color: "var(--sf-text)" }}
           >
             {section.heading}
