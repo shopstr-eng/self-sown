@@ -124,7 +124,7 @@ const Keys = () => {
                   alt="Self-sown logo"
                   height={50}
                   radius="sm"
-                  src="/self-sown.png"
+                  src="/self-sown-black.png"
                   width={50}
                 />
                 <h1 className="text-center text-3xl font-bold text-black">

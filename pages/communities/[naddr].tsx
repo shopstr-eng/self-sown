@@ -44,7 +44,7 @@ export const getServerSideProps: GetServerSideProps<
                 description:
                   community.description ||
                   "Check out this community on Self-sown!",
-                image: community.image || "/self-sown.png",
+                image: community.image || "/self-sown-black.png",
                 url: `/communities/${naddrStr}`,
               },
               community,

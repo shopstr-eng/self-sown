@@ -22,8 +22,8 @@ describe("toOptimizedOgImageUrl", () => {
   });
 
   it("leaves relative paths untouched (callers absolute-ize first)", () => {
-    expect(toOptimizedOgImageUrl("/self-sown.png", SITE_URL)).toBe(
-      "/self-sown.png"
+    expect(toOptimizedOgImageUrl("/self-sown-black.png", SITE_URL)).toBe(
+      "/self-sown-black.png"
     );
   });
 

@@ -419,7 +419,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
   const watchBanner = watch("banner");
   const watchPicture = watch("picture");
-  const defaultImage = "/self-sown.png";
+  const defaultImage = "/self-sown-black.png";
 
   // Track every settings value driving the form so we can detect when any of
   // them change after a successful save. The "Saved" confirmation should stay

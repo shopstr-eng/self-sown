@@ -39,7 +39,7 @@ export function eventToBlogOgMeta(
   return {
     title: post.title || "Self-sown Blog",
     description: post.summary || "Read this post from a Self-sown stall.",
-    image: post.image || "/self-sown.png",
+    image: post.image || "/self-sown-black.png",
     url: urlPath,
     type: "article",
     ...(jsonLd ? { jsonLd } : {}),

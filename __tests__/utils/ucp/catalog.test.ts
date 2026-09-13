@@ -228,7 +228,7 @@ describe("eventToUcpProduct", () => {
     const p = eventToUcpProduct(makeEvent([["title", "No Image"]]), {
       platformUrl: SITE_URL,
     });
-    expect(p.images).toEqual([`${SITE_URL}/self-sown.png`]);
+    expect(p.images).toEqual([`${SITE_URL}/self-sown-black.png`]);
   });
 
   it("keeps absolute image URLs untouched", () => {

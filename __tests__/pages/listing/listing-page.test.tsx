@@ -182,7 +182,7 @@ function createEvent({
 const defaultOgMeta = {
   title: "Self-sown Listing",
   description: "Check out this listing on Self-sown!",
-  image: "/self-sown.png",
+  image: "/self-sown-black.png",
   url: `/listing/${relayHintedIdentifier}`,
 };
 

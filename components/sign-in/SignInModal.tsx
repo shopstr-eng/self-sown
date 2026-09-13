@@ -48,7 +48,7 @@ export default function SignInModal({
   // seller's shop name + logo instead of the Self-sown branding. Falls back
   // to Self-sown on the main marketplace (no branding passed).
   const brandName = sellerBranding?.shopName?.trim() || "Self-sown";
-  const brandLogo = sellerBranding?.logoUrl?.trim() || "/self-sown.png";
+  const brandLogo = sellerBranding?.logoUrl?.trim() || "/self-sown-black.png";
 
   // On a seller's custom stall / domain (branding present), new accounts have no
   // association to the marketplace and are always buyers — skip the role

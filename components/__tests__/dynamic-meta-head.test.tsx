@@ -177,7 +177,7 @@ describe("DynamicHead", () => {
       await waitFor(() =>
         expect(getMetaContent("og:image")).toBe(
           `${SITE_URL}/api/og-image?url=${encodeURIComponent(
-            `${SITE_URL}/self-sown.png`
+            `${SITE_URL}/self-sown-black.png`
           )}`
         )
       );
@@ -267,7 +267,7 @@ describe("DynamicHead", () => {
       await waitFor(() => expect(document.title).toBe("Self-sown Listing"));
       expect(getMetaContent("og:image")).toBe(
         `${SITE_URL}/api/og-image?url=${encodeURIComponent(
-          `${SITE_URL}/self-sown.png`
+          `${SITE_URL}/self-sown-black.png`
         )}`
       );
     });

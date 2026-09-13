@@ -344,7 +344,7 @@ describe("SignInModal", () => {
       ).toBeInTheDocument();
 
       const logo = screen.getByAltText("Self-sown logo");
-      expect(logo).toHaveAttribute("src", "/self-sown.png");
+      expect(logo).toHaveAttribute("src", "/self-sown-black.png");
     });
 
     it("falls back to Self-sown when branding fields are blank", () => {
@@ -355,7 +355,7 @@ describe("SignInModal", () => {
       ).toBeInTheDocument();
 
       const logo = screen.getByAltText("Self-sown logo");
-      expect(logo).toHaveAttribute("src", "/self-sown.png");
+      expect(logo).toHaveAttribute("src", "/self-sown-black.png");
     });
   });
 
@@ -405,7 +405,7 @@ describe("SignInModal", () => {
       ).toBeInTheDocument();
       expect(screen.getByAltText("Self-sown logo")).toHaveAttribute(
         "src",
-        "/self-sown.png"
+        "/self-sown-black.png"
       );
     });
   });

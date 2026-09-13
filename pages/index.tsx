@@ -417,7 +417,7 @@ export default function StandaloneLanding() {
         <div className="flex min-w-0 items-center gap-x-6">
           <div className="flex min-w-0 items-center space-x-2">
             <Image
-              src="/self-sown.png"
+              src="/self-sown-black.png"
               alt="Self-sown logo - local food and artisan marketplace"
               width={32}
               height={32}
@@ -1544,7 +1544,7 @@ export default function StandaloneLanding() {
           <div className="border-t border-zinc-700 pt-8 text-center">
             <div className="mb-6 flex items-center justify-center space-x-2">
               <Image
-                src="/self-sown.png"
+                src="/self-sown-white.png"
                 alt="Self-sown logo - decentralized local food marketplace"
                 width={32}
                 height={32}

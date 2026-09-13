@@ -27,7 +27,7 @@ export default function AboutPage() {
                 "@type": "Organization",
                 name: "Self-sown",
                 url: SITE_URL,
-                logo: `${SITE_URL}/self-sown.png`,
+                logo: `${SITE_URL}/self-sown-black.png`,
                 foundingDate: "2024",
                 description:
                   "Decentralized, permissionless marketplace connecting local food producers directly with consumers. Zero mandatory platform fees, direct payments via Bitcoin and traditional methods.",
