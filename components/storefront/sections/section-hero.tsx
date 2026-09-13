@@ -90,7 +90,7 @@ export default function SectionHero({
                 className={`font-heading ${headingSizeClass(
                   section,
                   "text-4xl"
-                )} font-bold${section.headingSize ? "" : "md:text-5xl"}`}
+                )} font-bold${section.headingSize ? "" : " md:text-5xl"}`}
                 style={{ color: headingColor, ...headingOutlineStyle }}
               />
             ),
