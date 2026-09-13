@@ -424,7 +424,7 @@ export default function StandaloneLanding() {
               className="h-8 w-8 shrink-0"
               loading="eager"
             />
-            <span className="hidden truncate text-lg font-bold sm:inline-block sm:text-xl">
+            <span className="truncate text-lg font-bold sm:text-xl">
               Self-sown
             </span>
           </div>
