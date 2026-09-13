@@ -101,9 +101,11 @@ function StorefrontThemeWrapperInner({
   // Premium storefront chrome (themed nav, colors/fonts, footer) is a Pro-only
   // feature. The design is published to Nostr with no server write path to
   // block, so this is the render-layer enforcement: only Pro-entitled sellers
-  // get the custom chrome. We fail closed — the hook returns a non-Pro view on
-  // any /api/pro/status error, so a lapsed/non-Pro seller's design is never
-  // served during an outage.
+  // get the custom chrome. We fail closed on a DEFINITIVE non-Pro answer
+  // (200 + isPro:false) so a lapsed/non-Pro seller's design is never
+  // re-served, but transient /api/pro/status failures retry and fall back to
+  // a last-known-good view (see usePublicMembershipStatus), so a status
+  // outage never strips a paying seller's chrome.
   const { isPro: sellerIsPro } = usePublicMembershipStatus(sellerPubkey);
   // On a self-host instance the owner runs their OWN single-tenant copy, so they
   // are always entitled to their branded chrome. Skipping the Pro gate here lets

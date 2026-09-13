@@ -55,6 +55,7 @@ import {
 } from "@/utils/storefront-links";
 import { SITE_URL } from "@/utils/site-url";
 import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
+import { useStorefrontProEntitlement } from "@/utils/hooks/use-storefront-pro-entitlement";
 import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import {
   applyCustomDomainHref,
@@ -130,47 +131,13 @@ export default function StorefrontLayout({
   const [cartQuantity, setCartQuantity] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [shopDataReady, setShopDataReady] = useState(false);
-  // The viewed seller's Pro entitlement, scoped to the pubkey it was resolved
-  // for. We key on pubkey so a stale `true` from a previously-viewed Pro seller
-  // can never be applied to a different (non-Pro) seller during a client-side
-  // shop switch. Premium styling is only served when the resolved pubkey
-  // matches the current seller AND isPro is true; we fail closed (false) on any
-  // error so a lapsed seller's design is never served during a status outage.
-  const [proStatus, setProStatus] = useState<{
-    pubkey: string;
-    isPro: boolean;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!shopPubkey) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/pro/status?pubkey=${encodeURIComponent(shopPubkey)}`
-        );
-        if (cancelled) return;
-        if (res.ok) {
-          const view = await res.json();
-          setProStatus({ pubkey: shopPubkey, isPro: !!view?.isPro });
-        } else {
-          setProStatus({ pubkey: shopPubkey, isPro: false });
-        }
-      } catch {
-        if (!cancelled) setProStatus({ pubkey: shopPubkey, isPro: false });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [shopPubkey]);
-
-  // Entitlement only counts when it was resolved for the seller we're rendering.
-  // While unresolved or stale (different pubkey), this is false → fail closed.
-  const proEntitled =
-    proStatus !== null && proStatus.pubkey === shopPubkey
-      ? proStatus.isPro
-      : null;
+  // The viewed seller's Pro entitlement: true/false once resolved, null while
+  // unresolved. Premium styling is only served when this resolves true for the
+  // current seller; genuinely non-Pro sellers (200 + isPro:false) fail closed.
+  // Transient status-check failures (network/5xx) retry with backoff and fall
+  // back to a last-known-good cache, so a hiccup never strips a paying
+  // seller's design mid-visit.
+  const proEntitled = useStorefrontProEntitlement(shopPubkey);
 
   useEffect(() => {
     if (shopPubkey && shopMapContext.shopData.has(shopPubkey)) {
