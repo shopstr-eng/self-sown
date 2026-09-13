@@ -26,6 +26,7 @@ import SectionProductSpecifications from "@/components/storefront/sections/secti
 import SectionRelatedProducts from "@/components/storefront/sections/section-related-products";
 import SectionBlog from "@/components/storefront/sections/section-blog";
 import SectionProducts from "@/components/storefront/sections/section-products";
+import SectionFaq from "@/components/storefront/sections/section-faq";
 
 // The grid pulls in ProductCard (cart/wallet contexts); the heading under test
 // is rendered before it, so stub the grid out.
@@ -336,6 +337,114 @@ describe("section subheading class lists (opacity-70 + sm:text-lg)", () => {
         expect(tokens).toContain("text-xl"); // bodySize "lg"
         expect(tokens).not.toContain("sm:text-lg");
         expect(tokens).not.toContain("text-base"); // legacy base overridden
+      });
+    });
+  }
+});
+
+// Same bug class on the heading pattern shared by section-faq, section-blog
+// and section-products: `break-words ${section.headingSize ? "" : "sm:text-3xl"}`
+// — a one-character edit that drops the separating space would glue the size
+// onto the preceding token (`break-wordssm:text-3xl`) and silently strip both
+// classes. Assert on the tokenized class list so a merged token can never pass.
+// Audit note: the remaining headingSizeClass/bodySizeClass consumers
+// (about/story/text/reviews/testimonials/comparison/contact/contact-form/
+// ingredients/social-posts) pass their fallback into the helper itself with no
+// conditional suffix, so they carry no space-merge risk and need no guard.
+describe("section heading class lists (font-bold + sm:text-3xl)", () => {
+  const blogPostEvent = {
+    id: "e".repeat(64),
+    pubkey: "a".repeat(64),
+    kind: 30023,
+    created_at: 1700000000,
+    content: "Post body",
+    tags: [
+      ["d", "first-post"],
+      ["title", "First Post"],
+      ["published_at", "1700000000"],
+    ],
+    sig: "f".repeat(128),
+  };
+
+  const headingCases: Array<{
+    name: string;
+    sectionType: StorefrontSection["type"];
+    renderHeading: (section: StorefrontSection) => Promise<HTMLElement>;
+  }> = [
+    {
+      name: "section-faq",
+      sectionType: "faq",
+      renderHeading: async (section) => {
+        render(
+          <SectionFaq
+            section={{
+              heading: "FAQ",
+              items: [{ question: "Do you ship?", answer: "Yes" }],
+              ...section,
+            }}
+            colors={colors}
+          />
+        );
+        return screen.getByRole("heading", { name: "FAQ" });
+      },
+    },
+    {
+      name: "section-blog",
+      sectionType: "blog",
+      renderHeading: async (section) => {
+        // jsdom has no global fetch, so assign rather than spyOn.
+        (global as { fetch?: unknown }).fetch = jest
+          .fn()
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => [blogPostEvent],
+          });
+        render(
+          <SectionBlog
+            section={{ heading: "From the blog", ...section }}
+            colors={colors}
+            shopPubkey={"a".repeat(64)}
+            shopSlug="goat-co"
+          />
+        );
+        // The heading renders inside the loaded flow; wait for the fetch.
+        return screen.findByRole("heading", { name: "From the blog" });
+      },
+    },
+    {
+      name: "section-products",
+      sectionType: "products",
+      renderHeading: async (section) => {
+        render(
+          <SectionProducts
+            section={{ heading: "Our products", ...section }}
+            colors={colors}
+            products={[product]}
+          />
+        );
+        return screen.getByRole("heading", { name: "Our products" });
+      },
+    },
+  ];
+
+  afterEach(() => {
+    delete (global as { fetch?: unknown }).fetch;
+  });
+
+  for (const { name, sectionType, renderHeading } of headingCases) {
+    describe(name, () => {
+      it("keeps font-bold and sm:text-3xl as separate tokens when headingSize is unset", async () => {
+        const heading = await renderHeading({ id: "s1", type: sectionType });
+        expectSeparateBoldAndSize(heading, "sm:text-3xl");
+      });
+
+      it("drops the legacy size tokens entirely when headingSize is set", async () => {
+        const heading = await renderHeading({
+          id: "s1",
+          type: sectionType,
+          headingSize: "sm",
+        });
+        expectNoLegacySize(heading, ["sm:text-3xl", "text-2xl"]);
       });
     });
   }
