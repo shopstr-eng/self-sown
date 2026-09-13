@@ -7,6 +7,7 @@ import SectionElementFlow, {
   hasStructuralLayout,
   headingSizeClass,
   bodySizeClass,
+  joinClassNames,
 } from "./section-elements";
 
 interface SectionAboutProps {
@@ -55,9 +56,10 @@ export default function SectionAbout({ section, colors }: SectionAboutProps) {
     <img
       src={sanitizeUrl(section.image)}
       alt={section.heading || "About"}
-      className={`w-full rounded-xl shadow-lg ${
+      className={joinClassNames(
+        "w-full rounded-xl shadow-lg",
         section.imageFit === "contain" ? "object-contain" : "object-cover"
-      }`}
+      )}
       style={maxHeight ? { maxHeight } : undefined}
     />
   );
@@ -82,9 +84,10 @@ export default function SectionAbout({ section, colors }: SectionAboutProps) {
     <div className={`mx-auto max-w-6xl px-4 py-16 md:px-6 ${align}`.trim()}>
       {headingNode}
       <div
-        className={`flex flex-col gap-8 md:flex-row md:items-center ${
-          imagePos === "left" ? "md:flex-row-reverse" : ""
-        }`}
+        className={joinClassNames(
+          "flex flex-col gap-8 md:flex-row md:items-center",
+          imagePos === "left" && "md:flex-row-reverse"
+        )}
       >
         <div className="flex-1">{bodyNode}</div>
         {section.image && <div className="flex-1">{imageNode}</div>}

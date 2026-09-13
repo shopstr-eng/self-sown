@@ -8,6 +8,7 @@ import {
 import SectionElementFlow, {
   headingSizeClass,
   bodySizeClass,
+  joinClassNames,
 } from "./section-elements";
 
 interface SectionTextProps {
@@ -20,9 +21,10 @@ export default function SectionText({ section, colors }: SectionTextProps) {
   const align = textAlignClass(section);
   return (
     <div
-      className={`${
-        width === "full" ? "px-4 py-16 md:px-6" : CONTENT_WIDTH_CLASSES[width]
-      } ${align}`.trim()}
+      className={joinClassNames(
+        width === "full" ? "px-4 py-16 md:px-6" : CONTENT_WIDTH_CLASSES[width],
+        align
+      )}
     >
       <SectionElementFlow
         section={section}

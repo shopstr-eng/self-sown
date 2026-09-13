@@ -49,12 +49,17 @@ export function bodySizeClass(
 }
 
 // Joins whole class tokens with single spaces, dropping blanks.
-// INVARIANT: every storefront section heading/body className must be composed
-// through this joiner (directly or via headingClassName/bodyClassName below).
-// The `font-boldmd:text-5xl` regression came from a hand-written template
-// literal (`font-bold${cond ? "" : "md:text-5xl"}`) missing its separating
-// space; joining tokens on explicit whitespace here makes that merged-class
-// bug impossible by construction instead of merely caught by tests.
+// INVARIANT: every storefront section className that mixes static tokens with
+// a conditional must be composed through this joiner (directly or via
+// headingClassName/bodyClassName below) — never a hand-written template
+// literal like `flex ${cond ? "md:flex-row" : "flex-col"}`. The
+// `font-boldmd:text-5xl` regression came from exactly such a template
+// (`font-bold${cond ? "" : "md:text-5xl"}`) missing its separating space;
+// joining tokens on explicit whitespace here makes that merged-class bug
+// impossible by construction instead of merely caught by tests. The static
+// guard in __tests__/components/storefront/section-class-builder-guard.test.ts
+// fails on any inline conditional string inside a section file's className
+// template literal.
 export function joinClassNames(
   ...tokens: Array<string | false | null | undefined>
 ): string {
@@ -208,17 +213,19 @@ export function SectionButtons({
       {rows.map((row, rowIdx) => (
         <div
           key={rowIdx}
-          className={`flex flex-wrap gap-3 ${
+          className={joinClassNames(
+            "flex flex-wrap gap-3",
             ALIGN_JUSTIFY_CLASSES[row.align] || "justify-start"
-          }`}
+          )}
         >
           {row.items.map((btn, idx) => (
             <a
               key={idx}
               href={sanitizeStorefrontSectionLink(btn.href)}
-              className={`font-heading inline-block rounded-lg font-bold transition-transform hover:-translate-y-0.5 ${
+              className={joinClassNames(
+                "font-heading inline-block rounded-lg font-bold transition-transform hover:-translate-y-0.5",
                 BUTTON_SIZE_CLASSES[btn.size || "md"] || BUTTON_SIZE_CLASSES.md
-              }`}
+              )}
               style={buttonStyle(btn.variant, colors, surface)}
             >
               {btn.label}
@@ -298,9 +305,10 @@ export default function SectionElementFlow({
   ) {
     return (
       <div
-        className={`flex flex-col gap-8 md:items-center ${
+        className={joinClassNames(
+          "flex flex-col gap-8 md:items-center",
           placement === "left" ? "md:flex-row-reverse" : "md:flex-row"
-        }`}
+        )}
       >
         <div className="min-w-0 flex-1">
           {others.map((k) => (

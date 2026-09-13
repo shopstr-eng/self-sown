@@ -24,6 +24,7 @@ import {
 import SectionElementFlow, {
   headingSizeClass,
   bodySizeClass,
+  joinClassNames,
 } from "./section-elements";
 
 interface SectionSocialPostsProps {
@@ -327,18 +328,20 @@ export default function SectionSocialPosts({
                 </div>
               ) : (
                 <div
-                  className={`storefront-social-carousel relative mx-auto w-full max-w-full ${
+                  className={joinClassNames(
+                    "storefront-social-carousel relative mx-auto w-full max-w-full",
                     autoplay ? "overflow-hidden" : "overflow-x-auto pb-2"
-                  }`}
+                  )}
                   style={{ minWidth: 0 }}
                   onMouseEnter={() => setPaused(true)}
                   onMouseLeave={() => setPaused(false)}
                 >
                   <div
                     ref={trackRef}
-                    className={`flex items-stretch gap-6 ${
-                      autoplay ? "storefront-social-carousel-track" : ""
-                    }`}
+                    className={joinClassNames(
+                      "flex items-stretch gap-6",
+                      autoplay && "storefront-social-carousel-track"
+                    )}
                     style={{
                       animationPlayState: paused ? "paused" : "running",
                     }}
