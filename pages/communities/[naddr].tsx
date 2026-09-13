@@ -125,7 +125,7 @@ const SingleCommunityPage = ({
                 backgroundImage: `url(${sanitizeUrl(community.image)})`,
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50"></div>
+              <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/50"></div>
             </div>
           ) : (
             <div className="flex h-48 w-full items-center justify-center bg-gray-200">

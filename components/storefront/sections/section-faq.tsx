@@ -70,7 +70,7 @@ export default function SectionFaq({ section, colors }: SectionFaqProps) {
                       }}
                     />
                     <span
-                      className="flex-shrink-0 text-xl transition-transform"
+                      className="shrink-0 text-xl transition-transform"
                       style={{
                         transform:
                           openIndex === idx ? "rotate(45deg)" : "rotate(0deg)",

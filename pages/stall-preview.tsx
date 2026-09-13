@@ -320,7 +320,7 @@ export default function ConvertPage() {
 
             {error && (
               <div className="mt-4 flex items-start gap-2 rounded-md border-2 border-red-500 bg-red-50 p-3 text-sm text-red-700">
-                <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}

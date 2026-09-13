@@ -766,7 +766,7 @@ export default function StorefrontLayout({
         {isLoggedIn && userPubkey ? (
           <ProfileWithDropdown
             pubkey={userPubkey}
-            baseClassname="flex-shrink-0 rounded-3xl hover:scale-105 hover:shadow-lg"
+            baseClassname="shrink-0 rounded-3xl hover:scale-105 hover:shadow-lg"
             dropDownKeys={[
               "shop_profile",
               "user_profile",
@@ -1146,7 +1146,7 @@ export default function StorefrontLayout({
                 <div className="px-4 py-3">
                   <ProfileWithDropdown
                     pubkey={userPubkey}
-                    baseClassname="flex-shrink-0 rounded-3xl"
+                    baseClassname="shrink-0 rounded-3xl"
                     dropDownKeys={[
                       "shop_profile",
                       "user_profile",

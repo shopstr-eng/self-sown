@@ -214,9 +214,9 @@ const EmailStatsDashboard = () => {
                   </p>
                 </div>
                 {isOpen ? (
-                  <ChevronUpIcon className="h-5 w-5 flex-shrink-0 text-gray-500" />
+                  <ChevronUpIcon className="h-5 w-5 shrink-0 text-gray-500" />
                 ) : (
-                  <ChevronDownIcon className="h-5 w-5 flex-shrink-0 text-gray-500" />
+                  <ChevronDownIcon className="h-5 w-5 shrink-0 text-gray-500" />
                 )}
               </button>
 
@@ -245,7 +245,7 @@ const EmailStatsDashboard = () => {
                         className="rounded-md border-2 border-black bg-gray-50 p-3"
                       >
                         <div className="mb-2 flex items-center gap-2">
-                          <span className="bg-primary-blue flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full border-2 border-black text-xs font-bold text-white">
+                          <span className="bg-primary-blue flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-black text-xs font-bold text-white">
                             {step.step_order}
                           </span>
                           <p className="truncate text-sm font-bold text-black">
@@ -287,7 +287,7 @@ const EmailStatsDashboard = () => {
                                   <span className="truncate text-blue-700">
                                     {link.url}
                                   </span>
-                                  <span className="flex-shrink-0 font-bold text-black">
+                                  <span className="shrink-0 font-bold text-black">
                                     {link.clicks}
                                   </span>
                                 </li>

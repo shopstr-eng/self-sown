@@ -574,7 +574,7 @@ export default function SignInModal({
                       alt="Google"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign up with Google</span>
                   </Button>
@@ -588,7 +588,7 @@ export default function SignInModal({
                       alt="Apple"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign up with Apple</span>
                   </Button>
@@ -920,7 +920,7 @@ export default function SignInModal({
                       alt="Google"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign in with Google</span>
                   </Button>
@@ -934,7 +934,7 @@ export default function SignInModal({
                       alt="Apple"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign in with Apple</span>
                   </Button>
@@ -1233,7 +1233,7 @@ export default function SignInModal({
                     />
                     {isEmailSignUp && (
                       <div className="mt-2 flex items-start gap-2 rounded-md border-2 border-yellow-500 bg-yellow-50 p-3">
-                        <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-700" />
+                        <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-yellow-700" />
                         <p className="text-xs font-medium text-yellow-900">
                           Passwords cannot currently be recovered or changed.
                           Please store your password securely.

@@ -719,7 +719,7 @@ function MarketplacePage({
                 </div>
               </div>
             ) : (
-              <div className="mt-10 flex flex-grow items-center justify-center py-10">
+              <div className="mt-10 flex grow items-center justify-center py-10">
                 <div className="shadow-neo w-full max-w-xl rounded-lg border-4 border-black bg-white p-10 text-center">
                   <p className="text-3xl font-semibold text-black">
                     No reviews . . . yet!

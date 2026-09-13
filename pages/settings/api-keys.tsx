@@ -212,7 +212,7 @@ const ApiKeysPage = () => {
             </h2>
             <div className="shadow-neo rounded-md border-2 border-black bg-gray-50 p-4">
               <div className="mb-3 flex items-start gap-2">
-                <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600" />
+                <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
                 <p className="text-sm text-gray-700">
                   Use the endpoint URL below to connect AI agents to Self-sown
                   via the Model Context Protocol (MCP). Include your API key in

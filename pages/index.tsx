@@ -107,7 +107,7 @@ function YouTubeCarousel() {
             href={`https://www.youtube.com/watch?v=${video.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group shadow-neo block w-64 flex-shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
+            className="group shadow-neo block w-64 shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
           >
             <div className="relative aspect-video overflow-hidden">
               <Image
@@ -847,7 +847,7 @@ export default function StandaloneLanding() {
               </div>
               <div className="space-y-4">
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     1
                   </div>
                   <div>
@@ -856,7 +856,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     2
                   </div>
                   <div>
@@ -870,7 +870,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     3
                   </div>
                   <div>
@@ -903,7 +903,7 @@ export default function StandaloneLanding() {
               </div>
               <div className="space-y-4">
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     1
                   </div>
                   <div>
@@ -917,7 +917,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     2
                   </div>
                   <div>
@@ -931,7 +931,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     3
                   </div>
                   <div>

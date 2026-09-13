@@ -736,14 +736,14 @@ const EmailFlowsPage = () => {
 
           {error && (
             <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-red-100 p-3 text-red-700">
-              <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+              <ExclamationCircleIcon className="mr-2 h-5 w-5 shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
           )}
 
           {successMessage && (
             <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-green-100 p-3 text-green-700">
-              <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+              <CheckCircleIcon className="mr-2 h-5 w-5 shrink-0" />
               <span className="text-sm">{successMessage}</span>
             </div>
           )}
@@ -822,7 +822,7 @@ const EmailFlowsPage = () => {
             </div>
 
             <div className="mb-4 flex items-start gap-2 rounded-md border-2 border-black bg-blue-50 p-3">
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
               <div className="text-sm text-blue-800">
                 <p className="font-bold">Merge tags you can use:</p>
                 <p className="mt-1">
@@ -1059,20 +1059,20 @@ const EmailFlowsPage = () => {
 
         {error && (
           <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-red-100 p-3 text-red-700">
-            <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            <ExclamationCircleIcon className="mr-2 h-5 w-5 shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {successMessage && (
           <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-green-100 p-3 text-green-700">
-            <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            <CheckCircleIcon className="mr-2 h-5 w-5 shrink-0" />
             <span className="text-sm">{successMessage}</span>
           </div>
         )}
 
         <div className="shadow-neo mb-6 flex items-start gap-2 rounded-md border-2 border-black bg-gray-50 p-4">
-          <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600" />
+          <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
           <div className="text-sm text-gray-700">
             <p>
               Email flows are automated email sequences sent to your customers

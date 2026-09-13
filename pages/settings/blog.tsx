@@ -711,13 +711,13 @@ const BlogSettingsPage = () => {
     <>
       {error && (
         <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-red-100 p-3 text-red-700">
-          <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+          <ExclamationCircleIcon className="mr-2 h-5 w-5 shrink-0" />
           <span className="text-sm">{error}</span>
         </div>
       )}
       {successMessage && (
         <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-green-100 p-3 text-green-700">
-          <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+          <CheckCircleIcon className="mr-2 h-5 w-5 shrink-0" />
           <span className="text-sm">{successMessage}</span>
         </div>
       )}
@@ -946,7 +946,7 @@ const BlogSettingsPage = () => {
         {banner}
 
         <div className="shadow-neo mb-6 flex items-start gap-2 rounded-md border-2 border-black bg-gray-50 p-4">
-          <NewspaperIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600" />
+          <NewspaperIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
           <div className="text-sm text-gray-700">
             <p>
               Write blog posts that appear on your storefront. Posts are
@@ -1052,7 +1052,7 @@ const BlogSettingsPage = () => {
                             </p>
                           )}
                         </div>
-                        <div className="flex flex-shrink-0 gap-2">
+                        <div className="flex shrink-0 gap-2">
                           <Button
                             className={BLUEBUTTONCLASSNAMES}
                             size="sm"
@@ -1138,7 +1138,7 @@ const BlogSettingsPage = () => {
                           ` · ${post.hashtags.map((h) => `#${h}`).join(" ")}`}
                       </p>
                     </div>
-                    <div className="flex flex-shrink-0 gap-2">
+                    <div className="flex shrink-0 gap-2">
                       {canEmail && (
                         <>
                           <select

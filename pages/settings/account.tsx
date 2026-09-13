@@ -318,7 +318,7 @@ const AccountSettingsPage = () => {
             )}
 
             <div className="mb-4 flex items-start gap-2 text-sm text-gray-600">
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
               <p>
                 This mint is used to handle{" "}
                 <Link href="https://cashu.space" passHref legacyBehavior>
@@ -544,7 +544,7 @@ const AccountSettingsPage = () => {
             )}
 
             <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
+              <InformationCircleIcon className="h-5 w-5 shrink-0" />
               <p>
                 This filters for listings from friends and friends of friends.
               </p>

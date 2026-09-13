@@ -58,6 +58,55 @@ describe("theme color class tokens", () => {
     }
   }, 90_000);
 
+  it("flags deprecated v3 aliases Tailwind v4 keeps as shims", () => {
+    const scriptPath = path.join(
+      __dirname,
+      "../../scripts/check-theme-colors.mjs"
+    );
+    const fixturePath = path.join(
+      __dirname,
+      "../../utils/__theme-colors-alias-fixture.ts"
+    );
+    writeFileSync(
+      fixturePath,
+      'export const ALIASES = "flex-shrink-0 md:flex-grow overflow-ellipsis ' +
+        'decoration-clone bg-gradient-to-b";\n'
+    );
+    try {
+      let stderr = "";
+      try {
+        execFileSync(process.execPath, [scriptPath], {
+          encoding: "utf8",
+          timeout: 60_000,
+        });
+      } catch (err) {
+        stderr = (err as { stderr?: string }).stderr ?? "";
+      }
+      expect(stderr).toContain("__theme-colors-alias-fixture.ts");
+      expect(stderr).toContain("deprecated v3 alias");
+      for (const token of [
+        "flex-shrink-0",
+        "md:flex-grow",
+        "overflow-ellipsis",
+        "decoration-clone",
+        "bg-gradient-to-b",
+      ]) {
+        expect(stderr).toContain(token);
+      }
+      for (const replacement of [
+        "`shrink-0`",
+        "`grow`",
+        "`text-ellipsis`",
+        "`box-decoration-clone`",
+        "`bg-linear-to-b`",
+      ]) {
+        expect(stderr).toContain(replacement);
+      }
+    } finally {
+      rmSync(fixturePath, { force: true });
+    }
+  }, 90_000);
+
   it("flags v3 size classes Tailwind v4 re-scaled", () => {
     const scriptPath = path.join(
       __dirname,

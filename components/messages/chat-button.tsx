@@ -45,7 +45,7 @@ const ChatButton = ({
         baseClassname="justify-start w-4/5"
         wrapperClassname="w-4/5 h-full"
       />
-      <div className="flex flex-shrink-0 flex-grow flex-col text-right text-gray-600">
+      <div className="flex shrink-0 grow flex-col text-right text-gray-600">
         <div className="h-1/2">
           {unreadCount > 0 ? (
             <span className="ml-2 rounded-full bg-black px-2 py-1 text-xs font-bold text-white">

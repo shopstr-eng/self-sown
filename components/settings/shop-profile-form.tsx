@@ -1837,7 +1837,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                         [key]: e.target.value,
                                       }))
                                     }
-                                    className="mt-0.5 h-8 w-8 flex-shrink-0 cursor-pointer rounded border-2 border-black"
+                                    className="mt-0.5 h-8 w-8 shrink-0 cursor-pointer rounded border-2 border-black"
                                   />
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
@@ -1901,7 +1901,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       [key]: e.target.value,
                                     }))
                                   }
-                                  className="mt-0.5 h-8 w-8 flex-shrink-0 cursor-pointer rounded border-2 border-black"
+                                  className="mt-0.5 h-8 w-8 shrink-0 cursor-pointer rounded border-2 border-black"
                                 />
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -1979,7 +1979,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       [key]: e.target.value,
                                     }))
                                   }
-                                  className="mt-0.5 h-8 w-8 flex-shrink-0 cursor-pointer rounded border-2 border-black"
+                                  className="mt-0.5 h-8 w-8 shrink-0 cursor-pointer rounded border-2 border-black"
                                 />
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -2222,7 +2222,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       setCustomFontHeadingUrl("");
                                       setCustomFontHeadingName("");
                                     }}
-                                    className="flex-shrink-0 text-xs text-gray-400 hover:text-red-500"
+                                    className="shrink-0 text-xs text-gray-400 hover:text-red-500"
                                   >
                                     Remove
                                   </button>
@@ -2337,7 +2337,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       setCustomFontBodyUrl("");
                                       setCustomFontBodyName("");
                                     }}
-                                    className="flex-shrink-0 text-xs text-gray-400 hover:text-red-500"
+                                    className="shrink-0 text-xs text-gray-400 hover:text-red-500"
                                   >
                                     Remove
                                   </button>

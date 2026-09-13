@@ -2896,7 +2896,7 @@ const OrdersDashboard = ({
           className="max-h-[90vh]"
         >
           <ModalContent className="flex h-full flex-col">
-            <ModalHeader className="flex-shrink-0 border-b bg-white">
+            <ModalHeader className="shrink-0 border-b bg-white">
               <div className="flex items-center gap-2 text-black">
                 <span aria-hidden="true" className="text-lg leading-none">
                   📄
@@ -2906,9 +2906,9 @@ const OrdersDashboard = ({
                   : "Review & Sign Agreement"}
               </div>
             </ModalHeader>
-            <ModalBody className="flex flex-grow flex-col p-4">
+            <ModalBody className="flex grow flex-col p-4">
               <div className="flex h-full flex-col rounded-lg border bg-white">
-                <div className="flex-grow overflow-auto p-4">
+                <div className="grow overflow-auto p-4">
                   <PDFAnnotator
                     pdfUrl={currentPdfUrl}
                     annotations={annotations}
@@ -2917,7 +2917,7 @@ const OrdersDashboard = ({
                 </div>
               </div>
             </ModalBody>
-            <ModalFooter className="flex-shrink-0 border-t bg-gray-50">
+            <ModalFooter className="shrink-0 border-t bg-gray-50">
               <div className="flex w-full justify-end gap-3">
                 <Button
                   color="default"

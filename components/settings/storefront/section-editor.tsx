@@ -2694,7 +2694,7 @@ function ProductOrderList({
               <img
                 src={product.images[0]}
                 alt={product.title}
-                className="h-8 w-8 flex-shrink-0 rounded object-cover"
+                className="h-8 w-8 shrink-0 rounded object-cover"
               />
             )}
             <span className="flex-1 truncate font-medium text-black">
@@ -2856,7 +2856,7 @@ function BlogPostOrderList({
               checked={isSelected(post)}
               onChange={() => toggleSelected(post)}
               onClick={(e) => e.stopPropagation()}
-              className="h-4 w-4 flex-shrink-0 rounded border-gray-300"
+              className="h-4 w-4 shrink-0 rounded border-gray-300"
             />
           )}
           <span className="flex flex-col gap-0.5 text-[10px] text-gray-400">
@@ -2882,7 +2882,7 @@ function BlogPostOrderList({
             <img
               src={post.image}
               alt={post.title}
-              className="h-8 w-8 flex-shrink-0 rounded object-cover"
+              className="h-8 w-8 shrink-0 rounded object-cover"
             />
           )}
           <span className="flex-1 truncate font-medium text-black">
@@ -3031,7 +3031,7 @@ function ReviewOrderList({
             </span>
             <span className="text-xs text-gray-400">&#9776;</span>
             <span
-              className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${
+              className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${
                 review.isPositive
                   ? "bg-green-100 text-green-700"
                   : "bg-red-100 text-red-700"
@@ -3046,7 +3046,7 @@ function ReviewOrderList({
                   }"`
                 : "(no comment)"}
             </span>
-            <span className="flex-shrink-0 text-[10px] text-gray-400">
+            <span className="shrink-0 text-[10px] text-gray-400">
               {review.reviewerPubkey.slice(0, 8)}...
             </span>
           </div>
@@ -3157,7 +3157,7 @@ function GalleryImageEditor({
               <img
                 src={url}
                 alt=""
-                className="h-10 w-10 flex-shrink-0 rounded object-cover"
+                className="h-10 w-10 shrink-0 rounded object-cover"
               />
             )}
             <Input

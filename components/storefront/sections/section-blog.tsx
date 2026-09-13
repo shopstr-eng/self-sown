@@ -271,7 +271,7 @@ export default function SectionBlog({
                           <img
                             src={post.image}
                             alt={post.title}
-                            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
+                            className="h-24 w-24 shrink-0 rounded-lg object-cover"
                           />
                         )}
                         <div className="flex flex-1 flex-col justify-center">

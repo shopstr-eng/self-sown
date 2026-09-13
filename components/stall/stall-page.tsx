@@ -354,7 +354,7 @@ const StallPage = () => {
 
         <div className="flex gap-6">
           {/* Sidebar */}
-          <div className="hidden w-64 flex-shrink-0 md:block">
+          <div className="hidden w-64 shrink-0 md:block">
             <div className="space-y-3">
               <Button
                 className={`${BLUEBUTTONCLASSNAMES} w-full`}

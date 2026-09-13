@@ -58,7 +58,7 @@ const CommunitiesDiscoveryPage = () => {
                 startContent={
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none flex-shrink-0 text-lg leading-none"
+                    className="pointer-events-none shrink-0 text-lg leading-none"
                   >
                     🔍
                   </span>

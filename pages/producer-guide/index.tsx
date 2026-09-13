@@ -497,7 +497,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     1
                   </div>
                   <div className="flex-1">
@@ -568,7 +568,7 @@ const ProducerGuidePage = () => {
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
-                    <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                       2
                     </div>
                     <div className="flex-1">
@@ -617,7 +617,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     3
                   </div>
                   <div className="flex-1">
@@ -673,7 +673,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     4
                   </div>
                   <div className="flex-1">
@@ -726,7 +726,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     5
                   </div>
                   <div className="flex-1">
@@ -761,7 +761,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     6
                   </div>
                   <div className="flex-1">
@@ -800,7 +800,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     7
                   </div>
                   <div className="flex-1">
@@ -846,7 +846,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     8
                   </div>
                   <div className="flex-1">
@@ -891,7 +891,7 @@ const ProducerGuidePage = () => {
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
-                    <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                       9
                     </div>
                     <div className="flex-1">
@@ -943,7 +943,7 @@ const ProducerGuidePage = () => {
                         {item.question}
                       </h3>
                       <PlusIcon
-                        className={`h-6 w-6 flex-shrink-0 transition-transform ${
+                        className={`h-6 w-6 shrink-0 transition-transform ${
                           openFaqIndex === index ? "rotate-45" : ""
                         }`}
                       />

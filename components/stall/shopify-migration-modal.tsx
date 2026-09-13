@@ -593,7 +593,7 @@ function UploadStep({
 
       {parseError && (
         <div className="flex items-start gap-2 rounded-md border-2 border-red-500 bg-red-50 p-3 text-sm text-red-800">
-          <XCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
           <div>{parseError}</div>
         </div>
       )}
@@ -806,10 +806,10 @@ function ConfigureStep({
                         <img
                           src={p.imageUrls[0]}
                           alt=""
-                          className="h-10 w-10 flex-shrink-0 rounded border border-black object-cover"
+                          className="h-10 w-10 shrink-0 rounded border border-black object-cover"
                         />
                       ) : (
-                        <div className="h-10 w-10 flex-shrink-0 rounded border border-black bg-gray-100" />
+                        <div className="h-10 w-10 shrink-0 rounded border border-black bg-gray-100" />
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-bold text-black">
@@ -975,9 +975,9 @@ function ResultsList({
           <li key={`${r.handle}-${idx}`} className="px-3 py-2 text-sm">
             <div className="flex items-center gap-2">
               {r.status === "success" ? (
-                <CheckCircleIcon className="h-4 w-4 flex-shrink-0 text-green-700" />
+                <CheckCircleIcon className="h-4 w-4 shrink-0 text-green-700" />
               ) : (
-                <XCircleIcon className="h-4 w-4 flex-shrink-0 text-red-700" />
+                <XCircleIcon className="h-4 w-4 shrink-0 text-red-700" />
               )}
               <span className="flex-1 truncate font-bold text-black">
                 {r.title}

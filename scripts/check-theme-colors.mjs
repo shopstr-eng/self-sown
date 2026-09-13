@@ -21,6 +21,15 @@
 // `shadow` / `rounded` / `blur` aliases resolve to the same sizes as the v3
 // defaults, so they are intentionally NOT flagged.
 //
+// Also flags v3-era deprecated aliases Tailwind v4.3.3 still generates as
+// compatibility shims — `flex-shrink-*`/`flex-grow-*` (v4: `shrink-*`/`grow-*`),
+// `overflow-ellipsis` (v4: `text-ellipsis`), `decoration-slice`/`decoration-clone`
+// (v4: `box-decoration-*`), and `bg-gradient-to-*` (v4: `bg-linear-to-*`). A
+// compile probe verified the v4 forms generate identical (gradient: equal or
+// better, with a no-oklab @supports fallback) CSS, and the codebase was
+// migrated wholesale; this guard keeps the shims from creeping back in before
+// a future Tailwind major drops them silently.
+//
 // Exits non-zero and prints every offending `file:line  class-token` when any
 // unknown color reference is found. Runnable by hand:
 //
@@ -331,13 +340,20 @@ const NON_COLOR_VALUES = {
     "wavy",
     "auto",
     "from-font",
+    // v3 box-decoration-break aliases (`decoration-slice`/`decoration-clone`);
+    // listed so the deprecated-alias guard below, not the unknown-color path,
+    // reports them.
+    "slice",
+    "clone",
   ]),
   accent: new Set(["auto"]),
   fill: new Set(["none"]),
   stroke: new Set(["none"]),
 };
 
-const GRADIENT_DIRECTION_RE = /^gradient-to-(t|tr|r|br|b|bl|l|tl)$/;
+// v4 name is `linear-to-*`; the deprecated `gradient-to-*` alias stays listed
+// so the deprecated-alias guard below reports it instead of "unknown color".
+const GRADIENT_DIRECTION_RE = /^(?:gradient|linear)-to-(t|tr|r|br|b|bl|l|tl)$/;
 const NUMERIC_RE = /^-?\d+(\.\d+)?%?$/;
 
 // v3 size classes Tailwind v4 still generates but re-scaled — they compile
@@ -386,6 +402,33 @@ const RESIZED_CLASS_RE = new RegExp(
     `(?=$|${BOUNDARY})`,
   "g"
 );
+
+// Same boundary rules as CANDIDATE_RE. Matches v3-era deprecated aliases
+// Tailwind v4 still generates as compatibility shims; the codebase was
+// migrated to the v4 names (compile-probe verified) and this keeps them out.
+const DEPRECATED_ALIAS_RE = new RegExp(
+  `(?:^|${BOUNDARY})` +
+    `((?:${CLASS_CHARS}+:)*!?` +
+    `(?:flex-shrink(?:-\\d+)?|flex-grow(?:-\\d+)?|overflow-ellipsis|` +
+    `decoration-slice|decoration-clone|bg-gradient-to-[a-z]+)` +
+    `!?)` +
+    `(?=$|${BOUNDARY})`,
+  "g"
+);
+
+// Maps a deprecated v3 alias base to its Tailwind v4 equivalent.
+function deprecatedAliasReplacement(base) {
+  let m = base.match(/^flex-shrink(-\d+)?$/);
+  if (m) return `shrink${m[1] ?? ""}`;
+  m = base.match(/^flex-grow(-\d+)?$/);
+  if (m) return `grow${m[1] ?? ""}`;
+  if (base === "overflow-ellipsis") return "text-ellipsis";
+  if (base === "decoration-slice") return "box-decoration-slice";
+  if (base === "decoration-clone") return "box-decoration-clone";
+  m = base.match(/^bg-gradient-to-(.+)$/);
+  if (m) return `bg-linear-to-${m[1]}`;
+  return null;
+}
 
 // Returns the unknown color name when the class token references one, or null
 // when the token is fine / not a color class. The optional `reason` overrides
@@ -483,6 +526,17 @@ for (const file of files) {
         `${path.relative(root, file)}:${index + 1}  ${token} ` +
           `(v3 size class re-scaled in Tailwind v4 — use \`${replacement}\` ` +
           "to keep the v3 size)"
+      );
+    }
+    for (const match of line.matchAll(DEPRECATED_ALIAS_RE)) {
+      const token = match[1];
+      const base = token.replace(/^!|!$/g, "").split(":").pop();
+      const replacement = deprecatedAliasReplacement(base);
+      if (!replacement) continue;
+      violations.push(
+        `${path.relative(root, file)}:${index + 1}  ${token} ` +
+          `(deprecated v3 alias — use \`${replacement}\`; the alias is a ` +
+          "compatibility shim a future Tailwind major may drop)"
       );
     }
   });

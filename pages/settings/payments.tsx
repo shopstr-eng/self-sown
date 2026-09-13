@@ -509,7 +509,7 @@ const PaymentsSettingsPage = () => {
               {squareStatus?.connected ? (
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <BuildingStorefrontIcon className="text-primary-blue mt-0.5 h-6 w-6 flex-shrink-0" />
+                    <BuildingStorefrontIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
                     <div>
                       <p className="font-bold text-black">Square connected</p>
                       <p className="text-sm text-gray-700">
@@ -597,7 +597,7 @@ const PaymentsSettingsPage = () => {
               ) : !status?.hasAccount ? (
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <ExclamationTriangleIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-yellow-600" />
+                    <ExclamationTriangleIcon className="mt-0.5 h-6 w-6 shrink-0 text-yellow-600" />
                     <div>
                       <p className="font-bold text-black">
                         No card processor connected
@@ -815,7 +815,7 @@ const PaymentsSettingsPage = () => {
                     <div className="space-y-3 border-t-2 border-black pt-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2">
-                          <ReceiptPercentIcon className="text-primary-blue mt-0.5 h-6 w-6 flex-shrink-0" />
+                          <ReceiptPercentIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
                           <div>
                             <p className="font-bold text-black">Sales Tax</p>
                             <p className="text-sm text-gray-700">

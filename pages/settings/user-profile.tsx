@@ -248,14 +248,14 @@ const UserProfilePage = () => {
                 {isNPubCopied ? (
                   <span
                     aria-hidden="true"
-                    className="flex-shrink-0 text-sm leading-none"
+                    className="shrink-0 text-sm leading-none"
                   >
                     ✔️
                   </span>
                 ) : (
                   <span
                     aria-hidden="true"
-                    className="flex-shrink-0 text-sm leading-none"
+                    className="shrink-0 text-sm leading-none"
                   >
                     📋
                   </span>
@@ -275,7 +275,7 @@ const UserProfilePage = () => {
                   {isNSecCopied ? (
                     <span
                       aria-hidden="true"
-                      className="flex-shrink-0 text-sm leading-none"
+                      className="shrink-0 text-sm leading-none"
                     >
                       ✔️
                     </span>
@@ -283,7 +283,7 @@ const UserProfilePage = () => {
                     <button
                       type="button"
                       aria-label="Copy nsec"
-                      className="flex-shrink-0 cursor-pointer text-sm leading-none"
+                      className="shrink-0 cursor-pointer text-sm leading-none"
                       onClick={() => {
                         navigator.clipboard.writeText(userNSec);
                         setIsNSecCopied(true);
@@ -299,7 +299,7 @@ const UserProfilePage = () => {
                     <button
                       type="button"
                       aria-label="Hide nsec"
-                      className="flex-shrink-0 cursor-pointer px-1 text-xl leading-none"
+                      className="shrink-0 cursor-pointer px-1 text-xl leading-none"
                       onClick={() => {
                         setViewState("hidden");
                       }}
@@ -310,7 +310,7 @@ const UserProfilePage = () => {
                     <button
                       type="button"
                       aria-label="Show nsec"
-                      className="flex-shrink-0 cursor-pointer px-1 text-xl leading-none"
+                      className="shrink-0 cursor-pointer px-1 text-xl leading-none"
                       onClick={async () => {
                         // Only decrypt nsec when user explicitly asks to see it.
                         if (!userNSec && signer instanceof NostrNSecSigner) {

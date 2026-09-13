@@ -205,7 +205,7 @@ export default function ProductCard({
               <h3 className="line-clamp-2 min-w-0 flex-1 text-xl leading-snug font-bold text-black">
                 {productData.title}
               </h3>
-              <div className="relative z-10 flex flex-shrink-0 items-center gap-1">
+              <div className="relative z-10 flex shrink-0 items-center gap-1">
                 {isZapsnag && productData.pubkey === userPubkey && (
                   <button
                     onClick={handleNjumpClick}
@@ -291,17 +291,17 @@ export default function ProductCard({
                 )}
                 {router.pathname === "/settings/stall" &&
                   productData.status === "active" && (
-                    <Chip className="flex-shrink-0 border-2 border-black bg-green-500 text-xs font-bold text-white">
+                    <Chip className="shrink-0 border-2 border-black bg-green-500 text-xs font-bold text-white">
                       Active
                     </Chip>
                   )}
                 {productData.status === "sold" && (
-                  <Chip className="flex-shrink-0 border-2 border-black bg-red-500 text-xs font-bold text-white">
+                  <Chip className="shrink-0 border-2 border-black bg-red-500 text-xs font-bold text-white">
                     Sold
                   </Chip>
                 )}
                 {productData.status === "soon" && (
-                  <Chip className="flex-shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
+                  <Chip className="shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
                     Soon
                   </Chip>
                 )}

@@ -347,7 +347,7 @@ export default function SectionSocialPosts({
                       (post, idx) => (
                         <div
                           key={idx}
-                          className="storefront-social-carousel-item flex-shrink-0"
+                          className="storefront-social-carousel-item shrink-0"
                           style={{ scrollSnapAlign: "start" }}
                         >
                           <PostCard post={post} colors={colors} />

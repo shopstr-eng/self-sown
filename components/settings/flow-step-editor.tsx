@@ -404,7 +404,7 @@ export const FlowStepEditor = ({
 
       {uploadProgress !== null && (
         <div className="flex items-center gap-3 border-2 border-t-0 border-b-0 border-black bg-gray-50 px-3 py-2">
-          <span className="flex-shrink-0 text-xs font-bold text-gray-600">
+          <span className="shrink-0 text-xs font-bold text-gray-600">
             Uploading image
           </span>
           <Progress
@@ -417,7 +417,7 @@ export const FlowStepEditor = ({
               indicator: "bg-primary-blue",
             }}
           />
-          <span className="flex-shrink-0 text-xs text-gray-500">
+          <span className="shrink-0 text-xs text-gray-500">
             {uploadProgress}%
           </span>
         </div>
@@ -429,7 +429,7 @@ export const FlowStepEditor = ({
           <button
             type="button"
             onClick={() => setUploadError(null)}
-            className="flex-shrink-0 text-red-400 hover:text-red-600"
+            className="shrink-0 text-red-400 hover:text-red-600"
           >
             <XMarkIcon className="h-4 w-4" />
           </button>
@@ -489,7 +489,7 @@ export const FlowStepEditor = ({
             <button
               type="button"
               onClick={() => setInsertModal({ type: null, text: "", url: "" })}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-gray-400 hover:text-black"
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-gray-400 hover:text-black"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>

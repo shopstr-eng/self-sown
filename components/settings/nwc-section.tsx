@@ -165,7 +165,7 @@ const NWCSection = () => {
       />
 
       <div className="mb-4 flex items-start gap-2 text-sm text-gray-600">
-        <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+        <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
         <p>
           Connect your wallet using a Nostr Wallet Connect (NIP-47) connection
           string (e.g., from Alby, Mutiny, or Umbrel). This allows Self-sown to

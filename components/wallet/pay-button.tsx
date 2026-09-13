@@ -371,7 +371,7 @@ const PayButton = () => {
               />
               {signer instanceof NostrNIP46Signer && (
                 <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
-                  <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                  <InformationCircleIcon className="h-6 w-6 shrink-0 text-black" />
                   <p className="ml-2 text-xs text-black">
                     If the invoice payment is taking a while to be confirmed,
                     make sure to check your bunker application to approve the

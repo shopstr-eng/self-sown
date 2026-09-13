@@ -235,7 +235,7 @@ const TopNav = ({
         aria-label="Primary"
         className="flex items-center justify-between py-2 pr-4"
       >
-        <div className="flex flex-shrink-0 items-center">
+        <div className="flex shrink-0 items-center">
           <Button
             as={NextLink}
             href="/marketplace"
@@ -266,7 +266,7 @@ const TopNav = ({
           {signedIn ? (
             <ProfileWithDropdown
               pubkey={userPubkey!}
-              baseClassname="flex-shrink-0 rounded-3xl hover:scale-105 hover:shadow-lg"
+              baseClassname="shrink-0 rounded-3xl hover:scale-105 hover:shadow-lg"
               dropDownKeys={[
                 "shop_profile",
                 "user_profile",
@@ -376,7 +376,7 @@ const TopNav = ({
             )}
           </Button>
         </div>
-        <div className="hidden flex-shrink-0 items-center md:flex">
+        <div className="hidden shrink-0 items-center md:flex">
           {signedIn ? (
             <ProfileWithDropdown
               pubkey={userPubkey!}

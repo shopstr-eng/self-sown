@@ -1155,7 +1155,7 @@ export default function Component() {
             </div>
             {sfSellerPubkey && excludedItemCount > 0 && (
               <div className="mb-4 flex items-start rounded-md border-2 border-black bg-yellow-50 p-4">
-                <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-600" />
+                <InformationCircleIcon className="mr-3 h-5 w-5 shrink-0 text-yellow-600" />
                 <p className="text-sm text-black">
                   You have {excludedItemCount} other{" "}
                   {excludedItemCount === 1 ? "item" : "items"} from other
@@ -1192,7 +1192,7 @@ export default function Component() {
                               <img
                                 src={product.images[0]}
                                 alt={product.title}
-                                className="h-24 w-24 flex-shrink-0 rounded-md border-2 border-black object-cover"
+                                className="h-24 w-24 shrink-0 rounded-md border-2 border-black object-cover"
                               />
                               <div className="flex min-w-0 flex-1 flex-col">
                                 <div className="flex items-start justify-between gap-4">
@@ -1576,7 +1576,7 @@ export default function Component() {
                 <div className="mt-6 space-y-4">
                   {Object.keys(productsBySeller).length > 1 && (
                     <div className="flex items-start rounded-md border-2 border-black bg-blue-50 p-4">
-                      <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
+                      <InformationCircleIcon className="mr-3 h-5 w-5 shrink-0 text-blue-600" />
                       <p className="text-sm text-black">
                         Only Bitcoin payments are supported for carts with
                         products from different merchants. To pay with credit,
@@ -1587,7 +1587,7 @@ export default function Component() {
                   )}
                   {hasSubscriptionStripeConflict && (
                     <div className="flex items-start rounded-md border-2 border-red-400 bg-red-50 p-4">
-                      <ArrowPathIcon className="mr-3 h-5 w-5 flex-shrink-0 text-red-600" />
+                      <ArrowPathIcon className="mr-3 h-5 w-5 shrink-0 text-red-600" />
                       <div>
                         <p className="text-sm font-semibold text-red-700">
                           Checkout unavailable
@@ -1608,7 +1608,7 @@ export default function Component() {
                     !hasSubscriptionStripeConflict &&
                     uniqueSellerPubkeys.length > 1 && (
                       <div className="flex items-start rounded-md border-2 border-purple-400 bg-purple-50 p-4">
-                        <ArrowPathIcon className="mr-3 h-5 w-5 flex-shrink-0 text-purple-600" />
+                        <ArrowPathIcon className="mr-3 h-5 w-5 shrink-0 text-purple-600" />
                         <p className="text-sm text-purple-800">
                           Subscription items require card payment. All merchants
                           in your cart have Stripe enabled, so checkout will

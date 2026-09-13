@@ -579,7 +579,7 @@ export const FileUploaderButton = ({
             exit={{ opacity: 0, y: -10 }}
             className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3"
           >
-            <XCircleIcon className="h-5 w-5 flex-shrink-0 text-red-500" />
+            <XCircleIcon className="h-5 w-5 shrink-0 text-red-500" />
             <span className="flex-1 text-sm text-red-700">{failureText}</span>
             <button
               type="button"
@@ -587,7 +587,7 @@ export const FileUploaderButton = ({
                 setShowFailureModal(false);
                 setFailureText("");
               }}
-              className="flex-shrink-0 rounded-full p-0.5 text-red-500 hover:bg-red-100"
+              className="shrink-0 rounded-full p-0.5 text-red-500 hover:bg-red-100"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>

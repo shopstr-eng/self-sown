@@ -428,7 +428,7 @@ const Messages = ({
         ) : (
           <div className="flex h-full flex-row">
             <div
-              className={` ${currentChatPubkey ? "hidden" : "block"} h-[85vh] w-full overflow-y-auto rounded-md bg-white pb-12 md:block md:w-[450px] md:max-w-[33%] md:flex-shrink-0 md:pb-0 lg:pb-0`}
+              className={` ${currentChatPubkey ? "hidden" : "block"} h-[85vh] w-full overflow-y-auto rounded-md bg-white pb-12 md:block md:w-[450px] md:max-w-[33%] md:shrink-0 md:pb-0 lg:pb-0`}
             >
               {sortedChatsByLastMessage.map(
                 ([pubkeyOfChat, chatObject]: [string, ChatObject]) => {

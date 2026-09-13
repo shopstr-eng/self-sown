@@ -516,7 +516,7 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
         </Button>
       </div>
 
-      <div className="relative flex flex-grow justify-center">
+      <div className="relative flex grow justify-center">
         <div className="relative rounded-md border-2 border-black bg-gray-100 p-4">
           {/* PDF Canvas */}
           <canvas

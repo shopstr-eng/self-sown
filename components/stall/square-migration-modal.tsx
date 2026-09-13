@@ -497,7 +497,7 @@ function FetchStep({
       )}
       {fetchError && (
         <div className="flex items-start gap-2 rounded-md border-2 border-red-500 bg-red-50 p-3 text-sm text-red-700">
-          <XCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
           <div className="space-y-2">
             <p>{fetchError}</p>
             <Button
@@ -702,7 +702,7 @@ function ReviewStep({ listings }: { listings: BuiltSquareListing[] }) {
                     key={idx}
                     className="flex items-start gap-1 text-xs text-yellow-700"
                   >
-                    <ExclamationTriangleIcon className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                    <ExclamationTriangleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                     <span>{w}</span>
                   </li>
                 ))}

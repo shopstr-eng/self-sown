@@ -1168,7 +1168,7 @@ export default function ProductForm({
                               color="danger"
                               aria-label="Trash"
                               radius="full"
-                              className="bg-gradient-to-tr from-blue-950 to-red-950 text-white"
+                              className="bg-linear-to-tr from-blue-950 to-red-950 text-white"
                               variant="bordered"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -1363,7 +1363,7 @@ export default function ProductForm({
                   placement="top"
                   className="max-w-xs"
                 >
-                  <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 flex-shrink-0 cursor-help text-black" />
+                  <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 shrink-0 cursor-help text-black" />
                 </Tooltip>
                 <p className="text-xs text-black">
                   Your donation rate on sales is set to{" "}
@@ -3656,7 +3656,7 @@ export default function ProductForm({
               )}
 
               <div className="mx-0 my-4 flex items-start text-left">
-                <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 flex-shrink-0 text-black" />
+                <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 shrink-0 text-black" />
                 <p className="text-xs text-black">
                   Your payment preference is set to{" "}
                   {(() => {
