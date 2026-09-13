@@ -140,7 +140,7 @@ export default function DisplayProductModal({
           wrapper: "shadow-neo", // Apply shadow to the modal wrapper
           base: "border-2 border-black rounded-md",
           body: "py-6 bg-white",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           footer: "border-t-2 border-black bg-white rounded-b-md",
           closeButton:

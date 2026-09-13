@@ -1329,7 +1329,7 @@ export default function ProductForm({
                               return (
                                 <div className="flex items-center">
                                   <select
-                                    className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-none invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
+                                    className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-hidden invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
                                     key={"currency"}
                                     id="currency"
                                     name="currency"
@@ -1946,7 +1946,7 @@ export default function ProductForm({
                           endContent={
                             <div className="flex items-center">
                               <select
-                                className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-none invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
+                                className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-hidden invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
                                 key={"currency"}
                                 id="currency"
                                 name="currency"

@@ -148,7 +148,7 @@ export default function StorefrontPreviewFrame({
         </Head>
         <div className="flex w-full justify-center bg-gray-100 py-4">
           <div
-            className={`sf-preview-frame storefront-themed overflow-hidden rounded border border-gray-300 shadow-sm ${className || ""}`}
+            className={`sf-preview-frame storefront-themed overflow-hidden rounded border border-gray-300 shadow-xs ${className || ""}`}
             style={{ ...style, width: "100%", maxWidth }}
           >
             {children}

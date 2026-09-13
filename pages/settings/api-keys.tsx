@@ -275,7 +275,7 @@ const ApiKeysPage = () => {
               </p>
               <div className="flex items-center gap-2">
                 <code
-                  className={`flex-1 rounded-md border-2 border-black bg-white px-3 py-2 font-mono text-sm break-all ${showCreatedKey ? "" : "blur-sm"}`}
+                  className={`flex-1 rounded-md border-2 border-black bg-white px-3 py-2 font-mono text-sm break-all ${showCreatedKey ? "" : "blur-xs"}`}
                 >
                   {createdKey}
                 </code>

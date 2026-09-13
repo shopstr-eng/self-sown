@@ -57,4 +57,44 @@ describe("theme color class tokens", () => {
       rmSync(fixturePath, { force: true });
     }
   }, 90_000);
+
+  it("flags v3 size classes Tailwind v4 re-scaled", () => {
+    const scriptPath = path.join(
+      __dirname,
+      "../../scripts/check-theme-colors.mjs"
+    );
+    const fixturePath = path.join(
+      __dirname,
+      "../../utils/__theme-colors-resized-fixture.ts"
+    );
+    writeFileSync(
+      fixturePath,
+      'export const RESIZED = "hover:shadow-sm backdrop-blur-sm ' +
+        'focus:outline-none rounded-sm blur-sm";\n'
+    );
+    try {
+      let stderr = "";
+      try {
+        execFileSync(process.execPath, [scriptPath], {
+          encoding: "utf8",
+          timeout: 60_000,
+        });
+      } catch (err) {
+        stderr = (err as { stderr?: string }).stderr ?? "";
+      }
+      expect(stderr).toContain("__theme-colors-resized-fixture.ts");
+      expect(stderr).toContain("re-scaled in Tailwind v4");
+      for (const token of [
+        "hover:shadow-sm",
+        "backdrop-blur-sm",
+        "focus:outline-none",
+        "rounded-sm",
+        "blur-sm",
+      ]) {
+        expect(stderr).toContain(token);
+      }
+    } finally {
+      rmSync(fixturePath, { force: true });
+    }
+  }, 90_000);
 });

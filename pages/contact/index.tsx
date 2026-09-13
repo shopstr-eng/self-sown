@@ -239,7 +239,7 @@ export default function ContactPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your name"
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                       required
                     />
@@ -258,7 +258,7 @@ export default function ContactPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                       required
                     />
@@ -275,7 +275,7 @@ export default function ContactPage() {
                       id="subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                     >
                       <option value="">Select a topic</option>
@@ -305,7 +305,7 @@ export default function ContactPage() {
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="How can we help?"
                       rows={5}
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                       required
                     />

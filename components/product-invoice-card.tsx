@@ -7102,7 +7102,7 @@ export default function ProductInvoiceCard({
           classNames={{
             wrapper: "shadow-neo",
             base: "border-2 border-black rounded-md",
-            backdrop: "bg-black/20 backdrop-blur-sm",
+            backdrop: "bg-black/20 backdrop-blur-xs",
             header: "border-b-2 border-black bg-white rounded-t-md text-black",
             body: "py-6 bg-white",
             footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -7228,7 +7228,7 @@ export default function ProductInvoiceCard({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           closeButton:

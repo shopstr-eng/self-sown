@@ -1450,7 +1450,7 @@ export default function StandaloneLanding() {
                   placeholder={
                     contactType === "email" ? "your@email.com" : "npub1..."
                   }
-                  className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                  className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                   style={{ backgroundColor: "#f0f0f0" }}
                 />
               </div>

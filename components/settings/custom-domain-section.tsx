@@ -472,7 +472,7 @@ export default function CustomDomainSection() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="yourdomain.com"
-              className="min-w-[240px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+              className="min-w-[240px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-hidden"
               disabled={busy}
             />
             <button

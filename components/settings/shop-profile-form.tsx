@@ -3901,7 +3901,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                         setSections([...sections, newSection]);
                                       }
                                     }}
-                                    className="group flex flex-col items-center rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-black hover:shadow-sm"
+                                    className="group flex flex-col items-center rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-black hover:shadow-xs"
                                   >
                                     <div className="mb-2">
                                       <SectionPreviewSvg type={st.type} />

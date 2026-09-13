@@ -339,7 +339,7 @@ export default function EmailSenderDomainSection() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="yourfarm.com"
-              className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-none"
+              className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-hidden"
               disabled={busy}
             />
             <button
@@ -413,7 +413,7 @@ export default function EmailSenderDomainSection() {
                   value={fromInput}
                   onChange={(e) => setFromInput(e.target.value)}
                   placeholder={`orders@${record.domain}`}
-                  className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-none"
+                  className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-hidden"
                   disabled={busy}
                 />
                 <button

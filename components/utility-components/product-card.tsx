@@ -373,7 +373,7 @@ export default function ProductCard({
     <a
       href={href}
       aria-label={primaryControlLabel}
-      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-none focus-visible:ring-inset"
+      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-hidden focus-visible:ring-inset"
       onClickCapture={handleCardClickCapture}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
@@ -384,7 +384,7 @@ export default function ProductCard({
     <button
       type="button"
       aria-label={primaryControlLabel}
-      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-none focus-visible:ring-inset"
+      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-hidden focus-visible:ring-inset"
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
     >

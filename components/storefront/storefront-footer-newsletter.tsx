@@ -102,7 +102,7 @@ export default function StorefrontFooterNewsletter({
     color: "#111111",
   };
   const inputClass =
-    "font-body flex-1 rounded-lg border px-4 py-2.5 text-sm outline-none transition focus:border-current";
+    "font-body flex-1 rounded-lg border px-4 py-2.5 text-sm outline-hidden transition focus:border-current";
 
   return (
     <div className={`flex w-full max-w-md flex-col ${itemsAlign} ${textAlign}`}>

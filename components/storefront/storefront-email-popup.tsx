@@ -430,7 +430,7 @@ export default function StorefrontEmailPopupComponent({
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               required
-                              className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
+                              className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-hidden focus:ring-2"
                               style={{
                                 borderColor: text + "22",
                                 color: text,
@@ -448,7 +448,7 @@ export default function StorefrontEmailPopupComponent({
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 required={config.requirePhone}
-                                className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
+                                className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-hidden focus:ring-2"
                                 style={{
                                   borderColor: text + "22",
                                   color: text,

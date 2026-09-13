@@ -81,7 +81,7 @@ function QuantitySelector({
         }}
         min={min}
         max={max}
-        className="w-16 rounded-md border-2 border-black bg-white px-2 py-1 text-center font-semibold text-black outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-16 rounded-md border-2 border-black bg-white px-2 py-1 text-center font-semibold text-black outline-hidden [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <button
         type="button"
@@ -1392,7 +1392,7 @@ export default function Component() {
                           </div>
                         ))}
                         {/* Discount code section for this seller */}
-                        <div className="rounded-lg border border-gray-300 p-4 shadow-sm">
+                        <div className="rounded-lg border border-gray-300 p-4 shadow-xs">
                           <h3 className="mb-3 font-semibold">
                             Have a discount code from this seller?
                           </h3>

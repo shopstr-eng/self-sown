@@ -70,7 +70,7 @@ export default function MigrationPromptModal({
         // Updated modal styles
         wrapper: "shadow-neo",
         base: "border-2 border-black rounded-md",
-        backdrop: "bg-black/20 backdrop-blur-sm",
+        backdrop: "bg-black/20 backdrop-blur-xs",
         // This modal only has a body, so add all border radius here
         body: "py-6 bg-white rounded-md",
         closeButton:

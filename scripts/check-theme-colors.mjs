@@ -12,6 +12,15 @@
 // v4 removed in favor of the slash opacity modifier (`bg-black/20`) — same
 // failure mode: no build error, the style silently never applies.
 //
+// Also flags v3 size classes Tailwind v4 still generates but RE-SCALED
+// (verified via a compile probe against tailwindcss 4.3.3): v3 `shadow-sm` is
+// v4 `shadow-xs`, v3 `rounded-sm` is v4 `rounded-xs`, v3 `blur-sm` /
+// `backdrop-blur-sm` is v4 `blur-xs` / `backdrop-blur-xs`, and v3
+// `outline-none` (invisible-but-forced-colors-safe outline) is v4
+// `outline-hidden` (v4 `outline-none` removes the outline entirely). The bare
+// `shadow` / `rounded` / `blur` aliases resolve to the same sizes as the v3
+// defaults, so they are intentionally NOT flagged.
+//
 // Exits non-zero and prints every offending `file:line  class-token` when any
 // unknown color reference is found. Runnable by hand:
 //
@@ -331,6 +340,19 @@ const NON_COLOR_VALUES = {
 const GRADIENT_DIRECTION_RE = /^gradient-to-(t|tr|r|br|b|bl|l|tl)$/;
 const NUMERIC_RE = /^-?\d+(\.\d+)?%?$/;
 
+// v3 size classes Tailwind v4 still generates but re-scaled — they compile
+// fine, so only an explicit guard keeps the old sizes from silently changing
+// (or new ones from creeping back in). Value = the v4 class that reproduces
+// the v3 size. The bare `shadow` / `rounded` / `blur` aliases are absent on
+// purpose: v4 resolves them to the same sizes the v3 defaults had.
+const RESIZED_V3_CLASSES = {
+  "shadow-sm": "shadow-xs",
+  "rounded-sm": "rounded-xs",
+  "blur-sm": "blur-xs",
+  "backdrop-blur-sm": "backdrop-blur-xs",
+  "outline-none": "outline-hidden",
+};
+
 // Candidate extraction: a class token must start after a boundary character
 // (whitespace, quote, brace, ...) and end at one. This keeps CSS-in-JS
 // properties (`text-align: center` — colon after), JSX text
@@ -348,6 +370,19 @@ const CANDIDATE_RE = new RegExp(
   `(?:^|${BOUNDARY})` +
     `((?:${CLASS_CHARS}+:)*!?` +
     `(?:${COLOR_PREFIXES.join("|")})-${CLASS_CHARS}+)` +
+    `(?=$|${BOUNDARY})`,
+  "g"
+);
+
+// Same boundary rules as CANDIDATE_RE; the base alternation lists the
+// hyphenated names longest-first so `backdrop-blur-sm` wins over `blur-sm`.
+const RESIZED_CLASS_RE = new RegExp(
+  `(?:^|${BOUNDARY})` +
+    `((?:${CLASS_CHARS}+:)*!?` +
+    `(?:${Object.keys(RESIZED_V3_CLASSES)
+      .sort((a, b) => b.length - a.length)
+      .join("|")})` +
+    `!?)` +
     `(?=$|${BOUNDARY})`,
   "g"
 );
@@ -439,15 +474,27 @@ for (const file of files) {
         );
       }
     }
+    for (const match of line.matchAll(RESIZED_CLASS_RE)) {
+      const token = match[1];
+      const base = token.replace(/^!|!$/g, "").split(":").pop();
+      const replacement = RESIZED_V3_CLASSES[base];
+      if (!replacement) continue;
+      violations.push(
+        `${path.relative(root, file)}:${index + 1}  ${token} ` +
+          `(v3 size class re-scaled in Tailwind v4 — use \`${replacement}\` ` +
+          "to keep the v3 size)"
+      );
+    }
   });
 }
 
 if (violations.length > 0) {
   process.stderr.write(
     `check-theme-colors: ${violations.length} class token(s) Tailwind will ` +
-      "never generate (color not in the default palette, tailwind.config.ts " +
-      "theme.extend.colors, or HeroUI semantic colors — or a v3-era utility " +
-      "removed in Tailwind v4):\n" +
+      "never generate or renders at a different size than v3 (color not in " +
+      "the default palette, tailwind.config.ts theme.extend.colors, or " +
+      "HeroUI semantic colors — or a v3-era utility removed / re-scaled in " +
+      "Tailwind v4):\n" +
       violations.map((v) => `  ${v}`).join("\n") +
       "\n"
   );

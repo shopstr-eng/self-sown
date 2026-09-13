@@ -2510,7 +2510,7 @@ const OrdersDashboard = ({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -2728,7 +2728,7 @@ const OrdersDashboard = ({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -2888,7 +2888,7 @@ const OrdersDashboard = ({
           scrollBehavior="inside"
           classNames={{
             body: "py-6 bg-white",
-            backdrop: "bg-black/20 backdrop-blur-sm",
+            backdrop: "bg-black/20 backdrop-blur-xs",
             header: "border-b-2 border-black bg-white rounded-t-md text-black",
             footer: "border-t-2 border-black bg-white rounded-b-md",
             closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -2951,7 +2951,7 @@ const OrdersDashboard = ({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "bg-white text-black",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -2999,7 +2999,7 @@ const OrdersDashboard = ({
                   value={returnRequestMessage}
                   onChange={(e) => setReturnRequestMessage(e.target.value)}
                   rows={5}
-                  className="w-full rounded-md border-2 border-gray-300 bg-white p-3 text-sm text-black focus:border-black focus:outline-none"
+                  className="w-full rounded-md border-2 border-gray-300 bg-white p-3 text-sm text-black focus:border-black focus:outline-hidden"
                   placeholder="Describe the reason for your request..."
                 />
               </div>

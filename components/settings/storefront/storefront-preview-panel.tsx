@@ -1076,7 +1076,7 @@ export default function StorefrontPreviewPanel({
                             onSectionClick(section.id);
                           }
                         }}
-                        className="preview-section-clickable relative cursor-pointer outline-none"
+                        className="preview-section-clickable relative cursor-pointer outline-hidden"
                         title="Click to edit this section"
                       >
                         <div className="preview-section-overlay pointer-events-none absolute inset-0 z-10 transition-all" />

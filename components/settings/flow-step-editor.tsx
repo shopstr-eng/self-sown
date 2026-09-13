@@ -459,7 +459,7 @@ export const FlowStepEditor = ({
                 placeholder={
                   insertModal.type === "button" ? "Shop Now" : "Click here"
                 }
-                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-none"
+                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-hidden"
               />
             </div>
             <div className="flex-1">
@@ -471,7 +471,7 @@ export const FlowStepEditor = ({
                   setInsertModal({ ...insertModal, url: e.target.value })
                 }
                 placeholder="https://..."
-                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-none"
+                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-hidden"
               />
             </div>
             <Button
@@ -502,7 +502,7 @@ export const FlowStepEditor = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border-2 bg-white p-3 font-mono text-sm text-black transition-colors duration-300 outline-none ${
+          className={`w-full border-2 bg-white p-3 font-mono text-sm text-black transition-colors duration-300 outline-hidden ${
             isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
           }`}
           rows={12}
@@ -513,7 +513,7 @@ export const FlowStepEditor = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border-2 bg-white p-3 text-sm text-black transition-colors duration-300 outline-none ${
+          className={`w-full border-2 bg-white p-3 text-sm text-black transition-colors duration-300 outline-hidden ${
             isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
           }`}
           rows={12}
