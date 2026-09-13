@@ -1,4 +1,5 @@
 import { execFileSync } from "child_process";
+import { rmSync, writeFileSync } from "fs";
 import path from "path";
 
 /**
@@ -25,5 +26,35 @@ describe("theme color class tokens", () => {
       timeout: 60_000,
     });
     expect(stdout).toContain("check-theme-colors: ok");
+  }, 90_000);
+
+  it("flags v3-era *-opacity-* utilities Tailwind v4 removed", () => {
+    const scriptPath = path.join(
+      __dirname,
+      "../../scripts/check-theme-colors.mjs"
+    );
+    // Scanned extension in a scanned dir (utils/, never a Next route dir so a
+    // leftover can't break `next build`), cleaned up even on failure.
+    const fixturePath = path.join(
+      __dirname,
+      "../../utils/__theme-colors-opacity-fixture.ts"
+    );
+    writeFileSync(fixturePath, 'export const DEAD = "bg-opacity-50";\n');
+    try {
+      let stderr = "";
+      try {
+        execFileSync(process.execPath, [scriptPath], {
+          encoding: "utf8",
+          timeout: 60_000,
+        });
+      } catch (err) {
+        stderr = (err as { stderr?: string }).stderr ?? "";
+      }
+      expect(stderr).toContain("__theme-colors-opacity-fixture.ts");
+      expect(stderr).toContain("bg-opacity-50");
+      expect(stderr).toContain("removed in Tailwind v4");
+    } finally {
+      rmSync(fixturePath, { force: true });
+    }
   }, 90_000);
 });

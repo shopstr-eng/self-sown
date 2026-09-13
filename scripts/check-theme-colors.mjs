@@ -8,6 +8,10 @@
 // `hover:text-accent-white/10` survived for weeks in
 // components/home/marketplace.tsx).
 //
+// Also flags v3-era `*-opacity-*` utilities (`bg-opacity-20`), which Tailwind
+// v4 removed in favor of the slash opacity modifier (`bg-black/20`) — same
+// failure mode: no build error, the style silently never applies.
+//
 // Exits non-zero and prints every offending `file:line  class-token` when any
 // unknown color reference is found. Runnable by hand:
 //
@@ -349,7 +353,9 @@ const CANDIDATE_RE = new RegExp(
 );
 
 // Returns the unknown color name when the class token references one, or null
-// when the token is fine / not a color class.
+// when the token is fine / not a color class. The optional `reason` overrides
+// the default "unknown color" explanation for tokens that are dead for a
+// different reason (removed v3-era utilities).
 function unknownColorIn(token) {
   const variantSplit = token.lastIndexOf(":");
   let base = variantSplit === -1 ? token : token.slice(variantSplit + 1);
@@ -368,12 +374,22 @@ function unknownColorIn(token) {
   rest = rest.split("/")[0];
   if (!rest) return null;
   if (NUMERIC_RE.test(rest)) return null; // widths, percentages (from-10%)
-  if (rest.startsWith("opacity-")) return null; // v3-era *-opacity-* utilities
+  // v3-era `*-opacity-*` utilities were removed in Tailwind v4; the slash
+  // opacity modifier (`bg-black/20`) is the v4 form.
+  const legacyOpacity = rest.match(/^opacity-(\d+)$/);
+  if (legacyOpacity) {
+    return {
+      name: rest,
+      reason:
+        `v3-era utility removed in Tailwind v4 — use the slash opacity ` +
+        `modifier instead (e.g. \`${prefix}-<color>/${legacyOpacity[1]}\`)`,
+    };
+  }
   if (prefix === "divide" && /^[xy]-\d+$/.test(rest)) return null; // divide-y-2
   if (NON_COLOR_VALUES[prefix]?.has(rest)) return null;
   if (prefix === "bg" && GRADIENT_DIRECTION_RE.test(rest)) return null;
   if (isKnownColor(rest)) return null;
-  return rest;
+  return { name: rest };
 }
 
 // --- Scan -------------------------------------------------------------------
@@ -415,11 +431,11 @@ for (const file of files) {
     if (COMMENT_LINE_RE.test(line) || CONSOLE_LINE_RE.test(line)) return;
     for (const match of line.matchAll(CANDIDATE_RE)) {
       const token = match[1];
-      const color = unknownColorIn(token);
-      if (color) {
+      const hit = unknownColorIn(token);
+      if (hit) {
         violations.push(
           `${path.relative(root, file)}:${index + 1}  ${token} ` +
-            `(unknown color "${color}")`
+            (hit.reason ?? `(unknown color "${hit.name}")`)
         );
       }
     }
@@ -428,9 +444,10 @@ for (const file of files) {
 
 if (violations.length > 0) {
   process.stderr.write(
-    `check-theme-colors: ${violations.length} class token(s) reference a ` +
-      "color Tailwind will never generate (not in the default palette, " +
-      "tailwind.config.ts theme.extend.colors, or HeroUI semantic colors):\n" +
+    `check-theme-colors: ${violations.length} class token(s) Tailwind will ` +
+      "never generate (color not in the default palette, tailwind.config.ts " +
+      "theme.extend.colors, or HeroUI semantic colors — or a v3-era utility " +
+      "removed in Tailwind v4):\n" +
       violations.map((v) => `  ${v}`).join("\n") +
       "\n"
   );

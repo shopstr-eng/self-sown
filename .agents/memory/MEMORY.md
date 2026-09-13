@@ -148,3 +148,4 @@
 - [replit.nix channel caps Node at 18](replit-nix-channel-node-cap.md) — nixpkgs 22.11 has no nodejs-22_x and replit.nix is still evaluated at env-build; runtime Node 22 comes from .replit modules, never bump replit.nix to match .nvmrc.
 - [Deploy-build publish guard](deploy-build-publish-guard.md) — deploy-build.sh refuses to run without SELF_SOWN_PUBLISH_BUILD=1, set only by the .replit [deployment] build command; keep the two in lockstep.
 - [Brand palette consolidation](brand-palette-consolidation.md) — app is forced light-only; keep darkMode:'class' (HeroUI needs it); never add dark: classes.
+- [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 silently drops only *-opacity-* (guarded); flex-shrink-*/flex-grow-*/overflow-ellipsis/bg-gradient-to-* still generate — don't mass-migrate; shadow-sm/rounded/blur compile but are re-scaled vs v3.
