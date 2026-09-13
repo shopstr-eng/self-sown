@@ -200,6 +200,44 @@ const cases: Array<{
   },
 ];
 
+// Same bug class on the body/subheading: `opacity-80${...}` once glued the
+// opacity utility to the responsive size, producing `opacity-80md:text-lg`.
+// Assert on the tokenized class list so merged tokens can never pass.
+describe("section-product-description body class list", () => {
+  const renderBody = (section: StorefrontSection) => {
+    render(
+      <SectionProductDescription
+        section={section}
+        colors={colors}
+        product={product}
+      />
+    );
+    // FormattedText renders the className on the element wrapping the text.
+    return screen.getByText(product.summary);
+  };
+
+  it("keeps opacity-80 and md:text-lg as separate tokens when bodySize is unset", () => {
+    const tokens = classTokens(
+      renderBody({ id: "s1", type: "product_description" })
+    );
+    expect(tokens).toContain("opacity-80");
+    expect(tokens).toContain("md:text-lg");
+    expect(tokens).toContain("text-base"); // legacy base size
+    for (const token of tokens) {
+      expect(token.startsWith("opacity-80")).toBe(token === "opacity-80");
+    }
+  });
+
+  it("drops the legacy responsive size entirely when bodySize is set", () => {
+    const tokens = classTokens(
+      renderBody({ id: "s1", type: "product_description", bodySize: "lg" })
+    );
+    expect(tokens).toContain("opacity-80");
+    expect(tokens).toContain("text-xl"); // bodySize "lg"
+    expect(tokens).not.toContain("md:text-lg");
+  });
+});
+
 describe("storefront section heading class lists", () => {
   for (const {
     name,

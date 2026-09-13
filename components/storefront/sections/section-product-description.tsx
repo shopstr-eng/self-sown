@@ -45,7 +45,7 @@ export default function SectionProductDescription({
                 section,
                 "text-base"
               )} leading-relaxed whitespace-pre-line opacity-80${
-                section.bodySize ? "" : "md:text-lg"
+                section.bodySize ? "" : " md:text-lg"
               }`}
             />
           ),
