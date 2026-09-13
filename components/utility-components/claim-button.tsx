@@ -575,8 +575,8 @@ export default function ClaimButton({ token }: { token: string }) {
               {/* Updated text color */}
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  The token you are trying to claim is already in your
-                  Self-sown wallet.
+                  The token you are trying to claim is already in your Self-sown
+                  wallet.
                 </div>
               </ModalBody>
             </ModalContent>

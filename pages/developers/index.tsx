@@ -140,9 +140,9 @@ export default function Developers() {
               Self-sown for Developers & AI Agents
             </h1>
             <p className="mt-4 text-center text-lg text-zinc-600">
-              Self-sown is built to be operated by machines: search the
-              catalog, place orders, and run a stall through documented,
-              machine-readable interfaces.
+              Self-sown is built to be operated by machines: search the catalog,
+              place orders, and run a stall through documented, machine-readable
+              interfaces.
             </p>
           </div>
 

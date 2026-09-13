@@ -117,9 +117,9 @@ describe("withSchemaDdlLock", () => {
     const calls = client.query.mock.calls.map(([q]) => String(q));
     expect(calls.filter((q) => q === "BEGIN")).toHaveLength(1);
     expect(calls.filter((q) => q === "COMMIT")).toHaveLength(1);
-    expect(calls.filter((q) => q.includes("pg_advisory_xact_lock"))).toHaveLength(
-      1
-    );
+    expect(
+      calls.filter((q) => q.includes("pg_advisory_xact_lock"))
+    ).toHaveLength(1);
   });
 });
 

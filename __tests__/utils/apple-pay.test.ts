@@ -56,9 +56,9 @@ describe("normalizeRegistrableHost", () => {
 
 describe("trustedRegistrationHost", () => {
   it("accepts the platform host without any seller or domain lookup", async () => {
-    await expect(
-      trustedRegistrationHost("Milk.Market:443")
-    ).resolves.toBe("milk.market");
+    await expect(trustedRegistrationHost("Milk.Market:443")).resolves.toBe(
+      "milk.market"
+    );
     expect(mockGetDomainByHost).not.toHaveBeenCalled();
   });
 

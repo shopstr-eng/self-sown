@@ -5852,9 +5852,7 @@ export default function ProductInvoiceCard({
                   <Input
                     variant="bordered"
                     fullWidth={true}
-                    label={
-                      <span className="text-black">State/Province</span>
-                    }
+                    label={<span className="text-black">State/Province</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -6364,7 +6362,7 @@ export default function ProductInvoiceCard({
                     {qrCodeUrl && (
                       <>
                         <PaymentCountdown deadlineMs={pollDeadlineMs} />
-                        <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -6408,7 +6406,7 @@ export default function ProductInvoiceCard({
                     )}
                     {stripeClientSecret && (
                       <div className="w-full">
-                        <h3 className="text-black mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 mb-4 text-center text-lg leading-6 font-medium text-black">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -6438,7 +6436,7 @@ export default function ProductInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
+                    <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -6741,9 +6739,7 @@ export default function ProductInvoiceCard({
                     <Input
                       variant="bordered"
                       fullWidth={true}
-                      label={
-                        <span className="text-black">Email Address</span>
-                      }
+                      label={<span className="text-black">Email Address</span>}
                       labelPlacement="inside"
                       type="email"
                       isRequired={true}

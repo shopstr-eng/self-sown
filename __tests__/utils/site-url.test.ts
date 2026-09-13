@@ -1,9 +1,4 @@
-import {
-  getSiteUrl,
-  getSiteHost,
-  SITE_URL,
-  SITE_HOST,
-} from "@/utils/site-url";
+import { getSiteUrl, getSiteHost, SITE_URL, SITE_HOST } from "@/utils/site-url";
 
 describe("site-url", () => {
   const ORIGINAL = process.env.NEXT_PUBLIC_BASE_URL;

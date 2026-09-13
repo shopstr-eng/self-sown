@@ -893,14 +893,14 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_blog_email_broadcasts_pubkey ON blog_email_broadcasts(pubkey);
     `);
 
-    // Per-segment broadcast claims: pre-segment rows keyed the whole published
-    // version via UNIQUE(pubkey, d_tag, event_id). Add the segment column and
-    // replace that key with (pubkey, d_tag, event_id, audience_source) so each
-    // audience segment gets its own one-shot claim. The legacy constraint is
-    // dropped by NAME LOOKUP (not DROP ... IF EXISTS with a guessed name) so a
-    // divergent auto-generated name can't silently survive and break every
-    // segment claim as 'claim-failed'.
-    await client.query(`
+      // Per-segment broadcast claims: pre-segment rows keyed the whole published
+      // version via UNIQUE(pubkey, d_tag, event_id). Add the segment column and
+      // replace that key with (pubkey, d_tag, event_id, audience_source) so each
+      // audience segment gets its own one-shot claim. The legacy constraint is
+      // dropped by NAME LOOKUP (not DROP ... IF EXISTS with a guessed name) so a
+      // divergent auto-generated name can't silently survive and break every
+      // segment claim as 'claim-failed'.
+      await client.query(`
       DO $$
       DECLARE
         legacy_key text;
@@ -929,7 +929,7 @@ async function initializeTables(): Promise<void> {
         END IF;
       END $$;
     `);
-    await client.query(`
+      await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS blog_email_broadcasts_version_segment_key
         ON blog_email_broadcasts (pubkey, d_tag, event_id, audience_source);
 
@@ -1451,7 +1451,7 @@ async function initializeTables(): Promise<void> {
         ADD COLUMN IF NOT EXISTS auto_purchase_labels BOOLEAN NOT NULL DEFAULT TRUE;
     `);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1477,14 +1477,14 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       CREATE INDEX IF NOT EXISTS idx_message_events_is_read ON message_events(is_read);
       CREATE INDEX IF NOT EXISTS idx_message_events_order_id ON message_events(order_id);
     `);
 
-    await ensureFailedRelayPublishesTable(client);
+      await ensureFailedRelayPublishesTable(client);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF EXISTS (
@@ -1497,7 +1497,7 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1567,11 +1567,11 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    // Storefront email/contact captures (welcome-offer popup + subscription
-    // form). This table historically lived only in db/schema.sql, so bring it
-    // into the runtime bootstrap alongside every other table. CREATE IF NOT
-    // EXISTS is a no-op where it already exists.
-    await client.query(`
+      // Storefront email/contact captures (welcome-offer popup + subscription
+      // form). This table historically lived only in db/schema.sql, so bring it
+      // into the runtime bootstrap alongside every other table. CREATE IF NOT
+      // EXISTS is a no-op where it already exists.
+      await client.query(`
       CREATE TABLE IF NOT EXISTS popup_email_captures (
           id SERIAL PRIMARY KEY,
           seller_pubkey TEXT NOT NULL,
@@ -1588,18 +1588,18 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_popup_email_captures_email ON popup_email_captures(email);
     `);
 
-    // Origin of each captured contact: 'popup' (welcome-offer popup, gets a
-    // discount code) vs 'subscription' (storefront subscription form, no code).
-    // The `source` column was added to popup_email_captures after it shipped and
-    // was only mirrored into db/schema.sql, never into this runtime path — so
-    // the hosted databases (which bootstrap here, not from schema.sql) never got
-    // it, and every popup/subscription capture 500'd with
-    // 'column "source" ... does not exist', silently dropping the contact and
-    // its welcome discount code. Backfill existing rows once when the column is
-    // first added: rows with an empty discount_code were subscription signups,
-    // everything else came from the popup. The column-existence guard keeps the
-    // backfill a one-time operation. Mirrors the DO block in db/schema.sql.
-    await client.query(`
+      // Origin of each captured contact: 'popup' (welcome-offer popup, gets a
+      // discount code) vs 'subscription' (storefront subscription form, no code).
+      // The `source` column was added to popup_email_captures after it shipped and
+      // was only mirrored into db/schema.sql, never into this runtime path — so
+      // the hosted databases (which bootstrap here, not from schema.sql) never got
+      // it, and every popup/subscription capture 500'd with
+      // 'column "source" ... does not exist', silently dropping the contact and
+      // its welcome discount code. Backfill existing rows once when the column is
+      // first added: rows with an empty discount_code were subscription signups,
+      // everything else came from the popup. The column-existence guard keeps the
+      // backfill a one-time operation. Mirrors the DO block in db/schema.sql.
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1614,7 +1614,7 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1632,11 +1632,11 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    // Allow the 'one_time' flow type on databases created before it existed.
-    // Drop any existing CHECK constraint on flow_type (regardless of its
-    // auto-generated name) before adding the canonical one, so this works even
-    // if the prior constraint was named differently.
-    await client.query(`
+      // Allow the 'one_time' flow type on databases created before it existed.
+      // Drop any existing CHECK constraint on flow_type (regardless of its
+      // auto-generated name) before adding the canonical one, so this works even
+      // if the prior constraint was named differently.
+      await client.query(`
       DO $$
       DECLARE
         c record;
@@ -1656,7 +1656,7 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       CREATE TABLE IF NOT EXISTS inventory (
         id SERIAL PRIMARY KEY,
         product_id TEXT NOT NULL,
@@ -1766,13 +1766,13 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_affiliate_payouts_seller_pubkey ON affiliate_payouts(seller_pubkey);
     `);
 
-    // -----------------------------------------------------------------
-    // Idempotent affiliate-program migrations. This block mirrors the
-    // DO $aff_migrate$ block in db/schema.sql so that environments which
-    // bootstrap from this code path (rather than running schema.sql
-    // directly) stay in sync.  Safe to re-run.
-    // -----------------------------------------------------------------
-    await client.query(`
+      // -----------------------------------------------------------------
+      // Idempotent affiliate-program migrations. This block mirrors the
+      // DO $aff_migrate$ block in db/schema.sql so that environments which
+      // bootstrap from this code path (rather than running schema.sql
+      // directly) stay in sync.  Safe to re-run.
+      // -----------------------------------------------------------------
+      await client.query(`
       DO $aff_migrate_inline$
       BEGIN
         EXECUTE 'UPDATE affiliate_codes SET payout_schedule = ''monthly'' WHERE payout_schedule IN (''every_sale'', ''daily'')';
@@ -1845,11 +1845,11 @@ async function initializeTables(): Promise<void> {
       $sub_migrate_inline$;
     `);
 
-    // -----------------------------------------------------------------
-    // Pro membership tier. Effective status is resolved in code from the
-    // forward-looking lapse timeline stored here. Mirrors db/schema.sql.
-    // -----------------------------------------------------------------
-    await client.query(`
+      // -----------------------------------------------------------------
+      // Pro membership tier. Effective status is resolved in code from the
+      // forward-looking lapse timeline stored here. Mirrors db/schema.sql.
+      // -----------------------------------------------------------------
+      await client.query(`
       CREATE TABLE IF NOT EXISTS pro_memberships (
           id SERIAL PRIMARY KEY,
           pubkey TEXT NOT NULL UNIQUE,
@@ -1926,9 +1926,9 @@ async function initializeTables(): Promise<void> {
       );
     `);
 
-    // Cashu escrow: verified buyer commitments + durable release/refund
-    // outbox. Keep in sync with db/schema.sql (self-host bootstrap).
-    await client.query(`
+      // Cashu escrow: verified buyer commitments + durable release/refund
+      // outbox. Keep in sync with db/schema.sql (self-host bootstrap).
+      await client.query(`
       CREATE TABLE IF NOT EXISTS cashu_escrow_registrations (
         escrow_id TEXT PRIMARY KEY,
         buyer_pubkey TEXT NOT NULL,
@@ -1983,16 +1983,16 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE cashu_escrow_outbox ADD COLUMN IF NOT EXISTS prepared_outputs JSONB;
     `);
 
-    await ensureAuthedSellersTable(client);
+      await ensureAuthedSellersTable(client);
 
-    // Tables that also self-create lazily in their own modules. They are
-    // registered here too so a quiet dev database still contains every table
-    // prod has — otherwise the publish schema-diff reads a prod-only table as
-    // "removed" and forces a destructive rename/drop choice. The module's DDL
-    // stays the source of truth; IF NOT EXISTS makes coexistence safe, and the
-    // lazy ensure* functions keep their data migrations (they no-op on the DDL).
-    const ucpStatusList = CHECKOUT_STATUSES.map((s) => `'${s}'`).join(",");
-    await client.query(`
+      // Tables that also self-create lazily in their own modules. They are
+      // registered here too so a quiet dev database still contains every table
+      // prod has — otherwise the publish schema-diff reads a prod-only table as
+      // "removed" and forces a destructive rename/drop choice. The module's DDL
+      // stays the source of truth; IF NOT EXISTS makes coexistence safe, and the
+      // lazy ensure* functions keep their data migrations (they no-op on the DDL).
+      const ucpStatusList = CHECKOUT_STATUSES.map((s) => `'${s}'`).join(",");
+      await client.query(`
       -- Stripe webhook event dedup claims (utils/stripe/processed-events.ts)
       CREATE TABLE IF NOT EXISTS stripe_processed_events (
         event_id TEXT PRIMARY KEY,
@@ -2049,7 +2049,6 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_order ON ucp_checkout_sessions(mcp_order_id);
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
     `);
-
     });
 
     // Publish the initialized state only after the schema transaction has

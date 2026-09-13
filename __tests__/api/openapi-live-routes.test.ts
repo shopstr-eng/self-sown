@@ -46,7 +46,9 @@ function findDeadSpecPaths(): string[] {
   for (const path of Object.keys(spec.paths)) {
     const resolution = resolveAdvertisedPath(path, DEAD_PATH_ALLOWLIST);
     if (!resolution.ok) {
-      problems.push(`openapi.json: dead advertised path ${path} — ${resolution.detail}`);
+      problems.push(
+        `openapi.json: dead advertised path ${path} — ${resolution.detail}`
+      );
     }
   }
   return problems;

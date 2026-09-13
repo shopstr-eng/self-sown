@@ -57,9 +57,7 @@ function isTemplateSegment(segment: string): boolean {
 
 function isDynamicEntry(name: string): boolean {
   return (
-    name.startsWith("[") &&
-    !name.startsWith("_") &&
-    !isNotFoundCatchAll(name)
+    name.startsWith("[") && !name.startsWith("_") && !isNotFoundCatchAll(name)
   );
 }
 

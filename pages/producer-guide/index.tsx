@@ -483,8 +483,8 @@ const ProducerGuidePage = () => {
                 </h1>
                 <p className="text-primary-blue mx-auto max-w-3xl text-lg">
                   Learn how to start selling your local food and goods on
-                  Self-sown &mdash; from raw milk and dairy to meat, eggs, produce,
-                  baked goods, honey, and handmade goods.
+                  Self-sown &mdash; from raw milk and dairy to meat, eggs,
+                  produce, baked goods, honey, and handmade goods.
                 </p>
               </div>
             </div>
@@ -505,8 +505,8 @@ const ProducerGuidePage = () => {
                       Create Your Account
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Sign up for Self-sown using your Nostr identity or
-                      create a new one. Your Nostr key ensures secure, private
+                      Sign up for Self-sown using your Nostr identity or create
+                      a new one. Your Nostr key ensures secure, private
                       communication with customers.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">

@@ -124,48 +124,48 @@ export async function initializeApiKeysTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_api_key_id ON mcp_orders(api_key_id);
     `);
 
-    // Optional migrations run under savepoints: the lock wrapper above holds
-    // an explicit transaction, so a caught error would otherwise abort it and
-    // silently roll back every preceding statement at COMMIT.
-    const optionalMigration = async (run: () => Promise<void>) => {
-      await client.query("SAVEPOINT mcp_optional_migration");
-      try {
-        await run();
-        await client.query("RELEASE SAVEPOINT mcp_optional_migration");
-      } catch {
-        await client.query("ROLLBACK TO SAVEPOINT mcp_optional_migration");
-      }
-    };
+      // Optional migrations run under savepoints: the lock wrapper above holds
+      // an explicit transaction, so a caught error would otherwise abort it and
+      // silently roll back every preceding statement at COMMIT.
+      const optionalMigration = async (run: () => Promise<void>) => {
+        await client.query("SAVEPOINT mcp_optional_migration");
+        try {
+          await run();
+          await client.query("RELEASE SAVEPOINT mcp_optional_migration");
+        } catch {
+          await client.query("ROLLBACK TO SAVEPOINT mcp_optional_migration");
+        }
+      };
 
-    await optionalMigration(async () => {
-      await client.query(
-        `ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS encrypted_nsec TEXT`
-      );
-    });
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS encrypted_nsec TEXT`
+        );
+      });
 
-    // Self-migrate databases where initializeTables() (db-service.ts) created
-    // mcp_orders first with its older column set — the CREATE above is a
-    // no-op for them.
-    await optionalMigration(async () => {
-      await client.query(
-        `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT`
-      );
-      await client.query(
-        `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT`
-      );
-      await client.query(
-        `ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd'`
-      );
-    });
+      // Self-migrate databases where initializeTables() (db-service.ts) created
+      // mcp_orders first with its older column set — the CREATE above is a
+      // no-op for them.
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd'`
+        );
+      });
 
-    await optionalMigration(async () => {
-      await client.query(
-        `ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check`
-      );
-      await client.query(
-        `ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check CHECK (permissions IN ('read', 'read_write', 'full_access'))`
-      );
-    });
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check`
+        );
+        await client.query(
+          `ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check CHECK (permissions IN ('read', 'read_write', 'full_access'))`
+        );
+      });
     });
   } catch (error) {
     console.error("Failed to initialize MCP tables:", error);

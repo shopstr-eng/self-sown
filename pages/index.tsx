@@ -156,7 +156,7 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
     name: "Free Milk",
     url: `${SITE_HOST}/stall/freemilk`,
     href: "/stall/freemilk",
-    image: "/self-sown-hero.png",
+    image: "/stall-freemilk.png",
     alt: "Free Milk stall on Self-sown showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
   },
   {

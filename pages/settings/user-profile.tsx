@@ -184,14 +184,14 @@ const UserProfilePage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="bg-white flex min-h-screen flex-col pt-24 md:pb-20">
+      <div className="flex min-h-screen flex-col bg-white pt-24 md:pb-20">
         <div className="mx-auto h-full w-full px-4 lg:w-1/2">
           <SettingsBreadCrumbs />
           {isFetchingProfile ? (
             <SelfSownSpinner />
           ) : (
             <>
-              <div className="bg-white mb-20 h-40 rounded-lg">
+              <div className="mb-20 h-40 rounded-lg bg-white">
                 <div className="bg-primary-yellow relative flex h-40 items-center justify-center rounded-lg">
                   {watchBanner && (
                     <Image
@@ -230,7 +230,7 @@ const UserProfilePage = () => {
               </div>
 
               <div
-                className="border-black mx-auto mb-2 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2 hover:opacity-60"
+                className="mx-auto mb-2 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 border-black p-2 hover:opacity-60"
                 onClick={() => {
                   if (userNPub) navigator.clipboard.writeText(userNPub);
                   setIsNPubCopied(true);
@@ -240,7 +240,7 @@ const UserProfilePage = () => {
                 }}
               >
                 <span
-                  className="lg:text-md text-black pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
+                  className="lg:text-md pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm"
                   suppressHydrationWarning
                 >
                   {userNPub}
@@ -263,9 +263,9 @@ const UserProfilePage = () => {
               </div>
 
               {userNSec ? (
-                <div className="border-black mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2">
+                <div className="mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 border-black p-2">
                   <span
-                    className="lg:text-md text-black pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
+                    className="lg:text-md pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm"
                     suppressHydrationWarning
                   >
                     {viewState === "shown"
@@ -348,7 +348,7 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-black pb-4"
+                        className="pb-4 text-black"
                         classNames={{
                           label: "text-black text-lg",
                         }}
@@ -381,7 +381,7 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-black pb-4"
+                        className="pb-4 text-black"
                         classNames={{
                           label: "text-black text-lg",
                         }}
@@ -414,7 +414,7 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Textarea
-                        className="text-black pb-4"
+                        className="pb-4 text-black"
                         classNames={{
                           label: "text-black text-lg",
                         }}
@@ -447,7 +447,7 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-black pb-4"
+                        className="pb-4 text-black"
                         classNames={{
                           label: "text-black text-lg",
                         }}
@@ -479,7 +479,7 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-black pb-4"
+                        className="pb-4 text-black"
                         classNames={{
                           label: "text-black text-lg",
                         }}
@@ -512,7 +512,7 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-black pb-4"
+                        className="pb-4 text-black"
                         classNames={{
                           label: "text-black text-lg",
                         }}
@@ -532,10 +532,10 @@ const UserProfilePage = () => {
                   }}
                 />
                 <div className="pb-4">
-                  <label className="text-black block pb-2 text-lg">
+                  <label className="block pb-2 text-lg text-black">
                     Payment preference
                   </label>
-                  <div className="text-black border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium">
+                  <div className="border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium text-black">
                     {(() => {
                       const derived = derivePaymentPreference(
                         watch("lud16"),
@@ -548,7 +548,7 @@ const UserProfilePage = () => {
                           : "Cashu (Bitcoin)";
                     })()}
                   </div>
-                  <p className="text-black mt-2 text-sm font-medium opacity-70">
+                  <p className="mt-2 text-sm font-medium text-black opacity-70">
                     This is set automatically: Lightning when you have a
                     Lightning address, Cashu when no address is set, and Local
                     Currency (Fiat) when Bitcoin payments are turned off in your

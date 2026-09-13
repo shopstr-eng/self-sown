@@ -388,10 +388,10 @@ const Messages = ({
                 <div className="text-center">
                   {isClient && userPubkey ? (
                     <div className="space-y-6">
-                      <h2 className="text-white text-3xl font-semibold">
+                      <h2 className="text-3xl font-semibold text-white">
                         No messages... yet!
                       </h2>
-                      <div className="text-white mt-2 text-base">
+                      <div className="mt-2 text-base text-white">
                         <p>Just logged in?</p>
                         <p className="mt-1 font-medium">
                           Try reloading the page.
@@ -408,7 +408,7 @@ const Messages = ({
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <h2 className="text-white text-2xl font-bold">
+                      <h2 className="text-2xl font-bold text-white">
                         You must be signed in to see your chats!
                       </h2>
                       <div className="pt-4">

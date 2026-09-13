@@ -296,8 +296,8 @@ const ReceiveButton = () => {
               </ModalHeader>
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  The token you are trying to claim is already in your
-                  Self-sown wallet.
+                  The token you are trying to claim is already in your Self-sown
+                  wallet.
                 </div>
               </ModalBody>
             </ModalContent>

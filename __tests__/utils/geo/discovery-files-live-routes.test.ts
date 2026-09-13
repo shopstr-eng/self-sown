@@ -51,8 +51,7 @@ const DEAD_PATH_ALLOWLIST = new Set<string>([]);
 // paths: a leading slash after whitespace/quote/paren/backtick, one or more
 // segments of URL-path characters including route-template markers.
 const ABSOLUTE_URL_RE = /https?:\/\/[^\s"'<>)\]`]+/g;
-const ROOT_RELATIVE_RE =
-  /(?:^|[\s("'`])((?:\/[A-Za-z0-9._~{}\[\]<>-]+)+\/?)/g;
+const ROOT_RELATIVE_RE = /(?:^|[\s("'`])((?:\/[A-Za-z0-9._~{}\[\]<>-]+)+\/?)/g;
 
 // robots/agents directive values are crawl PREFIXES (Disallow: /api/), not
 // advertised endpoints — a prefix matching no route is not a dead link.
@@ -167,7 +166,9 @@ function findDeadPaths(
     seen.add(path);
     const resolution = resolveAdvertisedPath(path);
     if (!resolution.ok) {
-      problems.push(`${label}: dead advertised path ${path} (via "${via}") — ${resolution.detail}`);
+      problems.push(
+        `${label}: dead advertised path ${path} (via "${via}") — ${resolution.detail}`
+      );
     }
   }
   return problems;
@@ -179,11 +180,7 @@ describe("agent-discovery files advertise only live routes", () => {
   it("every same-origin path advertised in the real discovery files resolves to a real route", () => {
     const hosts = siteHosts();
     const problems = DISCOVERY_FILES.flatMap((file) =>
-      findDeadPaths(
-        file,
-        readFileSync(join(ROOT, file), "utf8"),
-        hosts
-      )
+      findDeadPaths(file, readFileSync(join(ROOT, file), "utf8"), hosts)
     );
     if (problems.length > 0) {
       throw new Error(
@@ -245,7 +242,9 @@ describe("agent-discovery files advertise only live routes", () => {
   });
 
   it("honors DEAD_PATH_ALLOWLIST for intentionally external-only paths", () => {
-    const resolution = resolveAdvertisedPath("/api/definitely-dead-endpoint-327");
+    const resolution = resolveAdvertisedPath(
+      "/api/definitely-dead-endpoint-327"
+    );
     expect(resolution.ok).toBe(false);
     DEAD_PATH_ALLOWLIST.add("/api/definitely-dead-endpoint-327");
     try {

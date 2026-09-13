@@ -157,7 +157,10 @@ describe("ensureProPrice dual-read", () => {
   it("reuses the legacy-keyed monthly Price when the rename never happened", async () => {
     mockPricesList.mockResolvedValue({
       data: [
-        { id: "price_legacy_monthly", lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly },
+        {
+          id: "price_legacy_monthly",
+          lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly,
+        },
       ],
     });
 
@@ -170,7 +173,10 @@ describe("ensureProPrice dual-read", () => {
   it("prefers the renamed Price when both old and new exist", async () => {
     mockPricesList.mockResolvedValue({
       data: [
-        { id: "price_legacy_monthly", lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly },
+        {
+          id: "price_legacy_monthly",
+          lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly,
+        },
         { id: "price_new_monthly", lookup_key: PRO_MONTHLY_LOOKUP_KEY },
       ],
     });
@@ -231,14 +237,19 @@ describe("ensureProPrice dual-read", () => {
 describe("ensureWranglerLifetimePrice dual-read", () => {
   it("reuses the renamed lifetime Price when only it exists (post-rename state)", async () => {
     mockPricesList.mockResolvedValue({
-      data: [{ id: "price_new_lifetime", lookup_key: WRANGLER_LIFETIME_LOOKUP_KEY }],
+      data: [
+        { id: "price_new_lifetime", lookup_key: WRANGLER_LIFETIME_LOOKUP_KEY },
+      ],
     });
 
     const priceId = await ensureWranglerLifetimePrice();
 
     expect(priceId).toBe("price_new_lifetime");
     expect(mockPricesList).toHaveBeenCalledWith({
-      lookup_keys: [WRANGLER_LIFETIME_LOOKUP_KEY, LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY],
+      lookup_keys: [
+        WRANGLER_LIFETIME_LOOKUP_KEY,
+        LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY,
+      ],
       active: true,
       limit: 2,
     });
@@ -428,7 +439,9 @@ describe("POST /api/pro/create-subscription — checkout with renamed keys", () 
 describe("POST /api/pro/create-lifetime — checkout with renamed keys", () => {
   it("charges the fixed $2,100 lifetime amount and reuses the renamed Price", async () => {
     mockPricesList.mockResolvedValue({
-      data: [{ id: "price_new_lifetime", lookup_key: WRANGLER_LIFETIME_LOOKUP_KEY }],
+      data: [
+        { id: "price_new_lifetime", lookup_key: WRANGLER_LIFETIME_LOOKUP_KEY },
+      ],
     });
 
     const res = makeRes();

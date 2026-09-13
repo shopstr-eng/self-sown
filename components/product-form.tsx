@@ -1092,7 +1092,7 @@ export default function ProductForm({
                       }}
                       title={label}
                     >
-                      <ChevronLeftIcon className="text-black h-6 w-6" />
+                      <ChevronLeftIcon className="h-6 w-6 text-black" />
                     </button>
                   )
                 }
@@ -1108,7 +1108,7 @@ export default function ProductForm({
                       }}
                       title={label}
                     >
-                      <ChevronRightIcon className="text-black h-6 w-6" />
+                      <ChevronRightIcon className="h-6 w-6 text-black" />
                     </button>
                   )
                 }

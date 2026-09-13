@@ -38,10 +38,10 @@ async function ensureTable(client: PoolClient): Promise<void> {
       updated_at BIGINT NOT NULL
     )
   `);
-  await client.query(
-    `CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_status
+    await client.query(
+      `CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_status
        ON stripe_pending_payments(status)`
-  );
+    );
     await client.query(
       `CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_payment_intent_id
        ON stripe_pending_payments(payment_intent_id)`

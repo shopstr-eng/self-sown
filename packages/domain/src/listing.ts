@@ -341,12 +341,7 @@ export function buildSellerListingTags(params: {
     ...preservedTags,
     ["d", params.dTag],
     ["alt", `Product listing: ${normalized.title}`],
-    [
-      "client",
-      "Self-sown",
-      `31990:${params.pubkey}:${params.dTag}`,
-      relayHint,
-    ],
+    ["client", "Self-sown", `31990:${params.pubkey}:${params.dTag}`, relayHint],
     ["title", normalized.title],
     ["summary", normalized.description],
     ["price", String(normalized.price), normalized.currency],

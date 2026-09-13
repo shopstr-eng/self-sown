@@ -8810,7 +8810,7 @@ export default function CartInvoiceCard({
                     {qrCodeUrl && (
                       <>
                         <PaymentCountdown deadlineMs={pollDeadlineMs} />
-                        <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -8855,13 +8855,13 @@ export default function CartInvoiceCard({
                     {stripeClientSecret && (
                       <div className="w-full">
                         {multiCardQueue && multiCardQueue.length > 1 && (
-                          <p className="text-black mb-1 text-center text-sm font-medium">
+                          <p className="mb-1 text-center text-sm font-medium text-black">
                             Seller {multiCardIndex + 1} of{" "}
                             {multiCardQueue.length} — each seller is charged
                             separately on their own account.
                           </p>
                         )}
-                        <h3 className="text-black mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 mb-4 text-center text-lg leading-6 font-medium text-black">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -8893,13 +8893,13 @@ export default function CartInvoiceCard({
                     {squareCheckout && (
                       <div className="w-full">
                         {multiCardQueue && multiCardQueue.length > 1 && (
-                          <p className="text-black mb-1 text-center text-sm font-medium">
+                          <p className="mb-1 text-center text-sm font-medium text-black">
                             Seller {multiCardIndex + 1} of{" "}
                             {multiCardQueue.length} — each seller is charged
                             separately on their own account.
                           </p>
                         )}
-                        <h3 className="text-black mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 mb-4 text-center text-lg leading-6 font-medium text-black">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -8943,7 +8943,7 @@ export default function CartInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
+                    <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                       Payment confirmed!
                     </h3>
                     <Image

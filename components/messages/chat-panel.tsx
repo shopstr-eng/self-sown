@@ -539,15 +539,17 @@ const ChatPanel = ({
             classNames={{
               body: "py-6 bg-primary-blue",
               backdrop: "bg-black/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
-              footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
+              header:
+                "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+              footer:
+                "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
               closeButton: "hover:bg-black/5 active:bg-white/10",
             }}
             scrollBehavior={"outside"}
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="text-white flex flex-col gap-1">
+              <ModalHeader className="flex flex-col gap-1 text-white">
                 Enter Shipping Details
               </ModalHeader>
               <form onSubmit={handleShippingSubmit(onShippingSubmit)}>
@@ -699,7 +701,7 @@ const ChatPanel = ({
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="text-white flex flex-col gap-1">
+                <ModalHeader className="flex flex-col gap-1 text-white">
                   Leave a Review
                 </ModalHeader>
                 <form onSubmit={handleReviewSubmit(onReviewSubmit)}>
@@ -787,9 +789,7 @@ const ChatPanel = ({
                             })
                           }
                         />
-                        <span className="text-white">
-                          Good Communication
-                        </span>
+                        <span className="text-white">Good Communication</span>
                       </label>
                     </div>
 
@@ -801,7 +801,7 @@ const ChatPanel = ({
                         <div>
                           <textarea
                             {...field}
-                            className="border-primary-blue bg-black text-white w-full rounded-md border-2 p-2"
+                            className="border-primary-blue w-full rounded-md border-2 bg-black p-2 text-white"
                             rows={4}
                             placeholder="Write your review comment here..."
                           />

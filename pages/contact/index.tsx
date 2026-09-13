@@ -65,8 +65,8 @@ export default function ContactPage() {
 
           <h1 className="mb-4 text-4xl font-black md:text-5xl">Contact Us</h1>
           <p className="mb-12 text-lg text-zinc-600">
-            Have questions about Self-sown? We&apos;re here to help farmers
-            and buyers connect with confidence.
+            Have questions about Self-sown? We&apos;re here to help farmers and
+            buyers connect with confidence.
           </p>
 
           <div className="grid gap-8 md:grid-cols-2">

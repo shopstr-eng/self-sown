@@ -46,7 +46,8 @@ function enumerateCandidateFiles(): string[] {
 describe("every agent-facing file under public/ is covered by the discovery guards", () => {
   it("each text/markdown/JSON file is in DISCOVERY_FILES or explicitly allowlisted", () => {
     const uncovered = enumerateCandidateFiles().filter(
-      (file) => !DISCOVERY_FILES.includes(file) && !NOT_DISCOVERY_FILES.has(file)
+      (file) =>
+        !DISCOVERY_FILES.includes(file) && !NOT_DISCOVERY_FILES.has(file)
     );
 
     if (uncovered.length > 0) {

@@ -57,9 +57,8 @@ describe("OAuth token exchange redirect_uri pinning", () => {
   });
 
   it("Square falls back to the current base URL when nothing was pinned (legacy state row)", async () => {
-    const { getSquareRedirectUri } = await import(
-      "@/utils/square/square-config"
-    );
+    const { getSquareRedirectUri } =
+      await import("@/utils/square/square-config");
     await exchangeSquareCodeForToken("code123");
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(init.body as string);
@@ -79,9 +78,8 @@ describe("OAuth token exchange redirect_uri pinning", () => {
   });
 
   it("Shippo falls back to the current base URL when nothing was pinned (legacy state row)", async () => {
-    const { getShippoRedirectUri } = await import(
-      "@/utils/shipping/shippo-oauth"
-    );
+    const { getShippoRedirectUri } =
+      await import("@/utils/shipping/shippo-oauth");
     await exchangeShippoCodeForToken("code123");
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit;
     const params = new URLSearchParams(init.body as string);
