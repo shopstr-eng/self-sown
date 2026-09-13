@@ -184,15 +184,15 @@ const UserProfilePage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="bg-light-bg dark:bg-dark-bg flex min-h-screen flex-col pt-24 md:pb-20">
+      <div className="bg-white dark:bg-black flex min-h-screen flex-col pt-24 md:pb-20">
         <div className="mx-auto h-full w-full px-4 lg:w-1/2">
           <SettingsBreadCrumbs />
           {isFetchingProfile ? (
             <SelfSownSpinner />
           ) : (
             <>
-              <div className="bg-light-fg dark:bg-dark-fg mb-20 h-40 rounded-lg">
-                <div className="bg-accent-light-text dark:bg-dark-fg relative flex h-40 items-center justify-center rounded-lg">
+              <div className="bg-white dark:bg-primary-blue mb-20 h-40 rounded-lg">
+                <div className="bg-primary-yellow dark:bg-primary-blue relative flex h-40 items-center justify-center rounded-lg">
                   {watchBanner && (
                     <Image
                       alt={"User banner image"}
@@ -201,7 +201,7 @@ const UserProfilePage = () => {
                     />
                   )}
                   <FileUploaderButton
-                    className={`bg-accent-light-text absolute right-5 bottom-5 z-20 border-2 border-white shadow-md ${PRIMARYBUTTONCLASSNAMES}`}
+                    className={`bg-primary-yellow absolute right-5 bottom-5 z-20 border-2 border-white shadow-md ${PRIMARYBUTTONCLASSNAMES}`}
                     imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
                   >
                     Upload Banner
@@ -230,7 +230,7 @@ const UserProfilePage = () => {
               </div>
 
               <div
-                className="border-light-fg dark:border-dark-fg mx-auto mb-2 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2 hover:opacity-60"
+                className="border-black dark:border-primary-blue mx-auto mb-2 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2 hover:opacity-60"
                 onClick={() => {
                   if (userNPub) navigator.clipboard.writeText(userNPub);
                   setIsNPubCopied(true);
@@ -240,7 +240,7 @@ const UserProfilePage = () => {
                 }}
               >
                 <span
-                  className="lg:text-md text-light-text dark:text-dark-text pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
+                  className="lg:text-md text-black dark:text-white pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
                   suppressHydrationWarning
                 >
                   {userNPub}
@@ -263,9 +263,9 @@ const UserProfilePage = () => {
               </div>
 
               {userNSec ? (
-                <div className="border-light-fg dark:border-dark-fg mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2">
+                <div className="border-black dark:border-primary-blue mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2">
                   <span
-                    className="lg:text-md text-light-text dark:text-dark-text pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
+                    className="lg:text-md text-black dark:text-white pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
                     suppressHydrationWarning
                   >
                     {viewState === "shown"
@@ -348,9 +348,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="text-black dark:text-white pb-4"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black dark:text-white text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -381,9 +381,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="text-black dark:text-white pb-4"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black dark:text-white text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -414,9 +414,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Textarea
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="text-black dark:text-white pb-4"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black dark:text-white text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -447,9 +447,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="text-black dark:text-white pb-4"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black dark:text-white text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -479,9 +479,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="text-black dark:text-white pb-4"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black dark:text-white text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -512,9 +512,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="text-black dark:text-white pb-4"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black dark:text-white text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -532,10 +532,10 @@ const UserProfilePage = () => {
                   }}
                 />
                 <div className="pb-4">
-                  <label className="text-light-text dark:text-dark-text block pb-2 text-lg">
+                  <label className="text-black dark:text-white block pb-2 text-lg">
                     Payment preference
                   </label>
-                  <div className="text-light-text dark:text-dark-text border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium">
+                  <div className="text-black dark:text-white border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium">
                     {(() => {
                       const derived = derivePaymentPreference(
                         watch("lud16"),
@@ -548,7 +548,7 @@ const UserProfilePage = () => {
                           : "Cashu (Bitcoin)";
                     })()}
                   </div>
-                  <p className="text-light-text dark:text-dark-text mt-2 text-sm font-medium opacity-70">
+                  <p className="text-black dark:text-white mt-2 text-sm font-medium opacity-70">
                     This is set automatically: Lightning when you have a
                     Lightning address, Cashu when no address is set, and Local
                     Currency (Fiat) when Bitcoin payments are turned off in your

@@ -1007,10 +1007,10 @@ export default function ProductForm({
         isOpen={showModal}
         onClose={handleModalToggle}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-dark-modal/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-dark-modal bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-dark-modal bg-dark-fg rounded-b-lg",
+          body: "py-6 bg-primary-blue",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+          footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
           closeButton: "hover:bg-black/5 active:bg-white/10",
         }}
         scrollBehavior={"outside"}
@@ -1092,7 +1092,7 @@ export default function ProductForm({
                       }}
                       title={label}
                     >
-                      <ChevronLeftIcon className="text-dark-text h-6 w-6" />
+                      <ChevronLeftIcon className="text-black h-6 w-6" />
                     </button>
                   )
                 }
@@ -1108,7 +1108,7 @@ export default function ProductForm({
                       }}
                       title={label}
                     >
-                      <ChevronRightIcon className="text-dark-text h-6 w-6" />
+                      <ChevronRightIcon className="text-black h-6 w-6" />
                     </button>
                   )
                 }

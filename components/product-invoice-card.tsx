@@ -5730,7 +5730,7 @@ export default function ProductInvoiceCard({
                 <Input
                   variant="bordered"
                   fullWidth={true}
-                  label={<span className="text-light-text">Name</span>}
+                  label={<span className="text-black">Name</span>}
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
@@ -5762,7 +5762,7 @@ export default function ProductInvoiceCard({
                 <Input
                   variant="bordered"
                   fullWidth={true}
-                  label={<span className="text-light-text">Address</span>}
+                  label={<span className="text-black">Address</span>}
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
@@ -5825,7 +5825,7 @@ export default function ProductInvoiceCard({
                   <Input
                     variant="bordered"
                     fullWidth={true}
-                    label={<span className="text-light-text">City</span>}
+                    label={<span className="text-black">City</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -5853,7 +5853,7 @@ export default function ProductInvoiceCard({
                     variant="bordered"
                     fullWidth={true}
                     label={
-                      <span className="text-light-text">State/Province</span>
+                      <span className="text-black">State/Province</span>
                     }
                     labelPlacement="inside"
                     isInvalid={!!error}
@@ -5889,7 +5889,7 @@ export default function ProductInvoiceCard({
                   <Input
                     variant="bordered"
                     fullWidth={true}
-                    label={<span className="text-light-text">Postal code</span>}
+                    label={<span className="text-black">Postal code</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -5916,7 +5916,7 @@ export default function ProductInvoiceCard({
                   <CountryDropdown
                     variant="bordered"
                     aria-label="Select Country"
-                    label={<span className="text-light-text">Country</span>}
+                    label={<span className="text-black">Country</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -6026,7 +6026,7 @@ export default function ProductInvoiceCard({
                 <Input
                   variant="bordered"
                   fullWidth={true}
-                  label={<span className="text-light-text">Address Label</span>}
+                  label={<span className="text-black">Address Label</span>}
                   placeholder="e.g. Home, Office"
                   labelPlacement="inside"
                   isRequired={true}
@@ -6054,7 +6054,7 @@ export default function ProductInvoiceCard({
                 variant="bordered"
                 fullWidth={true}
                 label={
-                  <span className="text-light-text">
+                  <span className="text-black">
                     Enter {productData.required}
                   </span>
                 }
@@ -6364,7 +6364,7 @@ export default function ProductInvoiceCard({
                     {qrCodeUrl && (
                       <>
                         <PaymentCountdown deadlineMs={pollDeadlineMs} />
-                        <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                        <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -6408,7 +6408,7 @@ export default function ProductInvoiceCard({
                     )}
                     {stripeClientSecret && (
                       <div className="w-full">
-                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="text-black mt-3 mb-4 text-center text-lg leading-6 font-medium">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -6438,7 +6438,7 @@ export default function ProductInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                    <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -6742,7 +6742,7 @@ export default function ProductInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">Email Address</span>
+                        <span className="text-black">Email Address</span>
                       }
                       labelPlacement="inside"
                       type="email"
@@ -6788,7 +6788,7 @@ export default function ProductInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">
+                        <span className="text-black">
                           {isSubscription
                             ? "Email for Subscription Management (required)"
                             : "Email for Order Updates (optional)"}
@@ -7319,7 +7319,7 @@ export default function ProductInvoiceCard({
         isKeyboardDismissDisabled
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           wrapper: "items-center justify-center",
           base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",

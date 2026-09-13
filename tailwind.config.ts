@@ -22,15 +22,6 @@ const config: Config = {
         "primary-blue": "#1E293B",
         black: "#000000",
         white: "#FFFFFF",
-        "dark-bg": "#212121",
-        "dark-fg": "#4d4c4e",
-        "dark-modal": "#292f46",
-        "light-bg": "#e8e8e8",
-        "light-fg": "#f5f5f5",
-        "dark-text": "#e8e8e8",
-        "accent-dark-text": "#fef08a",
-        "light-text": "#212121",
-        "accent-light-text": "#a438ba",
       },
       // Define the hard-edged shadow for buttons and cards
       boxShadow: {

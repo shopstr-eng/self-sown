@@ -41,7 +41,7 @@ export function PaymentCountdown({
     <div
       className={
         className ??
-        "text-dark-text mt-2 text-center text-sm font-medium tabular-nums"
+        "text-black mt-2 text-center text-sm font-medium tabular-nums"
       }
       aria-live="polite"
     >
@@ -78,7 +78,7 @@ export function PaymentElapsed({
     <div
       className={
         className ??
-        "text-dark-text mt-2 text-center text-sm font-medium tabular-nums"
+        "text-black mt-2 text-center text-sm font-medium tabular-nums"
       }
       aria-live="polite"
     >

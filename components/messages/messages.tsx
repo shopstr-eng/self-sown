@@ -384,14 +384,14 @@ const Messages = ({
                 <SelfSownSpinner />
               </div>
             ) : (
-              <div className="bg-dark-fg shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">
+              <div className="bg-primary-blue shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">
                 <div className="text-center">
                   {isClient && userPubkey ? (
                     <div className="space-y-6">
-                      <h2 className="text-dark-text text-3xl font-semibold">
+                      <h2 className="text-white text-3xl font-semibold">
                         No messages... yet!
                       </h2>
-                      <div className="text-dark-text mt-2 text-base">
+                      <div className="text-white mt-2 text-base">
                         <p>Just logged in?</p>
                         <p className="mt-1 font-medium">
                           Try reloading the page.
@@ -408,7 +408,7 @@ const Messages = ({
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <h2 className="text-dark-text text-2xl font-bold">
+                      <h2 className="text-white text-2xl font-bold">
                         You must be signed in to see your chats!
                       </h2>
                       <div className="pt-4">

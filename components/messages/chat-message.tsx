@@ -587,7 +587,7 @@ const ChatMessage = ({
             <Button
               size="sm"
               className={`mt-2 w-full ${
-                isSignedAgreement ? "text-dark-text" : "text-light-text"
+                isSignedAgreement ? "text-white" : "text-black"
               }`}
               color={
                 isSignedAgreement
@@ -755,10 +755,10 @@ const ChatMessage = ({
           size="5xl"
           scrollBehavior="inside"
           classNames={{
-            body: "py-6 bg-dark-fg",
-            backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-            header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-            footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+            body: "py-6 bg-primary-blue",
+            backdrop: "bg-black/50 backdrop-opacity-60",
+            header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+            footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
             closeButton: "hover:bg-black/5 active:bg-white/10",
           }}
           className="max-h-[90vh]"

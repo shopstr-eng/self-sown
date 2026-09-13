@@ -35,7 +35,7 @@ export const SettingsBreadCrumbs = () => {
       >
         {path.map((p, i) => {
           const itemClassName =
-            "ml-2 text-light-text text-2xl font-bold whitespace-normal break-words" +
+            "ml-2 text-black text-2xl font-bold whitespace-normal break-words" +
             (i !== path.length - 1 ? " opacity-50 hover:opacity-100" : "");
           return (
             <BreadcrumbItem
@@ -46,7 +46,7 @@ export const SettingsBreadCrumbs = () => {
               classNames={{
                 base: "min-w-0",
                 item: itemClassName,
-                separator: "text-dark-bg text-2xl",
+                separator: "text-black text-2xl",
               }}
             >
               {pathMap[p]}

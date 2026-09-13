@@ -148,7 +148,7 @@ const ReceiveButton = () => {
           onClose={handleToggleReceiveModal}
           classNames={{
             body: "py-6 bg-white",
-            backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+            backdrop: "bg-black/50 backdrop-opacity-60",
             header: "border-b-4 border-black bg-white rounded-t-md",
             footer: "border-t-4 border-black bg-white rounded-b-md",
             closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -243,7 +243,7 @@ const ReceiveButton = () => {
             onClose={() => setIsClaimed(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -277,7 +277,7 @@ const ReceiveButton = () => {
             onClose={() => setIsDuplicateToken(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -312,7 +312,7 @@ const ReceiveButton = () => {
             onClose={() => setIsInvalidToken(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -346,7 +346,7 @@ const ReceiveButton = () => {
             onClose={() => setIsSpent(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",

@@ -353,7 +353,7 @@ const MintButton = () => {
         onClose={handleToggleMintModal}
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           footer: "border-t-4 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",

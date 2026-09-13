@@ -8810,7 +8810,7 @@ export default function CartInvoiceCard({
                     {qrCodeUrl && (
                       <>
                         <PaymentCountdown deadlineMs={pollDeadlineMs} />
-                        <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                        <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -8855,13 +8855,13 @@ export default function CartInvoiceCard({
                     {stripeClientSecret && (
                       <div className="w-full">
                         {multiCardQueue && multiCardQueue.length > 1 && (
-                          <p className="text-dark-text mb-1 text-center text-sm font-medium">
+                          <p className="text-black mb-1 text-center text-sm font-medium">
                             Seller {multiCardIndex + 1} of{" "}
                             {multiCardQueue.length} — each seller is charged
                             separately on their own account.
                           </p>
                         )}
-                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="text-black mt-3 mb-4 text-center text-lg leading-6 font-medium">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -8893,13 +8893,13 @@ export default function CartInvoiceCard({
                     {squareCheckout && (
                       <div className="w-full">
                         {multiCardQueue && multiCardQueue.length > 1 && (
-                          <p className="text-dark-text mb-1 text-center text-sm font-medium">
+                          <p className="text-black mb-1 text-center text-sm font-medium">
                             Seller {multiCardIndex + 1} of{" "}
                             {multiCardQueue.length} — each seller is charged
                             separately on their own account.
                           </p>
                         )}
-                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="text-black mt-3 mb-4 text-center text-lg leading-6 font-medium">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -8943,7 +8943,7 @@ export default function CartInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                    <h3 className="text-black mt-3 text-center text-lg leading-6 font-medium">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -9533,7 +9533,7 @@ export default function CartInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">
+                        <span className="text-black">
                           Email for Order Updates
                         </span>
                       }
@@ -9575,7 +9575,7 @@ export default function CartInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">
+                        <span className="text-black">
                           Email for Order Updates (optional)
                         </span>
                       }
@@ -10339,7 +10339,7 @@ export default function CartInvoiceCard({
         isKeyboardDismissDisabled
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           wrapper: "items-center justify-center",
           base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",

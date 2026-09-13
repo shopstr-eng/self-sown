@@ -101,7 +101,7 @@ export default function RecoveryKeyModal({
               Save Your Recovery Key
             </h2>
 
-            <p className="text-light-text text-center text-sm opacity-70">
+            <p className="text-black text-center text-sm opacity-70">
               This key is the <strong>only way</strong> to recover your account
               if you forget your password or passphrase. Save it somewhere safe;
               it will not be shown again.
