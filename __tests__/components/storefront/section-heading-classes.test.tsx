@@ -24,6 +24,8 @@ import SectionProductShippingReturns from "@/components/storefront/sections/sect
 import SectionProductGallery from "@/components/storefront/sections/section-product-gallery";
 import SectionProductSpecifications from "@/components/storefront/sections/section-product-specifications";
 import SectionRelatedProducts from "@/components/storefront/sections/section-related-products";
+import SectionBlog from "@/components/storefront/sections/section-blog";
+import SectionProducts from "@/components/storefront/sections/section-products";
 
 // The grid pulls in ProductCard (cart/wallet contexts); the heading under test
 // is rendered before it, so stub the grid out.
@@ -236,6 +238,107 @@ describe("section-product-description body class list", () => {
     expect(tokens).toContain("text-xl"); // bodySize "lg"
     expect(tokens).not.toContain("md:text-lg");
   });
+});
+
+// Same bug class on the subheading pattern shared by section-blog and
+// section-products: `opacity-70 ${section.bodySize ? "" : "sm:text-lg"}` —
+// moving the space outside the branch would glue `opacity-70sm:text-lg`
+// (or leave a dangling size). Assert on the tokenized class list.
+describe("section subheading class lists (opacity-70 + sm:text-lg)", () => {
+  const blogPostEvent = {
+    id: "e".repeat(64),
+    pubkey: "a".repeat(64),
+    kind: 30023,
+    created_at: 1700000000,
+    content: "Post body",
+    tags: [
+      ["d", "first-post"],
+      ["title", "First Post"],
+      ["published_at", "1700000000"],
+    ],
+    sig: "f".repeat(128),
+  };
+
+  const subheadingCases: Array<{
+    name: string;
+    sectionType: StorefrontSection["type"];
+    renderSubheading: (section: StorefrontSection) => Promise<HTMLElement>;
+  }> = [
+    {
+      name: "section-blog",
+      sectionType: "blog",
+      renderSubheading: async (section) => {
+        // jsdom has no global fetch, so assign rather than spyOn.
+        (global as { fetch?: unknown }).fetch = jest
+          .fn()
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => [blogPostEvent],
+          });
+        render(
+          <SectionBlog
+            section={section}
+            colors={colors}
+            shopPubkey={"a".repeat(64)}
+            shopSlug="goat-co"
+          />
+        );
+        // The subheading only renders once the posts fetch resolves.
+        return screen.findByText(section.subheading!);
+      },
+    },
+    {
+      name: "section-products",
+      sectionType: "products",
+      renderSubheading: async (section) => {
+        render(
+          <SectionProducts
+            section={section}
+            colors={colors}
+            products={[product]}
+          />
+        );
+        return screen.getByText(section.subheading!);
+      },
+    },
+  ];
+
+  afterEach(() => {
+    delete (global as { fetch?: unknown }).fetch;
+  });
+
+  for (const { name, sectionType, renderSubheading } of subheadingCases) {
+    describe(name, () => {
+      it("keeps opacity-70 and sm:text-lg as separate tokens when bodySize is unset", async () => {
+        const subheading = await renderSubheading({
+          id: "s1",
+          type: sectionType,
+          subheading: "Read our latest updates",
+        });
+        const tokens = classTokens(subheading);
+        expect(tokens).toContain("opacity-70");
+        expect(tokens).toContain("sm:text-lg");
+        expect(tokens).toContain("text-base"); // legacy base size
+        for (const token of tokens) {
+          expect(token.startsWith("opacity-70")).toBe(token === "opacity-70");
+        }
+      });
+
+      it("drops the legacy responsive size entirely when bodySize is set", async () => {
+        const subheading = await renderSubheading({
+          id: "s1",
+          type: sectionType,
+          subheading: "Read our latest updates",
+          bodySize: "lg",
+        });
+        const tokens = classTokens(subheading);
+        expect(tokens).toContain("opacity-70");
+        expect(tokens).toContain("text-xl"); // bodySize "lg"
+        expect(tokens).not.toContain("sm:text-lg");
+        expect(tokens).not.toContain("text-base"); // legacy base overridden
+      });
+    });
+  }
 });
 
 describe("storefront section heading class lists", () => {
