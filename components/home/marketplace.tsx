@@ -52,6 +52,7 @@ import {
 } from "@/utils/url-slugs";
 import { useDebounce } from "@/utils/hooks/useDebounce";
 import SellerFollowButton from "../utility-components/seller-follow-button";
+import { joinClassNames } from "@/utils/class-names";
 
 export function normalizeNpub(
   npub: string | string[] | undefined
@@ -359,11 +360,12 @@ function MarketplacePage({
                               return (
                                 <Chip
                                   key={index}
-                                  className={`text-white ${
+                                  className={joinClassNames(
+                                    "text-white",
                                     value === "1"
                                       ? "bg-green-500"
                                       : "bg-red-500"
-                                  }`}
+                                  )}
                                 >
                                   {`overall: ${value === "1" ? "👍" : "👎"}`}
                                 </Chip>
@@ -372,11 +374,12 @@ function MarketplacePage({
                               return (
                                 <Chip
                                   key={index}
-                                  className={`text-white ${
+                                  className={joinClassNames(
+                                    "text-white",
                                     value === "1"
                                       ? "bg-green-500"
                                       : "bg-red-500"
-                                  }`}
+                                  )}
                                 >
                                   {`${category}: ${
                                     value === "1" ? "👍" : "👎"
@@ -653,11 +656,12 @@ function MarketplacePage({
                 {loggedIn && !followsContext.isLoading ? (
                   <Button
                     aria-pressed={followingFilter}
-                    className={`shadow-neo border-2 border-black font-bold ${
+                    className={joinClassNames(
+                      "shadow-neo border-2 border-black font-bold",
                       followingFilter
                         ? "bg-primary-yellow text-black"
                         : "bg-white text-black"
-                    }`}
+                    )}
                     onPress={() => setFollowingFilter((active) => !active)}
                   >
                     Following

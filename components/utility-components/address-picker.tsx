@@ -15,6 +15,7 @@ import {
   setDefaultAddress,
 } from "@/utils/nostr/nostr-helper-functions";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 interface AddressPickerProps {
   onSelect: (addr: SavedAddress) => void;
@@ -271,11 +272,12 @@ export default function AddressPicker({
       {addresses.map((addr) => (
         <Card
           key={addr.id}
-          className={`border-2 ${
+          className={joinClassNames(
+            "border-2",
             selectedId === addr.id
               ? "bg-primary-yellow/20 border-black"
               : "border-black"
-          }`}
+          )}
         >
           <CardBody className="p-3">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -329,11 +331,12 @@ export default function AddressPicker({
             onPress={
               selectable ? () => handleSelectionChange(addr.id) : undefined
             }
-            className={`border-2 ${
+            className={joinClassNames(
+              "border-2",
               selectable && selectedId === addr.id
                 ? "bg-primary-yellow/20 border-black"
                 : "border-black"
-            }`}
+            )}
           >
             <CardBody className="p-3">
               <div className="flex items-start justify-between">
@@ -375,7 +378,10 @@ export default function AddressPicker({
                 </div>
               </div>
               <div
-                className={`${selectable ? "pl-8" : ""} text-sm text-gray-600`}
+                className={joinClassNames(
+                  selectable ? "pl-8" : "",
+                  "text-sm text-gray-600"
+                )}
               >
                 {renderAddressDetails(addr)}
               </div>
@@ -438,9 +444,10 @@ export default function AddressPicker({
           <span>Use a saved address</span>
         </span>
         <span
-          className={`text-black transition-transform ${
+          className={joinClassNames(
+            "text-black transition-transform",
             isExpanded ? "rotate-90" : ""
-          }`}
+          )}
         >
           ›
         </span>

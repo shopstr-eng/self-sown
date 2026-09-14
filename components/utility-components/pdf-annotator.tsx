@@ -6,6 +6,7 @@ import {
   PRIMARYBUTTONCLASSNAMES,
   DANGERBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 interface Annotation {
   id: string;
@@ -521,9 +522,10 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
           {/* PDF Canvas */}
           <canvas
             ref={canvasRef}
-            className={`shadow-neo block bg-white ${
+            className={joinClassNames(
+              "shadow-neo block bg-white",
               currentTool === "signature" ? "cursor-crosshair" : ""
-            }`}
+            )}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -537,11 +539,12 @@ export const PDFAnnotator: React.FC<PDFAnnotatorProps> = ({
           {/* Text Annotations Overlay */}
           <div
             ref={overlayRef}
-            className={`absolute top-4 left-4 ${
+            className={joinClassNames(
+              "absolute top-4 left-4",
               currentTool === "text"
                 ? "cursor-crosshair"
                 : "pointer-events-none"
-            }`}
+            )}
             onClick={handleOverlayClick}
             style={{
               pointerEvents: currentTool === "text" ? "auto" : "none",

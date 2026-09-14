@@ -15,6 +15,7 @@ import LinkPreview from "./link-preview";
 import { NostrMessageEvent } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
 import { copyToClipboard } from "@/utils/clipboard";
+import { joinClassNames } from "@/utils/class-names";
 import { getDecodedToken } from "@cashu/cashu-ts";
 import {
   NostrContext,
@@ -586,9 +587,10 @@ const ChatMessage = ({
 
             <Button
               size="sm"
-              className={`mt-2 w-full ${
+              className={joinClassNames(
+                "mt-2 w-full",
                 isSignedAgreement ? "text-white" : "text-black"
-              }`}
+              )}
               color={
                 isSignedAgreement
                   ? "success"
@@ -666,18 +668,20 @@ const ChatMessage = ({
     <>
       <div
         key={index}
-        className={`my-2 flex ${
+        className={joinClassNames(
+          "my-2 flex",
           isUserMessage
             ? "justify-end"
             : messageEvent.pubkey === currentChatPubkey
               ? "justify-start"
               : ""
-        }`}
+        )}
       >
         <div
-          className={`shadow-neo flex max-w-[90%] flex-col rounded-md border-2 border-black px-4 py-3 ${
+          className={joinClassNames(
+            "shadow-neo flex max-w-[90%] flex-col rounded-md border-2 border-black px-4 py-3",
             isUserMessage ? "bg-primary-blue text-white" : "bg-white text-black"
-          }`}
+          )}
         >
           <div className="flex flex-col overflow-x-hidden break-words">
             {cashuPrefix && canDecodeToken && tokenAfterCashuVersion ? (
@@ -729,9 +733,10 @@ const ChatMessage = ({
         </div>
         <div className="m-1"></div>
         <span
-          className={`text-xs opacity-60 ${
+          className={joinClassNames(
+            "text-xs opacity-60",
             isUserMessage ? "text-right" : "text-left"
-          }`}
+          )}
         >
           {timeSinceMessageDisplayText(messageEvent.created_at).dateTime}
         </span>

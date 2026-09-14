@@ -79,16 +79,20 @@
 // stays sections-scoped: those fields only exist on sections.)
 //
 // The bug class is not storefront-specific, so the three generic scans below
-// also cover a scoped list of the next-riskiest NON-storefront surfaces
-// (SCOPED_NON_STOREFRONT_FILES): the checkout/invoice cards and the seller
-// dashboard components, where the same dropped space would silently strip
-// styling from payment buttons, form borders, and order-status badges. Those
-// files compose conditional classes through the same joinClassNames helper,
-// now shared from utils/class-names.ts (re-exported by section-elements.tsx),
-// and their few legitimate non-class template/concat conditionals (buyer and
-// seller message bodies, shipping-address fallbacks, spec-descriptor text,
-// emoji labels) are named in the same NON_CLASS_TEMPLATE_ALLOWLIST /
-// NON_CLASS_CONCAT_ALLOWLIST lists with the same unused-entry contract.
+// also cover the next-riskiest NON-storefront surfaces
+// (SCOPED_NON_STOREFRONT_FILES + SCOPED_NON_STOREFRONT_DIRS): the
+// checkout/invoice cards, the whole chat UI and seller dashboards
+// (components/messages), the landing page (components/home), and every shared
+// utility component (components/utility-components, walked recursively), where
+// the same dropped space would silently strip styling from payment buttons,
+// chat bubbles, form borders, and order-status badges. Those files compose
+// conditional classes through the same joinClassNames helper, now shared from
+// utils/class-names.ts (re-exported by section-elements.tsx), and their few
+// legitimate non-class template/concat conditionals (buyer and seller message
+// bodies, shipping-address fallbacks, spec-descriptor text, emoji labels,
+// numeric style-value fallbacks) are named in the same
+// NON_CLASS_TEMPLATE_ALLOWLIST / NON_CLASS_CONCAT_ALLOWLIST lists with the
+// same unused-entry contract.
 
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative } from "path";
@@ -105,19 +109,26 @@ const STOREFRONT_DIR = join(process.cwd(), "components", "storefront");
 
 // Next-riskiest NON-storefront surfaces held to the same three generic scans
 // (className templates, whole-file templates, '+' concatenation): the
-// checkout/invoice cards a buyer pays through and the seller dashboard
-// components. Their legitimate non-class conditionals are allowlisted below;
+// checkout/invoice cards a buyer pays through, the chat UI and seller
+// dashboard components, the landing page, and every shared utility
+// component. Their legitimate non-class conditionals are allowlisted below;
 // everything class-feeding composes through joinClassNames from
 // utils/class-names.ts. Paths are workspace-relative; the coverage test at
 // the bottom fails loudly if one is renamed or dropped from the scan.
 const SCOPED_NON_STOREFRONT_FILES = [
   "components/product-invoice-card.tsx",
   "components/cart-invoice-card.tsx",
-  "components/utility-components/checkout-card.tsx",
-  "components/messages/orders-dashboard.tsx",
-  "components/messages/contacts-dashboard.tsx",
-  "components/messages/email-stats-dashboard.tsx",
-  "components/messages/subscription-management.tsx",
+];
+
+// Whole directories held to the same three generic scans, walked recursively
+// (skipping __tests__ — test fixtures are not shipped UI) so a NEW component
+// file is covered automatically: the chat UI, the landing page, and the
+// shared utility components (checkout card, address picker, file uploader,
+// pricing cards, …).
+const SCOPED_NON_STOREFRONT_DIRS = [
+  "components/messages",
+  "components/home",
+  "components/utility-components",
 ];
 
 // The shared builders legitimately branch on headingSize/bodySize. The
@@ -708,6 +719,42 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: "order.donationPercentage !== undefined ? `",
     reason: "donation-percentage suffix in order display text",
   },
+  // Error-message fallback in chat display text (components/messages).
+  {
+    file: "components/messages/chat-message.tsx",
+    snippet: 'lastError instanceof Error ? lastError.message : "Unknown error"',
+    reason: "error-message fallback in chat display text",
+  },
+  // Review emoji rendered as Chip text on the landing marketplace, never a
+  // class (matches both the overall and per-category Chips).
+  {
+    file: "components/home/marketplace.tsx",
+    snippet: 'value === "1" ? "👍" : "👎"',
+    reason: "thumbs-up/down emoji in Chip label text",
+  },
+  // Savings-percentage suffix in bulk-selector display text.
+  {
+    file: "components/utility-components/bulk-selector.tsx",
+    snippet: "savings > 0 ? `",
+    reason: "savings-percentage suffix in bulk-discount display text",
+  },
+  // Numeric canvas style-value fallbacks in the PDF annotator, never class
+  // tokens.
+  {
+    file: "components/utility-components/pdf-annotator.tsx",
+    snippet: "annotation.width || 200",
+    reason: "annotation width fallback in canvas style value",
+  },
+  {
+    file: "components/utility-components/pdf-annotator.tsx",
+    snippet: "annotation.height || 30",
+    reason: "annotation height fallback in canvas style value",
+  },
+  {
+    file: "components/utility-components/pdf-annotator.tsx",
+    snippet: "annotation.fontSize || 14",
+    reason: "annotation font-size fallback in canvas style value",
+  },
 ];
 
 // Legitimate non-class '+' concatenations with a string-literal conditional
@@ -818,6 +865,17 @@ const NON_CLASS_CONCAT_ALLOWLIST: Array<{
     snippet: "+ (addressChangeOrder.subscriptionId ?",
     reason: "address-change-request message text",
   },
+  // Buyer-facing order-completion messages in the chat panel.
+  {
+    file: "components/messages/chat-panel.tsx",
+    snippet: '"Your order from " + userNPub + " has been completed."',
+    reason: "buyer order-completion message text",
+  },
+  {
+    file: "components/messages/chat-panel.tsx",
+    snippet: '"Your order has been marked as completed." + (shippingInfo?.tracking',
+    reason: "buyer order-completion message text",
+  },
 ];
 
 // Legitimate non-class array-join/String.concat assemblies the join/concat
@@ -846,6 +904,21 @@ function collectSectionSources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+// Scoped non-storefront directories are walked recursively so a newly added
+// component is scanned automatically. __tests__ directories are skipped —
+// test fixtures are not shipped UI.
+function collectScopedDirSources(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      if (entry !== "__tests__") collectScopedDirSources(full, out);
+      continue;
+    }
+    if (entry.endsWith(".tsx")) out.push(full);
+  }
+  return out;
+}
+
 // Top-level storefront chrome components (footer, layout, email popup, theme
 // wrapper, previews, …) get ONLY the generic className-template scan — the
 // legacy headingSize/bodySize check is sections-specific. Subdirectories
@@ -861,9 +934,12 @@ function collectStorefrontChromeSources(dir: string): string[] {
 describe("storefront section class-builder guard", () => {
   const scannedFiles = collectSectionSources(SECTIONS_DIR);
   const scannedChromeFiles = collectStorefrontChromeSources(STOREFRONT_DIR);
-  const scannedScopedFiles = SCOPED_NON_STOREFRONT_FILES.map((p) =>
-    join(process.cwd(), p)
-  );
+  const scannedScopedFiles = [
+    ...SCOPED_NON_STOREFRONT_FILES.map((p) => join(process.cwd(), p)),
+    ...SCOPED_NON_STOREFRONT_DIRS.flatMap((rel) =>
+      collectScopedDirSources(join(process.cwd(), rel))
+    ),
+  ];
   // Files held to the three generic scans (className templates, whole-file
   // templates, '+' concatenation): sections, storefront chrome, and the
   // scoped non-storefront surfaces.
@@ -1058,6 +1134,24 @@ describe("storefront section class-builder guard", () => {
       expect(statSync(abs).isFile()).toBe(true);
       expect(genericScanFiles).toContain(abs);
     }
+    // Same loud-failure contract for the scoped directories: a renamed
+    // directory, a broken walk, or an empty scan must fail rather than
+    // silently cover nothing.
+    for (const rel of SCOPED_NON_STOREFRONT_DIRS) {
+      expect(statSync(join(process.cwd(), rel)).isDirectory()).toBe(true);
+    }
+    // Representative files pinned per directory (top-level and nested) so a
+    // subtly broken walk fails loudly.
+    for (const expected of [
+      "components/messages/chat-panel.tsx",
+      "components/messages/orders-dashboard.tsx",
+      "components/home/marketplace.tsx",
+      "components/utility-components/checkout-card.tsx",
+      "components/utility-components/profile/profile-dropdown.tsx",
+    ]) {
+      expect(genericScanFiles).toContain(join(process.cwd(), expected));
+    }
+    expect(scannedScopedFiles.length).toBeGreaterThanOrEqual(40);
   });
 
   it("scans the storefront chrome components outside sections/ (guard against a silently broken walk)", () => {

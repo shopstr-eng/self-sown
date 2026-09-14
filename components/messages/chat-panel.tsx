@@ -22,6 +22,7 @@ import {
   WHITEBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 import {
   ArrowUturnLeftIcon,
   ArrowsUpDownIcon,
@@ -710,21 +711,23 @@ const ChatPanel = ({
                       <div className="flex items-center gap-3">
                         <span className="text-white">Good Overall</span>
                         <HandThumbUpIcon
-                          className={`h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors ${
+                          className={joinClassNames(
+                            "h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors",
                             selectedThumb === "up"
                               ? "border-green-500 text-green-500"
                               : "border-white text-white hover:border-green-500 hover:text-green-500"
-                          }`}
+                          )}
                           onClick={() => setSelectedThumb("up")}
                         />
                       </div>
                       <div className="flex items-center gap-3">
                         <HandThumbDownIcon
-                          className={`h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors ${
+                          className={joinClassNames(
+                            "h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors",
                             selectedThumb === "down"
                               ? "border-red-500 text-red-500"
                               : "border-white text-white hover:border-red-500 hover:text-red-500"
-                          }`}
+                          )}
                           onClick={() => setSelectedThumb("down")}
                         />
                         <span className="text-white">Bad Overall</span>
