@@ -58,6 +58,7 @@ import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { persistSellerOrderStatusThrough } from "@/utils/orders/persist-order-status";
+import { joinClassNames } from "@/utils/class-names";
 import {
   buildSignedHttpRequestProofTemplate,
   buildUpdateSubscriptionProof,
@@ -1988,21 +1989,23 @@ const OrdersDashboard = ({
             <div className="inline-flex rounded-md border-2 border-black bg-white p-1">
               <button
                 onClick={() => setDisplayCurrency("sats")}
-                className={`rounded-md px-4 py-2 text-sm font-bold transition-transform ${
+                className={joinClassNames(
+                  "rounded-md px-4 py-2 text-sm font-bold transition-transform",
                   displayCurrency === "sats"
                     ? "bg-primary-yellow shadow-neo border-2 border-black text-black"
                     : "border-2 border-transparent bg-white text-black hover:-translate-y-0.5"
-                }`}
+                )}
               >
                 sats
               </button>
               <button
                 onClick={() => setDisplayCurrency("USD")}
-                className={`rounded-md px-4 py-2 text-sm font-bold transition-transform ${
+                className={joinClassNames(
+                  "rounded-md px-4 py-2 text-sm font-bold transition-transform",
                   displayCurrency === "USD"
                     ? "bg-primary-yellow shadow-neo border-2 border-black text-black"
                     : "border-2 border-transparent bg-white text-black hover:-translate-y-0.5"
-                }`}
+                )}
               >
                 USD
               </button>
@@ -2123,9 +2126,10 @@ const OrdersDashboard = ({
                     return (
                       <tr
                         key={order.orderId}
-                        className={`bg-white hover:bg-gray-50 ${
+                        className={joinClassNames(
+                          "bg-white hover:bg-gray-50",
                           isNewOrder ? "border-l-primary-yellow border-l-4" : ""
-                        }`}
+                        )}
                       >
                         <td className="px-4 py-4 text-sm whitespace-nowrap text-black">
                           <div className="flex flex-col gap-1">
@@ -2160,11 +2164,12 @@ const OrdersDashboard = ({
                         </td>
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <span
-                            className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                            className={joinClassNames(
+                              "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                               order.isSale
                                 ? "bg-purple-200 text-black"
                                 : "bg-orange-200 text-black"
-                            }`}
+                            )}
                           >
                             {order.isSale ? "Sale" : "Purchase"}
                           </span>
@@ -2226,7 +2231,8 @@ const OrdersDashboard = ({
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                              className={joinClassNames(
+                                "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                                 order.status === "completed"
                                   ? "bg-blue-200 text-black"
                                   : order.status === "shipped"
@@ -2234,7 +2240,7 @@ const OrdersDashboard = ({
                                     : order.status === "pending"
                                       ? "bg-primary-yellow text-black"
                                       : "bg-gray-200 text-black"
-                              }`}
+                              )}
                             >
                               {order.status}
                             </span>
@@ -2421,11 +2427,12 @@ const OrdersDashboard = ({
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                              className={joinClassNames(
+                                "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                                 order.isSubscription
                                   ? "bg-green-200 text-black"
                                   : "bg-gray-200 text-black"
-                              }`}
+                              )}
                             >
                               {order.isSubscription ? "Yes" : "No"}
                             </span>
@@ -2749,11 +2756,12 @@ const OrdersDashboard = ({
                   <button
                     type="button"
                     aria-label="Rate good overall"
-                    className={`cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors ${
+                    className={joinClassNames(
+                      "cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors",
                       selectedThumb === "up"
                         ? "border-green-500"
                         : "border-black hover:border-green-500"
-                    }`}
+                    )}
                     onClick={() => setSelectedThumb("up")}
                   >
                     👍
@@ -2763,11 +2771,12 @@ const OrdersDashboard = ({
                   <button
                     type="button"
                     aria-label="Rate bad overall"
-                    className={`cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors ${
+                    className={joinClassNames(
+                      "cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors",
                       selectedThumb === "down"
                         ? "border-red-500"
                         : "border-black hover:border-red-500"
-                    }`}
+                    )}
                     onClick={() => setSelectedThumb("down")}
                   >
                     👎
@@ -2980,11 +2989,12 @@ const OrdersDashboard = ({
                     <button
                       key={type}
                       onClick={() => handleReturnRequestTypeChange(type)}
-                      className={`rounded-md border-2 px-3 py-1.5 text-sm font-bold transition-colors ${
+                      className={joinClassNames(
+                        "rounded-md border-2 px-3 py-1.5 text-sm font-bold transition-colors",
                         returnRequestType === type
                           ? "border-black bg-orange-200 text-black"
                           : "border-gray-300 bg-white text-gray-600 hover:border-black"
-                      }`}
+                      )}
                     >
                       {type.charAt(0).toUpperCase() + type.slice(1)}
                     </button>

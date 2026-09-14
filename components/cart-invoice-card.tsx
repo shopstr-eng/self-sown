@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { trackEvent } from "@/utils/analytics";
+import { joinClassNames } from "@/utils/class-names";
 import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
@@ -8252,13 +8253,14 @@ export default function CartInvoiceCard({
               addressVerification.status === "verified" ||
               addressVerification.status === "issues") && (
               <div
-                className={`mt-3 rounded-md border-2 p-3 text-sm ${
+                className={joinClassNames(
+                  "mt-3 rounded-md border-2 p-3 text-sm",
                   addressVerification.status === "verified"
                     ? "border-green-700 bg-green-50 text-green-900"
                     : addressVerification.status === "issues"
                       ? "border-yellow-700 bg-yellow-50 text-yellow-900"
                       : "border-black bg-white text-black"
-                }`}
+                )}
               >
                 {addressVerification.status === "checking" && (
                   <span>Verifying address…</span>
@@ -8835,17 +8837,19 @@ export default function CartInvoiceCard({
                             type="button"
                             aria-label="Copy invoice"
                             onClick={handleCopyInvoice}
-                            className={`ml-2 cursor-pointer text-sm leading-none ${
+                            className={joinClassNames(
+                              "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "hidden" : ""
-                            }`}
+                            )}
                           >
                             📋
                           </button>
                           <span
                             aria-hidden="true"
-                            className={`ml-2 cursor-pointer text-sm leading-none ${
+                            className={joinClassNames(
+                              "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "" : "hidden"
-                            }`}
+                            )}
                           >
                             ✔️
                           </span>
@@ -9456,11 +9460,12 @@ export default function CartInvoiceCard({
 
                     setTotalCost(subtotalCost + shippingTotal);
                   }}
-                  className={`shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                  className={joinClassNames(
+                    "shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                     shippingPickupPreference === "shipping"
                       ? "bg-primary-yellow"
                       : "bg-white"
-                  }`}
+                  )}
                 >
                   <div className="font-medium">Free or added shipping</div>
                   <div className="text-sm text-gray-500">
@@ -9480,11 +9485,12 @@ export default function CartInvoiceCard({
                     setShippingPickupPreference("contact");
                     setTotalCost(subtotalCost);
                   }}
-                  className={`shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                  className={joinClassNames(
+                    "shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                     shippingPickupPreference === "contact"
                       ? "bg-primary-yellow"
                       : "bg-white"
-                  }`}
+                  )}
                 >
                   <div className="font-medium">Pickup</div>
                   <div className="text-sm text-gray-500">
@@ -9541,9 +9547,10 @@ export default function CartInvoiceCard({
                       type="email"
                       isRequired={true}
                       classNames={{
-                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                        inputWrapper: joinClassNames(
+                          "border-2 rounded-md shadow-neo",
                           emailError ? "border-red-500" : "border-black"
-                        }`,
+                        ),
                       }}
                       value={buyerEmail}
                       onChange={(e) => {
@@ -9582,9 +9589,10 @@ export default function CartInvoiceCard({
                       labelPlacement="inside"
                       type="email"
                       classNames={{
-                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                        inputWrapper: joinClassNames(
+                          "border-2 rounded-md shadow-neo",
                           emailError ? "border-red-500" : "border-black"
-                        }`,
+                        ),
                       }}
                       value={buyerEmail}
                       onChange={(e) => {
@@ -9601,9 +9609,10 @@ export default function CartInvoiceCard({
                 )}
 
                 <div
-                  className={`space-y-4 ${
+                  className={joinClassNames(
+                    "space-y-4",
                     formType !== "contact" ? "border-t pt-6" : ""
-                  }`}
+                  )}
                 >
                   {formType !== "contact" && (
                     <h3 className="mb-4 text-lg font-semibold">
@@ -9653,11 +9662,13 @@ export default function CartInvoiceCard({
                         showBitcoinGroup ? (
                           <Fragment key="bitcoin">
                             <Button
-                              className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                              className={joinClassNames(
+                                BLUEBUTTONCLASSNAMES,
+                                "h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal",
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                                   ? "cursor-not-allowed opacity-50"
                                   : ""
-                              }`}
+                              )}
                               disabled={
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                               }
@@ -9681,11 +9692,13 @@ export default function CartInvoiceCard({
 
                             {hasTokensAvailable && (
                               <Button
-                                className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                className={joinClassNames(
+                                  BLUEBUTTONCLASSNAMES,
+                                  "h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal",
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                     ? "cursor-not-allowed opacity-50"
                                     : ""
-                                }`}
+                                )}
                                 disabled={
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                 }
@@ -9737,11 +9750,13 @@ export default function CartInvoiceCard({
 
                             {nwcInfo && (
                               <Button
-                                className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                className={joinClassNames(
+                                  BLUEBUTTONCLASSNAMES,
+                                  "h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal",
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                     ? "cursor-not-allowed opacity-50"
                                     : ""
-                                }`}
+                                )}
                                 disabled={
                                   !isFormValid ||
                                   (!isLoggedIn && !buyerEmail) ||
@@ -9776,11 +9791,12 @@ export default function CartInvoiceCard({
                           (allSellersHaveStripe || multiSellerCardEligible)) ? (
                           <Button
                             key="card"
-                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             disabled={
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                             }
@@ -9826,11 +9842,12 @@ export default function CartInvoiceCard({
                           : isMultiFiatAvailable) ? (
                           <Button
                             key="fiat"
-                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             disabled={
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                             }
@@ -10161,7 +10178,8 @@ export default function CartInvoiceCard({
                     ? !fiatPaymentConfirmed
                     : !allMultiFiatConfirmed
                 }
-                className={`shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   (
                     isSingleSeller
                       ? !fiatPaymentConfirmed
@@ -10169,7 +10187,7 @@ export default function CartInvoiceCard({
                   )
                     ? "cursor-not-allowed opacity-50"
                     : ""
-                }`}
+                )}
               >
                 {isSingleSeller
                   ? selectedFiatOption === "cash"
@@ -10288,9 +10306,10 @@ export default function CartInvoiceCard({
                   setShowFiatPaymentInstructions(true);
                 }}
                 disabled={!allMultiFiatSelected}
-                className={`shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   !allMultiFiatSelected ? "cursor-not-allowed opacity-50" : ""
-                }`}
+                )}
               >
                 Continue
               </Button>

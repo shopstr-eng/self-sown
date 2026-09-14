@@ -64,6 +64,18 @@
 // className-template scan below also covers every top-level
 // components/storefront/*.tsx file. (The legacy headingSize/bodySize check
 // stays sections-scoped: those fields only exist on sections.)
+//
+// The bug class is not storefront-specific, so the three generic scans below
+// also cover a scoped list of the next-riskiest NON-storefront surfaces
+// (SCOPED_NON_STOREFRONT_FILES): the checkout/invoice cards and the seller
+// dashboard components, where the same dropped space would silently strip
+// styling from payment buttons, form borders, and order-status badges. Those
+// files compose conditional classes through the same joinClassNames helper,
+// now shared from utils/class-names.ts (re-exported by section-elements.tsx),
+// and their few legitimate non-class template/concat conditionals (buyer and
+// seller message bodies, shipping-address fallbacks, spec-descriptor text,
+// emoji labels) are named in the same NON_CLASS_TEMPLATE_ALLOWLIST /
+// NON_CLASS_CONCAT_ALLOWLIST lists with the same unused-entry contract.
 
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative } from "path";
@@ -77,6 +89,23 @@ const SECTIONS_DIR = join(
 );
 
 const STOREFRONT_DIR = join(process.cwd(), "components", "storefront");
+
+// Next-riskiest NON-storefront surfaces held to the same three generic scans
+// (className templates, whole-file templates, '+' concatenation): the
+// checkout/invoice cards a buyer pays through and the seller dashboard
+// components. Their legitimate non-class conditionals are allowlisted below;
+// everything class-feeding composes through joinClassNames from
+// utils/class-names.ts. Paths are workspace-relative; the coverage test at
+// the bottom fails loudly if one is renamed or dropped from the scan.
+const SCOPED_NON_STOREFRONT_FILES = [
+  "components/product-invoice-card.tsx",
+  "components/cart-invoice-card.tsx",
+  "components/utility-components/checkout-card.tsx",
+  "components/messages/orders-dashboard.tsx",
+  "components/messages/contacts-dashboard.tsx",
+  "components/messages/email-stats-dashboard.tsx",
+  "components/messages/subscription-management.tsx",
+];
 
 // The shared builders legitimately branch on headingSize/bodySize. The
 // allowlist exempts section-elements.tsx from ONLY the legacy size-field
@@ -478,6 +507,109 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: "skippedCount > 0 ? ` ${skippedCount} skipped",
     reason: "skipped-mint suffix in wallet restore message",
   },
+  // ---- Scoped non-storefront surfaces (SCOPED_NON_STOREFRONT_FILES) ----
+  // Shipping-address unit suffix + field fallbacks in order display text
+  // (components/product-invoice-card.tsx).
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: "paymentData.shippingUnitNo ? `",
+    reason: "unit-number suffix in shipping-address display text",
+  },
+  ...["shippingCity", "shippingState", "shippingPostalCode", "shippingCountry"].map(
+    (field) => ({
+      file: "components/product-invoice-card.tsx",
+      snippet: `paymentData.${field} || ""`,
+      reason: "address-field fallback in shipping-address display text",
+    })
+  ),
+  // Spec-descriptor suffixes in order display text (each appears in both the
+  // buyer and seller summary builders). The selectedVariant entry must stay
+  // BEFORE the bare variantLabel entry: the selectedVariant expression
+  // embeds `variantLabel || "Option"`, and first-match-wins would otherwise
+  // leave this entry unused and fail the guard.
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: "selectedSize ? `Size:",
+    reason: "size descriptor in order display text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: "selectedVolume ? ` Volume:",
+    reason: "volume descriptor in order display text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: "selectedWeight ? ` Weight:",
+    reason: "weight descriptor in order display text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: "selectedVariant ? `",
+    reason: "variant descriptor in order display text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: 'variantLabel || "Option"',
+    reason: "variant-label fallback in order display text",
+  },
+  // Same address fallbacks in the cart card — against paymentData AND the
+  // per-seller `data` form object (components/cart-invoice-card.tsx).
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: "paymentData.shippingUnitNo ? `",
+    reason: "unit-number suffix in shipping-address display text",
+  },
+  ...["shippingCity", "shippingState", "shippingPostalCode", "shippingCountry"].map(
+    (field) => ({
+      file: "components/cart-invoice-card.tsx",
+      snippet: `paymentData.${field} || ""`,
+      reason: "address-field fallback in shipping-address display text",
+    })
+  ),
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: "data.shippingUnitNo ? `",
+    reason: "unit-number suffix in shipping-address display text",
+  },
+  ...["shippingCity", "shippingState", "shippingPostalCode", "shippingCountry"].map(
+    (field) => ({
+      file: "components/cart-invoice-card.tsx",
+      snippet: `data.${field} || ""`,
+      reason: "address-field fallback in shipping-address display text",
+    })
+  ),
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: "shippingData.Unit ? `",
+    reason: "unit suffix in confirmation-address display text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: 'p.variantLabel || "Option"',
+    reason: "variant-label fallback in order display text",
+  },
+  // Review emoji rendered as Chip text, never a class.
+  {
+    file: "components/utility-components/checkout-card.tsx",
+    snippet: 'value === "1" ? "👍" : "👎"',
+    reason: "thumbs-up/down emoji in Chip label text",
+  },
+  // Display-text fallbacks in the seller orders dashboard.
+  {
+    file: "components/messages/orders-dashboard.tsx",
+    snippet: 'returnRequestOrder.productTitle || "Unknown Product"',
+    reason: "product-title fallback in return-request display text",
+  },
+  {
+    file: "components/messages/orders-dashboard.tsx",
+    snippet: 'order.variantLabel || "Option"',
+    reason: "variant-label fallback in order display text",
+  },
+  {
+    file: "components/messages/orders-dashboard.tsx",
+    snippet: "order.donationPercentage !== undefined ? `",
+    reason: "donation-percentage suffix in order display text",
+  },
 ];
 
 // Legitimate non-class '+' concatenations with a string-literal conditional
@@ -485,13 +617,110 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
 // `snippet` (whitespace-normalized) is a substring of the offending
 // concatenation chain's normalized text. Same contract as the template
 // allowlist: class-feeding strings belong in joinClassNames, and unused
-// entries fail the guard. Currently empty — every conditional concat in the
-// scanned files is expected to compose classes through joinClassNames.
+// entries fail the guard. No storefront file has a legitimate entry today —
+// every conditional concat there composes classes through joinClassNames; the
+// entries below are the buyer/seller message bodies and order-summary
+// suffixes in the scoped non-storefront surfaces.
 const NON_CLASS_CONCAT_ALLOWLIST: Array<{
   file: string;
   snippet: string;
   reason: string;
-}> = [];
+}> = [
+  // Spec-variant suffix + buyer/seller message bodies in
+  // components/product-invoice-card.tsx.
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '" (" + (variantLabel || "Option")',
+    reason: "spec-variant suffix in order summary text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '"You have received an order from " + (userNPub',
+    reason: "seller order-notification message text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '"You have received a payment from " + (userNPub',
+    reason: "seller payment-notification message text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '"Please ship the product" + productDetails',
+    reason: "seller shipping-instructions message text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '"This is a Cashu token payment from " + (userNPub',
+    reason: "seller Cashu-payment message text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '"This is an escrowed Cashu payment from " + (userNPub',
+    reason: "seller escrowed-payment message text",
+  },
+  {
+    file: "components/product-invoice-card.tsx",
+    snippet: '"You have received a stripe payment from " + (userNPub',
+    reason: "seller Stripe-payment message text",
+  },
+  // Same message bodies in components/cart-invoice-card.tsx.
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"You have received a " + (isStripe ? "Stripe" : "Square")',
+    reason: "seller card-payment message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '") was processed successfully via " +',
+    reason: "buyer cart-confirmation message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"You have received an order from " + (userNPub',
+    reason: "seller order-notification message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"Thank you for your purchase of " + (product.title',
+    reason: "buyer thank-you message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '" (" + (product.variantLabel || "Option")',
+    reason: "spec-variant suffix in order summary text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"You have received a payment from " + (userNPub',
+    reason: "seller payment-notification message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"This is a Cashu token payment from " + (userNPub',
+    reason: "seller Cashu-payment message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"This is an escrowed Cashu payment from " + (userNPub',
+    reason: "seller escrowed-payment message text",
+  },
+  {
+    file: "components/cart-invoice-card.tsx",
+    snippet: '"Beef Initiative donation (" + beefDonationPercentage',
+    reason: "donation-notification message text",
+  },
+  // Buyer-facing notification messages in the seller orders dashboard.
+  {
+    file: "components/messages/orders-dashboard.tsx",
+    snippet: '"Your order has been shipped!" + (trackingNumber',
+    reason: "buyer shipping-notification message text",
+  },
+  {
+    file: "components/messages/orders-dashboard.tsx",
+    snippet: "+ (addressChangeOrder.subscriptionId ?",
+    reason: "address-change-request message text",
+  },
+];
 
 function collectSectionSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -520,6 +749,17 @@ function collectStorefrontChromeSources(dir: string): string[] {
 describe("storefront section class-builder guard", () => {
   const scannedFiles = collectSectionSources(SECTIONS_DIR);
   const scannedChromeFiles = collectStorefrontChromeSources(STOREFRONT_DIR);
+  const scannedScopedFiles = SCOPED_NON_STOREFRONT_FILES.map((p) =>
+    join(process.cwd(), p)
+  );
+  // Files held to the three generic scans (className templates, whole-file
+  // templates, '+' concatenation): sections, storefront chrome, and the
+  // scoped non-storefront surfaces.
+  const genericScanFiles = [
+    ...scannedFiles,
+    ...scannedChromeFiles,
+    ...scannedScopedFiles,
+  ];
   const offenders: Array<{ file: string; label: string }> = [];
 
   for (const file of scannedFiles) {
@@ -536,8 +776,9 @@ describe("storefront section class-builder guard", () => {
 
   // Generic class-template check: NO file is exempt — section-elements.tsx
   // composes its JSX conditional classes through joinClassNames too, and the
-  // storefront chrome components outside sections/ are held to the same bar.
-  for (const file of [...scannedFiles, ...scannedChromeFiles]) {
+  // storefront chrome components outside sections/ plus the scoped
+  // non-storefront surfaces are held to the same bar.
+  for (const file of genericScanFiles) {
     const rel = relative(process.cwd(), file);
     const source = readFileSync(file, "utf8");
 
@@ -558,7 +799,7 @@ describe("storefront section class-builder guard", () => {
   // walked; a top-level conditional in any interpolation is flagged unless
   // it is a named non-class use in NON_CLASS_TEMPLATE_ALLOWLIST.
   const usedAllowlistEntries = new Set<number>();
-  for (const file of [...scannedFiles, ...scannedChromeFiles]) {
+  for (const file of genericScanFiles) {
     const rel = relative(process.cwd(), file);
     const source = readFileSync(file, "utf8");
 
@@ -587,7 +828,7 @@ describe("storefront section class-builder guard", () => {
   // files is walked; a flagged chain is an offender unless it is a named
   // non-class use in NON_CLASS_CONCAT_ALLOWLIST.
   const usedConcatAllowlistEntries = new Set<number>();
-  for (const file of [...scannedFiles, ...scannedChromeFiles]) {
+  for (const file of genericScanFiles) {
     const rel = relative(process.cwd(), file);
     const source = readFileSync(file, "utf8");
 
@@ -655,6 +896,16 @@ describe("storefront section class-builder guard", () => {
     // fail loudly instead of silently scanning nothing.
     expect(scannedFiles.length).toBeGreaterThanOrEqual(20);
     expect(scannedFiles).toContain(join(SECTIONS_DIR, "section-elements.tsx"));
+  });
+
+  it("scans the scoped non-storefront surfaces (guard against a silently broken walk)", () => {
+    // A renamed or deleted scoped file must fail loudly here instead of
+    // silently dropping out of the three generic scans.
+    for (const rel of SCOPED_NON_STOREFRONT_FILES) {
+      const abs = join(process.cwd(), rel);
+      expect(statSync(abs).isFile()).toBe(true);
+      expect(genericScanFiles).toContain(abs);
+    }
   });
 
   it("scans the storefront chrome components outside sections/ (guard against a silently broken walk)", () => {

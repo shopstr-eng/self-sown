@@ -36,6 +36,7 @@ import {
   buildUpdateSubscriptionProof,
   SIGNED_EVENT_HEADER,
 } from "@/utils/nostr/request-auth";
+import { joinClassNames } from "@/utils/class-names";
 
 interface SubscriptionData {
   id: number;
@@ -748,11 +749,12 @@ const SubscriptionManagement = ({
                             </td>
                             <td className="px-4 py-4 text-sm whitespace-nowrap">
                               <span
-                                className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                                className={joinClassNames(
+                                  "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                                   sub.status === "paused"
                                     ? "bg-yellow-200 text-black"
                                     : "bg-gray-200 text-black"
-                                }`}
+                                )}
                               >
                                 {sub.status}
                               </span>
