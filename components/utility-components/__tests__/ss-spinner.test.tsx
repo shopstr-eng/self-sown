@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import SelfSownSpinner from "../mm-spinner";
+import SelfSownSpinner from "../ss-spinner";
 import { useTheme } from "next-themes";
 
 jest.mock("next-themes", () => ({

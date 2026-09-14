@@ -8563,7 +8563,7 @@ export default function CartInvoiceCard({
                         );
                       }
 
-                      // Calculate milk market donation for this product
+                      // Calculate Self-sown donation for this product
                       const platformDonationPercentage =
                         profileContext.profileData.get(product.pubkey)?.content
                           ?.mm_donation ?? 0;
@@ -9073,7 +9073,7 @@ export default function CartInvoiceCard({
                       );
                     }
 
-                    // Calculate milk market donation for this product
+                    // Calculate Self-sown donation for this product
                     const platformDonationPercentage =
                       profileContext.profileData.get(product.pubkey)?.content
                         ?.mm_donation ?? 0;

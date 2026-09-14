@@ -201,7 +201,7 @@ describe("ensureProPrice dual-read", () => {
         currency: PRO_PRICE_CURRENCY,
         recurring: { interval: "month" },
         lookup_key: PRO_MONTHLY_LOOKUP_KEY,
-        metadata: { mm_pro: "true", term: "monthly" },
+        metadata: { ss_pro: "true", mm_pro: "true", term: "monthly" },
       },
       { idempotencyKey: expect.stringContaining("pro-price-") }
     );

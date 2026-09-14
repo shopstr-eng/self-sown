@@ -160,6 +160,8 @@ export default async function handler(
             originalCurrency: currency,
             ...(connectedAccountId && { connectedAccountId }),
             ...(invoiceDonationCut > 0 && {
+              ssDonationPercent: invoiceDonationPercent.toString(),
+              ssDonationCutSmallest: invoiceDonationCut.toString(),
               mmDonationPercent: invoiceDonationPercent.toString(),
               mmDonationCutSmallest: invoiceDonationCut.toString(),
             }),

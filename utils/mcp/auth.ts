@@ -63,7 +63,10 @@ export function hashApiKey(key: string): string {
 }
 
 export function generateApiKey(): { key: string; prefix: string } {
-  const key = `mm_${randomBytes(32).toString("hex")}`;
+  // Prefix rotated mm_ → ss_ in the Self-sown rebrand. Existing mm_ keys keep
+  // working: lookup is by the presented key's own prefix + hash, and each
+  // row's stored key_prefix was captured at creation time.
+  const key = `ss_${randomBytes(32).toString("hex")}`;
   const prefix = key.substring(0, 10);
   return { key, prefix };
 }

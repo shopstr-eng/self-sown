@@ -3,6 +3,10 @@ import { Client } from "pg";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
 import CryptoJS from "crypto-js";
 import crypto from "crypto";
+import {
+  OAUTH_AUTH_SALT,
+  LEGACY_OAUTH_AUTH_SALT,
+} from "@/utils/auth/salts";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.
@@ -246,17 +250,45 @@ export default async function handler(
     let nsec, pubkey;
 
     if (existingUser.rows.length > 0) {
-      // Existing user - decrypt their nsec
-      const encryptionKey = CryptoJS.PBKDF2(
-        `${provider}-${userId}`,
-        "milk-market-oauth-salt",
-        { keySize: 256 / 32, iterations: 1000 }
-      ).toString();
+      // Existing user - decrypt their nsec. The KDF salt rotated in the
+      // Self-sown rebrand: try the new salt first, fall back to the legacy
+      // salt, and on a legacy hit lazily re-encrypt the row under the new
+      // salt (zero-downtime migration, no data loss).
+      const deriveKey = (salt: string) =>
+        CryptoJS.PBKDF2(`${provider}-${userId}`, salt, {
+          keySize: 256 / 32,
+          iterations: 1000,
+        }).toString();
+      const tryDecrypt = (salt: string): string => {
+        try {
+          const out = CryptoJS.AES.decrypt(
+            existingUser.rows[0].encrypted_nsec,
+            deriveKey(salt)
+          ).toString(CryptoJS.enc.Utf8);
+          return out.startsWith("nsec1") ? out : "";
+        } catch {
+          return "";
+        }
+      };
 
-      nsec = CryptoJS.AES.decrypt(
-        existingUser.rows[0].encrypted_nsec,
-        encryptionKey
-      ).toString(CryptoJS.enc.Utf8);
+      nsec = tryDecrypt(OAUTH_AUTH_SALT);
+      if (!nsec) {
+        nsec = tryDecrypt(LEGACY_OAUTH_AUTH_SALT);
+        if (nsec) {
+          try {
+            const rotated = CryptoJS.AES.encrypt(
+              nsec,
+              deriveKey(OAUTH_AUTH_SALT)
+            ).toString();
+            await client.query(
+              "UPDATE oauth_auth SET encrypted_nsec = $1 WHERE provider = $2 AND provider_user_id = $3",
+              [rotated, provider, userId]
+            );
+          } catch (rotateErr) {
+            console.error("oauth-callback: salt rotation failed:", rotateErr);
+          }
+        }
+      }
       pubkey = existingUser.rows[0].pubkey;
       isNewUser = false; // User exists, so not a new user
     } else {
@@ -267,7 +299,7 @@ export default async function handler(
 
       const encryptionKey = CryptoJS.PBKDF2(
         `${provider}-${userId}`,
-        "milk-market-oauth-salt",
+        OAUTH_AUTH_SALT,
         { keySize: 256 / 32, iterations: 1000 }
       ).toString();
 

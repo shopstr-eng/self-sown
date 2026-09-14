@@ -135,6 +135,8 @@ jest.mock(
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   createNostrProfileEvent: jest.fn(),
   getLocalUserProfileKey: (pubkey: string) => `shopstr:user-profile:${pubkey}`,
+  getLegacyLocalUserProfileKey: (pubkey: string) =>
+    `shopstr-legacy:user-profile:${pubkey}`,
   parseLocalProfileFallback: (raw: string | null) =>
     raw ? { content: JSON.parse(raw), updatedAt: 0 } : null,
   isProfileContentPopulated: () => true,
@@ -155,8 +157,8 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
 }));
 const mockFileUploaderButton = FileUploaderButton as jest.Mock;
 
-// Downstream uses SelfSownSpinner (mm-spinner), not the upstream shopstr-spinner.
-jest.mock("@/components/utility-components/mm-spinner", () => () => null);
+// Downstream uses SelfSownSpinner (ss-spinner), not the upstream shopstr-spinner.
+jest.mock("@/components/utility-components/ss-spinner", () => () => null);
 
 const mockUserPubkey = "test_pubkey_123";
 const mockProfileData = new Map([

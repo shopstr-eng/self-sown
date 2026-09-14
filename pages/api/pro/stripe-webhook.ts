@@ -102,7 +102,10 @@ export default async function handler(
         // One-time Wrangler lifetime purchase (no subscription). Grant lifetime
         // access only for our tagged PaymentIntents; ignore all others.
         const pi = event.data.object as Stripe.PaymentIntent;
-        if (pi.metadata?.proLifetime === "true" && pi.metadata?.mmProPubkey) {
+        if (
+          pi.metadata?.proLifetime === "true" &&
+          (pi.metadata?.ssProPubkey ?? pi.metadata?.mmProPubkey)
+        ) {
           await applyStripeLifetimePayment(pi);
         }
         break;

@@ -452,6 +452,8 @@ export default async function handler(
         originalCurrency: currency,
         ...(connectedAccountId && { connectedAccountId }),
         ...(singleDonationCut > 0 && {
+          ssDonationPercent: singleDonationPercent.toString(),
+          ssDonationCutSmallest: singleDonationCut.toString(),
           mmDonationPercent: singleDonationPercent.toString(),
           mmDonationCutSmallest: singleDonationCut.toString(),
         }),

@@ -16,11 +16,12 @@ import {
 import {
   createNostrProfileEvent,
   getLocalUserProfileKey,
+  getLegacyLocalUserProfileKey,
   parseLocalProfileFallback,
   isProfileContentPopulated,
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
 interface MarketProfileFormProps {
@@ -95,7 +96,8 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
     setIsFetchingProfile(true);
 
     const localFallback = parseLocalProfileFallback(
-      localStorage.getItem(getLocalUserProfileKey(userPubkey))
+      localStorage.getItem(getLocalUserProfileKey(userPubkey)) ??
+        localStorage.getItem(getLegacyLocalUserProfileKey(userPubkey))
     );
     const profileCreatedAt = profile.created_at || 0;
     const shouldUseLocalFallback =

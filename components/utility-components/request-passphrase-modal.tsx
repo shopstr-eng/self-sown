@@ -10,7 +10,7 @@ import {
 } from "@heroui/react";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { useRouter } from "next/router";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 export default function PassphraseChallengeModal({
   actionOnSubmit,

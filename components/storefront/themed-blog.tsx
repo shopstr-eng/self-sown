@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import BlogMarkdown from "@/components/storefront/blog/blog-markdown";
 import { NostrEvent } from "@/utils/types/types";
 import {

@@ -241,7 +241,7 @@ const ApiKeysPage = () => {
                 </p>
                 <code className="block text-xs break-all whitespace-pre-wrap text-gray-700">
                   {`curl ${mcpEndpointUrl} \\
-  -H "Authorization: Bearer mm_your_api_key" \\
+  -H "Authorization: Bearer ss_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{"method": "tools/list"}'`}
                 </code>

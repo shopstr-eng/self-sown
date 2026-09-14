@@ -365,14 +365,20 @@ async function routeRequest(request: NextRequest) {
   // the full multi-tenant platform (which would expose the marketplace,
   // discovery, and every other seller on what is meant to be a private,
   // single-tenant instance).
+  // Legacy MM_* env names remain honored so pre-rename self-host installs
+  // keep working on upgrade.
   const selfHostEnabled = /^(1|true|yes|on)$/i.test(
-    (process.env.MM_SELF_HOST || "").trim()
+    (process.env.SS_SELF_HOST ?? process.env.MM_SELF_HOST ?? "").trim()
   );
-  const selfHostSlug = (process.env.MM_SELF_HOST_SLUG || "").trim();
+  const selfHostSlug = (
+    process.env.SS_SELF_HOST_SLUG ??
+    process.env.MM_SELF_HOST_SLUG ??
+    ""
+  ).trim();
   if (selfHostEnabled) {
     if (!selfHostSlug) {
       return new NextResponse(
-        "Self-host mode is enabled (MM_SELF_HOST) but MM_SELF_HOST_SLUG is " +
+        "Self-host mode is enabled (SS_SELF_HOST) but SS_SELF_HOST_SLUG is " +
           "not set. Configure your storefront slug to start serving your store.",
         {
           status: 503,
@@ -768,7 +774,11 @@ async function routeRequest(request: NextRequest) {
 // npub or 64-char hex; returns null for anything else (the header is simply
 // omitted, so a malformed value can never seed SSR with a bogus pubkey).
 function selfHostPubkeyHex(): string | null {
-  const raw = (process.env.MM_SELF_HOST_PUBKEY || "").trim();
+  const raw = (
+    process.env.SS_SELF_HOST_PUBKEY ??
+    process.env.MM_SELF_HOST_PUBKEY ??
+    ""
+  ).trim();
   if (!raw) return null;
   if (raw.startsWith("npub1")) {
     try {

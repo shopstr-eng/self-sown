@@ -27,7 +27,7 @@ import {
   publishWalletEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
-import SelfSownSlider from "@/components/utility-components/mm-slider";
+import SelfSownSlider from "@/components/utility-components/ss-slider";
 import FailureModal from "@/components/utility-components/failure-modal";
 import {
   NostrContext,

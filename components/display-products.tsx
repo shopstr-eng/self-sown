@@ -6,7 +6,7 @@ import ProductCard from "./utility-components/product-card";
 import DisplayProductModal from "./display-product-modal";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { Button, Pagination } from "@heroui/react";
-import SelfSownSpinner from "./utility-components/mm-spinner";
+import SelfSownSpinner from "./utility-components/ss-spinner";
 import { useRouter } from "next/router";
 import parseTags, {
   ProductData,

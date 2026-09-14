@@ -37,7 +37,7 @@ import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
 import SignInModal from "../sign-in/SignInModal";
-import SelfSownSwitch from "../utility-components/mm-switch";
+import SelfSownSwitch from "../utility-components/ss-switch";
 import { ShopProfile } from "../../utils/types/types";
 import SideShopNav from "./side-shop-nav";
 import {

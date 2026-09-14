@@ -17,7 +17,7 @@ import {
   SignerContext,
   NostrContext,
 } from "@/components/utility-components/nostr-context-provider";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import {
   BLUEBUTTONCLASSNAMES,

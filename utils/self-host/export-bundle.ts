@@ -144,16 +144,16 @@ function envExampleTemplate(config: SelfHostConfigJson): string {
 
 # === Self-host identity (pre-filled from your export) ========================
 # Turn on single-tenant self-host mode.
-MM_SELF_HOST=1
+SS_SELF_HOST=1
 # Your Nostr pubkey (the one this store belongs to). Pre-filled from your export.
-MM_SELF_HOST_PUBKEY=${config.pubkey}
+SS_SELF_HOST_PUBKEY=${config.pubkey}
 # Your storefront slug. Pre-filled from your export.
-MM_SELF_HOST_SLUG=${config.slug ?? ""}
+SS_SELF_HOST_SLUG=${config.slug ?? ""}
 # Your relays / Blossom media servers (comma-separated). Pre-filled.
-MM_SELF_HOST_RELAYS=${relays}
-MM_SELF_HOST_BLOSSOM_SERVERS=${blossom}
+SS_SELF_HOST_RELAYS=${relays}
+SS_SELF_HOST_BLOSSOM_SERVERS=${blossom}
 # Public repo to pull code updates from.
-MM_SELF_HOST_UPSTREAM_REPO=${config.upstreamRepo}
+SS_SELF_HOST_UPSTREAM_REPO=${config.upstreamRepo}
 
 # === Required ================================================================
 # [required] PostgreSQL connection string. Apply db/schema.sql to a fresh DB first.
@@ -181,7 +181,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 # Add a Stripe webhook pointing at /api/stripe/webhook and paste its secret.
 STRIPE_WEBHOOK_SECRET=
 # Flip this on once the three Stripe values above are filled in.
-# MM_SELF_HOST_OWN_STRIPE=1
+# SS_SELF_HOST_OWN_STRIPE=1
 
 # === Email (optional) =======================================================
 # [optional] Transactional email via SendGrid. Leave blank to disable email.
@@ -293,7 +293,7 @@ Edit \`.env\` (it has inline notes and a [required]/[generate]/[optional] legend
 - \`DATABASE_URL\`: **[required]** your PostgreSQL connection string.
 - \`NEXT_PUBLIC_BASE_URL\`: **[required]** the public URL your store is served
   from, with NO trailing slash. Used for links, emails, and social/SEO tags.
-- \`MM_SELF_HOST*\`: pre-filled from your export; adjust relays if needed.
+- \`SS_SELF_HOST*\`: pre-filled from your export; adjust relays if needed.
 - \`ENCRYPTION_NSEC\`: **[generate]** a NEW Nostr private key (\`nsec...\`) used to
   encrypt uploaded images/files and to send server-side messages. Do NOT reuse
   your personal key. Without it, uploads that rely on encryption will fail.
@@ -301,7 +301,7 @@ Edit \`.env\` (it has inline notes and a [required]/[generate]/[optional] legend
   all three: \`STRIPE_SECRET_KEY\`, \`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY\`, and
   \`STRIPE_WEBHOOK_SECRET\` (add a Stripe webhook pointing at
   \`/api/stripe/webhook\` and paste its signing secret). Then set
-  \`MM_SELF_HOST_OWN_STRIPE=1\`. Charges run directly on your account, with no
+  \`SS_SELF_HOST_OWN_STRIPE=1\`. Charges run directly on your account, with no
   Connect, no platform fees.
 - **Email (optional).** \`SENDGRID_API_KEY\` for transactional email. If you use
   automated email flows, also **[generate]** \`EMAIL_FLOW_CLICK_SECRET\` and

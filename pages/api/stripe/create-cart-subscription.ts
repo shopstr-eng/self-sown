@@ -320,6 +320,10 @@ export default async function handler(
         ? Math.round(cartDonationPercent * 100) / 100
         : 0;
     if (cartApplicationFeePercent > 0) {
+      // Dual-write: ss* canonical; mm* kept for readers against pre-rename
+      // Stripe objects.
+      subscriptionMetadata.ssDonationPercent =
+        cartApplicationFeePercent.toString();
       subscriptionMetadata.mmDonationPercent =
         cartApplicationFeePercent.toString();
     }

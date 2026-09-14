@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { SITE_URL } from "@/utils/site-url";
 

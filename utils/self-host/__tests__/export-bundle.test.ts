@@ -157,8 +157,8 @@ describe("buildExportEntries", () => {
     expect(env).toMatch(/^FLOW_PROCESSOR_SECRET=$/m);
     expect(env).toMatch(/^MCP_ENCRYPTION_KEY=$/m);
     // Pre-fills the public, non-secret config.
-    expect(env).toContain(`MM_SELF_HOST_PUBKEY=${PUBKEY}`);
-    expect(env).toContain("MM_SELF_HOST_SLUG=my-farm");
+    expect(env).toContain(`SS_SELF_HOST_PUBKEY=${PUBKEY}`);
+    expect(env).toContain("SS_SELF_HOST_SLUG=my-farm");
     // NEXT_PUBLIC_BASE_URL is required; it ships with a non-secret placeholder host.
     expect(env).toMatch(/^NEXT_PUBLIC_BASE_URL=https:\/\//m);
   });

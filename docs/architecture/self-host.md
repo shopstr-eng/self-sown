@@ -20,9 +20,9 @@ Server-only (imports `fs`/`path`). Reads env first, with an optional
 - `normalizeTenantPubkey()` accepts npub or 64-char hex, lowercases, else null.
 - `buildSelfHostConfig(env, file)` is the pure builder (test seam).
 
-Env vars (`.env.example`): `MM_SELF_HOST`, `MM_SELF_HOST_PUBKEY`,
-`MM_SELF_HOST_SLUG`, `MM_SELF_HOST_RELAYS`, `MM_SELF_HOST_BLOSSOM_SERVERS`,
-`MM_SELF_HOST_OWN_STRIPE`, `MM_SELF_HOST_UPSTREAM_REPO`, `MM_SELF_HOST_CONFIG_PATH`.
+Env vars (`.env.example`): `SS_SELF_HOST`, `SS_SELF_HOST_PUBKEY`,
+`SS_SELF_HOST_SLUG`, `SS_SELF_HOST_RELAYS`, `SS_SELF_HOST_BLOSSOM_SERVERS`,
+`SS_SELF_HOST_OWN_STRIPE`, `SS_SELF_HOST_UPSTREAM_REPO`, `SS_SELF_HOST_CONFIG_PATH`.
 `ownStripe` auto-enables when `STRIPE_SECRET_KEY` is present unless overridden.
 
 ## Entitlement bypass (`utils/pro/membership.ts`)
@@ -35,7 +35,7 @@ still resolves from the DB. The pure resolver `membership-status.ts` is untouche
 
 ## Proxy routing (`proxy.ts` + `utils/self-host/routing.ts`)
 
-The proxy reads `MM_SELF_HOST*` inline (edge runtime; must not import the
+The proxy reads `SS_SELF_HOST*` inline (edge runtime; must not import the
 server-only config module) and delegates each decision to the pure helpers:
 
 - `isSelfHostBlockedPage(path)` — marketplace, `/pro`, communities, discovery,
@@ -126,10 +126,10 @@ download via `useProMembership().exportSelfHostStore()`.
 
 ## Running a self-hosted copy
 
-1. `bash setup.sh` (clones `MM_SELF_HOST_UPSTREAM_REPO`, applies your config).
+1. `bash setup.sh` (clones `SS_SELF_HOST_UPSTREAM_REPO`, applies your config).
 2. Create a PostgreSQL database; apply `db/schema.sql`.
 3. Copy `.env.example` → `.env`; set `DATABASE_URL`, optional `STRIPE_SECRET_KEY`
-   (+ `MM_SELF_HOST_OWN_STRIPE=1`), optional `SENDGRID_API_KEY`.
+   (+ `SS_SELF_HOST_OWN_STRIPE=1`), optional `SENDGRID_API_KEY`.
 4. `pnpm install && pnpm build && pnpm start` (`pnpm start` boots the
    standalone server `.next/standalone/server.js` via
    `scripts/start-standalone.mjs` — the app builds with `output: "standalone"`,
@@ -179,7 +179,7 @@ GATED behind `RUN_SELF_HOST_BUILD=1` (mirroring the `RUN_TESTCONTAINERS`
 pattern), so it is skipped in normal `jest` runs and in the agent sandbox (where
 a cold Next compile OOMs). When it runs it: generates the REAL bundle, runs the
 generated `setup.sh` with the checked-out tree as the clone target, writes a
-test `.env` with `MM_SELF_HOST=1` (no Stripe key), runs `pnpm install` +
+test `.env` with `SS_SELF_HOST=1` (no Stripe key), runs `pnpm install` +
 `pnpm build`, boots with `pnpm start`, and asserts over real HTTP that `/` serves
 the tenant stall (200), `/marketplace` and `/pro` redirect home (307 → `/`), and
 the cart offers Lightning/Cashu only (the seller-status endpoint reports card
@@ -191,7 +191,7 @@ self-host runtime, generate a bundle from a Wrangler account's settings page (or
 call the exported pure builder), then in a scratch directory:
 
 ```bash
-bash setup.sh                 # clones MM_SELF_HOST_UPSTREAM_REPO → ./self-sown
+bash setup.sh                 # clones SS_SELF_HOST_UPSTREAM_REPO → ./self-sown
 cd self-sown
 cp ../.env.example .env        # set DATABASE_URL; optionally add STRIPE_SECRET_KEY
 psql "$DATABASE_URL" -f db/schema.sql

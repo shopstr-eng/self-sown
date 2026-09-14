@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 type StorefrontLoadErrorProps = {
   /** Called to re-attempt the lookup. */

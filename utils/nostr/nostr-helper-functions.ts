@@ -2342,6 +2342,11 @@ export const saveNWCString = (nwcString: string) => {
 };
 
 export const getLocalUserProfileKey = (pubkey: string) =>
+  `self-sown:user-profile:${pubkey}`;
+
+// Pre-rebrand key. Readers fall back to this so a locally cached profile
+// written before the rename is still found; writes always use the new key.
+export const getLegacyLocalUserProfileKey = (pubkey: string) =>
   `milk-market:user-profile:${pubkey}`;
 
 export interface LocalProfileFallback {

@@ -17,7 +17,7 @@ import {
   fetchPendingPosts,
 } from "@/utils/nostr/fetch-service";
 import { Button, Textarea, Card, CardBody, Divider, Chip } from "@heroui/react";
-import SelfSownSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/ss-spinner";
 import {
   WHITEBUTTONCLASSNAMES,
   BLACKBUTTONCLASSNAMES,

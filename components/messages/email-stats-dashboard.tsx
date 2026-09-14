@@ -10,7 +10,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
-import SelfSownSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/ss-spinner";
 
 interface StepStats {
   step_id: number;

@@ -22,7 +22,7 @@ import {
 } from "@/components/utility-components/modals/event-modals";
 import ProductPageRenderer from "@/components/storefront/product-page-renderer";
 import FormattedText from "@/components/storefront/formatted-text";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { NostrEvent } from "@/utils/types/types";
 import SellerFollowButton from "@/components/utility-components/seller-follow-button";
 

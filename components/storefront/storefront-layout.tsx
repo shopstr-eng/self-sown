@@ -35,7 +35,7 @@ import parseTags from "@/utils/parsers/product-parser-functions";
 import Link from "next/link";
 import StorefrontProductGrid from "./storefront-product-grid";
 import ProductListingView from "@/components/listing/product-listing-view";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { NostrEvent } from "@/utils/types/types";
 import SectionRenderer from "./section-renderer";
 import FormattedText from "./formatted-text";

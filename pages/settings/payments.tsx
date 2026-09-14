@@ -42,7 +42,7 @@ import {
   buildStripeDisconnectProof,
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import {
   STRIPE_CONNECT_COUNTRIES,
   COUNTRIES_WITH_REGIONAL_TAX,

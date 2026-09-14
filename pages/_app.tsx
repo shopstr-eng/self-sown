@@ -1825,7 +1825,7 @@ App.getInitialProps = async (appContext: AppContext) => {
   // a pure helper (utils/self-host/routing.ts) so it stays in lockstep with the
   // proxy and tests; config.ts is server-only and must not be bundled here.
   const isSelfHostSsr = selfHostHeaderTrusted(
-    process.env.MM_SELF_HOST,
+    process.env.SS_SELF_HOST ?? process.env.MM_SELF_HOST,
     headerVal("x-mm-self-host")
   );
   const customDomainShopSlug = headerVal("x-mm-shop-slug");

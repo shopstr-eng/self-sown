@@ -29,7 +29,7 @@ import {
 } from "@/utils/types/types";
 import ProductPageEditor from "@/components/settings/storefront/product-page-editor";
 import ImportDesignModal from "@/components/stall/import-design-modal";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 

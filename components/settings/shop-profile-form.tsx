@@ -55,7 +55,7 @@ import {
   buildStripeAccountStatusProof,
 } from "@/utils/mcp/request-proof";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import currencySelection from "@/public/currencySelection.json";
 import {
   StorefrontConfig,
@@ -88,6 +88,7 @@ import { sanitizeStorefrontConfigLinks } from "@/utils/storefront-links";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import {
   IMPORT_DESIGN_DRAFT_KEY,
+  LEGACY_IMPORT_DESIGN_DRAFT_KEY,
   type ImportedStoreDesign,
 } from "@/utils/migrations/site-design";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
@@ -640,7 +641,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
     let draft: ImportedStoreDesign | null = null;
     try {
-      const raw = localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY);
+      const raw =
+        localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY) ??
+        localStorage.getItem(LEGACY_IMPORT_DESIGN_DRAFT_KEY);
       if (raw) draft = JSON.parse(raw) as ImportedStoreDesign;
     } catch (err) {
       console.error("Failed to read imported design draft:", err);
@@ -649,6 +652,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     const clearDraft = () => {
       try {
         localStorage.removeItem(IMPORT_DESIGN_DRAFT_KEY);
+        localStorage.removeItem(LEGACY_IMPORT_DESIGN_DRAFT_KEY);
       } catch {
         // ignore
       }

@@ -37,7 +37,7 @@ jest.mock("@/components/storefront/storefront-load-error", () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock("@/components/utility-components/mm-spinner", () => ({
+jest.mock("@/components/utility-components/ss-spinner", () => ({
   __esModule: true,
   default: () => null,
 }));

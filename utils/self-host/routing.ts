@@ -1,7 +1,7 @@
 // Pure routing decisions for single-tenant self-host mode.
 //
 // No fs / next / env imports so proxy.ts (which builds the actual NextResponse)
-// and the unit tests share the EXACT same rules. The proxy reads MM_SELF_HOST*
+// and the unit tests share the EXACT same rules. The proxy reads SS_SELF_HOST* (legacy MM_* names honored)
 // from the environment and delegates each per-path decision to the helpers here.
 
 // Pages that describe Self-sown the PLATFORM — the public marketplace, Nostr
@@ -68,7 +68,7 @@ export function isSelfHostBlockedApi(pathname: string): boolean {
 // Whether to trust an inbound `x-mm-self-host` header. The proxy sets that
 // header only on a real self-host deployment, but a client could spoof it on
 // the hosted platform. Fail closed: honor it ONLY when THIS server process is
-// itself running in self-host mode (`MM_SELF_HOST` env). Truthiness mirrors
+// itself running in self-host mode (`SS_SELF_HOST` env; legacy `MM_SELF_HOST` honored). Truthiness mirrors
 // truthyEnv in config.ts. Kept here (pure, no imports) so _app.tsx — which is
 // bundled for the client and must not import the server-only config module —
 // can share the exact decision with the proxy and the tests.

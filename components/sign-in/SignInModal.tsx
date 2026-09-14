@@ -19,7 +19,7 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import * as nip49 from "nostr-tools/nip49";
 import { getPublicKey } from "nostr-tools";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { RelaysContext } from "../../utils/context/context";
 import { useRouter } from "next/router";
 import FailureModal from "../../components/utility-components/failure-modal";

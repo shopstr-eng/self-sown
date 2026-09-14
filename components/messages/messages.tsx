@@ -11,7 +11,7 @@ import {
   generateKeys,
 } from "@/utils/nostr/nostr-helper-functions";
 import { ChatsContext, ProfileMapContext } from "../../utils/context/context";
-import SelfSownSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/ss-spinner";
 import ChatPanel from "./chat-panel";
 import ChatButton from "./chat-button";
 import { NostrMessageEvent, ChatObject } from "../../utils/types/types";

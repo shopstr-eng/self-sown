@@ -13,7 +13,7 @@ import {
 } from "@/components/utility-components/nostr-context-provider";
 import { createNostrProfileEvent } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 interface BuyerProfileFormProps {
   isOnboarding?: boolean;

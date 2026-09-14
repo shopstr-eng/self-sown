@@ -2,7 +2,7 @@ import { useContext, useState, useMemo } from "react";
 import { CommunityContext } from "@/utils/context/context";
 import CommunityCard from "@/components/communities/CommunityCard";
 import { Input, Divider } from "@heroui/react";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 
 const CommunitiesDiscoveryPage = () => {

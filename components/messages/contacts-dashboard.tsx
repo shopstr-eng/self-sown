@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Input, Button } from "@heroui/react";
 import { copyToClipboard } from "@/utils/clipboard";
 import { joinClassNames } from "@/utils/class-names";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 type ContactSource = "popup" | "subscription";
 

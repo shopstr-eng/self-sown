@@ -173,7 +173,7 @@ export function buildListingFromSquareItem(
     );
   }
 
-  const mmStatus = item.isArchived ? "inactive" : "active";
+  const listingStatus = item.isArchived ? "inactive" : "active";
   const shippingOption = defaultShippingOption;
 
   const tags: ProductFormValues = [
@@ -200,7 +200,7 @@ export function buildListingFromSquareItem(
   tags.push(["t", "MilkMarket"]);
   tags.push(["t", "FREEMILK"]);
 
-  tags.push(["status", mmStatus]);
+  tags.push(["status", listingStatus]);
 
   if (
     pickupLocations &&

@@ -9,7 +9,7 @@ import {
   ModalFooter,
   Input,
 } from "@heroui/react";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import {
   SignerContext,

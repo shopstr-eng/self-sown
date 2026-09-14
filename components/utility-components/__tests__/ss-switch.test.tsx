@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import SelfSownSwitch from "../mm-switch";
+import SelfSownSwitch from "../ss-switch";
 
 const mockUseTheme = { theme: "light" };
 jest.mock("next-themes", () => ({

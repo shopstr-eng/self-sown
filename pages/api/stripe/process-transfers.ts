@@ -181,6 +181,8 @@ export default async function handler(
                 paymentIntentId,
                 sellerPubkey: split.sellerPubkey,
                 grossAmount: split.amountCents.toString(),
+                ssDonationPercent: donationPercent.toString(),
+                ssDonationCutSmallest: donationCut.toString(),
                 mmDonationPercent: donationPercent.toString(),
                 mmDonationCutSmallest: donationCut.toString(),
               },

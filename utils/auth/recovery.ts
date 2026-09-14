@@ -30,12 +30,20 @@ export function hashRecoveryKey(recoveryKey: string): string {
   return CryptoJS.SHA256(normalized).toString();
 }
 
+// The KDF salt rotated in the Self-sown rebrand. Encryption always uses the
+// new salt; decryption tries the new salt first, then the legacy salt (under
+// both KDF iteration counts), so blobs written before the rebrand still
+// decrypt. Rows rotate to the new salt the next time they're re-encrypted
+// (signup / setup-recovery / reset-password all re-encrypt on write).
+const RECOVERY_SALT = "self-sown-recovery";
+const LEGACY_RECOVERY_SALT = "milk-market-recovery";
+
 export function encryptNsecWithRecoveryKey(
   nsec: string,
   recoveryKey: string
 ): string {
   const normalized = recoveryKey.replace(/-/g, "").toUpperCase();
-  const encryptionKey = CryptoJS.PBKDF2(normalized, "milk-market-recovery", {
+  const encryptionKey = CryptoJS.PBKDF2(normalized, RECOVERY_SALT, {
     keySize: 256 / 32,
     iterations: RECOVERY_PBKDF2_ITERATIONS,
   }).toString();
@@ -48,23 +56,30 @@ export function decryptNsecWithRecoveryKey(
 ): string {
   const normalized = recoveryKey.replace(/-/g, "").toUpperCase();
 
-  const newKey = CryptoJS.PBKDF2(normalized, "milk-market-recovery", {
-    keySize: 256 / 32,
-    iterations: RECOVERY_PBKDF2_ITERATIONS,
-  }).toString();
-  const attempt = CryptoJS.AES.decrypt(encryptedNsec, newKey).toString(
-    CryptoJS.enc.Utf8
-  );
-  if (attempt) return attempt;
-
-  const legacyKey = CryptoJS.PBKDF2(normalized, "milk-market-recovery", {
-    keySize: 256 / 32,
-    iterations: LEGACY_PBKDF2_ITERATIONS,
-  }).toString();
-  const legacyAttempt = CryptoJS.AES.decrypt(encryptedNsec, legacyKey).toString(
-    CryptoJS.enc.Utf8
-  );
-  if (legacyAttempt) return legacyAttempt;
+  // Probe each salt/iteration combination. A wrong-key AES decrypt can THROW
+  // ("Malformed UTF-8 data") or yield nonempty garbage, so each attempt is
+  // isolated and only a value with the bech32 nsec prefix counts — anything
+  // less would let reset-password persist garbage under the new salts and
+  // corrupt account recovery.
+  const combos: Array<[string, number]> = [
+    [RECOVERY_SALT, RECOVERY_PBKDF2_ITERATIONS],
+    [LEGACY_RECOVERY_SALT, RECOVERY_PBKDF2_ITERATIONS],
+    [LEGACY_RECOVERY_SALT, LEGACY_PBKDF2_ITERATIONS],
+  ];
+  for (const [salt, iterations] of combos) {
+    try {
+      const key = CryptoJS.PBKDF2(normalized, salt, {
+        keySize: 256 / 32,
+        iterations,
+      }).toString();
+      const attempt = CryptoJS.AES.decrypt(encryptedNsec, key).toString(
+        CryptoJS.enc.Utf8
+      );
+      if (attempt.startsWith("nsec1")) return attempt;
+    } catch {
+      // wrong key for this combination — try the next one
+    }
+  }
 
   throw new Error("Invalid recovery key");
 }

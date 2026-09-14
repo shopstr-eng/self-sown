@@ -144,7 +144,10 @@ export interface ImportedStorefrontDraft {
 // localStorage key used to hand a finished draft from the import wizard to the
 // shop-profile-form (which applies it via the normal Save path). Keeping the
 // key in the shared module keeps the writer and reader in lockstep.
-export const IMPORT_DESIGN_DRAFT_KEY = "mm_import_design_draft";
+export const IMPORT_DESIGN_DRAFT_KEY = "ss_import_design_draft";
+// Pre-rebrand key. Reads fall back to it so a draft saved before the rename
+// still applies; writes always use the new key.
+export const LEGACY_IMPORT_DESIGN_DRAFT_KEY = "mm_import_design_draft";
 
 // True when a "Claim this design" draft is waiting in the browser. The signup
 // flow uses this (not a threaded query param) to decide whether to finish on the
@@ -152,7 +155,10 @@ export const IMPORT_DESIGN_DRAFT_KEY = "mm_import_design_draft";
 export function hasPendingImportDraft(): boolean {
   if (typeof window === "undefined") return false;
   try {
-    return !!window.localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY);
+    return !!(
+      window.localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY) ??
+      window.localStorage.getItem(LEGACY_IMPORT_DESIGN_DRAFT_KEY)
+    );
   } catch {
     return false;
   }

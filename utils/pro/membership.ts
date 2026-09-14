@@ -230,7 +230,7 @@ export async function applyStripeSubscriptionToMembership(
   }
   if (!pubkey) {
     // Subscription state changed at Stripe but nothing local ties it to a
-    // seller: no mmProPubkey metadata and no pro_memberships row. The
+    // seller: no ssProPubkey/mmProPubkey metadata and no pro_memberships row. The
     // entitlement change is silently dropped unless ops reconciles manually,
     // so this MUST be loud. Returning (not throwing) is correct — retrying
     // will never manufacture the missing row.
@@ -503,9 +503,11 @@ export async function adminRevokeMembership(pubkey: string): Promise<void> {
 export async function applyStripeLifetimePayment(
   pi: Stripe.PaymentIntent
 ): Promise<void> {
-  const pubkey = pi.metadata?.mmProPubkey;
+  const pubkey = pi.metadata?.ssProPubkey ?? pi.metadata?.mmProPubkey;
   if (!pubkey) {
-    console.warn("applyStripeLifetimePayment: no mmProPubkey on PaymentIntent");
+    console.warn(
+      "applyStripeLifetimePayment: no ssProPubkey/mmProPubkey on PaymentIntent"
+    );
     return;
   }
   const customerId =

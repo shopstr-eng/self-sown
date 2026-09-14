@@ -19,7 +19,7 @@ import {
   ReviewsContext,
 } from "../../utils/context/context";
 import { NostrMessageEvent } from "../../utils/types/types";
-import SelfSownSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/ss-spinner";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import ClaimButton from "@/components/utility-components/claim-button";
 import SellerEscrowCell from "@/components/escrow/seller-escrow-cell";

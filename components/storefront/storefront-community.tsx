@@ -2,7 +2,7 @@ import { StorefrontColorScheme } from "@/utils/types/types";
 import { Community } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import CommunityFeed from "@/components/communities/CommunityFeed";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 interface StorefrontCommunityProps {
   shopPubkey: string;

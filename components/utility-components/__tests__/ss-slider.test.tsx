@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import SelfSownSlider from "../mm-slider";
+import SelfSownSlider from "../ss-slider";
 import { FollowsContext } from "@/utils/context/context";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 

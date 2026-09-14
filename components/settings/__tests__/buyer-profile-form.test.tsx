@@ -59,8 +59,8 @@ jest.mock("@/components/utility-components/nostr-context-provider", () => {
   };
 });
 
-// Downstream uses SelfSownSpinner (mm-spinner), not the upstream shopstr-spinner.
-jest.mock("@/components/utility-components/mm-spinner", () => () => null);
+// Downstream uses SelfSownSpinner (ss-spinner), not the upstream shopstr-spinner.
+jest.mock("@/components/utility-components/ss-spinner", () => () => null);
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   createNostrProfileEvent: jest.fn(),
 }));

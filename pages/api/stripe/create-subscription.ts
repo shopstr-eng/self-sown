@@ -346,6 +346,7 @@ export default async function handler(
             originalAmount: amount.toString(),
             originalCurrency: currency,
             ...(applicationFeePercent > 0 && {
+              ssDonationPercent: applicationFeePercent.toString(),
               mmDonationPercent: applicationFeePercent.toString(),
             }),
             // Only stamp affiliate metadata when a coupon was actually

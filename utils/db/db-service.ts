@@ -3293,7 +3293,7 @@ export async function fetchShopPubkeyBySlug(
 
 // A single-tenant self-host instance starts with an EMPTY slug registry: the
 // seller claimed their slug in the PLATFORM's database, not this one. The
-// instance already knows its tenant via MM_SELF_HOST_PUBKEY/MM_SELF_HOST_SLUG,
+// instance already knows its tenant via SS_SELF_HOST_PUBKEY/SS_SELF_HOST_SLUG,
 // so resolve the tenant slug from config on a DB miss instead of 404ing the
 // storefront root until something syncs the row. Platform (multi-tenant)
 // behavior is unchanged: the fallback returns null when self-host is off, and

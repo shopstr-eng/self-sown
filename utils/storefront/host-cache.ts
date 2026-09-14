@@ -64,9 +64,11 @@ export async function lookupSlugByHost(
  * the row exists and is verified.
  *
  * Always talking to the platform host avoids the loop entirely. Override
- * with MM_LOOKUP_ORIGIN in non-prod (e.g. preview deployments) if needed.
+ * with SS_LOOKUP_ORIGIN in non-prod (e.g. preview deployments) if needed
+ * (legacy MM_LOOKUP_ORIGIN still honored).
  */
-const PLATFORM_LOOKUP_ORIGIN = process.env.MM_LOOKUP_ORIGIN ?? SITE_URL;
+const PLATFORM_LOOKUP_ORIGIN =
+  process.env.SS_LOOKUP_ORIGIN ?? process.env.MM_LOOKUP_ORIGIN ?? SITE_URL;
 
 /**
  * Resolve a host to both its shop slug and the seller's pubkey in one

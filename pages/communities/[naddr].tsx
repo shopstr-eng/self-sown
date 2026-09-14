@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import { CommunityContext } from "@/utils/context/context";
 import { Community } from "@/utils/types/types";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import CommunityFeed from "@/components/communities/CommunityFeed";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { GetServerSideProps } from "next";

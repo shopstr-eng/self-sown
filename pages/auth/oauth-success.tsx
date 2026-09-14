@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { setLocalStorageDataOnSignIn } from "@/utils/nostr/nostr-helper-functions";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
-import SelfSownSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { RelaysContext } from "@/utils/context/context";
 
 export default function OAuthSuccess() {

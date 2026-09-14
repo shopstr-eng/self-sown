@@ -23,7 +23,7 @@ export interface BuiltShopifyListing {
   warnings: string[];
 }
 
-const SHOPIFY_TO_MM_STATUS: Record<string, string> = {
+const SHOPIFY_TO_LISTING_STATUS: Record<string, string> = {
   active: "active",
   draft: "inactive",
   archived: "inactive",
@@ -121,8 +121,8 @@ export function buildListingFromShopifyProduct(
   const currency = defaultCurrency;
 
   // Map Shopify status to MM status
-  const mmStatus =
-    SHOPIFY_TO_MM_STATUS[(product.status || "active").toLowerCase()] ||
+  const listingStatus =
+    SHOPIFY_TO_LISTING_STATUS[(product.status || "active").toLowerCase()] ||
     "active";
 
   // Validate images
@@ -239,7 +239,7 @@ export function buildListingFromShopifyProduct(
   }
 
   // Status
-  tags.push(["status", mmStatus]);
+  tags.push(["status", listingStatus]);
 
   // Pickup locations if shipping option includes pickup
   if (

@@ -7,7 +7,7 @@
 // files, so compression would buy nothing. Output is a single Node Buffer.
 
 export interface ZipEntry {
-  // Forward-slash path inside the archive (e.g. "config/milk-market.config.json").
+  // Forward-slash path inside the archive (e.g. "config/self-sown.config.json").
   name: string;
   // File contents. Strings are encoded as UTF-8.
   data: string | Uint8Array;

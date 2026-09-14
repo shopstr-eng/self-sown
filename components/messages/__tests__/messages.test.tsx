@@ -13,7 +13,7 @@ import * as nostrHelper from "@/utils/nostr/nostr-helper-functions";
 import * as keypressHandler from "@/utils/keypress-handler";
 import { useRouter } from "next/router";
 
-jest.mock("../../utility-components/mm-spinner", () => {
+jest.mock("../../utility-components/ss-spinner", () => {
   return function MockSelfSownSpinner() {
     return <div data-testid="spinner"></div>;
   };
