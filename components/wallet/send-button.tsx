@@ -30,6 +30,7 @@ import {
   publishProofEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import { pickMintForPayment } from "@/utils/cashu/wallet-mint-sync";
+import { joinClassNames } from "@/utils/class-names";
 import {
   Mint as CashuMint,
   Wallet as CashuWallet,
@@ -363,14 +364,16 @@ const SendButton = () => {
                         </p>
                         <ClipboardIcon
                           onClick={handleCopyTokenString}
-                          className={`h-6 w-6 cursor-pointer text-black hover:text-gray-600 ${
+                          className={joinClassNames(
+                            "h-6 w-6 cursor-pointer text-black hover:text-gray-600",
                             copiedToClipboard ? "hidden" : ""
-                          }`}
+                          )}
                         />
                         <CheckIcon
-                          className={`h-6 w-6 cursor-pointer text-green-600 ${
+                          className={joinClassNames(
+                            "h-6 w-6 cursor-pointer text-green-600",
                             copiedToClipboard ? "" : "hidden"
-                          }`}
+                          )}
                         />
                       </div>
                     ) : (

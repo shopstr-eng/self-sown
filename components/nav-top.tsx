@@ -11,6 +11,7 @@ import SignInModal from "./sign-in/SignInModal";
 import { ProfileWithDropdown } from "./utility-components/profile/profile-dropdown";
 import { ShopProfile } from "../utils/types/types";
 import { getLocalStorageJson } from "@/utils/safe-json";
+import { joinClassNames } from "@/utils/class-names";
 
 const TopNav = ({
   setFocusedPubkey,
@@ -129,9 +130,11 @@ const TopNav = ({
       <Button
         as={NextLink}
         href="/marketplace"
-        className={`w-full bg-transparent ${
-          isHomeActive ? "text-primary-yellow" : "text-white"
-        } hover:text-primary-yellow`}
+        className={joinClassNames(
+          "w-full bg-transparent",
+          isHomeActive ? "text-primary-yellow" : "text-white",
+          "hover:text-primary-yellow"
+        )}
         onClick={handleHomeClick}
       >
         Marketplace
@@ -139,9 +142,11 @@ const TopNav = ({
       <Button
         as={NextLink}
         href="/communities"
-        className={`w-full bg-transparent ${
-          isCommunitiesActive ? "text-primary-yellow" : "text-white"
-        } hover:text-primary-yellow`}
+        className={joinClassNames(
+          "w-full bg-transparent",
+          isCommunitiesActive ? "text-primary-yellow" : "text-white",
+          "hover:text-primary-yellow"
+        )}
         onClick={() => {
           setIsMobileMenuOpen(false);
         }}
@@ -152,9 +157,11 @@ const TopNav = ({
         <Button
           as={NextLink}
           href="/settings/stall?tab=products"
-          className={`w-full bg-transparent ${
-            isMyListingsActive ? "text-primary-yellow" : "text-white"
-          } hover:text-primary-yellow`}
+          className={joinClassNames(
+            "w-full bg-transparent",
+            isMyListingsActive ? "text-primary-yellow" : "text-white",
+            "hover:text-primary-yellow"
+          )}
           onClick={(e) => {
             if (!signedIn) {
               e.preventDefault();
@@ -170,9 +177,11 @@ const TopNav = ({
       <Button
         as={NextLink}
         href="/orders"
-        className={`w-full bg-transparent ${
-          isMessagesActive ? "text-primary-yellow" : "text-white"
-        } hover:text-primary-yellow`}
+        className={joinClassNames(
+          "w-full bg-transparent",
+          isMessagesActive ? "text-primary-yellow" : "text-white",
+          "hover:text-primary-yellow"
+        )}
         onClick={(e) => {
           if (!signedIn) {
             e.preventDefault();
@@ -192,9 +201,11 @@ const TopNav = ({
       <Button
         as={NextLink}
         href="/wallet"
-        className={`w-full bg-transparent ${
-          isWalletActive ? "text-primary-yellow" : "text-white"
-        } hover:text-primary-yellow`}
+        className={joinClassNames(
+          "w-full bg-transparent",
+          isWalletActive ? "text-primary-yellow" : "text-white",
+          "hover:text-primary-yellow"
+        )}
         onClick={(e) => {
           if (!signedIn) {
             e.preventDefault();
@@ -209,9 +220,11 @@ const TopNav = ({
       <Button
         as={NextLink}
         href="/cart"
-        className={`w-full bg-transparent ${
-          router.pathname === "/cart" ? "text-primary-yellow" : "text-white"
-        } hover:text-primary-yellow`}
+        className={joinClassNames(
+          "w-full bg-transparent",
+          router.pathname === "/cart" ? "text-primary-yellow" : "text-white",
+          "hover:text-primary-yellow"
+        )}
         onClick={() => {
           setIsMobileMenuOpen(false);
         }}
@@ -289,9 +302,11 @@ const TopNav = ({
           <Button
             as={NextLink}
             href="/marketplace"
-            className={`bg-transparent ${
-              isHomeActive ? "text-primary-yellow font-bold" : "text-white"
-            } hover:text-primary-yellow`}
+            className={joinClassNames(
+              "bg-transparent",
+              isHomeActive ? "text-primary-yellow font-bold" : "text-white",
+              "hover:text-primary-yellow"
+            )}
             onClick={handleHomeClick}
           >
             Marketplace
@@ -299,11 +314,13 @@ const TopNav = ({
           <Button
             as={NextLink}
             href="/communities"
-            className={`bg-transparent ${
+            className={joinClassNames(
+              "bg-transparent",
               isCommunitiesActive
                 ? "text-primary-yellow font-bold"
-                : "text-white"
-            } hover:text-primary-yellow`}
+                : "text-white",
+              "hover:text-primary-yellow"
+            )}
           >
             Communities
           </Button>
@@ -311,11 +328,13 @@ const TopNav = ({
             <Button
               as={NextLink}
               href="/settings/stall?tab=products"
-              className={`bg-transparent ${
+              className={joinClassNames(
+                "bg-transparent",
                 isMyListingsActive
                   ? "text-primary-yellow font-bold"
-                  : "text-white"
-              } hover:text-primary-yellow`}
+                  : "text-white",
+                "hover:text-primary-yellow"
+              )}
               onClick={(e) => {
                 if (!signedIn) {
                   e.preventDefault();
@@ -329,9 +348,11 @@ const TopNav = ({
           <Button
             as={NextLink}
             href="/orders"
-            className={`bg-transparent ${
-              isMessagesActive ? "text-primary-yellow font-bold" : "text-white"
-            } hover:text-primary-yellow`}
+            className={joinClassNames(
+              "bg-transparent",
+              isMessagesActive ? "text-primary-yellow font-bold" : "text-white",
+              "hover:text-primary-yellow"
+            )}
             onClick={(e) => {
               if (!signedIn) {
                 e.preventDefault();
@@ -349,9 +370,11 @@ const TopNav = ({
           <Button
             as={NextLink}
             href="/wallet"
-            className={`bg-transparent ${
-              isWalletActive ? "text-primary-yellow font-bold" : "text-white"
-            } hover:text-primary-yellow`}
+            className={joinClassNames(
+              "bg-transparent",
+              isWalletActive ? "text-primary-yellow font-bold" : "text-white",
+              "hover:text-primary-yellow"
+            )}
             onClick={(e) => {
               if (!signedIn) {
                 e.preventDefault();
@@ -364,9 +387,11 @@ const TopNav = ({
           <Button
             as={NextLink}
             href="/cart"
-            className={`bg-transparent ${
-              isCartActive ? "text-primary-yellow font-bold" : "text-white"
-            } hover:text-primary-yellow`}
+            className={joinClassNames(
+              "bg-transparent",
+              isCartActive ? "text-primary-yellow font-bold" : "text-white",
+              "hover:text-primary-yellow"
+            )}
           >
             Cart
             {cartQuantity > 0 && (
@@ -393,9 +418,13 @@ const TopNav = ({
           ) : (
             <Button
               onClick={onOpen}
-              className={`bg-transparent ${
-                isProfileActive ? "text-primary-yellow font-bold" : "text-white"
-              } hover:text-primary-yellow duration-200`}
+              className={joinClassNames(
+                "bg-transparent",
+                isProfileActive
+                  ? "text-primary-yellow font-bold"
+                  : "text-white",
+                "hover:text-primary-yellow duration-200"
+              )}
             >
               Sign In
             </Button>

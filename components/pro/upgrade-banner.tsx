@@ -2,6 +2,7 @@ import { Button, Card, CardBody } from "@heroui/react";
 import { useRouter } from "next/router";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
+import { joinClassNames } from "@/utils/class-names";
 
 interface UpgradeBannerProps {
   /** Optional feature name to tailor the copy, e.g. "custom domains". */
@@ -33,9 +34,10 @@ export default function UpgradeBanner({
 
   return (
     <Card
-      className={`shadow-neo rounded-md border-2 border-black bg-white${
-        className ? ` ${className}` : ""
-      }`}
+      className={joinClassNames(
+        "shadow-neo rounded-md border-2 border-black bg-white",
+        className
+      )}
     >
       <CardBody className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

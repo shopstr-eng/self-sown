@@ -16,6 +16,7 @@ import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import SectionRenderer from "@/components/storefront/section-renderer";
 import StorefrontFooterComponent from "@/components/storefront/storefront-footer";
 import FormattedText from "@/components/storefront/formatted-text";
+import { joinClassNames } from "@/utils/class-names";
 
 const PLACEHOLDER_IMAGES = [
   "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=400&fit=crop",
@@ -798,15 +799,17 @@ export default function StorefrontPreviewPanel({
       `}</style>
 
       <div
-        className={`flex items-center justify-between border-b border-gray-700 bg-gray-900 ${
+        className={joinClassNames(
+          "flex items-center justify-between border-b border-gray-700 bg-gray-900",
           compact ? "px-3 py-2" : "px-4 py-3"
-        }`}
+        )}
       >
         <div className="flex items-center gap-3">
           <h3
-            className={`font-bold text-white ${
+            className={joinClassNames(
+              "font-bold text-white",
               compact ? "text-sm" : "text-base"
-            }`}
+            )}
           >
             {previewPage
               ? `Page: ${
@@ -832,11 +835,12 @@ export default function StorefrontPreviewPanel({
                 key={v.key}
                 type="button"
                 onClick={() => setViewportWidth(v.key)}
-                className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                className={joinClassNames(
+                  "rounded px-2 py-1 text-xs font-medium transition-colors",
                   viewportWidth === v.key
                     ? "bg-gray-600 text-white"
                     : "text-gray-400 hover:text-white"
-                }`}
+                )}
                 title={v.fullLabel}
               >
                 {compact ? v.label : v.fullLabel}
@@ -848,22 +852,24 @@ export default function StorefrontPreviewPanel({
             <button
               type="button"
               onClick={() => setPreviewPage("")}
-              className={`rounded px-2 py-1 text-xs font-medium ${
+              className={joinClassNames(
+                "rounded px-2 py-1 text-xs font-medium",
                 !previewPage
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:text-white"
-              }`}
+              )}
             >
               Home
             </button>
             <button
               type="button"
               onClick={() => setPreviewPage(STALL_SENTINEL)}
-              className={`rounded px-2 py-1 text-xs font-medium ${
+              className={joinClassNames(
+                "rounded px-2 py-1 text-xs font-medium",
                 previewPage === STALL_SENTINEL
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:text-white"
-              }`}
+              )}
             >
               Stall
             </button>
@@ -872,11 +878,12 @@ export default function StorefrontPreviewPanel({
                 key={page.id}
                 type="button"
                 onClick={() => setPreviewPage(page.slug)}
-                className={`rounded px-2 py-1 text-xs font-medium ${
+                className={joinClassNames(
+                  "rounded px-2 py-1 text-xs font-medium",
                   previewPage === page.slug
                     ? "bg-blue-600 text-white"
                     : "text-gray-400 hover:text-white"
-                }`}
+                )}
               >
                 {page.title}
               </button>
@@ -899,7 +906,10 @@ export default function StorefrontPreviewPanel({
         >
           <div
             ref={containerRef}
-            className={`preview-container ${neoShadows ? "sf-neo" : ""} min-h-[600px] overflow-hidden rounded-lg shadow-2xl`}
+            className={joinClassNames(
+              "preview-container min-h-[600px] overflow-hidden rounded-lg shadow-2xl",
+              neoShadows ? "sf-neo" : ""
+            )}
             style={{
               width: targetWidth,
               transform: `scale(${previewScale})`,
@@ -1196,9 +1206,11 @@ function PreviewNav({
           <div className="flex flex-1 items-center">{logoNode}</div>
         ) : (
           <div
-            className={`flex flex-1 items-center ${resolved.linkGapClass} ${
+            className={joinClassNames(
+              "flex flex-1 items-center",
+              resolved.linkGapClass,
               resolved.linkJustifyClass || "justify-center"
-            }`}
+            )}
           >
             {linkItems}
           </div>
@@ -1220,9 +1232,11 @@ function PreviewNav({
     inner = (
       <div className="mx-auto grid max-w-6xl grid-cols-3 items-center px-4 py-2 md:px-6">
         <div
-          className={`flex items-center ${resolved.linkGapClass} ${
+          className={joinClassNames(
+            "flex items-center",
+            resolved.linkGapClass,
             resolved.linkJustifyClass || "justify-start"
-          }`}
+          )}
         >
           {linkItems}
         </div>

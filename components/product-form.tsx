@@ -28,6 +28,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { joinClassNames } from "@/utils/class-names";
 import {
   PREVNEXTBUTTONSTYLES,
   CATEGORIES,
@@ -2584,22 +2585,24 @@ export default function ProductForm({
                                   <Button
                                     type="button"
                                     onClick={() => onDisplayChange("buttons")}
-                                    className={`shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold ${
+                                    className={joinClassNames(
+                                      "shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold",
                                       mode === "buttons"
                                         ? "bg-primary-yellow text-black"
                                         : "bg-white text-black"
-                                    }`}
+                                    )}
                                   >
                                     Selectable Buttons
                                   </Button>
                                   <Button
                                     type="button"
                                     onClick={() => onDisplayChange("dropdown")}
-                                    className={`shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold ${
+                                    className={joinClassNames(
+                                      "shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold",
                                       mode === "dropdown"
                                         ? "bg-primary-yellow text-black"
                                         : "bg-white text-black"
-                                    }`}
+                                    )}
                                   >
                                     Dropdown
                                   </Button>

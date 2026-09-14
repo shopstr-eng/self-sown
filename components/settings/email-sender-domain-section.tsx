@@ -3,6 +3,7 @@
 import { useCallback, useContext, useEffect, useState } from "react";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
+import { joinClassNames } from "@/utils/class-names";
 
 type DnsRecord = {
   key: string;
@@ -64,11 +65,12 @@ function DnsRow({ record }: { record: DnsRecord }) {
           {record.key}
         </span>
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+          className={joinClassNames(
+            "rounded-full px-2 py-0.5 text-xs font-bold",
             record.valid
               ? "bg-green-100 text-green-800"
               : "bg-amber-100 text-amber-800"
-          }`}
+          )}
         >
           {record.valid ? "Verified" : "Pending"}
         </span>
@@ -365,11 +367,12 @@ export default function EmailSenderDomainSection() {
               </p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${
+              className={joinClassNames(
+                "rounded-full px-3 py-1 text-xs font-bold",
                 record.valid
                   ? "bg-green-100 text-green-800"
                   : "bg-amber-100 text-amber-800"
-              }`}
+              )}
             >
               {record.valid ? "Verified" : "Waiting for DNS"}
             </span>

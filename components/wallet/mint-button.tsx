@@ -33,6 +33,7 @@ import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
 import QRCode from "qrcode";
 import { copyToClipboard } from "@/utils/clipboard";
 import FailureModal from "@/components/utility-components/failure-modal";
+import { joinClassNames } from "@/utils/class-names";
 import { PaymentCountdown } from "@/components/utility-components/payment-countdown";
 import {
   NostrContext,
@@ -458,14 +459,16 @@ const MintButton = () => {
                               </p>
                               <ClipboardIcon
                                 onClick={handleCopyInvoice}
-                                className={`ml-2 h-5 w-5 cursor-pointer text-black hover:text-gray-600 ${
+                                className={joinClassNames(
+                                  "ml-2 h-5 w-5 cursor-pointer text-black hover:text-gray-600",
                                   copiedToClipboard ? "hidden" : ""
-                                }`}
+                                )}
                               />
                               <CheckIcon
-                                className={`ml-2 h-5 w-5 cursor-pointer text-green-600 ${
+                                className={joinClassNames(
+                                  "ml-2 h-5 w-5 cursor-pointer text-green-600",
                                   copiedToClipboard ? "" : "hidden"
-                                }`}
+                                )}
                               />
                             </div>
                           </>

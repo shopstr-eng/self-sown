@@ -31,6 +31,7 @@ import {
   PostListing,
   getLocalStorageData,
 } from "@/utils/nostr/nostr-helper-functions";
+import { joinClassNames } from "@/utils/class-names";
 import {
   NostrContext,
   SignerContext,
@@ -966,9 +967,10 @@ function ResultsList({
   if (results.length === 0) return null;
   return (
     <div
-      className={`overflow-y-auto rounded-md border-2 border-black ${
+      className={joinClassNames(
+        "overflow-y-auto rounded-md border-2 border-black",
         compact ? "max-h-40" : "max-h-[360px]"
-      }`}
+      )}
     >
       <ul className="divide-y-2 divide-black">
         {results.map((r, idx) => (

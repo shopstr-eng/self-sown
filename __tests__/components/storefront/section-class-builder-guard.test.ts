@@ -79,18 +79,24 @@
 // stays sections-scoped: those fields only exist on sections.)
 //
 // The bug class is not storefront-specific, so the three generic scans below
-// also cover the next-riskiest NON-storefront surfaces
-// (SCOPED_NON_STOREFRONT_FILES + SCOPED_NON_STOREFRONT_DIRS): the
-// checkout/invoice cards, the whole chat UI and seller dashboards
-// (components/messages), the landing page (components/home), and every shared
-// utility component (components/utility-components, walked recursively), where
-// the same dropped space would silently strip styling from payment buttons,
-// chat bubbles, form borders, and order-status badges. Those files compose
-// conditional classes through the same joinClassNames helper, now shared from
-// utils/class-names.ts (re-exported by section-elements.tsx), and their few
-// legitimate non-class template/concat conditionals (buyer and seller message
-// bodies, shipping-address fallbacks, spec-descriptor text, emoji labels,
-// numeric style-value fallbacks) are named in the same
+// cover EVERY component file via one recursive walk of components/
+// (collectAllComponentSources below): the checkout/invoice cards, the whole
+// chat UI and seller dashboards (components/messages), the landing page
+// (components/home), every shared utility component
+// (components/utility-components), the admin, settings, and seller-onboarding
+// screens (sign-in, stall setup, migration modals, Stripe/Square connect),
+// the wallet buttons, shipping label purchase, Pro checkout, escrow,
+// communities, listing views, and every storefront file (sections of any
+// name, chrome, blog), where the same dropped space would silently strip
+// styling from payment buttons, chat bubbles, form borders, nav links, and
+// order-status badges. A new file or directory under components/ is covered
+// automatically — nothing can silently drop out of the scan. Those files
+// compose conditional classes through the same joinClassNames helper, now
+// shared from utils/class-names.ts (re-exported by section-elements.tsx), and
+// their few legitimate non-class template/concat conditionals (buyer and
+// seller message bodies, shipping-address fallbacks, spec-descriptor text,
+// emoji labels, numeric style-value fallbacks, URL builders, pluralization
+// suffixes, error messages, CSS blocks) are named in the same
 // NON_CLASS_TEMPLATE_ALLOWLIST / NON_CLASS_CONCAT_ALLOWLIST lists with the
 // same unused-entry contract.
 
@@ -98,38 +104,18 @@ import { readdirSync, readFileSync, statSync } from "fs";
 import { join, relative } from "path";
 import ts from "typescript";
 
-const SECTIONS_DIR = join(
-  process.cwd(),
-  "components",
-  "storefront",
-  "sections"
-);
+const COMPONENTS_DIR = join(process.cwd(), "components");
 
-const STOREFRONT_DIR = join(process.cwd(), "components", "storefront");
+const SECTIONS_DIR = join(COMPONENTS_DIR, "storefront", "sections");
 
-// Next-riskiest NON-storefront surfaces held to the same three generic scans
-// (className templates, whole-file templates, '+' concatenation): the
-// checkout/invoice cards a buyer pays through, the chat UI and seller
-// dashboard components, the landing page, and every shared utility
-// component. Their legitimate non-class conditionals are allowlisted below;
-// everything class-feeding composes through joinClassNames from
-// utils/class-names.ts. Paths are workspace-relative; the coverage test at
-// the bottom fails loudly if one is renamed or dropped from the scan.
-const SCOPED_NON_STOREFRONT_FILES = [
-  "components/product-invoice-card.tsx",
-  "components/cart-invoice-card.tsx",
-];
-
-// Whole directories held to the same three generic scans, walked recursively
-// (skipping __tests__ — test fixtures are not shipped UI) so a NEW component
-// file is covered automatically: the chat UI, the landing page, and the
-// shared utility components (checkout card, address picker, file uploader,
-// pricing cards, …).
-const SCOPED_NON_STOREFRONT_DIRS = [
-  "components/messages",
-  "components/home",
-  "components/utility-components",
-];
+// Every shipped component file is held to the three generic scans (className
+// templates, whole-file templates, '+' concatenation) via ONE recursive walk
+// of components/ (see collectAllComponentSources below) — there is no
+// hard-coded file or directory list, so a new component, a new subdirectory,
+// or a new top-level directory under components/ is covered automatically and
+// can never silently drop out of the scan. The few legitimate non-class
+// conditionals in these files are allowlisted below; everything
+// class-feeding composes through joinClassNames from utils/class-names.ts.
 
 // The shared builders legitimately branch on headingSize/bodySize. The
 // allowlist exempts section-elements.tsx from ONLY the legacy size-field
@@ -314,7 +300,10 @@ function hasTopLevelConditional(expr: string): boolean {
 // ---------------------------------------------------------------------------
 
 // Expression text of every template-literal interpolation in the file.
-function templateLiteralExpressions(source: string, fileName: string): string[] {
+function templateLiteralExpressions(
+  source: string,
+  fileName: string
+): string[] {
   const sf = ts.createSourceFile(
     fileName,
     source,
@@ -556,7 +545,8 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
   // text template, not a class token.
   {
     file: "components/storefront/sections/section-product-shipping-returns.tsx",
-    snippet: "product.shippingCost ? `: ${product.shippingCost} ${product.currency}` :",
+    snippet:
+      "product.shippingCost ? `: ${product.shippingCost} ${product.currency}` :",
     reason: "shipping-cost suffix in shipping-returns display text",
   },
   // React element key for bold/emphasis inline nodes.
@@ -616,7 +606,7 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: "skippedCount > 0 ? ` ${skippedCount} skipped",
     reason: "skipped-mint suffix in wallet restore message",
   },
-  // ---- Scoped non-storefront surfaces (SCOPED_NON_STOREFRONT_FILES) ----
+  // ---- Non-storefront surfaces ----
   // Shipping-address unit suffix + field fallbacks in order display text
   // (components/product-invoice-card.tsx).
   {
@@ -624,13 +614,16 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: "paymentData.shippingUnitNo ? `",
     reason: "unit-number suffix in shipping-address display text",
   },
-  ...["shippingCity", "shippingState", "shippingPostalCode", "shippingCountry"].map(
-    (field) => ({
-      file: "components/product-invoice-card.tsx",
-      snippet: `paymentData.${field} || ""`,
-      reason: "address-field fallback in shipping-address display text",
-    })
-  ),
+  ...[
+    "shippingCity",
+    "shippingState",
+    "shippingPostalCode",
+    "shippingCountry",
+  ].map((field) => ({
+    file: "components/product-invoice-card.tsx",
+    snippet: `paymentData.${field} || ""`,
+    reason: "address-field fallback in shipping-address display text",
+  })),
   // Spec-descriptor suffixes in order display text (each appears in both the
   // buyer and seller summary builders). The selectedVariant entry must stay
   // BEFORE the bare variantLabel entry: the selectedVariant expression
@@ -668,25 +661,31 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: "paymentData.shippingUnitNo ? `",
     reason: "unit-number suffix in shipping-address display text",
   },
-  ...["shippingCity", "shippingState", "shippingPostalCode", "shippingCountry"].map(
-    (field) => ({
-      file: "components/cart-invoice-card.tsx",
-      snippet: `paymentData.${field} || ""`,
-      reason: "address-field fallback in shipping-address display text",
-    })
-  ),
+  ...[
+    "shippingCity",
+    "shippingState",
+    "shippingPostalCode",
+    "shippingCountry",
+  ].map((field) => ({
+    file: "components/cart-invoice-card.tsx",
+    snippet: `paymentData.${field} || ""`,
+    reason: "address-field fallback in shipping-address display text",
+  })),
   {
     file: "components/cart-invoice-card.tsx",
     snippet: "data.shippingUnitNo ? `",
     reason: "unit-number suffix in shipping-address display text",
   },
-  ...["shippingCity", "shippingState", "shippingPostalCode", "shippingCountry"].map(
-    (field) => ({
-      file: "components/cart-invoice-card.tsx",
-      snippet: `data.${field} || ""`,
-      reason: "address-field fallback in shipping-address display text",
-    })
-  ),
+  ...[
+    "shippingCity",
+    "shippingState",
+    "shippingPostalCode",
+    "shippingCountry",
+  ].map((field) => ({
+    file: "components/cart-invoice-card.tsx",
+    snippet: `data.${field} || ""`,
+    reason: "address-field fallback in shipping-address display text",
+  })),
   {
     file: "components/cart-invoice-card.tsx",
     snippet: "shippingData.Unit ? `",
@@ -754,6 +753,188 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     file: "components/utility-components/pdf-annotator.tsx",
     snippet: "annotation.fontSize || 14",
     reason: "annotation font-size fallback in canvas style value",
+  },
+  // ---- Newly scoped surfaces: admin/settings/onboarding, wallet, shipping,
+  // Pro, stall, sign-in, and the remaining top-level components ----
+  // Listing-validation message text and event-body image URL in
+  // components/product-form.tsx. The fields.length > 1 entry must stay BEFORE
+  // the bare fields.length - 1 entry: the outer validation-message template
+  // embeds the inner pluralization, and first-match-wins would otherwise
+  // leave this entry unused and fail the guard.
+  {
+    file: "components/product-form.tsx",
+    snippet: "fields.length > 1 ? `",
+    reason: "field-count detail in listing-validation message text",
+  },
+  {
+    file: "components/product-form.tsx",
+    snippet: 'fields.length - 1 === 1 ? "" : "s"',
+    reason: "pluralization suffix in listing-validation message text",
+  },
+  {
+    file: "components/product-form.tsx",
+    snippet: 'fields.length === 1 ? "" : "s"',
+    reason: "pluralization suffix in listing-validation message text",
+  },
+  {
+    file: "components/product-form.tsx",
+    snippet: 'max === 1 ? "" : "s"',
+    reason: "pluralization suffix in decimal-place validation text",
+  },
+  {
+    file: "components/product-form.tsx",
+    snippet: 'images[0] || ""',
+    reason: "image URL in Nostr flash-sale event body text",
+  },
+  // Bulk-selection pluralization in confirmation/button text
+  // (components/customize-product-page-modal.tsx).
+  {
+    file: "components/customize-product-page-modal.tsx",
+    snippet: 'targets.length === 1 ? "" : "s"',
+    reason: "pluralization suffix in bulk-apply confirmation text",
+  },
+  {
+    file: "components/customize-product-page-modal.tsx",
+    snippet: 'bulkSelectedIds.size === 1 ? "" : "s"',
+    reason: "pluralization suffix in bulk-selection button text",
+  },
+  // Canonical/OG URL construction in the meta heads — path strings, never
+  // classes.
+  {
+    file: "components/dynamic-meta-head.tsx",
+    snippet: 'cleanPath === "/" ? "" : cleanPath',
+    reason: "root-path elision in canonical URL text",
+  },
+  {
+    file: "components/dynamic-meta-head.tsx",
+    snippet: 'customDomainOriginalPath === "/" ? "" : customDomainOriginalPath',
+    reason: "root-path elision in custom-domain canonical URL text",
+  },
+  {
+    file: "components/dynamic-meta-head.tsx",
+    snippet: "slug || productId",
+    reason: "listing path segment in canonical URL text",
+  },
+  {
+    file: "components/dynamic-meta-head.tsx",
+    snippet: 'url.startsWith("/") ? "" : "/"',
+    reason: "path separator in URL text",
+  },
+  {
+    file: "components/og-head.tsx",
+    snippet: 'url.startsWith("/") ? "" : "/"',
+    reason: "path separator in OG image URL text",
+  },
+  // Currency fallback in purchase-button display text.
+  {
+    file: "components/ZapsnagButton.tsx",
+    snippet: 'product.currency || "sats"',
+    reason: "currency fallback in purchase-button display text",
+  },
+  // Wallet-connection error message (components/settings/nwc-section.tsx).
+  {
+    file: "components/settings/nwc-section.tsx",
+    snippet:
+      'e.message || "Please check the connection string and wallet permissions."',
+    reason: "error-message fallback in wallet-connection display text",
+  },
+  // Truncation ellipsis in the review preview text
+  // (components/settings/storefront/section-editor.tsx).
+  {
+    file: "components/settings/storefront/section-editor.tsx",
+    snippet: 'review.comment.length > 60 ? "..." : ""',
+    reason: "truncation ellipsis in review preview display text",
+  },
+  // Preview display copy, @font-face family-name fallbacks, and the
+  // neo-shadow CSS override block in the storefront preview panel
+  // (components/settings/storefront/storefront-preview-panel.tsx) — same
+  // non-class shapes as the storefront-layout/theme-wrapper entries above.
+  {
+    file: "components/settings/storefront/storefront-preview-panel.tsx",
+    snippet: 'shopName || "Our Farm"',
+    reason: "shop-name fallback in preview display text",
+  },
+  {
+    file: "components/settings/storefront/storefront-preview-panel.tsx",
+    snippet: '|| "CustomHeading"',
+    reason: "custom heading-font family-name fallback in @font-face CSS text",
+  },
+  {
+    file: "components/settings/storefront/storefront-preview-panel.tsx",
+    snippet: '|| "CustomBody"',
+    reason: "custom body-font family-name fallback in @font-face CSS text",
+  },
+  {
+    file: "components/settings/storefront/storefront-preview-panel.tsx",
+    snippet: "neoShadows ? `",
+    reason: "neo-shadow CSS override block in <style> text",
+  },
+  {
+    file: "components/settings/storefront/storefront-preview-panel.tsx",
+    snippet: 'previewPage === STALL_SENTINEL ? "Stall" :',
+    reason: "previewed-page label in preview chrome display text",
+  },
+  // Affiliate form labels and error/confirmation text
+  // (components/stall/affiliates.tsx).
+  {
+    file: "components/stall/affiliates.tsx",
+    snippet: 'buyerDiscountType === "percent" ? "%" : "amount"',
+    reason: "discount-type unit suffix in form-label display text",
+  },
+  {
+    file: "components/stall/affiliates.tsx",
+    snippet: 'rebateType === "percent" ? "%" : "amount"',
+    reason: "rebate-type unit suffix in form-label display text",
+  },
+  {
+    file: "components/stall/affiliates.tsx",
+    snippet: 'j.error || "Affiliate has unsettled balance."',
+    reason: "error fallback in payout confirmation text",
+  },
+  {
+    file: "components/stall/affiliates.tsx",
+    snippet: "j.error || res.status",
+    reason: "error/status fallback in payout alert text",
+  },
+  // Migration-modal error text and pluralization suffixes.
+  {
+    file: "components/stall/shopify-migration-modal.tsx",
+    snippet: 'err instanceof Error ? err.message : "unknown error"',
+    reason: "error-message fallback in migration warning text",
+  },
+  {
+    file: "components/stall/shopify-migration-modal.tsx",
+    snippet: 'sizeCount === 1 ? "" : "s"',
+    reason: "pluralization suffix in migration summary text",
+  },
+  {
+    file: "components/stall/square-migration-modal.tsx",
+    snippet: 'err instanceof Error ? err.message : "unknown error"',
+    reason: "error-message fallback in migration warning text",
+  },
+  {
+    file: "components/stall/square-migration-modal.tsx",
+    snippet: 'totalWarnings === 1 ? "" : "s"',
+    reason: "pluralization suffix in migration summary text",
+  },
+  // Redeemed-token status suffix (components/wallet/sent-tokens.tsx).
+  {
+    file: "components/wallet/sent-tokens.tsx",
+    snippet:
+      'spentCount > 0 ? " Part of the token had already been redeemed." : ""',
+    reason: "redeemed-portion suffix in sent-token status text",
+  },
+  // Parcel-dimension summary and delivery-day pluralization in the label
+  // modal (components/shipping/buy-shipping-label-modal.tsx).
+  {
+    file: "components/shipping/buy-shipping-label-modal.tsx",
+    snippet: "parcel.lengthIn && parcel.widthIn && parcel.heightIn",
+    reason: "parcel-dimension suffix in rate display text",
+  },
+  {
+    file: "components/shipping/buy-shipping-label-modal.tsx",
+    snippet: 'r.deliveryDays === 1 ? "" : "s"',
+    reason: "pluralization suffix in delivery-days display text",
   },
 ];
 
@@ -873,8 +1054,29 @@ const NON_CLASS_CONCAT_ALLOWLIST: Array<{
   },
   {
     file: "components/messages/chat-panel.tsx",
-    snippet: '"Your order has been marked as completed." + (shippingInfo?.tracking',
+    snippet:
+      '"Your order has been marked as completed." + (shippingInfo?.tracking',
     reason: "buyer order-completion message text",
+  },
+  // ---- Newly scoped surfaces ----
+  // Nostr address/reference tag value in components/product-form.tsx.
+  {
+    file: "components/product-form.tsx",
+    snippet: '"31990:" + pubkey + ":" + (oldValues?.d || hashHex)',
+    reason: "Nostr address/reference tag value, not a class string",
+  },
+  // Buyer-facing error message in components/ZapsnagButton.tsx.
+  {
+    file: "components/ZapsnagButton.tsx",
+    snippet: '"Order failed: " + (e instanceof ExchangeRateError',
+    reason: "order-failure error message text",
+  },
+  // Plain-text splice around the editor's current selection in
+  // components/settings/flow-step-editor.tsx.
+  {
+    file: "components/settings/flow-step-editor.tsx",
+    snippet: 'before + (selected || "text") + after',
+    reason: "text insertion around the current selection, not a class string",
   },
 ];
 
@@ -904,14 +1106,16 @@ function collectSectionSources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-// Scoped non-storefront directories are walked recursively so a newly added
-// component is scanned automatically. __tests__ directories are skipped —
-// test fixtures are not shipped UI.
-function collectScopedDirSources(dir: string, out: string[] = []): string[] {
+// EVERY component file is walked recursively (skipping __tests__ — test
+// fixtures are not shipped UI) so no file, subdirectory, or future top-level
+// directory under components/ can silently escape the three generic scans.
+// The section-*.tsx filename filter applies ONLY to the legacy size-field
+// check above (collectSectionSources), never to this walk.
+function collectAllComponentSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      if (entry !== "__tests__") collectScopedDirSources(full, out);
+      if (entry !== "__tests__") collectAllComponentSources(full, out);
       continue;
     }
     if (entry.endsWith(".tsx")) out.push(full);
@@ -919,35 +1123,14 @@ function collectScopedDirSources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-// Top-level storefront chrome components (footer, layout, email popup, theme
-// wrapper, previews, …) get ONLY the generic className-template scan — the
-// legacy headingSize/bodySize check is sections-specific. Subdirectories
-// (sections/ and anything added later) are intentionally not walked here:
-// sections/ is covered by collectSectionSources above.
-function collectStorefrontChromeSources(dir: string): string[] {
-  return readdirSync(dir)
-    .filter((entry) => entry.endsWith(".tsx"))
-    .filter((entry) => statSync(join(dir, entry)).isFile())
-    .map((entry) => join(dir, entry));
-}
-
 describe("storefront section class-builder guard", () => {
+  // Section files (section-*.tsx under storefront/sections) additionally get
+  // the legacy headingSize/bodySize check below.
   const scannedFiles = collectSectionSources(SECTIONS_DIR);
-  const scannedChromeFiles = collectStorefrontChromeSources(STOREFRONT_DIR);
-  const scannedScopedFiles = [
-    ...SCOPED_NON_STOREFRONT_FILES.map((p) => join(process.cwd(), p)),
-    ...SCOPED_NON_STOREFRONT_DIRS.flatMap((rel) =>
-      collectScopedDirSources(join(process.cwd(), rel))
-    ),
-  ];
   // Files held to the three generic scans (className templates, whole-file
-  // templates, '+' concatenation): sections, storefront chrome, and the
-  // scoped non-storefront surfaces.
-  const genericScanFiles = [
-    ...scannedFiles,
-    ...scannedChromeFiles,
-    ...scannedScopedFiles,
-  ];
+  // templates, '+' concatenation): EVERY shipped .tsx under components/, from
+  // one recursive walk — no file or directory list to keep in sync.
+  const genericScanFiles = collectAllComponentSources(COMPONENTS_DIR);
   const offenders: Array<{ file: string; label: string }> = [];
 
   for (const file of scannedFiles) {
@@ -963,9 +1146,8 @@ describe("storefront section class-builder guard", () => {
   }
 
   // Generic class-template check: NO file is exempt — section-elements.tsx
-  // composes its JSX conditional classes through joinClassNames too, and the
-  // storefront chrome components outside sections/ plus the scoped
-  // non-storefront surfaces are held to the same bar.
+  // composes its JSX conditional classes through joinClassNames too, and
+  // every other component file under components/ is held to the same bar.
   for (const file of genericScanFiles) {
     const rel = relative(process.cwd(), file);
     const source = readFileSync(file, "utf8");
@@ -996,7 +1178,8 @@ describe("storefront section class-builder guard", () => {
       const normalized = normalizeWhitespace(expr);
       const allowIdx = NON_CLASS_TEMPLATE_ALLOWLIST.findIndex(
         (entry) =>
-          entry.file === rel && normalized.includes(normalizeWhitespace(entry.snippet))
+          entry.file === rel &&
+          normalized.includes(normalizeWhitespace(entry.snippet))
       );
       if (allowIdx !== -1) {
         usedAllowlistEntries.add(allowIdx);
@@ -1126,47 +1309,61 @@ describe("storefront section class-builder guard", () => {
     expect(scannedFiles).toContain(join(SECTIONS_DIR, "section-elements.tsx"));
   });
 
-  it("scans the scoped non-storefront surfaces (guard against a silently broken walk)", () => {
-    // A renamed or deleted scoped file must fail loudly here instead of
-    // silently dropping out of the three generic scans.
-    for (const rel of SCOPED_NON_STOREFRONT_FILES) {
-      const abs = join(process.cwd(), rel);
-      expect(statSync(abs).isFile()).toBe(true);
-      expect(genericScanFiles).toContain(abs);
-    }
-    // Same loud-failure contract for the scoped directories: a renamed
-    // directory, a broken walk, or an empty scan must fail rather than
-    // silently cover nothing.
-    for (const rel of SCOPED_NON_STOREFRONT_DIRS) {
-      expect(statSync(join(process.cwd(), rel)).isDirectory()).toBe(true);
-    }
-    // Representative files pinned per directory (top-level and nested) so a
-    // subtly broken walk fails loudly.
+  it("scans every shipped component file (guard against a silently broken walk)", () => {
+    // One recursive walk covers all of components/, so a renamed file, a new
+    // component, or a brand-new top-level directory is scanned automatically
+    // — nothing can silently drop out. These pins exist to fail loudly if the
+    // WALK itself breaks (empty result, skipped subtree, wrong root), with
+    // one representative per directory, top-level and nested — including the
+    // files that historically escaped the scan: non-section-*.tsx files
+    // under storefront/sections, the storefront blog components, and the
+    // top-level components/*.tsx files.
     for (const expected of [
+      // Storefront sections (both filename shapes) and chrome
+      "components/storefront/sections/section-elements.tsx",
+      "components/storefront/sections/platform-script-embeds.tsx",
+      "components/storefront/sections/script-embed.tsx",
+      "components/storefront/blog/blog-markdown.tsx",
+      "components/storefront/storefront-footer.tsx",
+      "components/storefront/storefront-email-popup.tsx",
+      "components/storefront/storefront-layout.tsx",
+      "components/storefront/storefront-theme-wrapper.tsx",
+      "components/storefront/preview-device-toggle.tsx",
+      // Top-level components/*.tsx
+      "components/product-invoice-card.tsx",
+      "components/cart-invoice-card.tsx",
+      "components/nav-top.tsx",
+      "components/product-form.tsx",
+      "components/display-products.tsx",
+      "components/customize-product-page-modal.tsx",
+      "components/free-shipping-notification.tsx",
+      // Every other component directory, top-level and nested
+      "components/admin/seller-memberships-panel.tsx",
+      "components/communities/CommunityCard.tsx",
+      "components/escrow/buyer-escrow-list.tsx",
+      "components/home/marketplace.tsx",
+      "components/hooks/use-navigation.tsx",
+      "components/listing/product-listing-view.tsx",
       "components/messages/chat-panel.tsx",
       "components/messages/orders-dashboard.tsx",
-      "components/home/marketplace.tsx",
+      "components/pro/pro-checkout.tsx",
+      "components/settings/shop-profile-form.tsx",
+      "components/settings/storefront/storefront-preview-panel.tsx",
+      "components/shipping/buy-shipping-label-modal.tsx",
+      "components/sign-in/SignInModal.tsx",
+      "components/stall/stall-page.tsx",
+      "components/stripe-connect/StripeConnectModal.tsx",
       "components/utility-components/checkout-card.tsx",
       "components/utility-components/profile/profile-dropdown.tsx",
+      "components/wallet/send-button.tsx",
     ]) {
       expect(genericScanFiles).toContain(join(process.cwd(), expected));
     }
-    expect(scannedScopedFiles.length).toBeGreaterThanOrEqual(40);
-  });
-
-  it("scans the storefront chrome components outside sections/ (guard against a silently broken walk)", () => {
-    // Same loud-failure contract for the top-level components/storefront/*.tsx
-    // scan: the chrome files this guard was extended for must be present.
-    expect(scannedChromeFiles.length).toBeGreaterThanOrEqual(15);
-    for (const expected of [
-      "storefront-footer.tsx",
-      "storefront-email-popup.tsx",
-      "storefront-layout.tsx",
-      "storefront-theme-wrapper.tsx",
-      "preview-device-toggle.tsx",
-    ]) {
-      expect(scannedChromeFiles).toContain(join(STOREFRONT_DIR, expected));
-    }
+    // Test fixtures are not shipped UI and must stay out of the scan.
+    expect(genericScanFiles.some((f) => f.includes("__tests__"))).toBe(false);
+    // A walk returning far fewer files than components/ holds has broken
+    // silently — fail instead of scanning nothing.
+    expect(genericScanFiles.length).toBeGreaterThanOrEqual(150);
   });
 
   it("detects inline conditionals in className templates whatever the operand shape (guard self-check)", () => {
@@ -1239,7 +1436,8 @@ describe("storefront section class-builder guard", () => {
     }
     // Legitimate non-class uses stay allowed without an allowlist entry when
     // their conditional is nested inside a call's arguments.
-    const nested = "const label = `${items.map((x) => (x.on ? 1 : 0)).join(\",\")}`;";
+    const nested =
+      'const label = `${items.map((x) => (x.on ? 1 : 0)).join(",")}`;';
     expect(
       templateLiteralExpressions(nested, "sample.tsx").some(
         hasTopLevelConditional
@@ -1328,7 +1526,7 @@ describe("storefront section class-builder guard", () => {
       'const qs = families.map((f) => `family=${f}`).join("&");',
       'const n = [1, cond ? 2 : 3].join("");',
       'const cls = ["font-bold", cond ? "md:text-5xl" : ""].join(separator);',
-      'const arr = base.concat(cond ? [1] : [2]);',
+      "const arr = base.concat(cond ? [1] : [2]);",
       'const label = "Total: ".concat(format(count));',
       // No conditional in the joined subtree — the ternary lives outside.
       'const label = parts.length > 0 ? parts.join(" + ") : "DISCOUNT";',

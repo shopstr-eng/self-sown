@@ -28,6 +28,7 @@ import { FileUploaderButton } from "@/components/utility-components/file-uploade
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { ReviewsContext } from "@/utils/context/context";
 import { useDragReorder } from "@/utils/hooks/useDragReorder";
+import { joinClassNames } from "@/utils/class-names";
 
 interface SectionEditorProps {
   section: StorefrontSection;
@@ -138,11 +139,12 @@ export default function SectionEditor({
   return (
     <div
       ref={cardRef}
-      className={`rounded-lg border-2 bg-white transition-all duration-500 ${
+      className={joinClassNames(
+        "rounded-lg border-2 bg-white transition-all duration-500",
         isFlashing
           ? "border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.4)]"
           : "border-gray-200"
-      }`}
+      )}
     >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
@@ -1780,9 +1782,11 @@ function ElementOrderList({
           <div
             key={el}
             {...rootProps}
-            className={`flex items-center gap-2 rounded border bg-white px-2 py-1.5 text-sm text-black ${
-              isDragOver ? "border-black" : "border-gray-200"
-            } ${isDragging ? "opacity-50" : ""}`}
+            className={joinClassNames(
+              "flex items-center gap-2 rounded border bg-white px-2 py-1.5 text-sm text-black",
+              isDragOver ? "border-black" : "border-gray-200",
+              isDragging ? "opacity-50" : ""
+            )}
           >
             <button
               type="button"
@@ -2319,33 +2323,36 @@ function IngredientEditor({
                 <button
                   type="button"
                   onClick={() => setVisualMode(idx, "none")}
-                  className={`px-2 py-1 text-xs font-medium ${
+                  className={joinClassNames(
+                    "rounded-l-md px-2 py-1 text-xs font-medium",
                     mode === "none"
                       ? "bg-gray-800 text-white"
                       : "text-gray-500 hover:bg-gray-100"
-                  } rounded-l-md`}
+                  )}
                 >
                   None
                 </button>
                 <button
                   type="button"
                   onClick={() => setVisualMode(idx, "emoji")}
-                  className={`border-x border-gray-300 px-2 py-1 text-xs font-medium ${
+                  className={joinClassNames(
+                    "border-x border-gray-300 px-2 py-1 text-xs font-medium",
                     mode === "emoji"
                       ? "bg-gray-800 text-white"
                       : "text-gray-500 hover:bg-gray-100"
-                  }`}
+                  )}
                 >
                   Emoji
                 </button>
                 <button
                   type="button"
                   onClick={() => setVisualMode(idx, "image")}
-                  className={`px-2 py-1 text-xs font-medium ${
+                  className={joinClassNames(
+                    "rounded-r-md px-2 py-1 text-xs font-medium",
                     mode === "image"
                       ? "bg-gray-800 text-white"
                       : "text-gray-500 hover:bg-gray-100"
-                  } rounded-r-md`}
+                  )}
                 >
                   Image
                 </button>
@@ -2665,11 +2672,12 @@ function ProductOrderList({
             onDragStart={() => handleDragStart(idx)}
             onDragOver={(e) => handleDragOver(e, idx)}
             onDrop={handleDrop}
-            className={`flex cursor-grab items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors active:cursor-grabbing ${
+            className={joinClassNames(
+              "flex cursor-grab items-center gap-2 rounded px-2 py-1.5 text-sm transition-colors active:cursor-grabbing",
               isHero
                 ? "border border-blue-300 bg-blue-50"
                 : "border border-transparent hover:bg-gray-50"
-            }`}
+            )}
           >
             <span className="flex flex-col gap-0.5 text-[10px] text-gray-400">
               <button
@@ -3031,11 +3039,12 @@ function ReviewOrderList({
             </span>
             <span className="text-xs text-gray-400">&#9776;</span>
             <span
-              className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${
+              className={joinClassNames(
+                "shrink-0 rounded px-1.5 py-0.5 text-xs font-bold",
                 review.isPositive
                   ? "bg-green-100 text-green-700"
                   : "bg-red-100 text-red-700"
-              }`}
+              )}
             >
               {review.isPositive ? "👍" : "👎"}
             </span>
@@ -3142,9 +3151,11 @@ function GalleryImageEditor({
           <div
             key={idx}
             {...drag.rootProps}
-            className={`flex items-center gap-2 rounded transition-all ${
-              drag.isDragging ? "opacity-40" : ""
-            } ${drag.isDragOver ? "ring-2 ring-blue-400 ring-offset-1" : ""}`}
+            className={joinClassNames(
+              "flex items-center gap-2 rounded transition-all",
+              drag.isDragging ? "opacity-40" : "",
+              drag.isDragOver ? "ring-2 ring-blue-400 ring-offset-1" : ""
+            )}
           >
             <button
               type="button"

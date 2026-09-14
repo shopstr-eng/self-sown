@@ -18,6 +18,7 @@ import {
   getLocalUserProfileKey,
 } from "@/utils/nostr/nostr-helper-functions";
 import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
+import { joinClassNames } from "@/utils/class-names";
 
 type DnsInstruction = {
   type: string;
@@ -556,11 +557,12 @@ export default function CustomDomainSection() {
 
           {nip05Notice && (
             <div
-              className={`rounded-lg p-3 text-sm ${
+              className={joinClassNames(
+                "rounded-lg p-3 text-sm",
                 nip05Notice.tone === "success"
                   ? "bg-green-50 text-green-900"
                   : "bg-amber-50 text-amber-900"
-              }`}
+              )}
             >
               {nip05Notice.text}
             </div>

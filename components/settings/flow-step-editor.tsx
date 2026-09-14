@@ -11,6 +11,7 @@ import {
   MergeTagData,
 } from "@/utils/email/flow-email-templates";
 import { SITE_URL } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 import {
   ArrowUpTrayIcon,
   LinkIcon,
@@ -502,9 +503,10 @@ export const FlowStepEditor = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border-2 bg-white p-3 font-mono text-sm text-black transition-colors duration-300 outline-hidden ${
+          className={joinClassNames(
+            "w-full border-2 bg-white p-3 font-mono text-sm text-black outline-hidden transition-colors duration-300",
             isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
-          }`}
+          )}
           rows={12}
           placeholder="<h2>Hi {{buyer_name}},</h2>&#10;<p>Thanks for your purchase!</p>"
         />
@@ -513,9 +515,10 @@ export const FlowStepEditor = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border-2 bg-white p-3 text-sm text-black transition-colors duration-300 outline-hidden ${
+          className={joinClassNames(
+            "w-full border-2 bg-white p-3 text-sm text-black outline-hidden transition-colors duration-300",
             isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
-          }`}
+          )}
           rows={12}
           placeholder="Use the toolbar above to format your email, or type HTML directly. Use the code icon to switch to raw HTML mode."
         />

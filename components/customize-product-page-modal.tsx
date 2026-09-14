@@ -37,6 +37,7 @@ import {
 import { republishProductWithPageConfig } from "@/utils/nostr/nostr-helper-functions";
 import FailureModal from "./utility-components/failure-modal";
 import SuccessModal from "./utility-components/success-modal";
+import { joinClassNames } from "@/utils/class-names";
 
 interface Props {
   isOpen: boolean;
@@ -470,22 +471,24 @@ export default function CustomizeProductPageModal({
                 <button
                   type="button"
                   onClick={() => setView("edit")}
-                  className={`rounded border px-3 py-1 text-xs font-medium ${
+                  className={joinClassNames(
+                    "rounded border px-3 py-1 text-xs font-medium",
                     view === "edit"
                       ? "border-black bg-black text-white"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                  )}
                 >
                   Edit
                 </button>
                 <button
                   type="button"
                   onClick={() => setView("preview")}
-                  className={`rounded border px-3 py-1 text-xs font-medium ${
+                  className={joinClassNames(
+                    "rounded border px-3 py-1 text-xs font-medium",
                     view === "preview"
                       ? "border-black bg-black text-white"
                       : "border-gray-300 text-gray-700"
-                  }`}
+                  )}
                 >
                   Preview
                 </button>
@@ -599,11 +602,12 @@ export default function CustomizeProductPageModal({
                                   return next;
                                 });
                               }}
-                              className={`flex-1 rounded border px-2 py-1 text-sm ${
+                              className={joinClassNames(
+                                "flex-1 rounded border px-2 py-1 text-sm",
                                 invalid
                                   ? "border-red-500 bg-red-50"
                                   : "border-gray-300"
-                              }`}
+                              )}
                             />
                             {val !== undefined && (
                               <button
@@ -690,11 +694,12 @@ export default function CustomizeProductPageModal({
                           "https://example.com/image.jpg"
                         }
                         onChange={(e) => setOgImage(e.target.value)}
-                        className={`rounded border px-2 py-1 text-sm ${
+                        className={joinClassNames(
+                          "rounded border px-2 py-1 text-sm",
                           ogImage && !URL_RE.test(ogImage.trim())
                             ? "border-red-500 bg-red-50"
                             : "border-gray-300"
-                        }`}
+                        )}
                       />
                       {ogImage && !URL_RE.test(ogImage.trim()) && (
                         <span className="text-xs text-red-600">
@@ -824,13 +829,14 @@ export default function CustomizeProductPageModal({
                 )}
 
                 <div
-                  className={`rounded-lg border-2 p-3 text-xs ${
+                  className={joinClassNames(
+                    "rounded-lg border-2 p-3 text-xs",
                     sizeBlock
                       ? "border-red-400 bg-red-50 text-red-800"
                       : sizeWarn
                         ? "border-yellow-400 bg-yellow-50 text-yellow-900"
                         : "border-gray-200 bg-gray-50 text-gray-600"
-                  }`}
+                  )}
                 >
                   Customization size: {sizeKb} KB
                   {sizeWarn &&

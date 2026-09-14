@@ -36,6 +36,7 @@ import {
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import type { ProductData } from "@/utils/parsers/product-parser-functions";
 import { SITE_HOST } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 import {
   WHITEBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
@@ -1658,11 +1659,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                           <div className="flex-1">
                             <Input
                               classNames={{
-                                inputWrapper: `border-3 ${
+                                inputWrapper: joinClassNames(
+                                  "border-3 rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
                                   shopSlugRequired
                                     ? "border-red-500"
                                     : "border-black"
-                                } rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black`,
+                                ),
                                 input: "text-base !text-black",
                               }}
                               variant="bordered"
@@ -1732,11 +1734,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     setColorScheme(preset.colors);
                                     setIsCustomColorScheme(false);
                                   }}
-                                  className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
+                                  className={joinClassNames(
+                                    "flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
                                     isActive
                                       ? "shadow-neo border-black"
                                       : "border-gray-300 hover:border-black"
-                                  }`}
+                                  )}
                                 >
                                   <div className="flex gap-1">
                                     <div
@@ -1766,11 +1769,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             <button
                               type="button"
                               onClick={() => setIsCustomColorScheme(true)}
-                              className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
+                              className={joinClassNames(
+                                "flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
                                 isCustomColorScheme
                                   ? "shadow-neo border-black"
                                   : "border-gray-300 hover:border-black"
-                              }`}
+                              )}
                             >
                               <div className="flex gap-1">
                                 <div
@@ -2042,11 +2046,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 onClick={() =>
                                   handleLandingPageStyleChange(style.value)
                                 }
-                                className={`rounded-lg border-2 p-2 text-center transition-all ${
+                                className={joinClassNames(
+                                  "rounded-lg border-2 p-2 text-center transition-all",
                                   landingPageStyle === style.value
                                     ? "shadow-neo border-black"
                                     : "border-gray-300 hover:border-black"
-                                }`}
+                                )}
                               >
                                 <div className="mb-2 flex justify-center">
                                   <LandingPagePreviewSvg
@@ -2091,11 +2096,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 key={mode.value}
                                 type="button"
                                 onClick={() => setLandingPageMode(mode.value)}
-                                className={`rounded-lg border-2 p-3 text-center transition-all ${
+                                className={joinClassNames(
+                                  "rounded-lg border-2 p-3 text-center transition-all",
                                   landingPageMode === mode.value
                                     ? "shadow-neo border-black"
                                     : "border-gray-300 hover:border-black"
-                                }`}
+                                )}
                               >
                                 <span className="block text-sm font-bold text-black">
                                   {mode.label}
@@ -2165,11 +2171,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 onClick={() =>
                                   handleProductLayoutChange(layout.value)
                                 }
-                                className={`rounded-lg border-2 p-2 text-center transition-all ${
+                                className={joinClassNames(
+                                  "rounded-lg border-2 p-2 text-center transition-all",
                                   productLayout === layout.value
                                     ? "shadow-neo border-black"
                                     : "border-gray-300 hover:border-black"
-                                }`}
+                                )}
                               >
                                 <div className="mb-2 flex justify-center">
                                   <ProductLayoutPreviewSvg
@@ -2767,11 +2774,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                             displayMode: opt.value,
                                           })
                                         }
-                                        className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors ${
+                                        className={joinClassNames(
+                                          "flex-1 rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors",
                                           active
                                             ? "border-black bg-black text-white"
                                             : "border-gray-300 bg-white text-black hover:border-black"
-                                        }`}
+                                        )}
                                       >
                                         {opt.label}
                                       </button>
@@ -3709,13 +3717,13 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 <div
                                   key={section.id}
                                   {...drag.rootProps}
-                                  className={`transition-all ${
-                                    drag.isDragging ? "opacity-40" : ""
-                                  } ${
+                                  className={joinClassNames(
+                                    "transition-all",
+                                    drag.isDragging ? "opacity-40" : "",
                                     drag.isDragOver
                                       ? "rounded-lg ring-2 ring-blue-400 ring-offset-1"
                                       : ""
-                                  }`}
+                                  )}
                                 >
                                   <SectionEditor
                                     section={section}

@@ -28,6 +28,7 @@ import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import RecoveryKeyModal from "./RecoveryKeyModal";
+import { joinClassNames } from "@/utils/class-names";
 
 export default function SignInModal({
   isOpen,
@@ -656,17 +657,20 @@ export default function SignInModal({
                           setShowNsecSignIn(false);
                           setShowBunkerSignIn(true);
                         }}
-                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                        className={joinClassNames(
+                          WHITEBUTTONCLASSNAMES,
+                          "w-full",
                           showBunkerSignIn ? "hidden" : ""
-                        }`}
+                        )}
                       >
                         Nostr Bunker Sign-up
                       </Button>
                     </div>
                     <div
-                      className={`flex flex-col justify-between space-y-3 ${
+                      className={joinClassNames(
+                        "flex flex-col justify-between space-y-3",
                         showBunkerSignIn ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <div>
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -734,17 +738,20 @@ export default function SignInModal({
                           setShowBunkerSignIn(false);
                           setShowNsecSignIn(true);
                         }}
-                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                        className={joinClassNames(
+                          WHITEBUTTONCLASSNAMES,
+                          "w-full",
                           showNsecSignIn ? "hidden" : ""
-                        }`}
+                        )}
                       >
                         Nostr nsec / ncryptsec Sign-up
                       </Button>
                     </div>
                     <div
-                      className={`flex flex-col justify-between space-y-3 ${
+                      className={joinClassNames(
+                        "flex flex-col justify-between space-y-3",
                         showNsecSignIn ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <div>
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -963,17 +970,20 @@ export default function SignInModal({
                           setShowNsecSignIn(false);
                           setShowBunkerSignIn(true);
                         }}
-                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                        className={joinClassNames(
+                          WHITEBUTTONCLASSNAMES,
+                          "w-full",
                           showBunkerSignIn ? "hidden" : ""
-                        }`}
+                        )}
                       >
                         Nostr Bunker Sign-in
                       </Button>
                     </div>
                     <div
-                      className={`flex flex-col justify-between space-y-3 ${
+                      className={joinClassNames(
+                        "flex flex-col justify-between space-y-3",
                         showBunkerSignIn ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <div>
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -1042,17 +1052,20 @@ export default function SignInModal({
                         setShowBunkerSignIn(false);
                         setShowNsecSignIn(true);
                       }}
-                      className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                      className={joinClassNames(
+                        WHITEBUTTONCLASSNAMES,
+                        "w-full",
                         showNsecSignIn ? "hidden" : ""
-                      }`}
+                      )}
                     >
                       Nostr nsec / ncryptsec Sign-in
                     </Button>
                   </div>
                   <div
-                    className={`flex flex-col justify-between space-y-3 ${
+                    className={joinClassNames(
+                      "flex flex-col justify-between space-y-3",
                       showNsecSignIn ? "" : "hidden"
-                    }`}
+                    )}
                   >
                     <div>
                       <label className="mb-2 block text-sm font-bold text-black">

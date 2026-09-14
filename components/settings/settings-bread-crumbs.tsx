@@ -1,5 +1,6 @@
 import { Breadcrumbs, BreadcrumbItem, Divider } from "@heroui/react";
 import { useRouter } from "next/router";
+import { joinClassNames } from "@/utils/class-names";
 
 const pathMap: { [key: string]: string } = {
   settings: "Settings",
@@ -34,9 +35,10 @@ export const SettingsBreadCrumbs = () => {
         }}
       >
         {path.map((p, i) => {
-          const itemClassName =
-            "ml-2 text-black text-2xl font-bold whitespace-normal break-words" +
-            (i !== path.length - 1 ? " opacity-50 hover:opacity-100" : "");
+          const itemClassName = joinClassNames(
+            "ml-2 text-black text-2xl font-bold whitespace-normal break-words",
+            i !== path.length - 1 ? "opacity-50 hover:opacity-100" : ""
+          );
           return (
             <BreadcrumbItem
               key={i}

@@ -24,6 +24,7 @@ import {
   BLACKBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 type PayMethod = "card" | "bitcoin" | "fiat";
 
@@ -362,18 +363,20 @@ export default function ProCheckout({
         <button
           type="button"
           onClick={() => setPlan("herd")}
-          className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+          className={joinClassNames(
+            "flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors",
             plan === "herd" ? "bg-black text-white" : "text-black"
-          }`}
+          )}
         >
           Herd · subscription
         </button>
         <button
           type="button"
           onClick={() => setPlan("wrangler")}
-          className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+          className={joinClassNames(
+            "flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors",
             plan === "wrangler" ? "bg-black text-white" : "text-black"
-          }`}
+          )}
         >
           Wrangler · lifetime
         </button>
@@ -385,18 +388,20 @@ export default function ProCheckout({
           <button
             type="button"
             onClick={() => setTerm("monthly")}
-            className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+            className={joinClassNames(
+              "flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors",
               term === "monthly" ? "bg-black text-white" : "text-black"
-            }`}
+            )}
           >
             Monthly · ${monthly}/mo
           </button>
           <button
             type="button"
             onClick={() => setTerm("yearly")}
-            className={`flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors ${
+            className={joinClassNames(
+              "flex-1 rounded-[4px] px-4 py-2 text-sm font-bold transition-colors",
               term === "yearly" ? "bg-black text-white" : "text-black"
-            }`}
+            )}
           >
             Yearly · ${yearly}/yr
             <span className="ml-1 text-xs font-bold text-green-600">
@@ -452,9 +457,10 @@ export default function ProCheckout({
           type="button"
           onClick={handleCard}
           disabled={loading}
-          className={`${
-            canStartTrial ? BLACKBUTTONCLASSNAMES : BLUEBUTTONCLASSNAMES
-          } w-full justify-center disabled:opacity-50`}
+          className={joinClassNames(
+            canStartTrial ? BLACKBUTTONCLASSNAMES : BLUEBUTTONCLASSNAMES,
+            "w-full justify-center disabled:opacity-50"
+          )}
         >
           <CreditCardIcon className="mr-2 h-5 w-5" />
           Pay With Card
