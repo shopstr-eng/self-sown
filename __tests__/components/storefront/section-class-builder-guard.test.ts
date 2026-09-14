@@ -41,12 +41,20 @@
 //      can't smuggle or hide a template. The few legitimate non-class
 //      template conditionals in these files (display text, CSS blocks, font
 //      fallbacks) are named in NON_CLASS_TEMPLATE_ALLOWLIST below; the guard
-//      fails on an unused allowlist entry so the list can't silently rot.
+//      fails on an unused allowlist entry so the list can't silently rot, and
+//   4. plain `+` string concatenation whose operands include a conditional
+//      with a string-literal branch — `className={"font-bold" + (cond ?
+//      " md:text-5xl" : "")}` or `const cls = "flex " + (cond ? "md:flex-row"
+//      : "flex-col")` glue the same dead token (font-boldmd:text-5xl) when
+//      one branch drops its leading space. Same TypeScript-parser walk as
+//      (3), same NON_CLASS_CONCAT_ALLOWLIST contract for the few legitimate
+//      non-class concats.
 //
 // Writing a new section with conditional classes? Compose them with
 // joinClassNames("static tokens", cond ? "a" : "b") from section-elements.tsx
 // — never `${cond ? "a" : "b"}` inside a template literal that feeds a
-// className, whether written inline or assigned to a variable first.
+// className, and never "a" + (cond ? " b" : "") concatenation, whether
+// written inline or assigned to a variable first.
 //
 // The same hand-written pattern also lived in storefront chrome components
 // outside the sections folder (footer, email popup, layout, theme wrapper,
@@ -278,6 +286,112 @@ function normalizeWhitespace(s: string): string {
   return s.replace(/\s+/g, " ").trim();
 }
 
+// ---------------------------------------------------------------------------
+// Whole-file '+' string-concatenation scanner.
+//
+// Neither template scan above sees plain concatenation: className={"font-bold"
+// + (cond ? " md:text-5xl" : "")} or const cls = "flex " + (cond ?
+// "md:flex-row" : "flex-col") glue the identical dead token when a branch
+// drops its leading space. This walk flags every BinaryExpression '+' chain
+// (only the chain's root is inspected, so nested links don't double-report)
+// whose operands include a conditional — ternary, &&, or || — when the chain
+// provably builds a string: a string literal or template literal anywhere
+// among its operands (including inside the conditional's branches). The
+// conditional's branch shape does NOT matter — "flex " + (cond ? rowClass :
+// colClass) composes conditional classes by hand exactly like the template
+// scans forbid, whatever the operands are. Parentheses are unwrapped, so
+// ("a" + ((cond ? "b" : "c"))) can't smuggle the shape past the scan. Chains
+// with a conditional but no string literal anywhere (numeric or
+// unknown-typed operands) stay out of scope — they can't be audited
+// statically and are display/business logic, not class composition.
+// ---------------------------------------------------------------------------
+
+function unwrapParens(node: ts.Expression): ts.Expression {
+  let n = node;
+  while (ts.isParenthesizedExpression(n)) n = n.expression;
+  return n;
+}
+
+// True when the operand branches at its root: ternary, &&, or ||. Branch
+// shape is irrelevant — the whole point is that conditional class composition
+// belongs in joinClassNames regardless of operand shape.
+function isConditionalOperand(node: ts.Expression): boolean {
+  const n = unwrapParens(node);
+  return (
+    ts.isConditionalExpression(n) ||
+    (ts.isBinaryExpression(n) &&
+      (n.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+        n.operatorToken.kind === ts.SyntaxKind.BarBarToken))
+  );
+}
+
+// True when the operand subtree contains a string literal or template
+// literal anywhere — as the operand itself, inside a conditional's branches,
+// or in a nested expression. That's what proves the '+' chain is string
+// concatenation rather than arithmetic.
+function containsStringLiteral(node: ts.Node): boolean {
+  if (
+    ts.isStringLiteral(node) ||
+    ts.isNoSubstitutionTemplateLiteral(node) ||
+    ts.isTemplateExpression(node)
+  ) {
+    return true;
+  }
+  let found = false;
+  ts.forEachChild(node, (child) => {
+    if (!found && containsStringLiteral(child)) found = true;
+  });
+  return found;
+}
+
+// Source text of every string-building '+' concatenation chain in the file
+// whose operands include a conditional.
+function stringConcatConditionals(source: string, fileName: string): string[] {
+  const sf = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    ts.ScriptKind.TSX
+  );
+  const out: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.PlusToken &&
+      // Only inspect the chain's root: `"a" + (c ? "b" : "") + other` is one
+      // chain, reported once — its inner links have a '+' parent and skip.
+      !(
+        ts.isBinaryExpression(node.parent) &&
+        node.parent.operatorToken.kind === ts.SyntaxKind.PlusToken
+      )
+    ) {
+      const operands: ts.Expression[] = [];
+      const flatten = (n: ts.Expression): void => {
+        if (
+          ts.isBinaryExpression(n) &&
+          n.operatorToken.kind === ts.SyntaxKind.PlusToken
+        ) {
+          flatten(n.left);
+          flatten(n.right);
+        } else {
+          operands.push(n);
+        }
+      };
+      flatten(node);
+      if (
+        operands.some(isConditionalOperand) &&
+        operands.some(containsStringLiteral)
+      ) {
+        out.push(node.getText(sf));
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 // Legitimate non-class template conditionals the whole-file scan must not
 // flag. Each entry matches when `snippet` (whitespace-normalized) is a
 // substring of the offending interpolation's normalized text. Adding a new
@@ -366,6 +480,19 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
   },
 ];
 
+// Legitimate non-class '+' concatenations with a string-literal conditional
+// branch the whole-file concat scan must not flag. Each entry matches when
+// `snippet` (whitespace-normalized) is a substring of the offending
+// concatenation chain's normalized text. Same contract as the template
+// allowlist: class-feeding strings belong in joinClassNames, and unused
+// entries fail the guard. Currently empty — every conditional concat in the
+// scanned files is expected to compose classes through joinClassNames.
+const NON_CLASS_CONCAT_ALLOWLIST: Array<{
+  file: string;
+  snippet: string;
+  reason: string;
+}> = [];
+
 function collectSectionSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -453,6 +580,35 @@ describe("storefront section class-builder guard", () => {
     }
   }
 
+  // Whole-file '+' concatenation check: the last hand-written shape — plain
+  // string concatenation whose operands include a conditional
+  // (`className={"font-bold" + (cond ? " md:text-5xl" : "")}` or `"flex " +
+  // (cond ? rowClass : colClass)`). Every string-building '+' chain in these
+  // files is walked; a flagged chain is an offender unless it is a named
+  // non-class use in NON_CLASS_CONCAT_ALLOWLIST.
+  const usedConcatAllowlistEntries = new Set<number>();
+  for (const file of [...scannedFiles, ...scannedChromeFiles]) {
+    const rel = relative(process.cwd(), file);
+    const source = readFileSync(file, "utf8");
+
+    for (const text of stringConcatConditionals(source, rel)) {
+      const normalized = normalizeWhitespace(text);
+      const allowIdx = NON_CLASS_CONCAT_ALLOWLIST.findIndex(
+        (entry) =>
+          entry.file === rel &&
+          normalized.includes(normalizeWhitespace(entry.snippet))
+      );
+      if (allowIdx !== -1) {
+        usedConcatAllowlistEntries.add(allowIdx);
+        continue;
+      }
+      offenders.push({
+        file: rel,
+        label: `conditional operand in '+' string concatenation \`${normalized}\` (compose classNames with joinClassNames)`,
+      });
+    }
+  }
+
   it("finds no hand-written headingSize/bodySize conditional class suffixes outside section-elements.tsx", () => {
     const sizeOffenders = offenders.filter((o) =>
       o.label.includes("conditional string suffix")
@@ -474,13 +630,24 @@ describe("storefront section class-builder guard", () => {
     expect(wholeFileOffenders).toEqual([]);
   });
 
-  it("keeps the non-class template allowlist tight (no unused entries)", () => {
+  it("finds no conditional class concatenation joined with '+' in any scanned file", () => {
+    const concatOffenders = offenders.filter((o) =>
+      o.label.includes("string concatenation")
+    );
+    expect(concatOffenders).toEqual([]);
+  });
+
+  it("keeps the non-class allowlists tight (no unused entries)", () => {
     // An entry whose expression was edited or deleted would silently rot into
     // a loophole for anything matching its snippet — fail loudly instead.
-    const unused = NON_CLASS_TEMPLATE_ALLOWLIST.filter(
+    const unusedTemplates = NON_CLASS_TEMPLATE_ALLOWLIST.filter(
       (_, idx) => !usedAllowlistEntries.has(idx)
     );
-    expect(unused).toEqual([]);
+    expect(unusedTemplates).toEqual([]);
+    const unusedConcats = NON_CLASS_CONCAT_ALLOWLIST.filter(
+      (_, idx) => !usedConcatAllowlistEntries.has(idx)
+    );
+    expect(unusedConcats).toEqual([]);
   });
 
   it("scans every section file (guard against a silently broken walk)", () => {
@@ -581,6 +748,51 @@ describe("storefront section class-builder guard", () => {
         hasTopLevelConditional
       )
     ).toBe(false);
+  });
+
+  it("detects conditional string concatenation joined with '+' (guard self-check)", () => {
+    // The bug shape this layer exists to catch: both template scans are blind
+    // to plain concatenation, the concat walk must not be — inline in
+    // className or assigned to a variable first, with ternary, &&, or ||.
+    const forbidden = [
+      'const el = <div className={"font-bold" + (cond ? " md:text-5xl" : "")} />;',
+      'const cls = "flex " + (cond ? "md:flex-row" : "flex-col");',
+      'const cls = base + (enabled && "active");',
+      'const cls = base + (override || "default-class");',
+      // Variable branches are the same hand-rolled conditional class
+      // composition — the branch shape must not matter.
+      'const cls = "flex " + (cond ? rowClass : colClass);',
+      'const cls = "base " + (enabled && activeClass);',
+      'const cls = "base " + (override || defaultClass);',
+      // Root-wrapping parens and longer chains must not smuggle it past.
+      'const cls = "a" + ((cond ? "b" : "c")) + other;',
+      'const cls = prefix + "mid " + (cond ? " x" : "y");',
+    ];
+    for (const sample of forbidden) {
+      expect(stringConcatConditionals(sample, "sample.tsx")).not.toEqual([]);
+    }
+    // A multi-link chain is reported once, not per link.
+    expect(
+      stringConcatConditionals(
+        'const cls = "a" + (cond ? "b" : "c") + other;',
+        "sample.tsx"
+      )
+    ).toHaveLength(1);
+    // Stays allowed: no conditional operand, no string literal anywhere in
+    // the chain (numeric/unknown-typed conditionals), conditionals nested
+    // inside call arguments, and plain color-suffix concats like
+    // colors.secondary + "08".
+    const allowed = [
+      "const x = a + b;",
+      'const bg = colors.secondary + "08";',
+      "const label = prefix + format(cond ? 1 : 2);",
+      "const n = count + (cond ? 1 : 2);",
+      "const n = count + (cond ? surcharge : discount);",
+      'const s = `flex ${cond ? "a" : "b"}`;', // template scan's territory
+    ];
+    for (const sample of allowed) {
+      expect(stringConcatConditionals(sample, "sample.tsx")).toEqual([]);
+    }
   });
 
   it("does not mistake comments or quoted strings for template literals (guard self-check)", () => {
