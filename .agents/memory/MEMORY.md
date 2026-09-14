@@ -152,3 +152,4 @@
 - [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops *-opacity-*, re-scales -sm sizes (pinned+guarded); deprecated aliases (flex-shrink-*/bg-gradient-to-*/etc.) MIGRATED to v4 names + guarded; bare shadow/rounded/blur/ring stay.
 - [Headless browser verification](headless-browser-verification.md) — no puppeteer here; use /repl/tools/bin/chromium headless for DOM/computed-style checks; kill by PID, never pkill.
 - [Pro-status transient-failure policy](pro-status-failopen-cache.md) — pro-status gating must fail closed only on definitive isPro:false; transient failures retry + use last-known-good cache.
+- [Audit overrides that cant be bumped](audit-override-unfixable-pins.md) — decode-uri-component patch is ESM-only (breaks query-string CJS); image-size via metro has no fix; dont re-pin, check upstream first.
