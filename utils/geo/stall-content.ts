@@ -39,7 +39,7 @@ export interface StallContentInput {
   slug: string;
   /**
    * Canonical base URL for THIS stall. On a custom domain this is
-   * `https://<host>`; on the platform it is `https://milk.market/stall/<slug>`.
+   * `https://<host>`; on the platform it is `https://self-sown.com/stall/<slug>`.
    */
   siteUrl: string;
   /** Whether this stall is served from a seller's own custom domain. */
@@ -81,7 +81,7 @@ export interface StallPostInput {
   slug: string;
   /**
    * Canonical base URL for THIS stall. On a custom domain this is
-   * `https://<host>`; on the platform it is `https://milk.market/stall/<slug>`.
+   * `https://<host>`; on the platform it is `https://self-sown.com/stall/<slug>`.
    */
   siteUrl: string;
   /** Whether this stall is served from a seller's own custom domain. */
@@ -109,7 +109,7 @@ function listingUrl(input: StallContentInput, slug: string): string {
 function blogUrl(input: StallContentInput, slug: string): string {
   // Blog posts are stall-scoped: on a custom domain they live at
   // `<host>/blog/<slug>`; on the platform at `<siteUrl>/blog/<slug>` which is
-  // already `https://milk.market/stall/<slug>/blog/<slug>`.
+  // already `https://self-sown.com/stall/<slug>/blog/<slug>`.
   return `${input.siteUrl}/blog/${encodeURIComponent(slug)}`;
 }
 

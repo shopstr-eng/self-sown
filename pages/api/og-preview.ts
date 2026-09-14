@@ -109,7 +109,7 @@ export default async function handler(
       signal: controller.signal,
       redirect: "manual",
       headers: {
-        "User-Agent": `Mozilla/5.0 (compatible; MilkMarket/1.0; +${SITE_URL})`,
+        "User-Agent": `Mozilla/5.0 (compatible; SelfSown/1.0; +${SITE_URL})`,
         Accept: "text/html,application/xhtml+xml",
       },
     });

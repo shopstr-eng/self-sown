@@ -218,12 +218,12 @@ const DynamicHead = ({
   }, []);
 
   // For seller custom domains the canonical origin is the seller's own domain,
-  // not milk.market. This ensures crawlers attribute the storefront to the
+  // not the platform host. This ensures crawlers attribute the storefront to the
   // seller's branded domain rather than the platform, and that og:url in social
   // previews points back to the correct host.
   //
   // For all other pages (platform, Replit preview, localhost) we always
-  // canonicalize to milk.market so Lighthouse doesn't flag mismatched origins.
+  // canonicalize to the platform origin so Lighthouse doesn't flag mismatched origins.
   const canonicalOrigin =
     isCustomDomain && customDomainHost
       ? `https://${customDomainHost}`

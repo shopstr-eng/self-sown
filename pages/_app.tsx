@@ -119,7 +119,7 @@ const scheduleAfterPaint = (cb: () => void) => {
   }
 };
 
-function MilkMarket({ props }: { props: AppProps }) {
+function SelfSown({ props }: { props: AppProps }) {
   const { Component, pageProps } = props;
   const { nostr } = useContext(NostrContext);
   const { signer, isLoggedIn } = useContext(SignerContext);
@@ -1788,7 +1788,7 @@ function App(props: AppProps) {
               <ProMembershipProvider>
                 <MintRecoveryBoot />
                 <UpdateToast />
-                <MilkMarket props={props} />
+                <SelfSown props={props} />
               </ProMembershipProvider>
             </SignerContextProvider>
           </NostrContextProvider>

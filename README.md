@@ -40,4 +40,4 @@ A global, permissionless marketplace for food freedom.
 - [calvadev](nostr:npub16dhgpql60vmd4mnydjut87vla23a38j689jssaqlqqlzrtqtd0kqex0nkq)
   - npub16dhgpql60vmd4mnydjut87vla23a38j689jssaqlqqlzrtqtd0kqex0nkq
 
-[![Run on Repl.it](https://replit.com/badge/github/shopstr-eng/milk-market)](https://replit.com/new/github/shopstr-eng/milk-market)
+[![Run on Repl.it](https://replit.com/badge/github/shopstr-eng/self-sown)](https://replit.com/new/github/shopstr-eng/self-sown)

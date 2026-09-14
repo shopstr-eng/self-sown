@@ -43,7 +43,7 @@ export interface BuildDiscoveryOpts {
   /**
    * Platform base URL used for MCP/API endpoints that are platform-only and
    * not proxied through seller custom domains. Defaults to `baseUrl` (correct
-   * for the platform host). Must be set to `https://milk.market` when building
+   * for the platform host). Must be set to `https://self-sown.com` when building
    * a seller-scoped profile served on a custom domain, so the advertised
    * `/api/mcp`, `/api/mcp/onboard`, and OpenAPI spec links resolve correctly
    * rather than pointing to blocked custom-domain paths.
@@ -107,7 +107,7 @@ export function buildUcpDiscoveryProfile(
   // On a seller custom domain the MCP endpoint, onboarding URL, and OpenAPI
   // spec are not proxied through (they're platform-only paths). Use the
   // explicit platformUrl for those — callers on a custom-domain host must set
-  // this to "https://milk.market" so agents aren't sent to blocked endpoints.
+  // this to "https://self-sown.com" so agents aren't sent to blocked endpoints.
   const platform = (opts.platformUrl || base).replace(/\/$/, "");
 
   // Every capability is reachable two ways: the UCP-native REST endpoints and
