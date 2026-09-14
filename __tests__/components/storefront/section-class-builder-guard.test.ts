@@ -48,13 +48,26 @@
 //      : "flex-col")` glue the same dead token (font-boldmd:text-5xl) when
 //      one branch drops its leading space. Same TypeScript-parser walk as
 //      (3), same NON_CLASS_CONCAT_ALLOWLIST contract for the few legitimate
-//      non-class concats.
+//      non-class concats, and
+//   5. array-join and String.prototype.concat assembly —
+//      ["font-bold", cond ? "md:text-5xl" : ""].join("") or
+//      "font-bold".concat(cond ? " md:text-5xl" : ""). A `.join(" ")` (any
+//      separator containing whitespace) composes tokens safely, exactly like
+//      joinClassNames, so only a whitespace-FREE separator — `.join("")`,
+//      `.join(",")`, or a missing separator (which joins on ",") — is
+//      flagged, and only when the joined subtree branches on a conditional
+//      alongside a string literal. `.concat(` never supplies a separator, so
+//      it is flagged whenever its subtree pairs a conditional with a string
+//      literal: a branch that drops its leading space glues the same dead
+//      token as the '+' scan. Same TypeScript-parser walk, same
+//      NON_CLASS_JOIN_CONCAT_ALLOWLIST contract.
 //
 // Writing a new section with conditional classes? Compose them with
 // joinClassNames("static tokens", cond ? "a" : "b") from section-elements.tsx
 // — never `${cond ? "a" : "b"}` inside a template literal that feeds a
-// className, and never "a" + (cond ? " b" : "") concatenation, whether
-// written inline or assigned to a variable first.
+// className, never "a" + (cond ? " b" : "") concatenation, and never
+// [...].join("") or "a".concat(cond ? " b" : "") assembly, whether written
+// inline or assigned to a variable first.
 //
 // The same hand-written pattern also lived in storefront chrome components
 // outside the sections folder (footer, email popup, layout, theme wrapper,
@@ -421,6 +434,91 @@ function stringConcatConditionals(source: string, fileName: string): string[] {
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Whole-file array-join / String.concat scanner.
+//
+// The last two hand-written shapes the template and '+' scans are both blind
+// to: building the class string via an array — ["font-bold",
+// cond ? "md:text-5xl" : ""].join("") — or via String.prototype.concat —
+// "font-bold".concat(cond ? " md:text-5xl" : ""). A `.join(" ")` (any
+// separator containing whitespace) composes tokens safely the same way
+// joinClassNames does, so a join is flagged only when its separator is a
+// string literal with NO whitespace (or is missing entirely — `.join()`
+// joins on ","), and only when the receiver subtree contains a conditional
+// (ternary, &&, or ||) alongside a string literal, proving conditional
+// string assembly rather than numeric/business-logic joining. `.concat(`
+// never supplies a separator, so it is flagged whenever its receiver or
+// arguments pair a conditional with a string literal. A non-literal
+// separator variable stays out of scope — it can't be audited statically.
+// ---------------------------------------------------------------------------
+
+// True when the subtree branches anywhere: ternary, &&, or ||. Used by the
+// join/concat scan, where the conditional can sit inside an array element or
+// a map/filter callback rather than at the chain root.
+function containsConditional(node: ts.Node): boolean {
+  if (ts.isConditionalExpression(node)) return true;
+  if (
+    ts.isBinaryExpression(node) &&
+    (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken ||
+      node.operatorToken.kind === ts.SyntaxKind.BarBarToken)
+  ) {
+    return true;
+  }
+  let found = false;
+  ts.forEachChild(node, (child) => {
+    if (!found && containsConditional(child)) found = true;
+  });
+  return found;
+}
+
+// Source text of every unsafe array-join or String.concat string assembly in
+// the file: a .join() whose separator has no whitespace, or any .concat(),
+// whose subtree contains both a conditional and a string literal.
+function joinConcatConditionals(source: string, fileName: string): string[] {
+  const sf = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    ts.ScriptKind.TSX
+  );
+  const out: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression)
+    ) {
+      const method = node.expression.name.text;
+      const receiver = node.expression.expression;
+      let unsafe = false;
+      if (method === "join") {
+        const sep = node.arguments[0];
+        // .join() with no argument joins on "," — no whitespace either way.
+        // A non-literal separator can't be audited statically; skip it.
+        const noWhitespaceSeparator =
+          sep === undefined ||
+          ((ts.isStringLiteral(sep) ||
+            ts.isNoSubstitutionTemplateLiteral(sep)) &&
+            !/\s/.test(sep.text));
+        unsafe =
+          noWhitespaceSeparator &&
+          containsConditional(receiver) &&
+          containsStringLiteral(receiver);
+      } else if (method === "concat") {
+        unsafe =
+          (containsConditional(receiver) ||
+            node.arguments.some(containsConditional)) &&
+          (containsStringLiteral(receiver) ||
+            node.arguments.some(containsStringLiteral));
+      }
+      if (unsafe) out.push(node.getText(sf));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 // Legitimate non-class template conditionals the whole-file scan must not
 // flag. Each entry matches when `snippet` (whitespace-normalized) is a
 // substring of the offending interpolation's normalized text. Adding a new
@@ -722,6 +820,20 @@ const NON_CLASS_CONCAT_ALLOWLIST: Array<{
   },
 ];
 
+// Legitimate non-class array-join/String.concat assemblies the join/concat
+// scan must not flag. Each entry matches when `snippet`
+// (whitespace-normalized) is a substring of the offending call's normalized
+// text. Same contract as the other allowlists: class-feeding strings belong
+// in joinClassNames, and unused entries fail the guard. No scanned file has
+// a legitimate entry today — every existing `.join()` with a whitespace-free
+// separator (font-query "&", CSV ",") branches nowhere near a string
+// literal, and nothing uses String.concat.
+const NON_CLASS_JOIN_CONCAT_ALLOWLIST: Array<{
+  file: string;
+  snippet: string;
+  reason: string;
+}> = [];
+
 function collectSectionSources(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
@@ -850,6 +962,35 @@ describe("storefront section class-builder guard", () => {
     }
   }
 
+  // Whole-file array-join/String.concat check: the two remaining
+  // hand-written shapes — ["font-bold", cond ? "md:text-5xl" : ""].join("")
+  // and "font-bold".concat(cond ? " md:text-5xl" : ""). Every `.join()` with
+  // a whitespace-free (or missing) separator and every `.concat()` in these
+  // files is walked; a flagged call is an offender unless it is a named
+  // non-class use in NON_CLASS_JOIN_CONCAT_ALLOWLIST.
+  const usedJoinConcatAllowlistEntries = new Set<number>();
+  for (const file of genericScanFiles) {
+    const rel = relative(process.cwd(), file);
+    const source = readFileSync(file, "utf8");
+
+    for (const text of joinConcatConditionals(source, rel)) {
+      const normalized = normalizeWhitespace(text);
+      const allowIdx = NON_CLASS_JOIN_CONCAT_ALLOWLIST.findIndex(
+        (entry) =>
+          entry.file === rel &&
+          normalized.includes(normalizeWhitespace(entry.snippet))
+      );
+      if (allowIdx !== -1) {
+        usedJoinConcatAllowlistEntries.add(allowIdx);
+        continue;
+      }
+      offenders.push({
+        file: rel,
+        label: `conditional class assembly via array join/String.concat \`${normalized}\` (compose classNames with joinClassNames)`,
+      });
+    }
+  }
+
   it("finds no hand-written headingSize/bodySize conditional class suffixes outside section-elements.tsx", () => {
     const sizeOffenders = offenders.filter((o) =>
       o.label.includes("conditional string suffix")
@@ -878,6 +1019,13 @@ describe("storefront section class-builder guard", () => {
     expect(concatOffenders).toEqual([]);
   });
 
+  it("finds no conditional class assembly via array .join() or String.concat in any scanned file", () => {
+    const joinConcatOffenders = offenders.filter((o) =>
+      o.label.includes("array join/String.concat")
+    );
+    expect(joinConcatOffenders).toEqual([]);
+  });
+
   it("keeps the non-class allowlists tight (no unused entries)", () => {
     // An entry whose expression was edited or deleted would silently rot into
     // a loophole for anything matching its snippet — fail loudly instead.
@@ -889,6 +1037,10 @@ describe("storefront section class-builder guard", () => {
       (_, idx) => !usedConcatAllowlistEntries.has(idx)
     );
     expect(unusedConcats).toEqual([]);
+    const unusedJoinConcats = NON_CLASS_JOIN_CONCAT_ALLOWLIST.filter(
+      (_, idx) => !usedJoinConcatAllowlistEntries.has(idx)
+    );
+    expect(unusedJoinConcats).toEqual([]);
   });
 
   it("scans every section file (guard against a silently broken walk)", () => {
@@ -1043,6 +1195,52 @@ describe("storefront section class-builder guard", () => {
     ];
     for (const sample of allowed) {
       expect(stringConcatConditionals(sample, "sample.tsx")).toEqual([]);
+    }
+  });
+
+  it("detects conditional class assembly via array .join() and String.concat (guard self-check)", () => {
+    // The bug shapes this layer exists to catch: every prior scan is blind to
+    // array-join and concat assembly — a whitespace-free separator or
+    // separator-less concat glues the same dead token when a conditional
+    // branch drops its leading space, inline in className or assigned to a
+    // variable first, with ternary, &&, or ||.
+    const forbidden = [
+      'const el = <div className={["font-bold", cond ? "md:text-5xl" : ""].join("")} />;',
+      'const cls = ["flex", cond ? "md:flex-row" : "flex-col"].join("");',
+      // A missing separator joins on "," — no whitespace, same glued token.
+      'const cls = ["font-bold", cond ? "md:text-5xl" : ""].join();',
+      // The conditional can hide inside a map/filter callback.
+      'const cls = items.map((i) => (i.on ? "active" : "")).join("");',
+      'const cls = parts.filter((p) => (on ? p : "fallback")).join(",");',
+      // Variable branches are the same hand-rolled composition.
+      'const cls = ["flex", cond ? rowClass : colClass].join("");',
+      // String.concat never supplies a separator.
+      'const cls = "font-bold".concat(cond ? " md:text-5xl" : "");',
+      'const cls = "flex ".concat(cond ? rowClass : colClass);',
+      'const cls = base.concat(" ", enabled && "active");',
+      'const cls = base.concat(override || "default-class");',
+    ];
+    for (const sample of forbidden) {
+      expect(joinConcatConditionals(sample, "sample.tsx")).not.toEqual([]);
+    }
+    // Stays allowed: a whitespace separator composes tokens safely like
+    // joinClassNames; no conditional or no string literal in the subtree
+    // means numeric/business-logic assembly; a non-literal separator can't
+    // be audited statically; concat on arrays isn't string assembly.
+    const allowed = [
+      'const cls = ["font-bold", cond ? "md:text-5xl" : ""].join(" ");',
+      'const cls = joinClassNames("font-bold", cond ? "md:text-5xl" : "");',
+      'const csv = rows.map(escape).join(",");',
+      'const qs = families.map((f) => `family=${f}`).join("&");',
+      'const n = [1, cond ? 2 : 3].join("");',
+      'const cls = ["font-bold", cond ? "md:text-5xl" : ""].join(separator);',
+      'const arr = base.concat(cond ? [1] : [2]);',
+      'const label = "Total: ".concat(format(count));',
+      // No conditional in the joined subtree — the ternary lives outside.
+      'const label = parts.length > 0 ? parts.join(" + ") : "DISCOUNT";',
+    ];
+    for (const sample of allowed) {
+      expect(joinConcatConditionals(sample, "sample.tsx")).toEqual([]);
     }
   });
 
