@@ -13,6 +13,7 @@ import {
   WHITEBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 import { SITE_URL } from "@/utils/site-url";
 
 const VideoPlaceholder = () => (
@@ -414,9 +415,10 @@ const ProducerGuidePage = () => {
 
         {/* Sidebar */}
         <aside
-          className={`shadow-neo fixed top-0 left-0 z-40 h-screen w-64 transform border-r-4 border-black bg-white transition-transform lg:translate-x-0 ${
+          className={joinClassNames(
+            "shadow-neo fixed top-0 left-0 z-40 h-screen w-64 transform border-r-4 border-black bg-white transition-transform lg:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          )}
         >
           <div className="h-full overflow-y-auto p-6">
             <h2 className="mb-6 text-2xl font-bold text-black">Guide</h2>
@@ -425,11 +427,12 @@ const ProducerGuidePage = () => {
                 <div key={item.id}>
                   <button
                     onClick={() => scrollToSection(item.id)}
-                    className={`w-full rounded border-2 border-black px-4 py-2 text-left font-bold transition-all hover:-translate-y-0.5 ${
+                    className={joinClassNames(
+                      "w-full rounded border-2 border-black px-4 py-2 text-left font-bold transition-all hover:-translate-y-0.5",
                       activeSection === item.id
                         ? "bg-primary-yellow shadow-neo text-black"
                         : "bg-white text-black"
-                    }`}
+                    )}
                   >
                     {item.label}
                   </button>
@@ -439,11 +442,12 @@ const ProducerGuidePage = () => {
                         <button
                           key={thread.id}
                           onClick={() => scrollToSection(thread.id)}
-                          className={`w-full rounded px-3 py-1 text-left text-sm transition-all hover:bg-gray-100 ${
+                          className={joinClassNames(
+                            "w-full rounded px-3 py-1 text-left text-sm transition-all hover:bg-gray-100",
                             activeSection === thread.id
                               ? "text-primary-blue font-bold"
                               : "text-black"
-                          }`}
+                          )}
                         >
                           {thread.label}
                         </button>
@@ -943,15 +947,17 @@ const ProducerGuidePage = () => {
                         {item.question}
                       </h3>
                       <PlusIcon
-                        className={`h-6 w-6 shrink-0 transition-transform ${
+                        className={joinClassNames(
+                          "h-6 w-6 shrink-0 transition-transform",
                           openFaqIndex === index ? "rotate-45" : ""
-                        }`}
+                        )}
                       />
                     </button>
                     <div
-                      className={`bg-white/10 px-4 pt-2 pb-4 ${
+                      className={joinClassNames(
+                        "bg-white/10 px-4 pt-2 pb-4",
                         openFaqIndex === index ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <p className="text-sm leading-relaxed text-white/90">
                         {item.answer}

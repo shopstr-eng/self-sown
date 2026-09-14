@@ -54,6 +54,7 @@ import {
   disconnectSquare,
   type SquareConnectionStatus,
 } from "@/utils/square/client-api";
+import { joinClassNames } from "@/utils/class-names";
 
 interface AccountStatus {
   hasAccount: boolean;
@@ -1147,9 +1148,10 @@ const PaymentsSettingsPage = () => {
 
 const StatusPill = ({ label, ok }: { label: string; ok: boolean }) => (
   <div
-    className={`flex items-center gap-2 rounded-md border-2 border-black p-2 text-sm font-bold ${
+    className={joinClassNames(
+      "flex items-center gap-2 rounded-md border-2 border-black p-2 text-sm font-bold",
       ok ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
-    }`}
+    )}
   >
     {ok ? (
       <CheckCircleIcon className="h-5 w-5 text-green-700" />

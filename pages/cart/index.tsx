@@ -38,6 +38,7 @@ import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wra
 import { getLocalStorageJson } from "@/utils/safe-json";
 import { CartDiscountsMap, isCartDiscountsMap } from "@/utils/cart-discounts";
 import { getAffiliateRefCookie } from "@/components/utility-components/affiliate-ref-tracker";
+import { joinClassNames } from "@/utils/class-names";
 
 interface QuantitySelectorProps {
   value: number;
@@ -1307,20 +1308,22 @@ export default function Component() {
                                           },
                                         }));
                                       }}
-                                      className={`relative inline-flex h-6 w-11 items-center rounded-full border-2 border-black transition-colors ${
+                                      className={joinClassNames(
+                                        "relative inline-flex h-6 w-11 items-center rounded-full border-2 border-black transition-colors",
                                         subscriptionSelections[product.id]
                                           ?.enabled
                                           ? "bg-purple-600"
                                           : "bg-gray-300"
-                                      }`}
+                                      )}
                                     >
                                       <span
-                                        className={`inline-block h-4 w-4 transform rounded-full border border-black bg-white transition-transform ${
+                                        className={joinClassNames(
+                                          "inline-block h-4 w-4 transform rounded-full border border-black bg-white transition-transform",
                                           subscriptionSelections[product.id]
                                             ?.enabled
                                             ? "translate-x-5"
                                             : "translate-x-0.5"
-                                        }`}
+                                        )}
                                       />
                                     </button>
                                   </div>
@@ -1535,11 +1538,12 @@ export default function Component() {
                               </div>
                               <div className="h-3 w-full overflow-hidden rounded-full border border-black bg-gray-200">
                                 <div
-                                  className={`h-full rounded-full transition-all duration-500 ${
+                                  className={joinClassNames(
+                                    "h-full rounded-full transition-all duration-500",
                                     isFreeShipping
                                       ? "bg-green-500"
                                       : "bg-primary-blue"
-                                  }`}
+                                  )}
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
@@ -1634,11 +1638,12 @@ export default function Component() {
                       )}
                     </p>
                     <Button
-                      className={`${BLUEBUTTONCLASSNAMES} ${
+                      className={joinClassNames(
+                        BLUEBUTTONCLASSNAMES,
                         hasSubscriptionStripeConflict
                           ? "cursor-not-allowed opacity-50"
                           : ""
-                      }`}
+                      )}
                       onClick={toggleCheckout}
                       disabled={hasSubscriptionStripeConflict}
                       size="lg"

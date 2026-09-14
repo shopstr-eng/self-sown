@@ -10,6 +10,7 @@ import {
   getShopSlugByPubkey,
 } from "@/utils/db/db-service";
 import parseTags from "@/utils/parsers/product-parser-functions";
+import { joinClassNames } from "@/utils/class-names";
 
 type SsrProduct = { id: string; title: string };
 
@@ -273,9 +274,10 @@ export default function SellerView({
         </div>
       )}
       <div
-        className={`flex h-full min-h-screen flex-col bg-white ${
+        className={joinClassNames(
+          "flex h-full min-h-screen flex-col bg-white",
           focusedPubkey || initialFocusedPubkey ? "pt-20" : ""
-        }`}
+        )}
       >
         <HomeFeed
           focusedPubkey={focusedPubkey}

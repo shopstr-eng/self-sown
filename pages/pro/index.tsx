@@ -16,6 +16,7 @@ import {
   WRANGLER_EXTRA_FEATURES,
 } from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
+import { joinClassNames } from "@/utils/class-names";
 
 const ProUpgradePage = () => {
   const router = useRouter();
@@ -178,9 +179,10 @@ function PlanCard({
 }) {
   return (
     <div
-      className={`shadow-neo rounded-md border-2 border-black p-5 ${
+      className={joinClassNames(
+        "shadow-neo rounded-md border-2 border-black p-5",
         muted ? "bg-white" : "bg-primary-yellow"
-      }`}
+      )}
     >
       <h3 className="text-lg font-black text-black">{title}</h3>
       <p className="mb-3">

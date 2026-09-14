@@ -28,6 +28,7 @@ import {
 } from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
 import { SITE_HOST } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,14 +42,18 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       >
         <span>{question}</span>
         <ChevronDownIcon
-          className={`h-5 w-5 transition-transform ${
+          className={joinClassNames(
+            "h-5 w-5 transition-transform",
             isOpen ? "rotate-180" : ""
-          }`}
+          )}
           aria-hidden="true"
         />
       </button>
       <div
-        className={`pb-4 text-zinc-600 ${isOpen ? "" : "hidden"}`}
+        className={joinClassNames(
+          "pb-4 text-zinc-600",
+          isOpen ? "" : "hidden"
+        )}
         aria-hidden={!isOpen}
       >
         <p>{answer}</p>
@@ -1146,9 +1151,10 @@ export default function StandaloneLanding() {
                   return (
                     <tr
                       key={row.feature}
-                      className={`border-b border-zinc-200 last:border-b-0 ${
+                      className={joinClassNames(
+                        "border-b border-zinc-200 last:border-b-0",
                         i % 2 === 1 ? "bg-zinc-50" : ""
-                      }`}
+                      )}
                     >
                       <td className="p-2 align-top font-bold sm:p-4">
                         {row.feature}
@@ -1466,11 +1472,12 @@ export default function StandaloneLanding() {
 
             {submitMessage && (
               <div
-                className={`mt-4 rounded-lg p-4 ${
+                className={joinClassNames(
+                  "mt-4 rounded-lg p-4",
                   submitMessage.type === "success"
                     ? "border border-green-200 bg-green-100 text-green-800"
                     : "border border-red-200 bg-red-100 text-red-800"
-                }`}
+                )}
               >
                 <p className="flex items-center space-x-2">
                   <span>

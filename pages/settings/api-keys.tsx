@@ -11,6 +11,7 @@ import UpgradeBanner from "@/components/pro/upgrade-banner";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import { copyToClipboard } from "@/utils/clipboard";
 import { NostrEventTemplate } from "@/utils/nostr/nostr-manager";
+import { joinClassNames } from "@/utils/class-names";
 import {
   buildApiKeyCreateProof,
   buildApiKeyRevokeProof,
@@ -275,7 +276,10 @@ const ApiKeysPage = () => {
               </p>
               <div className="flex items-center gap-2">
                 <code
-                  className={`flex-1 rounded-md border-2 border-black bg-white px-3 py-2 font-mono text-sm break-all ${showCreatedKey ? "" : "blur-xs"}`}
+                  className={joinClassNames(
+                    "flex-1 rounded-md border-2 border-black bg-white px-3 py-2 font-mono text-sm break-all",
+                    showCreatedKey ? "" : "blur-xs"
+                  )}
                 >
                   {createdKey}
                 </code>
@@ -359,9 +363,10 @@ const ApiKeysPage = () => {
                 {apiKeys.map((key) => (
                   <div
                     key={key.id}
-                    className={`shadow-neo rounded-md border-2 border-black p-4 ${
+                    className={joinClassNames(
+                      "shadow-neo rounded-md border-2 border-black p-4",
                       key.is_active ? "bg-white" : "bg-gray-100 opacity-60"
-                    }`}
+                    )}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -386,11 +391,12 @@ const ApiKeysPage = () => {
                           <p>
                             Permissions:{" "}
                             <span
-                              className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
+                              className={joinClassNames(
+                                "rounded-md border px-2 py-0.5 text-xs font-bold",
                                 key.permissions === "read_write"
                                   ? "border-blue-300 bg-blue-100 text-blue-700"
                                   : "border-gray-300 bg-gray-100 text-gray-700"
-                              }`}
+                              )}
                             >
                               {key.permissions === "read_write"
                                 ? "Read + Write"

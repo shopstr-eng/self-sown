@@ -4,6 +4,7 @@ import Head from "next/head";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { SITE_URL } from "@/utils/site-url";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 export default function Faq() {
   const router = useRouter();
@@ -247,9 +248,10 @@ export default function Faq() {
                       </button>
                       {/* Content area that slides open/closed */}
                       <div
-                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                        className={joinClassNames(
+                          "overflow-hidden transition-all duration-300 ease-in-out",
                           isOpen ? "max-h-screen" : "max-h-0"
-                        }`}
+                        )}
                       >
                         <div className="border-t-2 border-black p-4 text-zinc-700">
                           {item.content}

@@ -936,6 +936,146 @@ const NON_CLASS_TEMPLATE_ALLOWLIST: Array<{
     snippet: 'r.deliveryDays === 1 ? "" : "s"',
     reason: "pluralization suffix in delivery-days display text",
   },
+  // ---- Page route files (pages/) ----
+  // Error-message fallback + HTTP-status suffix in the admin dashboard error
+  // display text.
+  {
+    file: "pages/admin/dashboard.tsx",
+    snippet: '(data && data.error) || "Failed to load"',
+    reason: "error-message fallback in admin dashboard display text",
+  },
+  {
+    file: "pages/admin/dashboard.tsx",
+    snippet: "r.status ? ` (HTTP ${r.status})` :",
+    reason: "HTTP-status suffix in admin dashboard error text",
+  },
+  // Identity fallback in the OAuth-derived passphrase string (never rendered
+  // as a class).
+  {
+    file: "pages/auth/oauth-success.tsx",
+    snippet: "email || pubkey",
+    reason: "identity fallback in OAuth passphrase derivation string",
+  },
+  // Credential labels in recovery-form display text.
+  {
+    file: "pages/auth/recover.tsx",
+    snippet: 'credentialLabel === "password" ? "Password" : "Passphrase"',
+    reason: "credential label in recovery-form display text",
+  },
+  {
+    file: "pages/auth/recover.tsx",
+    snippet: 'credentialLabel === "password" ? "Passwords" : "Passphrases"',
+    reason: "credential label in recovery-form display text",
+  },
+  // Query-string suffix on the onboarding router.push URL.
+  {
+    file: "pages/onboarding/new-account.tsx",
+    snippet: "qs ? `?${qs}` :",
+    reason: "query-string suffix in onboarding navigation URL",
+  },
+  // Post-save success/error display text in the blog settings page.
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: 'data.error || "please try again from the post list"',
+    reason: "error-message fallback in blog-save failure text",
+  },
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: 'data.sent === 1 ? "" : "s"',
+    reason: "pluralization suffix in blog-broadcast confirmation text",
+  },
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: 'editingPost && !editingScheduled ? "updated" : "published"',
+    reason: "verb in blog-save success message text",
+  },
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: "emailNote ? ` ${emailNote}` :",
+    reason: "email-note suffix in blog-save success message text",
+  },
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: 'item.status === "scheduled" ? "scheduled post" : "draft"',
+    reason: "status noun in blog-list delete confirmation text",
+  },
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: 'item.status === "scheduled" ? "Scheduled post" : "Draft"',
+    reason: "status label in blog-list display text",
+  },
+  // Audience-count and flow-status display text in the email-flows settings
+  // page.
+  {
+    file: "pages/settings/email-flows.tsx",
+    snippet: 'data.enrolled === 1 ? "" : "s"',
+    reason: "pluralization suffix in flow-send confirmation text",
+  },
+  {
+    file: "pages/settings/email-flows.tsx",
+    snippet: 'data.flow.status === "active" ? "active" : "paused"',
+    reason: "status word in flow-toggle success message text",
+  },
+  {
+    file: "pages/settings/email-flows.tsx",
+    snippet: "data.skipped ? `",
+    reason: "skipped-count suffix in flow-send confirmation text",
+  },
+  {
+    file: "pages/settings/email-flows.tsx",
+    snippet: 'days !== 1 ? "s" : ""',
+    reason: "pluralization suffix in flow-step delay display text",
+  },
+  {
+    file: "pages/settings/email-flows.tsx",
+    snippet: 'hours !== 1 ? "s" : ""',
+    reason: "pluralization suffix in flow-step delay display text",
+  },
+  // Tax-registration and Square-status display text in the payments settings
+  // page.
+  {
+    file: "pages/settings/payments.tsx",
+    snippet: "needsRegion ? region : country",
+    reason: "region/country noun in tax-registration confirmation text",
+  },
+  {
+    file: "pages/settings/payments.tsx",
+    snippet: 'squareStatus.currency || "—"',
+    reason: "currency fallback in Square status-pill label text",
+  },
+  {
+    file: "pages/settings/payments.tsx",
+    snippet: 'squareStatus.locationId ? "set" : "missing"',
+    reason: "location status in Square status-pill label text",
+  },
+  // Root-path elision in canonical stall URLs.
+  {
+    file: "pages/stall/[slug].tsx",
+    snippet: 'stallPath === "/" ? "" : stallPath',
+    reason: "root-path elision in canonical stall URL text",
+  },
+  {
+    file: "pages/stall/[...stallPath].tsx",
+    snippet: 'stallRootPath === "/" ? "" : stallRootPath',
+    reason: "root-path elision in canonical stall URL text",
+  },
+  // Pluralization and skipped-mint suffixes in wallet restore message text
+  // (same shapes as the storefront-wallet entries above).
+  {
+    file: "pages/wallet/index.tsx",
+    snippet: 'restoredCount === 1 ? "" : "s"',
+    reason: "pluralization suffix in wallet restore message",
+  },
+  {
+    file: "pages/wallet/index.tsx",
+    snippet: "skippedCount > 0 ? `",
+    reason: "skipped-mint suffix in wallet restore message",
+  },
+  {
+    file: "pages/wallet/index.tsx",
+    snippet: 'skippedCount === 1 ? "" : "s"',
+    reason: "pluralization suffix in wallet restore message",
+  },
 ];
 
 // Legitimate non-class '+' concatenations with a string-literal conditional
@@ -1078,6 +1218,13 @@ const NON_CLASS_CONCAT_ALLOWLIST: Array<{
     snippet: 'before + (selected || "text") + after',
     reason: "text insertion around the current selection, not a class string",
   },
+  // Scheduled/draft save message + email-note suffix in
+  // pages/settings/blog.tsx — confirmation display text, not a class string.
+  {
+    file: "pages/settings/blog.tsx",
+    snippet: 'scheduledEpoch !== null ? `Post scheduled for',
+    reason: "blog save-confirmation message text",
+  },
 ];
 
 // Legitimate non-class array-join/String.concat assemblies the join/concat
@@ -1123,14 +1270,39 @@ function collectAllComponentSources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+const PAGES_DIR = join(process.cwd(), "pages");
+
+// EVERY page route file is walked recursively (skipping api/ — server route
+// handlers render no classNames — and __tests__ — test fixtures are not
+// shipped UI) so no page, nested route directory, or future page can
+// silently escape the three generic scans. The same dropped space in a
+// page-level conditional class template strips styling from a full page the
+// same way it does from a reusable component.
+function collectAllPageSources(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) {
+      if (entry !== "__tests__" && entry !== "api")
+        collectAllPageSources(full, out);
+      continue;
+    }
+    if (entry.endsWith(".tsx")) out.push(full);
+  }
+  return out;
+}
+
 describe("storefront section class-builder guard", () => {
   // Section files (section-*.tsx under storefront/sections) additionally get
   // the legacy headingSize/bodySize check below.
   const scannedFiles = collectSectionSources(SECTIONS_DIR);
   // Files held to the three generic scans (className templates, whole-file
-  // templates, '+' concatenation): EVERY shipped .tsx under components/, from
-  // one recursive walk — no file or directory list to keep in sync.
-  const genericScanFiles = collectAllComponentSources(COMPONENTS_DIR);
+  // templates, '+' concatenation): EVERY shipped .tsx under components/ AND
+  // every page route under pages/ (skipping api/ and __tests__), from two
+  // recursive walks — no file or directory list to keep in sync.
+  const genericScanFiles = [
+    ...collectAllComponentSources(COMPONENTS_DIR),
+    ...collectAllPageSources(PAGES_DIR),
+  ];
   const offenders: Array<{ file: string; label: string }> = [];
 
   for (const file of scannedFiles) {
@@ -1364,6 +1536,44 @@ describe("storefront section class-builder guard", () => {
     // A walk returning far fewer files than components/ holds has broken
     // silently — fail instead of scanning nothing.
     expect(genericScanFiles.length).toBeGreaterThanOrEqual(150);
+  });
+
+  it("scans every page route file (guard against a silently broken walk)", () => {
+    // Page route files carry the same hand-written conditional className
+    // templates components once did — the pages/ walk must cover them or the
+    // merged-class bug silently returns at page scope. These pins fail loudly
+    // if the WALK breaks (wrong root, skipped subtree, empty result), with
+    // representatives from the top level, nested route directories, and
+    // dynamic route filenames.
+    for (const expected of [
+      "pages/index.tsx",
+      "pages/404.tsx",
+      "pages/_app.tsx",
+      "pages/cart/index.tsx",
+      "pages/faq/index.tsx",
+      "pages/marketplace/[[...npub]].tsx",
+      "pages/onboarding/choose-plan.tsx",
+      "pages/producer-guide/index.tsx",
+      "pages/settings/api-keys.tsx",
+      "pages/settings/blog.tsx",
+      "pages/settings/email-flows.tsx",
+      "pages/stall-preview.tsx",
+      "pages/stall/[slug].tsx",
+      "pages/stall/[...stallPath].tsx",
+      "pages/wallet/index.tsx",
+    ]) {
+      expect(genericScanFiles).toContain(join(process.cwd(), expected));
+    }
+    // API route handlers render no classNames and must stay out of the scan.
+    expect(
+      genericScanFiles.some((f) => f.includes(join("pages", "api")))
+    ).toBe(false);
+    // A walk returning far fewer files than pages/ holds has broken silently
+    // — fail instead of scanning nothing.
+    const pageScanFiles = genericScanFiles.filter((f) =>
+      f.startsWith(PAGES_DIR)
+    );
+    expect(pageScanFiles.length).toBeGreaterThanOrEqual(45);
   });
 
   it("detects inline conditionals in className templates whatever the operand shape (guard self-check)", () => {

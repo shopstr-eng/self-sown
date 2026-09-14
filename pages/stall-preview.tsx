@@ -28,6 +28,7 @@ import StorefrontPreviewFrame from "@/components/storefront/storefront-preview-f
 import SectionRenderer from "@/components/storefront/section-renderer";
 import { PLACEHOLDER_PRODUCT } from "@/utils/storefront/placeholder-product";
 import { SITE_URL } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 
 const API_PATH = "/api/storefront/preview-from-url";
 
@@ -254,22 +255,24 @@ export default function ConvertPage() {
               <button
                 type="button"
                 onClick={() => switchMode("stall")}
-                className={`px-4 py-2 text-sm font-bold ${
+                className={joinClassNames(
+                  "px-4 py-2 text-sm font-bold",
                   mode === "stall"
                     ? "bg-black text-white"
                     : "bg-white text-black"
-                }`}
+                )}
               >
                 Stall / landing page
               </button>
               <button
                 type="button"
                 onClick={() => switchMode("product")}
-                className={`border-l-2 border-black px-4 py-2 text-sm font-bold ${
+                className={joinClassNames(
+                  "border-l-2 border-black px-4 py-2 text-sm font-bold",
                   mode === "product"
                     ? "bg-black text-white"
                     : "bg-white text-black"
-                }`}
+                )}
               >
                 Product Page
               </button>

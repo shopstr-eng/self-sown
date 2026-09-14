@@ -6,6 +6,7 @@ import {
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 import ProCheckout from "@/components/pro/pro-checkout";
 import { FREE_FEATURES, PRO_FEATURES } from "@/components/pro/plan-features";
 
@@ -80,11 +81,12 @@ const OnboardingChoosePlan = () => {
             <div className="mb-8 flex flex-col gap-4 md:flex-row">
               <button
                 onClick={() => setSelected("free")}
-                className={`flex flex-1 flex-col rounded-md border-4 border-black p-6 text-left transition-all ${
+                className={joinClassNames(
+                  "flex flex-1 flex-col rounded-md border-4 border-black p-6 text-left transition-all",
                   selected === "free"
                     ? "bg-primary-yellow shadow-neo -translate-y-1 transform"
                     : "bg-white hover:bg-gray-50"
-                }`}
+                )}
               >
                 <h3 className="text-xl font-black text-black">Free</h3>
                 <p className="mb-3">
@@ -108,11 +110,12 @@ const OnboardingChoosePlan = () => {
 
               <button
                 onClick={() => setSelected("pro")}
-                className={`flex flex-1 flex-col rounded-md border-4 border-black p-6 text-left transition-all ${
+                className={joinClassNames(
+                  "flex flex-1 flex-col rounded-md border-4 border-black p-6 text-left transition-all",
                   selected === "pro"
                     ? "bg-primary-yellow shadow-neo -translate-y-1 transform"
                     : "bg-white hover:bg-gray-50"
-                }`}
+                )}
               >
                 <h3 className="text-xl font-black text-black">Herd</h3>
                 <p className="mb-1">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { Card, CardBody, Button, Image } from "@heroui/react";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 const UserTypeSelection = () => {
   const router = useRouter();
@@ -91,11 +92,12 @@ const UserTypeSelection = () => {
             <div className="mb-8 flex flex-col gap-4 md:flex-row">
               <button
                 onClick={() => setSelectedType("buyer")}
-                className={`flex flex-1 flex-col items-center justify-center rounded-md border-4 border-black p-8 transition-all ${
+                className={joinClassNames(
+                  "flex flex-1 flex-col items-center justify-center rounded-md border-4 border-black p-8 transition-all",
                   selectedType === "buyer"
                     ? "bg-primary-yellow shadow-neo -translate-y-1 transform"
                     : "bg-white hover:bg-gray-50"
-                }`}
+                )}
               >
                 <span aria-hidden="true" className="mb-4 text-4xl leading-none">
                   👤
@@ -108,11 +110,12 @@ const UserTypeSelection = () => {
 
               <button
                 onClick={() => setSelectedType("seller")}
-                className={`flex flex-1 flex-col items-center justify-center rounded-md border-4 border-black p-8 transition-all ${
+                className={joinClassNames(
+                  "flex flex-1 flex-col items-center justify-center rounded-md border-4 border-black p-8 transition-all",
                   selectedType === "seller"
                     ? "bg-primary-yellow shadow-neo -translate-y-1 transform"
                     : "bg-white hover:bg-gray-50"
-                }`}
+                )}
               >
                 <span aria-hidden="true" className="mb-4 text-4xl leading-none">
                   🛍️

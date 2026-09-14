@@ -46,6 +46,7 @@ import {
   PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import { joinClassNames } from "@/utils/class-names";
 
 interface FlowStep {
   id?: number;
@@ -763,13 +764,14 @@ const EmailFlowsPage = () => {
                       editingFlow.flow_type}
                   </span>
                   <span
-                    className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
+                    className={joinClassNames(
+                      "rounded-md border px-2 py-0.5 text-xs font-bold",
                       editingFlow.status === "active"
                         ? "border-green-300 bg-green-100 text-green-700"
                         : editingFlow.status === "paused"
                           ? "border-yellow-300 bg-yellow-100 text-yellow-700"
                           : "border-gray-300 bg-gray-100 text-gray-700"
-                    }`}
+                    )}
                   >
                     {editingFlow.status}
                   </span>
@@ -1214,13 +1216,14 @@ const EmailFlowsPage = () => {
                           {FLOW_TYPE_LABELS[flow.flow_type] || flow.flow_type}
                         </span>
                         <span
-                          className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
+                          className={joinClassNames(
+                            "rounded-md border px-2 py-0.5 text-xs font-bold",
                             flow.status === "active"
                               ? "border-green-300 bg-green-100 text-green-700"
                               : flow.status === "paused"
                                 ? "border-yellow-300 bg-yellow-100 text-yellow-700"
                                 : "border-gray-300 bg-gray-100 text-gray-700"
-                          }`}
+                          )}
                         >
                           {flow.status}
                         </span>
@@ -1378,11 +1381,12 @@ const EmailFlowsPage = () => {
                         key={value}
                         type="button"
                         onClick={() => changePickerSource(value)}
-                        className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors ${
+                        className={joinClassNames(
+                          "rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors",
                           pickerSource === value
                             ? "border-black bg-black text-white"
                             : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
+                        )}
                       >
                         {label}
                       </button>
