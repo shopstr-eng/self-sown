@@ -165,7 +165,7 @@ const ProducerGuidePage = () => {
           and transactions and protects your wealth over time. Payment
           processors like Stripe, PayPal, etc. can freeze your funds, close your
           account, or even ban you for selling products they don&apos;t deem
-          acceptable (which farm-direct and homemade food can easily fall
+          acceptable (a category farm-direct and homemade food can easily fall
           under). If desired, you can exchange it for cash or other currencies
           at your own pace using tools like{" "}
           <a
@@ -356,7 +356,7 @@ const ProducerGuidePage = () => {
                   name: "Why Bitcoin? How can I exchange it?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (which farm-direct and homemade food can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
+                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (a category farm-direct and homemade food can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
                   },
                 },
                 {
