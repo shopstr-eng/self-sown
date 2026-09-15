@@ -111,9 +111,9 @@ describe("republish helpers normalize the discovery tag", () => {
       )
     );
     expect(tags.some((t) => t[1] === "MilkMarket")).toBe(false);
-    expect(tags.filter((t) => t[0] === "t" && t[1] === "SelfSown")).toHaveLength(
-      1
-    );
+    expect(
+      tags.filter((t) => t[0] === "t" && t[1] === "SelfSown")
+    ).toHaveLength(1);
     expect(tags.some((t) => t[0] === "t" && t[1] === "Milk")).toBe(true);
   });
 
@@ -127,9 +127,9 @@ describe("republish helpers normalize the discovery tag", () => {
       )
     );
     expect(tags.some((t) => t[1] === "MilkMarket")).toBe(false);
-    expect(tags.filter((t) => t[0] === "t" && t[1] === "SelfSown")).toHaveLength(
-      1
-    );
+    expect(
+      tags.filter((t) => t[0] === "t" && t[1] === "SelfSown")
+    ).toHaveLength(1);
     expect(tags.some((t) => t[0] === "t" && t[1] === "Milk")).toBe(true);
   });
 });

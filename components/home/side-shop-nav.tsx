@@ -78,7 +78,12 @@ const SideShopNav = ({
   };
 
   const tallyCategories = (categories: string[]): Record<string, number> => {
-    const excludedCategories = ["shopstr", "SelfSown", "MilkMarket", "FREEMILK"];
+    const excludedCategories = [
+      "shopstr",
+      "SelfSown",
+      "MilkMarket",
+      "FREEMILK",
+    ];
     return categories
       .filter((category) => !excludedCategories.includes(category))
       .reduce(

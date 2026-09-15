@@ -67,7 +67,9 @@ describe("internal header trust boundary", () => {
       })
     );
     expect(res.status).toBe(200);
-    expect(res.headers.get("x-middleware-request-x-ss-custom-domain")).toBeNull();
+    expect(
+      res.headers.get("x-middleware-request-x-ss-custom-domain")
+    ).toBeNull();
     expect(
       res.headers.get("x-middleware-request-x-ss-custom-domain-host")
     ).toBeNull();

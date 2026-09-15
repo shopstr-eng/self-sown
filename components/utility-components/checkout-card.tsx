@@ -1214,9 +1214,9 @@ export default function CheckoutCard({
                             className={joinClassNames(
                               "bg-primary-yellow shadow-neo rounded-md border-2 border-black px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume) ||
-                              (hasWeights && !selectedWeight) ||
-                              (hasVariants && !selectedVariant)
+                                (hasVolumes && !selectedVolume) ||
+                                (hasWeights && !selectedWeight) ||
+                                (hasVariants && !selectedVariant)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
                             )}
@@ -1238,10 +1238,10 @@ export default function CheckoutCard({
                             className={joinClassNames(
                               "shadow-neo rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5",
                               isAdded ||
-                              (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume) ||
-                              (hasWeights && !selectedWeight) ||
-                              (hasVariants && !selectedVariant)
+                                (hasSizes && !selectedSize) ||
+                                (hasVolumes && !selectedVolume) ||
+                                (hasWeights && !selectedWeight) ||
+                                (hasVariants && !selectedVariant)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
                             )}

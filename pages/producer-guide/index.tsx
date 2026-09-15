@@ -976,9 +976,9 @@ const ProducerGuidePage = () => {
               <p className="mb-6 text-base text-white">
                 Join the growing community of producers providing fresh, local
                 food &mdash; from farm-fresh produce to meat, eggs, and handmade
-                goods &mdash; directly to consumers. Selling is free with unlimited
-                listings, and new sellers get a 30-day free trial of Herd
-                &mdash; no payment required up front.
+                goods &mdash; directly to consumers. Selling is free with
+                unlimited listings, and new sellers get a 30-day free trial of
+                Herd &mdash; no payment required up front.
               </p>
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button

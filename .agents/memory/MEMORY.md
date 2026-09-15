@@ -152,7 +152,7 @@
 - [replit.nix channel caps Node at 18](replit-nix-channel-node-cap.md) — nixpkgs 22.11 has no nodejs-22_x and replit.nix is still evaluated at env-build; runtime Node 22 comes from .replit modules, never bump replit.nix to match .nvmrc.
 - [Deploy-build publish guard](deploy-build-publish-guard.md) — deploy-build.sh refuses to run without SELF_SOWN_PUBLISH_BUILD=1, set only by the .replit [deployment] build command; keep the two in lockstep.
 - [Brand palette consolidation](brand-palette-consolidation.md) — app is forced light-only; keep darkMode:'class' (HeroUI needs it); never add dark: classes.
-- [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops *-opacity-*, re-scales -sm sizes (pinned+guarded); deprecated aliases (flex-shrink-*/bg-gradient-to-*/etc.) MIGRATED to v4 names + guarded; bare shadow/rounded/blur/ring stay.
+- [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops _-opacity-_, re-scales -sm sizes (pinned+guarded); deprecated aliases (flex-shrink-_/bg-gradient-to-_/etc.) MIGRATED to v4 names + guarded; bare shadow/rounded/blur/ring stay.
 - [Headless browser verification](headless-browser-verification.md) — no puppeteer here; use /repl/tools/bin/chromium headless for DOM/computed-style checks; kill by PID, never pkill.
 - [Pro-status transient-failure policy](pro-status-failopen-cache.md) — pro-status gating must fail closed only on definitive isPro:false; transient failures retry + use last-known-good cache.
 - [Audit overrides that cant be bumped](audit-override-unfixable-pins.md) — decode-uri-component patch is ESM-only (breaks query-string CJS); image-size via metro has no fix; dont re-pin, check upstream first.

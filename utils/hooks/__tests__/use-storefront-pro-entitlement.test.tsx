@@ -203,7 +203,10 @@ describe("useStorefrontProEntitlement", () => {
     expect(readLastKnownGoodMembership(PRO_SELLER)).toBeNull();
     localStorage.setItem(
       `sf_pro_status:${PRO_SELLER}`,
-      JSON.stringify({ view: { ...proView(PRO_SELLER, true), isPro: "yes" }, checkedAt: Date.now() })
+      JSON.stringify({
+        view: { ...proView(PRO_SELLER, true), isPro: "yes" },
+        checkedAt: Date.now(),
+      })
     );
     expect(readLastKnownGoodMembership(PRO_SELLER)).toBeNull();
     // A view recorded for a different pubkey must not leak.

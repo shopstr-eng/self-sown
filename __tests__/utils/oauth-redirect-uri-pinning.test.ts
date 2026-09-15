@@ -53,7 +53,9 @@ describe("OAuth token exchange redirect_uri pinning", () => {
     );
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(init.body as string);
-    expect(body.redirect_uri).toBe("https://platform.example.com/square-oauth-redirect");
+    expect(body.redirect_uri).toBe(
+      "https://platform.example.com/square-oauth-redirect"
+    );
   });
 
   it("Square falls back to the current base URL when nothing was pinned (legacy state row)", async () => {

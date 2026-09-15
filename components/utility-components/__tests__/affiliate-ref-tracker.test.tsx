@@ -76,9 +76,9 @@ describe("affiliate ref cookie rename coexistence", () => {
     bindAffiliateRefToSeller(SELLER_A);
     expect(global.fetch).toHaveBeenCalledTimes(1);
     // Marker written under the NEW session key...
-    expect(
-      window.sessionStorage.getItem("ss_aff_clicks_recorded")
-    ).toContain(`${SELLER_A}:CODEA`);
+    expect(window.sessionStorage.getItem("ss_aff_clicks_recorded")).toContain(
+      `${SELLER_A}:CODEA`
+    );
     // ...and a second bind (either generation) does not refire.
     bindAffiliateRefToSeller(SELLER_A);
     expect(global.fetch).toHaveBeenCalledTimes(1);

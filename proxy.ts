@@ -363,7 +363,10 @@ async function routeRequest(request: NextRequest) {
   // custom domain.
   if (pathname === "/.well-known/http-message-signatures-directory") {
     const res = NextResponse.rewrite(
-      new URL("/api/.well-known/http-message-signatures-directory", request.url),
+      new URL(
+        "/api/.well-known/http-message-signatures-directory",
+        request.url
+      ),
       { request: { headers: stripInternalHeaders(request.headers) } }
     );
     res.headers.set(RL_SKIP_HEADER, "1");
@@ -568,7 +571,9 @@ async function routeRequest(request: NextRequest) {
       (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
         STATIC_ASSET_EXT_RE.test(pathname))
     ) {
-      return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
+      return NextResponse.next({
+        request: { headers: stripInternalHeaders(request.headers) },
+      });
     }
 
     // Look up the shop slug for this custom domain up-front so we can flag
@@ -623,7 +628,10 @@ async function routeRequest(request: NextRequest) {
     // to the platform's static /public copies.
     const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
     if (geoFormat) {
-      if ((!slug)) return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
+      if (!slug)
+        return NextResponse.next({
+          request: { headers: stripInternalHeaders(request.headers) },
+        });
       return rewriteToStallAgentView(geoFormat);
     }
 
@@ -633,7 +641,10 @@ async function routeRequest(request: NextRequest) {
     // above, so pass it through via header. If the domain has no resolved seller
     // (unconfigured/hidden), fall through to the platform's static /public copy.
     if (isCustomDomainNostrJson) {
-      if ((!pubkey)) return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
+      if (!pubkey)
+        return NextResponse.next({
+          request: { headers: stripInternalHeaders(request.headers) },
+        });
       const url = new URL("/api/storefront/nostr-json", request.url);
       const res = NextResponse.rewrite(url, {
         request: { headers: buildHeaders() },
@@ -785,7 +796,9 @@ async function routeRequest(request: NextRequest) {
     }
   }
 
-  return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
+  return NextResponse.next({
+    request: { headers: stripInternalHeaders(request.headers) },
+  });
 }
 
 // Resolve the configured self-host owner pubkey to lowercase hex. Accepts an
@@ -844,7 +857,9 @@ function routeSelfHost(request: NextRequest, slug: string) {
     (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
       STATIC_ASSET_EXT_RE.test(pathname))
   ) {
-    return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
+    return NextResponse.next({
+      request: { headers: stripInternalHeaders(request.headers) },
+    });
   }
 
   // UCP discovery profile for this single-tenant instance (the endpoint scopes

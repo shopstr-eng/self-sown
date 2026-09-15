@@ -170,7 +170,10 @@ export default function StorefrontPreviewFrame({
         <style>{themedCss}</style>
       </Head>
       <div
-        className={joinClassNames("sf-preview-frame storefront-themed", className)}
+        className={joinClassNames(
+          "sf-preview-frame storefront-themed",
+          className
+        )}
         style={style}
       >
         {children}

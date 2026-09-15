@@ -178,8 +178,7 @@ export default async function handler(
       !selfHost &&
       !isMultiMerchant &&
       singleSellerPubkey &&
-      singleSellerPubkey !==
-        (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
+      singleSellerPubkey !== process.env.NEXT_PUBLIC_SELF_SOWN_PK
         ? await getStripeConnectAccount(singleSellerPubkey)
         : null;
 
@@ -219,8 +218,7 @@ export default async function handler(
 
       for (const split of sellerSplits as SellerSplit[]) {
         const isPlatformAccount =
-          split.sellerPubkey ===
-          (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
+          split.sellerPubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
 
         let accountId = "";
         if (!isPlatformAccount) {

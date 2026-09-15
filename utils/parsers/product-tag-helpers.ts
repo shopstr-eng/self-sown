@@ -24,9 +24,7 @@ const MARKETPLACE_DISCOVERY_TAGS = new Set(["SelfSown", "MilkMarket"]);
  * append exactly one canonical "SelfSown" tag. User categories and other
  * reserved tags (FREEMILK, SAVEBEEF) pass through untouched.
  */
-export function normalizeMarketplaceDiscoveryTag(
-  tags: string[][]
-): string[][] {
+export function normalizeMarketplaceDiscoveryTag(tags: string[][]): string[][] {
   const rest = tags.filter(
     (t) => !(t[0] === "t" && MARKETPLACE_DISCOVERY_TAGS.has(t[1] ?? ""))
   );

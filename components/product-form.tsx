@@ -1368,7 +1368,11 @@ export default function ProductForm({
                 </Tooltip>
                 <p className="text-xs text-black">
                   Your donation rate on sales is set to{" "}
-                  {profileContext.profileData.get(pubkey)?.content?.ss_donation ?? profileContext.profileData.get(pubkey)?.content?.mm_donation ?? 0}
+                  {profileContext.profileData.get(pubkey)?.content
+                    ?.ss_donation ??
+                    profileContext.profileData.get(pubkey)?.content
+                      ?.mm_donation ??
+                    0}
                   %. You can modify this in your{" "}
                   <span
                     className="cursor-pointer underline hover:text-blue-600"

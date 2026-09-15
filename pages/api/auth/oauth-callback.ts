@@ -3,10 +3,7 @@ import { Client } from "pg";
 import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
 import CryptoJS from "crypto-js";
 import crypto from "crypto";
-import {
-  OAUTH_AUTH_SALT,
-  LEGACY_OAUTH_AUTH_SALT,
-} from "@/utils/auth/salts";
+import { OAUTH_AUTH_SALT, LEGACY_OAUTH_AUTH_SALT } from "@/utils/auth/salts";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.

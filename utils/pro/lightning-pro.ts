@@ -29,8 +29,7 @@ export async function getPlatformLightningAddress(): Promise<string | null> {
     process.env.NEXT_PUBLIC_MILK_MARKET_LN_ADDRESS;
   if (override && override.trim() !== "") return override.trim();
 
-  const pk =
-    process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+  const pk = process.env.NEXT_PUBLIC_SELF_SOWN_PK;
   if (!pk) return null;
 
   let client;

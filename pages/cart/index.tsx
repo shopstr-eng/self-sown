@@ -266,10 +266,7 @@ export default function Component() {
       const statuses: Record<string, boolean> = {};
       for (const pubkey of uniqueSellerPubkeys) {
         if (cancelled) return;
-        if (
-          pubkey ===
-          (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
-        ) {
+        if (pubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK) {
           statuses[pubkey] = true;
           continue;
         }

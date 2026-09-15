@@ -66,11 +66,14 @@ function tools() {
         callbacks.set(name, callback)
     ),
   };
-  registerWriteTools(server as unknown as McpServer, {
-    id: 1,
-    pubkey,
-    permissions: "full_access",
-  } as any);
+  registerWriteTools(
+    server as unknown as McpServer,
+    {
+      id: 1,
+      pubkey,
+      permissions: "full_access",
+    } as any
+  );
   return callbacks;
 }
 

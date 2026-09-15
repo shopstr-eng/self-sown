@@ -70,10 +70,7 @@ describe("UCP discovery handler custom-domain routing", () => {
 
   it("routes platform-only URLs to SITE_URL when the proxy-injected custom-domain header is present", async () => {
     const res = mockRes();
-    await handler(
-      mockReq({ "x-ss-custom-domain-host": "farm.example" }),
-      res
-    );
+    await handler(mockReq({ "x-ss-custom-domain-host": "farm.example" }), res);
     expect(res.status).toHaveBeenCalledWith(200);
     const body = JSON.stringify(res.json.mock.calls[0][0]);
     expect(body).toContain("https://self-sown.com/api/mcp");
@@ -91,10 +88,7 @@ describe("UCP discovery handler custom-domain routing", () => {
 
   it("ignores the legacy x-mm- header name (stripped at the proxy boundary)", async () => {
     const res = mockRes();
-    await handler(
-      mockReq({ "x-mm-custom-domain-host": "farm.example" }),
-      res
-    );
+    await handler(mockReq({ "x-mm-custom-domain-host": "farm.example" }), res);
     expect(res.status).toHaveBeenCalledWith(200);
     const body = JSON.stringify(res.json.mock.calls[0][0]);
     expect(body).toContain("https://farm.example/api/mcp");

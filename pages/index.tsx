@@ -50,10 +50,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         />
       </button>
       <div
-        className={joinClassNames(
-          "pb-4 text-zinc-600",
-          isOpen ? "" : "hidden"
-        )}
+        className={joinClassNames("pb-4 text-zinc-600", isOpen ? "" : "hidden")}
         aria-hidden={!isOpen}
       >
         <p>{answer}</p>

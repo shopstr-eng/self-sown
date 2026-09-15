@@ -202,7 +202,10 @@ export default function ConvertPage() {
         <meta
           property="og:image"
           key="og:image"
-          content={toOptimizedOgImageUrl(`${SITE_URL}/self-sown-black.png`, SITE_URL)}
+          content={toOptimizedOgImageUrl(
+            `${SITE_URL}/self-sown-black.png`,
+            SITE_URL
+          )}
         />
         {/* key matches DynamicHead's twitter:card so next/head dedupes to a
             single twitter:card on this page. */}
@@ -227,7 +230,10 @@ export default function ConvertPage() {
         <meta
           name="twitter:image"
           key="twitter:image"
-          content={toOptimizedOgImageUrl(`${SITE_URL}/self-sown-black.png`, SITE_URL)}
+          content={toOptimizedOgImageUrl(
+            `${SITE_URL}/self-sown-black.png`,
+            SITE_URL
+          )}
         />
       </Head>
 

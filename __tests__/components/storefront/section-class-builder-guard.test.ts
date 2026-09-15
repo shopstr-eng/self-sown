@@ -1222,7 +1222,7 @@ const NON_CLASS_CONCAT_ALLOWLIST: Array<{
   // pages/settings/blog.tsx — confirmation display text, not a class string.
   {
     file: "pages/settings/blog.tsx",
-    snippet: 'scheduledEpoch !== null ? `Post scheduled for',
+    snippet: "scheduledEpoch !== null ? `Post scheduled for",
     reason: "blog save-confirmation message text",
   },
 ];
@@ -1565,9 +1565,9 @@ describe("storefront section class-builder guard", () => {
       expect(genericScanFiles).toContain(join(process.cwd(), expected));
     }
     // API route handlers render no classNames and must stay out of the scan.
-    expect(
-      genericScanFiles.some((f) => f.includes(join("pages", "api")))
-    ).toBe(false);
+    expect(genericScanFiles.some((f) => f.includes(join("pages", "api")))).toBe(
+      false
+    );
     // A walk returning far fewer files than pages/ holds has broken silently
     // — fail instead of scanning nothing.
     const pageScanFiles = genericScanFiles.filter((f) =>

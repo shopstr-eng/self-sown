@@ -1939,10 +1939,7 @@ export default function CartInvoiceCard({
         > = {};
 
         for (const pubkey of uniqueSellerPubkeys) {
-          if (
-            pubkey ===
-            (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
-          ) {
+          if (pubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK) {
             accounts[pubkey] = "platform";
             processors[pubkey] = {
               processor: "stripe",
@@ -2053,11 +2050,7 @@ export default function CartInvoiceCard({
     setIsSquareMerchant(false);
     setSquareSellerStatus(null);
     if (!isSingleSeller || !singleSellerPubkey) return;
-    if (
-      singleSellerPubkey ===
-      (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
-    )
-      return;
+    if (singleSellerPubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK) return;
     (async () => {
       try {
         const res = await fetch("/api/square/seller-status", {
@@ -2766,8 +2759,7 @@ export default function CartInvoiceCard({
           const sellerProfileForEmailDonation =
             profileContext.profileData.get(sellerPubkey);
           const isPlatformSeller =
-            sellerPubkey ===
-            (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
+            sellerPubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
           // Multi-seller card carts charge each seller on their OWN processor,
           // so resolve this seller's effective method (stripe vs square) and
           // whether a platform donation applies (Stripe only; Square charges go
@@ -3942,7 +3934,9 @@ export default function CartInvoiceCard({
         product.pubkey
       );
       const stripeDonationPercentage =
-        sellerProfileForDonation?.content?.ss_donation ?? sellerProfileForDonation?.content?.mm_donation ?? 0;
+        sellerProfileForDonation?.content?.ss_donation ??
+        sellerProfileForDonation?.content?.mm_donation ??
+        0;
       const stripeDonationAmount =
         stripeDonationPercentage > 0 && productAmount
           ? Math.ceil((productAmount * stripeDonationPercentage) / 100)
@@ -4302,7 +4296,9 @@ export default function CartInvoiceCard({
           product.pubkey
         );
         const receiptDonationPercentage =
-          sellerProfileForReceiptDonation?.content?.ss_donation ?? sellerProfileForReceiptDonation?.content?.mm_donation ?? 0;
+          sellerProfileForReceiptDonation?.content?.ss_donation ??
+          sellerProfileForReceiptDonation?.content?.mm_donation ??
+          0;
         const receiptDonationAmount =
           receiptDonationPercentage > 0
             ? Math.ceil((productAmount * receiptDonationPercentage) / 100)
@@ -5668,7 +5664,10 @@ export default function CartInvoiceCard({
         let donationToken;
         let beefDonationToken;
         const sellerProfile = profileContext.profileData.get(pubkey);
-        const donationPercentage = sellerProfile?.content?.ss_donation ?? sellerProfile?.content?.mm_donation ?? 0;
+        const donationPercentage =
+          sellerProfile?.content?.ss_donation ??
+          sellerProfile?.content?.mm_donation ??
+          0;
         const beefDonationPercentage =
           product.beefinit_donation_percentage || 0;
 
@@ -6578,8 +6577,7 @@ export default function CartInvoiceCard({
         // Step 2: Send donation message
         if (donationToken) {
           const donationMessage = "Sale donation: " + donationToken;
-          const donationRecipient =
-            process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+          const donationRecipient = process.env.NEXT_PUBLIC_SELF_SOWN_PK;
           if (donationRecipient) {
             try {
               const __donationOk = await sendPaymentAndContactMessage(
@@ -8563,7 +8561,11 @@ export default function CartInvoiceCard({
 
                       // Calculate Self-sown donation for this product
                       const platformDonationPercentage =
-                        profileContext.profileData.get(product.pubkey)?.content?.ss_donation ?? profileContext.profileData.get(product.pubkey)?.content?.mm_donation ?? 0;
+                        profileContext.profileData.get(product.pubkey)?.content
+                          ?.ss_donation ??
+                        profileContext.profileData.get(product.pubkey)?.content
+                          ?.mm_donation ??
+                        0;
                       const platformDonationAmount = Math.ceil(
                         (basePrice * platformDonationPercentage) / 100
                       );
@@ -9072,7 +9074,11 @@ export default function CartInvoiceCard({
 
                     // Calculate Self-sown donation for this product
                     const platformDonationPercentage =
-                      profileContext.profileData.get(product.pubkey)?.content?.ss_donation ?? profileContext.profileData.get(product.pubkey)?.content?.mm_donation ?? 0;
+                      profileContext.profileData.get(product.pubkey)?.content
+                        ?.ss_donation ??
+                      profileContext.profileData.get(product.pubkey)?.content
+                        ?.mm_donation ??
+                      0;
                     const platformDonationAmount = Math.ceil(
                       (basePrice * platformDonationPercentage) / 100
                     );

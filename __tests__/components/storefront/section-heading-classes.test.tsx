@@ -85,10 +85,7 @@ function expectSeparateBoldAndSize(heading: HTMLElement, sizeToken: string) {
 
 // headingSize set → the size map wins; the section's legacy base/override
 // tokens must not linger.
-function expectNoLegacySize(
-  heading: HTMLElement,
-  legacyTokens: string[]
-) {
+function expectNoLegacySize(heading: HTMLElement, legacyTokens: string[]) {
   const tokens = classTokens(heading);
   expect(tokens).toContain("font-bold");
   expect(tokens).toContain("text-xl"); // headingSize "sm"
@@ -181,8 +178,7 @@ const cases: Array<{
           product={product}
         />
       ),
-    getHeading: () =>
-      screen.getByRole("heading", { name: "Specifications" }),
+    getHeading: () => screen.getByRole("heading", { name: "Specifications" }),
   },
   {
     name: "section-related-products",

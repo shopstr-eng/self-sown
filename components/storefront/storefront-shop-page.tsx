@@ -151,7 +151,7 @@ export default function StorefrontShopPage({
               setCurrentPage(1);
             }}
             placeholder="Search products..."
-            className="w-full rounded-lg border-2 px-4 py-2.5 pl-10 text-sm transition-colors outline-hidden focus:ring-2"
+            className="w-full rounded-lg border-2 px-4 py-2.5 pl-10 text-sm outline-hidden transition-colors focus:ring-2"
             style={{
               borderColor: colors.primary + "44",
               backgroundColor: colors.background,

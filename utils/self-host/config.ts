@@ -42,8 +42,7 @@ export interface SelfHostConfig {
 }
 
 // The canonical public repository. Sellers `git pull` from here for updates.
-export const DEFAULT_UPSTREAM_REPO =
-  "https://github.com/shopstr-eng/self-sown";
+export const DEFAULT_UPSTREAM_REPO = "https://github.com/shopstr-eng/self-sown";
 
 function truthyEnv(value: string | undefined): boolean {
   if (!value) return false;

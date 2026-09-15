@@ -174,9 +174,7 @@ describe("StorefrontThemeWrapper pro-status outage resilience", () => {
       () => expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(3),
       { timeout: 10000 }
     );
-    expect(
-      screen.getByTestId("mock-storefront-footer")
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("mock-storefront-footer")).toBeInTheDocument();
   }, 20000);
 
   it("never applies seller A's chrome to seller B across a client-side switch", async () => {
@@ -258,10 +256,7 @@ describe("StorefrontThemeWrapper pro-status outage resilience", () => {
               updateProfileData: jest.fn(),
             }}
           >
-            <StorefrontThemeWrapper
-              sellerPubkey={SELLER_B}
-              renderChrome={true}
-            >
+            <StorefrontThemeWrapper sellerPubkey={SELLER_B} renderChrome={true}>
               <div data-testid="page-content">product page</div>
             </StorefrontThemeWrapper>
           </ProfileMapContext.Provider>

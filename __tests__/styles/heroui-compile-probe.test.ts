@@ -35,7 +35,7 @@ import { compile } from "tailwindcss";
 // those in Node too, and the real compile succeeds), so a JSON round trip is
 // a faithful polyfill here.
 if (typeof globalThis.structuredClone !== "function") {
-  globalThis.structuredClone = <T,>(value: T): T =>
+  globalThis.structuredClone = <T>(value: T): T =>
     JSON.parse(JSON.stringify(value)) as T;
 }
 
@@ -158,14 +158,15 @@ describe("heroui compile probe", () => {
   });
 
   describe("plugin base layer still defines the theme variables", () => {
-    it.each(["--heroui-primary:", "--heroui-foreground:", "--heroui-content1:"])(
-      "defines %s as a real HSL triple",
-      (variable) => {
-        // The plugin's addBase must emit the variable definition with an
-        // actual color value, not just reference it from utilities.
-        expect(css).toMatch(new RegExp(`${variable} [\\d.]+ [\\d.]+% [\\d.]+%`));
-      }
-    );
+    it.each([
+      "--heroui-primary:",
+      "--heroui-foreground:",
+      "--heroui-content1:",
+    ])("defines %s as a real HSL triple", (variable) => {
+      // The plugin's addBase must emit the variable definition with an
+      // actual color value, not just reference it from utilities.
+      expect(css).toMatch(new RegExp(`${variable} [\\d.]+ [\\d.]+% [\\d.]+%`));
+    });
   });
 
   describe("plugin theme extensions still generate", () => {
