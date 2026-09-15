@@ -33,6 +33,7 @@ import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
 import QRCode from "qrcode";
 import { copyToClipboard } from "@/utils/clipboard";
 import FailureModal from "@/components/utility-components/failure-modal";
+import { joinClassNames } from "@/utils/class-names";
 import { PaymentCountdown } from "@/components/utility-components/payment-countdown";
 import {
   NostrContext,
@@ -353,7 +354,7 @@ const MintButton = () => {
         onClose={handleToggleMintModal}
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           footer: "border-t-4 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -414,7 +415,7 @@ const MintButton = () => {
               />
               {signer instanceof NostrNIP46Signer && (
                 <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
-                  <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                  <InformationCircleIcon className="h-6 w-6 shrink-0 text-black" />
                   <p className="ml-2 text-xs text-black">
                     If the token is taking a while to be minted, make sure to
                     check your bunker application to approve the transaction
@@ -458,14 +459,16 @@ const MintButton = () => {
                               </p>
                               <ClipboardIcon
                                 onClick={handleCopyInvoice}
-                                className={`ml-2 h-5 w-5 cursor-pointer text-black hover:text-gray-600 ${
+                                className={joinClassNames(
+                                  "ml-2 h-5 w-5 cursor-pointer text-black hover:text-gray-600",
                                   copiedToClipboard ? "hidden" : ""
-                                }`}
+                                )}
                               />
                               <CheckIcon
-                                className={`ml-2 h-5 w-5 cursor-pointer text-green-600 ${
+                                className={joinClassNames(
+                                  "ml-2 h-5 w-5 cursor-pointer text-green-600",
                                   copiedToClipboard ? "" : "hidden"
-                                }`}
+                                )}
                               />
                             </div>
                           </>

@@ -46,7 +46,7 @@ export default function RecoveryKeyModal({
 
   const handleDownload = () => {
     const content = [
-      "MILK MARKET - ACCOUNT RECOVERY KEY",
+      "SELF-SOWN - ACCOUNT RECOVERY KEY",
       "===================================",
       "",
       `Email: ${email}`,
@@ -68,7 +68,7 @@ export default function RecoveryKeyModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `milk-market-recovery-key-${
+    a.download = `self-sown-recovery-key-${
       new Date().toISOString().split("T")[0]
     }.txt`;
     document.body.appendChild(a);
@@ -101,7 +101,7 @@ export default function RecoveryKeyModal({
               Save Your Recovery Key
             </h2>
 
-            <p className="text-light-text text-center text-sm opacity-70">
+            <p className="text-center text-sm text-black opacity-70">
               This key is the <strong>only way</strong> to recover your account
               if you forget your password or passphrase. Save it somewhere safe;
               it will not be shown again.

@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { useContext, useEffect, useState } from "react";
 import type React from "react";
 import {
@@ -11,7 +9,7 @@ import {
   ModalFooter,
   Input,
 } from "@heroui/react";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import {
   SignerContext,
@@ -239,7 +237,7 @@ const CommunityManagementPage = () => {
               </div>
 
               {isLoading && myCommunities.length === 0 ? (
-                <MilkMarketSpinner label="Loading your communities..." />
+                <SelfSownSpinner label="Loading your communities..." />
               ) : myCommunities.length > 0 ? (
                 <div className="space-y-4">
                   {myCommunities.map((community) => (
@@ -285,7 +283,7 @@ const CommunityManagementPage = () => {
             onClose={handlePasswordModalClose}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",

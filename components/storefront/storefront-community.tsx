@@ -2,7 +2,7 @@ import { StorefrontColorScheme } from "@/utils/types/types";
 import { Community } from "@/utils/types/types";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import CommunityFeed from "@/components/communities/CommunityFeed";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 interface StorefrontCommunityProps {
   shopPubkey: string;
@@ -19,7 +19,7 @@ export default function StorefrontCommunity({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-24">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default function StorefrontCommunity({
               backgroundImage: `url(${sanitizeUrl(community.image)})`,
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50"></div>
+            <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/50"></div>
           </div>
         ) : (
           <div

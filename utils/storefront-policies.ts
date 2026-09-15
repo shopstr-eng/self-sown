@@ -60,7 +60,7 @@ If you have questions about our return policy, reach out to ${name} through our 
 
 ## 1. About ${name}
 
-${name} operates as an independent seller on the Milk Market platform. By placing an order with ${name}, you agree to these terms.
+${name} operates as an independent seller on the Self-sown platform. By placing an order with ${name}, you agree to these terms.
 
 ## 2. Products & Descriptions
 
@@ -68,7 +68,7 @@ We strive to provide accurate descriptions, images, and pricing for all products
 
 ## 3. Orders & Payment
 
-All payments are processed through the Milk Market platform using Bitcoin Lightning, Cashu ecash, or other accepted payment methods. Prices are displayed in the currency shown on each listing. Once a payment is confirmed on the network, it is considered final.
+All payments are processed through the Self-sown platform using Bitcoin Lightning, Cashu ecash, or other accepted payment methods. Prices are displayed in the currency shown on each listing. Once a payment is confirmed on the network, it is considered final.
 
 ## 4. Shipping & Delivery
 
@@ -86,7 +86,7 @@ ${name} shall not be liable for any indirect, incidental, or consequential damag
 
 ## 7. Dispute Resolution
 
-If you have a concern about an order, please contact us directly. We are committed to resolving issues fairly and promptly. As peer-to-peer transactions on the Milk Market platform, disputes are resolved directly between buyer and seller.
+If you have a concern about an order, please contact us directly. We are committed to resolving issues fairly and promptly. As peer-to-peer transactions on the Self-sown platform, disputes are resolved directly between buyer and seller.
 
 ## 8. Changes to Terms
 

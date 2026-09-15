@@ -5,13 +5,14 @@ import {
   createSellerMessagesListProof,
   createSellerSessionFromNsec,
   generateSellerNsecCredentials,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import {
   buildMessagesListProof,
   verifySignedHttpRequestProof,
 } from "@/utils/nostr/request-auth";
+import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 
 describe("mobile seller order authentication compatibility", () => {
   it("produces a message-list proof accepted by the server verifier", () => {
@@ -39,7 +40,7 @@ describe("mobile seller order authentication compatibility", () => {
     };
     const authorization = createNip98AuthorizationHeader({
       session,
-      url: "https://milk.market/api/db/update-order-status",
+      url: `${SITE_URL}/api/db/update-order-status`,
       method: "POST",
       body: JSON.stringify(body),
     });
@@ -49,7 +50,7 @@ describe("mobile seller order authentication compatibility", () => {
       body,
       headers: {
         authorization,
-        host: "milk.market",
+        host: SITE_HOST,
         "x-forwarded-proto": "https",
       },
     } as any;

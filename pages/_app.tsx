@@ -80,6 +80,7 @@ import UpdateToast from "@/components/utility-components/update-toast";
 import { ProMembershipProvider } from "@/components/utility-components/pro-membership-context";
 import AffiliateRefTracker from "@/components/utility-components/affiliate-ref-tracker";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
+import { SITE_HOST } from "@/utils/site-url";
 
 const mergeReportEvents = (
   existing: NostrEvent[],
@@ -118,7 +119,7 @@ const scheduleAfterPaint = (cb: () => void) => {
   }
 };
 
-function MilkMarket({ props }: { props: AppProps }) {
+function SelfSown({ props }: { props: AppProps }) {
   const { Component, pageProps } = props;
   const { nostr } = useContext(NostrContext);
   const { signer, isLoggedIn } = useContext(SignerContext);
@@ -606,7 +607,7 @@ function MilkMarket({ props }: { props: AppProps }) {
   const [selectedSection, setSelectedSection] = useState("");
   const [fullLoadComplete, setFullLoadComplete] = useState(false);
   // Seed `storefrontLoadPubkey` from the SSR signal that middleware injects
-  // via `x-mm-shop-pubkey` (see proxy.ts + utils/storefront/host-cache.ts).
+  // via `x-ss-shop-pubkey` (see proxy.ts + utils/storefront/host-cache.ts).
   // Without this seed the page mounts once with the bare <Component/>,
   // then `setStorefrontLoadPubkey(sfPubkey)` fires from an effect ~100ms
   // later, the wrapper mounts, and React remounts the page subtree inside
@@ -678,9 +679,10 @@ function MilkMarket({ props }: { props: AppProps }) {
   };
 
   // Detect when the visitor is on a seller's custom domain (anything that
-  // isn't milk.market, *.milk.market, *.replit.app, *.replit.dev, *.repl.co,
-  // or localhost). On a custom domain we suppress the Milk Market TopNav and
-  // wrap the page in the seller's storefront chrome (nav + footer + theme).
+  // isn't the platform host (SITE_HOST), *.replit.app, *.replit.dev,
+  // *.repl.co, or localhost). On a custom domain we suppress the Self-sown
+  // TopNav and wrap the page in the seller's storefront chrome (nav + footer
+  // + theme).
   //
   // The initial value comes from middleware-set request headers via
   // App.getInitialProps, so the first SSR render is already correct (no
@@ -694,7 +696,7 @@ function MilkMarket({ props }: { props: AppProps }) {
   // The follow-up useEffect only runs if the SSR signal disagreed with the
   // client's hostname (e.g. middleware missing in dev) and corrects it once.
   const ssrIsCustomDomain = props.pageProps?.__isCustomDomainSsr === true;
-  // Self-host (Wrangler single-tenant) signal from proxy.ts (x-mm-self-host).
+  // Self-host (Wrangler single-tenant) signal from proxy.ts (x-ss-self-host).
   // On self-host the whole instance is the owner's storefront, so we force the
   // storefront chrome on every served page and stop the client hostname
   // re-detection below from ever dropping the lockdown (e.g. on localhost/IP).
@@ -729,7 +731,7 @@ function MilkMarket({ props }: { props: AppProps }) {
       detected = false;
     } else {
       const PLATFORM_SUFFIXES = [
-        "milk.market",
+        SITE_HOST,
         "replit.app",
         "replit.dev",
         "repl.co",
@@ -1780,13 +1782,13 @@ function App(props: AppProps) {
   return (
     <>
       <HeroUIProvider>
-        <NextThemesProvider attribute="class">
+        <NextThemesProvider attribute="class" forcedTheme="light">
           <NostrContextProvider>
             <SignerContextProvider>
               <ProMembershipProvider>
                 <MintRecoveryBoot />
                 <UpdateToast />
-                <MilkMarket props={props} />
+                <SelfSown props={props} />
               </ProMembershipProvider>
             </SignerContextProvider>
           </NostrContextProvider>
@@ -1814,27 +1816,27 @@ App.getInitialProps = async (appContext: AppContext) => {
     if (Array.isArray(v)) return v[0] ?? null;
     return typeof v === "string" ? v : null;
   };
-  const isCustomDomainSsr = headerVal("x-mm-custom-domain") === "1";
+  const isCustomDomainSsr = headerVal("x-ss-custom-domain") === "1";
   // Self-host (Wrangler single-tenant) signal — see routeSelfHost in proxy.ts.
-  // Fail closed: the spoofable x-mm-self-host header is honored ONLY when THIS
-  // server process is itself in self-host mode (MM_SELF_HOST env). On the hosted
-  // platform MM_SELF_HOST is unset, so a spoofed header is ignored and
+  // Fail closed: the spoofable x-ss-self-host header is honored ONLY when THIS
+  // server process is itself in self-host mode (SS_SELF_HOST env). On the hosted
+  // platform SS_SELF_HOST is unset, so a spoofed header is ignored and
   // `forceSelfHostChrome` can never bypass the Pro render gate. The trust rule is
   // a pure helper (utils/self-host/routing.ts) so it stays in lockstep with the
   // proxy and tests; config.ts is server-only and must not be bundled here.
   const isSelfHostSsr = selfHostHeaderTrusted(
-    process.env.MM_SELF_HOST,
-    headerVal("x-mm-self-host")
+    process.env.SS_SELF_HOST ?? process.env.MM_SELF_HOST,
+    headerVal("x-ss-self-host")
   );
-  const customDomainShopSlug = headerVal("x-mm-shop-slug");
+  const customDomainShopSlug = headerVal("x-ss-shop-slug");
   // Also forward the pubkey so the client can seed `storefrontLoadPubkey`
   // synchronously on the first render and avoid a post-hydration remount
   // when the wrapper appears around <Component/>.
-  const customDomainShopPubkey = headerVal("x-mm-shop-pubkey");
+  const customDomainShopPubkey = headerVal("x-ss-shop-pubkey");
   // Forward the seller's public hostname and the original request path so
   // DynamicHead can emit the correct canonical / og:url for custom domains.
-  const customDomainHost = headerVal("x-mm-custom-domain-host");
-  const customDomainOriginalPath = headerVal("x-mm-original-path");
+  const customDomainHost = headerVal("x-ss-custom-domain-host");
+  const customDomainOriginalPath = headerVal("x-ss-original-path");
   return {
     ...appProps,
     pageProps: {

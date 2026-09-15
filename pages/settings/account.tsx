@@ -27,7 +27,7 @@ import {
   publishWalletEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
-import MilkMarketSlider from "@/components/utility-components/mm-slider";
+import SelfSownSlider from "@/components/utility-components/ss-slider";
 import FailureModal from "@/components/utility-components/failure-modal";
 import {
   NostrContext,
@@ -318,7 +318,7 @@ const AccountSettingsPage = () => {
             )}
 
             <div className="mb-4 flex items-start gap-2 text-sm text-gray-600">
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0" />
               <p>
                 This mint is used to handle{" "}
                 <Link href="https://cashu.space" passHref legacyBehavior>
@@ -539,12 +539,12 @@ const AccountSettingsPage = () => {
 
             {isLoaded && (
               <>
-                <MilkMarketSlider />
+                <SelfSownSlider />
               </>
             )}
 
             <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
+              <InformationCircleIcon className="h-5 w-5 shrink-0" />
               <p>
                 This filters for listings from friends and friends of friends.
               </p>

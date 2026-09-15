@@ -3,6 +3,9 @@ import { getSquareWebSdkUrl } from "@/utils/square/square-config";
 import {
   EXCHANGE_RATE_BUYER_MESSAGE,
   EXCHANGE_RATE_ERROR_CODE,
+  isCrypto,
+  toSmallestUnit,
+  ZERO_DECIMAL_CURRENCIES,
 } from "@/utils/stripe/currency";
 
 // Minimal shape of the Square Web Payments SDK surface we use. The full SDK is
@@ -18,8 +21,23 @@ interface SquareCard {
   tokenize: () => Promise<SquareTokenizeResult>;
   destroy?: () => Promise<void>;
 }
+interface SquareApplePay {
+  // Square's Apple Pay has NO attach(): availability is proven by
+  // payments.applePay() resolving, and the button is integrator-rendered —
+  // its click calls tokenize().
+  tokenize: () => Promise<SquareTokenizeResult>;
+  destroy?: () => Promise<void>;
+}
 interface SquarePayments {
   card: () => Promise<SquareCard>;
+  // Opaque payment-request handle: paymentRequest() builds it, applePay()
+  // consumes it. Only the fields we pass are declared.
+  paymentRequest: (options: {
+    countryCode: string;
+    currencyCode: string;
+    total: { amount: string; label: string };
+  }) => object;
+  applePay: (paymentRequest: object) => Promise<SquareApplePay>;
 }
 interface SquareSdk {
   payments: (applicationId: string, locationId: string) => SquarePayments;
@@ -66,6 +84,7 @@ export default function SquareCardForm({
   applicationId,
   locationId,
   environment,
+  countryCode,
   sellerPubkey,
   amount,
   currency,
@@ -79,6 +98,9 @@ export default function SquareCardForm({
   applicationId: string;
   locationId: string;
   environment: "sandbox" | "production";
+  // Merchant's ISO country for the Apple Pay payment request. Absent (legacy
+  // connection, backfill pending) means no Apple Pay button — card still works.
+  countryCode?: string;
   sellerPubkey: string;
   // Buyer-facing amount in `currency`; the server converts + validates it.
   amount: number;
@@ -92,6 +114,9 @@ export default function SquareCardForm({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<SquareCard | null>(null);
+  const paymentsRef = useRef<SquarePayments | null>(null);
+  const applePayRef = useRef<SquareApplePay | null>(null);
+  const [applePayReady, setApplePayReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -106,6 +131,7 @@ export default function SquareCardForm({
           throw new Error("Square payment library unavailable");
         }
         const payments = window.Square.payments(applicationId, locationId);
+        paymentsRef.current = payments;
         const card = await payments.card();
         if (cancelled) {
           await card.destroy?.();
@@ -113,6 +139,13 @@ export default function SquareCardForm({
         }
         if (containerRef.current) {
           await card.attach(containerRef.current);
+        }
+        // attach() yields: cleanup may have run while it was in flight, and
+        // only now does the card exist — destroy it instead of leaking a live
+        // card element and writing state after unmount.
+        if (cancelled) {
+          await card.destroy?.();
+          return;
         }
         cardRef.current = card;
         setLoading(false);
@@ -127,11 +160,98 @@ export default function SquareCardForm({
     init();
     return () => {
       cancelled = true;
+      paymentsRef.current = null;
+      const applePay = applePayRef.current;
+      applePayRef.current = null;
+      applePay?.destroy?.().catch(() => {});
       const card = cardRef.current;
       cardRef.current = null;
       card?.destroy?.().catch(() => {});
     };
   }, [applicationId, locationId, environment]);
+
+  // Apple Pay: availability is proven by payments.applePay(request) resolving
+  // (it throws on unsupported browsers/devices or an unverified domain). Any
+  // failure silently leaves card entry as the only path. FIAT-ONLY: for
+  // sats/BTC carts the server converts at charge time with a live FX quote, so
+  // a client-built wallet total couldn't be guaranteed to match the charge.
+  useEffect(() => {
+    if (loading || !countryCode || isCrypto(currency)) return;
+    const payments = paymentsRef.current;
+    if (!payments) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // The wallet total must equal what /api/square/create-payment will
+        // charge, so reuse the server's OWN canonicalization (toSmallestUnit:
+        // Math.ceil to minor units) — toFixed() alone rounds to NEAREST and
+        // could under-display the charge (JPY 99.4 -> wallet 99, charged 100).
+        const minor = toSmallestUnit(amount, currency);
+        const chargeAmount = ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase())
+          ? String(minor)
+          : (minor / 100).toFixed(2);
+        const request = payments.paymentRequest({
+          countryCode: countryCode.toUpperCase(),
+          currencyCode: currency.toUpperCase(),
+          total: {
+            amount: chargeAmount,
+            label: (productTitle || "Order").slice(0, 64),
+          },
+        });
+        const applePay = await payments.applePay(request);
+        if (cancelled) {
+          await applePay.destroy?.();
+          return;
+        }
+        applePayRef.current = applePay;
+        setApplePayReady(true);
+      } catch {
+        // Unavailable here — card entry remains as the fallback.
+      }
+    })();
+    return () => {
+      cancelled = true;
+      // Clear readiness so a failed re-init after a prop change can't leave a
+      // dead button rendered over a null instance.
+      setApplePayReady(false);
+      const applePay = applePayRef.current;
+      applePayRef.current = null;
+      applePay?.destroy?.().catch(() => {});
+    };
+  }, [loading, countryCode, amount, currency, productTitle]);
+
+  // Shared post-tokenization charge: the card form and the Apple Pay button
+  // both produce a Square nonce, and /api/square/create-payment treats them
+  // identically (sourceId is opaque to it).
+  const chargeWithToken = async (token: string): Promise<void> => {
+    const res = await fetch("/api/square/create-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sourceId: token,
+        amount,
+        currency,
+        sellerPubkey,
+        customerEmail,
+        productTitle,
+        metadata,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.success) {
+      // A 503 with EXCHANGE_RATE_UNAVAILABLE means the sats->USD conversion
+      // feed was down; show the same friendly, retry-oriented message buyers
+      // see on the Stripe path instead of a generic "payment failed".
+      const msg =
+        data?.code === EXCHANGE_RATE_ERROR_CODE
+          ? EXCHANGE_RATE_BUYER_MESSAGE
+          : data?.error || "Payment failed. Please try again.";
+      setErrorMessage(msg);
+      onPaymentError(msg);
+      return;
+    }
+    onPaymentSuccess(data.paymentId as string);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,38 +267,9 @@ export default function SquareCardForm({
           result.errors?.[0]?.message ||
           "Card details were rejected. Please check and try again.";
         setErrorMessage(msg);
-        setIsProcessing(false);
         return;
       }
-
-      const res = await fetch("/api/square/create-payment", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sourceId: result.token,
-          amount,
-          currency,
-          sellerPubkey,
-          customerEmail,
-          productTitle,
-          metadata,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.success) {
-        // A 503 with EXCHANGE_RATE_UNAVAILABLE means the sats->USD conversion
-        // feed was down; show the same friendly, retry-oriented message buyers
-        // see on the Stripe path instead of a generic "payment failed".
-        const msg =
-          data?.code === EXCHANGE_RATE_ERROR_CODE
-            ? EXCHANGE_RATE_BUYER_MESSAGE
-            : data?.error || "Payment failed. Please try again.";
-        setErrorMessage(msg);
-        onPaymentError(msg);
-        setIsProcessing(false);
-        return;
-      }
-      onPaymentSuccess(data.paymentId as string);
+      await chargeWithToken(result.token);
     } catch (err) {
       const msg =
         err instanceof Error
@@ -186,12 +277,58 @@ export default function SquareCardForm({
           : "Payment failed. Please try again.";
       setErrorMessage(msg);
       onPaymentError(msg);
+    } finally {
       setIsProcessing(false);
     }
   };
 
+  // Apple Pay button click: tokenize the authorized sheet payment, then run
+  // the exact same charge as a keyed-in card.
+  const handleApplePayClick = () => {
+    const applePay = applePayRef.current;
+    if (!applePay || isProcessing) return;
+    setIsProcessing(true);
+    setErrorMessage(null);
+    void (async () => {
+      try {
+        const result = await applePay.tokenize();
+        if (result.status !== "OK" || !result.token) {
+          const msg =
+            result.errors?.[0]?.message ||
+            "Apple Pay could not authorize the payment.";
+          setErrorMessage(msg);
+          onPaymentError(msg);
+          return;
+        }
+        await chargeWithToken(result.token);
+      } catch (err) {
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Payment failed. Please try again.";
+        setErrorMessage(msg);
+        onPaymentError(msg);
+      } finally {
+        setIsProcessing(false);
+      }
+    })();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="w-full">
+      {/* Square's SDK has no Apple Pay attach(): the button is ours. Rendered
+          only after payments.applePay() resolved (device support + verified
+          domain). The -apple-pay-button appearance (styles/globals.css) paints
+          Apple's native mark in WebKit. */}
+      {applePayReady && (
+        <button
+          type="button"
+          aria-label="Pay with Apple Pay"
+          onClick={handleApplePayClick}
+          disabled={isProcessing}
+          className="square-apple-pay-button shadow-neo mb-3"
+        />
+      )}
       <div className="shadow-neo rounded-md border-2 border-black bg-white p-4">
         {loading && (
           <div className="flex flex-col items-center justify-center py-6">

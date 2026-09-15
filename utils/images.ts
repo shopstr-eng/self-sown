@@ -1,7 +1,7 @@
 import { sanitizeUrl } from "@braintree/sanitize-url";
 
 const BLOCKED_URL = "about:blank";
-const LOCAL_IMAGE_BASE_URL = "https://milk-market.invalid";
+const LOCAL_IMAGE_BASE_URL = "https://self-sown.invalid";
 const IPV4_RE = /^(?:\d{1,3}\.){3}\d{1,3}$/;
 
 function isBlockedRemoteImageHost(hostname: string): boolean {

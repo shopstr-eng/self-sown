@@ -3,7 +3,7 @@ import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import {
   resolveSectionElements,
   StorefrontSectionElement,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { sanitizeStorefrontSectionLink } from "@/utils/storefront-links";
 
@@ -46,6 +46,51 @@ export function bodySizeClass(
   fallback: string
 ): string {
   return (section.bodySize && BODY_SIZE_CLASSES[section.bodySize]) || fallback;
+}
+
+// joinClassNames lives in @/utils/class-names so non-storefront components
+// (checkout/invoice cards, dashboards) compose conditional classes through
+// the same joiner the storefront sections use; re-exported here so existing
+// section imports keep working. The INVARIANT on that joiner applies to every
+// storefront section className that mixes static tokens with a conditional:
+// compose through it (directly or via headingClassName/bodyClassName below) —
+// never a hand-written template literal like
+// `flex ${cond ? "md:flex-row" : "flex-col"}`. The static guard in
+// __tests__/components/storefront/section-class-builder-guard.test.ts fails
+// on any conditional string inside a scanned file's className template
+// literal — and, via a TypeScript-AST walk of every template literal in the
+// file, on the same pattern one level removed (conditional template assigned
+// to a variable that then feeds className), with an allowlist for the few
+// legitimate non-class uses (display text, CSS blocks, font fallbacks).
+export { joinClassNames } from "@/utils/class-names";
+import { joinClassNames } from "@/utils/class-names";
+
+// Full heading size/weight core: the size class (explicit headingSize or the
+// section's historical base size), bold weight, and the legacy responsive
+// upsize applied only when no explicit size is set.
+export function headingClassName(
+  section: StorefrontSection,
+  baseSize: string,
+  legacyResponsiveSize: string
+): string {
+  return joinClassNames(
+    headingSizeClass(section, baseSize),
+    "font-bold",
+    section.headingSize ? undefined : legacyResponsiveSize
+  );
+}
+
+// Body-text equivalent of headingClassName; pass no legacyResponsiveSize when
+// the element has no historical responsive upsize.
+export function bodyClassName(
+  section: StorefrontSection,
+  baseSize: string,
+  legacyResponsiveSize?: string
+): string {
+  return joinClassNames(
+    bodySizeClass(section, baseSize),
+    section.bodySize ? undefined : legacyResponsiveSize
+  );
 }
 
 // Static class map (Tailwind can't compile dynamic widths); keys mirror the
@@ -167,17 +212,19 @@ export function SectionButtons({
       {rows.map((row, rowIdx) => (
         <div
           key={rowIdx}
-          className={`flex flex-wrap gap-3 ${
+          className={joinClassNames(
+            "flex flex-wrap gap-3",
             ALIGN_JUSTIFY_CLASSES[row.align] || "justify-start"
-          }`}
+          )}
         >
           {row.items.map((btn, idx) => (
             <a
               key={idx}
               href={sanitizeStorefrontSectionLink(btn.href)}
-              className={`font-heading inline-block rounded-lg font-bold transition-transform hover:-translate-y-0.5 ${
+              className={joinClassNames(
+                "font-heading inline-block rounded-lg font-bold transition-transform hover:-translate-y-0.5",
                 BUTTON_SIZE_CLASSES[btn.size || "md"] || BUTTON_SIZE_CLASSES.md
-              }`}
+              )}
               style={buttonStyle(btn.variant, colors, surface)}
             >
               {btn.label}
@@ -257,9 +304,10 @@ export default function SectionElementFlow({
   ) {
     return (
       <div
-        className={`flex flex-col gap-8 md:items-center ${
+        className={joinClassNames(
+          "flex flex-col gap-8 md:items-center",
           placement === "left" ? "md:flex-row-reverse" : "md:flex-row"
-        }`}
+        )}
       >
         <div className="min-w-0 flex-1">
           {others.map((k) => (

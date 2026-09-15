@@ -171,3 +171,24 @@ body.sf-active [data-main-nav] {
 .carousel-root .carousel .slider-wrapper .slider .slide > div {
   height: 100%;
 }
+
+/* Square Web Payments SDK: Apple Pay has no attach() — the button is
+   integrator-rendered. -apple-pay-button paints Apple's native mark in WebKit;
+   elsewhere the button only renders when payments.applePay() resolved, which
+   already implies an Apple Pay-capable browser. Black block is the fallback. */
+.square-apple-pay-button {
+  -webkit-appearance: -apple-pay-button;
+  -apple-pay-button-type: plain;
+  -apple-pay-button-style: black;
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border: 2px solid #000;
+  border-radius: 6px;
+  background-color: #000;
+  cursor: pointer;
+}
+.square-apple-pay-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

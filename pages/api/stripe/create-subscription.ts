@@ -131,7 +131,8 @@ export default async function handler(
 
     let connectedAccountId: string | null = null;
     const isPlatformAccount =
-      sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+      sellerPubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
 
     if (!isPlatformAccount) {
       const connectAccount = await getStripeConnectAccount(sellerPubkey);
@@ -308,7 +309,7 @@ export default async function handler(
       originalAmount: amount,
       originalCurrency: currency,
     });
-    // Apply mm_donation as application_fee_percent for direct-charge
+    // Apply ss_donation as application_fee_percent for direct-charge
     // subscriptions on a connected account (parity with Bitcoin paths).
     const donationPercent =
       connectedAccountId && !isPlatformPubkey(sellerPubkey)
@@ -344,6 +345,7 @@ export default async function handler(
             originalAmount: amount.toString(),
             originalCurrency: currency,
             ...(applicationFeePercent > 0 && {
+              ssDonationPercent: applicationFeePercent.toString(),
               mmDonationPercent: applicationFeePercent.toString(),
             }),
             // Only stamp affiliate metadata when a coupon was actually

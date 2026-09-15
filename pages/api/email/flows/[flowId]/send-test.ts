@@ -10,6 +10,7 @@ import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { getSiteUrl } from "@/utils/site-url";
 
 const RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
 
@@ -78,7 +79,7 @@ export default async function handler(
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+    const baseUrl = getSiteUrl();
 
     const mergeData: MergeTagData = {
       buyer_name: "Test Buyer",

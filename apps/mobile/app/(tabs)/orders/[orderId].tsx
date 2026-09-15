@@ -14,7 +14,7 @@ import {
   getNextSellerOrderStatus,
   validateSellerShippingUpdate,
   type SellerOrderStatus,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 import LoadingScreen from "@/components/loading-screen";
 import { OrderStatusBadge } from "@/components/order-status-badge";

@@ -28,6 +28,7 @@ import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { sendEmailStrictFrom } from "@/utils/email/email-service";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
+import { SITE_URL } from "@/utils/site-url";
 
 jest.mock("@/utils/db/db-service", () => ({
   fetchBlogPostByDTagAndPubkey: jest.fn(),
@@ -109,7 +110,7 @@ beforeEach(() => {
   mocked.fetchBlogPostsByPubkeyFromDb.mockResolvedValue([blogEvent()]);
   mocked.resolveSellerSenderEmail.mockResolvedValue("shop@verified.example");
   mocked.buildSellerEmailUnsubscribeUrl.mockReturnValue(
-    "https://milk.market/api/email/unsubscribe?token=x"
+    `${SITE_URL}/api/email/unsubscribe?token=x`
   );
   mocked.getShopSlugByPubkey.mockResolvedValue("myshop");
   mocked.loadStorefrontBranding.mockResolvedValue({ shopName: "My Shop" });

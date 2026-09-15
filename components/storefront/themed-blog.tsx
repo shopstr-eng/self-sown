@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import BlogMarkdown from "@/components/storefront/blog/blog-markdown";
 import { NostrEvent } from "@/utils/types/types";
 import {
@@ -10,7 +10,7 @@ import {
   dedupeLatestBlogPosts,
   isHttpUrl,
   type BlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { getBlogPostSlug, findBlogPostBySlug } from "@/utils/url-slugs";
 import {
   applyCustomDomainHref,
@@ -104,7 +104,7 @@ export default function ThemedBlog({
     if (!loaded) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center">
-          <MilkMarketSpinner />
+          <SelfSownSpinner />
         </div>
       );
     }
@@ -156,7 +156,6 @@ export default function ThemedBlog({
             </div>
           )}
           {post.image && (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={post.image}
               alt={post.title}
@@ -208,7 +207,7 @@ export default function ThemedBlog({
                 >
                   {post.image && (
                     <div className="aspect-video overflow-hidden">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {}
                       <img
                         src={post.image}
                         alt={post.title}

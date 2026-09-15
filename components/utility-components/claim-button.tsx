@@ -427,7 +427,7 @@ export default function ClaimButton({ token }: { token: string }) {
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           // Only body, apply full radius
           body: "py-6 bg-white rounded-md",
           closeButton:
@@ -442,7 +442,7 @@ export default function ClaimButton({ token }: { token: string }) {
           {/* Updated text color */}
           <ModalBody className="flex flex-col overflow-hidden text-black">
             <div className="flex items-center justify-center">
-              Would you like to receive the token directly to your Milk Market
+              Would you like to receive the token directly to your Self-sown
               wallet, or redeem it to your Lightning address?
             </div>
             <div className="flex w-full flex-wrap justify-evenly gap-2">
@@ -478,7 +478,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",
@@ -499,7 +499,7 @@ export default function ClaimButton({ token }: { token: string }) {
               {/* Updated text color */}
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  Check your Milk Market wallet for your sats.
+                  Check your Self-sown wallet for your sats.
                 </div>
               </ModalBody>
             </ModalContent>
@@ -516,7 +516,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",
@@ -537,7 +537,7 @@ export default function ClaimButton({ token }: { token: string }) {
               {/* Updated text color */}
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  Check your Milk Market wallet for your sats.
+                  Check your Self-sown wallet for your sats.
                 </div>
               </ModalBody>
             </ModalContent>
@@ -554,7 +554,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",
@@ -575,8 +575,8 @@ export default function ClaimButton({ token }: { token: string }) {
               {/* Updated text color */}
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  The token you are trying to claim is already in your Milk
-                  Market wallet.
+                  The token you are trying to claim is already in your Self-sown
+                  wallet.
                 </div>
               </ModalBody>
             </ModalContent>
@@ -593,7 +593,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",
@@ -631,7 +631,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",
@@ -669,7 +669,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",
@@ -706,7 +706,7 @@ export default function ClaimButton({ token }: { token: string }) {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white rounded-b-md",

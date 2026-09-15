@@ -18,6 +18,7 @@ import { NostrEvent } from "@/utils/types/types";
 import { getMembershipView } from "@/utils/pro/membership";
 import { registerTool } from "./register-tool";
 import { ToolContext } from "../audit-log";
+import { SITE_HOST } from "@/utils/site-url";
 
 const DB_TIMEOUT_MS = 15_000;
 const MAX_PRODUCT_RESULTS = 50;
@@ -1041,7 +1042,7 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
         .string()
         .optional()
         .describe(
-          "Shop URL slug (e.g. 'fresh-farm' for milk.market/stall/fresh-farm)"
+          `Shop URL slug (e.g. 'fresh-farm' for ${SITE_HOST}/stall/fresh-farm)`
         ),
       pubkey: z
         .string()

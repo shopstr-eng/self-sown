@@ -43,7 +43,7 @@ export interface BuildDiscoveryOpts {
   /**
    * Platform base URL used for MCP/API endpoints that are platform-only and
    * not proxied through seller custom domains. Defaults to `baseUrl` (correct
-   * for the platform host). Must be set to `https://milk.market` when building
+   * for the platform host). Must be set to `https://self-sown.com` when building
    * a seller-scoped profile served on a custom domain, so the advertised
    * `/api/mcp`, `/api/mcp/onboard`, and OpenAPI spec links resolve correctly
    * rather than pointing to blocked custom-domain paths.
@@ -107,7 +107,7 @@ export function buildUcpDiscoveryProfile(
   // On a seller custom domain the MCP endpoint, onboarding URL, and OpenAPI
   // spec are not proxied through (they're platform-only paths). Use the
   // explicit platformUrl for those — callers on a custom-domain host must set
-  // this to "https://milk.market" so agents aren't sent to blocked endpoints.
+  // this to "https://self-sown.com" so agents aren't sent to blocked endpoints.
   const platform = (opts.platformUrl || base).replace(/\/$/, "");
 
   // Every capability is reachable two ways: the UCP-native REST endpoints and
@@ -154,7 +154,7 @@ export function buildUcpDiscoveryProfile(
     name: UCP_CHECKOUT_CAPABILITY,
     version: UCP_VERSION,
     description:
-      "Create and track a checkout session that places an order through Milk Market's existing order pipeline.",
+      "Create and track a checkout session that places an order through Self-sown's existing order pipeline.",
     endpoints: checkoutEndpoints,
     schema: `${base}/api/ucp/schemas/checkout-session.json`,
     spec: `${platform}/api/openapi.json`,
@@ -173,20 +173,20 @@ export function buildUcpDiscoveryProfile(
       tokenPrefix: "sk_",
       scope: "read_write",
       description:
-        "Creating a checkout session requires a read_write (or full_access) Milk Market API key. Obtain one via POST /api/mcp/onboard.",
+        "Creating a checkout session requires a read_write (or full_access) Self-sown API key. Obtain one via POST /api/mcp/onboard.",
     },
   };
 
   const profile: UcpDiscoveryProfile = {
     ucp_version: UCP_VERSION,
     supported_versions: [UCP_VERSION],
-    name: scoped ? seller!.name || "Milk Market Seller" : "Milk Market",
+    name: scoped ? seller!.name || "Self-sown Seller" : "Self-sown",
     description: scoped
-      ? "UCP commerce profile for an independent seller on Milk Market, a permissionless Bitcoin-native marketplace built on Nostr."
-      : "UCP commerce profile for Milk Market, a permissionless Bitcoin-native marketplace for local food built on Nostr.",
+      ? "UCP commerce profile for an independent seller on Self-sown, a permissionless Bitcoin-native marketplace built on Nostr."
+      : "UCP commerce profile for Self-sown, a permissionless Bitcoin-native marketplace for local food built on Nostr.",
     scope: scoped ? "seller" : "marketplace",
     provider: {
-      name: "Milk Market",
+      name: "Self-sown",
       url: base,
       namespace: UCP_VENDOR_NAMESPACE,
     },

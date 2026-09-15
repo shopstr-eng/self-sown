@@ -10,8 +10,8 @@ import {
   View,
 } from "react-native";
 
-import { createSignedStripeConnectAuthEvent } from "@milk-market/nostr";
-import { STRIPE_CONNECT_COUNTRIES } from "@milk-market/api-client";
+import { createSignedStripeConnectAuthEvent } from "@self-sown/nostr";
+import { STRIPE_CONNECT_COUNTRIES } from "@self-sown/api-client";
 
 import {
   ActionButton,
@@ -269,7 +269,7 @@ export default function DashboardScreen() {
 
       <SellerCard
         title="Vendor session"
-        description="Your mobile seller workspace uses the same Milk Market identity model as the web app."
+        description="Your mobile seller workspace uses the same Self-sown identity model as the web app."
       >
         <View style={styles.rowBetween}>
           <View style={styles.metaBlock}>

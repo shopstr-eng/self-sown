@@ -46,6 +46,7 @@ import {
   PaperAirplaneIcon,
 } from "@heroicons/react/24/outline";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import { joinClassNames } from "@/utils/class-names";
 
 interface FlowStep {
   id?: number;
@@ -736,14 +737,14 @@ const EmailFlowsPage = () => {
 
           {error && (
             <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-red-100 p-3 text-red-700">
-              <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+              <ExclamationCircleIcon className="mr-2 h-5 w-5 shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
           )}
 
           {successMessage && (
             <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-green-100 p-3 text-green-700">
-              <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+              <CheckCircleIcon className="mr-2 h-5 w-5 shrink-0" />
               <span className="text-sm">{successMessage}</span>
             </div>
           )}
@@ -763,13 +764,14 @@ const EmailFlowsPage = () => {
                       editingFlow.flow_type}
                   </span>
                   <span
-                    className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
+                    className={joinClassNames(
+                      "rounded-md border px-2 py-0.5 text-xs font-bold",
                       editingFlow.status === "active"
                         ? "border-green-300 bg-green-100 text-green-700"
                         : editingFlow.status === "paused"
                           ? "border-yellow-300 bg-yellow-100 text-yellow-700"
                           : "border-gray-300 bg-gray-100 text-gray-700"
-                    }`}
+                    )}
                   >
                     {editingFlow.status}
                   </span>
@@ -822,7 +824,7 @@ const EmailFlowsPage = () => {
             </div>
 
             <div className="mb-4 flex items-start gap-2 rounded-md border-2 border-black bg-blue-50 p-3">
-              <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
+              <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
               <div className="text-sm text-blue-800">
                 <p className="font-bold">Merge tags you can use:</p>
                 <p className="mt-1">
@@ -1059,20 +1061,20 @@ const EmailFlowsPage = () => {
 
         {error && (
           <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-red-100 p-3 text-red-700">
-            <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            <ExclamationCircleIcon className="mr-2 h-5 w-5 shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         {successMessage && (
           <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-green-100 p-3 text-green-700">
-            <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+            <CheckCircleIcon className="mr-2 h-5 w-5 shrink-0" />
             <span className="text-sm">{successMessage}</span>
           </div>
         )}
 
         <div className="shadow-neo mb-6 flex items-start gap-2 rounded-md border-2 border-black bg-gray-50 p-4">
-          <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600" />
+          <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
           <div className="text-sm text-gray-700">
             <p>
               Email flows are automated email sequences sent to your customers
@@ -1214,13 +1216,14 @@ const EmailFlowsPage = () => {
                           {FLOW_TYPE_LABELS[flow.flow_type] || flow.flow_type}
                         </span>
                         <span
-                          className={`rounded-md border px-2 py-0.5 text-xs font-bold ${
+                          className={joinClassNames(
+                            "rounded-md border px-2 py-0.5 text-xs font-bold",
                             flow.status === "active"
                               ? "border-green-300 bg-green-100 text-green-700"
                               : flow.status === "paused"
                                 ? "border-yellow-300 bg-yellow-100 text-yellow-700"
                                 : "border-gray-300 bg-gray-100 text-gray-700"
-                          }`}
+                          )}
                         >
                           {flow.status}
                         </span>
@@ -1378,11 +1381,12 @@ const EmailFlowsPage = () => {
                         key={value}
                         type="button"
                         onClick={() => changePickerSource(value)}
-                        className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors ${
+                        className={joinClassNames(
+                          "rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors",
                           pickerSource === value
                             ? "border-black bg-black text-white"
                             : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                        }`}
+                        )}
                       >
                         {label}
                       </button>

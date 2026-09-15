@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { ChatObject } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
 import { ProfileAvatar } from "@/components/utility-components/profile/profile-avatar";
+import { joinClassNames } from "@/utils/class-names";
 
 const ChatButton = ({
   pubkeyOfChat,
@@ -30,11 +31,12 @@ const ChatButton = ({
   return (
     <div
       key={pubkeyOfChat}
-      className={`mx-3 mb-2 flex cursor-pointer items-center gap-4 rounded-lg border-2 border-black px-4 py-3 transition-all hover:opacity-70 ${
+      className={joinClassNames(
+        "mx-3 mb-2 flex cursor-pointer items-center gap-4 rounded-lg border-2 border-black px-4 py-3 transition-all hover:opacity-70",
         pubkeyOfChat === openedChatPubkey
           ? "bg-primary-yellow shadow-neo"
           : "bg-white"
-      }`}
+      )}
       onClick={() => handleClickChat(pubkeyOfChat)}
       ref={divRef}
     >
@@ -45,7 +47,7 @@ const ChatButton = ({
         baseClassname="justify-start w-4/5"
         wrapperClassname="w-4/5 h-full"
       />
-      <div className="flex flex-shrink-0 flex-grow flex-col text-right text-gray-600">
+      <div className="flex shrink-0 grow flex-col text-right text-gray-600">
         <div className="h-1/2">
           {unreadCount > 0 ? (
             <span className="ml-2 rounded-full bg-black px-2 py-1 text-xs font-bold text-white">

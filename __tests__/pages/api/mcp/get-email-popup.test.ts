@@ -47,7 +47,7 @@ jest.mock("@/mcp/audit-log", () => ({
 jest.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
   McpServer: class {},
 }));
-jest.mock("@milk-market/nostr", () => ({
+jest.mock("@self-sown/nostr", () => ({
   createSellerActionAuthEventTemplate: jest.fn(),
 }));
 

@@ -37,7 +37,7 @@ import parseTags, {
   ProductData,
 } from "@/utils/parsers/product-parser-functions";
 import SignInModal from "../sign-in/SignInModal";
-import MilkMarketSwitch from "../utility-components/mm-switch";
+import SelfSownSwitch from "../utility-components/ss-switch";
 import { ShopProfile } from "../../utils/types/types";
 import SideShopNav from "./side-shop-nav";
 import {
@@ -52,6 +52,7 @@ import {
 } from "@/utils/url-slugs";
 import { useDebounce } from "@/utils/hooks/useDebounce";
 import SellerFollowButton from "../utility-components/seller-follow-button";
+import { joinClassNames } from "@/utils/class-names";
 
 export function normalizeNpub(
   npub: string | string[] | undefined
@@ -359,11 +360,12 @@ function MarketplacePage({
                               return (
                                 <Chip
                                   key={index}
-                                  className={`text-white ${
+                                  className={joinClassNames(
+                                    "text-white",
                                     value === "1"
                                       ? "bg-green-500"
                                       : "bg-red-500"
-                                  }`}
+                                  )}
                                 >
                                   {`overall: ${value === "1" ? "👍" : "👎"}`}
                                 </Chip>
@@ -372,11 +374,12 @@ function MarketplacePage({
                               return (
                                 <Chip
                                   key={index}
-                                  className={`text-white ${
+                                  className={joinClassNames(
+                                    "text-white",
                                     value === "1"
                                       ? "bg-green-500"
                                       : "bg-red-500"
-                                  }`}
+                                  )}
                                 >
                                   {`${category}: ${
                                     value === "1" ? "👍" : "👎"
@@ -510,7 +513,7 @@ function MarketplacePage({
                       <Button
                         isIconOnly
                         variant="light"
-                        className="hover:text-accent-white/10 text-white"
+                        className="text-white hover:text-white/60"
                       >
                         <EllipsisVerticalIcon className="h-6 w-6" />
                       </Button>
@@ -645,7 +648,7 @@ function MarketplacePage({
                   }}
                 />
                 {!isFetchingFollows && hasTrustGraph ? (
-                  <MilkMarketSwitch
+                  <SelfSownSwitch
                     wotFilter={wotFilter}
                     setWotFilter={setWotFilter}
                   />
@@ -653,11 +656,12 @@ function MarketplacePage({
                 {loggedIn && !followsContext.isLoading ? (
                   <Button
                     aria-pressed={followingFilter}
-                    className={`shadow-neo border-2 border-black font-bold ${
+                    className={joinClassNames(
+                      "shadow-neo border-2 border-black font-bold",
                       followingFilter
                         ? "bg-primary-yellow text-black"
                         : "bg-white text-black"
-                    }`}
+                    )}
                     onPress={() => setFollowingFilter((active) => !active)}
                   >
                     Following
@@ -719,7 +723,7 @@ function MarketplacePage({
                 </div>
               </div>
             ) : (
-              <div className="mt-10 flex flex-grow items-center justify-center py-10">
+              <div className="mt-10 flex grow items-center justify-center py-10">
                 <div className="shadow-neo w-full max-w-xl rounded-lg border-4 border-black bg-white p-10 text-center">
                   <p className="text-3xl font-semibold text-black">
                     No reviews . . . yet!

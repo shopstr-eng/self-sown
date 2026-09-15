@@ -100,7 +100,7 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   Whole-range rewrite: `git filter-branch -f --env-filter` exporting
   GIT*AUTHOR*_/GIT*COMMITTER*_ name+email over `origin/main..HEAD` —
   preserves author dates, runs no hooks, no index.lock races (both bit the
-  rebase --exec approach). Delete refs/original/_ after, verify with an
+  rebase --exec approach). Delete refs/original/\_ after, verify with an
   empty `git diff <oldHEAD> HEAD`.
 - Repo has a "changes must go through a pull request" RULESET (the
   connector's /rulesets + /rules/branches queries returned EMPTY — don't

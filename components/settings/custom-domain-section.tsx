@@ -17,7 +17,8 @@ import {
   createNostrProfileEvent,
   getLocalUserProfileKey,
 } from "@/utils/nostr/nostr-helper-functions";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
+import { joinClassNames } from "@/utils/class-names";
 
 type DnsInstruction = {
   type: string;
@@ -472,7 +473,7 @@ export default function CustomDomainSection() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="yourdomain.com"
-              className="min-w-[240px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-none"
+              className="min-w-[240px] flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-black focus:outline-hidden"
               disabled={busy}
             />
             <button
@@ -522,7 +523,7 @@ export default function CustomDomainSection() {
                 )}
                 {verifyResult.observed.txt && (
                   <p>
-                    Observed TXT (_milkmarket.{verifyResult.domain}):{" "}
+                    Observed TXT (_self-sown.{verifyResult.domain}):{" "}
                     {verifyResult.observed.txt.length
                       ? verifyResult.observed.txt.join(", ")
                       : "(none)"}
@@ -534,7 +535,7 @@ export default function CustomDomainSection() {
 
           {domain.tlsStatus === "dns_verified" && (
             <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-900">
-              DNS verified! A Milk Market admin will attach your domain to the
+              DNS verified! A Self-sown admin will attach your domain to the
               deployment shortly to provision a TLS certificate. This is usually
               done within 24 hours.
             </div>
@@ -556,11 +557,12 @@ export default function CustomDomainSection() {
 
           {nip05Notice && (
             <div
-              className={`rounded-lg p-3 text-sm ${
+              className={joinClassNames(
+                "rounded-lg p-3 text-sm",
                 nip05Notice.tone === "success"
                   ? "bg-green-50 text-green-900"
                   : "bg-amber-50 text-amber-900"
-              }`}
+              )}
             >
               {nip05Notice.text}
             </div>

@@ -7,7 +7,7 @@ import {
   validateSellerListingDraft,
   type SellerListingDraft,
   type SellerListingDraftValidationErrors,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 import { ListingEditor } from "@/components/listing-editor";
 import LoadingScreen from "@/components/loading-screen";

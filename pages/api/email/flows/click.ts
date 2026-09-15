@@ -11,9 +11,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyFlowLinkToken } from "@/utils/email/flow-link-tracking";
 import { recordFlowClick } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { getSiteUrl } from "@/utils/site-url";
 
 const RATE_LIMIT = { limit: 240, windowMs: 60 * 1000 };
-const SAFE_FALLBACK = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+const SAFE_FALLBACK = getSiteUrl();
 
 export default async function handler(
   req: NextApiRequest,

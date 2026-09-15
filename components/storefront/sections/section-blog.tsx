@@ -10,7 +10,7 @@ import {
   parseBlogPostEvent,
   dedupeLatestBlogPosts,
   type BlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import {
   applyCustomDomainHref,
@@ -18,8 +18,9 @@ import {
 } from "@/utils/storefront/custom-domain-context";
 import FormattedText from "../formatted-text";
 import SectionElementFlow, {
-  headingSizeClass,
-  bodySizeClass,
+  headingClassName,
+  bodyClassName,
+  joinClassNames,
 } from "./section-elements";
 
 interface SectionBlogProps {
@@ -145,7 +146,11 @@ export default function SectionBlog({
       <div className="mx-auto w-full max-w-6xl px-4 py-16 text-center">
         {section.heading && (
           <h2
-            className="font-heading mb-2 text-2xl font-bold sm:text-3xl"
+            className={`font-heading mb-2 ${headingClassName(
+              section,
+              "text-2xl",
+              "sm:text-3xl"
+            )}`}
             style={{ color: "var(--sf-text)" }}
           >
             {section.heading}
@@ -172,12 +177,11 @@ export default function SectionBlog({
         slots={{
           heading: section.heading && (
             <h2
-              className={`font-heading mb-4 max-w-full min-w-0 ${headingSizeClass(
+              className={`font-heading mb-4 max-w-full min-w-0 ${headingClassName(
                 section,
-                "text-2xl"
-              )} font-bold break-words ${
-                section.headingSize ? "" : "sm:text-3xl"
-              }`.trim()}
+                "text-2xl",
+                "sm:text-3xl"
+              )} break-words`}
               style={{
                 color: section.headingColor || "var(--sf-text)",
                 overflowWrap: "anywhere",
@@ -189,12 +193,11 @@ export default function SectionBlog({
           ),
           subheading: section.subheading && (
             <p
-              className={`font-body mb-8 max-w-full min-w-0 ${bodySizeClass(
+              className={`font-body mb-8 max-w-full min-w-0 ${bodyClassName(
                 section,
-                "text-base"
-              )} break-words opacity-70 ${
-                section.bodySize ? "" : "sm:text-lg"
-              }`.trim()}
+                "text-base",
+                "sm:text-lg"
+              )} break-words opacity-70`}
               style={{ overflowWrap: "anywhere", wordBreak: "break-word" }}
             >
               {section.subheading}
@@ -204,9 +207,10 @@ export default function SectionBlog({
             <FormattedText
               as="div"
               text={section.body}
-              className={`font-body mb-8 max-w-3xl whitespace-pre-line opacity-80${
-                section.bodySize ? ` ${bodySizeClass(section, "")}` : ""
-              }`}
+              className={joinClassNames(
+                "font-body mb-8 max-w-3xl whitespace-pre-line opacity-80",
+                bodyClassName(section, "")
+              )}
             />
           ),
           content: (
@@ -220,7 +224,7 @@ export default function SectionBlog({
                   <div className="md:flex">
                     {featured.image && (
                       <div className="md:w-1/2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {}
                         <img
                           src={featured.image}
                           alt={featured.title}
@@ -268,11 +272,10 @@ export default function SectionBlog({
                         style={{ borderColor: colors.primary + "22" }}
                       >
                         {post.image && (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={post.image}
                             alt={post.title}
-                            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
+                            className="h-24 w-24 shrink-0 rounded-lg object-cover"
                           />
                         )}
                         <div className="flex flex-1 flex-col justify-center">
@@ -298,7 +301,7 @@ export default function SectionBlog({
                       >
                         {post.image && (
                           <div className="aspect-video overflow-hidden">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            {}
                             <img
                               src={post.image}
                               alt={post.title}

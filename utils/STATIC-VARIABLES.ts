@@ -2,7 +2,7 @@ import {
   CATEGORIES,
   SHIPPING_OPTIONS,
   type ShippingOptionsType,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export { CATEGORIES, SHIPPING_OPTIONS };
 export type { ShippingOptionsType };

@@ -121,8 +121,6 @@ describe("ProfileAvatar", () => {
     expect(screen.getByTestId("mock-name")).toHaveTextContent(
       profile.content.nip05
     );
-
-    expect(screen.getByTestId("mock-name").className).toContain("text-dark-bg");
   });
 
   it("should truncate long display names", () => {

@@ -10,6 +10,8 @@ import {
   FlowEmailStorefrontStyle,
   MergeTagData,
 } from "@/utils/email/flow-email-templates";
+import { SITE_URL } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 import {
   ArrowUpTrayIcon,
   LinkIcon,
@@ -44,8 +46,8 @@ const PREVIEW_SAMPLE_DATA: MergeTagData = {
   product_title: "Raw Whole Milk (Half Gallon)",
   order_id: "ord_8f2a1c",
   product_image: "",
-  shop_url: "https://milk.market",
-  review_link: "https://milk.market/orders",
+  shop_url: SITE_URL,
+  review_link: `${SITE_URL}/orders`,
 };
 
 interface InsertModalState {
@@ -278,7 +280,7 @@ export const FlowStepEditor = ({
             <div className="mb-1 flex gap-2">
               <span className="font-bold text-gray-500">From:</span>
               <span className="text-black">
-                {shopName || "Your Shop"} &lt;orders@milk.market&gt;
+                {shopName || "Your Shop"} &lt;orders@self-sown.com&gt;
               </span>
             </div>
             <div className="flex gap-2">
@@ -403,7 +405,7 @@ export const FlowStepEditor = ({
 
       {uploadProgress !== null && (
         <div className="flex items-center gap-3 border-2 border-t-0 border-b-0 border-black bg-gray-50 px-3 py-2">
-          <span className="flex-shrink-0 text-xs font-bold text-gray-600">
+          <span className="shrink-0 text-xs font-bold text-gray-600">
             Uploading image
           </span>
           <Progress
@@ -416,7 +418,7 @@ export const FlowStepEditor = ({
               indicator: "bg-primary-blue",
             }}
           />
-          <span className="flex-shrink-0 text-xs text-gray-500">
+          <span className="shrink-0 text-xs text-gray-500">
             {uploadProgress}%
           </span>
         </div>
@@ -428,7 +430,7 @@ export const FlowStepEditor = ({
           <button
             type="button"
             onClick={() => setUploadError(null)}
-            className="flex-shrink-0 text-red-400 hover:text-red-600"
+            className="shrink-0 text-red-400 hover:text-red-600"
           >
             <XMarkIcon className="h-4 w-4" />
           </button>
@@ -458,7 +460,7 @@ export const FlowStepEditor = ({
                 placeholder={
                   insertModal.type === "button" ? "Shop Now" : "Click here"
                 }
-                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-none"
+                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-hidden"
               />
             </div>
             <div className="flex-1">
@@ -470,7 +472,7 @@ export const FlowStepEditor = ({
                   setInsertModal({ ...insertModal, url: e.target.value })
                 }
                 placeholder="https://..."
-                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-none"
+                className="h-8 w-full rounded-md border-2 border-black bg-white px-2 text-sm text-black placeholder-gray-400 outline-hidden"
               />
             </div>
             <Button
@@ -488,7 +490,7 @@ export const FlowStepEditor = ({
             <button
               type="button"
               onClick={() => setInsertModal({ type: null, text: "", url: "" })}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center text-gray-400 hover:text-black"
+              className="flex h-8 w-8 shrink-0 items-center justify-center text-gray-400 hover:text-black"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>
@@ -501,9 +503,10 @@ export const FlowStepEditor = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border-2 bg-white p-3 font-mono text-sm text-black transition-colors duration-300 outline-none ${
+          className={joinClassNames(
+            "w-full border-2 bg-white p-3 font-mono text-sm text-black outline-hidden transition-colors duration-300",
             isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
-          }`}
+          )}
           rows={12}
           placeholder="<h2>Hi {{buyer_name}},</h2>&#10;<p>Thanks for your purchase!</p>"
         />
@@ -512,9 +515,10 @@ export const FlowStepEditor = ({
           ref={textareaRef}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full border-2 bg-white p-3 text-sm text-black transition-colors duration-300 outline-none ${
+          className={joinClassNames(
+            "w-full border-2 bg-white p-3 text-sm text-black outline-hidden transition-colors duration-300",
             isFlashing ? "border-primary-blue bg-blue-50" : "border-black"
-          }`}
+          )}
           rows={12}
           placeholder="Use the toolbar above to format your email, or type HTML directly. Use the code icon to switch to raw HTML mode."
         />

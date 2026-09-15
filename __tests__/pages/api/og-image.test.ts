@@ -17,6 +17,7 @@ jest.mock("@/utils/rate-limit", () => ({
 
 import handler, { __setBodyReadDeadlineForTests } from "@/pages/api/og-image";
 import { __resetRateLimitBuckets } from "@/utils/rate-limit";
+import { SITE_URL } from "@/utils/site-url";
 
 function createResponse() {
   return {
@@ -236,13 +237,13 @@ describe("/api/og-image", () => {
 
     const res = createResponse();
     await handler(
-      createRequest({ url: "/milk-market.png" }),
+      createRequest({ url: "/self-sown-black.png" }),
       res as unknown as NextApiResponse
     );
 
     expect(res.statusCode).toBe(200);
     expect((global.fetch as jest.Mock).mock.calls[0][0]).toBe(
-      "https://milk.market/milk-market.png"
+      `${SITE_URL}/self-sown-black.png`
     );
   });
 

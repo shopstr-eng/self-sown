@@ -6,7 +6,7 @@
  * the indexer list is operator-overridable.
  */
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS } from "@self-sown/domain";
 import {
   DEFAULT_NIP65_INDEXER_RELAYS,
   fetchKind10002FromIndexers,

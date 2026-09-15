@@ -5,7 +5,7 @@ import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import ThemedStallOrders from "@/components/storefront/themed-stall-orders";
 import ThemedBlog from "@/components/storefront/themed-blog";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { matchShopSlug } from "@/utils/storefront/match-shop-slug";
 import { GetServerSideProps } from "next";
@@ -16,7 +16,7 @@ import {
   fetchProfileByPubkeyFromDb,
   fetchBlogPostsByPubkeyFromDb,
 } from "@/utils/db/db-service";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { findBlogPostBySlug } from "@/utils/url-slugs";
 import { eventToBlogOgMeta } from "@/utils/og/blog-og";
 import {
@@ -25,6 +25,7 @@ import {
 } from "@/utils/storefront/stall-branding";
 import { getMembershipView } from "@/utils/pro/membership";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
+import { SITE_URL } from "@/utils/site-url";
 
 type ShopSubPageProps = {
   ogMeta: OgMetaProps;
@@ -32,7 +33,7 @@ type ShopSubPageProps = {
   ssrShopName: string;
   ssrShopAbout: string;
   ssrStoreUrl: string;
-  ssrBlogPosts: import("@milk-market/domain").BlogPost[] | null;
+  ssrBlogPosts: import("@self-sown/domain").BlogPost[] | null;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
@@ -44,17 +45,15 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
 
   // Resolve canonical stall root URL (same logic as [slug].tsx) so structured
   // data on sub-pages uses the correct origin on custom domains.
-  const rawHost = context.req.headers["x-mm-custom-domain-host"];
+  const rawHost = context.req.headers["x-ss-custom-domain-host"];
   const customHost = (typeof rawHost === "string" ? rawHost : "")
     .toLowerCase()
     .trim()
     .replace(/:\d+$/, "");
-  const rawOriginalPath = context.req.headers["x-mm-original-path"];
+  const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost
-    ? `https://${customHost}`
-    : "https://milk.market";
+  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
   const stallRootPath = customHost
     ? originalPath?.split("/").slice(0, 2).join("/") || "/"
     : `/stall/${slug}`;
@@ -178,8 +177,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             // Blog index: seed with SSR posts so crawlers see archive links in
             // the first HTML response. The component routes this to ThemedBlog.
             const ogTitle = ssrShopName
-              ? `${ssrShopName} Blog | Milk Market`
-              : "Milk Market Stall Blog";
+              ? `${ssrShopName} Blog | Self-sown`
+              : "Self-sown Stall Blog";
             return {
               props: {
                 ogMeta: {
@@ -220,7 +219,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           : "";
         const title = branding.seo?.metaTitle
           ? `${branding.seo.metaTitle}${pageSuffix}`
-          : `${branding.shopName}${pageSuffix} | Milk Market`;
+          : `${branding.shopName}${pageSuffix} | Self-sown`;
 
         return {
           props: {
@@ -245,9 +244,9 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           ogMeta: {
             ...DEFAULT_OG,
             title: ssrShopName
-              ? `${ssrShopName} | Milk Market`
-              : "Milk Market Stall",
-            description: ssrShopAbout || "Check out this shop on Milk Market!",
+              ? `${ssrShopName} | Self-sown`
+              : "Self-sown Stall",
+            description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${pathParts.join("/")}`,
           },
           shopPubkey: pubkey,
@@ -268,8 +267,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: `/stall/${pathParts.join("/")}`,
       },
       shopPubkey: "",
@@ -313,7 +312,7 @@ export default function ShopSubPage({
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center pt-20">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

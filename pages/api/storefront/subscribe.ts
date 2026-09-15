@@ -14,7 +14,7 @@ import { isPubkeyProEntitled } from "@/utils/pro/membership";
 import {
   parseSellerShopProfileEvent,
   type StorefrontConfig,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 // Public, visitor-driven (no seller proof), so this is a spam vector for the
 // seller's contact list. Mirror the contact-form endpoint's tight rate limit
@@ -128,7 +128,7 @@ export default async function handler(
                 recipient_email: email,
                 recipient_pubkey: null,
                 enrollment_data: {
-                  shop_name: activeFlow.from_name || "Milk Market",
+                  shop_name: activeFlow.from_name || "Self-sown",
                 },
               });
               enrollmentId = enrollment.id;

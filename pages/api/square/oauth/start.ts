@@ -8,7 +8,10 @@ import {
 } from "@/utils/mcp/request-proof";
 import { verifyAndConsumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 import { buildSquareAuthorizeUrl } from "@/utils/square/square-oauth";
-import { isSquareConfigured } from "@/utils/square/square-config";
+import {
+  getSquareRedirectUri,
+  isSquareConfigured,
+} from "@/utils/square/square-config";
 import { createSquareOAuthState } from "@/utils/db/square-service";
 import { getStripeConnectAccount } from "@/utils/db/db-service";
 
@@ -70,7 +73,10 @@ export default async function handler(
     }
 
     const state = randomBytes(24).toString("hex");
-    await createSquareOAuthState(pubkey, state);
+    // Pin the authorize-time redirect URI so the token exchange still matches
+    // if the base domain flips mid-flow (the callback page 301s to the new
+    // domain, but Square requires the original URI).
+    await createSquareOAuthState(pubkey, state, getSquareRedirectUri());
     const authorizeUrl = buildSquareAuthorizeUrl(state);
 
     return res.status(200).json({ success: true, authorizeUrl });

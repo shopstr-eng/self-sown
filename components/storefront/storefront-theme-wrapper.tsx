@@ -12,6 +12,7 @@ import { ShopMapContext, ProfileMapContext } from "@/utils/context/context";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import SignInModal from "@/components/sign-in/SignInModal";
+import { joinClassNames } from "./sections/section-elements";
 import {
   StorefrontConfig,
   StorefrontColorScheme,
@@ -101,15 +102,17 @@ function StorefrontThemeWrapperInner({
   // Premium storefront chrome (themed nav, colors/fonts, footer) is a Pro-only
   // feature. The design is published to Nostr with no server write path to
   // block, so this is the render-layer enforcement: only Pro-entitled sellers
-  // get the custom chrome. We fail closed — the hook returns a non-Pro view on
-  // any /api/pro/status error, so a lapsed/non-Pro seller's design is never
-  // served during an outage.
+  // get the custom chrome. We fail closed on a DEFINITIVE non-Pro answer
+  // (200 + isPro:false) so a lapsed/non-Pro seller's design is never
+  // re-served, but transient /api/pro/status failures retry and fall back to
+  // a last-known-good view (see usePublicMembershipStatus), so a status
+  // outage never strips a paying seller's chrome.
   const { isPro: sellerIsPro } = usePublicMembershipStatus(sellerPubkey);
   // On a self-host instance the owner runs their OWN single-tenant copy, so they
   // are always entitled to their branded chrome. Skipping the Pro gate here lets
   // the storefront paint on the very first render instead of waiting for (and
   // depending on) the /api/pro/status round trip. This flag is fail-closed: it is
-  // true only when _app.tsx trusted the x-mm-self-host header, which happens only
+  // true only when _app.tsx trusted the x-ss-self-host header, which happens only
   // when the server process is itself in self-host mode (MM_SELF_HOST env) — a
   // spoofed header on the hosted platform can't set it, so the hosted Pro gate is
   // untouched.
@@ -165,7 +168,7 @@ function StorefrontThemeWrapperInner({
 
   useEffect(() => {
     // Only mark the body storefront-themed when the seller's chrome will
-    // actually render. `body.sf-active` hides the Milk Market TopNav via
+    // actually render. `body.sf-active` hides the Self-sown TopNav via
     // globals.css (`body.sf-active [data-main-nav]`), so setting it for a
     // seller with no custom storefront (or a lapsed/non-Pro seller) strips
     // the platform navbar and leaves the page with no nav at all. Custom
@@ -474,7 +477,10 @@ function StorefrontThemeWrapperInner({
           <style>{themedCss}</style>
         </Head>
         <div
-          className={`storefront-themed min-h-screen ${storefront?.neoShadows ? "sf-neo" : ""}`}
+          className={joinClassNames(
+            "storefront-themed min-h-screen",
+            storefront?.neoShadows ? "sf-neo" : undefined
+          )}
           style={{
             ...cssVars,
             ...fontStyles,
@@ -531,7 +537,7 @@ function StorefrontThemeWrapperInner({
                   {isLoggedIn && userPubkey ? (
                     <ProfileWithDropdown
                       pubkey={userPubkey}
-                      baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
+                      baseClassname="shrink-0 rounded-3xl hover:scale-105 hover:shadow-lg"
                       dropDownKeys={[
                         "shop_profile",
                         "user_profile",
@@ -581,7 +587,7 @@ function StorefrontThemeWrapperInner({
                   <div className="px-4 py-3">
                     <ProfileWithDropdown
                       pubkey={userPubkey}
-                      baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl"
+                      baseClassname="shrink-0 rounded-3xl"
                       dropDownKeys={[
                         "shop_profile",
                         "user_profile",

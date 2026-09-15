@@ -68,7 +68,7 @@ export default function UpdateToast() {
       className="fixed right-4 bottom-4 z-[9999] flex max-w-sm items-center gap-3 border-2 border-black bg-yellow-300 p-4 text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
     >
       <span className="text-sm font-bold">
-        A new version of Milk Market is live.
+        A new version of Self-sown is live.
       </span>
       <button
         type="button"

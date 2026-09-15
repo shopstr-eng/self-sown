@@ -14,7 +14,7 @@ import {
   createNostrBlogPost,
   signNostrBlogPost,
 } from "@/utils/nostr/nostr-helper-functions";
-import { parseBlogPostEvent } from "@milk-market/domain";
+import { parseBlogPostEvent } from "@self-sown/domain";
 
 jest.mock("@/components/settings/settings-bread-crumbs", () => ({
   SettingsBreadCrumbs: () => <div data-testid="breadcrumbs" />,
@@ -41,11 +41,11 @@ jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   deleteEvent: jest.fn(),
 }));
 
-jest.mock("@milk-market/nostr", () => ({
+jest.mock("@self-sown/nostr", () => ({
   createSellerActionAuthEventTemplate: jest.fn(() => ({ kind: 27235 })),
 }));
 
-jest.mock("@milk-market/domain", () => ({
+jest.mock("@self-sown/domain", () => ({
   BLOG_POST_KIND: 30023,
   parseBlogPostEvent: jest.fn(() => null),
   dedupeLatestBlogPosts: jest.fn((posts: unknown[]) => posts),

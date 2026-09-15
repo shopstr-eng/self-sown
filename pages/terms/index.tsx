@@ -7,7 +7,7 @@ export default function Tos() {
     {
       title: "1. Platform Nature",
       content:
-        "Milk Market is a permissionless marketplace built on the Nostr and Bitcoin protocols. We do not hold custody of your funds or products, and we are not a party to the transactions between buyers and sellers. To operate the marketplace, however, we run hosted infrastructure (a caching backend, card-payment processing, and email delivery) as described in Section 2 and in our Privacy Policy. We provide the platform and these supporting services, but commerce itself remains peer-to-peer.",
+        "Self-sown is a permissionless marketplace built on the Nostr and Bitcoin protocols. We do not hold custody of your funds or products, and we are not a party to the transactions between buyers and sellers. To operate the marketplace, however, we run hosted infrastructure (a caching backend, card-payment processing, and email delivery) as described in Section 2 and in our Privacy Policy. We provide the platform and these supporting services, but commerce itself remains peer-to-peer.",
     },
     {
       title: "2. Platform Services & Data",
@@ -17,7 +17,7 @@ export default function Tos() {
     {
       title: "3. Relay Selection",
       content:
-        "Users have complete control over which Nostr relays they connect to and consequently which products they see. Milk Market does not control the content available on various relays. Users are responsible for configuring their relay connections according to their preferences and local regulations.",
+        "Users have complete control over which Nostr relays they connect to and consequently which products they see. Self-sown does not control the content available on various relays. Users are responsible for configuring their relay connections according to their preferences and local regulations.",
     },
     {
       title: "4. User Responsibilities",
@@ -27,12 +27,12 @@ export default function Tos() {
     {
       title: "5. Prohibited Items",
       content:
-        "Though Milk Market has no technical ability to prevent listings, users agree not to list or sell illegal goods or services, harmful substances, counterfeit items, stolen property, or any items that violate applicable laws. The community-based nature of Nostr allows users to choose relays that align with their values.",
+        "Though Self-sown has no technical ability to prevent listings, users agree not to list or sell illegal goods or services, harmful substances, counterfeit items, stolen property, or any items that violate applicable laws. The community-based nature of Nostr allows users to choose relays that align with their values.",
     },
     {
       title: "6. Transaction Risks",
       content:
-        "Users acknowledge that peer-to-peer transactions carry inherent risks including but not limited to: potential for scams, misrepresented items, shipping complications, and payment processing issues. Milk Market cannot intervene in disputes between buyers and sellers.",
+        "Users acknowledge that peer-to-peer transactions carry inherent risks including but not limited to: potential for scams, misrepresented items, shipping complications, and payment processing issues. Self-sown cannot intervene in disputes between buyers and sellers.",
     },
     {
       title: "7. Listing Guidelines",
@@ -47,22 +47,22 @@ export default function Tos() {
     {
       title: "9. Disclaimers",
       content:
-        "Milk Market is not a custodial service, cannot guarantee product quality or seller reliability, cannot reverse blockchain transactions, and is not responsible for user errors or losses resulting from key mismanagement. Due to the decentralized nature of the platform, Milk Market cannot remove listings from Nostr relays.",
+        "Self-sown is not a custodial service, cannot guarantee product quality or seller reliability, cannot reverse blockchain transactions, and is not responsible for user errors or losses resulting from key mismanagement. Due to the decentralized nature of the platform, Self-sown cannot remove listings from Nostr relays.",
     },
     {
       title: "10. Dispute Resolution",
       content:
-        "Any disputes must be resolved directly between buyers and sellers. We encourage users to communicate clearly and honestly. The platform's review system helps create accountability in the marketplace, but Milk Market cannot enforce resolutions or provide refunds.",
+        "Any disputes must be resolved directly between buyers and sellers. We encourage users to communicate clearly and honestly. The platform's review system helps create accountability in the marketplace, but Self-sown cannot enforce resolutions or provide refunds.",
     },
     {
       title: "11. Herd & Wrangler Memberships",
       content:
-        "Selling on Milk Market is free with unlimited listings and no mandatory transaction fees. The optional Herd plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
+        "Selling on Self-sown is free with unlimited listings and no mandatory transaction fees. The optional Herd plan unlocks advanced features (advanced storefront customization, self-serve custom domains, automated email flows with engagement analytics that you can send from your own authenticated email domain, custom product pages, shipping labels, and AI agent/MCP access) for $21/month or $168/year. The Wrangler plan is a one-time $2,100 purchase that grants lifetime access to every Herd feature and never expires. New sellers receive a 30-day free trial of Herd with no payment required up front; we will remind you to pay for your selected plan before the trial ends. Paid Herd plans renew automatically until cancelled, and you can downgrade to the free plan at any time. Payments are processed by Stripe or by Bitcoin/manual invoice and are non-refundable except where required by law. Engagement analytics from your email flows are private to your seller account: every request is scoped to your own account so no other seller can see them, and we do not access or use an individual seller's raw email analytics for our own purposes, even though we operate our own storefront on the marketplace as an ordinary seller.",
     },
     {
       title: "12. Modifications",
       content:
-        "These terms may be updated periodically. Users are responsible for reviewing changes. Continued use of Milk Market constitutes acceptance of current terms.",
+        "These terms may be updated periodically. Users are responsible for reviewing changes. Continued use of Self-sown constitutes acceptance of current terms.",
     },
     {
       title: "13. Contact",
@@ -92,7 +92,7 @@ export default function Tos() {
               Terms of Service
             </h1>
             <p className="mt-4 text-center text-lg text-zinc-600">
-              User agreement and usage guidelines for Milk Market
+              User agreement and usage guidelines for Self-sown
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
               Last updated: 2026-06-06

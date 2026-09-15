@@ -133,7 +133,7 @@ export function buildSelfHostConfigJson(
 function envExampleTemplate(config: SelfHostConfigJson): string {
   const relays = config.relays.join(",");
   const blossom = config.blossomServers.join(",");
-  return `# Milk Market self-host (single-tenant) environment.
+  return `# Self-sown self-host (single-tenant) environment.
 # Copy this file to ".env" and fill in the values. NEVER commit your real .env.
 # This template ships with NO secrets; every value below is a placeholder.
 #
@@ -144,20 +144,20 @@ function envExampleTemplate(config: SelfHostConfigJson): string {
 
 # === Self-host identity (pre-filled from your export) ========================
 # Turn on single-tenant self-host mode.
-MM_SELF_HOST=1
+SS_SELF_HOST=1
 # Your Nostr pubkey (the one this store belongs to). Pre-filled from your export.
-MM_SELF_HOST_PUBKEY=${config.pubkey}
+SS_SELF_HOST_PUBKEY=${config.pubkey}
 # Your storefront slug. Pre-filled from your export.
-MM_SELF_HOST_SLUG=${config.slug ?? ""}
+SS_SELF_HOST_SLUG=${config.slug ?? ""}
 # Your relays / Blossom media servers (comma-separated). Pre-filled.
-MM_SELF_HOST_RELAYS=${relays}
-MM_SELF_HOST_BLOSSOM_SERVERS=${blossom}
+SS_SELF_HOST_RELAYS=${relays}
+SS_SELF_HOST_BLOSSOM_SERVERS=${blossom}
 # Public repo to pull code updates from.
-MM_SELF_HOST_UPSTREAM_REPO=${config.upstreamRepo}
+SS_SELF_HOST_UPSTREAM_REPO=${config.upstreamRepo}
 
 # === Required ================================================================
 # [required] PostgreSQL connection string. Apply db/schema.sql to a fresh DB first.
-DATABASE_URL=postgresql://user:password@host:5432/milkmarket
+DATABASE_URL=postgresql://user:password@host:5432/selfsown
 # [required] The public URL your store is served from (NO trailing slash).
 # Used for links, emails, SEO/social tags, and payment redirects.
 NEXT_PUBLIC_BASE_URL=https://yourstore.example
@@ -181,7 +181,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 # Add a Stripe webhook pointing at /api/stripe/webhook and paste its secret.
 STRIPE_WEBHOOK_SECRET=
 # Flip this on once the three Stripe values above are filled in.
-# MM_SELF_HOST_OWN_STRIPE=1
+# SS_SELF_HOST_OWN_STRIPE=1
 
 # === Email (optional) =======================================================
 # [optional] Transactional email via SendGrid. Leave blank to disable email.
@@ -199,15 +199,15 @@ MCP_ENCRYPTION_KEY=
 }
 
 function readmeMarkdown(config: SelfHostConfigJson): string {
-  return `# Milk Market - Your Self-Hosted Store
+  return `# Self-sown - Your Self-Hosted Store
 
-This bundle wires a self-hosted, single-tenant copy of Milk Market to YOUR
+This bundle wires a self-hosted, single-tenant copy of Self-sown to YOUR
 storefront. The marketplace and other sellers are hidden; this instance serves
 only your shop.
 
 ## What's in here
 
-- \`milk-market.config.json\`: your public store config (pubkey, slug, relays,
+- \`self-sown.config.json\`: your public store config (pubkey, slug, relays,
   Blossom servers${
     config.branding ? ", branding snapshot" : ""
   }). **No secrets.**
@@ -220,7 +220,7 @@ only your shop.
 
 \`\`\`bash
 bash setup.sh                            # clones ${config.upstreamRepo} + applies your config
-cd milk-market
+cd self-sown
 cp ../.env.example .env                   # then fill in .env (see SETUP.md)
 psql "$DATABASE_URL" -f db/schema.sql     # create the database tables
 pnpm install
@@ -236,25 +236,25 @@ and the AI agent API are all optional add-ons. \`SETUP.md\` explains every value
 Your store tracks the public repo. To pull the latest code:
 
 \`\`\`bash
-cd milk-market
+cd self-sown
 git pull
 pnpm install
 pnpm build && pnpm start
 \`\`\`
 
-Your \`milk-market.config.json\` and \`.env\` are yours and are not overwritten by
+Your \`self-sown.config.json\` and \`.env\` are yours and are not overwritten by
 \`git pull\`.
 
 ## Your store pages & policies
 
-This instance shows ONLY your storefront. The Milk Market marketplace, the
+This instance shows ONLY your storefront. The Self-sown marketplace, the
 platform info pages (About, FAQ, Producer Guide, Contact), and the platform
 Terms/Privacy pages are all hidden. Publish your OWN terms, privacy, and return
 policy as storefront pages using the page builder under **Settings**.
 
 ## License
 
-Milk Market is released under the GNU AGPL/GPL v3. Running your own copy is
+Self-sown is released under the GNU AGPL/GPL v3. Running your own copy is
 fully within your rights under that license; if you distribute a modified
 version or offer it over a network, you must make your source available under
 the same license. See the LICENSE file in the cloned repo.
@@ -269,9 +269,9 @@ function setupMarkdown(config: SelfHostConfigJson): string {
 \`\`\`bash
 bash setup.sh
 # or manually:
-git clone ${config.upstreamRepo} milk-market
-cd milk-market
-cp ../milk-market.config.json ./milk-market.config.json
+git clone ${config.upstreamRepo} self-sown
+cd self-sown
+cp ../self-sown.config.json ./self-sown.config.json
 \`\`\`
 
 ## 2. Database (PostgreSQL)
@@ -293,7 +293,7 @@ Edit \`.env\` (it has inline notes and a [required]/[generate]/[optional] legend
 - \`DATABASE_URL\`: **[required]** your PostgreSQL connection string.
 - \`NEXT_PUBLIC_BASE_URL\`: **[required]** the public URL your store is served
   from, with NO trailing slash. Used for links, emails, and social/SEO tags.
-- \`MM_SELF_HOST*\`: pre-filled from your export; adjust relays if needed.
+- \`SS_SELF_HOST*\`: pre-filled from your export; adjust relays if needed.
 - \`ENCRYPTION_NSEC\`: **[generate]** a NEW Nostr private key (\`nsec...\`) used to
   encrypt uploaded images/files and to send server-side messages. Do NOT reuse
   your personal key. Without it, uploads that rely on encryption will fail.
@@ -301,7 +301,7 @@ Edit \`.env\` (it has inline notes and a [required]/[generate]/[optional] legend
   all three: \`STRIPE_SECRET_KEY\`, \`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY\`, and
   \`STRIPE_WEBHOOK_SECRET\` (add a Stripe webhook pointing at
   \`/api/stripe/webhook\` and paste its signing secret). Then set
-  \`MM_SELF_HOST_OWN_STRIPE=1\`. Charges run directly on your account, with no
+  \`SS_SELF_HOST_OWN_STRIPE=1\`. Charges run directly on your account, with no
   Connect, no platform fees.
 - **Email (optional).** \`SENDGRID_API_KEY\` for transactional email. If you use
   automated email flows, also **[generate]** \`EMAIL_FLOW_CLICK_SECRET\` and
@@ -319,6 +319,11 @@ pnpm build
 pnpm start
 \`\`\`
 
+\`pnpm start\` boots the standalone production server
+(\`node .next/standalone/server.js\` — this app builds with
+\`output: "standalone"\`, where \`next start\` is not supported). It serves on
+port 3000 by default; set \`PORT\` (and \`HOSTNAME\`) to change that.
+
 The site serves your storefront at the root URL. Everything visitors see is
 your branded storefront; the marketplace, discovery, platform info pages
 (About, FAQ, Producer Guide, Contact), the platform Terms/Privacy pages, and
@@ -334,7 +339,7 @@ builder to add policy pages and link them from your storefront footer.
 ## 6. Stay updated
 
 \`\`\`bash
-cd milk-market
+cd self-sown
 git pull
 pnpm install
 pnpm build && pnpm start
@@ -349,17 +354,17 @@ freely; network-distributed modifications must be shared under the same license.
 
 function setupScript(config: SelfHostConfigJson): string {
   return `#!/usr/bin/env bash
-# Milk Market self-host bootstrap. Run from the unzipped bundle directory.
+# Self-sown self-host bootstrap. Run from the unzipped bundle directory.
 set -euo pipefail
 
 REPO="\${1:-${config.upstreamRepo}}"
-TARGET="\${2:-milk-market}"
+TARGET="\${2:-self-sown}"
 
 echo "Cloning \$REPO into ./\$TARGET ..."
 git clone "\$REPO" "\$TARGET"
 
 echo "Applying your store config ..."
-cp "milk-market.config.json" "\$TARGET/milk-market.config.json"
+cp "self-sown.config.json" "\$TARGET/self-sown.config.json"
 
 echo ""
 echo "Done. Next steps:"
@@ -373,14 +378,14 @@ echo "  pnpm install && pnpm build && pnpm start"
 function manifestJson(config: SelfHostConfigJson, generatedAt: string): string {
   return JSON.stringify(
     {
-      bundle: "milk-market-self-host",
+      bundle: "self-sown-self-host",
       version: 1,
       generatedAt,
       pubkey: config.pubkey,
       slug: config.slug,
       upstreamRepo: config.upstreamRepo,
       contents: [
-        "milk-market.config.json",
+        "self-sown.config.json",
         ".env.example",
         "setup.sh",
         "README.md",
@@ -400,7 +405,7 @@ export function buildExportEntries(input: ExportBundleInput): ZipEntry[] {
   const generatedAt = input.generatedAt ?? new Date().toISOString();
   return [
     {
-      name: "milk-market.config.json",
+      name: "self-sown.config.json",
       data: JSON.stringify(config, null, 2) + "\n",
     },
     { name: ".env.example", data: envExampleTemplate(config) },

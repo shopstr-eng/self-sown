@@ -1,4 +1,5 @@
 import Head from "next/head";
+import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 
 export type OgMetaProps = {
   title: string;
@@ -21,7 +22,7 @@ export type OgMetaProps = {
   jsonLd?: Record<string, unknown>[];
 };
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 function ensureAbsoluteUrl(url: string, base: string): string {
   if (!url) return "";
@@ -44,7 +45,7 @@ export default function OgHead({
   const absoluteImage = ensureAbsoluteUrl(image, BASE_URL);
   const absoluteUrl = ensureAbsoluteUrl(url, BASE_URL);
   const ogType = type || "website";
-  const ogSiteName = siteName || "Milk Market";
+  const ogSiteName = siteName || "Self-sown";
   const ogLocale = locale || "en_US";
 
   const geoPlaceName = [locationCity, locationRegion]
@@ -68,7 +69,7 @@ export default function OgHead({
       <meta property="og:locale" content={ogLocale} />
 
       <meta name="twitter:card" content="summary_large_image" />
-      <meta property="twitter:domain" content="milk.market" />
+      <meta property="twitter:domain" content={SITE_HOST} />
       <meta property="twitter:url" content={absoluteUrl} />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
@@ -82,9 +83,9 @@ export default function OgHead({
 }
 
 export const DEFAULT_OG: OgMetaProps = {
-  title: "Milk Market - Sell Local Products Online. Zero Platform Fees.",
+  title: "Self-sown - Sell Local Products Online. Zero Platform Fees.",
   description:
     "List your products in minutes and keep 100% of every sale. No $200 a month subscriptions and no one can shut you down. Built for food producers, farmers, and artisan makers tired of paying Shopify and Barn2Door.",
-  image: "/milk-market.png",
+  image: "/self-sown-black.png",
   url: "/",
 };

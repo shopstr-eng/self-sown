@@ -6,7 +6,7 @@ import { ToolContext } from "./audit-log";
 export function createMcpServer(context?: ToolContext): McpServer {
   const server = new McpServer(
     {
-      name: "milk-market",
+      name: "self-sown",
       version: "1.0.0",
     },
     {

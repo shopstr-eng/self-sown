@@ -31,3 +31,8 @@ across many surfaces. The compiler catches some; others fail silently.
 **How to apply:** when adding a section type, grep for an existing type name (e.g. "reviews")
 across the repo and mirror every hit; lean on the compiler for the two enforced maps but
 manually verify the silent ones (preview SVG default-null + sanitizer allowlists).
+
+**Enforced by static guard:** heading/body classNames must be composed via
+headingClassName/bodyClassName in section-elements.tsx — a source-scan test fails any
+section file with an inline `headingSize ?`/`bodySize ?` conditional string suffix
+(the font-boldmd:text-5xl merged-class regression). Never hand-write that template.

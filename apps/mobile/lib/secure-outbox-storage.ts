@@ -10,7 +10,7 @@ import type { AsyncKeyValueStorage } from "./order-notification-outbox";
 // AsyncStorage is not an acceptable at-rest story. Values are encrypted with
 // NIP-44 v2 using a random device key held in the OS keychain (SecureStore);
 // AsyncStorage only ever sees ciphertext.
-const SECURE_STORE_KEY_ID = "milk-market.seller-order-outbox-key.v1";
+const SECURE_STORE_KEY_ID = "self-sown.seller-order-outbox-key.v1";
 const ENCRYPTED_PREFIX = "v1:";
 const KEY_HEX = /^[0-9a-f]{64}$/;
 

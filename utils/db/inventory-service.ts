@@ -1,11 +1,13 @@
-import { getDbPool } from "./db-service";
+import type { PoolClient } from "pg";
+import { getDbPool, withSchemaDdlLock } from "./db-service";
 
 export async function ensureInventoryTable(): Promise<void> {
   const pool = getDbPool();
-  let client;
+  let client: PoolClient | undefined;
   try {
     client = await pool.connect();
-    await client.query(`
+    await withSchemaDdlLock(client, async (client) => {
+      await client.query(`
       CREATE TABLE IF NOT EXISTS inventory (
         id SERIAL PRIMARY KEY,
         product_id TEXT NOT NULL,
@@ -33,6 +35,7 @@ export async function ensureInventoryTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_inventory_log_product_id ON inventory_log(product_id);
       CREATE INDEX IF NOT EXISTS idx_inventory_log_order_id ON inventory_log(order_id);
     `);
+    });
   } finally {
     if (client) client.release();
   }

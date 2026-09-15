@@ -2,32 +2,30 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
 import { HOMEPAGE_FAQ } from "@/utils/homepage-faq";
+import { SITE_URL } from "@/utils/site-url";
 
 const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Milk Market",
-  url: "https://milk.market",
-  logo: "https://milk.market/milk-market.png",
+  name: "Self-sown",
+  url: SITE_URL,
+  logo: `${SITE_URL}/self-sown-black.png`,
   description:
-    "Milk Market is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
+    "Self-sown is a decentralized, permissionless marketplace connecting local dairy farmers directly with consumers. Zero platform fees, direct payments via Bitcoin and traditional methods.",
   foundingDate: "2024",
   contactPoint: {
     "@type": "ContactPoint",
-    email: "freemilk@milk.market",
+    email: "hello@self-sown.com",
     contactType: "customer service",
     availableLanguage: "English",
   },
   sameAs: [
-    "https://github.com/shopstr-eng/milk-market",
-    "https://x.com/milkmarketmedia",
-    "https://www.youtube.com/@milkmarketmedia",
-    "https://www.instagram.com/milkmarketmedia/",
-    "https://www.tiktok.com/@milkmarket.media",
+    "https://github.com/shopstr-eng/self-sown",
+    "https://www.youtube.com/@self-sown",
   ],
   founder: {
     "@type": "Person",
-    name: "Milk Market Team",
+    name: "Self-sown Team",
     description:
       "Advocates for food sovereignty and direct farm-to-consumer commerce, with expertise in decentralized marketplace technology and dairy supply chains.",
   },
@@ -36,12 +34,12 @@ const organizationSchema = {
 const localBusinessSchema = {
   "@context": "https://schema.org",
   "@type": "LocalBusiness",
-  name: "Milk Market",
-  url: "https://milk.market",
-  logo: "https://milk.market/milk-market.png",
-  image: "https://milk.market/milk-market.png",
+  name: "Self-sown",
+  url: SITE_URL,
+  logo: `${SITE_URL}/self-sown-black.png`,
+  image: `${SITE_URL}/self-sown-black.png`,
   description:
-    "Farm-fresh dairy marketplace connecting local farmers with buyers. Browse raw milk, cheese, butter, and more from trusted local producers with zero platform fees.",
+    "Local food and artisan goods marketplace connecting independent producers with buyers. Browse farm-fresh food, handmade goods, and more from trusted local sellers with zero platform fees.",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Seattle",
@@ -85,15 +83,15 @@ const homepageFaqSchema = {
 const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Milk Market",
-  url: "https://milk.market",
+  name: "Self-sown",
+  url: SITE_URL,
   description:
-    "Farm-fresh dairy marketplace. Buy raw milk, cheese, and dairy products direct from local farmers with zero platform fees.",
+    "Local food and artisan goods marketplace. Buy farm-fresh food and handmade goods direct from local producers with zero platform fees.",
   potentialAction: {
     "@type": "SearchAction",
     target: {
       "@type": "EntryPoint",
-      urlTemplate: "https://milk.market/marketplace?q={search_term_string}",
+      urlTemplate: `${SITE_URL}/marketplace?q={search_term_string}`,
     },
     "query-input": "required name=search_term_string",
   },

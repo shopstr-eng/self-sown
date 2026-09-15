@@ -17,7 +17,7 @@ import {
   type SellerOrderEvent,
   type SellerSession,
   type SellerShippingUpdate,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import CryptoJS from "crypto-js";
 
 const SELLER_ORDER_DECRYPT_CONCURRENCY = 8;

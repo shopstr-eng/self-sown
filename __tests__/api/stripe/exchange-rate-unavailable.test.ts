@@ -9,7 +9,7 @@
 // wrap → isExchangeRateError → response-code chain is pinned end to end.
 
 const PLATFORM_PK = "f".repeat(64);
-process.env.NEXT_PUBLIC_MILK_MARKET_PK = PLATFORM_PK;
+process.env.NEXT_PUBLIC_SELF_SOWN_PK = PLATFORM_PK;
 process.env.STRIPE_SECRET_KEY = "sk_test_platform";
 
 const getFiatValueMock = jest.fn();
@@ -86,7 +86,7 @@ jest.mock("@/utils/stripe/donation", () => ({
   resolveDonationCut: jest.fn(async () => ({ percent: 0, cutSmallest: 0 })),
   getSellerDonationPercent: jest.fn(async () => null),
   isPlatformPubkey: jest.fn(
-    (pk: string) => pk === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    (pk: string) => pk === process.env.NEXT_PUBLIC_SELF_SOWN_PK
   ),
   computeDonationCutSmallest: jest.fn(() => 0),
 }));

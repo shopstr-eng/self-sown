@@ -2,7 +2,7 @@ import {
   renderFlowEmail,
   type FlowEmailStorefrontStyle,
 } from "./flow-email-templates";
-import { isHttpUrl, type BlogPost } from "@milk-market/domain";
+import { isHttpUrl, type BlogPost } from "@self-sown/domain";
 
 // Local escaper. Blog post fields come from a permissionless, signed Nostr
 // event, so every value placed into the email HTML — text or attribute — must

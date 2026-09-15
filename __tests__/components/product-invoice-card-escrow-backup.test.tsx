@@ -233,7 +233,7 @@ jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   publishProofEvent: jest.fn(),
 }));
 
-jest.mock("@milk-market/nostr", () => ({
+jest.mock("@self-sown/nostr", () => ({
   __esModule: true,
   createSellerActionAuthEventTemplate: jest.fn(() => ({})),
 }));

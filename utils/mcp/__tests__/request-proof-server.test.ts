@@ -57,7 +57,7 @@ describe("verifyAndConsumeSignedRequestProof", () => {
   it("accepts a fresh matching signed proof and rejects replay", async () => {
     const pubkey = "f".repeat(64);
     const proof = buildApiKeyCreateProof({
-      name: "Milk Market Agent",
+      name: "Self-sown Agent",
       permissions: "read",
       pubkey,
     });
@@ -126,7 +126,7 @@ describe("verifyAndConsumeSignedRequestProof", () => {
   it("rejects stale signed proofs", async () => {
     const pubkey = "e".repeat(64);
     const proof = buildApiKeyCreateProof({
-      name: "Milk Market Agent",
+      name: "Self-sown Agent",
       permissions: "read_write",
       pubkey,
     });

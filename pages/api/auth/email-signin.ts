@@ -2,6 +2,8 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { Client } from "pg";
 import CryptoJS from "crypto-js";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { EMAIL_AUTH_SALT, LEGACY_EMAIL_AUTH_SALT } from "@/utils/auth/salts";
+import { withSchemaDdlLock } from "@/utils/db/db-service";
 
 const RATE_LIMIT = { limit: 10, windowMs: 60 * 1000 };
 
@@ -29,7 +31,8 @@ export default async function handler(
   try {
     await client.connect();
 
-    await client.query(`
+    await withSchemaDdlLock(client, async () => {
+      await client.query(`
       CREATE TABLE IF NOT EXISTS email_auth (
         id SERIAL PRIMARY KEY,
         email VARCHAR(255) NOT NULL UNIQUE,
@@ -39,6 +42,7 @@ export default async function handler(
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    });
 
     const passwordHash = CryptoJS.SHA256(email + password).toString();
 
@@ -54,20 +58,48 @@ export default async function handler(
 
     const { pubkey, encrypted_nsec } = result.rows[0];
 
-    // Decrypt nsec
-    const encryptionKey = CryptoJS.PBKDF2(
-      email + password,
-      "milk-market-salt",
-      {
+    // Decrypt nsec. The KDF salt rotated in the Self-sown rebrand: try the
+    // new salt first, fall back to the legacy salt, and on a legacy hit
+    // lazily re-encrypt the row under the new salt (zero-downtime migration,
+    // no data loss). A wrong-salt decrypt yields garbage that fails Utf8
+    // decoding or the nsec1 prefix check — never a valid nsec.
+    const deriveKey = (salt: string) =>
+      CryptoJS.PBKDF2(email + password, salt, {
         keySize: 256 / 32,
         iterations: 1000,
+      }).toString();
+    const tryDecrypt = (salt: string): string => {
+      try {
+        const out = CryptoJS.AES.decrypt(
+          encrypted_nsec,
+          deriveKey(salt)
+        ).toString(CryptoJS.enc.Utf8);
+        return out.startsWith("nsec1") ? out : "";
+      } catch {
+        return "";
       }
-    ).toString();
+    };
 
-    const decryptedNsec = CryptoJS.AES.decrypt(
-      encrypted_nsec,
-      encryptionKey
-    ).toString(CryptoJS.enc.Utf8);
+    let decryptedNsec = tryDecrypt(EMAIL_AUTH_SALT);
+    if (!decryptedNsec) {
+      decryptedNsec = tryDecrypt(LEGACY_EMAIL_AUTH_SALT);
+      if (decryptedNsec) {
+        // Legacy-salt row: re-encrypt under the new salt (best-effort — a
+        // failed rotation just means the fallback runs again next signin).
+        try {
+          const rotated = CryptoJS.AES.encrypt(
+            decryptedNsec,
+            deriveKey(EMAIL_AUTH_SALT)
+          ).toString();
+          await client.query(
+            "UPDATE email_auth SET encrypted_nsec = $1 WHERE email = $2",
+            [rotated, email]
+          );
+        } catch (rotateErr) {
+          console.error("email-signin: salt rotation failed:", rotateErr);
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,

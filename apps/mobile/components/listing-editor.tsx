@@ -9,7 +9,7 @@ import {
   type SellerListingDraft,
   type SellerListingDraftValidationErrors,
   type SellerListingStatus,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 import { ActionButton, SellerCard, SellerField } from "@/components/seller-ui";
 import { sellerThemeTokens } from "@/theme/tokens";
@@ -106,7 +106,7 @@ export function ListingEditor({
         <SellerField
           label="Title"
           value={draft.title}
-          placeholder="Fresh raw milk"
+          placeholder="Fresh farm eggs"
           onChangeText={(value) => onChange({ ...draft, title: value })}
           error={errors.title}
         />
@@ -161,7 +161,7 @@ export function ListingEditor({
 
       <SellerCard
         title="Categories"
-        description="Known Milk Market categories stay tap-friendly on mobile. Existing custom tags are preserved and can still be removed."
+        description="Known Self-sown categories stay tap-friendly on mobile. Existing custom tags are preserved and can still be removed."
       >
         <View style={styles.chipWrap}>
           {knownCategories.map((category) => {
@@ -297,7 +297,7 @@ export function ListingEditor({
 
       <SellerCard
         title="Images"
-        description="Images upload through the default Blossom server path used by Milk Market."
+        description="Images upload through the default Blossom server path used by Self-sown."
       >
         <ActionButton
           label="Add listing images"

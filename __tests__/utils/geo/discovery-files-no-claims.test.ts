@@ -21,24 +21,17 @@
 import { readFileSync } from "fs";
 import { join } from "path";
 import { FEE_CLAIMS } from "@/utils/geo/fee-claims";
+import { PURE_DISCOVERY_SURFACES } from "@/utils/testing/pure-discovery-surfaces";
 
 // --- Pure-discovery surfaces (must NOT carry fee/marketing claims) -----------
 //
-// Same list as discovery-files-no-pricing.test.ts, mirroring the "Pure
-// discovery/transport — do NOT add pricing" bullet in
-// machine-readable-tier-surfaces.md.
+// The shared list lives in utils/testing/pure-discovery-surfaces.ts (mirrors
+// the "Pure discovery/transport — do NOT add pricing" bullet in
+// machine-readable-tier-surfaces.md) and is kept honest by the coverage guard
+// in discovery-guard-coverage.test.ts, which fails when a new agent-readable
+// route/module is never classified.
 
-const DISCOVERY_FILES = [
-  "public/llms.txt",
-  "public/agents.txt",
-  "public/skill.md",
-  "public/.well-known/mcp.json",
-  "public/.well-known/agent-card.json",
-  "public/.well-known/l402.json",
-  "pages/api/openapi.json.ts",
-  "pages/api/.well-known/agent.json.ts",
-  "utils/geo/stall-content.ts",
-];
+const DISCOVERY_FILES = PURE_DISCOVERY_SURFACES;
 
 // --- Canonical fee/marketing claim patterns ----------------------------------
 //

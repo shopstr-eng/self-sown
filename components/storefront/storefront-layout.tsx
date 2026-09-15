@@ -21,6 +21,7 @@ import {
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import SignInModal from "@/components/sign-in/SignInModal";
+import { joinClassNames } from "./sections/section-elements";
 import {
   ShopProfile,
   StorefrontConfig,
@@ -34,7 +35,7 @@ import parseTags from "@/utils/parsers/product-parser-functions";
 import Link from "next/link";
 import StorefrontProductGrid from "./storefront-product-grid";
 import ProductListingView from "@/components/listing/product-listing-view";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { NostrEvent } from "@/utils/types/types";
 import SectionRenderer from "./section-renderer";
 import FormattedText from "./formatted-text";
@@ -53,7 +54,9 @@ import {
   isExternalStorefrontHref,
   sanitizeStorefrontNavHref,
 } from "@/utils/storefront-links";
+import { SITE_URL } from "@/utils/site-url";
 import { getStorefrontCartQuantity } from "@/utils/storefront-cart";
+import { useStorefrontProEntitlement } from "@/utils/hooks/use-storefront-pro-entitlement";
 import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import {
   applyCustomDomainHref,
@@ -129,47 +132,13 @@ export default function StorefrontLayout({
   const [cartQuantity, setCartQuantity] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [shopDataReady, setShopDataReady] = useState(false);
-  // The viewed seller's Pro entitlement, scoped to the pubkey it was resolved
-  // for. We key on pubkey so a stale `true` from a previously-viewed Pro seller
-  // can never be applied to a different (non-Pro) seller during a client-side
-  // shop switch. Premium styling is only served when the resolved pubkey
-  // matches the current seller AND isPro is true; we fail closed (false) on any
-  // error so a lapsed seller's design is never served during a status outage.
-  const [proStatus, setProStatus] = useState<{
-    pubkey: string;
-    isPro: boolean;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!shopPubkey) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/pro/status?pubkey=${encodeURIComponent(shopPubkey)}`
-        );
-        if (cancelled) return;
-        if (res.ok) {
-          const view = await res.json();
-          setProStatus({ pubkey: shopPubkey, isPro: !!view?.isPro });
-        } else {
-          setProStatus({ pubkey: shopPubkey, isPro: false });
-        }
-      } catch {
-        if (!cancelled) setProStatus({ pubkey: shopPubkey, isPro: false });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [shopPubkey]);
-
-  // Entitlement only counts when it was resolved for the seller we're rendering.
-  // While unresolved or stale (different pubkey), this is false → fail closed.
-  const proEntitled =
-    proStatus !== null && proStatus.pubkey === shopPubkey
-      ? proStatus.isPro
-      : null;
+  // The viewed seller's Pro entitlement: true/false once resolved, null while
+  // unresolved. Premium styling is only served when this resolves true for the
+  // current seller; genuinely non-Pro sellers (200 + isPro:false) fail closed.
+  // Transient status-check failures (network/5xx) retry with backoff and fall
+  // back to a last-known-good cache, so a hiccup never strips a paying
+  // seller's design mid-visit.
+  const proEntitled = useStorefrontProEntitlement(shopPubkey);
 
   useEffect(() => {
     if (shopPubkey && shopMapContext.shopData.has(shopPubkey)) {
@@ -658,7 +627,7 @@ export default function StorefrontLayout({
         "@context": "https://schema.org",
         "@type": "Store",
         name: ssrShopName,
-        url: ssrStoreUrl || `https://milk.market`,
+        url: ssrStoreUrl || SITE_URL,
       };
       if (ssrShopAbout) ssrStoreSchema.description = ssrShopAbout;
       return (
@@ -765,7 +734,7 @@ export default function StorefrontLayout({
         {isLoggedIn && userPubkey ? (
           <ProfileWithDropdown
             pubkey={userPubkey}
-            baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl hover:scale-105 hover:shadow-lg"
+            baseClassname="shrink-0 rounded-3xl hover:scale-105 hover:shadow-lg"
             dropDownKeys={[
               "shop_profile",
               "user_profile",
@@ -813,9 +782,11 @@ export default function StorefrontLayout({
           <div className="flex flex-1 items-center">{logoNode}</div>
         ) : (
           <div
-            className={`flex flex-1 items-center ${navLayoutResolved.linkGapClass} ${
+            className={joinClassNames(
+              "flex flex-1 items-center",
+              navLayoutResolved.linkGapClass,
               navLayoutResolved.linkJustifyClass || "justify-center"
-            }`}
+            )}
           >
             {desktopNavLinkItems}
           </div>
@@ -900,8 +871,8 @@ export default function StorefrontLayout({
                   (isCustomDomain && typeof window !== "undefined"
                     ? window.location.origin
                     : shopSlug
-                      ? `https://milk.market/stall/${shopSlug}`
-                      : "https://milk.market");
+                      ? `${SITE_URL}/stall/${shopSlug}`
+                      : SITE_URL);
                 const schema: Record<string, unknown> = {
                   "@context": "https://schema.org",
                   "@type": "Store",
@@ -1037,7 +1008,10 @@ export default function StorefrontLayout({
         <style>{themedCss}</style>
       </Head>
       <div
-        className={`sf-layout min-h-screen w-full max-w-full overflow-x-hidden ${storefront.neoShadows ? "sf-neo" : ""}`}
+        className={joinClassNames(
+          "sf-layout min-h-screen w-full max-w-full overflow-x-hidden",
+          storefront.neoShadows ? "sf-neo" : undefined
+        )}
         style={{
           ...cssVars,
           ...fontStyles,
@@ -1046,9 +1020,11 @@ export default function StorefrontLayout({
         }}
       >
         <nav
-          className={`fixed top-0 right-0 left-0 z-50 ${navHeightClass} border-b transition-[background-color,border-color,transform] duration-300 ${
-            navHiddenNow ? "-translate-y-full" : ""
-          }`}
+          className={joinClassNames(
+            "fixed top-0 right-0 left-0 z-50 border-b transition-[background-color,border-color,transform] duration-300",
+            navHeightClass,
+            navHiddenNow ? "-translate-y-full" : undefined
+          )}
           style={{
             backgroundColor: navTransparentNow ? "transparent" : navBg,
             borderColor: navTransparentNow ? "transparent" : navAccent + "33",
@@ -1070,9 +1046,11 @@ export default function StorefrontLayout({
           ) : navLayoutResolved.logoPosition === "center" ? (
             <div className="mx-auto grid h-full max-w-6xl grid-cols-3 items-center px-4 md:px-6">
               <div
-                className={`hidden items-center ${navLayoutResolved.linkGapClass} lg:flex ${
+                className={joinClassNames(
+                  "hidden items-center lg:flex",
+                  navLayoutResolved.linkGapClass,
                   navLayoutResolved.linkJustifyClass || "justify-start"
-                }`}
+                )}
               >
                 {desktopNavLinkItems}
               </div>
@@ -1145,7 +1123,7 @@ export default function StorefrontLayout({
                 <div className="px-4 py-3">
                   <ProfileWithDropdown
                     pubkey={userPubkey}
-                    baseClassname="flex-shrink-0 hover:bg-opacity-80 rounded-3xl"
+                    baseClassname="shrink-0 rounded-3xl"
                     dropDownKeys={[
                       "shop_profile",
                       "user_profile",
@@ -1277,7 +1255,7 @@ export default function StorefrontLayout({
             <div
               className={`flex min-h-[60vh] items-center justify-center ${navPadClass}`}
             >
-              <MilkMarketSpinner />
+              <SelfSownSpinner />
             </div>
           )
         ) : (
@@ -1393,9 +1371,10 @@ export default function StorefrontLayout({
               </div>
             ) : (
               <div
-                className={`mx-auto max-w-6xl px-4 py-8 md:px-6 ${
-                  landingStyle === "hero" ? navPadClass : ""
-                }`}
+                className={joinClassNames(
+                  "mx-auto max-w-6xl px-4 py-8 md:px-6",
+                  landingStyle === "hero" ? navPadClass : undefined
+                )}
               >
                 <StorefrontProductGrid
                   products={sellerProducts}

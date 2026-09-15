@@ -26,6 +26,7 @@ import ProductPageTemplateForm from "@/components/settings/product-page-template
 import ShopifyMigrationModal from "./shopify-migration-modal";
 import SquareMigrationModal from "./square-migration-modal";
 import ImportDesignModal from "./import-design-modal";
+import { joinClassNames } from "@/utils/class-names";
 
 const StallPage = () => {
   const { pubkey: usersPubkey } = useContext(SignerContext);
@@ -258,41 +259,45 @@ const StallPage = () => {
             </div>
             <div className="hidden gap-6 md:flex">
               <Button
-                className={`bg-transparent px-0 text-lg font-bold ${
+                className={joinClassNames(
+                  "bg-transparent px-0 text-lg font-bold",
                   selectedSection === "Listings"
                     ? "border-b-4 border-black text-black"
                     : "text-gray-500 hover:text-black"
-                }`}
+                )}
                 onClick={() => setSelectedSection("Listings")}
               >
                 Listings
               </Button>
               <Button
-                className={`bg-transparent px-0 text-lg font-bold ${
+                className={joinClassNames(
+                  "bg-transparent px-0 text-lg font-bold",
                   selectedSection === "Discounts"
                     ? "border-b-4 border-black text-black"
                     : "text-gray-500 hover:text-black"
-                }`}
+                )}
                 onClick={() => setSelectedSection("Discounts")}
               >
                 Discounts
               </Button>
               <Button
-                className={`bg-transparent px-0 text-lg font-bold ${
+                className={joinClassNames(
+                  "bg-transparent px-0 text-lg font-bold",
                   selectedSection === "Affiliates"
                     ? "border-b-4 border-black text-black"
                     : "text-gray-500 hover:text-black"
-                }`}
+                )}
                 onClick={() => setSelectedSection("Affiliates")}
               >
                 Affiliates
               </Button>
               <Button
-                className={`bg-transparent px-0 text-lg font-bold ${
+                className={joinClassNames(
+                  "bg-transparent px-0 text-lg font-bold",
                   selectedSection === "Templates"
                     ? "border-b-4 border-black text-black"
                     : "text-gray-500 hover:text-black"
-                }`}
+                )}
                 onClick={() => setSelectedSection("Templates")}
               >
                 Templates
@@ -354,7 +359,7 @@ const StallPage = () => {
 
         <div className="flex gap-6">
           {/* Sidebar */}
-          <div className="hidden w-64 flex-shrink-0 md:block">
+          <div className="hidden w-64 shrink-0 md:block">
             <div className="space-y-3">
               <Button
                 className={`${BLUEBUTTONCLASSNAMES} w-full`}

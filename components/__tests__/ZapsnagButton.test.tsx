@@ -414,7 +414,7 @@ describe("ZapsnagButton Component", () => {
     );
 
     expect(localStorage.setItem).toHaveBeenCalledWith(
-      "milk_market_shipping_info",
+      "self_sown_shipping_info",
       expect.any(String)
     );
     expect(window.alert).toHaveBeenCalledWith(

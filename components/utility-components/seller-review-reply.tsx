@@ -7,6 +7,7 @@ import {
 import { publishReviewReply } from "@/utils/nostr/nostr-helper-functions";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import { Button, Textarea } from "@heroui/react";
+import { joinClassNames } from "@/utils/class-names";
 
 interface SellerReviewReplyProps {
   reviewEventId: string | undefined;
@@ -93,7 +94,11 @@ export default function SellerReviewReply({
     <div className={compact ? "mt-2" : "mt-3"}>
       {replies.length > 0 && (
         <div
-          className={`space-y-2 ${compact ? "ml-4" : "ml-6"} border-l-2 pl-3`}
+          className={joinClassNames(
+            "space-y-2",
+            compact ? "ml-4" : "ml-6",
+            "border-l-2 pl-3"
+          )}
           style={themed ? { borderColor } : { borderColor: "#e5e7eb" }}
         >
           {replies
@@ -131,9 +136,10 @@ export default function SellerReviewReply({
         <button
           type="button"
           onClick={() => setShowReplyInput(true)}
-          className={`${
-            compact ? "ml-4 text-xs" : "ml-6 text-sm"
-          } mt-1 font-medium`}
+          className={joinClassNames(
+            compact ? "ml-4 text-xs" : "ml-6 text-sm",
+            "mt-1 font-medium"
+          )}
           style={themed ? { color: accentColor } : { color: "#2563eb" }}
         >
           Reply
@@ -141,7 +147,12 @@ export default function SellerReviewReply({
       )}
 
       {canReply && showReplyInput && (
-        <div className={`${compact ? "ml-4" : "ml-6"} mt-2 space-y-2`}>
+        <div
+          className={joinClassNames(
+            compact ? "ml-4" : "ml-6",
+            "mt-2 space-y-2"
+          )}
+        >
           <Textarea
             placeholder="Write a reply..."
             minRows={2}

@@ -7,6 +7,7 @@ import {
   hashRecoveryKey,
   encryptNsecWithRecoveryKey,
 } from "@/utils/auth/recovery";
+import { EMAIL_AUTH_SALT } from "@/utils/auth/salts";
 import { applyRateLimit } from "@/utils/rate-limit";
 
 const RATE_LIMIT = { limit: 5, windowMs: 60 * 1000 };
@@ -52,7 +53,7 @@ export default async function handler(
 
     const encryptionKey = CryptoJS.PBKDF2(
       email + password,
-      "milk-market-salt",
+      EMAIL_AUTH_SALT,
       {
         keySize: 256 / 32,
         iterations: 1000,

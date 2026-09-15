@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import type { SellerAuthMethod } from "@milk-market/domain";
+import type { SellerAuthMethod } from "@self-sown/domain";
 
 type SessionUiStoreState = {
   lastUsedAuthMethod: SellerAuthMethod | null;
@@ -18,7 +18,7 @@ export const useSessionUiStore = create<SessionUiStoreState>()(
       },
     }),
     {
-      name: "milk-market-seller-ui",
+      name: "self-sown-seller-ui",
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

@@ -105,6 +105,8 @@ export const DEFAULT_SELLER_RELAYS = [
 export const BLASTR_RELAY = "wss://sendit.nosflare.com";
 
 const RESERVED_MARKETPLACE_TAGS = new Set([
+  "SelfSown",
+  // Legacy pre-rebrand tag — still filtered out of user-facing categories.
   "MilkMarket",
   "FREEMILK",
   "SAVEBEEF",

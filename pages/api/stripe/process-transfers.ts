@@ -86,7 +86,8 @@ export default async function handler(
 
     for (const split of sellerSplits) {
       const isPlatformAccount =
-        split.sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+        split.sellerPubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
 
       if (isPlatformAccount) {
         results.push({
@@ -179,6 +180,8 @@ export default async function handler(
                 paymentIntentId,
                 sellerPubkey: split.sellerPubkey,
                 grossAmount: split.amountCents.toString(),
+                ssDonationPercent: donationPercent.toString(),
+                ssDonationCutSmallest: donationCut.toString(),
                 mmDonationPercent: donationPercent.toString(),
                 mmDonationCutSmallest: donationCut.toString(),
               },

@@ -14,18 +14,18 @@
 
 ## Target audience
 
-- Buyers looking for raw milk, local food, herdshares, and related farm products
-- Sellers building storefronts for direct-to-consumer local food sales
-- AI agents and machine-readable commerce clients using Milk Market's public surfaces
+- Buyers looking for local food, artisan goods, and farm-direct products
+- Sellers building storefronts for direct-to-consumer local food and handmade goods sales
+- AI agents and machine-readable commerce clients using Self-sown's public surfaces
 
 ## Primary keywords
 
-- raw milk marketplace
 - local food marketplace
-- buy raw milk online
-- sell raw milk online
+- artisan goods marketplace
+- buy local food online
+- sell handmade goods online
 - farm storefront
 
 ## Dismissed categories
 
-- (None yet)
+- Raw milk–specific positioning ("raw milk marketplace", "buy raw milk online", "sell raw milk online") — Self-sown targets local food and artisan goods broadly, not a single product vertical

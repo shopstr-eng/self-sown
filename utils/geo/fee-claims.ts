@@ -3,7 +3,7 @@
 // membership prices so the pricing tests can't drift.
 //
 // The fee-structure claims ("no mandatory ... fees", "zero/no platform fees",
-// "Milk Market never adds a fee", "no fees at all") are duplicated by hand
+// "Self-sown never adds a fee", "no fees at all") are duplicated by hand
 // across the rich-content surfaces (`public/llms-full.txt`,
 // `utils/geo/page-content.ts`) and the JSON-LD copies (homepage / /faq /
 // producer-guide). Two tests guard them in opposite directions:

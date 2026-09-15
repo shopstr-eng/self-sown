@@ -1,5 +1,5 @@
 {
-  "name": "@milk-market/nostr",
+  "name": "@self-sown/nostr",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@milk-market/domain": "file:../domain",
+    "@self-sown/domain": "file:../domain",
     "crypto-js": "4.2.0",
     "nostr-tools": "2.25.0"
   },

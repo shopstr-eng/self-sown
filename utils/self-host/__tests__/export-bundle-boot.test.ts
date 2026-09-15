@@ -3,7 +3,7 @@
 // The other suites verify the bundle's *contents* in isolation. This one closes
 // the loop a paying Wrangler seller actually depends on: it packs the REAL ZIP
 // (createZip), extracts it back out, and then feeds the generated
-// `milk-market.config.json` + `.env.example` through the ACTUAL runtime config
+// `self-sown.config.json` + `.env.example` through the ACTUAL runtime config
 // reader (buildSelfHostConfig) and the proxy routing helpers. That proves the
 // bundle's output is in the exact shape the running instance consumes, so a
 // seller who unzips it and starts the app gets a working single-tenant store:
@@ -98,12 +98,12 @@ describe("self-host export bundle boots", () => {
         "README.md",
         "SETUP.md",
         "manifest.json",
-        "milk-market.config.json",
+        "self-sown.config.json",
         "setup.sh",
       ].sort()
     );
     // Bytes survived the STORE round-trip intact.
-    const cfg = JSON.parse(files["milk-market.config.json"]!);
+    const cfg = JSON.parse(files["self-sown.config.json"]!);
     expect(cfg.pubkey).toBe(PUBKEY);
   });
 
@@ -143,9 +143,9 @@ describe("self-host export bundle boots", () => {
   });
 
   // 3. Boot path B: a `git pull` seller who relies on the committed
-  // `milk-market.config.json` (only MM_SELF_HOST set in env). The config file's
+  // `self-sown.config.json` (only MM_SELF_HOST set in env). The config file's
   // shape must be exactly what the runtime reader consumes.
-  const fileConfig = JSON.parse(files["milk-market.config.json"]!);
+  const fileConfig = JSON.parse(files["self-sown.config.json"]!);
   const fromFile = buildSelfHostConfig({ MM_SELF_HOST: "1" }, fileConfig);
 
   it("the committed config.json alone also boots the owner's store", () => {

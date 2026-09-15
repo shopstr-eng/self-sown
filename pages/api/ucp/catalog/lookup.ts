@@ -9,6 +9,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { eventToUcpProduct } from "@/utils/ucp/catalog";
 import { getListingSlug, type ListingSlugCandidate } from "@/utils/url-slugs";
 import type { NostrEvent } from "@/utils/types/types";
+import { getSiteUrl } from "@/utils/site-url";
 import {
   deriveBaseUrl,
   fetchSellerNames,
@@ -103,8 +104,7 @@ export default async function handler(
     ]);
 
     const sellerOrigin = scope === "seller" ? baseUrl : undefined;
-    const platformUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+    const platformUrl = getSiteUrl();
 
     const product = eventToUcpProduct(event, {
       platformUrl,

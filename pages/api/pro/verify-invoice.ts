@@ -61,8 +61,7 @@ export default async function handler(
     if (invoice.method !== "bitcoin") {
       return res.status(200).json({
         paid: false,
-        message:
-          "Fiat invoices are confirmed manually by the Milk Market team.",
+        message: "Fiat invoices are confirmed manually by the Self-sown team.",
       });
     }
 

@@ -6,7 +6,7 @@ import ProductCard from "./utility-components/product-card";
 import DisplayProductModal from "./display-product-modal";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { Button, Pagination } from "@heroui/react";
-import MilkMarketSpinner from "./utility-components/mm-spinner";
+import SelfSownSpinner from "./utility-components/ss-spinner";
 import { useRouter } from "next/router";
 import parseTags, {
   ProductData,
@@ -329,7 +329,7 @@ const DisplayProducts = ({
       <div className="w-full bg-white px-4 md:pl-4">
         {!isMyListings && isProductsLoading ? (
           <div className="mt-6 mb-6 flex items-center justify-center">
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           </div>
         ) : null}
         {filteredProducts.length > 0 && (
@@ -375,7 +375,7 @@ const DisplayProducts = ({
         {!isMyListings &&
           !isProductsLoading &&
           filteredProducts.length === 0 && (
-            <div className="mt-20 flex flex-grow items-center justify-center py-10">
+            <div className="mt-20 flex grow items-center justify-center py-10">
               <div className="bg-primary-blue shadow-neo w-full max-w-lg rounded-lg border-4 border-black p-8 text-center">
                 <p className="text-3xl font-bold text-white">
                   No products found...
@@ -389,7 +389,7 @@ const DisplayProducts = ({
         {isMyListings &&
           !isProductsLoading &&
           !productEvents.some((product) => product.pubkey === userPubkey) && (
-            <div className="mt-20 flex flex-grow items-center justify-center py-10">
+            <div className="mt-20 flex grow items-center justify-center py-10">
               <div className="bg-primary-blue shadow-neo w-full max-w-lg rounded-lg border-4 border-black p-8 text-center">
                 <p className="text-3xl font-bold text-white">
                   No products found...

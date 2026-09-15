@@ -26,7 +26,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     $id: `${base}/api/ucp/schemas/checkout-session.json`,
     title: "UCP Checkout Session",
     description:
-      "A checkout session wrapping a Milk Market order. Its status is reconciled against the canonical order payment status; there is no parallel order state machine.",
+      "A checkout session wrapping a Self-sown order. Its status is reconciled against the canonical order payment status; there is no parallel order state machine.",
     type: "object",
     $defs: {
       pubkeyRef: {
@@ -73,7 +73,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       orderId: {
         type: "string",
         description:
-          "Underlying Milk Market order id, when an order was created.",
+          "Underlying Self-sown order id, when an order was created.",
       },
       paymentMethod: {
         type: "string",

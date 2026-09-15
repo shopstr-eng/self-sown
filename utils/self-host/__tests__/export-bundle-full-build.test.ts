@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 // Real, full compile-and-boot verification of the self-host export bundle.
 //
 // The companion suite (export-bundle-boot.test.ts) closes the loop on the
@@ -117,10 +120,10 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
     // 2. Run the generated bootstrap. We point its REPO arg at the checked-out
     //    tree (process.cwd()) so the clone target is this exact commit — the
     //    code actually under test — rather than whatever is live on the public
-    //    remote. setup.sh clones into ./milk-market and copies the config in.
-    run("bash", ["setup.sh", process.cwd(), "milk-market"], bundleDir);
-    appDir = path.join(bundleDir, "milk-market");
-    expect(fs.existsSync(path.join(appDir, "milk-market.config.json"))).toBe(
+    //    remote. setup.sh clones into ./self-sown and copies the config in.
+    run("bash", ["setup.sh", process.cwd(), "self-sown"], bundleDir);
+    appDir = path.join(bundleDir, "self-sown");
+    expect(fs.existsSync(path.join(appDir, "self-sown.config.json"))).toBe(
       true
     );
 
@@ -129,7 +132,7 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
     //    CI Postgres service.
     const databaseUrl =
       process.env.DATABASE_URL ||
-      "postgresql://milkmarket:milkmarket@localhost:5432/milkmarket";
+      "postgresql://selfsown:selfsown@localhost:5432/selfsown";
     const dotenv = [
       "MM_SELF_HOST=1",
       `MM_SELF_HOST_PUBKEY=${PUBKEY}`,
@@ -154,6 +157,13 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
     });
 
     await waitForServer(BOOT_TIMEOUT_MS);
+
+    // 5. NO manual database seeding. A fresh self-host database starts empty —
+    //    the seller claimed their slug in the PLATFORM's database, not this
+    //    one — so the stall's SSR slug→pubkey lookup (fetchShopPubkeyBySlug)
+    //    must resolve the tenant from the MM_SELF_HOST_* config on a DB miss.
+    //    Seeding shop_slugs here would mask a regression of that fallback and
+    //    re-break real sellers following the bundle's SETUP.md.
   }, SETUP_TIMEOUT_MS);
 
   afterAll(() => {
@@ -184,13 +194,21 @@ maybeDescribe("self-host export bundle: full build + boot", () => {
   it("redirects /marketplace home (marketplace hidden)", async () => {
     const res = await fetch(`${BASE}/marketplace`, { redirect: "manual" });
     expect(res.status).toBe(307);
-    expect(new URL(res.headers.get("location")!).pathname).toBe("/");
+    const location = res.headers.get("location");
+    expect(location).toBeTruthy();
+    // Location may be absolute or origin-relative depending on the proxy; the
+    // base makes the assertion robust to either.
+    expect(new URL(location!, BASE).pathname).toBe("/");
   });
 
   it("redirects /pro home (platform billing hidden)", async () => {
     const res = await fetch(`${BASE}/pro`, { redirect: "manual" });
     expect(res.status).toBe(307);
-    expect(new URL(res.headers.get("location")!).pathname).toBe("/");
+    const location = res.headers.get("location");
+    expect(location).toBeTruthy();
+    // Location may be absolute or origin-relative depending on the proxy; the
+    // base makes the assertion robust to either.
+    expect(new URL(location!, BASE).pathname).toBe("/");
   });
 
   it("offers Lightning/Cashu only — card is off without a Stripe key", async () => {

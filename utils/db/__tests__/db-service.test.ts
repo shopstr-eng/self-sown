@@ -974,6 +974,127 @@ describe("db-service helpers", () => {
         }
       );
     });
+
+    // A fresh self-host instance has an EMPTY local shop_slugs table (the slug
+    // was claimed in the platform's database), so the slug→pubkey lookup must
+    // fall back to the MM_SELF_HOST_* tenant config on a DB miss — otherwise
+    // the storefront root 404s until something syncs the row. Platform
+    // (multi-tenant) mode must be untouched: no fallback, DB row always wins.
+    describe("fetchShopPubkeyBySlug self-host tenant fallback", () => {
+      const TENANT_PK = "b".repeat(64);
+      const OTHER_PK = "c".repeat(64);
+
+      async function withSlugLookup(
+        env: Record<string, string | undefined>,
+        rows: Array<{ pubkey: string }>,
+        run: (mod: any) => Promise<void>
+      ) {
+        await jest.isolateModulesAsync(async () => {
+          const prev: Record<string, string | undefined> = {};
+          const keys = [
+            "DATABASE_URL",
+            "MM_SELF_HOST",
+            "MM_SELF_HOST_PUBKEY",
+            "MM_SELF_HOST_SLUG",
+          ];
+          for (const k of keys) {
+            prev[k] = process.env[k];
+            const v = k in env ? env[k] : undefined;
+            if (v === undefined) delete process.env[k];
+            else process.env[k] = v;
+          }
+          const client = {
+            query: jest.fn(async () => ({ rows, rowCount: rows.length })),
+            release: jest.fn(),
+          };
+          const pool = {
+            connect: jest.fn(async () => client),
+            on: jest.fn(),
+            end: jest.fn(),
+          };
+          try {
+            jest.doMock("pg", () => ({
+              Pool: class {
+                constructor() {
+                  return pool;
+                }
+              },
+            }));
+            const mod = await import("../db-service");
+            await run(mod);
+            await mod.closeDbPool();
+          } finally {
+            for (const k of keys) {
+              if (prev[k] === undefined) delete process.env[k];
+              else process.env[k] = prev[k];
+            }
+          }
+        });
+      }
+
+      test("resolves the tenant slug from config when the DB misses", async () => {
+        await withSlugLookup(
+          {
+            DATABASE_URL: "postgres://test@localhost/testdb",
+            MM_SELF_HOST: "1",
+            MM_SELF_HOST_PUBKEY: TENANT_PK,
+            MM_SELF_HOST_SLUG: "green-pastures",
+          },
+          [],
+          async (mod) => {
+            await expect(
+              mod.fetchShopPubkeyBySlug("green-pastures")
+            ).resolves.toBe(TENANT_PK);
+          }
+        );
+      });
+
+      test("does NOT resolve a non-tenant slug on a self-host instance", async () => {
+        await withSlugLookup(
+          {
+            DATABASE_URL: "postgres://test@localhost/testdb",
+            MM_SELF_HOST: "1",
+            MM_SELF_HOST_PUBKEY: TENANT_PK,
+            MM_SELF_HOST_SLUG: "green-pastures",
+          },
+          [],
+          async (mod) => {
+            await expect(
+              mod.fetchShopPubkeyBySlug("someone-else")
+            ).resolves.toBeNull();
+          }
+        );
+      });
+
+      test("returns null on a DB miss when self-host is off (platform mode unchanged)", async () => {
+        await withSlugLookup(
+          { DATABASE_URL: "postgres://test@localhost/testdb" },
+          [],
+          async (mod) => {
+            await expect(
+              mod.fetchShopPubkeyBySlug("green-pastures")
+            ).resolves.toBeNull();
+          }
+        );
+      });
+
+      test("an existing DB row always wins over the config fallback", async () => {
+        await withSlugLookup(
+          {
+            DATABASE_URL: "postgres://test@localhost/testdb",
+            MM_SELF_HOST: "1",
+            MM_SELF_HOST_PUBKEY: TENANT_PK,
+            MM_SELF_HOST_SLUG: "green-pastures",
+          },
+          [{ pubkey: OTHER_PK }],
+          async (mod) => {
+            await expect(
+              mod.fetchShopPubkeyBySlug("green-pastures")
+            ).resolves.toBe(OTHER_PK);
+          }
+        );
+      });
+    });
   });
 
   describe("db-service with Testcontainers (discounts, stats, cached events)", () => {

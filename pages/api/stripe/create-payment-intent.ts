@@ -178,7 +178,8 @@ export default async function handler(
       !selfHost &&
       !isMultiMerchant &&
       singleSellerPubkey &&
-      singleSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
+      singleSellerPubkey !==
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
         ? await getStripeConnectAccount(singleSellerPubkey)
         : null;
 
@@ -218,7 +219,8 @@ export default async function handler(
 
       for (const split of sellerSplits as SellerSplit[]) {
         const isPlatformAccount =
-          split.sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+          split.sellerPubkey ===
+          (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
 
         let accountId = "";
         if (!isPlatformAccount) {
@@ -448,6 +450,8 @@ export default async function handler(
         originalCurrency: currency,
         ...(connectedAccountId && { connectedAccountId }),
         ...(singleDonationCut > 0 && {
+          ssDonationPercent: singleDonationPercent.toString(),
+          ssDonationCutSmallest: singleDonationCut.toString(),
           mmDonationPercent: singleDonationPercent.toString(),
           mmDonationCutSmallest: singleDonationCut.toString(),
         }),

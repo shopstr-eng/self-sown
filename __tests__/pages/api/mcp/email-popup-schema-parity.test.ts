@@ -33,7 +33,7 @@ jest.mock("@/mcp/tools/register-tool", () => ({ registerTool: jest.fn() }));
 jest.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
   McpServer: class {},
 }));
-jest.mock("@milk-market/nostr", () => ({
+jest.mock("@self-sown/nostr", () => ({
   createSellerActionAuthEventTemplate: jest.fn(),
 }));
 
@@ -46,7 +46,7 @@ import {
   POPUP_FLOW_STEP_FIELDS,
   POPUP_FLOW_ANSWER_FIELDS,
   StorefrontEmailPopup,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 // A fully-populated popup config: every StorefrontEmailPopup field set,
 // with values valid in the zod schema. If a new field is added to the

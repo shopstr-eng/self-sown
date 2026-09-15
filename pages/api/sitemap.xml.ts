@@ -3,11 +3,12 @@ import {
   getDbPool,
   fetchStorefrontBlogPostEventsForSitemap,
 } from "@/utils/db/db-service";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import { nip19 } from "nostr-tools";
+import { SITE_URL } from "@/utils/site-url";
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 function xmlEscape(s: string): string {
   return s

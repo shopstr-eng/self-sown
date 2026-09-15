@@ -27,6 +27,8 @@ import StorefrontPreviewPanel, {
 import StorefrontPreviewFrame from "@/components/storefront/storefront-preview-frame";
 import SectionRenderer from "@/components/storefront/section-renderer";
 import { PLACEHOLDER_PRODUCT } from "@/utils/storefront/placeholder-product";
+import { SITE_URL } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 
 const API_PATH = "/api/storefront/preview-from-url";
 
@@ -178,32 +180,29 @@ export default function ConvertPage() {
   return (
     <>
       <Head>
-        <title>Turn your website into a Milk Market stall — free preview</title>
+        <title>Turn your website into a Self-sown stall — free preview</title>
         <meta
           name="description"
-          content="Paste your website address and instantly preview how your shop would look as a Milk Market stall. No account needed."
+          content="Paste your website address and instantly preview how your shop would look as a Self-sown stall. No account needed."
         />
         {/* key="..." matches DynamicHead's keyed tags so next/head dedupes to
             one og:title/og:description on this page (these win). */}
         <meta
           property="og:title"
           key="og:title"
-          content="See your website as a Milk Market stall"
+          content="See your website as a Self-sown stall"
         />
         <meta
           property="og:description"
           key="og:description"
-          content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
+          content="Instant, free preview — paste a URL and see your shop reimagined as a Self-sown stall."
         />
         {/* key="og:image" matches DynamicHead's globally-rendered tag so
             next/head dedupes to a single og:image on this page. */}
         <meta
           property="og:image"
           key="og:image"
-          content={toOptimizedOgImageUrl(
-            "https://milk.market/milk-market.png",
-            "https://milk.market"
-          )}
+          content={toOptimizedOgImageUrl(`${SITE_URL}/self-sown-black.png`, SITE_URL)}
         />
         {/* key matches DynamicHead's twitter:card so next/head dedupes to a
             single twitter:card on this page. */}
@@ -218,20 +217,17 @@ export default function ConvertPage() {
         <meta
           name="twitter:title"
           key="twitter:title"
-          content="See your website as a Milk Market stall"
+          content="See your website as a Self-sown stall"
         />
         <meta
           name="twitter:description"
           key="twitter:description"
-          content="Instant, free preview — paste a URL and see your shop reimagined as a Milk Market stall."
+          content="Instant, free preview — paste a URL and see your shop reimagined as a Self-sown stall."
         />
         <meta
           name="twitter:image"
           key="twitter:image"
-          content={toOptimizedOgImageUrl(
-            "https://milk.market/milk-market.png",
-            "https://milk.market"
-          )}
+          content={toOptimizedOgImageUrl(`${SITE_URL}/self-sown-black.png`, SITE_URL)}
         />
       </Head>
 
@@ -244,7 +240,7 @@ export default function ConvertPage() {
               Free instant preview — no account needed
             </span>
             <h1 className="mt-5 text-4xl font-black md:text-6xl">
-              See your website as a Milk Market stall
+              See your website as a Self-sown stall
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-700">
               Paste your shop&apos;s web address and we&apos;ll instantly build
@@ -259,22 +255,24 @@ export default function ConvertPage() {
               <button
                 type="button"
                 onClick={() => switchMode("stall")}
-                className={`px-4 py-2 text-sm font-bold ${
+                className={joinClassNames(
+                  "px-4 py-2 text-sm font-bold",
                   mode === "stall"
                     ? "bg-black text-white"
                     : "bg-white text-black"
-                }`}
+                )}
               >
                 Stall / landing page
               </button>
               <button
                 type="button"
                 onClick={() => switchMode("product")}
-                className={`border-l-2 border-black px-4 py-2 text-sm font-bold ${
+                className={joinClassNames(
+                  "border-l-2 border-black px-4 py-2 text-sm font-bold",
                   mode === "product"
                     ? "bg-black text-white"
                     : "bg-white text-black"
-                }`}
+                )}
               >
                 Product Page
               </button>
@@ -292,7 +290,7 @@ export default function ConvertPage() {
                 aria-label="Website address"
                 placeholder={
                   mode === "product"
-                    ? "yourshop.com/products/raw-milk"
+                    ? "yourshop.com/products/wildflower-honey"
                     : "yourshop.com"
                 }
                 value={url}
@@ -325,7 +323,7 @@ export default function ConvertPage() {
 
             {error && (
               <div className="mt-4 flex items-start gap-2 rounded-md border-2 border-red-500 bg-red-50 p-3 text-sm text-red-700">
-                <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
                 <span>{error}</span>
               </div>
             )}

@@ -22,7 +22,7 @@ import {
   sendGiftWrappedMessageEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import { generateSecretKey, getPublicKey } from "nostr-tools";
-import { DEFAULT_SELLER_RELAYS } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS } from "@self-sown/domain";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { validateZapReceipt } from "@/utils/nostr/zap-validator";
@@ -54,7 +54,9 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedInfo = localStorage.getItem("milk_market_shipping_info");
+      const savedInfo =
+        localStorage.getItem("self_sown_shipping_info") ??
+        localStorage.getItem("milk_market_shipping_info");
       if (savedInfo) {
         try {
           const parsed = JSON.parse(savedInfo);
@@ -242,7 +244,7 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
 
       if (response.preimage) {
         localStorage.setItem(
-          "milk_market_shipping_info",
+          "self_sown_shipping_info",
           JSON.stringify(shippingInfo)
         );
 

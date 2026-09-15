@@ -7,10 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import { trackEvent } from "@/utils/analytics";
+import { joinClassNames } from "@/utils/class-names";
 import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import { formatHandlingTime } from "@/utils/parsers/product-tag-helpers";
 import {
   CashuWalletContext,
@@ -108,7 +109,7 @@ import QRCode from "qrcode";
 import { v4 as uuidv4 } from "uuid";
 import { nip19 } from "nostr-tools";
 import { NostrWebLNProvider } from "@getalby/sdk";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
 import SignInModal from "./sign-in/SignInModal";
@@ -347,7 +348,6 @@ export default function ProductInvoiceCard({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nostr, productData.shippingOptions]);
   // True when converting the seller's shipping cost into the product currency
   // required an FX lookup that the rate feed could not provide, so
@@ -484,7 +484,7 @@ export default function ProductInvoiceCard({
     if (!signer || !nostr || !userPubkey) return;
 
     try {
-      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
+      const inquiryMessage = `I just placed an order for your ${productTitle} listing on Self-sown! Please check your Self-sown order dashboard for any relevant information.`;
 
       const { nsec: nsecForSellerReceiver, npub: npubForSellerReceiver } =
         await generateKeys();
@@ -742,7 +742,8 @@ export default function ProductInvoiceCard({
   };
 
   const [isStripeMerchant, setIsStripeMerchant] = useState(
-    productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    productData.pubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
   );
   const [sellerConnectedAccountId, setSellerConnectedAccountId] = useState<
     string | null
@@ -750,7 +751,10 @@ export default function ProductInvoiceCard({
 
   useEffect(() => {
     const checkSellerStripe = async () => {
-      if (productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+      if (
+        productData.pubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
+      ) {
         setIsStripeMerchant(true);
         return;
       }
@@ -775,7 +779,11 @@ export default function ProductInvoiceCard({
 
   useEffect(() => {
     const fetchConnectedAccountId = async () => {
-      if (productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) return;
+      if (
+        productData.pubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
+      )
+        return;
       try {
         const res = await fetch("/api/stripe/connect/seller-status", {
           method: "POST",
@@ -1426,7 +1434,8 @@ export default function ProductInvoiceCard({
         productData.pubkey
       );
       const isPlatformSeller =
-        productData.pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+        productData.pubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
       const onPlatformPayment =
         paymentType === "cashu" ||
         paymentType === "nwc" ||
@@ -1437,7 +1446,9 @@ export default function ProductInvoiceCard({
         : Number(price) || 0;
       const emailDonationPercentage =
         !isPlatformSeller && onPlatformPayment
-          ? (sellerProfileForEmailDonation?.content?.mm_donation ?? 0)
+          ? (sellerProfileForEmailDonation?.content?.ss_donation ??
+            sellerProfileForEmailDonation?.content?.mm_donation ??
+            0)
           : 0;
       const emailDonationAmount =
         emailDonationPercentage > 0 && orderAmountNumeric > 0
@@ -1518,7 +1529,6 @@ export default function ProductInvoiceCard({
     }
     // handleOrderTypeSelection is stable enough — only the inputs that decide
     // the auto-selection should retrigger this effect.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOrderTypeSelection, productData?.shippingType]);
 
   const handleNWCError = (error: any) => {
@@ -1762,7 +1772,7 @@ export default function ProductInvoiceCard({
         (userNPub || "a guest buyer") +
         " for your " +
         title +
-        " listing on Milk Market" +
+        " listing on Self-sown" +
         productDetails +
         "! Check your " +
         selectedFiatOption +
@@ -2470,7 +2480,7 @@ export default function ProductInvoiceCard({
         productData.title +
         " listing" +
         productDetails +
-        " on Milk Market! Check your Lightning address (" +
+        " on Self-sown! Check your Lightning address (" +
         lnurl +
         ") for your sats.";
       await sendPaymentAndContactMessage(
@@ -2951,7 +2961,7 @@ export default function ProductInvoiceCard({
     let donationToken;
     let beefDonationToken;
     const sellerProfile = profileContext.profileData.get(productData.pubkey);
-    const donationPercentage = sellerProfile?.content?.mm_donation ?? 0;
+    const donationPercentage = sellerProfile?.content?.ss_donation ?? sellerProfile?.content?.mm_donation ?? 0;
     const donationAmount = Math.ceil((totalPrice * donationPercentage) / 100);
 
     // Calculate beef donation if applicable
@@ -3288,7 +3298,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on Milk Market! Check your Lightning address (" +
+              " on Self-sown! Check your Lightning address (" +
               lnurl +
               ") for your sats.";
             await sendPaymentAndContactMessage(
@@ -3417,7 +3427,7 @@ export default function ProductInvoiceCard({
                 productData.title +
                 " listing" +
                 productDetails +
-                " on Milk Market: " +
+                " on Self-sown: " +
                 unusedToken;
               const __unusedOk = await sendPaymentAndContactMessage(
                 productData.pubkey,
@@ -3491,7 +3501,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on Milk Market. The funds are locked in escrow " +
+              " on Self-sown. The funds are locked in escrow " +
               escrowId +
               " until " +
               new Date(escrowExpiresAt * 1000).toLocaleDateString() +
@@ -3502,7 +3512,7 @@ export default function ProductInvoiceCard({
               productData.title +
               " listing" +
               productDetails +
-              " on Milk Market: " +
+              " on Self-sown: " +
               sellerToken;
           const __sellerOk = await sendPaymentAndContactMessage(
             productData.pubkey,
@@ -3616,7 +3626,7 @@ export default function ProductInvoiceCard({
                 productData.title +
                 " by " +
                 userNPub +
-                " on Milk Market: " +
+                " on Self-sown: " +
                 beefDonationToken;
 
               const __beefOk = await sendPaymentAndContactMessage(
@@ -3650,7 +3660,8 @@ export default function ProductInvoiceCard({
       // Step 2: Send donation message
       if (donationToken) {
         const donationMessage = "Sale donation: " + donationToken;
-        const donationRecipient = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+        const donationRecipient =
+          process.env.NEXT_PUBLIC_SELF_SOWN_PK;
         if (donationRecipient) {
           try {
             const __donationOk = await sendPaymentAndContactMessage(
@@ -3667,7 +3678,7 @@ export default function ProductInvoiceCard({
           }
         } else {
           console.warn(
-            "NEXT_PUBLIC_MILK_MARKET_PK not set; skipping donation message."
+            "NEXT_PUBLIC_SELF_SOWN_PK not set; skipping donation message."
           );
         }
       }
@@ -4581,13 +4592,13 @@ export default function ProductInvoiceCard({
       " listing" +
       productDetails +
       subscriptionLabel +
-      " on Milk Market! Check your Stripe account for the payment.";
+      " on Self-sown! Check your Stripe account for the payment.";
 
     const sellerProfileForStripeDonation = profileContext.profileData.get(
       productData.pubkey
     );
     const stripeDonationPercentage =
-      sellerProfileForStripeDonation?.content?.mm_donation ?? 0;
+      sellerProfileForStripeDonation?.content?.ss_donation ?? sellerProfileForStripeDonation?.content?.mm_donation ?? 0;
     const stripeDonationAmount =
       stripeDonationPercentage > 0
         ? Math.ceil((discountedTotal * stripeDonationPercentage) / 100)
@@ -5016,7 +5027,6 @@ export default function ProductInvoiceCard({
     )
       return;
     setSelectedSpecOptionAddr(visibleSpecOptions[0]?.option.address ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buyerSpecCountry, specShippingOptions]);
 
   const effectiveShippingCost = specDestinationBlocked
@@ -5154,7 +5164,6 @@ export default function ProductInvoiceCard({
     // `convertedShippingCost` is intentionally omitted from deps: the setters
     // use the functional form with equality checks to avoid re-running the
     // async FX lookup in an infinite loop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     formType,
     effectiveShippingCost,
@@ -5259,7 +5268,6 @@ export default function ProductInvoiceCard({
       cancelled = true;
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -5348,7 +5356,6 @@ export default function ProductInvoiceCard({
     };
     // liveQuoteKey encodes every input the quote depends on; the address/parcel
     // values read inside stay consistent with it on each run.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveQuoteKey]);
 
   // Debounced Stripe Tax lookup — fires when the shipping form has at least a
@@ -5441,7 +5448,6 @@ export default function ProductInvoiceCard({
       clearTimeout(t);
       setIsCalculatingTax(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -5722,7 +5728,7 @@ export default function ProductInvoiceCard({
                 <Input
                   variant="bordered"
                   fullWidth={true}
-                  label={<span className="text-light-text">Name</span>}
+                  label={<span className="text-black">Name</span>}
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
@@ -5754,7 +5760,7 @@ export default function ProductInvoiceCard({
                 <Input
                   variant="bordered"
                   fullWidth={true}
-                  label={<span className="text-light-text">Address</span>}
+                  label={<span className="text-black">Address</span>}
                   labelPlacement="inside"
                   isInvalid={!!error}
                   errorMessage={error?.message}
@@ -5817,7 +5823,7 @@ export default function ProductInvoiceCard({
                   <Input
                     variant="bordered"
                     fullWidth={true}
-                    label={<span className="text-light-text">City</span>}
+                    label={<span className="text-black">City</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -5844,9 +5850,7 @@ export default function ProductInvoiceCard({
                   <Input
                     variant="bordered"
                     fullWidth={true}
-                    label={
-                      <span className="text-light-text">State/Province</span>
-                    }
+                    label={<span className="text-black">State/Province</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -5881,7 +5885,7 @@ export default function ProductInvoiceCard({
                   <Input
                     variant="bordered"
                     fullWidth={true}
-                    label={<span className="text-light-text">Postal code</span>}
+                    label={<span className="text-black">Postal code</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -5908,7 +5912,7 @@ export default function ProductInvoiceCard({
                   <CountryDropdown
                     variant="bordered"
                     aria-label="Select Country"
-                    label={<span className="text-light-text">Country</span>}
+                    label={<span className="text-black">Country</span>}
                     labelPlacement="inside"
                     isInvalid={!!error}
                     errorMessage={error?.message}
@@ -5930,13 +5934,14 @@ export default function ProductInvoiceCard({
               addressVerification.status === "verified" ||
               addressVerification.status === "issues") && (
               <div
-                className={`mt-3 rounded-md border-2 p-3 text-sm ${
+                className={joinClassNames(
+                  "mt-3 rounded-md border-2 p-3 text-sm",
                   addressVerification.status === "verified"
                     ? "border-green-700 bg-green-50 text-green-900"
                     : addressVerification.status === "issues"
                       ? "border-yellow-700 bg-yellow-50 text-yellow-900"
                       : "border-black bg-white text-black"
-                }`}
+                )}
               >
                 {addressVerification.status === "checking" && (
                   <span>Verifying address…</span>
@@ -6018,7 +6023,7 @@ export default function ProductInvoiceCard({
                 <Input
                   variant="bordered"
                   fullWidth={true}
-                  label={<span className="text-light-text">Address Label</span>}
+                  label={<span className="text-black">Address Label</span>}
                   placeholder="e.g. Home, Office"
                   labelPlacement="inside"
                   isRequired={true}
@@ -6046,7 +6051,7 @@ export default function ProductInvoiceCard({
                 variant="bordered"
                 fullWidth={true}
                 label={
-                  <span className="text-light-text">
+                  <span className="text-black">
                     Enter {productData.required}
                   </span>
                 }
@@ -6356,7 +6361,7 @@ export default function ProductInvoiceCard({
                     {qrCodeUrl && (
                       <>
                         <PaymentCountdown deadlineMs={pollDeadlineMs} />
-                        <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -6381,17 +6386,19 @@ export default function ProductInvoiceCard({
                             type="button"
                             aria-label="Copy invoice"
                             onClick={handleCopyInvoice}
-                            className={`ml-2 cursor-pointer text-sm leading-none ${
+                            className={joinClassNames(
+                              "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "hidden" : ""
-                            }`}
+                            )}
                           >
                             📋
                           </button>
                           <span
                             aria-hidden="true"
-                            className={`ml-2 cursor-pointer text-sm leading-none ${
+                            className={joinClassNames(
+                              "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "" : "hidden"
-                            }`}
+                            )}
                           >
                             ✔️
                           </span>
@@ -6400,7 +6407,7 @@ export default function ProductInvoiceCard({
                     )}
                     {stripeClientSecret && (
                       <div className="w-full">
-                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 mb-4 text-center text-lg leading-6 font-medium text-black">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -6430,7 +6437,7 @@ export default function ProductInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                    <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -6733,16 +6740,15 @@ export default function ProductInvoiceCard({
                     <Input
                       variant="bordered"
                       fullWidth={true}
-                      label={
-                        <span className="text-light-text">Email Address</span>
-                      }
+                      label={<span className="text-black">Email Address</span>}
                       labelPlacement="inside"
                       type="email"
                       isRequired={true}
                       classNames={{
-                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                        inputWrapper: joinClassNames(
+                          "border-2 rounded-md shadow-neo",
                           emailError ? "border-red-500" : "border-black"
-                        }`,
+                        ),
                       }}
                       value={buyerEmail}
                       onChange={(e) => {
@@ -6780,7 +6786,7 @@ export default function ProductInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">
+                        <span className="text-black">
                           {isSubscription
                             ? "Email for Subscription Management (required)"
                             : "Email for Order Updates (optional)"}
@@ -6790,9 +6796,10 @@ export default function ProductInvoiceCard({
                       type="email"
                       isRequired={isSubscription}
                       classNames={{
-                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                        inputWrapper: joinClassNames(
+                          "border-2 rounded-md shadow-neo",
                           emailError ? "border-red-500" : "border-black"
-                        }`,
+                        ),
                       }}
                       value={buyerEmail}
                       onChange={(e) => {
@@ -6852,11 +6859,12 @@ export default function ProductInvoiceCard({
                         showBitcoinGroup && !isSub ? (
                           <Fragment key="bitcoin">
                             <Button
-                              className={`bg-primary-blue shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                              className={joinClassNames(
+                                "bg-primary-blue shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                                   ? "cursor-not-allowed opacity-50"
                                   : ""
-                              }`}
+                              )}
                               disabled={
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                               }
@@ -6880,11 +6888,12 @@ export default function ProductInvoiceCard({
 
                             {hasTokensAvailable && (
                               <Button
-                                className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                                className={joinClassNames(
+                                  "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                     ? "cursor-not-allowed opacity-50"
                                     : ""
-                                }`}
+                                )}
                                 disabled={
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                 }
@@ -6934,11 +6943,12 @@ export default function ProductInvoiceCard({
 
                             {nwcInfo && (
                               <Button
-                                className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                                className={joinClassNames(
+                                  "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                     ? "cursor-not-allowed opacity-50"
                                     : ""
-                                }`}
+                                )}
                                 disabled={
                                   !isFormValid ||
                                   (!isLoggedIn && !buyerEmail) ||
@@ -6969,13 +6979,14 @@ export default function ProductInvoiceCard({
                       card: isStripeMerchant ? (
                         <Button
                           key="card"
-                          className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                          className={joinClassNames(
+                            "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                             !isFormValid ||
                             (!isLoggedIn && !buyerEmail) ||
                             (isSubscription && !buyerEmail)
                               ? "cursor-not-allowed opacity-50"
                               : ""
-                          }`}
+                          )}
                           disabled={
                             !isFormValid ||
                             (!isLoggedIn && !buyerEmail) ||
@@ -7011,11 +7022,12 @@ export default function ProductInvoiceCard({
                         !isSub && fiatAvailable ? (
                           <Button
                             key="fiat"
-                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             disabled={
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                             }
@@ -7098,7 +7110,7 @@ export default function ProductInvoiceCard({
           classNames={{
             wrapper: "shadow-neo",
             base: "border-2 border-black rounded-md",
-            backdrop: "bg-black/20 backdrop-blur-sm",
+            backdrop: "bg-black/20 backdrop-blur-xs",
             header: "border-b-2 border-black bg-white rounded-t-md text-black",
             body: "py-6 bg-white",
             footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -7203,9 +7215,10 @@ export default function ProductInvoiceCard({
                   }
                 }}
                 disabled={!fiatPaymentConfirmed}
-                className={`shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   !fiatPaymentConfirmed ? "cursor-not-allowed opacity-50" : ""
-                }`}
+                )}
               >
                 {selectedFiatOption === "cash"
                   ? "Confirm Order"
@@ -7224,7 +7237,7 @@ export default function ProductInvoiceCard({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           closeButton:
@@ -7311,7 +7324,7 @@ export default function ProductInvoiceCard({
         isKeyboardDismissDisabled
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           wrapper: "items-center justify-center",
           base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",

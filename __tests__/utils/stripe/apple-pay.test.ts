@@ -104,13 +104,13 @@ describe("trustedRegistrationHost", () => {
   const SELLER = "ab".repeat(32);
   beforeEach(() => {
     getDomainByHostMock.mockReset().mockResolvedValue(null);
-    process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+    process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   });
 
   it("trusts the platform host", async () => {
-    await expect(trustedRegistrationHost("milk.market", SELLER)).resolves.toBe(
-      "milk.market"
-    );
+    await expect(
+      trustedRegistrationHost("platform.example.com", SELLER)
+    ).resolves.toBe("platform.example.com");
   });
 
   it("trusts a verified custom domain owned by the seller", async () => {

@@ -1,18 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import { getSiteUrl } from "@/utils/site-url";
 
 export default function handler(_req: NextApiRequest, res: NextApiResponse) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+  // Single source of truth for the platform origin (utils/site-url.ts). Its
+  // fallback is the production domain — this publicly served discovery
+  // document must never advertise a localhost URL to agents when the env is
+  // unset.
+  const baseUrl = getSiteUrl();
 
   res.setHeader("Cache-Control", "public, max-age=3600");
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   return res.status(200).json({
     schema: "https://open-agents.com/schema/v1",
-    name: "Milk Market",
+    name: "Self-sown",
     version: "2.0.0",
     description:
       "A decentralized marketplace for local food and goods, built on Nostr. Browse products, view seller profiles, read reviews, place orders, create listings, manage shops, upload media, send messages, and participate in communities via MCP. Full marketplace participation as both buyer and seller.",
-    logo: `${baseUrl}/milk-market.png`,
+    logo: `${baseUrl}/self-sown-black.png`,
     capabilities: {
       tools: [
         {

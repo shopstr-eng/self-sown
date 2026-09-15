@@ -12,6 +12,7 @@ import { useRouter } from "next/router";
 import SignInModal from "../sign-in/SignInModal";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { ShopProfile } from "../../utils/types/types";
+import { joinClassNames } from "@/utils/class-names";
 
 const SideShopNav = ({
   focusedPubkey,
@@ -77,7 +78,7 @@ const SideShopNav = ({
   };
 
   const tallyCategories = (categories: string[]): Record<string, number> => {
-    const excludedCategories = ["shopstr", "MilkMarket", "FREEMILK"];
+    const excludedCategories = ["shopstr", "SelfSown", "MilkMarket", "FREEMILK"];
     return categories
       .filter((category) => !excludedCategories.includes(category))
       .reduce(
@@ -125,14 +126,17 @@ const SideShopNav = ({
             )}
             <Button
               onClick={() => handleSendMessage(focusedPubkey)}
-              className={`${BLACKBUTTONCLASSNAMES} mt-4 flex flex-row items-center py-7 ${
+              className={joinClassNames(
+                BLACKBUTTONCLASSNAMES,
+                "mt-4 flex flex-row items-center py-7",
                 isMessagesActive ? "text-primary-yellow" : ""
-              }`}
+              )}
             >
               <span
-                className={`hidden text-lg md:flex ${
+                className={joinClassNames(
+                  "hidden text-lg md:flex",
                   isMessagesActive ? "font-bold" : ""
-                }`}
+                )}
               >
                 Message seller
               </span>

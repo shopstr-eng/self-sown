@@ -6,7 +6,7 @@ channel = "stable-22_11"
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["pnpm", "run", "build:deploy"]
+build = ["bash", "-c", "SELF_SOWN_PUBLISH_BUILD=1 pnpm run build:deploy"]
 run = ["bash", "scripts/start-deploy.sh"]
 
 [[ports]]

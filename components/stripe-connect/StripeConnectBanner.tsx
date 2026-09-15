@@ -62,7 +62,7 @@ const StripeConnectBanner: React.FC<StripeConnectBannerProps> = ({
           <div className="flex items-center gap-3">
             <span
               aria-hidden="true"
-              className="flex-shrink-0 text-2xl leading-none"
+              className="shrink-0 text-2xl leading-none"
             >
               💳
             </span>

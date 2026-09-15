@@ -69,7 +69,12 @@ export default async function handler(
             save_default_payment_method: "on_subscription",
           },
           expand: ["latest_invoice.payment_intent"],
-          metadata: { proMembership: "true", mmProPubkey: pubkey, term },
+          metadata: {
+            proMembership: "true",
+            ssProPubkey: pubkey,
+            mmProPubkey: pubkey,
+            term,
+          },
         },
         {
           idempotencyKey: stableIdempotencyKey("pro-sub-create", {

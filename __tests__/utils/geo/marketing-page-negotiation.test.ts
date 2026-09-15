@@ -22,6 +22,7 @@
 import { NextRequest } from "next/server";
 import type { NextResponse } from "next/server";
 import { proxy } from "@/proxy";
+import { SITE_HOST } from "@/utils/site-url";
 
 // The custom-domain branch resolves the seller slug/pubkey for the request host
 // via lookupByHost (DB/cache backed). Stub it so the routing test is hermetic.
@@ -103,7 +104,7 @@ function expectHtmlPage(res: NextResponse) {
 // --- Platform host: each marketing path negotiates for agents ----------------
 
 describe("proxy() marketing-page negotiation — platform host", () => {
-  const HOST = "milk.market";
+  const HOST = SITE_HOST;
 
   it.each(MARKETING_PATHS)(
     "rewrites an LLM crawler on %s to the agent view (markdown)",

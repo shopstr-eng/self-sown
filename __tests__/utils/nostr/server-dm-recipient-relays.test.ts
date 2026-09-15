@@ -14,7 +14,7 @@ import {
   getDbPool,
   fetchRelayConfigFromDb,
 } from "@/utils/db/db-service";
-import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@milk-market/domain";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@self-sown/domain";
 
 const mockPublish = jest.fn();
 const mockClose = jest.fn();

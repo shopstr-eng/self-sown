@@ -1,6 +1,6 @@
 # Testing
 
-Milk Market uses Jest for unit and integration-style tests around UI components,
+Self-sown uses Jest for unit and integration-style tests around UI components,
 Nostr helpers, parser logic, API handlers, and Cashu wallet flows.
 
 ## Local Commands

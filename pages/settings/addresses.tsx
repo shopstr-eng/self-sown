@@ -83,7 +83,7 @@ const AddressesSettingsPage = () => {
             )}
 
             <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <InformationCircleIcon className="h-5 w-5 flex-shrink-0" />
+              <InformationCircleIcon className="h-5 w-5 shrink-0" />
               <p>
                 These addresses are stored locally on this device and can be
                 reused during checkout.

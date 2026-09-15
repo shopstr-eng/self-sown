@@ -8,10 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { trackEvent } from "@/utils/analytics";
+import { joinClassNames } from "@/utils/class-names";
 import {
   orderedPaymentMethodGroups,
   type StorefrontPaymentMethodGroup,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   CashuWalletContext,
   ChatsContext,
@@ -108,7 +109,7 @@ import {
   multiCardAdvanceFailureMessage,
 } from "@/utils/cart/multi-seller-card";
 import { NostrWebLNProvider } from "@getalby/sdk";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import { formatWithCommas } from "./utility-components/display-monetary-info";
 import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import SignInModal from "./sign-in/SignInModal";
@@ -492,6 +493,7 @@ export default function CartInvoiceCard({
     locationId: string;
     environment: "sandbox" | "production";
     currency: string;
+    countryCode?: string;
   } | null>(null);
   const [squareCheckout, setSquareCheckout] = useState<{
     sellerPubkey: string;
@@ -501,6 +503,7 @@ export default function CartInvoiceCard({
     applicationId: string;
     locationId: string;
     environment: "sandbox" | "production";
+    countryCode?: string;
     metadata: Record<string, unknown>;
   } | null>(null);
 
@@ -520,6 +523,7 @@ export default function CartInvoiceCard({
           locationId: string;
           environment: "sandbox" | "production";
           currency: string;
+          countryCode?: string;
         };
       }
     >
@@ -994,7 +998,7 @@ export default function CartInvoiceCard({
     const actualUserPubkey = await signer.getPubKey?.();
     if (!actualUserPubkey) return false;
 
-    const inquiryMessage = `I just placed an order for your ${productTitle} listing on Milk Market! Please check your Milk Market order dashboard for any relevant information.`;
+    const inquiryMessage = `I just placed an order for your ${productTitle} listing on Self-sown! Please check your Self-sown order dashboard for any relevant information.`;
 
     // 1) Seller-critical delivery FIRST, fully isolated. This is the copy the
     //    seller actually needs; if it fails we must NOT report the inquiry as
@@ -1929,12 +1933,16 @@ export default function CartInvoiceCard({
               locationId: string;
               environment: "sandbox" | "production";
               currency: string;
+              countryCode?: string;
             };
           }
         > = {};
 
         for (const pubkey of uniqueSellerPubkeys) {
-          if (pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+          if (
+            pubkey ===
+            (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
+          ) {
             accounts[pubkey] = "platform";
             processors[pubkey] = {
               processor: "stripe",
@@ -1993,6 +2001,10 @@ export default function CartInvoiceCard({
                             ? "production"
                             : "sandbox",
                         currency: String(sq.currency).toUpperCase(),
+                        countryCode:
+                          typeof sq.countryCode === "string"
+                            ? sq.countryCode
+                            : undefined,
                       },
                     };
                   }
@@ -2041,7 +2053,11 @@ export default function CartInvoiceCard({
     setIsSquareMerchant(false);
     setSquareSellerStatus(null);
     if (!isSingleSeller || !singleSellerPubkey) return;
-    if (singleSellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) return;
+    if (
+      singleSellerPubkey ===
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
+    )
+      return;
     (async () => {
       try {
         const res = await fetch("/api/square/seller-status", {
@@ -2067,6 +2083,10 @@ export default function CartInvoiceCard({
             environment:
               data.environment === "production" ? "production" : "sandbox",
             currency: String(data.currency).toUpperCase(),
+            countryCode:
+              typeof data.countryCode === "string"
+                ? data.countryCode
+                : undefined,
           });
         }
       } catch {
@@ -2746,7 +2766,8 @@ export default function CartInvoiceCard({
           const sellerProfileForEmailDonation =
             profileContext.profileData.get(sellerPubkey);
           const isPlatformSeller =
-            sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+            sellerPubkey ===
+            (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
           // Multi-seller card carts charge each seller on their OWN processor,
           // so resolve this seller's effective method (stripe vs square) and
           // whether a platform donation applies (Stripe only; Square charges go
@@ -2768,7 +2789,9 @@ export default function CartInvoiceCard({
           const orderAmountNumeric = parseFloat(orderAmount) || 0;
           const emailDonationPercentage =
             !isPlatformSeller && onPlatformPayment
-              ? (sellerProfileForEmailDonation?.content?.mm_donation ?? 0)
+              ? (sellerProfileForEmailDonation?.content?.ss_donation ??
+                sellerProfileForEmailDonation?.content?.mm_donation ??
+                0)
               : 0;
           const emailDonationAmount =
             emailDonationPercentage > 0 && orderAmountNumeric > 0
@@ -2843,7 +2866,6 @@ export default function CartInvoiceCard({
     } else {
       handleOrderTypeSelection("contact");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOrderTypeSelection, uniqueShippingTypes, products.length]);
 
   const handleOrderTypeSelection = async (selectedOrderType: string) => {
@@ -3053,7 +3075,6 @@ export default function CartInvoiceCard({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     appliedShippingDiscounts,
     formType,
@@ -3526,6 +3547,7 @@ export default function CartInvoiceCard({
         applicationId: squareSellerStatus.applicationId,
         locationId: squareSellerStatus.locationId,
         environment: squareSellerStatus.environment,
+        countryCode: squareSellerStatus.countryCode,
         metadata: {
           orderId,
           productId: products.map((p) => p.id).join(","),
@@ -3594,6 +3616,7 @@ export default function CartInvoiceCard({
         applicationId: proc.square.applicationId,
         locationId: proc.square.locationId,
         environment: proc.square.environment,
+        countryCode: proc.square.countryCode,
         metadata,
       });
       setMultiCardIndex(index);
@@ -3814,7 +3837,7 @@ export default function CartInvoiceCard({
       sellerProductTitles +
       ")" +
       subscriptionLabel +
-      " on Milk Market! Check your " +
+      " on Self-sown! Check your " +
       (isStripe ? "Stripe" : "Square") +
       " account for the payment.";
 
@@ -3919,7 +3942,7 @@ export default function CartInvoiceCard({
         product.pubkey
       );
       const stripeDonationPercentage =
-        sellerProfileForDonation?.content?.mm_donation ?? 0;
+        sellerProfileForDonation?.content?.ss_donation ?? sellerProfileForDonation?.content?.mm_donation ?? 0;
       const stripeDonationAmount =
         stripeDonationPercentage > 0 && productAmount
           ? Math.ceil((productAmount * stripeDonationPercentage) / 100)
@@ -4279,7 +4302,7 @@ export default function CartInvoiceCard({
           product.pubkey
         );
         const receiptDonationPercentage =
-          sellerProfileForReceiptDonation?.content?.mm_donation ?? 0;
+          sellerProfileForReceiptDonation?.content?.ss_donation ?? sellerProfileForReceiptDonation?.content?.mm_donation ?? 0;
         const receiptDonationAmount =
           receiptDonationPercentage > 0
             ? Math.ceil((productAmount * receiptDonationPercentage) / 100)
@@ -4382,7 +4405,7 @@ export default function CartInvoiceCard({
             (userNPub || "a guest buyer") +
             " for your cart order (" +
             sellerProductTitles +
-            ") on Milk Market! Check your " +
+            ") on Self-sown! Check your " +
             sellerFiatOption +
             " account for the payment.";
 
@@ -4563,7 +4586,7 @@ export default function CartInvoiceCard({
           (userNPub || "a guest buyer") +
           " for your cart order (" +
           productTitles +
-          ") on Milk Market! Check your " +
+          ") on Self-sown! Check your " +
           selectedFiatOption +
           " account for the payment.";
 
@@ -4989,7 +5012,7 @@ export default function CartInvoiceCard({
       (userNPub || "a guest buyer") +
       " for your cart order (" +
       productTitles +
-      ") on Milk Market! Check your Lightning address (" +
+      ") on Self-sown! Check your Lightning address (" +
       lnurl +
       ") for your sats.";
     for (const product of products) {
@@ -5645,7 +5668,7 @@ export default function CartInvoiceCard({
         let donationToken;
         let beefDonationToken;
         const sellerProfile = profileContext.profileData.get(pubkey);
-        const donationPercentage = sellerProfile?.content?.mm_donation ?? 0;
+        const donationPercentage = sellerProfile?.content?.ss_donation ?? sellerProfile?.content?.mm_donation ?? 0;
         const beefDonationPercentage =
           product.beefinit_donation_percentage || 0;
 
@@ -6209,7 +6232,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market! Check your Lightning address (" +
+                  " on Self-sown! Check your Lightning address (" +
                   lnurl +
                   ") for your sats.";
               } else {
@@ -6220,7 +6243,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market! Check your Lightning address (" +
+                  " on Self-sown! Check your Lightning address (" +
                   lnurl +
                   ") for your sats.";
               }
@@ -6374,7 +6397,7 @@ export default function CartInvoiceCard({
                     title +
                     " listing" +
                     productDetails +
-                    " on Milk Market: " +
+                    " on Self-sown: " +
                     unusedToken;
                 } else {
                   paymentMessage =
@@ -6384,7 +6407,7 @@ export default function CartInvoiceCard({
                     title +
                     " listing" +
                     productDetails +
-                    " on Milk Market: " +
+                    " on Self-sown: " +
                     unusedToken;
                 }
                 await sendPaymentAndContactMessageWithKeys(
@@ -6488,7 +6511,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market." +
+                  " on Self-sown." +
                   escrowSuffix
                 : "This is a Cashu token payment from " +
                   (userNPub || "a guest buyer") +
@@ -6498,7 +6521,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market: " +
+                  " on Self-sown: " +
                   sellerToken;
             } else {
               paymentMessage = escrowSuffix
@@ -6508,7 +6531,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market." +
+                  " on Self-sown." +
                   escrowSuffix
                 : "This is a Cashu token payment from " +
                   (userNPub || "a guest buyer") +
@@ -6516,7 +6539,7 @@ export default function CartInvoiceCard({
                   title +
                   " listing" +
                   productDetails +
-                  " on Milk Market: " +
+                  " on Self-sown: " +
                   sellerToken;
             }
             await sendPaymentAndContactMessageWithKeys(
@@ -6555,7 +6578,8 @@ export default function CartInvoiceCard({
         // Step 2: Send donation message
         if (donationToken) {
           const donationMessage = "Sale donation: " + donationToken;
-          const donationRecipient = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+          const donationRecipient =
+            process.env.NEXT_PUBLIC_SELF_SOWN_PK;
           if (donationRecipient) {
             try {
               const __donationOk = await sendPaymentAndContactMessage(
@@ -6573,7 +6597,7 @@ export default function CartInvoiceCard({
             }
           } else {
             console.warn(
-              "NEXT_PUBLIC_MILK_MARKET_PK not set; skipping donation message."
+              "NEXT_PUBLIC_SELF_SOWN_PK not set; skipping donation message."
             );
           }
         }
@@ -6666,7 +6690,7 @@ export default function CartInvoiceCard({
                 title +
                 " by " +
                 (userNPub || "a guest buyer") +
-                " on Milk Market: " +
+                " on Self-sown: " +
                 beefDonationToken;
               try {
                 const __beefOk = await sendPaymentAndContactMessage(
@@ -7423,7 +7447,6 @@ export default function CartInvoiceCard({
       clearTimeout(t);
       setIsCalculatingTax(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -7536,7 +7559,6 @@ export default function CartInvoiceCard({
       cancelled = true;
       clearTimeout(t);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -7703,7 +7725,6 @@ export default function CartInvoiceCard({
       clearTimeout(t);
       setIsFetchingLiveRates(false);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     watchedValues?.Country,
     watchedValues?.["Postal Code"],
@@ -8230,13 +8251,14 @@ export default function CartInvoiceCard({
               addressVerification.status === "verified" ||
               addressVerification.status === "issues") && (
               <div
-                className={`mt-3 rounded-md border-2 p-3 text-sm ${
+                className={joinClassNames(
+                  "mt-3 rounded-md border-2 p-3 text-sm",
                   addressVerification.status === "verified"
                     ? "border-green-700 bg-green-50 text-green-900"
                     : addressVerification.status === "issues"
                       ? "border-yellow-700 bg-yellow-50 text-yellow-900"
                       : "border-black bg-white text-black"
-                }`}
+                )}
               >
                 {addressVerification.status === "checking" && (
                   <span>Verifying address…</span>
@@ -8539,12 +8561,11 @@ export default function CartInvoiceCard({
                         );
                       }
 
-                      // Calculate milk market donation for this product
-                      const milkMarketDonationPercentage =
-                        profileContext.profileData.get(product.pubkey)?.content
-                          ?.mm_donation ?? 0;
-                      const milkMarketDonationAmount = Math.ceil(
-                        (basePrice * milkMarketDonationPercentage) / 100
+                      // Calculate Self-sown donation for this product
+                      const platformDonationPercentage =
+                        profileContext.profileData.get(product.pubkey)?.content?.ss_donation ?? profileContext.profileData.get(product.pubkey)?.content?.mm_donation ?? 0;
+                      const platformDonationAmount = Math.ceil(
+                        (basePrice * platformDonationPercentage) / 100
                       );
 
                       return (
@@ -8612,16 +8633,16 @@ export default function CartInvoiceCard({
                               </span>
                             </div>
                           )}
-                          {milkMarketDonationAmount > 0 && (
+                          {platformDonationAmount > 0 && (
                             <div className="flex justify-between text-sm text-orange-600">
                               <span className="ml-2">
-                                Milk Market Donation (
-                                {milkMarketDonationPercentage}%):
+                                Self-sown Donation ({platformDonationPercentage}
+                                %):
                               </span>
                               <span>
                                 -
                                 {formatWithCommas(
-                                  milkMarketDonationAmount,
+                                  platformDonationAmount,
                                   product.currency
                                 )}
                               </span>
@@ -8788,7 +8809,7 @@ export default function CartInvoiceCard({
                     {qrCodeUrl && (
                       <>
                         <PaymentCountdown deadlineMs={pollDeadlineMs} />
-                        <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                           Don&apos;t refresh or close the page until the payment
                           has been confirmed!
                         </h3>
@@ -8813,17 +8834,19 @@ export default function CartInvoiceCard({
                             type="button"
                             aria-label="Copy invoice"
                             onClick={handleCopyInvoice}
-                            className={`ml-2 cursor-pointer text-sm leading-none ${
+                            className={joinClassNames(
+                              "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "hidden" : ""
-                            }`}
+                            )}
                           >
                             📋
                           </button>
                           <span
                             aria-hidden="true"
-                            className={`ml-2 cursor-pointer text-sm leading-none ${
+                            className={joinClassNames(
+                              "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "" : "hidden"
-                            }`}
+                            )}
                           >
                             ✔️
                           </span>
@@ -8833,13 +8856,13 @@ export default function CartInvoiceCard({
                     {stripeClientSecret && (
                       <div className="w-full">
                         {multiCardQueue && multiCardQueue.length > 1 && (
-                          <p className="text-dark-text mb-1 text-center text-sm font-medium">
+                          <p className="mb-1 text-center text-sm font-medium text-black">
                             Seller {multiCardIndex + 1} of{" "}
                             {multiCardQueue.length} — each seller is charged
                             separately on their own account.
                           </p>
                         )}
-                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 mb-4 text-center text-lg leading-6 font-medium text-black">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -8871,13 +8894,13 @@ export default function CartInvoiceCard({
                     {squareCheckout && (
                       <div className="w-full">
                         {multiCardQueue && multiCardQueue.length > 1 && (
-                          <p className="text-dark-text mb-1 text-center text-sm font-medium">
+                          <p className="mb-1 text-center text-sm font-medium text-black">
                             Seller {multiCardIndex + 1} of{" "}
                             {multiCardQueue.length} — each seller is charged
                             separately on their own account.
                           </p>
                         )}
-                        <h3 className="text-dark-text mt-3 mb-4 text-center text-lg leading-6 font-medium">
+                        <h3 className="mt-3 mb-4 text-center text-lg leading-6 font-medium text-black">
                           Enter your card details below to complete your
                           payment.
                         </h3>
@@ -8886,6 +8909,7 @@ export default function CartInvoiceCard({
                           applicationId={squareCheckout.applicationId}
                           locationId={squareCheckout.locationId}
                           environment={squareCheckout.environment}
+                          countryCode={squareCheckout.countryCode}
                           sellerPubkey={squareCheckout.sellerPubkey}
                           amount={squareCheckout.amount}
                           currency={squareCheckout.currency}
@@ -8920,7 +8944,7 @@ export default function CartInvoiceCard({
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center">
-                    <h3 className="text-dark-text mt-3 text-center text-lg leading-6 font-medium">
+                    <h3 className="mt-3 text-center text-lg leading-6 font-medium text-black">
                       Payment confirmed!
                     </h3>
                     <Image
@@ -9046,12 +9070,11 @@ export default function CartInvoiceCard({
                       );
                     }
 
-                    // Calculate milk market donation for this product
-                    const milkMarketDonationPercentage =
-                      profileContext.profileData.get(product.pubkey)?.content
-                        ?.mm_donation ?? 0;
-                    const milkMarketDonationAmount = Math.ceil(
-                      (basePrice * milkMarketDonationPercentage) / 100
+                    // Calculate Self-sown donation for this product
+                    const platformDonationPercentage =
+                      profileContext.profileData.get(product.pubkey)?.content?.ss_donation ?? profileContext.profileData.get(product.pubkey)?.content?.mm_donation ?? 0;
+                    const platformDonationAmount = Math.ceil(
+                      (basePrice * platformDonationPercentage) / 100
                     );
 
                     return (
@@ -9132,16 +9155,16 @@ export default function CartInvoiceCard({
                             </span>
                           </div>
                         )}
-                        {milkMarketDonationAmount > 0 && (
+                        {platformDonationAmount > 0 && (
                           <div className="flex justify-between text-sm text-orange-600">
                             <span className="ml-2">
-                              Milk Market Donation (
-                              {milkMarketDonationPercentage}%):
+                              Self-sown Donation ({platformDonationPercentage}
+                              %):
                             </span>
                             <span>
                               -
                               {formatWithCommas(
-                                milkMarketDonationAmount,
+                                platformDonationAmount,
                                 product.currency
                               )}
                             </span>
@@ -9433,11 +9456,12 @@ export default function CartInvoiceCard({
 
                     setTotalCost(subtotalCost + shippingTotal);
                   }}
-                  className={`shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                  className={joinClassNames(
+                    "shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                     shippingPickupPreference === "shipping"
                       ? "bg-primary-yellow"
                       : "bg-white"
-                  }`}
+                  )}
                 >
                   <div className="font-medium">Free or added shipping</div>
                   <div className="text-sm text-gray-500">
@@ -9457,11 +9481,12 @@ export default function CartInvoiceCard({
                     setShippingPickupPreference("contact");
                     setTotalCost(subtotalCost);
                   }}
-                  className={`shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                  className={joinClassNames(
+                    "shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                     shippingPickupPreference === "contact"
                       ? "bg-primary-yellow"
                       : "bg-white"
-                  }`}
+                  )}
                 >
                   <div className="font-medium">Pickup</div>
                   <div className="text-sm text-gray-500">
@@ -9510,7 +9535,7 @@ export default function CartInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">
+                        <span className="text-black">
                           Email for Order Updates
                         </span>
                       }
@@ -9518,9 +9543,10 @@ export default function CartInvoiceCard({
                       type="email"
                       isRequired={true}
                       classNames={{
-                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                        inputWrapper: joinClassNames(
+                          "border-2 rounded-md shadow-neo",
                           emailError ? "border-red-500" : "border-black"
-                        }`,
+                        ),
                       }}
                       value={buyerEmail}
                       onChange={(e) => {
@@ -9552,16 +9578,17 @@ export default function CartInvoiceCard({
                       variant="bordered"
                       fullWidth={true}
                       label={
-                        <span className="text-light-text">
+                        <span className="text-black">
                           Email for Order Updates (optional)
                         </span>
                       }
                       labelPlacement="inside"
                       type="email"
                       classNames={{
-                        inputWrapper: `border-2 rounded-md shadow-neo ${
+                        inputWrapper: joinClassNames(
+                          "border-2 rounded-md shadow-neo",
                           emailError ? "border-red-500" : "border-black"
-                        }`,
+                        ),
                       }}
                       value={buyerEmail}
                       onChange={(e) => {
@@ -9578,9 +9605,10 @@ export default function CartInvoiceCard({
                 )}
 
                 <div
-                  className={`space-y-4 ${
+                  className={joinClassNames(
+                    "space-y-4",
                     formType !== "contact" ? "border-t pt-6" : ""
-                  }`}
+                  )}
                 >
                   {formType !== "contact" && (
                     <h3 className="mb-4 text-lg font-semibold">
@@ -9630,11 +9658,13 @@ export default function CartInvoiceCard({
                         showBitcoinGroup ? (
                           <Fragment key="bitcoin">
                             <Button
-                              className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                              className={joinClassNames(
+                                BLUEBUTTONCLASSNAMES,
+                                "h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal",
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                                   ? "cursor-not-allowed opacity-50"
                                   : ""
-                              }`}
+                              )}
                               disabled={
                                 !isFormValid || (!isLoggedIn && !buyerEmail)
                               }
@@ -9658,11 +9688,13 @@ export default function CartInvoiceCard({
 
                             {hasTokensAvailable && (
                               <Button
-                                className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                className={joinClassNames(
+                                  BLUEBUTTONCLASSNAMES,
+                                  "h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal",
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                     ? "cursor-not-allowed opacity-50"
                                     : ""
-                                }`}
+                                )}
                                 disabled={
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                 }
@@ -9714,11 +9746,13 @@ export default function CartInvoiceCard({
 
                             {nwcInfo && (
                               <Button
-                                className={`${BLUEBUTTONCLASSNAMES} h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal ${
+                                className={joinClassNames(
+                                  BLUEBUTTONCLASSNAMES,
+                                  "h-auto min-h-12 w-full py-3 text-center break-words whitespace-normal",
                                   !isFormValid || (!isLoggedIn && !buyerEmail)
                                     ? "cursor-not-allowed opacity-50"
                                     : ""
-                                }`}
+                                )}
                                 disabled={
                                   !isFormValid ||
                                   (!isLoggedIn && !buyerEmail) ||
@@ -9753,11 +9787,12 @@ export default function CartInvoiceCard({
                           (allSellersHaveStripe || multiSellerCardEligible)) ? (
                           <Button
                             key="card"
-                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             disabled={
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                             }
@@ -9803,11 +9838,12 @@ export default function CartInvoiceCard({
                           : isMultiFiatAvailable) ? (
                           <Button
                             key="fiat"
-                            className={`shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "shadow-neo h-auto min-h-12 w-full rounded-md border-2 border-black bg-black px-4 py-3 text-center font-bold break-words whitespace-normal text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             disabled={
                               !isFormValid || (!isLoggedIn && !buyerEmail)
                             }
@@ -9901,7 +9937,7 @@ export default function CartInvoiceCard({
           classNames={{
             wrapper: "shadow-neo",
             base: "border-2 border-black rounded-md",
-            backdrop: "bg-black/20 backdrop-blur-sm",
+            backdrop: "bg-black/20 backdrop-blur-xs",
             header: "border-b-2 border-black bg-white rounded-t-md text-black",
             body: "py-6 bg-white",
             footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -10138,7 +10174,8 @@ export default function CartInvoiceCard({
                     ? !fiatPaymentConfirmed
                     : !allMultiFiatConfirmed
                 }
-                className={`shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   (
                     isSingleSeller
                       ? !fiatPaymentConfirmed
@@ -10146,7 +10183,7 @@ export default function CartInvoiceCard({
                   )
                     ? "cursor-not-allowed opacity-50"
                     : ""
-                }`}
+                )}
               >
                 {isSingleSeller
                   ? selectedFiatOption === "cash"
@@ -10169,7 +10206,7 @@ export default function CartInvoiceCard({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -10265,9 +10302,10 @@ export default function CartInvoiceCard({
                   setShowFiatPaymentInstructions(true);
                 }}
                 disabled={!allMultiFiatSelected}
-                className={`shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   !allMultiFiatSelected ? "cursor-not-allowed opacity-50" : ""
-                }`}
+                )}
               >
                 Continue
               </Button>
@@ -10316,7 +10354,7 @@ export default function CartInvoiceCard({
         isKeyboardDismissDisabled
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           wrapper: "items-center justify-center",
           base: "border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-md",

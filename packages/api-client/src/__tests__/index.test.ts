@@ -1,4 +1,4 @@
-import { MilkMarketApiError, createMilkMarketApiClient } from "../index";
+import { SelfSownApiError, createSelfSownApiClient } from "../index";
 
 describe("api client", () => {
   test("sends email sign-in requests to the expected route", async () => {
@@ -11,7 +11,7 @@ describe("api client", () => {
           pubkey: "pubkey-test",
         }),
     });
-    const client = createMilkMarketApiClient({
+    const client = createSelfSownApiClient({
       baseUrl: "http://127.0.0.1:5000",
       fetchImpl: fetchImpl as typeof fetch,
     });
@@ -44,7 +44,7 @@ describe("api client", () => {
       ok: true,
       text: async () => JSON.stringify({ email: "seller@example.com" }),
     });
-    const client = createMilkMarketApiClient({
+    const client = createSelfSownApiClient({
       baseUrl: "http://localhost:5000",
       fetchImpl: fetchImpl as typeof fetch,
     });
@@ -78,7 +78,7 @@ describe("api client", () => {
       status: 409,
       text: async () => JSON.stringify({ error: "Email already registered" }),
     });
-    const client = createMilkMarketApiClient({
+    const client = createSelfSownApiClient({
       fetchImpl: fetchImpl as typeof fetch,
     });
 
@@ -88,8 +88,8 @@ describe("api client", () => {
         password: "secret",
       })
     ).rejects.toEqual(
-      expect.objectContaining<Partial<MilkMarketApiError>>({
-        name: "MilkMarketApiError",
+      expect.objectContaining<Partial<SelfSownApiError>>({
+        name: "SelfSownApiError",
         message: "Email already registered",
         status: 409,
       })
@@ -102,7 +102,7 @@ describe("api client", () => {
       text: async () =>
         JSON.stringify({ url: "https://connect.stripe.com/test" }),
     });
-    const client = createMilkMarketApiClient({
+    const client = createSelfSownApiClient({
       baseUrl: "http://127.0.0.1:5000",
       fetchImpl: fetchImpl as typeof fetch,
     });

@@ -92,12 +92,13 @@ async function postToken(
 }
 
 export async function exchangeSquareCodeForToken(
-  code: string
+  code: string,
+  redirectUri: string = getSquareRedirectUri()
 ): Promise<SquareTokenResult> {
   return postToken({
     grant_type: "authorization_code",
     code,
-    redirect_uri: getSquareRedirectUri(),
+    redirect_uri: redirectUri,
   });
 }
 

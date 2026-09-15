@@ -230,7 +230,7 @@ export async function applyStripeSubscriptionToMembership(
   }
   if (!pubkey) {
     // Subscription state changed at Stripe but nothing local ties it to a
-    // seller: no mmProPubkey metadata and no pro_memberships row. The
+    // seller: no ssProPubkey/mmProPubkey metadata and no pro_memberships row. The
     // entitlement change is silently dropped unless ops reconciles manually,
     // so this MUST be loud. Returning (not throwing) is correct — retrying
     // will never manufacture the missing row.
@@ -503,9 +503,11 @@ export async function adminRevokeMembership(pubkey: string): Promise<void> {
 export async function applyStripeLifetimePayment(
   pi: Stripe.PaymentIntent
 ): Promise<void> {
-  const pubkey = pi.metadata?.mmProPubkey;
+  const pubkey = pi.metadata?.ssProPubkey ?? pi.metadata?.mmProPubkey;
   if (!pubkey) {
-    console.warn("applyStripeLifetimePayment: no mmProPubkey on PaymentIntent");
+    console.warn(
+      "applyStripeLifetimePayment: no ssProPubkey/mmProPubkey on PaymentIntent"
+    );
     return;
   }
   const customerId =
@@ -661,8 +663,8 @@ async function sendProReceiptNostrDM(
           : "Fiat";
 
     const activeLine = details.lifetime
-      ? `We received your Milk Market payment of ${amount}. Your Wrangler lifetime access is active and never expires. Here are the details for your records:`
-      : `We received your Milk Market payment of ${amount}. Your Herd features stay active. Here are the details for your records:`;
+      ? `We received your Self-sown payment of ${amount}. Your Wrangler lifetime access is active and never expires. Here are the details for your records:`
+      : `We received your Self-sown payment of ${amount}. Your Herd features stay active. Here are the details for your records:`;
     const lines: string[] = [activeLine, ""];
     if (date) lines.push(`Date: ${date}`);
     lines.push(`Amount: ${amount}`);
@@ -680,7 +682,7 @@ async function sendProReceiptNostrDM(
     await sendServerSideNostrDM(
       pubkey,
       lines.join("\n"),
-      `Milk Market - payment receipt (${amount})`
+      `Self-sown - payment receipt (${amount})`
     );
   } catch (err) {
     console.error("sendProReceiptNostrDM failed:", err);

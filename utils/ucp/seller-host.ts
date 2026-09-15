@@ -14,12 +14,12 @@ import { getSelfHostConfig, isSelfHost } from "@/utils/self-host/config";
  * by the discovery profile and the REST catalog endpoints so they can't drift.
  *
  * SECURITY — resolve, never trust a supplied pubkey:
- *   - Self-host: the one tenant comes from server env (MM_SELF_HOST*).
+ *   - Self-host: the one tenant comes from server env (SS_SELF_HOST*).
  *   - Custom domain: the owning seller is resolved from the request *domain*
  *     against the verified `custom_domains` table and run through the hidden-
  *     membership gate (mirrors /api/storefront/nostr-json). A lapsed/hidden
  *     seller resolves to nothing, so the host advertises no scoped surface.
- *   - The forgeable `x-mm-shop-pubkey` header is never used for scoping.
+ *   - The forgeable `x-ss-shop-pubkey` header is never used for scoping.
  */
 
 export interface ScopedSeller {
@@ -52,7 +52,7 @@ function headerValue(req: NextApiRequest, name: string): string {
 
 /** Absolute base URL for the host this request came in on. */
 export function deriveBaseUrl(req: NextApiRequest): string {
-  const customHost = headerValue(req, "x-mm-custom-domain-host");
+  const customHost = headerValue(req, "x-ss-custom-domain-host");
   const host = (customHost || req.headers.host || "").toLowerCase().trim();
   if (host && !host.startsWith("localhost") && !host.startsWith("127.")) {
     return `https://${host.replace(/:\d+$/, "")}`;
@@ -77,7 +77,7 @@ export async function resolveHostScope(
 
   // 2) Custom domain: resolve + membership-gate the owning seller from the
   //    verified domain.
-  const customHost = headerValue(req, "x-mm-custom-domain-host");
+  const customHost = headerValue(req, "x-ss-custom-domain-host");
   if (customHost) {
     const domain = customHost.toLowerCase().trim().replace(/:\d+$/, "");
     const seller = await resolveSellerByDomain(domain);

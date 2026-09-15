@@ -16,7 +16,7 @@ import { buildProductJsonLd } from "@/utils/geo/product-jsonld";
 // canonicalizes to — friendly slug + custom-domain origin — so the JSON-LD
 // Product/Offer `url` matches the page's canonical link tag instead of the raw
 // `/listing/{dTag|id}` identifier URL. Omitting it preserves the default
-// platform `https://milk.market/listing/{dTag|id}` link.
+// platform `https://self-sown.com/listing/{dTag|id}` link.
 export function eventToProductOgMeta(
   event: NostrEvent,
   urlPath: string,
@@ -39,24 +39,24 @@ export function eventToProductOgMeta(
       jsonLd = undefined;
     }
     return {
-      title: cfg?.metaTitle || productData.title || "Milk Market Listing",
+      title: cfg?.metaTitle || productData.title || "Self-sown Listing",
       description:
         cfg?.metaDescription ||
         productData.summary ||
-        "Check out this product on Milk Market!",
+        "Check out this product on Self-sown!",
       image:
         cfg?.ogImage ||
         productData.images?.[0] ||
         galleryImage ||
-        "/milk-market.png",
+        "/self-sown-black.png",
       url: urlPath,
       ...(jsonLd ? { jsonLd } : {}),
     };
   }
   return {
     ...DEFAULT_OG,
-    title: "Milk Market Listing",
-    description: "Check out this listing on Milk Market!",
+    title: "Self-sown Listing",
+    description: "Check out this listing on Self-sown!",
     url: urlPath,
   };
 }

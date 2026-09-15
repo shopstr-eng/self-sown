@@ -17,6 +17,7 @@ import {
   SavedAddress,
 } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import { Proof } from "@cashu/cashu-ts";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
@@ -30,13 +31,14 @@ import {
 } from "@/utils/nostr/request-auth";
 import { newPromiseWithTimeout } from "@/utils/timeout";
 import { getLocalStorageJson } from "@/utils/safe-json";
+import { SITE_URL } from "@/utils/site-url";
 import {
   BLOG_POST_KIND,
   buildBlogPostTags,
   DEFAULT_SELLER_RELAYS,
   BLASTR_RELAY,
   type BlogPostDraft,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   encryptNIP46SignerCredentials,
   type NIP46SignerCredentials,
@@ -84,7 +86,7 @@ export async function deleteEvent(
 ) {
   const deletionEvent = createNostrDeleteEvent(
     event_ids_to_delete,
-    "Milk Market deletion request",
+    "Self-sown deletion request",
     deletedKind
   );
 
@@ -265,9 +267,7 @@ export async function PostListing(
   const handlerDTag = uuidv4();
 
   const origin =
-    window && typeof window !== undefined
-      ? window.location.origin
-      : "https://milk.market";
+    window && typeof window !== undefined ? window.location.origin : SITE_URL;
 
   const handlerEvent: EventTemplate = {
     kind: 31990,
@@ -317,8 +317,12 @@ export async function republishProductWithPageConfig(
   if (!signer) throw new Error("Signer required");
   if (!nostr) throw new Error("Nostr writer required");
 
-  const tags = rawEvent.tags.filter(
-    (t) => t[0] !== "page_config" && t[0] !== "published_at"
+  // Replacement events must carry the canonical discovery tag, not the
+  // legacy MilkMarket one a pre-rebrand listing may still have.
+  const tags = normalizeMarketplaceDiscoveryTag(
+    rawEvent.tags.filter(
+      (t) => t[0] !== "page_config" && t[0] !== "published_at"
+    )
   );
   if (pageConfig) {
     tags.push(["page_config", JSON.stringify(pageConfig)]);
@@ -406,8 +410,10 @@ export async function republishProductWithParcel(
   const parcelTag = buildParcelTag(parcel);
   if (!parcelTag) throw new Error("Parcel template needs a valid weight");
 
-  const tags = rawEvent.tags.filter(
-    (t) => t[0] !== "parcel" && t[0] !== "published_at"
+  // Replacement events must carry the canonical discovery tag, not the
+  // legacy MilkMarket one a pre-rebrand listing may still have.
+  const tags = normalizeMarketplaceDiscoveryTag(
+    rawEvent.tags.filter((t) => t[0] !== "parcel" && t[0] !== "published_at")
   );
   tags.push(parcelTag);
 
@@ -1271,7 +1277,7 @@ export async function createOrUpdateCommunity(
     ["name", details.name],
     ["description", details.description],
     ["image", details.image],
-    ["t", "milkmarket"],
+    ["t", "selfsown"],
   ];
 
   // moderators as p tags with role marker
@@ -2343,6 +2349,11 @@ export const saveNWCString = (nwcString: string) => {
 };
 
 export const getLocalUserProfileKey = (pubkey: string) =>
+  `self-sown:user-profile:${pubkey}`;
+
+// Pre-rebrand key. Readers fall back to this so a locally cached profile
+// written before the rename is still found; writes always use the new key.
+export const getLegacyLocalUserProfileKey = (pubkey: string) =>
   `milk-market:user-profile:${pubkey}`;
 
 export interface LocalProfileFallback {

@@ -109,6 +109,9 @@ export interface SquareLocation {
   name: string | null;
   currency: string | null;
   status: string | null;
+  // ISO 3166-1 alpha-2 merchant country. Apple Pay's payment request requires
+  // it, so it is captured alongside currency at connect time.
+  country: string | null;
 }
 
 export async function fetchSquareLocations(
@@ -120,6 +123,7 @@ export async function fetchSquareLocations(
       name?: string;
       currency?: string;
       status?: string;
+      country?: string;
     }[];
   }>(accessToken, "/v2/locations");
   return (data.locations || []).map((l) => ({
@@ -127,6 +131,7 @@ export async function fetchSquareLocations(
     name: l.name ?? null,
     currency: l.currency ?? null,
     status: l.status ?? null,
+    country: l.country ?? null,
   }));
 }
 

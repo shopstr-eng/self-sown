@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Image } from "@heroui/react";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { SITE_URL } from "@/utils/site-url";
 import {
   BLACKBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
@@ -29,16 +30,16 @@ export default function ContactPage() {
             __html: safeJsonLdString({
               "@context": "https://schema.org",
               "@type": "ContactPage",
-              name: "Contact Milk Market",
-              url: "https://milk.market/contact",
+              name: "Contact Self-sown",
+              url: `${SITE_URL}/contact`,
               mainEntity: {
                 "@type": "Organization",
-                name: "Milk Market",
-                email: "freemilk@milk.market",
-                url: "https://milk.market",
+                name: "Self-sown",
+                email: "hello@self-sown.com",
+                url: SITE_URL,
                 contactPoint: {
                   "@type": "ContactPoint",
-                  email: "freemilk@milk.market",
+                  email: "hello@self-sown.com",
                   contactType: "customer service",
                   availableLanguage: "English",
                 },
@@ -64,8 +65,8 @@ export default function ContactPage() {
 
           <h1 className="mb-4 text-4xl font-black md:text-5xl">Contact Us</h1>
           <p className="mb-12 text-lg text-zinc-600">
-            Have questions about Milk Market? We&apos;re here to help farmers
-            and buyers connect with confidence.
+            Have questions about Self-sown? We&apos;re here to help farmers and
+            buyers connect with confidence.
           </p>
 
           <div className="grid gap-8 md:grid-cols-2">
@@ -76,10 +77,10 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Email</h3>
                   <a
-                    href="mailto:freemilk@milk.market"
+                    href="mailto:hello@self-sown.com"
                     className="text-blue-700 underline"
                   >
-                    freemilk@milk.market
+                    hello@self-sown.com
                   </a>
                   <p className="mt-1 text-sm text-zinc-500">
                     General inquiries, partnerships, and support
@@ -89,7 +90,7 @@ export default function ContactPage() {
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Nostr</h3>
                   <a
-                    href="https://njump.me/milkmarket@milk.market"
+                    href="https://njump.me/self-sown@self-sown.com"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-700 underline"
@@ -100,7 +101,7 @@ export default function ContactPage() {
                       width={16}
                       height={16}
                     />
-                    milkmarket@milk.market
+                    self-sown@self-sown.com
                   </a>
                   <p className="mt-1 text-sm text-zinc-500">
                     Reach us on the Nostr network for encrypted messaging
@@ -111,21 +112,7 @@ export default function ContactPage() {
                   <h3 className="mb-2 text-lg font-bold">Social Media</h3>
                   <div className="flex flex-wrap gap-4">
                     <a
-                      href="https://x.com/milkmarketmedia"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
-                    >
-                      <Image
-                        src="/x-logo-black.png"
-                        alt="X (Twitter) logo"
-                        width={16}
-                        height={16}
-                      />
-                      X / Twitter
-                    </a>
-                    <a
-                      href="https://www.youtube.com/@milkmarketmedia"
+                      href="https://www.youtube.com/@self-sown"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 text-blue-700 underline"
@@ -138,41 +125,13 @@ export default function ContactPage() {
                       />
                       YouTube
                     </a>
-                    <a
-                      href="https://www.instagram.com/milkmarketmedia/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
-                    >
-                      <Image
-                        src="/instagram-icon.png"
-                        alt="Instagram logo"
-                        width={16}
-                        height={16}
-                      />
-                      Instagram
-                    </a>
-                    <a
-                      href="https://www.tiktok.com/@milkmarket.media"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-700 underline"
-                    >
-                      <Image
-                        src="/tiktok-icon.png"
-                        alt="TikTok logo"
-                        width={16}
-                        height={16}
-                      />
-                      TikTok
-                    </a>
                   </div>
                 </div>
 
                 <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                   <h3 className="mb-2 text-lg font-bold">Open Source</h3>
                   <a
-                    href="https://github.com/shopstr-eng/milk-market"
+                    href="https://github.com/shopstr-eng/self-sown"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 text-blue-700 underline"
@@ -238,7 +197,7 @@ export default function ContactPage() {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your name"
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                       required
                     />
@@ -257,7 +216,7 @@ export default function ContactPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                       required
                     />
@@ -274,7 +233,7 @@ export default function ContactPage() {
                       id="subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                     >
                       <option value="">Select a topic</option>
@@ -304,7 +263,7 @@ export default function ContactPage() {
                       onChange={(e) => setMessage(e.target.value)}
                       placeholder="How can we help?"
                       rows={5}
-                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                      className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                       style={{ backgroundColor: "#f0f0f0" }}
                       required
                     />

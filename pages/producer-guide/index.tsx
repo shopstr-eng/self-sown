@@ -13,6 +13,8 @@ import {
   WHITEBUTTONCLASSNAMES,
   PRIMARYBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
+import { SITE_URL } from "@/utils/site-url";
 
 const VideoPlaceholder = () => (
   <div className="relative aspect-video w-full overflow-hidden rounded-lg border-3 border-black bg-gray-700">
@@ -123,14 +125,14 @@ const ProducerGuidePage = () => {
       id: "passphrase-faq",
       question: "What is a passphrase? What is it used for?",
       answer:
-        "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Milk Market.",
+        "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Self-sown.",
     },
     {
       id: "payment-methods-faq",
       question: "What payment methods do customers use?",
       answer: (
         <>
-          Milk Market supports Bitcoin payments through Lightning Network and
+          Self-sown supports Bitcoin payments through Lightning Network and
           Cashu tokens, as well as credit and debit card payments via Stripe or
           Square. You can also arrange cash payments directly with customers
           during pickup or delivery and other payment options like{" "}
@@ -163,7 +165,7 @@ const ProducerGuidePage = () => {
           and transactions and protects your wealth over time. Payment
           processors like Stripe, PayPal, etc. can freeze your funds, close your
           account, or even ban you for selling products they don&apos;t deem
-          acceptable (which local food like raw milk and dairy can easily fall
+          acceptable (a category farm-direct and homemade food can easily fall
           under). If desired, you can exchange it for cash or other currencies
           at your own pace using tools like{" "}
           <a
@@ -191,7 +193,7 @@ const ProducerGuidePage = () => {
       id: "listing-passphrase-faq",
       question: "What is the listing passphrase? How do I get it?",
       answer:
-        "The listing passphrase is a password set by Milk Market to prevent spam and ensure that trusted producers can list products. You can get it by contacting Milk Market or other producers in the Milk Market community.",
+        "The listing passphrase is a password set by Self-sown to prevent spam and ensure that trusted producers can list products. You can get it by contacting Self-sown or other producers in the Self-sown community.",
     },
     {
       id: "process-payments-faq",
@@ -263,64 +265,64 @@ const ProducerGuidePage = () => {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "HowTo",
-              name: "How to Sell on Milk Market",
+              name: "How to Sell on Self-sown",
               description:
-                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Milk Market.",
-              url: "https://milk.market/producer-guide",
+                "A step-by-step guide for producers to set up their account, list products, accept payments, and grow their stall on Self-sown.",
+              url: `${SITE_URL}/producer-guide`,
               step: [
                 {
                   "@type": "HowToStep",
                   name: "Create Your Account",
-                  text: "Sign up for Milk Market using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
-                  url: "https://milk.market/producer-guide#step-1",
+                  text: "Sign up for Self-sown using your Nostr identity or create a new one. Complete the onboarding process and set up your user profile with payment preferences.",
+                  url: `${SITE_URL}/producer-guide#step-1`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Milk Market never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
-                  url: "https://milk.market/producer-guide#step-2",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  url: `${SITE_URL}/producer-guide#step-2`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "List Your Products",
                   text: "Use the listing password to create product listings. Add details like name, description, price, photos, and pickup or delivery options.",
-                  url: "https://milk.market/producer-guide#step-3",
+                  url: `${SITE_URL}/producer-guide#step-3`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Manage Orders",
                   text: "Receive and process orders through the orders dashboard. Accept Bitcoin payments via Lightning or Cashu, card payments via Stripe or Square, or arrange cash transactions directly with customers.",
-                  url: "https://milk.market/producer-guide#step-4",
+                  url: `${SITE_URL}/producer-guide#step-4`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Customize Your Stall",
                   text: "Personalize your public stall with colors, fonts, banners, and page sections so buyers can browse your products with a branded experience.",
-                  url: "https://milk.market/producer-guide#step-5",
+                  url: `${SITE_URL}/producer-guide#step-5`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Self-Host Your Store",
-                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Milk Market on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
-                  url: "https://milk.market/producer-guide#step-6",
+                  text: "On the Wrangler lifetime plan, run your own single-tenant copy of Self-sown on your own server, with your own Stripe account, no platform fees, and no marketplace chrome, so buyers only ever see your brand.",
+                  url: `${SITE_URL}/producer-guide#step-6`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Set Up Email Flows",
                   text: "Configure automated email sequences to onboard new customers, confirm orders, and keep buyers engaged with your farm or shop. Track opens, clicks, and conversions for every flow and one-time send.",
-                  url: "https://milk.market/producer-guide#step-7",
+                  url: `${SITE_URL}/producer-guide#step-7`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
                   text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically.",
-                  url: "https://milk.market/producer-guide#step-8",
+                  url: `${SITE_URL}/producer-guide#step-8`,
                 },
                 {
                   "@type": "HowToStep",
                   name: "Grow Your Business",
-                  text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Milk Market community to expand your reach.",
-                  url: "https://milk.market/producer-guide#step-9",
+                  text: "Regularly update your listings, engage with customers, share your story and growing practices, and leverage the Self-sown community to expand your reach.",
+                  url: `${SITE_URL}/producer-guide#step-9`,
                 },
               ],
             }),
@@ -338,7 +340,7 @@ const ProducerGuidePage = () => {
                   name: "What is a passphrase? What is it used for?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Milk Market.",
+                    text: "A passphrase is just a password you create as a user to keep your private key stored safely in your browser so only you can access your account. It is needed for securely sending messages, listing products, or saving profile and stall information on Self-sown.",
                   },
                 },
                 {
@@ -346,7 +348,7 @@ const ProducerGuidePage = () => {
                   name: "What payment methods do customers use?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Milk Market supports Bitcoin payments through Lightning Network and Cashu tokens, as well as credit and debit card payments via Stripe. You can also arrange cash payments directly with customers during pickup or delivery and other payment options like Cash App, Venmo, PayPal, etc.",
+                    text: "Self-sown supports Bitcoin payments through Lightning Network and Cashu tokens, as well as credit and debit card payments via Stripe. You can also arrange cash payments directly with customers during pickup or delivery and other payment options like Cash App, Venmo, PayPal, etc.",
                   },
                 },
                 {
@@ -354,7 +356,7 @@ const ProducerGuidePage = () => {
                   name: "Why Bitcoin? How can I exchange it?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (which local food like raw milk can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
+                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (a category farm-direct and homemade food can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
                   },
                 },
                 {
@@ -362,7 +364,7 @@ const ProducerGuidePage = () => {
                   name: "What is the listing passphrase? How do I get it?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "The listing passphrase is a password set by Milk Market to prevent spam and ensure that trusted producers can list products. You can get it by contacting Milk Market or other producers in the Milk Market community.",
+                    text: "The listing passphrase is a password set by Self-sown to prevent spam and ensure that trusted producers can list products. You can get it by contacting Self-sown or other producers in the Self-sown community.",
                   },
                 },
                 {
@@ -413,9 +415,10 @@ const ProducerGuidePage = () => {
 
         {/* Sidebar */}
         <aside
-          className={`shadow-neo fixed top-0 left-0 z-40 h-screen w-64 transform border-r-4 border-black bg-white transition-transform lg:translate-x-0 ${
+          className={joinClassNames(
+            "shadow-neo fixed top-0 left-0 z-40 h-screen w-64 transform border-r-4 border-black bg-white transition-transform lg:translate-x-0",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          )}
         >
           <div className="h-full overflow-y-auto p-6">
             <h2 className="mb-6 text-2xl font-bold text-black">Guide</h2>
@@ -424,11 +427,12 @@ const ProducerGuidePage = () => {
                 <div key={item.id}>
                   <button
                     onClick={() => scrollToSection(item.id)}
-                    className={`w-full rounded border-2 border-black px-4 py-2 text-left font-bold transition-all hover:-translate-y-0.5 ${
+                    className={joinClassNames(
+                      "w-full rounded border-2 border-black px-4 py-2 text-left font-bold transition-all hover:-translate-y-0.5",
                       activeSection === item.id
                         ? "bg-primary-yellow shadow-neo text-black"
                         : "bg-white text-black"
-                    }`}
+                    )}
                   >
                     {item.label}
                   </button>
@@ -438,11 +442,12 @@ const ProducerGuidePage = () => {
                         <button
                           key={thread.id}
                           onClick={() => scrollToSection(thread.id)}
-                          className={`w-full rounded px-3 py-1 text-left text-sm transition-all hover:bg-gray-100 ${
+                          className={joinClassNames(
+                            "w-full rounded px-3 py-1 text-left text-sm transition-all hover:bg-gray-100",
                             activeSection === thread.id
                               ? "text-primary-blue font-bold"
                               : "text-black"
-                          }`}
+                          )}
                         >
                           {thread.label}
                         </button>
@@ -481,9 +486,9 @@ const ProducerGuidePage = () => {
                   Producer Guide
                 </h1>
                 <p className="text-primary-blue mx-auto max-w-3xl text-lg">
-                  Learn how to start selling your local food and goods on Milk
-                  Market &mdash; from raw milk and dairy to meat, eggs, produce,
-                  baked goods, honey, and handmade goods.
+                  Learn how to start selling your local food and goods on
+                  Self-sown &mdash; from farm-fresh produce and dairy to meat,
+                  eggs, baked goods, honey, and handmade goods.
                 </p>
               </div>
             </div>
@@ -496,7 +501,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     1
                   </div>
                   <div className="flex-1">
@@ -504,8 +509,8 @@ const ProducerGuidePage = () => {
                       Create Your Account
                     </h3>
                     <p className="mb-4 text-base text-white">
-                      Sign up for Milk Market using your Nostr identity or
-                      create a new one. Your Nostr key ensures secure, private
+                      Sign up for Self-sown using your Nostr identity or create
+                      a new one. Your Nostr key ensures secure, private
                       communication with customers.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
@@ -567,7 +572,7 @@ const ProducerGuidePage = () => {
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
-                    <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                       2
                     </div>
                     <div className="flex-1">
@@ -616,7 +621,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     3
                   </div>
                   <div className="flex-1">
@@ -672,7 +677,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="mb-6 flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     4
                   </div>
                   <div className="flex-1">
@@ -725,7 +730,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     5
                   </div>
                   <div className="flex-1">
@@ -760,7 +765,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     6
                   </div>
                   <div className="flex-1">
@@ -772,7 +777,7 @@ const ProducerGuidePage = () => {
                     </h3>
                     <p className="mb-4 text-base text-white">
                       Want full control? On the Wrangler lifetime plan you can
-                      run your own copy of Milk Market on your own server.
+                      run your own copy of Self-sown on your own server.
                     </p>
                     <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                       <li>Run a single-tenant store that&apos;s just yours</li>
@@ -799,7 +804,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     7
                   </div>
                   <div className="flex-1">
@@ -845,7 +850,7 @@ const ProducerGuidePage = () => {
                 className="bg-primary-blue shadow-neo rounded-lg border-4 border-black p-6"
               >
                 <div className="flex items-start gap-4">
-                  <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                  <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                     8
                   </div>
                   <div className="flex-1">
@@ -890,7 +895,7 @@ const ProducerGuidePage = () => {
               >
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-center">
                   <div className="flex items-start gap-4 lg:flex-1">
-                    <div className="shadow-neo flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
+                    <div className="shadow-neo flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-4 border-black bg-white text-2xl font-bold text-black">
                       9
                     </div>
                     <div className="flex-1">
@@ -899,7 +904,7 @@ const ProducerGuidePage = () => {
                       </h3>
                       <p className="mb-4 text-base text-white">
                         Build your customer base and expand your reach within
-                        the Milk Market community.
+                        the Self-sown community.
                       </p>
                       <ul className="list-disc space-y-2 pl-6 text-sm text-white">
                         <li id="step-9-1">
@@ -911,7 +916,7 @@ const ProducerGuidePage = () => {
                         <li id="step-9-3">
                           Share your story and growing practices
                         </li>
-                        <li id="step-9-4">Leverage the Milk Market network</li>
+                        <li id="step-9-4">Leverage the Self-sown network</li>
                       </ul>
                     </div>
                   </div>
@@ -942,15 +947,17 @@ const ProducerGuidePage = () => {
                         {item.question}
                       </h3>
                       <PlusIcon
-                        className={`h-6 w-6 flex-shrink-0 transition-transform ${
+                        className={joinClassNames(
+                          "h-6 w-6 shrink-0 transition-transform",
                           openFaqIndex === index ? "rotate-45" : ""
-                        }`}
+                        )}
                       />
                     </button>
                     <div
-                      className={`bg-white/10 px-4 pt-2 pb-4 ${
+                      className={joinClassNames(
+                        "bg-white/10 px-4 pt-2 pb-4",
                         openFaqIndex === index ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <p className="text-sm leading-relaxed text-white/90">
                         {item.answer}
@@ -968,8 +975,8 @@ const ProducerGuidePage = () => {
               </h2>
               <p className="mb-6 text-base text-white">
                 Join the growing community of producers providing fresh, local
-                food &mdash; from raw milk and dairy to meat, eggs, and produce
-                &mdash; directly to consumers. Selling is free with unlimited
+                food &mdash; from farm-fresh produce to meat, eggs, and handmade
+                goods &mdash; directly to consumers. Selling is free with unlimited
                 listings, and new sellers get a 30-day free trial of Herd
                 &mdash; no payment required up front.
               </p>

@@ -1,6 +1,6 @@
 // Self-host (single-tenant) runtime configuration.
 //
-// A "Wrangler" (lifetime) seller can run their OWN private copy of Milk Market
+// A "Wrangler" (lifetime) seller can run their OWN private copy of Self-sown
 // that serves exactly one storefront — their own. When self-host mode is on:
 //   - the public marketplace + discovery routes are hidden (see proxy.ts),
 //   - the Pro/Herd entitlement is unlocked ONLY for the configured tenant
@@ -43,7 +43,7 @@ export interface SelfHostConfig {
 
 // The canonical public repository. Sellers `git pull` from here for updates.
 export const DEFAULT_UPSTREAM_REPO =
-  "https://github.com/shopstr-eng/milk-market";
+  "https://github.com/shopstr-eng/self-sown";
 
 function truthyEnv(value: string | undefined): boolean {
   if (!value) return false;
@@ -100,18 +100,37 @@ function coerceStringList(value: unknown): string[] {
     .filter(Boolean);
 }
 
-// Read the optional milk-market.config.json. Best-effort: a missing or
-// malformed file is treated as "no file config" rather than throwing, so a
-// typo can never crash the whole app on boot.
+// Read the optional self-sown.config.json (pre-rename installs ship
+// milk-market.config.json). Best-effort: a missing or malformed file is
+// treated as "no file config" rather than throwing, so a typo can never crash
+// the whole app on boot.
 function readFileConfig(): FileConfig {
-  // Only a self-host instance ships the optional milk-market.config.json. On the
-  // hosted platform MM_SELF_HOST is unset, so skip the disk read entirely — this
+  // Only a self-host instance ships the optional config file. On the hosted
+  // platform the enable flag is unset, so skip the disk read entirely — this
   // matches the existing behavior (buildSelfHostConfig ignores the file when
-  // self-host is off) and means the hosted runtime never touches the filesystem.
-  if (!truthyEnv(process.env.MM_SELF_HOST)) return {};
+  // self-host is off) and means the hosted runtime never touches the
+  // filesystem. Both the new (SS_) and legacy (MM_) env names are honored.
+  const enabledEnv =
+    process.env.SS_SELF_HOST !== undefined
+      ? process.env.SS_SELF_HOST
+      : process.env.MM_SELF_HOST;
+  if (!truthyEnv(enabledEnv)) return {};
+  const configPathEnv =
+    process.env.SS_SELF_HOST_CONFIG_PATH !== undefined
+      ? process.env.SS_SELF_HOST_CONFIG_PATH
+      : process.env.MM_SELF_HOST_CONFIG_PATH;
+  const explicit = configPathEnv?.trim();
+  const cwd = process.cwd();
+  // Pre-rename installs ship milk-market.config.json — keep reading it when no
+  // self-sown.config.json exists so existing self-hosters don't break on
+  // upgrade.
   const candidate =
-    process.env.MM_SELF_HOST_CONFIG_PATH?.trim() ||
-    path.join(process.cwd(), "milk-market.config.json");
+    explicit ||
+    (fs.existsSync(
+      /* turbopackIgnore: true */ path.join(cwd, "self-sown.config.json")
+    )
+      ? path.join(cwd, "self-sown.config.json")
+      : path.join(cwd, "milk-market.config.json"));
   try {
     // The `turbopackIgnore` hints stop Turbopack's Node File Tracer from
     // conservatively bundling the WHOLE project into every API route that
@@ -131,6 +150,19 @@ function readFileConfig(): FileConfig {
   }
 }
 
+// Env names rotated MM_SELF_HOST_* → SS_SELF_HOST_* in the Self-sown rebrand.
+// Both are honored (the SS_* name wins when both are set) so existing
+// self-host installs keep working on upgrade; new export bundles emit only
+// the SS_* names.
+function envDual(
+  env: Record<string, string | undefined>,
+  mmKey: string
+): string | undefined {
+  const ssKey = mmKey.replace(/^MM_/, "SS_");
+  const v = env[ssKey];
+  return v !== undefined ? v : env[mmKey];
+}
+
 // Pure builder: compute the config from explicit env + file inputs. Exposed so
 // tests can exercise parsing/precedence without touching process.env or disk.
 export function buildSelfHostConfig(
@@ -138,11 +170,11 @@ export function buildSelfHostConfig(
   file: FileConfig = {}
 ): SelfHostConfig {
   const upstreamRepo =
-    env.MM_SELF_HOST_UPSTREAM_REPO?.trim() ||
+    envDual(env, "MM_SELF_HOST_UPSTREAM_REPO")?.trim() ||
     (typeof file.upstreamRepo === "string" ? file.upstreamRepo.trim() : "") ||
     DEFAULT_UPSTREAM_REPO;
 
-  if (!truthyEnv(env.MM_SELF_HOST)) {
+  if (!truthyEnv(envDual(env, "MM_SELF_HOST"))) {
     return {
       enabled: false,
       tenantPubkey: null,
@@ -155,28 +187,29 @@ export function buildSelfHostConfig(
   }
 
   const tenantPubkey =
-    normalizeTenantPubkey(env.MM_SELF_HOST_PUBKEY) ??
+    normalizeTenantPubkey(envDual(env, "MM_SELF_HOST_PUBKEY")) ??
     normalizeTenantPubkey(file.pubkey ?? file.npub ?? null);
 
   const tenantSlug =
-    env.MM_SELF_HOST_SLUG?.trim() ||
+    envDual(env, "MM_SELF_HOST_SLUG")?.trim() ||
     (typeof file.slug === "string" ? file.slug.trim() : "") ||
     null;
 
-  const envRelays = parseList(env.MM_SELF_HOST_RELAYS);
+  const envRelays = parseList(envDual(env, "MM_SELF_HOST_RELAYS"));
   const relays =
     envRelays.length > 0 ? envRelays : coerceStringList(file.relays);
 
-  const envBlossom = parseList(env.MM_SELF_HOST_BLOSSOM_SERVERS);
+  const envBlossom = parseList(envDual(env, "MM_SELF_HOST_BLOSSOM_SERVERS"));
   const blossomServers =
     envBlossom.length > 0 ? envBlossom : coerceStringList(file.blossomServers);
 
   // ownStripe precedence: explicit env override → explicit file flag →
   // auto-on when a Stripe secret key is configured. This lets the card option
   // light up automatically once the seller adds their own key.
+  const ownStripeEnv = envDual(env, "MM_SELF_HOST_OWN_STRIPE");
   let ownStripe: boolean;
-  if (env.MM_SELF_HOST_OWN_STRIPE !== undefined) {
-    ownStripe = truthyEnv(env.MM_SELF_HOST_OWN_STRIPE);
+  if (ownStripeEnv !== undefined) {
+    ownStripe = truthyEnv(ownStripeEnv);
   } else if (typeof file.ownStripe === "boolean") {
     ownStripe = file.ownStripe;
   } else {

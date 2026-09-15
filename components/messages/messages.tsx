@@ -11,7 +11,7 @@ import {
   generateKeys,
 } from "@/utils/nostr/nostr-helper-functions";
 import { ChatsContext, ProfileMapContext } from "../../utils/context/context";
-import MilkMarketSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/ss-spinner";
 import ChatPanel from "./chat-panel";
 import ChatButton from "./chat-button";
 import { NostrMessageEvent, ChatObject } from "../../utils/types/types";
@@ -24,6 +24,7 @@ import {
 import SignInModal from "../sign-in/SignInModal";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import { joinClassNames } from "@/utils/class-names";
 
 const Messages = ({
   isPayment,
@@ -381,17 +382,17 @@ const Messages = ({
           <div className="flex h-[66vh] items-center justify-center">
             {isChatsLoading ? (
               <div className="flex items-center justify-center">
-                <MilkMarketSpinner />
+                <SelfSownSpinner />
               </div>
             ) : (
-              <div className="bg-dark-fg shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">
+              <div className="bg-primary-blue shadow-neo mx-auto w-full max-w-lg rounded-xl border-2 border-black p-10 transition-all">
                 <div className="text-center">
                   {isClient && userPubkey ? (
                     <div className="space-y-6">
-                      <h2 className="text-dark-text text-3xl font-semibold">
+                      <h2 className="text-3xl font-semibold text-white">
                         No messages... yet!
                       </h2>
-                      <div className="text-dark-text mt-2 text-base">
+                      <div className="mt-2 text-base text-white">
                         <p>Just logged in?</p>
                         <p className="mt-1 font-medium">
                           Try reloading the page.
@@ -408,7 +409,7 @@ const Messages = ({
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <h2 className="text-dark-text text-2xl font-bold">
+                      <h2 className="text-2xl font-bold text-white">
                         You must be signed in to see your chats!
                       </h2>
                       <div className="pt-4">
@@ -428,7 +429,10 @@ const Messages = ({
         ) : (
           <div className="flex h-full flex-row">
             <div
-              className={` ${currentChatPubkey ? "hidden" : "block"} h-[85vh] w-full overflow-y-auto rounded-md bg-white pb-12 md:block md:w-[450px] md:max-w-[33%] md:flex-shrink-0 md:pb-0 lg:pb-0`}
+              className={joinClassNames(
+                currentChatPubkey ? "hidden" : "block",
+                "h-[85vh] w-full overflow-y-auto rounded-md bg-white pb-12 md:block md:w-[450px] md:max-w-[33%] md:shrink-0 md:pb-0 lg:pb-0"
+              )}
             >
               {sortedChatsByLastMessage.map(
                 ([pubkeyOfChat, chatObject]: [string, ChatObject]) => {

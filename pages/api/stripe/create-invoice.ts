@@ -54,7 +54,8 @@ export default async function handler(
 
     if (sellerPubkey) {
       const isPlatformAccount =
-        sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+        sellerPubkey ===
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
 
       if (!isPlatformAccount) {
         const connectAccount = await getStripeConnectAccount(sellerPubkey);
@@ -158,6 +159,8 @@ export default async function handler(
             originalCurrency: currency,
             ...(connectedAccountId && { connectedAccountId }),
             ...(invoiceDonationCut > 0 && {
+              ssDonationPercent: invoiceDonationPercent.toString(),
+              ssDonationCutSmallest: invoiceDonationCut.toString(),
               mmDonationPercent: invoiceDonationPercent.toString(),
               mmDonationCutSmallest: invoiceDonationCut.toString(),
             }),

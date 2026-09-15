@@ -19,7 +19,7 @@ import {
 } from "@/utils/STATIC-VARIABLES";
 
 const BUNDLE_CONTENTS = [
-  "milk-market.config.json: your store config (pubkey, slug, relays, Blossom servers, branding). No secrets.",
+  "self-sown.config.json: your store config (pubkey, slug, relays, Blossom servers, branding). No secrets.",
   ".env.example: environment template with placeholders only. Copy to .env and fill in.",
   "setup.sh: clones the public code and drops your config in place.",
   "README.md & SETUP.md: step-by-step instructions to get running.",
@@ -183,7 +183,7 @@ const SelfHostPage = () => {
                   using the page builder in Settings.
                 </p>
                 <p className="mt-3 text-xs text-gray-500">
-                  Milk Market is open source under the AGPL/GPL v3. Full
+                  Self-sown is open source under the AGPL/GPL v3. Full
                   instructions are inside the bundle.
                 </p>
               </div>

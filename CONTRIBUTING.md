@@ -1,6 +1,6 @@
-# Contributing to Milk Market
+# Contributing to Self-sown
 
-Welcome to Milk Market! 🥛⚡ We're excited to have you contribute to our global, permissionless marketplace for milk-first commerce.
+Welcome to Self-sown! 🥛⚡ We're excited to have you contribute to our global, permissionless marketplace for milk-first commerce.
 
 ## Table of Contents
 
@@ -39,7 +39,7 @@ git --version
 
 ### 1. Fork the Repository
 
-1. Visit [https://github.com/shopstr-eng/milk-market](https://github.com/shopstr-eng/milk-market)
+1. Visit [https://github.com/shopstr-eng/self-sown](https://github.com/shopstr-eng/self-sown)
 2. Click the "Fork" button in the top-right corner
 3. Select your GitHub account to create the fork
 
@@ -47,13 +47,13 @@ git --version
 
 ```bash
 # Clone your forked repository
-git clone https://github.com/YOUR-USERNAME/milk-market.git
+git clone https://github.com/YOUR-USERNAME/self-sown.git
 
 # Navigate to the project directory
-cd milk-market
+cd self-sown
 
 # Add the original repository as upstream
-git remote add upstream https://github.com/shopstr-eng/milk-market.git
+git remote add upstream https://github.com/shopstr-eng/self-sown.git
 
 # Verify remotes
 git remote -v
@@ -62,10 +62,10 @@ git remote -v
 You should see:
 
 ```
-origin    https://github.com/YOUR-USERNAME/milk-market.git (fetch)
-origin    https://github.com/YOUR-USERNAME/milk-market.git (push)
-upstream  https://github.com/shopstr-eng/milk-market.git (fetch)
-upstream  https://github.com/shopstr-eng/milk-market.git (push)
+origin    https://github.com/YOUR-USERNAME/self-sown.git (fetch)
+origin    https://github.com/YOUR-USERNAME/self-sown.git (push)
+upstream  https://github.com/shopstr-eng/self-sown.git (fetch)
+upstream  https://github.com/shopstr-eng/self-sown.git (push)
 ```
 
 ## Local Development Setup
@@ -119,7 +119,7 @@ This application requires a PostgreSQL database. You can run it locally using Do
    Or create it manually with:
 
    ```
-   DATABASE_URL=postgresql://milkmarket:milkmarket@localhost:5432/milkmarket
+   DATABASE_URL=postgresql://selfsown:selfsown@localhost:5432/selfsown
    ```
 
 3. The database tables will be automatically created on first connection.
@@ -333,14 +333,14 @@ Once all checks pass, push your changes and create a pull request.
 
 ```bash
 # Build the Docker image
-docker build -t milk-market .
+docker build -t self-sown .
 ```
 
 ### 2. Run with Docker
 
 ```bash
 # Run the container
-docker run -p 3000:3000 milk-market
+docker run -p 3000:3000 self-sown
 ```
 
 ### 3. Docker Compose (Optional)
@@ -349,7 +349,7 @@ If you need to set up additional services, you can create a `docker-compose.yml`
 
 ---
 
-Thank you for contributing to Milk Market! 🚀 Your contributions help build the future of permissionless commerce.
+Thank you for contributing to Self-sown! 🚀 Your contributions help build the future of permissionless commerce.
 
 ## Questions?
 

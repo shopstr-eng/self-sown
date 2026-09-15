@@ -4,7 +4,10 @@ import { ReviewsContext } from "@/utils/context/context";
 import { Chip } from "@heroui/react";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import SellerReviewReply from "@/components/utility-components/seller-review-reply";
-import SectionElementFlow, { headingSizeClass } from "./section-elements";
+import SectionElementFlow, {
+  headingSizeClass,
+  joinClassNames,
+} from "./section-elements";
 
 interface SectionReviewsProps {
   section: StorefrontSection;
@@ -158,11 +161,12 @@ export default function SectionReviews({
                                   return (
                                     <Chip
                                       key={index}
-                                      className={`border-2 font-bold ${
+                                      className={joinClassNames(
+                                        "border-2 font-bold",
                                         value === "1"
                                           ? "bg-green-400"
                                           : "bg-red-400"
-                                      }`}
+                                      )}
                                       style={{
                                         borderColor: colors.text + "33",
                                       }}
@@ -174,11 +178,12 @@ export default function SectionReviews({
                                 return (
                                   <Chip
                                     key={index}
-                                    className={`border-2 font-bold ${
+                                    className={joinClassNames(
+                                      "border-2 font-bold",
                                       value === "1"
                                         ? "bg-green-400"
                                         : "bg-red-400"
-                                    }`}
+                                    )}
                                     style={{ borderColor: colors.text + "33" }}
                                   >
                                     {`${category}: ${value === "1" ? "👍" : "👎"}`}

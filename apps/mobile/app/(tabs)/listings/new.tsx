@@ -6,8 +6,8 @@ import {
   createEmptySellerListingDraft,
   validateSellerListingDraft,
   type SellerListingDraftValidationErrors,
-} from "@milk-market/domain";
-import { createSellerListingDTag } from "@milk-market/nostr";
+} from "@self-sown/domain";
+import { createSellerListingDTag } from "@self-sown/nostr";
 
 import { ListingEditor } from "@/components/listing-editor";
 import { ScreenScrollView, ScreenTitle } from "@/components/seller-ui";
@@ -101,7 +101,7 @@ export default function NewListingScreen() {
       <ScreenTitle
         eyebrow="Seller listings"
         title="Create a mobile listing"
-        description="This mobile-first form publishes the core listing fields through the same Milk Market product event model used on the web."
+        description="This mobile-first form publishes the core listing fields through the same Self-sown product event model used on the web."
       />
       <ListingEditor
         draft={draft}

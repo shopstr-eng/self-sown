@@ -12,7 +12,7 @@ import {
 // draft-meunier-http-message-signatures-directory): we expose an Ed25519
 // public-key directory at /.well-known/http-message-signatures-directory so
 // agents/verifiers can discover the platform's signing key(s) and, in turn,
-// agents have a canonical place to learn that Milk Market participates in
+// agents have a canonical place to learn that Self-sown participates in
 // verifiable, signature-based identity.
 //
 // Key source, in order of preference:

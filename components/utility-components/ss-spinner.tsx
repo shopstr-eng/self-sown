@@ -1,6 +1,6 @@
 import { Spinner } from "@heroui/react";
 
-export default function MilkMarketSpinner({ label }: { label?: string }) {
+export default function SelfSownSpinner({ label }: { label?: string }) {
   return (
     <>
       <Spinner

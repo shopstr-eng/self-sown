@@ -1,5 +1,5 @@
 import { waitFor } from "@testing-library/react";
-import { BLASTR_RELAY } from "@milk-market/domain";
+import { BLASTR_RELAY } from "@self-sown/domain";
 import { createNostrProfileEvent } from "../nostr-helper-functions";
 import {
   cacheEventToDatabase,

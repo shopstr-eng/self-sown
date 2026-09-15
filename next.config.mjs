@@ -64,7 +64,7 @@ const withPWA = withPWAInit({
   },
 });
 
-const isDevBuild = process.env.MM_DEV_BUILD === "1";
+const isDevBuild = process.env.SS_DEV_BUILD === "1";
 
 const nextConfig = {
   allowedDevOrigins: [
@@ -84,15 +84,15 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: [
-    "@milk-market/domain",
-    "@milk-market/nostr",
-    "@milk-market/api-client",
+    "@self-sown/domain",
+    "@self-sown/nostr",
+    "@self-sown/api-client",
   ],
   turbopack: {
     root: process.cwd(),
   },
   // Memory-bounded build settings for the dev-workflow preview build only
-  // (MM_DEV_BUILD is set by scripts/dev-server.sh). Cold Turbopack production
+  // (SS_DEV_BUILD is set by scripts/dev-server.sh). Cold Turbopack production
   // builds in this ~8GiB container kept getting SIGKILLed (exit 137):
   //  - The build FS cache (default-on in 16.3.x) buffers cache serialization
   //    in memory during the build — measured as the difference between a
@@ -105,7 +105,7 @@ const nextConfig = {
   //    and workerThreads cap and share that memory instead.
   //  - Production source maps cost hundreds of MB to emit and are useless in
   //    the dev preview.
-  // Deploy builds (scripts/deploy-build.sh) do NOT set MM_DEV_BUILD and are
+  // Deploy builds (scripts/deploy-build.sh) do NOT set SS_DEV_BUILD and are
   // unchanged.
   ...(isDevBuild
     ? {

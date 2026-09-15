@@ -153,7 +153,7 @@ describe("sendProStripeReceiptEmail — recurring Herd renewal receipt content",
     // A recurring renewal is not a lifetime purchase.
     expect(body).not.toContain("never expires");
     expect(body).not.toContain("Wrangler");
-    expect(subject).toBe("Milk Market - payment receipt ($30.00)");
+    expect(subject).toBe("Self-sown - payment receipt ($30.00)");
   });
 
   it("emails a yearly renewal receipt: amount from amount_paid, yearly term", async () => {
@@ -185,7 +185,7 @@ describe("sendProStripeReceiptEmail — recurring Herd renewal receipt content",
     expect(body).toContain("$300.00");
     expect(body).toContain("Plan: Herd (Annual)");
     expect(body).toContain("Payment method: Card (Stripe)");
-    expect(subject).toBe("Milk Market - payment receipt ($300.00)");
+    expect(subject).toBe("Self-sown - payment receipt ($300.00)");
   });
 
   it("falls back to invoice.created for paidAt when status_transitions.paid_at is absent", async () => {

@@ -30,6 +30,7 @@ import { useStorefrontBranding } from "@/utils/storefront/storefront-branding-co
 import useReportEventFlow from "../use-report-event-flow";
 import { copyToClipboard } from "@/utils/clipboard";
 import { Nip58ProfileBadge, ProfileData } from "@/utils/types/types";
+import { joinClassNames } from "@/utils/class-names";
 
 import { GlobeAltIcon } from "@heroicons/react/24/outline";
 
@@ -515,14 +516,17 @@ export const ProfileWithDropdown = ({
                 className: "border-2 border-black",
               }}
               className={
-                "group cursor-pointer rounded-md px-1 py-0.5 transition-all duration-200 hover:bg-white/10 hover:shadow-sm"
+                "group cursor-pointer rounded-md px-1 py-0.5 transition-all duration-200 hover:bg-white/10 hover:shadow-xs"
               }
               classNames={{
-                name: `overflow-hidden text-ellipsis whitespace-nowrap ${
-                  bg && bg === "dark" ? "text-white" : "text-black"
-                } hidden ${nameClassname} ${
-                  isNip05Verified ? "text-primary-yellow" : ""
-                } group-hover:underline group-hover:underline-offset-2`,
+                name: joinClassNames(
+                  "overflow-hidden text-ellipsis whitespace-nowrap",
+                  bg && bg === "dark" ? "text-white" : "text-black",
+                  "hidden",
+                  nameClassname,
+                  isNip05Verified ? "text-primary-yellow" : "",
+                  "group-hover:underline group-hover:underline-offset-2"
+                ),
                 base: `${baseClassname}`,
               }}
               name={displayNameWithBadges}

@@ -144,7 +144,8 @@ export const fetchAllPosts = async (
 
       const filter: Filter = {
         kinds: [30402],
-        "#t": ["MilkMarket", "FREEMILK"],
+        // Pre-rebrand listings carry the legacy MilkMarket tag; fetch both.
+        "#t": ["SelfSown", "MilkMarket", "FREEMILK"],
       };
 
       const specificPubkeyFilter: Filter = {
@@ -156,7 +157,7 @@ export const fetchAllPosts = async (
 
       const zapsnagFilter: Filter = {
         kinds: [1],
-        "#t": ["milk-market-zapsnag"],
+        "#t": ["self-sown-zapsnag", "milk-market-zapsnag"],
       };
 
       let fetchedEvents: NostrEvent[] = [];
@@ -2368,7 +2369,8 @@ export const fetchAllCommunities = async (
 
       const filter: Filter = {
         kinds: [34550],
-        "#t": ["milkmarket"],
+        // Pre-rebrand communities carry the legacy milkmarket tag; fetch both.
+        "#t": ["selfsown", "milkmarket"],
       };
 
       const fetchedEvents = await nostr.fetch([filter], {}, relays);
@@ -2907,7 +2909,8 @@ export const fetchStorefrontData = async (
       const communityFilter: Filter = {
         kinds: [34550],
         authors: [shopPubkey],
-        "#t": ["milkmarket"],
+        // Pre-rebrand communities carry the legacy milkmarket tag; fetch both.
+        "#t": ["selfsown", "milkmarket"],
       };
       const fetchedCommunities = await nostr.fetch(
         [communityFilter],

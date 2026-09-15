@@ -2,7 +2,7 @@
 
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { isHttpUrl } from "@milk-market/domain";
+import { isHttpUrl } from "@self-sown/domain";
 
 // Renders a blog post's Markdown body. Raw HTML is NOT enabled (react-markdown
 // strips it by default — we never add rehype-raw), and every link/image URL is
@@ -81,7 +81,6 @@ export default function BlogMarkdown({ content }: { content: string }) {
           ),
           img: ({ src, alt }) =>
             typeof src === "string" && isHttpUrl(src) ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={src}
                 alt={alt || ""}

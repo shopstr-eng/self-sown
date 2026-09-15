@@ -32,7 +32,7 @@ Describe the problem or limitation you're facing that this feature would address
 
 ## User Impact
 
-Explain how this feature would benefit users of Milk Market.
+Explain how this feature would benefit users of Self-sown.
 
 ## Relevant NIPs
 

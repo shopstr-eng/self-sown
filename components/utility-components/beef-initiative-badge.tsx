@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { joinClassNames } from "@/utils/class-names";
 
 export default function BeefInitiativeBadge({
   size = "sm",
@@ -13,9 +14,10 @@ export default function BeefInitiativeBadge({
       target="_blank"
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className={`inline-flex items-center rounded-md border-2 border-black bg-[#1a1a1a] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
+      className={joinClassNames(
+        "inline-flex items-center rounded-md border-2 border-black bg-[#1a1a1a] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
         isMd ? "px-3 py-1.5" : "px-2 py-1"
-      }`}
+      )}
       title="This purchase supports the Beef Initiative"
     >
       <Image

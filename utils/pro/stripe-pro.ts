@@ -1,5 +1,5 @@
 // Stripe helpers for the Pro subscription rail. The seller is the CUSTOMER and
-// Milk Market is the merchant on the PLATFORM Stripe account — deliberately
+// Self-sown is the merchant on the PLATFORM Stripe account — deliberately
 // separate from the Connect "Subscribe & Save" subscriptions that charge
 // buyers on seller accounts. Keep customer/price/webhook handling isolated.
 
@@ -43,16 +43,23 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
   const key = lookupKeyForTerm(term);
 
   const existing = await withStripeRetry(() =>
-    stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
+    stripe.prices.list({
+      lookup_keys: [key],
+      active: true,
+      limit: 1,
+    })
   );
-  if (existing.data[0]) return existing.data[0].id;
+  const hit = existing.data[0];
+  if (hit) return hit.id;
 
-  // Reuse a single "Milk Market Pro" product across both terms.
+  // Reuse a single "Self-sown Pro" product across both terms. The metadata
+  // key rotated mm_pro → ss_pro in the rebrand; match either so pre-rename
+  // Products are still found instead of minting a duplicate.
   let productId: string | null = null;
   try {
     const products = await withStripeRetry(() =>
       stripe.products.search({
-        query: "metadata['mm_pro']:'true'",
+        query: "metadata['ss_pro']:'true' OR metadata['mm_pro']:'true'",
         limit: 1,
       })
     );
@@ -65,8 +72,10 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
     const product = await withStripeRetry(() =>
       stripe.products.create(
         {
-          name: "Milk Market Herd",
-          metadata: { mm_pro: "true" },
+          name: "Self-sown Herd",
+          // Dual-write: new key canonical, legacy key kept so old searches
+          // (and any external tooling keyed on mm_pro) keep matching.
+          metadata: { ss_pro: "true", mm_pro: "true" },
         },
         { idempotencyKey: stableIdempotencyKey("pro-product", { v: 1 }) }
       )
@@ -82,7 +91,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
         currency: PRO_PRICE_CURRENCY,
         recurring: { interval: term === "yearly" ? "year" : "month" },
         lookup_key: key,
-        metadata: { mm_pro: "true", term },
+        metadata: { ss_pro: "true", mm_pro: "true", term },
       },
       { idempotencyKey: stableIdempotencyKey("pro-price", { key }) }
     )
@@ -93,7 +102,7 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
 /**
  * Find-or-create the one-time "Wrangler" lifetime Price on the platform
  * account. Non-recurring, $2,100. Keyed by a stable `lookup_key` and attached
- * to the same "Milk Market Pro" product so it shows up alongside the recurring
+ * to the same "Self-sown Pro" product so it shows up alongside the recurring
  * Herd prices. Mirrors `ensureProPrice` minus the `recurring` field.
  */
 export async function ensureWranglerLifetimePrice(): Promise<string> {
@@ -101,15 +110,20 @@ export async function ensureWranglerLifetimePrice(): Promise<string> {
   const key = WRANGLER_LIFETIME_LOOKUP_KEY;
 
   const existing = await withStripeRetry(() =>
-    stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
+    stripe.prices.list({
+      lookup_keys: [key],
+      active: true,
+      limit: 1,
+    })
   );
-  if (existing.data[0]) return existing.data[0].id;
+  const hit = existing.data[0];
+  if (hit) return hit.id;
 
   let productId: string | null = null;
   try {
     const products = await withStripeRetry(() =>
       stripe.products.search({
-        query: "metadata['mm_pro']:'true'",
+        query: "metadata['ss_pro']:'true' OR metadata['mm_pro']:'true'",
         limit: 1,
       })
     );
@@ -122,8 +136,8 @@ export async function ensureWranglerLifetimePrice(): Promise<string> {
     const product = await withStripeRetry(() =>
       stripe.products.create(
         {
-          name: "Milk Market Herd",
-          metadata: { mm_pro: "true" },
+          name: "Self-sown Herd",
+          metadata: { ss_pro: "true", mm_pro: "true" },
         },
         { idempotencyKey: stableIdempotencyKey("pro-product", { v: 1 }) }
       )
@@ -138,7 +152,7 @@ export async function ensureWranglerLifetimePrice(): Promise<string> {
         unit_amount: WRANGLER_LIFETIME_PRICE_CENTS,
         currency: PRO_PRICE_CURRENCY,
         lookup_key: key,
-        metadata: { mm_pro: "true", lifetime: "true" },
+        metadata: { ss_pro: "true", mm_pro: "true", lifetime: "true" },
       },
       { idempotencyKey: stableIdempotencyKey("wrangler-price", { key }) }
     )
@@ -148,7 +162,8 @@ export async function ensureWranglerLifetimePrice(): Promise<string> {
 
 /**
  * Find-or-create the platform-account customer for a seller pubkey. Tagged
- * with `mm_pro_pubkey` metadata so we can reconcile back to the seller.
+ * with `ss_pro_pubkey` metadata (legacy `mm_pro_pubkey` dual-written) so we
+ * can reconcile back to the seller.
  */
 export async function getOrCreateProCustomer(
   pubkey: string,
@@ -157,9 +172,10 @@ export async function getOrCreateProCustomer(
   const stripe = getProStripe();
 
   try {
+    // Match either key so pre-rename customers are found.
     const found = await withStripeRetry(() =>
       stripe.customers.search({
-        query: `metadata['mm_pro_pubkey']:'${pubkey}'`,
+        query: `metadata['ss_pro_pubkey']:'${pubkey}' OR metadata['mm_pro_pubkey']:'${pubkey}'`,
         limit: 1,
       })
     );
@@ -172,7 +188,7 @@ export async function getOrCreateProCustomer(
     stripe.customers.create(
       {
         ...(email ? { email } : {}),
-        metadata: { mm_pro_pubkey: pubkey },
+        metadata: { ss_pro_pubkey: pubkey, mm_pro_pubkey: pubkey },
       },
       { idempotencyKey: stableIdempotencyKey("pro-cust", { pubkey }) }
     )
@@ -206,7 +222,11 @@ export function mapStripeSubscription(
     typeof periodEndUnix === "number" ? new Date(periodEndUnix * 1000) : null;
   const customerId =
     typeof sub.customer === "string" ? sub.customer : (sub.customer?.id ?? "");
-  const pubkey = (sub.metadata && (sub.metadata.mmProPubkey as string)) || null;
+  const pubkey =
+    (sub.metadata &&
+      ((sub.metadata.ssProPubkey as string) ||
+        (sub.metadata.mmProPubkey as string))) ||
+    null;
 
   return {
     pubkey,

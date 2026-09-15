@@ -26,9 +26,6 @@ on:
           - beta
           - rc
 
-env:
-  NODE_VERSION_MATRIX: '[18.x, 20.x, 22.x]'
-
 jobs:
   test:
     name: Test on Node.js ${{ matrix.node-version }}
@@ -37,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [22.x]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -85,7 +82,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -181,7 +178,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -195,10 +192,10 @@ jobs:
       - name: Create build artifacts
         run: |
           # Create a tarball of the built application
-          tar -czf milk-market-build.tar.gz .next/ public/ package.json pnpm-lock.yaml
+          tar -czf self-sown-build.tar.gz .next/ public/ package.json pnpm-lock.yaml
           
           # Create a source code tarball
-          git archive --format=tar.gz --prefix=milk-market-src/ HEAD > milk-market-source.tar.gz
+          git archive --format=tar.gz --prefix=self-sown-src/ HEAD > self-sown-source.tar.gz
 
       - name: Get version and changelog
         id: release_info
@@ -250,8 +247,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./milk-market-build.tar.gz
-          asset_name: milk-market-build-${{ steps.release_info.outputs.version }}.tar.gz
+          asset_path: ./self-sown-build.tar.gz
+          asset_name: self-sown-build-${{ steps.release_info.outputs.version }}.tar.gz
           asset_content_type: application/gzip
 
       - name: Upload source artifacts to release
@@ -260,8 +257,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./milk-market-source.tar.gz
-          asset_name: milk-market-source-${{ steps.release_info.outputs.version }}.tar.gz
+          asset_path: ./self-sown-source.tar.gz
+          asset_name: self-sown-source-${{ steps.release_info.outputs.version }}.tar.gz
           asset_content_type: application/gzip
 
   publish-npm:
@@ -278,7 +275,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Enable Corepack (pnpm)

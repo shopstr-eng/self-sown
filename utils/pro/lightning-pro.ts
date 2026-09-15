@@ -1,6 +1,6 @@
 // Bitcoin (Lightning) rail for manual Pro invoices. Payments route to the
-// Milk Market platform Lightning address — the same destination used for
-// donations (`NEXT_PUBLIC_MILK_MARKET_PK`'s profile lud16) — and auto-verify
+// Self-sown platform Lightning address — the same destination used for
+// donations (`NEXT_PUBLIC_SELF_SOWN_PK`'s profile lud16) — and auto-verify
 // via LNURL-verify, mirroring the donation rail's "skip gracefully if unset"
 // behavior.
 
@@ -20,14 +20,17 @@ export interface PlatformBitcoinInvoice {
 
 /**
  * Resolve the platform's Lightning address. Prefers an explicit env override,
- * otherwise reads `lud16` from the Milk Market npub's cached kind-0 profile —
+ * otherwise reads `lud16` from the Self-sown npub's cached kind-0 profile —
  * the same source the donation rail uses for its destination.
  */
 export async function getPlatformLightningAddress(): Promise<string | null> {
-  const override = process.env.NEXT_PUBLIC_MILK_MARKET_LN_ADDRESS;
+  const override =
+    process.env.NEXT_PUBLIC_SELF_SOWN_LN_ADDRESS ??
+    process.env.NEXT_PUBLIC_MILK_MARKET_LN_ADDRESS;
   if (override && override.trim() !== "") return override.trim();
 
-  const pk = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+  const pk =
+    process.env.NEXT_PUBLIC_SELF_SOWN_PK;
   if (!pk) return null;
 
   let client;

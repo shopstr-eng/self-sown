@@ -15,6 +15,7 @@ import {
 } from "@/utils/db/custom-domains";
 import { sendCustomDomainAdminNotification } from "@/utils/email/email-service";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
+import { SITE_HOST } from "@/utils/site-url";
 
 const pool = getDbPool();
 
@@ -27,7 +28,7 @@ const ADMIN_EMAIL = process.env.DOMAINS_ADMIN_EMAIL || undefined;
 const REPLIT_DEPLOYMENT_HOST =
   process.env.REPLIT_DEPLOYMENT_HOST || "milk-market.replit.app";
 const APEX_RESOLVE_HOST = (
-  process.env.CUSTOM_DOMAIN_APEX_HOST || "milk.market"
+  process.env.CUSTOM_DOMAIN_APEX_HOST || SITE_HOST
 ).toLowerCase();
 
 // Static deployment-wide verification record provided by Replit when the
@@ -82,8 +83,8 @@ function dnsHostForDomain(domain: string): string {
 
 function dnsHostForTxt(domain: string): string {
   const labels = domain.toLowerCase().trim().split(".");
-  if (labels.length <= 2) return "_milkmarket";
-  return `_milkmarket.${labels.slice(0, labels.length - 2).join(".")}`;
+  if (labels.length <= 2) return "_self-sown";
+  return `_self-sown.${labels.slice(0, labels.length - 2).join(".")}`;
 }
 
 async function buildInstructions(domain: string, token: string) {
@@ -95,7 +96,7 @@ async function buildInstructions(domain: string, token: string) {
       : `Resolve A record of ${APEX_RESOLVE_HOST} and use those IPs (or contact ${ADMIN_EMAIL || "support"}).`;
   const recordHost = dnsHostForDomain(domain);
   const txtHost = dnsHostForTxt(domain);
-  const fqdnHint = `Full record name: _milkmarket.${domain}`;
+  const fqdnHint = `Full record name: _self-sown.${domain}`;
   return {
     domainType: type,
     txt: {
@@ -125,7 +126,7 @@ async function buildInstructions(domain: string, token: string) {
           type: "TXT",
           host: "@",
           value: REPLIT_VERIFY_TXT_VALUE,
-          note: `Add this TXT record so Replit can verify the domain before issuing a TLS certificate. In the host/name field enter "@" (or leave it blank, since the record should sit at the root of your domain, ${domain}). The value is the same for every Milk Market storefront because it identifies our deployment, not your individual domain.`,
+          note: `Add this TXT record so Replit can verify the domain before issuing a TLS certificate. In the host/name field enter "@" (or leave it blank, since the record should sit at the root of your domain, ${domain}). The value is the same for every Self-sown storefront because it identifies our deployment, not your individual domain.`,
         }
       : null,
     recommended: type === "apex" ? "apex" : "subdomain",

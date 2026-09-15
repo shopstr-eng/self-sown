@@ -18,7 +18,6 @@ export const ProfileAvatar = ({
 }) => {
   const [pfp, setPfp] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [isNip05Verified, setIsNip05Verified] = useState(false);
   const profileContext = useContext(ProfileMapContext);
   const npub = pubkey ? nip19.npubEncode(pubkey) : "";
   useEffect(() => {
@@ -38,7 +37,6 @@ export const ProfileAvatar = ({
         ? profile.content.picture
         : `https://robohash.org/${pubkey}`
     );
-    setIsNip05Verified(profile?.nip05Verified || false);
   }, [profileContext, pubkey, npub]);
 
   return (
@@ -48,9 +46,7 @@ export const ProfileAvatar = ({
       }}
       className={"transition-transform"}
       classNames={{
-        name: `overflow-hidden text-ellipsis whitespace-nowrap text-light-text hidden block ${
-          isNip05Verified ? "text-dark-bg" : ""
-        }`,
+        name: "overflow-hidden text-ellipsis whitespace-nowrap text-black hidden block",
         base: `${baseClassname}`,
         description: `${descriptionClassname}`,
         wrapper: `${wrapperClassname}`,

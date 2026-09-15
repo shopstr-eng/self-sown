@@ -1,7 +1,7 @@
 import { pbkdf2Sync, randomBytes, timingSafeEqual } from "crypto";
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { PoolClient } from "pg";
-import { getDbPool } from "@/utils/db/db-service";
+import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
 
 // Shared "Pro required" message for MCP authentication failures so REST and
@@ -63,7 +63,10 @@ export function hashApiKey(key: string): string {
 }
 
 export function generateApiKey(): { key: string; prefix: string } {
-  const key = `mm_${randomBytes(32).toString("hex")}`;
+  // Prefix rotated mm_ → ss_ in the Self-sown rebrand. Existing mm_ keys keep
+  // working: lookup is by the presented key's own prefix + hash, and each
+  // row's stored key_prefix was captured at creation time.
+  const key = `ss_${randomBytes(32).toString("hex")}`;
   const prefix = key.substring(0, 10);
   return { key, prefix };
 }
@@ -73,7 +76,8 @@ export async function initializeApiKeysTable(): Promise<void> {
   let client: PoolClient | undefined;
   try {
     client = await pool.connect();
-    await client.query(`
+    await withSchemaDdlLock(client, async (client) => {
+      await client.query(`
       CREATE TABLE IF NOT EXISTS mcp_api_keys (
         id SERIAL PRIMARY KEY,
         key_prefix TEXT NOT NULL,
@@ -123,35 +127,49 @@ export async function initializeApiKeysTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_api_key_id ON mcp_orders(api_key_id);
     `);
 
-    try {
-      await client.query(
-        `ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS encrypted_nsec TEXT`
-      );
-    } catch {}
+      // Optional migrations run under savepoints: the lock wrapper above holds
+      // an explicit transaction, so a caught error would otherwise abort it and
+      // silently roll back every preceding statement at COMMIT.
+      const optionalMigration = async (run: () => Promise<void>) => {
+        await client.query("SAVEPOINT mcp_optional_migration");
+        try {
+          await run();
+          await client.query("RELEASE SAVEPOINT mcp_optional_migration");
+        } catch {
+          await client.query("ROLLBACK TO SAVEPOINT mcp_optional_migration");
+        }
+      };
 
-    // Self-migrate databases where initializeTables() (db-service.ts) created
-    // mcp_orders first with its older column set — the CREATE above is a
-    // no-op for them.
-    try {
-      await client.query(
-        `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT`
-      );
-      await client.query(
-        `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT`
-      );
-      await client.query(
-        `ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd'`
-      );
-    } catch {}
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS encrypted_nsec TEXT`
+        );
+      });
 
-    try {
-      await client.query(
-        `ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check`
-      );
-      await client.query(
-        `ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check CHECK (permissions IN ('read', 'read_write', 'full_access'))`
-      );
-    } catch {}
+      // Self-migrate databases where initializeTables() (db-service.ts) created
+      // mcp_orders first with its older column set — the CREATE above is a
+      // no-op for them.
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT`
+        );
+        await client.query(
+          `ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd'`
+        );
+      });
+
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check`
+        );
+        await client.query(
+          `ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check CHECK (permissions IN ('read', 'read_write', 'full_access'))`
+        );
+      });
+    });
   } catch (error) {
     console.error("Failed to initialize MCP tables:", error);
     throw error;

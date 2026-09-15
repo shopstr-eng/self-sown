@@ -2,7 +2,7 @@ import { useContext, useState, useMemo } from "react";
 import { CommunityContext } from "@/utils/context/context";
 import CommunityCard from "@/components/communities/CommunityCard";
 import { Input, Divider } from "@heroui/react";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 
 const CommunitiesDiscoveryPage = () => {
@@ -33,7 +33,7 @@ const CommunitiesDiscoveryPage = () => {
       <div className="container mx-auto max-w-7xl px-4">
         {isLoading && communities.size === 0 ? (
           <div className="flex justify-center pt-10">
-            <MilkMarketSpinner label="Loading communities..." />
+            <SelfSownSpinner label="Loading communities..." />
           </div>
         ) : (
           <>
@@ -58,7 +58,7 @@ const CommunitiesDiscoveryPage = () => {
                 startContent={
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none flex-shrink-0 text-lg leading-none"
+                    className="pointer-events-none shrink-0 text-lg leading-none"
                   >
                     🔍
                   </span>

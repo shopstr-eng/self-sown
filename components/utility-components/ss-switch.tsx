@@ -1,7 +1,7 @@
 import { Switch } from "@heroui/react";
 import { useRouter } from "next/router";
 
-const MilkMarketSwitch = ({
+const SelfSownSwitch = ({
   wotFilter,
   setWotFilter,
 }: {
@@ -38,4 +38,4 @@ const MilkMarketSwitch = ({
   );
 };
 
-export default MilkMarketSwitch;
+export default SelfSownSwitch;

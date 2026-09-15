@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import parseTags from "@/utils/parsers/product-parser-functions";
 import { NostrEvent, ShopProfile } from "@/utils/types/types";
+import { SITE_URL } from "@/utils/site-url";
 
 jest.mock("next/head", () => {
   return {
@@ -59,7 +60,7 @@ describe("DynamicHead", () => {
     );
     await waitFor(() => {
       expect(document.title).toBe(
-        "Milk Market - Sell Local Products Online. Zero Platform Fees."
+        "Self-sown - Sell Local Products Online. Zero Platform Fees."
       );
     });
   });
@@ -118,7 +119,7 @@ describe("DynamicHead", () => {
           profileData={new Map()}
         />
       );
-      await waitFor(() => expect(document.title).toBe("Milk Market Stall"));
+      await waitFor(() => expect(document.title).toBe("Self-sown Stall"));
     });
 
     test("should render fallback tags if npub is missing from query", async () => {
@@ -136,12 +137,10 @@ describe("DynamicHead", () => {
       );
       await waitFor(() =>
         expect(document.title).toBe(
-          "Milk Market - Sell Local Products Online. Zero Platform Fees."
+          "Self-sown - Sell Local Products Online. Zero Platform Fees."
         )
       );
-      expect(getMetaContent("og:url")).toBe(
-        "https://milk.market/marketplace/npub"
-      );
+      expect(getMetaContent("og:url")).toBe(`${SITE_URL}/marketplace/npub`);
     });
 
     test("should use fallback image for a shop with picture set to null", async () => {
@@ -177,7 +176,9 @@ describe("DynamicHead", () => {
       );
       await waitFor(() =>
         expect(getMetaContent("og:image")).toBe(
-          "https://milk.market/api/og-image?url=https%3A%2F%2Fmilk.market%2Fmilk-market.png"
+          `${SITE_URL}/api/og-image?url=${encodeURIComponent(
+            `${SITE_URL}/self-sown-black.png`
+          )}`
         )
       );
     });
@@ -263,9 +264,11 @@ describe("DynamicHead", () => {
           profileData={new Map()}
         />
       );
-      await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
+      await waitFor(() => expect(document.title).toBe("Self-sown Listing"));
       expect(getMetaContent("og:image")).toBe(
-        "https://milk.market/api/og-image?url=https%3A%2F%2Fmilk.market%2Fmilk-market.png"
+        `${SITE_URL}/api/og-image?url=${encodeURIComponent(
+          `${SITE_URL}/self-sown-black.png`
+        )}`
       );
     });
 
@@ -285,7 +288,7 @@ describe("DynamicHead", () => {
           profileData={new Map()}
         />
       );
-      await waitFor(() => expect(document.title).toBe("Milk Market Listing"));
+      await waitFor(() => expect(document.title).toBe("Self-sown Listing"));
     });
   });
 });

@@ -6,7 +6,7 @@ import {
   type SellerOrderStatus,
   type SellerSession,
   type SellerShippingUpdate,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import type {
   OutboxExpectedStatus,
   SellerOrderNotificationOutbox,

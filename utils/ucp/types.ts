@@ -3,7 +3,7 @@ import { ProductTaxonomy } from "./taxonomy";
 
 /**
  * Shared type + namespace definitions for the Universal Commerce Protocol (UCP)
- * layer. These shapes are the single canonical representation of a Milk Market
+ * layer. These shapes are the single canonical representation of a Self-sown
  * listing for agentic clients; the MCP catalog resource and the REST catalog
  * endpoints both emit them via the shared mapper in `catalog.ts`, so the two can
  * never drift.
@@ -16,11 +16,12 @@ export const UCP_CHECKOUT_CAPABILITY = `${UCP_NAMESPACE}.checkout`;
 export const UCP_VERSION = "2025-draft";
 
 /**
- * Vendor extension namespace (reverse-DNS of milk.market) for fields that are
- * Milk Market / Nostr specific and have no standard UCP equivalent (event id,
- * seller npub, d-tag, herdshare terms, etc).
+ * Vendor extension namespace (reverse-DNS of the selfsown.com domain —
+ * renamed from the legacy "market.milk" key in the rebrand) for fields that
+ * are Self-sown / Nostr specific and have no standard UCP equivalent (event
+ * id, seller npub, d-tag, herdshare terms, etc).
  */
-export const UCP_VENDOR_NAMESPACE = "market.milk";
+export const UCP_VENDOR_NAMESPACE = "com.self-sown";
 
 export type UcpAvailability =
   | "in_stock"
@@ -40,7 +41,7 @@ export interface UcpSeller {
 }
 
 export interface UcpShipping {
-  /** Milk Market shipping option (Pickup, Free, Added Cost, …). */
+  /** Self-sown shipping option (Pickup, Free, Added Cost, …). */
   type: string;
   /** Shipping cost as money, or null when not quotable up front. */
   cost: UcpMoney | null;

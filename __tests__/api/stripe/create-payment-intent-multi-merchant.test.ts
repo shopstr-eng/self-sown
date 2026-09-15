@@ -15,6 +15,16 @@
 //
 // Heavy deps are mocked so a future refactor can't silently mis-charge a buyer
 // or mis-pay an affiliate. Self-host is forced OFF for every test here.
+//
+// Environment note (fixed here): the Apple Pay registration assertions send
+// `host: SITE_HOST` and the route only registers when trustedRegistrationHost
+// matches that header to the platform host derived from NEXT_PUBLIC_BASE_URL.
+// SITE_HOST is baked at module load (fallback "self-sown.com", or this
+// environment's real NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale
+// hardcoded "https://milk.market" made the header never match and the suite
+// went red after the brand rename / in any env where the var is set. The
+// beforeEach below stubs NEXT_PUBLIC_BASE_URL from SITE_HOST itself so the
+// two can never diverge again.
 
 const applyRateLimitMock = jest.fn();
 const getStripeConnectAccountMock = jest.fn();
@@ -87,6 +97,7 @@ jest.mock("@/utils/db/custom-domains", () => ({
 }));
 
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
+import { SITE_HOST } from "@/utils/site-url";
 
 const SELLER_A = "c".repeat(64);
 const SELLER_B = "d".repeat(64);
@@ -122,7 +133,7 @@ function hostedCfg(over: Record<string, unknown> = {}) {
 }
 
 const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
-const ORIGINAL_PK = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+const ORIGINAL_PK = process.env.NEXT_PUBLIC_SELF_SOWN_PK;
 const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 beforeEach(() => {
@@ -150,15 +161,18 @@ beforeEach(() => {
   process.env.STRIPE_SECRET_KEY = "sk_test_platform";
   // Distinct from any split pubkey so the route treats each split as a
   // connected seller, not the platform account.
-  process.env.NEXT_PUBLIC_MILK_MARKET_PK = "f".repeat(64);
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  process.env.NEXT_PUBLIC_SELF_SOWN_PK = "f".repeat(64);
+  // Derive the platform origin from SITE_HOST (see header note): the Apple
+  // Pay tests send `host: SITE_HOST`, and trustedRegistrationHost only
+  // registers when it matches the host of NEXT_PUBLIC_BASE_URL.
+  process.env.NEXT_PUBLIC_BASE_URL = `https://${SITE_HOST}`;
 });
 
 afterAll(() => {
   if (ORIGINAL_KEY === undefined) delete process.env.STRIPE_SECRET_KEY;
   else process.env.STRIPE_SECRET_KEY = ORIGINAL_KEY;
-  if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-  else process.env.NEXT_PUBLIC_MILK_MARKET_PK = ORIGINAL_PK;
+  if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+  else process.env.NEXT_PUBLIC_SELF_SOWN_PK = ORIGINAL_PK;
   if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
   else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
 });
@@ -178,14 +192,14 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
     await createPaymentIntentHandler(
       {
         method: "POST",
-        headers: { host: "milk.market" },
+        headers: { host: SITE_HOST },
         body: twoSellerBody,
       } as any,
       res as any
     );
     expect(res.statusCode).toBe(200);
     expect(registerApplePayDomainMock).toHaveBeenCalledTimes(1);
-    expect(registerApplePayDomainMock.mock.calls[0][0]).toBe("milk.market");
+    expect(registerApplePayDomainMock.mock.calls[0][0]).toBe(SITE_HOST);
     // Multi-seller charges are platform charges: no connected account arg.
     expect(registerApplePayDomainMock.mock.calls[0][1]).toBeUndefined();
   });

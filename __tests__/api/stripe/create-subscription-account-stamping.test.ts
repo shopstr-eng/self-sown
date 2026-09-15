@@ -10,7 +10,7 @@
 // subscription lives on the platform account and splits via transfers).
 
 const PLATFORM_PK = "c".repeat(64);
-process.env.NEXT_PUBLIC_MILK_MARKET_PK = PLATFORM_PK;
+process.env.NEXT_PUBLIC_SELF_SOWN_PK = PLATFORM_PK;
 
 const mockCustomersList = jest.fn();
 const mockCustomersCreate = jest.fn();
@@ -46,6 +46,11 @@ jest.mock("@/utils/db/db-service", () => ({
   getStripeConnectAccount: (...args: any[]) =>
     mockGetStripeConnectAccount(...args),
   createSubscription: (...args: any[]) => mockCreateSubscription(...args),
+  // utils/stripe/apple-pay.ts → utils/db/custom-domains.ts calls getDbPool()
+  // at module scope; without this the suite dies at import time. The pool is
+  // never queried here (requests carry no Host header, so the Apple Pay
+  // trusted-host check returns null before any domain lookup).
+  getDbPool: jest.fn(() => ({ query: jest.fn() })),
 }));
 
 jest.mock("@/utils/rate-limit", () => ({
@@ -60,7 +65,7 @@ jest.mock("@/utils/stripe/retry-service", () => ({
 jest.mock("@/utils/stripe/donation", () => ({
   getSellerDonationPercent: jest.fn(async () => null),
   isPlatformPubkey: jest.fn(
-    (pk: string) => pk === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    (pk: string) => pk === process.env.NEXT_PUBLIC_SELF_SOWN_PK
   ),
   computeDonationCutSmallest: jest.fn(() => 0),
 }));

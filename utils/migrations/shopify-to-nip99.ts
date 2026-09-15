@@ -23,7 +23,7 @@ export interface BuiltShopifyListing {
   warnings: string[];
 }
 
-const SHOPIFY_TO_MM_STATUS: Record<string, string> = {
+const SHOPIFY_TO_LISTING_STATUS: Record<string, string> = {
   active: "active",
   draft: "inactive",
   archived: "inactive",
@@ -102,7 +102,7 @@ export function buildListingFromShopifyProduct(
     );
   }
 
-  // Warn if the variants span a non-trivial price range — Milk Market
+  // Warn if the variants span a non-trivial price range — Self-sown
   // listings carry a single price, so the seller should be aware which one
   // we picked.
   const variantPrices = product.variants
@@ -121,8 +121,8 @@ export function buildListingFromShopifyProduct(
   const currency = defaultCurrency;
 
   // Map Shopify status to MM status
-  const mmStatus =
-    SHOPIFY_TO_MM_STATUS[(product.status || "active").toLowerCase()] ||
+  const listingStatus =
+    SHOPIFY_TO_LISTING_STATUS[(product.status || "active").toLowerCase()] ||
     "active";
 
   // Validate images
@@ -172,7 +172,7 @@ export function buildListingFromShopifyProduct(
   const tags: ProductFormValues = [
     ["d", dTag],
     ["alt", "Product listing: " + title],
-    ["client", "Milk Market", "31990:" + pubkey + ":" + dTag, relayHint],
+    ["client", "Self-sown", "31990:" + pubkey + ":" + dTag, relayHint],
     ["title", title],
     ["summary", description],
     ["price", price.toFixed(2), currency],
@@ -189,9 +189,9 @@ export function buildListingFromShopifyProduct(
 
   validImages.forEach((img) => tags.push(["image", img]));
 
-  // Default Milk Market category + housekeeping tags
+  // Default Self-sown category + housekeeping tags
   if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "MilkMarket"]);
+  tags.push(["t", "SelfSown"]);
   tags.push(["t", "FREEMILK"]);
 
   // Optional: import original Shopify tags as t-tags too (keep listings searchable)
@@ -239,7 +239,7 @@ export function buildListingFromShopifyProduct(
   }
 
   // Status
-  tags.push(["status", mmStatus]);
+  tags.push(["status", listingStatus]);
 
   // Pickup locations if shipping option includes pickup
   if (

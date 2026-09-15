@@ -39,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -65,7 +65,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -171,7 +171,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -242,7 +242,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
+          node-version: '22.x'
 
       - name: Enable Corepack (pnpm)
         run: corepack enable
@@ -303,7 +303,7 @@ jobs:
           
           ## Reporting a Vulnerability
           
-          If you discover a security vulnerability in Milk Market, please report it by creating a new issue in our GitHub repository with the "security" label.
+          If you discover a security vulnerability in Self-sown, please report it by creating a new issue in our GitHub repository with the "security" label.
           
           **Please do not disclose security vulnerabilities publicly until they have been addressed.**
           
@@ -320,7 +320,7 @@ jobs:
           - We will provide a detailed response within 7 days
           - We will work on a fix and coordinate disclosure
           
-          Thank you for helping keep Milk Market secure!
+          Thank you for helping keep Self-sown secure!
           EOF
             echo "📝 Created basic security policy template at .github/SECURITY.md"
           fi

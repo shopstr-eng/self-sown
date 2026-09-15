@@ -70,7 +70,7 @@ beforeEach(() => {
   process.env.SESSION_SECRET = "test-session-secret";
   process.env.STRIPE_SECRET_KEY = "sk_test_1";
   process.env.STRIPE_CLIENT_ID = "ca_test_1";
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   oauthTokenMock.mockResolvedValue({ stripe_user_id: "acct_standard_1" });
   retrieveAccountMock.mockResolvedValue({
     details_submitted: true,

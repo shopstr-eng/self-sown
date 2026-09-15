@@ -4,6 +4,7 @@ import { ModalBody, ModalFooter, Button, Input } from "@heroui/react";
 import { SavedAddress } from "@/utils/types/types";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { getSavedAddresses } from "@/utils/nostr/nostr-helper-functions";
+import { joinClassNames } from "@/utils/class-names";
 import { v4 as uuidv4 } from "uuid";
 
 interface EditAddressFormProps {
@@ -202,9 +203,10 @@ export default function EditAddressForm({
             />
             <label
               htmlFor="default-address"
-              className={`text-sm ${
+              className={joinClassNames(
+                "text-sm",
                 isOnlyDefault ? "text-gray-500" : "cursor-pointer text-black"
-              }`}
+              )}
             >
               Set as default address
             </label>

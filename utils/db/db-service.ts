@@ -1,4 +1,5 @@
 import { Pool, PoolClient } from "pg";
+import { getSelfHostConfig } from "../self-host/config";
 import { NostrEvent } from "../types/types";
 import { findListingBySlug } from "../url-slugs";
 import { CHECKOUT_STATUSES } from "../ucp/checkout-status";
@@ -10,10 +11,87 @@ let tablesInitializationPromise: Promise<void> | null = null;
 // Queue for serializing cache operations
 let cacheQueue: Promise<void> = Promise.resolve();
 
+// Transaction-scoped advisory lock serializing every schema-DDL batch
+// (initializeTables plus the lazy ensure*Table helpers here and in
+// inventory-service / mcp/auth / stripe/* / ucp/checkout-store) across
+// connections and server processes. On a fresh database, two boot-time DDL
+// batches taking AccessExclusiveLock on the same relations in different
+// orders deadlock (Postgres 40P01); funnelling all DDL through one advisory
+// lock makes that impossible.
+//
+// The lock is transaction-scoped (pg_advisory_xact_lock inside one explicit
+// BEGIN/COMMIT), NOT session-scoped: getDbPool() rewrites Neon URLs to the
+// transaction-pooling -pooler endpoint, where consecutive queries on one
+// PoolClient can land on different backend sessions — a session-level lock
+// could leak on one backend while failing to cover the DDL on another. A
+// transaction pins the whole batch to a single backend even through a
+// transaction pooler, and the lock is always released at COMMIT/ROLLBACK
+// (or when the connection dies), so there is no unlock to fail.
+const SCHEMA_DDL_LOCK_KEY = 727423001;
+
+// Clients currently inside a withSchemaDdlLock transaction. Nested calls on
+// the same client (the ensure* helpers invoked mid-way through
+// initializeTables) must not re-open a transaction — the outer one already
+// holds the xact lock.
+const ddlLockHeldBy = new WeakSet<object>();
+
+export async function withSchemaDdlLock<T>(
+  client: Pick<PoolClient, "query">,
+  fn: (client: Pick<PoolClient, "query">) => Promise<T>
+): Promise<T> {
+  if (ddlLockHeldBy.has(client)) {
+    return fn(client);
+  }
+  await client.query("BEGIN");
+  ddlLockHeldBy.add(client);
+  try {
+    await client.query(`SELECT pg_advisory_xact_lock($1)`, [
+      SCHEMA_DDL_LOCK_KEY,
+    ]);
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      // Connection already dead; the server aborts the transaction (and
+      // releases the lock) when the connection closes.
+    }
+    throw error;
+  } finally {
+    ddlLockHeldBy.delete(client);
+  }
+}
+
+// Single-flight schema bootstrap. The stored promise always has rejection
+// handlers attached because most getDbPool() callers only want the pool and
+// never await initialization — a boot-time DDL failure must be logged, not
+// surface as an unhandledRejection (which can crash the process under
+// --unhandled-rejections=strict). Awaiters of the stored promise still
+// receive the rejection.
+function startTablesInitialization(): Promise<void> {
+  if (!tablesInitializationPromise) {
+    const initPromise = initializeTables();
+    initPromise.catch((error) => {
+      console.error("Failed to initialize database tables:", error);
+    });
+    const tracked = initPromise.finally(() => {
+      if (!tablesInitialized) {
+        tablesInitializationPromise = null;
+      }
+    });
+    tracked.catch(() => {});
+    tablesInitializationPromise = tracked;
+  }
+  return tablesInitializationPromise;
+}
+
 export async function ensureFailedRelayPublishesTable(
-  client: PoolClient
+  client: Pick<PoolClient, "query">
 ): Promise<void> {
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS failed_relay_publishes (
       event_id TEXT PRIMARY KEY,
       owner_pubkey TEXT,
@@ -24,23 +102,24 @@ export async function ensureFailedRelayPublishesTable(
     )
   `);
 
-  await client.query(`
+    await client.query(`
     ALTER TABLE failed_relay_publishes
     ADD COLUMN IF NOT EXISTS event_data TEXT
   `);
 
-  await client.query(`
+    await client.query(`
     ALTER TABLE failed_relay_publishes
     ADD COLUMN IF NOT EXISTS owner_pubkey TEXT
   `);
 
-  // Legacy rows pre-dating the owner_pubkey column have NULL ownership and
-  // can no longer be listed, retried, cleared, or claimed by anyone, so they
-  // would otherwise sit in the table forever. Drop them once on schema setup.
-  await client.query(`
+    // Legacy rows pre-dating the owner_pubkey column have NULL ownership and
+    // can no longer be listed, retried, cleared, or claimed by anyone, so they
+    // would otherwise sit in the table forever. Drop them once on schema setup.
+    await client.query(`
     DELETE FROM failed_relay_publishes
     WHERE owner_pubkey IS NULL
   `);
+  });
 }
 
 export async function trackFailedRelayPublishRecord({
@@ -184,21 +263,23 @@ const SEED_AUTHED_SELLER_PUBKEYS = [
 // Tracks which npubs have successfully entered the listing password. The
 // marketplace only displays products from pubkeys recorded here.
 export async function ensureAuthedSellersTable(
-  client: PoolClient
+  client: Pick<PoolClient, "query">
 ): Promise<void> {
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS authed_sellers (
       pubkey TEXT PRIMARY KEY,
       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  await client.query(
-    `INSERT INTO authed_sellers (pubkey)
+    await client.query(
+      `INSERT INTO authed_sellers (pubkey)
      SELECT UNNEST($1::text[])
      ON CONFLICT (pubkey) DO NOTHING`,
-    [SEED_AUTHED_SELLER_PUBKEYS]
-  );
+      [SEED_AUTHED_SELLER_PUBKEYS]
+    );
+  });
 }
 
 // Records that the given pubkey has entered the listing password. No-op for
@@ -240,7 +321,8 @@ let rateLimitTableInitialized = false;
 
 async function ensureRateLimitCountersTable(client: PoolClient): Promise<void> {
   if (rateLimitTableInitialized) return;
-  await client.query(`
+  await withSchemaDdlLock(client, async () => {
+    await client.query(`
     CREATE TABLE IF NOT EXISTS rate_limit_counters (
       bucket TEXT NOT NULL,
       rate_key TEXT NOT NULL,
@@ -250,10 +332,11 @@ async function ensureRateLimitCountersTable(client: PoolClient): Promise<void> {
       PRIMARY KEY (bucket, rate_key)
     )
   `);
-  await client.query(`
+    await client.query(`
     CREATE INDEX IF NOT EXISTS idx_rate_limit_counters_reset_at
       ON rate_limit_counters(reset_at)
   `);
+  });
   rateLimitTableInitialized = true;
 }
 
@@ -373,16 +456,7 @@ export function getDbPool(): Pool {
 
     // Auto-create tables on first connection (only once)
     if (!tablesInitialized && !tablesInitializationPromise) {
-      tablesInitializationPromise = initializeTables()
-        .catch((error) => {
-          console.error("Failed to initialize database tables:", error);
-          throw error;
-        })
-        .finally(() => {
-          if (!tablesInitialized) {
-            tablesInitializationPromise = null;
-          }
-        });
+      startTablesInitialization();
     }
   }
   return pool;
@@ -395,20 +469,7 @@ async function ensureTablesInitialized(): Promise<void> {
 
   getDbPool();
 
-  if (!tablesInitializationPromise) {
-    tablesInitializationPromise = initializeTables()
-      .catch((error) => {
-        console.error("Failed to initialize database tables:", error);
-        throw error;
-      })
-      .finally(() => {
-        if (!tablesInitialized) {
-          tablesInitializationPromise = null;
-        }
-      });
-  }
-
-  await tablesInitializationPromise;
+  await startTablesInitialization();
 }
 
 // Auto-create all tables if they don't exist
@@ -431,7 +492,10 @@ async function initializeTables(): Promise<void> {
   try {
     client = await dbPool.connect();
 
-    await client.query(`
+    // Serialize the whole DDL batch against concurrent boot-time DDL from
+    // other pooled connections or server processes (see withSchemaDdlLock).
+    await withSchemaDdlLock(client, async (client) => {
+      await client.query(`
       -- Products table (kind 30402 - listings)
       CREATE TABLE IF NOT EXISTS product_events (
           id TEXT PRIMARY KEY,
@@ -829,14 +893,14 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_blog_email_broadcasts_pubkey ON blog_email_broadcasts(pubkey);
     `);
 
-    // Per-segment broadcast claims: pre-segment rows keyed the whole published
-    // version via UNIQUE(pubkey, d_tag, event_id). Add the segment column and
-    // replace that key with (pubkey, d_tag, event_id, audience_source) so each
-    // audience segment gets its own one-shot claim. The legacy constraint is
-    // dropped by NAME LOOKUP (not DROP ... IF EXISTS with a guessed name) so a
-    // divergent auto-generated name can't silently survive and break every
-    // segment claim as 'claim-failed'.
-    await client.query(`
+      // Per-segment broadcast claims: pre-segment rows keyed the whole published
+      // version via UNIQUE(pubkey, d_tag, event_id). Add the segment column and
+      // replace that key with (pubkey, d_tag, event_id, audience_source) so each
+      // audience segment gets its own one-shot claim. The legacy constraint is
+      // dropped by NAME LOOKUP (not DROP ... IF EXISTS with a guessed name) so a
+      // divergent auto-generated name can't silently survive and break every
+      // segment claim as 'claim-failed'.
+      await client.query(`
       DO $$
       DECLARE
         legacy_key text;
@@ -865,7 +929,7 @@ async function initializeTables(): Promise<void> {
         END IF;
       END $$;
     `);
-    await client.query(`
+      await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS blog_email_broadcasts_version_segment_key
         ON blog_email_broadcasts (pubkey, d_tag, event_id, audience_source);
 
@@ -1298,8 +1362,12 @@ async function initializeTables(): Promise<void> {
       CREATE TABLE IF NOT EXISTS shipping_oauth_states (
         state TEXT PRIMARY KEY,
         pubkey TEXT NOT NULL,
+        -- Authorize-time callback URL (same cutover-continuity reason as
+        -- square_oauth_states.redirect_uri).
+        redirect_uri TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE shipping_oauth_states ADD COLUMN IF NOT EXISTS redirect_uri TEXT;
       CREATE INDEX IF NOT EXISTS idx_shipping_oauth_states_created_at
         ON shipping_oauth_states(created_at);
 
@@ -1311,6 +1379,7 @@ async function initializeTables(): Promise<void> {
       -- are stored together. Charges land directly on the seller's Square
       -- account (no platform split). location_id + location_currency are
       -- captured at connect so checkout can refuse a currency mismatch.
+      -- location_country feeds Apple Pay's payment request (countryCode).
       CREATE TABLE IF NOT EXISTS square_oauth_connections (
         pubkey TEXT PRIMARY KEY,
         access_token TEXT NOT NULL,
@@ -1319,6 +1388,7 @@ async function initializeTables(): Promise<void> {
         merchant_id TEXT,
         location_id TEXT,
         location_currency TEXT,
+        location_country TEXT,
         scope TEXT,
         status TEXT NOT NULL DEFAULT 'connected',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1330,8 +1400,13 @@ async function initializeTables(): Promise<void> {
       CREATE TABLE IF NOT EXISTS square_oauth_states (
         state TEXT PRIMARY KEY,
         pubkey TEXT NOT NULL,
+        -- Authorize-time callback URL: the token exchange must replay it
+        -- exactly, even if the base domain changed mid-flow (cutover).
+        redirect_uri TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+      ALTER TABLE square_oauth_states ADD COLUMN IF NOT EXISTS redirect_uri TEXT;
+      ALTER TABLE square_oauth_connections ADD COLUMN IF NOT EXISTS location_country TEXT;
       CREATE INDEX IF NOT EXISTS idx_square_oauth_states_created_at
         ON square_oauth_states(created_at);
 
@@ -1376,7 +1451,7 @@ async function initializeTables(): Promise<void> {
         ADD COLUMN IF NOT EXISTS auto_purchase_labels BOOLEAN NOT NULL DEFAULT TRUE;
     `);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1402,14 +1477,14 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       CREATE INDEX IF NOT EXISTS idx_message_events_is_read ON message_events(is_read);
       CREATE INDEX IF NOT EXISTS idx_message_events_order_id ON message_events(order_id);
     `);
 
-    await ensureFailedRelayPublishesTable(client);
+      await ensureFailedRelayPublishesTable(client);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF EXISTS (
@@ -1422,7 +1497,7 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1492,11 +1567,11 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    // Storefront email/contact captures (welcome-offer popup + subscription
-    // form). This table historically lived only in db/schema.sql, so bring it
-    // into the runtime bootstrap alongside every other table. CREATE IF NOT
-    // EXISTS is a no-op where it already exists.
-    await client.query(`
+      // Storefront email/contact captures (welcome-offer popup + subscription
+      // form). This table historically lived only in db/schema.sql, so bring it
+      // into the runtime bootstrap alongside every other table. CREATE IF NOT
+      // EXISTS is a no-op where it already exists.
+      await client.query(`
       CREATE TABLE IF NOT EXISTS popup_email_captures (
           id SERIAL PRIMARY KEY,
           seller_pubkey TEXT NOT NULL,
@@ -1513,18 +1588,18 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_popup_email_captures_email ON popup_email_captures(email);
     `);
 
-    // Origin of each captured contact: 'popup' (welcome-offer popup, gets a
-    // discount code) vs 'subscription' (storefront subscription form, no code).
-    // The `source` column was added to popup_email_captures after it shipped and
-    // was only mirrored into db/schema.sql, never into this runtime path — so
-    // the hosted databases (which bootstrap here, not from schema.sql) never got
-    // it, and every popup/subscription capture 500'd with
-    // 'column "source" ... does not exist', silently dropping the contact and
-    // its welcome discount code. Backfill existing rows once when the column is
-    // first added: rows with an empty discount_code were subscription signups,
-    // everything else came from the popup. The column-existence guard keeps the
-    // backfill a one-time operation. Mirrors the DO block in db/schema.sql.
-    await client.query(`
+      // Origin of each captured contact: 'popup' (welcome-offer popup, gets a
+      // discount code) vs 'subscription' (storefront subscription form, no code).
+      // The `source` column was added to popup_email_captures after it shipped and
+      // was only mirrored into db/schema.sql, never into this runtime path — so
+      // the hosted databases (which bootstrap here, not from schema.sql) never got
+      // it, and every popup/subscription capture 500'd with
+      // 'column "source" ... does not exist', silently dropping the contact and
+      // its welcome discount code. Backfill existing rows once when the column is
+      // first added: rows with an empty discount_code were subscription signups,
+      // everything else came from the popup. The column-existence guard keeps the
+      // backfill a one-time operation. Mirrors the DO block in db/schema.sql.
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1539,7 +1614,7 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       DO $$
       BEGIN
         IF NOT EXISTS (
@@ -1557,11 +1632,11 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    // Allow the 'one_time' flow type on databases created before it existed.
-    // Drop any existing CHECK constraint on flow_type (regardless of its
-    // auto-generated name) before adding the canonical one, so this works even
-    // if the prior constraint was named differently.
-    await client.query(`
+      // Allow the 'one_time' flow type on databases created before it existed.
+      // Drop any existing CHECK constraint on flow_type (regardless of its
+      // auto-generated name) before adding the canonical one, so this works even
+      // if the prior constraint was named differently.
+      await client.query(`
       DO $$
       DECLARE
         c record;
@@ -1581,7 +1656,7 @@ async function initializeTables(): Promise<void> {
       END $$;
     `);
 
-    await client.query(`
+      await client.query(`
       CREATE TABLE IF NOT EXISTS inventory (
         id SERIAL PRIMARY KEY,
         product_id TEXT NOT NULL,
@@ -1691,13 +1766,13 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_affiliate_payouts_seller_pubkey ON affiliate_payouts(seller_pubkey);
     `);
 
-    // -----------------------------------------------------------------
-    // Idempotent affiliate-program migrations. This block mirrors the
-    // DO $aff_migrate$ block in db/schema.sql so that environments which
-    // bootstrap from this code path (rather than running schema.sql
-    // directly) stay in sync.  Safe to re-run.
-    // -----------------------------------------------------------------
-    await client.query(`
+      // -----------------------------------------------------------------
+      // Idempotent affiliate-program migrations. This block mirrors the
+      // DO $aff_migrate$ block in db/schema.sql so that environments which
+      // bootstrap from this code path (rather than running schema.sql
+      // directly) stay in sync.  Safe to re-run.
+      // -----------------------------------------------------------------
+      await client.query(`
       DO $aff_migrate_inline$
       BEGIN
         EXECUTE 'UPDATE affiliate_codes SET payout_schedule = ''monthly'' WHERE payout_schedule IN (''every_sale'', ''daily'')';
@@ -1770,11 +1845,11 @@ async function initializeTables(): Promise<void> {
       $sub_migrate_inline$;
     `);
 
-    // -----------------------------------------------------------------
-    // Pro membership tier. Effective status is resolved in code from the
-    // forward-looking lapse timeline stored here. Mirrors db/schema.sql.
-    // -----------------------------------------------------------------
-    await client.query(`
+      // -----------------------------------------------------------------
+      // Pro membership tier. Effective status is resolved in code from the
+      // forward-looking lapse timeline stored here. Mirrors db/schema.sql.
+      // -----------------------------------------------------------------
+      await client.query(`
       CREATE TABLE IF NOT EXISTS pro_memberships (
           id SERIAL PRIMARY KEY,
           pubkey TEXT NOT NULL UNIQUE,
@@ -1851,9 +1926,9 @@ async function initializeTables(): Promise<void> {
       );
     `);
 
-    // Cashu escrow: verified buyer commitments + durable release/refund
-    // outbox. Keep in sync with db/schema.sql (self-host bootstrap).
-    await client.query(`
+      // Cashu escrow: verified buyer commitments + durable release/refund
+      // outbox. Keep in sync with db/schema.sql (self-host bootstrap).
+      await client.query(`
       CREATE TABLE IF NOT EXISTS cashu_escrow_registrations (
         escrow_id TEXT PRIMARY KEY,
         buyer_pubkey TEXT NOT NULL,
@@ -1908,16 +1983,16 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE cashu_escrow_outbox ADD COLUMN IF NOT EXISTS prepared_outputs JSONB;
     `);
 
-    await ensureAuthedSellersTable(client);
+      await ensureAuthedSellersTable(client);
 
-    // Tables that also self-create lazily in their own modules. They are
-    // registered here too so a quiet dev database still contains every table
-    // prod has — otherwise the publish schema-diff reads a prod-only table as
-    // "removed" and forces a destructive rename/drop choice. The module's DDL
-    // stays the source of truth; IF NOT EXISTS makes coexistence safe, and the
-    // lazy ensure* functions keep their data migrations (they no-op on the DDL).
-    const ucpStatusList = CHECKOUT_STATUSES.map((s) => `'${s}'`).join(",");
-    await client.query(`
+      // Tables that also self-create lazily in their own modules. They are
+      // registered here too so a quiet dev database still contains every table
+      // prod has — otherwise the publish schema-diff reads a prod-only table as
+      // "removed" and forces a destructive rename/drop choice. The module's DDL
+      // stays the source of truth; IF NOT EXISTS makes coexistence safe, and the
+      // lazy ensure* functions keep their data migrations (they no-op on the DDL).
+      const ucpStatusList = CHECKOUT_STATUSES.map((s) => `'${s}'`).join(",");
+      await client.query(`
       -- Stripe webhook event dedup claims (utils/stripe/processed-events.ts)
       CREATE TABLE IF NOT EXISTS stripe_processed_events (
         event_id TEXT PRIMARY KEY,
@@ -1974,7 +2049,13 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_order ON ucp_checkout_sessions(mcp_order_id);
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
     `);
+    });
 
+    // Publish the initialized state only after the schema transaction has
+    // COMMITTED (withSchemaDdlLock resolves post-commit). Setting it inside
+    // the callback would let a commit failure strand us "initialized" with
+    // the schema rolled back, and let concurrent callers observe committed
+    // state before it exists.
     tablesInitialized = true;
   } catch (error) {
     console.error("Failed to initialize tables:", error);
@@ -3194,14 +3275,35 @@ export async function fetchShopPubkeyBySlug(
       `SELECT pubkey FROM shop_slugs WHERE slug = $1 LIMIT 1`,
       [slug.toLowerCase().trim()]
     );
-    if (result.rows.length === 0) return null;
+    if (result.rows.length === 0) return selfHostTenantSlugFallback(slug);
     return result.rows[0].pubkey;
   } catch (error) {
     logSwallowedDbOutage("Failed to fetch shop pubkey by slug:", error);
-    return null;
+    // On self-host the tenant slug's owner is known from config regardless of
+    // DB state, so fall back on error too: a brand-new install's first
+    // requests can arrive while initializeTables() is still creating the
+    // schema asynchronously at boot, and that race must not 404 the
+    // storefront. Platform behavior is unchanged (fallback returns null when
+    // self-host is off).
+    return selfHostTenantSlugFallback(slug);
   } finally {
     if (client) client.release();
   }
+}
+
+// A single-tenant self-host instance starts with an EMPTY slug registry: the
+// seller claimed their slug in the PLATFORM's database, not this one. The
+// instance already knows its tenant via SS_SELF_HOST_PUBKEY/SS_SELF_HOST_SLUG,
+// so resolve the tenant slug from config on a DB miss instead of 404ing the
+// storefront root until something syncs the row. Platform (multi-tenant)
+// behavior is unchanged: the fallback returns null when self-host is off, and
+// an existing DB row always wins.
+function selfHostTenantSlugFallback(slug: string): string | null {
+  const cfg = getSelfHostConfig();
+  if (!cfg.enabled || !cfg.tenantPubkey || !cfg.tenantSlug) return null;
+  return slug.toLowerCase().trim() === cfg.tenantSlug.toLowerCase()
+    ? cfg.tenantPubkey
+    : null;
 }
 
 /** Resolve a seller's registered storefront slug (pubkey → slug), or null. */
@@ -5029,7 +5131,7 @@ export async function setStripeTaxEnabled(
   }
 }
 
-// Remove a seller's Stripe Connect link from Milk Market. This only unlinks the
+// Remove a seller's Stripe Connect link from Self-sown. This only unlinks the
 // account in our database (so the seller can connect a different one); it does
 // NOT delete or close the account at Stripe, which may still hold a balance or
 // pending payouts. Returns whether a row was actually removed.
