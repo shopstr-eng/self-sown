@@ -181,7 +181,15 @@ export default async function handler(
         await scheduleStepExecutions(enrollment.id, flow.id);
         enrolled++;
       } catch (contactError) {
-        console.error("Failed to enroll contact in flow:", email, contactError);
+        const maskedEmail =
+          typeof email === "string"
+            ? email.replace(/^(..).*(@.+)$/, "$1***$2")
+            : "unknown";
+        console.error(
+          "Failed to enroll contact in flow:",
+          maskedEmail,
+          contactError
+        );
         skipped++;
         // If the enrollment row was created but scheduling failed, cancel it so
         // it doesn't linger as "active" with no emails queued — that would make

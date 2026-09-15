@@ -4,6 +4,7 @@ import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
 import CryptoJS from "crypto-js";
 import crypto from "crypto";
 import { OAUTH_AUTH_SALT, LEGACY_OAUTH_AUTH_SALT } from "@/utils/auth/salts";
+import { getSiteUrl } from "@/utils/site-url";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.
@@ -52,11 +53,12 @@ function buildAppleClientSecret(opts: {
   return `${unsigned}.${signature.toString("base64url")}`;
 }
 
-// Helper function to get the base URL from the request
-function getBaseUrl(req: NextApiRequest): string {
-  const protocol = req.headers["x-forwarded-proto"] || "https";
-  const host = req.headers.host;
-  return `${protocol}://${host}`;
+// The success redirect carries credentials (nsec) in its query string, so its
+// origin must never come from the client-controlled Host / x-forwarded-proto
+// headers — always use the configured site URL. (The token exchange below
+// separately byte-matches the authorize-time redirect_uri from the cookie.)
+function getBaseUrl(): string {
+  return getSiteUrl();
 }
 
 export default async function handler(
@@ -319,7 +321,7 @@ export default async function handler(
     await client.end();
 
     // Redirect to success page with nsec and pubkey
-    const successUrl = new URL("/auth/oauth-success", getBaseUrl(req));
+    const successUrl = new URL("/auth/oauth-success", getBaseUrl());
     successUrl.searchParams.set("nsec", nsec);
     successUrl.searchParams.set("pubkey", pubkey);
     successUrl.searchParams.set("provider", provider);
