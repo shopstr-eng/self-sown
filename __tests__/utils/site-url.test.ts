@@ -18,8 +18,8 @@ describe("site-url", () => {
     process.env.NEXT_PUBLIC_BASE_URL = "https://self-sown.com";
     expect(getSiteUrl()).toBe("https://self-sown.com");
     expect(getSiteHost()).toBe("self-sown.com");
-    process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market/";
-    expect(getSiteUrl()).toBe("https://milk.market/");
+    process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com/";
+    expect(getSiteUrl()).toBe("https://platform.example.com/");
   });
 
   it("treats an empty env var as unset", () => {
@@ -28,8 +28,8 @@ describe("site-url", () => {
   });
 
   it("derives the host even without a protocol and never throws", () => {
-    process.env.NEXT_PUBLIC_BASE_URL = "milk.market";
-    expect(getSiteHost()).toBe("milk.market");
+    process.env.NEXT_PUBLIC_BASE_URL = "platform.example.com";
+    expect(getSiteHost()).toBe("platform.example.com");
   });
 
   it("module-level constants agree with the getters", () => {
