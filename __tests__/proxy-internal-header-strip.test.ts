@@ -118,6 +118,20 @@ describe("internal header trust boundary", () => {
     );
   });
 
+  it("strips forged internal headers from the Apple Pay verification rewrite", async () => {
+    const proxy = loadProxy("https://self-sown.com");
+    const res = await proxy(
+      buildRequest(
+        "self-sown.com",
+        "/.well-known/apple-developer-merchantid-domain-association",
+        { "x-ss-custom-domain-host": "evil.example" }
+      )
+    );
+    expect(
+      res.headers.get("x-middleware-request-x-ss-custom-domain-host")
+    ).toBeNull();
+  });
+
   it("preserves ordinary request headers while stripping internal ones", async () => {
     const proxy = loadProxy("https://self-sown.com");
     const res = await proxy(

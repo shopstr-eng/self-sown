@@ -54,7 +54,7 @@ export default async function handler(
     // Self-host instances serve their own MCP directly, so platformUrl is not
     // set for them; only custom-domain seller requests get the redirect.
     const isCustomDomain =
-      !!seller && !isSelfHost() && !!req.headers["x-mm-custom-domain-host"];
+      !!seller && !isSelfHost() && !!req.headers["x-ss-custom-domain-host"];
 
     return res.status(200).json(
       buildUcpDiscoveryProfile({

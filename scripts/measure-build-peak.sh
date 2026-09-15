@@ -67,7 +67,7 @@ end_ts=$(date +%s)
   echo "peak_rss_mb=$peak"
   echo "wall_s=$((end_ts - start_ts))"
   echo "args=${EXTRA_ARGS[*]:-<none>}"
-  echo "mm_dev_build=$SS_DEV_BUILD rayon=$RAYON_NUM_THREADS keep_cache=$KEEP_CACHE"
+  echo "ss_dev_build=$SS_DEV_BUILD rayon=$RAYON_NUM_THREADS keep_cache=$KEEP_CACHE"
   date -u +"measured_at=%Y-%m-%dT%H:%M:%SZ"
 } | tee "$OUT/summary.txt"
 

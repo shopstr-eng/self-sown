@@ -319,7 +319,8 @@ async function routeRequest(request: NextRequest) {
       new URL(
         "/api/.well-known/apple-developer-merchantid-domain-association",
         request.url
-      )
+      ),
+      { request: { headers: stripInternalHeaders(request.headers) } }
     );
   }
 
