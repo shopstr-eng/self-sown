@@ -49,11 +49,11 @@ describe("OAuth token exchange redirect_uri pinning", () => {
   it("Square replays the pinned authorize-time redirect URI", async () => {
     await exchangeSquareCodeForToken(
       "code123",
-      "https://milk.market/square-oauth-redirect"
+      "https://platform.example.com/square-oauth-redirect"
     );
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit;
     const body = JSON.parse(init.body as string);
-    expect(body.redirect_uri).toBe("https://milk.market/square-oauth-redirect");
+    expect(body.redirect_uri).toBe("https://platform.example.com/square-oauth-redirect");
   });
 
   it("Square falls back to the current base URL when nothing was pinned (legacy state row)", async () => {
@@ -68,12 +68,12 @@ describe("OAuth token exchange redirect_uri pinning", () => {
   it("Shippo replays the pinned authorize-time redirect URI", async () => {
     await exchangeShippoCodeForToken(
       "code123",
-      "https://milk.market/shippo-oauth-redirect"
+      "https://platform.example.com/shippo-oauth-redirect"
     );
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit;
     const params = new URLSearchParams(init.body as string);
     expect(params.get("redirect_uri")).toBe(
-      "https://milk.market/shippo-oauth-redirect"
+      "https://platform.example.com/shippo-oauth-redirect"
     );
   });
 

@@ -104,7 +104,7 @@ beforeEach(() => {
     "https://goshippo.com/oauth/authorize?state=x"
   );
   getShippoRedirectUriMock.mockReturnValue(
-    "https://milk.market/shippo-oauth-redirect"
+    "https://platform.example.com/shippo-oauth-redirect"
   );
   createShippoOAuthStateMock.mockResolvedValue(undefined);
   parseSignedEventHeaderMock.mockReturnValue(PARSED_EVENT);
@@ -137,7 +137,7 @@ describe("/api/shipping/oauth/start signed-event (cryptographic proof) guards", 
     // The authorize-time redirect URI is pinned into the state row so the
     // token exchange still matches if the base domain flips mid-flow.
     expect(createShippoOAuthStateMock.mock.calls[0][2]).toBe(
-      "https://milk.market/shippo-oauth-redirect"
+      "https://platform.example.com/shippo-oauth-redirect"
     );
   });
 
