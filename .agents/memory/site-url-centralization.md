@@ -15,4 +15,4 @@ Three non-obvious constraints surfaced by code review when the base domain was c
 
 3. **Importing SITE_URL/SITE_HOST into tests that stub `NEXT_PUBLIC_BASE_URL` per-test creates an import-time vs call-time mismatch** — the const is captured at module load (from the shell env), the handler reads the stubbed env later. Tests then fail when the outer env differs (e.g. CI without the var).
    **Why:** reproduced by running Jest with a different initial `NEXT_PUBLIC_BASE_URL`.
-   **How to apply:** in tests that stub the env var, assert literal expected values matching the fixture; only import SITE_URL in tests that never touch the env var.
+   **How to apply:** in tests that stub the env var, assert literal expected values matching the fixture; only import SITE_URL in tests that never touch the env var. If a test both stubs the env AND uses SITE_HOST in requests/assertions, stub the env FROM SITE_HOST (`process.env.NEXT_PUBLIC_BASE_URL = \`https://${SITE_HOST}\``) — stubbing to a hardcoded old-domain literal broke the Apple Pay payment-intent suites the moment the fallback domain (or the shell env) changed.

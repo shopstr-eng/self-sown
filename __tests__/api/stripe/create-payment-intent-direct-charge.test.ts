@@ -9,6 +9,16 @@
 // heavy deps mocked so a future refactor can't silently mis-charge a buyer or
 // skim sales tax. Self-host is forced OFF here (covered separately in
 // self-host-card-checkout.test.ts).
+//
+// Environment note (fixed here): the Apple Pay registration assertions send
+// `host: SITE_HOST` and the route only registers when trustedRegistrationHost
+// matches that header to the platform host derived from NEXT_PUBLIC_BASE_URL.
+// SITE_HOST is baked at module load (fallback "self-sown.com", or this
+// environment's real NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale
+// hardcoded "https://milk.market" made the header never match and the suites
+// went red after the brand rename / in any env where the var is set. The
+// beforeEach below stubs NEXT_PUBLIC_BASE_URL from SITE_HOST itself so the
+// two can never diverge again.
 
 const applyRateLimitMock = jest.fn();
 const getStripeConnectAccountMock = jest.fn();
@@ -127,7 +137,10 @@ beforeEach(() => {
   // Keep the seller pubkey distinct from the platform pubkey so the route
   // treats it as a connected seller (not the platform account).
   process.env.NEXT_PUBLIC_SELF_SOWN_PK = "f".repeat(64);
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  // Derive the platform origin from SITE_HOST (see header note): the Apple
+  // Pay tests send `host: SITE_HOST`, and trustedRegistrationHost only
+  // registers when it matches the host of NEXT_PUBLIC_BASE_URL.
+  process.env.NEXT_PUBLIC_BASE_URL = `https://${SITE_HOST}`;
 });
 
 afterAll(() => {
