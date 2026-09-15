@@ -30,7 +30,8 @@ export async function getSellerDonationPercent(
     if (result.rows.length > 0) {
       try {
         const content = JSON.parse(result.rows[0].content);
-        const raw = content?.mm_donation;
+        // ss_donation is canonical post-rebrand; mm_donation is the legacy key.
+        const raw = content?.ss_donation ?? content?.mm_donation;
         if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
           percent = Math.min(raw, 100);
         } else if (typeof raw === "string" && raw.trim() !== "") {
@@ -79,8 +80,7 @@ export function isPlatformPubkey(
   if (!sellerPubkey) return false;
   return (
     sellerPubkey ===
-    (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-      process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+    (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
   );
 }
 

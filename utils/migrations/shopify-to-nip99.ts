@@ -191,7 +191,7 @@ export function buildListingFromShopifyProduct(
 
   // Default Self-sown category + housekeeping tags
   if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "MilkMarket"]);
+  tags.push(["t", "SelfSown"]);
   tags.push(["t", "FREEMILK"]);
 
   // Optional: import original Shopify tags as t-tags too (keep listings searchable)

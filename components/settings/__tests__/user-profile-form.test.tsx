@@ -350,9 +350,10 @@ describe("UserProfileForm", () => {
         expect.stringContaining('"payment_preference":"lightning"')
       );
     });
-    // The legacy shopstr_donation key must never be written; mm_donation
+    // The legacy shopstr_donation key must never be written; ss_donation
     // (shop settings) is canonical.
     const savedPayload = mockCreateNostrProfileEvent.mock.calls.at(-1)?.[2];
     expect(savedPayload).not.toContain("shopstr_donation");
+    expect(savedPayload).not.toContain("mm_donation");
   });
 });

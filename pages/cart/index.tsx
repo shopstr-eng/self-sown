@@ -268,8 +268,7 @@ export default function Component() {
         if (cancelled) return;
         if (
           pubkey ===
-          (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-            process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+          (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
         ) {
           statuses[pubkey] = true;
           continue;

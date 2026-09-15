@@ -17,6 +17,7 @@ import {
   SavedAddress,
 } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import { Proof } from "@cashu/cashu-ts";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
@@ -316,8 +317,12 @@ export async function republishProductWithPageConfig(
   if (!signer) throw new Error("Signer required");
   if (!nostr) throw new Error("Nostr writer required");
 
-  const tags = rawEvent.tags.filter(
-    (t) => t[0] !== "page_config" && t[0] !== "published_at"
+  // Replacement events must carry the canonical discovery tag, not the
+  // legacy MilkMarket one a pre-rebrand listing may still have.
+  const tags = normalizeMarketplaceDiscoveryTag(
+    rawEvent.tags.filter(
+      (t) => t[0] !== "page_config" && t[0] !== "published_at"
+    )
   );
   if (pageConfig) {
     tags.push(["page_config", JSON.stringify(pageConfig)]);
@@ -405,8 +410,10 @@ export async function republishProductWithParcel(
   const parcelTag = buildParcelTag(parcel);
   if (!parcelTag) throw new Error("Parcel template needs a valid weight");
 
-  const tags = rawEvent.tags.filter(
-    (t) => t[0] !== "parcel" && t[0] !== "published_at"
+  // Replacement events must carry the canonical discovery tag, not the
+  // legacy MilkMarket one a pre-rebrand listing may still have.
+  const tags = normalizeMarketplaceDiscoveryTag(
+    rawEvent.tags.filter((t) => t[0] !== "parcel" && t[0] !== "published_at")
   );
   tags.push(parcelTag);
 
@@ -1270,7 +1277,7 @@ export async function createOrUpdateCommunity(
     ["name", details.name],
     ["description", details.description],
     ["image", details.image],
-    ["t", "milkmarket"],
+    ["t", "selfsown"],
   ];
 
   // moderators as p tags with role marker

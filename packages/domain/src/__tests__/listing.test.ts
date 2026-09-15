@@ -181,7 +181,7 @@ describe("seller listing draft helpers", () => {
       ["image", "https://example.com/beef.jpg"],
       ["t", "Beef"],
       ["t", "Bundle"],
-      ["t", "MilkMarket"],
+      ["t", "SelfSown"],
       ["t", "FREEMILK"],
       ["t", "SAVEBEEF"],
       ["quantity", "4"],

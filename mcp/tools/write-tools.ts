@@ -10,6 +10,7 @@ import { EventTemplate } from "nostr-tools";
 import {
   buildHandlingTimeTag,
   buildShipsToTags,
+  normalizeMarketplaceDiscoveryTag,
 } from "@/utils/parsers/product-tag-helpers";
 import {
   cacheEvent,
@@ -1816,7 +1817,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             tags.push(["t", cat]);
           }
         }
-        tags.push(["t", "MilkMarket"]);
+        tags.push(["t", "SelfSown"]);
 
         if (params.quantity) {
           tags.push(["quantity", params.quantity]);
@@ -2147,7 +2148,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         if (params.categories) {
           stripKeys(["t"]);
           for (const cat of params.categories) baseTags.push(["t", cat]);
-          baseTags.push(["t", "MilkMarket"]);
         }
         if (params.quantity !== undefined) {
           stripKeys(["quantity"]);
@@ -2243,13 +2243,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           if (pageConfigTag) baseTags.push(pageConfigTag);
         }
 
+        // Every replacement event carries exactly one canonical discovery
+        // tag — never the legacy MilkMarket tag copied from a pre-rebrand
+        // listing, and present even when the existing-event fetch failed.
+        const mergedTags = normalizeMarketplaceDiscoveryTag(baseTags);
+
         const created_at = Math.floor(Date.now() / 1000);
-        baseTags.push(["published_at", String(created_at)]);
+        mergedTags.push(["published_at", String(created_at)]);
 
         const eventTemplate: EventTemplate = {
           created_at,
           kind: 30402,
-          tags: baseTags,
+          tags: mergedTags,
           content:
             params.description !== undefined
               ? params.description

@@ -124,6 +124,8 @@ export interface ProfileData {
     nip05?: string;
     payment_preference?: string;
     fiat_options?: string[];
+    ss_donation?: number;
+    /** Pre-rebrand donation key; read fallback only, never written. */
     mm_donation?: number;
   };
   created_at: number;

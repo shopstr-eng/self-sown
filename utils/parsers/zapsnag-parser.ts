@@ -39,7 +39,7 @@ export const parseZapsnagNote = (event: NostrEvent): ProductData => {
 
   const cleanContent = content
     .replace(priceRegex, "")
-    .replace(/#milk-market-zapsnag/gi, "")
+    .replace(/#(?:self-sown|milk-market)-zapsnag/gi, "")
     .replace(imageRegex, "")
     .trim();
 

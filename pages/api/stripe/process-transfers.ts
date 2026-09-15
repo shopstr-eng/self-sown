@@ -87,8 +87,7 @@ export default async function handler(
     for (const split of sellerSplits) {
       const isPlatformAccount =
         split.sellerPubkey ===
-        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-          process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
 
       if (isPlatformAccount) {
         results.push({

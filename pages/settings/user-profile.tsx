@@ -150,9 +150,17 @@ const UserProfilePage = () => {
         typeof data.lud16 === "string" ? data.lud16 : "",
         acceptBitcoin
       );
-      // Drop any legacy donation field; mm_donation (set in shop settings) is
-      // the canonical key — never propagate the stale upstream one.
+      // Migrate the donation key forward if needed; ss_donation (set in shop
+      // settings) is the canonical key — never propagate the stale legacy
+      // ones, but never lose the value either.
+      if (
+        updatedData.ss_donation === undefined &&
+        updatedData.mm_donation !== undefined
+      ) {
+        updatedData.ss_donation = updatedData.mm_donation;
+      }
       delete updatedData.shopstr_donation;
+      delete updatedData.mm_donation;
 
       try {
         localStorage.setItem(

@@ -197,7 +197,7 @@ export function buildListingFromSquareItem(
   validImages.forEach((img) => tags.push(["image", img]));
 
   if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "MilkMarket"]);
+  tags.push(["t", "SelfSown"]);
   tags.push(["t", "FREEMILK"]);
 
   tags.push(["status", listingStatus]);

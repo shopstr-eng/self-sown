@@ -16,12 +16,12 @@ export const UCP_CHECKOUT_CAPABILITY = `${UCP_NAMESPACE}.checkout`;
 export const UCP_VERSION = "2025-draft";
 
 /**
- * Vendor extension namespace (reverse-DNS of the legacy milk.market domain —
- * a frozen wire contract, never rename) for fields that are
- * Self-sown / Nostr specific and have no standard UCP equivalent (event id,
- * seller npub, d-tag, herdshare terms, etc).
+ * Vendor extension namespace (reverse-DNS of the selfsown.com domain —
+ * renamed from the legacy "market.milk" key in the rebrand) for fields that
+ * are Self-sown / Nostr specific and have no standard UCP equivalent (event
+ * id, seller npub, d-tag, herdshare terms, etc).
  */
-export const UCP_VENDOR_NAMESPACE = "market.milk";
+export const UCP_VENDOR_NAMESPACE = "com.selfsown";
 
 export type UcpAvailability =
   | "in_stock"

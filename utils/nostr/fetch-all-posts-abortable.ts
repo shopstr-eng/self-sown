@@ -189,7 +189,8 @@ export const fetchAllPostsAbortable = async (
 
       const filter: Filter = {
         kinds: [30402],
-        "#t": ["MilkMarket", "FREEMILK"],
+        // Pre-rebrand listings carry the legacy MilkMarket tag; fetch both.
+        "#t": ["SelfSown", "MilkMarket", "FREEMILK"],
       };
 
       const specificPubkeyFilter: Filter = {
@@ -201,7 +202,7 @@ export const fetchAllPostsAbortable = async (
 
       const zapsnagFilter: Filter = {
         kinds: [1],
-        "#t": ["milk-market-zapsnag"],
+        "#t": ["self-sown-zapsnag", "milk-market-zapsnag"],
       };
 
       const fetchedEvents = await fetchRelayEvents(

@@ -559,7 +559,7 @@ export default function ProductForm({
     (data["Category"] as string).split(",").forEach((category) => {
       tags.push(["t", category]);
     });
-    tags.push(["t", "MilkMarket"]);
+    tags.push(["t", "SelfSown"]);
     tags.push(["t", "FREEMILK"]);
 
     if (data["Quantity"]) {
@@ -827,7 +827,7 @@ export default function ProductForm({
         created_at: Math.floor(Date.now() / 1000),
         tags: [
           ["t", "zapsnag"],
-          ["t", "milk-market-zapsnag"],
+          ["t", "self-sown-zapsnag"],
           ["d", "zapsnag"],
         ],
         content: finalContent,
@@ -1368,8 +1368,7 @@ export default function ProductForm({
                 </Tooltip>
                 <p className="text-xs text-black">
                   Your donation rate on sales is set to{" "}
-                  {profileContext.profileData.get(pubkey)?.content
-                    ?.mm_donation ?? 0}
+                  {profileContext.profileData.get(pubkey)?.content?.ss_donation ?? profileContext.profileData.get(pubkey)?.content?.mm_donation ?? 0}
                   %. You can modify this in your{" "}
                   <span
                     className="cursor-pointer underline hover:text-blue-600"

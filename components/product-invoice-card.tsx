@@ -743,8 +743,7 @@ export default function ProductInvoiceCard({
 
   const [isStripeMerchant, setIsStripeMerchant] = useState(
     productData.pubkey ===
-      (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-        process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+      (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
   );
   const [sellerConnectedAccountId, setSellerConnectedAccountId] = useState<
     string | null
@@ -754,8 +753,7 @@ export default function ProductInvoiceCard({
     const checkSellerStripe = async () => {
       if (
         productData.pubkey ===
-        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-          process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
       ) {
         setIsStripeMerchant(true);
         return;
@@ -783,8 +781,7 @@ export default function ProductInvoiceCard({
     const fetchConnectedAccountId = async () => {
       if (
         productData.pubkey ===
-        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-          process.env.NEXT_PUBLIC_MILK_MARKET_PK)
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK)
       )
         return;
       try {
@@ -1438,8 +1435,7 @@ export default function ProductInvoiceCard({
       );
       const isPlatformSeller =
         productData.pubkey ===
-        (process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-          process.env.NEXT_PUBLIC_MILK_MARKET_PK);
+        (process.env.NEXT_PUBLIC_SELF_SOWN_PK);
       const onPlatformPayment =
         paymentType === "cashu" ||
         paymentType === "nwc" ||
@@ -1450,7 +1446,9 @@ export default function ProductInvoiceCard({
         : Number(price) || 0;
       const emailDonationPercentage =
         !isPlatformSeller && onPlatformPayment
-          ? (sellerProfileForEmailDonation?.content?.mm_donation ?? 0)
+          ? (sellerProfileForEmailDonation?.content?.ss_donation ??
+            sellerProfileForEmailDonation?.content?.mm_donation ??
+            0)
           : 0;
       const emailDonationAmount =
         emailDonationPercentage > 0 && orderAmountNumeric > 0
@@ -2963,7 +2961,7 @@ export default function ProductInvoiceCard({
     let donationToken;
     let beefDonationToken;
     const sellerProfile = profileContext.profileData.get(productData.pubkey);
-    const donationPercentage = sellerProfile?.content?.mm_donation ?? 0;
+    const donationPercentage = sellerProfile?.content?.ss_donation ?? sellerProfile?.content?.mm_donation ?? 0;
     const donationAmount = Math.ceil((totalPrice * donationPercentage) / 100);
 
     // Calculate beef donation if applicable
@@ -3663,8 +3661,7 @@ export default function ProductInvoiceCard({
       if (donationToken) {
         const donationMessage = "Sale donation: " + donationToken;
         const donationRecipient =
-          process.env.NEXT_PUBLIC_SELF_SOWN_PK ||
-          process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+          process.env.NEXT_PUBLIC_SELF_SOWN_PK;
         if (donationRecipient) {
           try {
             const __donationOk = await sendPaymentAndContactMessage(
@@ -4601,7 +4598,7 @@ export default function ProductInvoiceCard({
       productData.pubkey
     );
     const stripeDonationPercentage =
-      sellerProfileForStripeDonation?.content?.mm_donation ?? 0;
+      sellerProfileForStripeDonation?.content?.ss_donation ?? sellerProfileForStripeDonation?.content?.mm_donation ?? 0;
     const stripeDonationAmount =
       stripeDonationPercentage > 0
         ? Math.ceil((discountedTotal * stripeDonationPercentage) / 100)
