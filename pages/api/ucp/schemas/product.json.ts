@@ -193,7 +193,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       ext: {
         type: "object",
         description:
-          'Vendor extension block keyed under the reverse-DNS namespace "com.selfsown".',
+          'Vendor extension block keyed under the reverse-DNS namespace "com.self-sown".',
       },
     },
     required: [

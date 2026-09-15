@@ -21,7 +21,7 @@ export const UCP_VERSION = "2025-draft";
  * are Self-sown / Nostr specific and have no standard UCP equivalent (event
  * id, seller npub, d-tag, herdshare terms, etc).
  */
-export const UCP_VENDOR_NAMESPACE = "com.selfsown";
+export const UCP_VENDOR_NAMESPACE = "com.self-sown";
 
 export type UcpAvailability =
   | "in_stock"
