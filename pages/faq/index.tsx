@@ -75,7 +75,7 @@ export default function Faq() {
         {
           title: "What types of items can I sell?",
           content:
-            "Self-sown supports a wide range of local food and goods, including raw milk and dairy, meat, eggs, produce, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
+            "Self-sown supports a wide range of local food and goods, including farm-fresh produce, meat, eggs, dairy, baked goods, honey, and more. Each listing should clearly indicate the category and any shipping requirements.",
         },
         {
           title: "How does shipping work?",

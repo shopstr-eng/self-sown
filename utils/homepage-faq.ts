@@ -7,7 +7,7 @@ export const HOMEPAGE_FAQ: FaqItem[] = [
   {
     question: "What can I sell on Self-sown?",
     answer:
-      "Food producers and local artisans can sell almost anything they make - raw milk and dairy, meat and eggs, produce, baked goods, preserves, honey, herdshares, and handmade goods. You set your own prices, pickup, delivery, and payment methods.",
+      "Food producers and local artisans can sell almost anything they make - produce, meat and eggs, dairy, baked goods, preserves, honey, herdshares, and handmade goods. You set your own prices, pickup, delivery, and payment methods.",
   },
   {
     question: "How much does it cost to sell?",

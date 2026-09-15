@@ -58,7 +58,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         ogMeta: {
           title: "Self-sown - Browse Local Food Producers",
           description:
-            "Discover farms, dairies, and local food producers on Self-sown. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
+            "Discover local farms, food producers, and artisans on Self-sown. Shop farm-fresh food, handmade goods, pastured meats, fresh eggs, and more directly from sellers near you.",
           image: "/self-sown-black.png",
           url: "/marketplace",
         } as OgMetaProps,
@@ -230,7 +230,7 @@ export default function SellerView({
         <h1 className="sr-only">{ssrSellerName} — Self-sown Stall</h1>
       ) : (
         <h1 className="sr-only">
-          Self-sown — raw milk &amp; farm-fresh dairy marketplace
+          Self-sown — local food &amp; artisan goods marketplace
         </h1>
       )}
       {/* SSR-rendered seller intro: in the initial HTML for crawlers and bots

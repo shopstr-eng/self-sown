@@ -904,7 +904,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
           ? `Shop farm-fresh products from ${name} on Self-sown. Direct from the producer to your door.`
           : undefined;
       const autoKeywords = name
-        ? `${name}, farm fresh, raw milk, dairy, local farm, ${shopSlug}`
+        ? `${name}, farm fresh, local food, artisan goods, local farm, ${shopSlug}`
         : undefined;
 
       return {
@@ -3511,7 +3511,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 placeholder={
                                   seoMeta.autoGenerate !== false
                                     ? "Auto-generated from shop name"
-                                    : "e.g. Green Valley Farm: Fresh Raw Milk"
+                                    : "e.g. Green Valley Farm: Fresh Local Food"
                                 }
                                 value={seoMeta.metaTitle || ""}
                                 onChange={(e) =>
@@ -3609,7 +3609,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 placeholder={
                                   seoMeta.autoGenerate !== false
                                     ? "Auto-generated from shop name"
-                                    : "raw milk, farm fresh dairy, organic eggs, ..."
+                                    : "farm fresh produce, handmade goods, organic eggs, ..."
                                 }
                                 value={seoMeta.keywords || ""}
                                 onChange={(e) =>

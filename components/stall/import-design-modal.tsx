@@ -311,7 +311,7 @@ export default function ImportDesignModal({
                     label="Website address"
                     placeholder={
                       isProductMode
-                        ? "yourshop.com/products/raw-milk"
+                        ? "yourshop.com/products/wildflower-honey"
                         : "yourshop.com"
                     }
                     value={url}

@@ -290,7 +290,7 @@ export default function ConvertPage() {
                 aria-label="Website address"
                 placeholder={
                   mode === "product"
-                    ? "yourshop.com/products/raw-milk"
+                    ? "yourshop.com/products/wildflower-honey"
                     : "yourshop.com"
                 }
                 value={url}

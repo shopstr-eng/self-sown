@@ -1,12 +1,12 @@
 # Self-sown - Full Description for LLMs
 
-> Self-sown is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers directly with buyers. Raw milk and dairy are one example among many: meat, eggs, produce, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
+> Self-sown is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. It connects local food producers and artisans directly with buyers. Farm-fresh produce, meat, eggs, dairy, baked goods, honey, and other handmade local goods are all welcome. There is no central gatekeeper; listings live on Nostr relays, and the platform adds caching, search, storefronts, payments, and an AI-agent interface on top.
 
 ## What Self-sown is
 
 Self-sown is an open marketplace for local and decentralized food systems. Anyone can become a producer without asking permission. Sellers publish product listings as Nostr events (kind 30402); buyers browse them on the website or through AI agents. The platform is designed to be censorship-resistant: because data lives on Nostr relays, no single company can remove a producer from the network.
 
-Raw milk and dairy were the founding use case, but the marketplace is for local food broadly: meat, eggs, fresh produce, baked goods, honey, preserves, and handmade goods.
+The marketplace is for local food and artisan goods broadly: meat, eggs, fresh produce, dairy, baked goods, honey, preserves, and handmade goods.
 
 ## How buying works
 

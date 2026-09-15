@@ -74,8 +74,9 @@ export default function AboutPage() {
             <p className="mb-4 text-lg text-zinc-700">
               Self-sown exists to restore the direct connection between local
               food producers and the people they feed. We believe everyone
-              deserves access to fresh, high-quality food &mdash; from raw milk
-              and dairy to meat, eggs, and produce &mdash; without middlemen
+              deserves access to fresh, high-quality food &mdash; from
+              farm-fresh produce and dairy to meat, eggs, and handmade goods
+              &mdash; without middlemen
               inflating prices or dictating what you can buy.
             </p>
             <p className="mb-4 text-lg text-zinc-700">

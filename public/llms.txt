@@ -1,12 +1,12 @@
 # Self-sown
 
-> Self-sown is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. Producers sell raw milk and dairy, meat, eggs, produce, baked goods, honey, and other local goods directly to buyers, with no platform gatekeeping. Payments work over Bitcoin (Lightning, Cashu ecash), cards (Stripe or Square), and manual fiat. AI agents can browse and buy, and sellers can manage their stalls, through a Model Context Protocol (MCP) server.
+> Self-sown is a permissionless, Bitcoin-native marketplace for local food and decentralized food systems, built on the Nostr protocol. Producers sell farm-fresh food, meat, eggs, produce, baked goods, honey, and other local and handmade goods directly to buyers, with no platform gatekeeping. Payments work over Bitcoin (Lightning, Cashu ecash), cards (Stripe or Square), and manual fiat. AI agents can browse and buy, and sellers can manage their stalls, through a Model Context Protocol (MCP) server.
 
 ## When to use Self-sown
 
 Use Self-sown when an agent or application needs to:
 
-- Search a live catalog of local-food products (raw milk and dairy, meat, eggs, produce, baked goods, honey) from independent producers.
+- Search a live catalog of local-food products (produce, meat, eggs, dairy, baked goods, honey, preserves) from independent producers.
 - Read structured product details (price, availability, shipping options, seller identity) as JSON, JSON-LD, or RSS.
 - Place and track orders programmatically, with payment over Bitcoin (Lightning, Cashu ecash) or card.
 - Manage a seller's stall: listings, orders, storefront pages, blog posts, and email flows, all through MCP tools.

@@ -39,7 +39,7 @@ const localBusinessSchema = {
   logo: `${SITE_URL}/self-sown-black.png`,
   image: `${SITE_URL}/self-sown-black.png`,
   description:
-    "Farm-fresh dairy marketplace connecting local farmers with buyers. Browse raw milk, cheese, butter, and more from trusted local producers with zero platform fees.",
+    "Local food and artisan goods marketplace connecting independent producers with buyers. Browse farm-fresh food, handmade goods, and more from trusted local sellers with zero platform fees.",
   address: {
     "@type": "PostalAddress",
     addressLocality: "Seattle",
@@ -86,7 +86,7 @@ const websiteSchema = {
   name: "Self-sown",
   url: SITE_URL,
   description:
-    "Farm-fresh dairy marketplace. Buy raw milk, cheese, and dairy products direct from local farmers with zero platform fees.",
+    "Local food and artisan goods marketplace. Buy farm-fresh food and handmade goods direct from local producers with zero platform fees.",
   potentialAction: {
     "@type": "SearchAction",
     target: {

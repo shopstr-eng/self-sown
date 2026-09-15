@@ -108,7 +108,7 @@ export function buildStallOgMeta(params: {
     url,
     keywords:
       seo?.keywords ||
-      `${shopName}, farm fresh, raw milk, dairy, local farm, ${keywordSeed}`,
+      `${shopName}, farm fresh, local food, artisan goods, local farm, ${keywordSeed}`,
     locale: seo?.locale || "en_US",
     ...(seo?.locationRegion ? { locationRegion: seo.locationRegion } : {}),
     ...(seo?.locationCity ? { locationCity: seo.locationCity } : {}),

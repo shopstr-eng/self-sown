@@ -147,7 +147,7 @@ function extractSocialLinks(html: string, base: URL): StorefrontSocialLink[] {
 const ABOUT_HEADING_RE =
   /\babout\b|our story|who we are|our (farm|family|mission|herd|history)/i;
 // Legal / regulatory boilerplate that must never become the shop's about copy
-// (e.g. FDA interstate-commerce disclaimers on raw-milk sites are often the
+// (e.g. FDA interstate-commerce disclaimers on farm-food sites are often the
 // longest paragraph on the page).
 const BOILERPLATE_TEXT_RE =
   /interstate commerce|evaluated by the (fda|food and drug)|disclaimer|liabilit|warrant(y|ies)|indemnif|hold harmless|\bingredients\s*:/i;

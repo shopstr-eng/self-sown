@@ -69,7 +69,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
   },
   about: {
     heading: "About Our Farm",
-    body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our raw milk and farmstead cheeses to our pasture-raised eggs and grass-fed meats. We believe in food freedom: your right to choose real, nutrient-dense food direct from the source.",
+    body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our farmstead cheeses and small-batch preserves to our pasture-raised eggs and grass-fed meats. We believe in food freedom: your right to choose real, nutrient-dense food direct from the source.",
     image: PLACEHOLDER_ABOUT_IMAGE,
     imagePosition: "right" as const,
   },
@@ -80,7 +80,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
       {
         year: "2018",
         heading: "The Beginning",
-        body: "Started with just two dairy cows and a dream of producing the finest raw milk in the county.",
+        body: "Started with a roadside stand and a dream of sharing the finest small-batch preserves in the county.",
         image: PLACEHOLDER_STORY_IMAGE,
       },
       {
@@ -109,7 +109,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
     testimonials: [
       {
         quote:
-          "The best raw milk I've ever tasted. My whole family loves it, and we've noticed a real difference in how we feel.",
+          "The freshest food we've ever bought — you can taste the difference in every bite. My whole family loves it.",
         author: "Sarah M.",
         rating: 5,
       },
@@ -341,12 +341,12 @@ export const MOCK_PRODUCTS: ProductData[] = [
     id: "preview-1",
     pubkey: "preview",
     createdAt: 0,
-    title: "Farm Fresh Raw Milk",
+    title: "Small-Batch Wildflower Honey",
     summary:
-      "Pure, unprocessed whole milk from grass-fed cows. Rich in natural enzymes and beneficial bacteria.",
+      "Raw wildflower honey from our own hives. Unfiltered and never heated, with all the natural flavor intact.",
     publishedAt: "",
     images: [PLACEHOLDER_IMAGES[0]!],
-    categories: ["dairy"],
+    categories: ["pantry"],
     location: "Local Farm",
     price: 12,
     currency: "USD",
@@ -373,7 +373,7 @@ export const MOCK_PRODUCTS: ProductData[] = [
     createdAt: 0,
     title: "Artisan Farmstead Cheese",
     summary:
-      "Handcrafted aged cheddar made from our own raw milk. 6-month aged for complex flavor.",
+      "Handcrafted aged cheddar from our pasture-raised cows. 6-month aged for complex flavor.",
     publishedAt: "",
     images: [PLACEHOLDER_IMAGES[2]!],
     categories: ["dairy"],

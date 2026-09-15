@@ -1,6 +1,6 @@
 # Overview
 
-Self-sown is a permissionless Nostr-based marketplace for raw milk and related products. Payments: Bitcoin (Lightning, Cashu), Stripe, manual fiat. Implements 15+ NIPs, with PostgreSQL caching for SSR + analytics. Sellers run customizable storefronts; buyers can check out as guests or with Nostr keys; AI agents participate via the MCP API.
+Self-sown is a permissionless Nostr-based marketplace for local food and artisan goods. Payments: Bitcoin (Lightning, Cashu), Stripe, manual fiat. Implements 15+ NIPs, with PostgreSQL caching for SSR + analytics. Sellers run customizable storefronts; buyers can check out as guests or with Nostr keys; AI agents participate via the MCP API.
 
 # User Preferences
 

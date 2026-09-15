@@ -72,7 +72,7 @@ const STATIC_PAGE_META: Record<string, { title: string; description: string }> =
     "/producer-guide": {
       title: "Producer Guide: How to Sell on Self-sown",
       description:
-        "Step-by-step guide for producers selling raw milk, dairy, meat, eggs, and local food on Self-sown. Learn how to set up your account, list products, accept payments, and grow your stall.",
+        "Step-by-step guide for producers selling local food, farm-fresh goods, and handmade products on Self-sown. Learn how to set up your account, list products, accept payments, and grow your stall.",
     },
     "/manifesto": {
       title: "Free Food Manifesto | Self-sown",

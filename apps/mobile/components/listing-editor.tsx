@@ -106,7 +106,7 @@ export function ListingEditor({
         <SellerField
           label="Title"
           value={draft.title}
-          placeholder="Fresh raw milk"
+          placeholder="Fresh farm eggs"
           onChangeText={(value) => onChange({ ...draft, title: value })}
           error={errors.title}
         />

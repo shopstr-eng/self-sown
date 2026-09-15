@@ -165,7 +165,7 @@ const ProducerGuidePage = () => {
           and transactions and protects your wealth over time. Payment
           processors like Stripe, PayPal, etc. can freeze your funds, close your
           account, or even ban you for selling products they don&apos;t deem
-          acceptable (which local food like raw milk and dairy can easily fall
+          acceptable (which farm-direct and homemade food can easily fall
           under). If desired, you can exchange it for cash or other currencies
           at your own pace using tools like{" "}
           <a
@@ -356,7 +356,7 @@ const ProducerGuidePage = () => {
                   name: "Why Bitcoin? How can I exchange it?",
                   acceptedAnswer: {
                     "@type": "Answer",
-                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (which local food like raw milk can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
+                    text: "Bitcoin is supported because it allows for complete control over your funds and transactions and protects your wealth over time. Payment processors like Stripe, PayPal, etc. can freeze your funds, close your account, or even ban you for selling products they don't deem acceptable (which farm-direct and homemade food can easily fall under). If desired, you can exchange it for cash or other currencies at your own pace using tools like Cash App or Strike.",
                   },
                 },
                 {
@@ -487,8 +487,8 @@ const ProducerGuidePage = () => {
                 </h1>
                 <p className="text-primary-blue mx-auto max-w-3xl text-lg">
                   Learn how to start selling your local food and goods on
-                  Self-sown &mdash; from raw milk and dairy to meat, eggs,
-                  produce, baked goods, honey, and handmade goods.
+                  Self-sown &mdash; from farm-fresh produce and dairy to meat,
+                  eggs, baked goods, honey, and handmade goods.
                 </p>
               </div>
             </div>
@@ -975,8 +975,8 @@ const ProducerGuidePage = () => {
               </h2>
               <p className="mb-6 text-base text-white">
                 Join the growing community of producers providing fresh, local
-                food &mdash; from raw milk and dairy to meat, eggs, and produce
-                &mdash; directly to consumers. Selling is free with unlimited
+                food &mdash; from farm-fresh produce to meat, eggs, and handmade
+                goods &mdash; directly to consumers. Selling is free with unlimited
                 listings, and new sellers get a 30-day free trial of Herd
                 &mdash; no payment required up front.
               </p>

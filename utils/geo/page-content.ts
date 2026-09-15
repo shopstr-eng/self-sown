@@ -25,7 +25,7 @@ export const PAGE_CONTENT: Record<string, PageContent> = {
 Self-sown is the online store built for farmers, food makers, and artisan producers who are tired of handing over 2.9% and 30 cents per sale plus $39 to $2,300 a month just to run their own store. List your products in minutes, get paid directly, and keep everything you earn. Because it runs on Nostr, an open and decentralized network, your store and customer list belong to you, and no one can freeze your account or shut you down.
 
 ## What you can buy and sell
-Raw milk and dairy, meat, eggs, fresh produce, baked goods, honey, and other local and handmade goods.
+Farm-fresh produce, meat, eggs, dairy, baked goods, honey, preserves, and other local and handmade goods.
 
 ## Payments
 Bitcoin over the Lightning Network, Cashu ecash, cards (Stripe or Square), and manual fiat (Venmo, Cash App, Zelle, and more). Sellers get paid directly, with no mandatory platform fees.
@@ -46,7 +46,7 @@ Use the Model Context Protocol server at \`${SITE}/api/mcp\`. See [/llms.txt](${
 
 Self-sown connects local food producers directly with buyers through a permissionless, censorship-resistant marketplace built on the **Nostr protocol**.
 
-Anyone can become a producer without asking permission. Listings live on Nostr relays, so no single company can remove a producer from the network. Raw milk and dairy were the founding use case, but the marketplace serves local food broadly: meat, eggs, produce, baked goods, honey, and handmade goods.
+Anyone can become a producer without asking permission. Listings live on Nostr relays, so no single company can remove a producer from the network. The marketplace serves local food and artisan goods broadly: meat, eggs, produce, dairy, baked goods, honey, preserves, and handmade goods.
 
 ## Why it exists
 To rebuild local and decentralized food supply chains, giving producers a direct, sovereign channel to their customers and giving buyers transparent access to local food, paid for with open money (Bitcoin) or familiar methods (cards, fiat).
@@ -61,7 +61,7 @@ Links: [Marketplace](${SITE}/marketplace) · [Producer Guide](${SITE}/producer-g
 
 This is a machine-readable summary. The authoritative essay is rendered at [${SITE}/manifesto](${SITE}/manifesto).
 
-Our food systems are broken: grocery chains game convenience, greenwashed labels hide sourcing, animals and soil are mistreated, and 77 local farms close every day while regulation pushes producers out of the sales cycle. Raw milk — the founding use case of Self-sown — is treated like a controlled substance across much of the developed world.
+Our food systems are broken: grocery chains game convenience, greenwashed labels hide sourcing, animals and soil are mistreated, and 77 local farms close every day while regulation pushes producers out of the sales cycle. Small farms and artisan producers are regulated as if they were industrial plants, and selling directly to your own community is restricted or permit-gated across much of the developed world.
 
 The essay argues that technology is the strongest tool against this regulatory capture: encrypted communication (Nostr) to organize buyers, co-ops, and pickup spots without platform surveillance, and Bitcoin as sound money for direct producer-to-consumer trade without banks or debasement.
 
@@ -73,7 +73,7 @@ Free and open food markets are the foundation of thriving communities; defending
       "Answers to common questions about Self-sown - payments, selling, privacy, Nostr, and AI-agent access.",
     markdown: `# Self-sown FAQ
 
-**What can I sell?** Local food and goods of all kinds. Raw milk and dairy are one example, alongside meat, eggs, produce, baked goods, honey, and handmade goods.
+**What can I sell?** Local food and goods of all kinds — meat, eggs, produce, dairy, baked goods, honey, preserves, and handmade goods.
 
 **How do payments work?** Bitcoin (Lightning, Cashu ecash), card payments (Stripe or Square), and manual fiat. Buyers can check out as a guest with just an email, or with their own Nostr keys.
 
