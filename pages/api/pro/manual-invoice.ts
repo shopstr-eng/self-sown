@@ -111,7 +111,10 @@ export default async function handler(
     }
 
     // Manual fiat — return the platform's payment handles (if configured).
-    const fiatHandles = process.env.MILK_MARKET_FIAT_HANDLES || "";
+    const fiatHandles =
+      process.env.SELF_SOWN_FIAT_HANDLES ??
+      process.env.MILK_MARKET_FIAT_HANDLES ??
+      "";
     await createProManualInvoice({
       invoiceId,
       pubkey,

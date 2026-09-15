@@ -5012,10 +5012,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             );
           } catch {
             try {
-              const milkMarketIps = await resolve4(SITE_HOST);
+              const siteHostIps = await resolve4(SITE_HOST);
               const domainIps = await resolve4(domain);
               verified = domainIps.some((ip: string) =>
-                milkMarketIps.includes(ip)
+                siteHostIps.includes(ip)
               );
             } catch {
               verified = false;

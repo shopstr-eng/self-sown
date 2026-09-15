@@ -24,7 +24,9 @@ export interface PlatformBitcoinInvoice {
  * the same source the donation rail uses for its destination.
  */
 export async function getPlatformLightningAddress(): Promise<string | null> {
-  const override = process.env.NEXT_PUBLIC_MILK_MARKET_LN_ADDRESS;
+  const override =
+    process.env.NEXT_PUBLIC_SELF_SOWN_LN_ADDRESS ??
+    process.env.NEXT_PUBLIC_MILK_MARKET_LN_ADDRESS;
   if (override && override.trim() !== "") return override.trim();
 
   const pk =

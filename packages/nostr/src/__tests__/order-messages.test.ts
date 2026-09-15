@@ -257,7 +257,7 @@ describe("seller order request signing and status envelopes", () => {
 
     const header = createNip98AuthorizationHeader({
       session,
-      url: "https://milk.market/api/db/update-order-status",
+      url: "https://self-sown.com/api/db/update-order-status",
       method: "POST",
       body,
     });
@@ -271,7 +271,7 @@ describe("seller order request signing and status envelopes", () => {
     expect(event.kind).toBe(27_235);
     expect(event.content).toBe("");
     expect(event.tags).toEqual([
-      ["u", "https://milk.market/api/db/update-order-status"],
+      ["u", "https://self-sown.com/api/db/update-order-status"],
       ["method", "POST"],
       ["payload", createHash("sha256").update(body).digest("hex")],
     ]);
