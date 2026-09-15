@@ -9,8 +9,6 @@ import {
   stableIdempotencyKey,
 } from "@/utils/stripe/retry-service";
 import {
-  LEGACY_PRO_LOOKUP_KEYS,
-  LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY,
   PRO_ANNUAL_LOOKUP_KEY,
   PRO_MONTHLY_LOOKUP_KEY,
   PRO_PRICE_CURRENCY,
@@ -44,17 +42,14 @@ export async function ensureProPrice(term: ProTerm): Promise<string> {
   const stripe = getProStripe();
   const key = lookupKeyForTerm(term);
 
-  // Query new + pre-rename keys: if the dashboard rename lags the deploy we
-  // reuse the legacy-keyed Price instead of minting a duplicate.
   const existing = await withStripeRetry(() =>
     stripe.prices.list({
-      lookup_keys: [key, LEGACY_PRO_LOOKUP_KEYS[term]],
+      lookup_keys: [key],
       active: true,
-      limit: 2,
+      limit: 1,
     })
   );
-  const hit =
-    existing.data.find((p) => p.lookup_key === key) ?? existing.data[0];
+  const hit = existing.data[0];
   if (hit) return hit.id;
 
   // Reuse a single "Self-sown Pro" product across both terms. The metadata
@@ -116,13 +111,12 @@ export async function ensureWranglerLifetimePrice(): Promise<string> {
 
   const existing = await withStripeRetry(() =>
     stripe.prices.list({
-      lookup_keys: [key, LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY],
+      lookup_keys: [key],
       active: true,
-      limit: 2,
+      limit: 1,
     })
   );
-  const hit =
-    existing.data.find((p) => p.lookup_key === key) ?? existing.data[0];
+  const hit = existing.data[0];
   if (hit) return hit.id;
 
   let productId: string | null = null;

@@ -1,11 +1,12 @@
 /** @jest-environment node */
 
-// Verifies the Stripe Price lookup-key dual-read used after the milkmarket_* →
-// selfsown_* lookup-key rename. ensureProPrice / ensureWranglerLifetimePrice
-// query BOTH the renamed and the legacy key: an existing Price (either key)
-// must be reused (never a duplicate minted), the renamed key wins when both
-// exist, and a fresh Price is created only when neither exists. Route-level
-// tests then prove the checkout endpoints still charge the correct amounts.
+// Verifies the Stripe Price lookup-key find-or-create after the milkmarket_*
+// → selfsown_* rename completed (legacy dual-read retired: the platform
+// account was verified to hold no legacy-keyed Prices). ensureProPrice /
+// ensureWranglerLifetimePrice must reuse an existing Price keyed by the
+// selfsown_* lookup key (never mint a duplicate) and create one only when
+// none exists. Route-level tests then prove the checkout endpoints still
+// charge the correct amounts.
 
 const mockPricesList = jest.fn();
 const mockPricesCreate = jest.fn();
@@ -68,8 +69,6 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 
 import {
-  LEGACY_PRO_LOOKUP_KEYS,
-  LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY,
   PRO_ANNUAL_LOOKUP_KEY,
   PRO_ANNUAL_PRICE_CENTS,
   PRO_MONTHLY_LOOKUP_KEY,
@@ -106,27 +105,15 @@ beforeEach(() => {
 });
 
 describe("lookup-key constants", () => {
-  it("renamed keys are the selfsown_* set and differ from every legacy key", () => {
+  it("keys are the selfsown_* set (milkmarket_* fallback retired)", () => {
     expect(PRO_MONTHLY_LOOKUP_KEY).toBe("selfsown_pro_monthly_v1");
     expect(PRO_ANNUAL_LOOKUP_KEY).toBe("selfsown_pro_annual_v1");
     expect(WRANGLER_LIFETIME_LOOKUP_KEY).toBe("selfsown_wrangler_lifetime_v1");
-    expect(LEGACY_PRO_LOOKUP_KEYS.monthly).toBe("milkmarket_pro_monthly_v1");
-    expect(LEGACY_PRO_LOOKUP_KEYS.yearly).toBe("milkmarket_pro_annual_v1");
-    expect(LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY).toBe(
-      "milkmarket_wrangler_lifetime_v2"
-    );
-    // A key accidentally set equal on both sides would silently disable the
-    // dual-read; assert every (new, legacy) pair is distinct.
-    expect(PRO_MONTHLY_LOOKUP_KEY).not.toBe(LEGACY_PRO_LOOKUP_KEYS.monthly);
-    expect(PRO_ANNUAL_LOOKUP_KEY).not.toBe(LEGACY_PRO_LOOKUP_KEYS.yearly);
-    expect(WRANGLER_LIFETIME_LOOKUP_KEY).not.toBe(
-      LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY
-    );
   });
 });
 
-describe("ensureProPrice dual-read", () => {
-  it("queries both the renamed and legacy keys in one list call", async () => {
+describe("ensureProPrice find-or-create", () => {
+  it("queries the selfsown_* key in one list call", async () => {
     mockPricesList.mockResolvedValue({
       data: [{ id: "price_new_monthly", lookup_key: PRO_MONTHLY_LOOKUP_KEY }],
     });
@@ -135,14 +122,14 @@ describe("ensureProPrice dual-read", () => {
 
     expect(priceId).toBe("price_new_monthly");
     expect(mockPricesList).toHaveBeenCalledWith({
-      lookup_keys: [PRO_MONTHLY_LOOKUP_KEY, LEGACY_PRO_LOOKUP_KEYS.monthly],
+      lookup_keys: [PRO_MONTHLY_LOOKUP_KEY],
       active: true,
-      limit: 2,
+      limit: 1,
     });
     expect(mockPricesCreate).not.toHaveBeenCalled();
   });
 
-  it("reuses the renamed monthly Price when only it exists (post-rename state)", async () => {
+  it("reuses the existing monthly Price (no duplicate minted)", async () => {
     mockPricesList.mockResolvedValue({
       data: [{ id: "price_new_monthly", lookup_key: PRO_MONTHLY_LOOKUP_KEY }],
     });
@@ -154,40 +141,7 @@ describe("ensureProPrice dual-read", () => {
     expect(mockProductsCreate).not.toHaveBeenCalled();
   });
 
-  it("reuses the legacy-keyed monthly Price when the rename never happened", async () => {
-    mockPricesList.mockResolvedValue({
-      data: [
-        {
-          id: "price_legacy_monthly",
-          lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly,
-        },
-      ],
-    });
-
-    const priceId = await ensureProPrice("monthly");
-
-    expect(priceId).toBe("price_legacy_monthly");
-    expect(mockPricesCreate).not.toHaveBeenCalled();
-  });
-
-  it("prefers the renamed Price when both old and new exist", async () => {
-    mockPricesList.mockResolvedValue({
-      data: [
-        {
-          id: "price_legacy_monthly",
-          lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly,
-        },
-        { id: "price_new_monthly", lookup_key: PRO_MONTHLY_LOOKUP_KEY },
-      ],
-    });
-
-    const priceId = await ensureProPrice("monthly");
-
-    expect(priceId).toBe("price_new_monthly");
-    expect(mockPricesCreate).not.toHaveBeenCalled();
-  });
-
-  it("creates the monthly Price with the renamed key and $21/mo only when neither exists", async () => {
+  it("creates the monthly Price with the selfsown_* key and $21/mo only when none exists", async () => {
     mockPricesList.mockResolvedValue({ data: [] });
     mockPricesCreate.mockResolvedValue({ id: "price_created_monthly" });
 
@@ -210,7 +164,7 @@ describe("ensureProPrice dual-read", () => {
     expect(mockProductsCreate).not.toHaveBeenCalled();
   });
 
-  it("creates the yearly Price with the renamed key and $168/yr when neither exists", async () => {
+  it("creates the yearly Price with the selfsown_* key and $168/yr when none exists", async () => {
     mockPricesList.mockResolvedValue({ data: [] });
     mockPricesCreate.mockResolvedValue({ id: "price_created_yearly" });
 
@@ -218,9 +172,9 @@ describe("ensureProPrice dual-read", () => {
 
     expect(priceId).toBe("price_created_yearly");
     expect(mockPricesList).toHaveBeenCalledWith({
-      lookup_keys: [PRO_ANNUAL_LOOKUP_KEY, LEGACY_PRO_LOOKUP_KEYS.yearly],
+      lookup_keys: [PRO_ANNUAL_LOOKUP_KEY],
       active: true,
-      limit: 2,
+      limit: 1,
     });
     expect(mockPricesCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -234,8 +188,8 @@ describe("ensureProPrice dual-read", () => {
   });
 });
 
-describe("ensureWranglerLifetimePrice dual-read", () => {
-  it("reuses the renamed lifetime Price when only it exists (post-rename state)", async () => {
+describe("ensureWranglerLifetimePrice find-or-create", () => {
+  it("reuses the existing lifetime Price (no duplicate minted)", async () => {
     mockPricesList.mockResolvedValue({
       data: [
         { id: "price_new_lifetime", lookup_key: WRANGLER_LIFETIME_LOOKUP_KEY },
@@ -246,50 +200,14 @@ describe("ensureWranglerLifetimePrice dual-read", () => {
 
     expect(priceId).toBe("price_new_lifetime");
     expect(mockPricesList).toHaveBeenCalledWith({
-      lookup_keys: [
-        WRANGLER_LIFETIME_LOOKUP_KEY,
-        LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY,
-      ],
+      lookup_keys: [WRANGLER_LIFETIME_LOOKUP_KEY],
       active: true,
-      limit: 2,
+      limit: 1,
     });
     expect(mockPricesCreate).not.toHaveBeenCalled();
   });
 
-  it("reuses the legacy-keyed lifetime Price when the rename never happened", async () => {
-    mockPricesList.mockResolvedValue({
-      data: [
-        {
-          id: "price_legacy_lifetime",
-          lookup_key: LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY,
-        },
-      ],
-    });
-
-    const priceId = await ensureWranglerLifetimePrice();
-
-    expect(priceId).toBe("price_legacy_lifetime");
-    expect(mockPricesCreate).not.toHaveBeenCalled();
-  });
-
-  it("prefers the renamed lifetime Price when both exist", async () => {
-    mockPricesList.mockResolvedValue({
-      data: [
-        {
-          id: "price_legacy_lifetime",
-          lookup_key: LEGACY_WRANGLER_LIFETIME_LOOKUP_KEY,
-        },
-        { id: "price_new_lifetime", lookup_key: WRANGLER_LIFETIME_LOOKUP_KEY },
-      ],
-    });
-
-    const priceId = await ensureWranglerLifetimePrice();
-
-    expect(priceId).toBe("price_new_lifetime");
-    expect(mockPricesCreate).not.toHaveBeenCalled();
-  });
-
-  it("creates a one-time $2,100 Price with the renamed key when neither exists", async () => {
+  it("creates a one-time $2,100 Price with the selfsown_* key when none exists", async () => {
     mockPricesList.mockResolvedValue({ data: [] });
     mockPricesCreate.mockResolvedValue({ id: "price_created_lifetime" });
 
@@ -393,9 +311,9 @@ describe("POST /api/pro/create-subscription — checkout with renamed keys", () 
 
     expect(res.statusCode).toBe(200);
     expect(mockPricesList).toHaveBeenCalledWith({
-      lookup_keys: [PRO_ANNUAL_LOOKUP_KEY, LEGACY_PRO_LOOKUP_KEYS.yearly],
+      lookup_keys: [PRO_ANNUAL_LOOKUP_KEY],
       active: true,
-      limit: 2,
+      limit: 1,
     });
     expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -403,33 +321,6 @@ describe("POST /api/pro/create-subscription — checkout with renamed keys", () 
         items: [{ price: "price_new_yearly" }],
         metadata: expect.objectContaining({ term: "yearly" }),
       }),
-      expect.anything()
-    );
-    expect(mockPricesCreate).not.toHaveBeenCalled();
-  });
-
-  it("still works when only the legacy-keyed Price exists", async () => {
-    mockPricesList.mockResolvedValue({
-      data: [
-        {
-          id: "price_legacy_monthly",
-          lookup_key: LEGACY_PRO_LOOKUP_KEYS.monthly,
-          unit_amount: PRO_MONTHLY_PRICE_CENTS,
-          currency: PRO_PRICE_CURRENCY,
-          recurring: { interval: "month" },
-        },
-      ],
-    });
-
-    const res = makeRes();
-    await createSubscriptionHandler(
-      makeReq({ pubkey: SELLER_PUBKEY, term: "monthly" }),
-      res
-    );
-
-    expect(res.statusCode).toBe(200);
-    expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ items: [{ price: "price_legacy_monthly" }] }),
       expect.anything()
     );
     expect(mockPricesCreate).not.toHaveBeenCalled();
