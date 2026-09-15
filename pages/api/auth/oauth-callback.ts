@@ -4,7 +4,6 @@ import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
 import CryptoJS from "crypto-js";
 import crypto from "crypto";
 import { OAUTH_AUTH_SALT, LEGACY_OAUTH_AUTH_SALT } from "@/utils/auth/salts";
-import { getSiteUrl } from "@/utils/site-url";
 
 // Apple issues no static client secret: it is a short-lived ES256 JWT minted
 // from the Sign in with Apple private key (.p8), team ID, and key ID.
@@ -54,11 +53,42 @@ function buildAppleClientSecret(opts: {
 }
 
 // The success redirect carries credentials (nsec) in its query string, so its
-// origin must never come from the client-controlled Host / x-forwarded-proto
-// headers — always use the configured site URL. (The token exchange below
-// separately byte-matches the authorize-time redirect_uri from the cookie.)
-function getBaseUrl(): string {
-  return getSiteUrl();
+// origin must be a verified initiating origin — never the configured site URL
+// (a self-host instance with a stale NEXT_PUBLIC_BASE_URL would otherwise send
+// credentials off-origin) and never a bare Host header. The authorize-time
+// redirect_uri cookie is validated same-origin at oauth-redirect time, so its
+// origin is trusted. When the cookie is absent (Apple's cross-site form_post
+// omits Lax cookies), the browser provably reached us by POSTing to the
+// provider-registered redirect URI, so the request host IS that registered
+// origin.
+function readCookie(req: NextApiRequest, name: string): string | undefined {
+  const fromParser = req.cookies?.[name];
+  if (fromParser) return fromParser;
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq === -1) continue;
+    if (part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();
+  }
+  return undefined;
+}
+
+function getSuccessBaseUrl(req: NextApiRequest): string {
+  const pinned = readCookie(req, "oauth_redirect_uri");
+  if (pinned) {
+    try {
+      const u = new URL(pinned);
+      const isLocal = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+      if (u.protocol === "https:" || (u.protocol === "http:" && isLocal)) {
+        return u.origin;
+      }
+    } catch {
+      // fall through to the request origin
+    }
+  }
+  const protocol = req.headers["x-forwarded-proto"] || "https";
+  return `${protocol}://${req.headers.host}`;
 }
 
 export default async function handler(
@@ -321,7 +351,7 @@ export default async function handler(
     await client.end();
 
     // Redirect to success page with nsec and pubkey
-    const successUrl = new URL("/auth/oauth-success", getBaseUrl());
+    const successUrl = new URL("/auth/oauth-success", getSuccessBaseUrl(req));
     successUrl.searchParams.set("nsec", nsec);
     successUrl.searchParams.set("pubkey", pubkey);
     successUrl.searchParams.set("provider", provider);

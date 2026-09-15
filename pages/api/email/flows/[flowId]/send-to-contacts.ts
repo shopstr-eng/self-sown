@@ -181,14 +181,16 @@ export default async function handler(
         await scheduleStepExecutions(enrollment.id, flow.id);
         enrolled++;
       } catch (contactError) {
-        const maskedEmail =
-          typeof email === "string"
-            ? email.replace(/^(..).*(@.+)$/, "$1***$2")
-            : "unknown";
+        // Log only the domain (never the local part) and the pg error
+        // code/name — error messages can echo the recipient value.
+        const at = typeof email === "string" ? email.indexOf("@") : -1;
+        const maskedEmail = at > 0 ? `***${email.slice(at)}` : "***";
         console.error(
           "Failed to enroll contact in flow:",
           maskedEmail,
-          contactError
+          (contactError as { code?: string; name?: string } | null)?.code ??
+            (contactError as { code?: string; name?: string } | null)?.name ??
+            "error"
         );
         skipped++;
         // If the enrollment row was created but scheduling failed, cancel it so
