@@ -4,7 +4,7 @@
 # Usage: bash scripts/measure-build-peak.sh [--keep-cache] [-- extra build args]
 #
 # Removes .next (unless --keep-cache), then runs the dev-workflow build
-# (MM_DEV_BUILD=1) under setsid while sampling the RSS of every build-related
+# (SS_DEV_BUILD=1) under setsid while sampling the RSS of every build-related
 # process every 0.5s. Writes:
 #   .build-measure/build.log        — full build output
 #   .build-measure/rss-samples.tsv  — epoch_ms<TAB>total_rss_mb<TAB>per-proc breakdown
@@ -29,7 +29,7 @@ if [ "$KEEP_CACHE" -eq 0 ]; then
   rm -rf .next
 fi
 
-export MM_DEV_BUILD=1
+export SS_DEV_BUILD=1
 export NODE_OPTIONS='--max-old-space-size=3072'
 export RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-2}"
 
@@ -67,7 +67,7 @@ end_ts=$(date +%s)
   echo "peak_rss_mb=$peak"
   echo "wall_s=$((end_ts - start_ts))"
   echo "args=${EXTRA_ARGS[*]:-<none>}"
-  echo "mm_dev_build=$MM_DEV_BUILD rayon=$RAYON_NUM_THREADS keep_cache=$KEEP_CACHE"
+  echo "mm_dev_build=$SS_DEV_BUILD rayon=$RAYON_NUM_THREADS keep_cache=$KEEP_CACHE"
   date -u +"measured_at=%Y-%m-%dT%H:%M:%SZ"
 } | tee "$OUT/summary.txt"
 

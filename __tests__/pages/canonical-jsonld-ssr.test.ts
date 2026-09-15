@@ -4,7 +4,7 @@
 // has its own unit test for the canonicalUrl OVERRIDE; this exercises the page
 // that actually RESOLVES that canonical URL from the request — the friendly
 // title slug plus the seller's custom-domain origin forwarded by proxy.ts as
-// `x-mm-custom-domain-host` / `x-mm-original-path`. A regression here would
+// `x-ss-custom-domain-host` / `x-ss-original-path`. A regression here would
 // silently emit raw identifier URLs to Google / AI shopping agents even though
 // the page's <link rel="canonical"> points at the friendly slug.
 //
@@ -152,7 +152,7 @@ describe("listing page getServerSideProps canonical JSON-LD url", () => {
     const result = (await listingGetServerSideProps(
       makeContext(
         { productId: ["evt-raw-milk"] },
-        { "x-mm-custom-domain-host": "Farmer.com:443" }
+        { "x-ss-custom-domain-host": "Farmer.com:443" }
       )
     )) as { props: { ogMeta: unknown } };
 
@@ -225,8 +225,8 @@ describe("stall page getServerSideProps canonical ItemList url", () => {
       makeContext(
         { slug: SHOP_SLUG },
         {
-          "x-mm-custom-domain-host": "Farmer.com",
-          "x-mm-original-path": "/",
+          "x-ss-custom-domain-host": "Farmer.com",
+          "x-ss-original-path": "/",
         }
       )
     )) as { props: { ogMeta: unknown } };
@@ -291,8 +291,8 @@ describe("stall page product-as-landing canonical JSON-LD url", () => {
       makeContext(
         { slug: SHOP_SLUG },
         {
-          "x-mm-custom-domain-host": "Farmer.com",
-          "x-mm-original-path": "/",
+          "x-ss-custom-domain-host": "Farmer.com",
+          "x-ss-original-path": "/",
         }
       )
     )) as { props: { ogMeta: unknown } };

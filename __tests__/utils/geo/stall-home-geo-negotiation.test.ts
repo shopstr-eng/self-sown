@@ -322,7 +322,7 @@ describe("proxy() /.well-known/nostr.json — custom domain", () => {
     const res = await proxy(buildRequest(HOST, PATH));
     const r = inspect(res);
     expect(r.rewritePath).toBe("/api/storefront/nostr-json");
-    expect(r.requestHeader("x-mm-shop-pubkey")).toBe(PUBKEY);
+    expect(r.requestHeader("x-ss-shop-pubkey")).toBe(PUBKEY);
   });
 
   it("falls through to the static /public copy when no pubkey resolves", async () => {
@@ -346,7 +346,7 @@ describe("proxy() /.well-known/ucp discovery profile", () => {
     const res = await proxy(buildRequest("farmer.example", PATH));
     const r = inspect(res);
     expect(r.rewritePath).toBe("/api/.well-known/ucp");
-    expect(r.requestHeader("x-mm-custom-domain")).toBe("1");
+    expect(r.requestHeader("x-ss-custom-domain")).toBe("1");
   });
 
   it("serves the seller-scoped UCP endpoint even when no slug resolves", async () => {

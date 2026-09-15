@@ -65,7 +65,7 @@ export function isSelfHostBlockedApi(pathname: string): boolean {
   );
 }
 
-// Whether to trust an inbound `x-mm-self-host` header. The proxy sets that
+// Whether to trust an inbound `x-ss-self-host` header. The proxy sets that
 // header only on a real self-host deployment, but a client could spoof it on
 // the hosted platform. Fail closed: honor it ONLY when THIS server process is
 // itself running in self-host mode (`SS_SELF_HOST` env; legacy `MM_SELF_HOST` honored). Truthiness mirrors

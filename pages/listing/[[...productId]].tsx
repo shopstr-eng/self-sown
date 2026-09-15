@@ -85,12 +85,12 @@ const PLATFORM_ORIGIN = SITE_URL;
 // Product/Offer link matches the page's canonical link tag. That means the
 // friendly title slug (the client redirects raw id/dTag/naddr routes to it) on
 // the correct origin (the seller's custom domain when the request arrives via
-// one, forwarded by proxy.ts as `x-mm-custom-domain-host`, else the platform).
+// one, forwarded by proxy.ts as `x-ss-custom-domain-host`, else the platform).
 async function resolveListingCanonicalUrl(
   event: NostrEvent,
   headers: { [key: string]: string | string[] | undefined }
 ): Promise<string> {
-  const rawHost = headers["x-mm-custom-domain-host"];
+  const rawHost = headers["x-ss-custom-domain-host"];
   const customHost = (typeof rawHost === "string" ? rawHost : "")
     .toLowerCase()
     .trim()

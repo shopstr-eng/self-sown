@@ -72,7 +72,7 @@ const PLATFORM_LOOKUP_ORIGIN =
 
 /**
  * Resolve a host to both its shop slug and the seller's pubkey in one
- * round-trip. The proxy uses this to inject `x-mm-shop-pubkey` so the
+ * round-trip. The proxy uses this to inject `x-ss-shop-pubkey` so the
  * client can seed `storefrontLoadPubkey` from SSR and skip the
  * "mount-bare, fetch slug, then remount inside StorefrontThemeWrapper"
  * race that blanked Safari sessions.

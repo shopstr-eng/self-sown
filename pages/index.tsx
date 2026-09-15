@@ -1080,55 +1080,55 @@ export default function StandaloneLanding() {
                 {[
                   {
                     feature: "Up-front & platform fees",
-                    mm: "0%",
+                    ss: "0%",
                     shopify: "Up to 2%¹",
                     barn: "$399+ setup fee¹ ²",
                   },
                   {
                     feature: "Monthly subscription",
-                    mm: "Free, or $21 Herd",
+                    ss: "Free, or $21 Herd",
                     shopify: "From $39/mo",
                     barn: "From $99/mo²",
                   },
                   {
                     feature: "Built for local food & makers",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: true,
                   },
                   {
                     feature: "Open & decentralized, so you own your store",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Self-host your own store",
-                    mm: "Wrangler",
+                    ss: "Wrangler",
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Accepts Bitcoin, Lightning & cash natively",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Censorship-resistant, with no central shutdown",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Custom domain & stall",
-                    mm: "Herd",
+                    ss: "Herd",
                     shopify: true,
                     barn: true,
                   },
                   {
                     feature: "AI agent commerce (MCP)",
-                    mm: true,
+                    ss: true,
                     shopify: true,
                     barn: false,
                   },
@@ -1160,7 +1160,7 @@ export default function StandaloneLanding() {
                         {row.feature}
                       </td>
                       <td className="bg-primary-yellow/20 border-x-2 border-black p-2 text-center align-top sm:p-4">
-                        {renderCell(row.mm)}
+                        {renderCell(row.ss)}
                       </td>
                       <td className="p-2 text-center align-top text-zinc-700 sm:p-4">
                         {renderCell(row.shopify)}

@@ -9,7 +9,7 @@
 # detection scanning the multi-GB .local/ and .cache/ directories during the
 # globals.css compile (~4.4GB of the peak); globals.css now pins explicit
 # @source globs (source(none)) and a cold build peaks at ~2.4GB. next.config
-# also trims dev-build memory (see the MM_DEV_BUILD block — notably the
+# also trims dev-build memory (see the SS_DEV_BUILD block — notably the
 # Turbopack FS build cache is disabled). Host memory noise still fluctuates,
 # so this supervisor keeps the safety nets:
 #
@@ -30,14 +30,14 @@
 #     page to "broken" — it needs a code fix, not more attempts.
 set -uo pipefail
 
-export MM_DEV_BUILD=1
+export SS_DEV_BUILD=1
 export NODE_OPTIONS='--max-old-space-size=3072'
 # Cap Turbopack's Rust thread pool (rayon defaults to nproc); fewer concurrent
 # module compilations = lower peak RSS.
 export RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-2}"
 
 # Cold compiles peak ~2.4GB (was ~7GB before the Tailwind source-detection
-# fix in styles/globals.css). The MM_DEV_BUILD config disables the Turbopack
+# fix in styles/globals.css). The SS_DEV_BUILD config disables the Turbopack
 # FS build cache, so every build here is effectively cold; the warm threshold
 # only applies if that setting changes (a large .next/cache then survives
 # restarts and rebuilds are cheaper).

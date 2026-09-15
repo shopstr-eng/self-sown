@@ -45,12 +45,12 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
 
   // Resolve canonical stall root URL (same logic as [slug].tsx) so structured
   // data on sub-pages uses the correct origin on custom domains.
-  const rawHost = context.req.headers["x-mm-custom-domain-host"];
+  const rawHost = context.req.headers["x-ss-custom-domain-host"];
   const customHost = (typeof rawHost === "string" ? rawHost : "")
     .toLowerCase()
     .trim()
     .replace(/:\d+$/, "");
-  const rawOriginalPath = context.req.headers["x-mm-original-path"];
+  const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
   const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;

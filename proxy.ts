@@ -240,7 +240,7 @@ function isCustomDomain(rawHost: string): boolean {
 // Endpoints that set their OWN accurate, per-request RateLimit headers (via
 // applyRateLimit) carry this marker so the advisory wrapper below doesn't add a
 // second, duplicate set. The marker is stripped before the response is returned.
-const RL_SKIP_HEADER = "x-mm-rl-skip";
+const RL_SKIP_HEADER = "x-ss-rl-skip";
 
 // Advisory RateLimit headers for agents/scanners. Real per-IP enforcement lives
 // in the API handlers (utils/rate-limit.ts); these inform automated clients of
@@ -261,6 +261,19 @@ function withAdvisoryRateLimitHeaders(res: NextResponse): NextResponse {
     res.headers.set("X-RateLimit-Reset", "60");
   }
   return res;
+}
+
+// Internal x-ss-* (and legacy x-mm-*) headers are set authoritatively by this
+// proxy on custom-domain/self-host paths and consumed downstream (_app.tsx,
+// nostr-json, seller-host, ...). The fallthrough NextResponse.next() paths
+// forward request headers unchanged, so strip any inbound copies: a direct
+// caller must not be able to forge custom-domain/self-host context.
+function stripInternalHeaders(base: Headers): Headers {
+  const h = new Headers(base);
+  for (const key of [...h.keys()]) {
+    if (key.startsWith("x-mm-") || key.startsWith("x-ss-")) h.delete(key);
+  }
+  return h;
 }
 
 export async function proxy(request: NextRequest) {
@@ -293,7 +306,8 @@ async function routeRequest(request: NextRequest) {
 
   if (pathname === "/.well-known/agent.json") {
     return NextResponse.rewrite(
-      new URL("/api/.well-known/agent.json", request.url)
+      new URL("/api/.well-known/agent.json", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
     );
   }
 
@@ -348,13 +362,14 @@ async function routeRequest(request: NextRequest) {
   // custom domain.
   if (pathname === "/.well-known/http-message-signatures-directory") {
     const res = NextResponse.rewrite(
-      new URL("/api/.well-known/http-message-signatures-directory", request.url)
+      new URL("/api/.well-known/http-message-signatures-directory", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
     );
     res.headers.set(RL_SKIP_HEADER, "1");
     return res;
   }
 
-  // Single-tenant self-host mode. When MM_SELF_HOST is on, this whole instance
+  // Single-tenant self-host mode. When SS_SELF_HOST is on, this whole instance
   // serves exactly one seller's storefront regardless of host: the marketplace,
   // Nostr discovery, and platform Pro-billing surfaces are hidden, and every
   // other path is served under the owner's /stall/<slug>. We take this branch
@@ -395,7 +410,9 @@ async function routeRequest(request: NextRequest) {
   // Unlike /.well-known/agent.json (identical on every host) the UCP profile is
   // host-scoped, so it is NOT short-circuited at the top of the router.
   if (!isCustomDomain(hostname) && pathname === "/.well-known/ucp") {
-    return NextResponse.rewrite(new URL("/api/.well-known/ucp", request.url));
+    return NextResponse.rewrite(new URL("/api/.well-known/ucp", request.url), {
+      request: { headers: stripInternalHeaders(request.headers) },
+    });
   }
 
   // Content negotiation for LLMs/agents on the main platform host only. Custom
@@ -412,7 +429,7 @@ async function routeRequest(request: NextRequest) {
       // Forward path/format via request headers too: NextResponse.rewrite can
       // override the destination query string with the original request's, so
       // headers are the reliable channel for the API route to read.
-      const requestHeaders = new Headers(request.headers);
+      const requestHeaders = stripInternalHeaders(request.headers);
       requestHeaders.set("x-agent-view-path", pathname);
       requestHeaders.set("x-agent-view-format", format);
       const res = NextResponse.rewrite(url, {
@@ -445,7 +462,7 @@ async function routeRequest(request: NextRequest) {
         const url = new URL("/api/stall-agent-view", request.url);
         url.searchParams.set("slug", stallSlug);
         url.searchParams.set("format", format);
-        const requestHeaders = new Headers(request.headers);
+        const requestHeaders = stripInternalHeaders(request.headers);
         requestHeaders.set("x-stall-slug", stallSlug);
         requestHeaders.set("x-stall-format", format);
         const res = NextResponse.rewrite(url, {
@@ -480,7 +497,7 @@ async function routeRequest(request: NextRequest) {
           const url = new URL("/api/stall-agent-view", request.url);
           url.searchParams.set("slug", stallSlug);
           url.searchParams.set("format", format);
-          const requestHeaders = new Headers(request.headers);
+          const requestHeaders = stripInternalHeaders(request.headers);
           requestHeaders.set("x-stall-slug", stallSlug);
           requestHeaders.set("x-stall-format", format);
           const res = NextResponse.rewrite(url, {
@@ -521,7 +538,7 @@ async function routeRequest(request: NextRequest) {
           url.searchParams.set("slug", stallSlug);
           url.searchParams.set("postSlug", postSlug);
           url.searchParams.set("format", format);
-          const requestHeaders = new Headers(request.headers);
+          const requestHeaders = stripInternalHeaders(request.headers);
           requestHeaders.set("x-stall-slug", stallSlug);
           requestHeaders.set("x-post-slug", postSlug);
           requestHeaders.set("x-stall-format", format);
@@ -550,11 +567,11 @@ async function routeRequest(request: NextRequest) {
       (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
         STATIC_ASSET_EXT_RE.test(pathname))
     ) {
-      return NextResponse.next();
+      return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
     }
 
     // Look up the shop slug for this custom domain up-front so we can flag
-    // every render with `x-mm-custom-domain` + `x-mm-shop-slug`. _app.tsx
+    // every render with `x-ss-custom-domain` + `x-ss-shop-slug`. _app.tsx
     // reads these in getInitialProps to suppress the platform TopNav and
     // wrap the page in the storefront chrome on the very first SSR pass
     // (no client-side flash).
@@ -567,21 +584,21 @@ async function routeRequest(request: NextRequest) {
     const pubkey = resolution.pubkey;
 
     const buildHeaders = () => {
-      const h = new Headers(request.headers);
-      h.set("x-mm-custom-domain", "1");
-      h.set("x-mm-custom-domain-host", hostname);
+      const h = stripInternalHeaders(request.headers);
+      h.set("x-ss-custom-domain", "1");
+      h.set("x-ss-custom-domain-host", hostname);
       // Pass the original public pathname so SSR can emit correct canonical
       // and og:url for this custom domain (the internal Next.js rewrite turns
       // "/" into "/stall/<slug>", but the canonical must stay at the seller
       // domain's public path, e.g. "https://farmer.com/" not
       // "https://milk.market/stall/farmname").
-      h.set("x-mm-original-path", pathname || "/");
-      if (slug) h.set("x-mm-shop-slug", slug);
+      h.set("x-ss-original-path", pathname || "/");
+      if (slug) h.set("x-ss-shop-slug", slug);
       // Seed SSR with the seller pubkey so _app.tsx can mount the storefront
       // wrapper on first render. Without this, the page renders once bare,
       // fetches the slug client-side, then remounts inside the wrapper —
       // visible as a flash or, in Safari with stale SW caches, a blank screen.
-      if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
+      if (pubkey) h.set("x-ss-shop-pubkey", pubkey);
       return h;
     };
 
@@ -605,7 +622,7 @@ async function routeRequest(request: NextRequest) {
     // to the platform's static /public copies.
     const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
     if (geoFormat) {
-      if (!slug) return NextResponse.next();
+      if ((!slug)) return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
       return rewriteToStallAgentView(geoFormat);
     }
 
@@ -615,7 +632,7 @@ async function routeRequest(request: NextRequest) {
     // above, so pass it through via header. If the domain has no resolved seller
     // (unconfigured/hidden), fall through to the platform's static /public copy.
     if (isCustomDomainNostrJson) {
-      if (!pubkey) return NextResponse.next();
+      if ((!pubkey)) return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
       const url = new URL("/api/storefront/nostr-json", request.url);
       const res = NextResponse.rewrite(url, {
         request: { headers: buildHeaders() },
@@ -626,7 +643,7 @@ async function routeRequest(request: NextRequest) {
 
     // UCP discovery profile, scoped to this seller. Served even when no slug
     // resolved: the endpoint resolves + membership-gates the seller from the
-    // verified domain (forwarded via x-mm-custom-domain-host) and 404s if none.
+    // verified domain (forwarded via x-ss-custom-domain-host) and 404s if none.
     if (pathname === "/.well-known/ucp") {
       const res = NextResponse.rewrite(
         new URL("/api/.well-known/ucp", request.url),
@@ -767,7 +784,7 @@ async function routeRequest(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
 }
 
 // Resolve the configured self-host owner pubkey to lowercase hex. Accepts an
@@ -806,15 +823,15 @@ function routeSelfHost(request: NextRequest, slug: string) {
   const pubkey = selfHostPubkeyHex();
 
   const buildHeaders = () => {
-    const h = new Headers(request.headers);
+    const h = stripInternalHeaders(request.headers);
     // Reuse the custom-domain SSR signals so _app.tsx wraps every page in the
     // storefront chrome and suppresses the platform TopNav on the first render.
-    h.set("x-mm-custom-domain", "1");
-    h.set("x-mm-self-host", "1");
-    h.set("x-mm-custom-domain-host", hostname);
-    h.set("x-mm-original-path", pathname || "/");
-    h.set("x-mm-shop-slug", slug);
-    if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
+    h.set("x-ss-custom-domain", "1");
+    h.set("x-ss-self-host", "1");
+    h.set("x-ss-custom-domain-host", hostname);
+    h.set("x-ss-original-path", pathname || "/");
+    h.set("x-ss-shop-slug", slug);
+    if (pubkey) h.set("x-ss-shop-pubkey", pubkey);
     return h;
   };
 
@@ -826,7 +843,7 @@ function routeSelfHost(request: NextRequest, slug: string) {
     (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
       STATIC_ASSET_EXT_RE.test(pathname))
   ) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: stripInternalHeaders(request.headers) } });
   }
 
   // UCP discovery profile for this single-tenant instance (the endpoint scopes

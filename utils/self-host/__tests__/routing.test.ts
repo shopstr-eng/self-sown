@@ -128,7 +128,7 @@ describe("selfHostHeaderTrusted", () => {
   });
 
   it("ignores a spoofed header on the hosted platform (MM_SELF_HOST unset)", () => {
-    // The core regression guard: a crafted x-mm-self-host:1 on hosted mode must
+    // The core regression guard: a crafted x-ss-self-host:1 on hosted mode must
     // NOT flip forceSelfHostChrome and bypass the Pro render gate.
     for (const env of [undefined, "", "0", "false", "no", "off"]) {
       expect(selfHostHeaderTrusted(env, "1")).toBe(false);

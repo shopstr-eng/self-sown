@@ -78,7 +78,7 @@ export default async function handler(
   // When set, render a single blog post (full body) instead of the stall view.
   const postSlug =
     headerStr(req, "x-post-slug") || queryStr(req, "postSlug") || "";
-  const host = headerStr(req, "x-mm-custom-domain-host");
+  const host = headerStr(req, "x-ss-custom-domain-host");
   const isCustomDomain = !!host;
   const siteUrl = host ? `https://${host}` : `${getSiteUrl()}/stall/${slug}`;
 

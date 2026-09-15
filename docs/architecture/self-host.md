@@ -49,7 +49,7 @@ server-only config module) and delegates each decision to the pure helpers:
   404, EXCEPT `SELF_HOST_CONNECT_ALLOW` (`/api/stripe/connect/seller-status`,
   made self-host-aware). `/api/pro/status` and `/api/pro/export-store` stay live.
 - `selfHostStallRewritePath(path, slug)` — root → `/stall/<slug>`; the proxy
-  seeds `x-mm-custom-domain` + `x-mm-self-host` headers so the storefront renders
+  seeds `x-ss-custom-domain` + `x-ss-self-host` headers so the storefront renders
   as the tenant's stall. When self-host is enabled but the slug is missing the
   proxy **fails closed**: every path returns a 503 misconfiguration error rather
   than falling through to normal multi-tenant routing (which would expose the
@@ -61,7 +61,7 @@ So the seller only ever sees their OWN branded store (never Self-sown chrome),
 self-host forces the storefront theme for EVERY served page — settings and all
 non-stall pages included — not just the stall:
 
-- `pages/_app.tsx` forwards the proxy's `x-mm-self-host` header into
+- `pages/_app.tsx` forwards the proxy's `x-ss-self-host` header into
   `pageProps.__isSelfHostSsr` (via `getInitialProps`) and passes
   `forceSelfHostChrome` to `StorefrontThemeWrapper` when set. The client-side
   hostname auto-detection effect early-returns under SSR self-host, so there is

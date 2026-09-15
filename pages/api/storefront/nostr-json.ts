@@ -25,7 +25,7 @@ const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
  * caller-supplied pubkey header here: this endpoint is publicly reachable, and
  * trusting a forgeable header would let a direct caller bypass the membership
  * gate for any account. The proxy forwards the real custom-domain host via
- * `x-mm-custom-domain-host`; a `?domain=` query is accepted as a fallback for
+ * `x-ss-custom-domain-host`; a `?domain=` query is accepted as a fallback for
  * direct/test calls. A forged host only ever returns that domain's already-
  * public NIP-05, so it grants no extra access.
  *
@@ -62,7 +62,7 @@ export default async function handler(
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 
   try {
-    const hostHeader = req.headers["x-mm-custom-domain-host"];
+    const hostHeader = req.headers["x-ss-custom-domain-host"];
     const domainQuery = req.query.domain;
     const domain = (
       (typeof hostHeader === "string" && hostHeader) ||

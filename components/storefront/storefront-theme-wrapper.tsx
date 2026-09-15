@@ -112,7 +112,7 @@ function StorefrontThemeWrapperInner({
   // are always entitled to their branded chrome. Skipping the Pro gate here lets
   // the storefront paint on the very first render instead of waiting for (and
   // depending on) the /api/pro/status round trip. This flag is fail-closed: it is
-  // true only when _app.tsx trusted the x-mm-self-host header, which happens only
+  // true only when _app.tsx trusted the x-ss-self-host header, which happens only
   // when the server process is itself in self-host mode (MM_SELF_HOST env) — a
   // spoofed header on the hosted platform can't set it, so the hosted Pro gate is
   // untouched.
