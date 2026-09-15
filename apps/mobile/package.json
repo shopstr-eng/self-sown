@@ -12,7 +12,7 @@
     "build": "expo export --platform web --output-dir dist",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "test": "node -e \"process.exit(0)\""
+    "test": "node scripts/navigation-query-smoke.mjs"
   },
   "dependencies": {
     "@self-sown/api-client": "file:../../packages/api-client",
