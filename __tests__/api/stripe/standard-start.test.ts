@@ -51,7 +51,7 @@ beforeEach(() => {
   process.env.SESSION_SECRET = "test-session-secret";
   process.env.STRIPE_SECRET_KEY = "sk_test_1";
   process.env.STRIPE_CLIENT_ID = "ca_test_1";
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
 });
 
 afterAll(() => {
@@ -70,7 +70,7 @@ describe("POST /api/stripe/connect/standard/start", () => {
     expect(url.searchParams.get("client_id")).toBe("ca_test_1");
     expect(url.searchParams.get("scope")).toBe("read_write");
     expect(url.searchParams.get("redirect_uri")).toBe(
-      "https://milk.market/api/stripe/connect/standard/callback"
+      "https://platform.example.com/api/stripe/connect/standard/callback"
     );
     const state = url.searchParams.get("state") || "";
     expect(verifyOAuthState(state)).toBe(PUBKEY);

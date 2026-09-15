@@ -35,7 +35,7 @@ beforeEach(() => {
   mockCreate.mockResolvedValue({});
   mockPmdCreate.mockResolvedValue({});
   process.env.STRIPE_SECRET_KEY = "sk_test_x";
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   mockGetDomainByHost.mockResolvedValue(null);
 });
 
@@ -45,7 +45,9 @@ afterAll(() => {
 
 describe("normalizeRegistrableHost", () => {
   it("strips ports and lowercases real domains", () => {
-    expect(normalizeRegistrableHost("Milk.Market:443")).toBe("milk.market");
+    expect(normalizeRegistrableHost("Platform.Example.com:443")).toBe(
+      "platform.example.com"
+    );
   });
 
   it("rejects localhost and bare hosts Apple can never verify", () => {
@@ -56,9 +58,9 @@ describe("normalizeRegistrableHost", () => {
 
 describe("trustedRegistrationHost", () => {
   it("accepts the platform host without any seller or domain lookup", async () => {
-    await expect(trustedRegistrationHost("Milk.Market:443")).resolves.toBe(
-      "milk.market"
-    );
+    await expect(
+      trustedRegistrationHost("Platform.Example.com:443")
+    ).resolves.toBe("platform.example.com");
     expect(mockGetDomainByHost).not.toHaveBeenCalled();
   });
 
@@ -106,7 +108,7 @@ describe("trustedRegistrationHost", () => {
       trustedRegistrationHost("localhost:3000", SELLER_A)
     ).resolves.toBeNull();
     await expect(
-      trustedRegistrationHost("milk.market.evil.com", SELLER_A)
+      trustedRegistrationHost("platform.example.com.evil.com", SELLER_A)
     ).resolves.toBeNull();
   });
 
