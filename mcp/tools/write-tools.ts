@@ -1817,7 +1817,11 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             tags.push(["t", cat]);
           }
         }
-        tags.push(["t", "SelfSown"]);
+        // Categories are caller-supplied: a legacy "MilkMarket" or duplicate
+        // "SelfSown" spelling must not survive into the published event, so
+        // the discovery tag goes through the shared normalizer instead of an
+        // unconditional append.
+        tags.splice(0, tags.length, ...normalizeMarketplaceDiscoveryTag(tags));
 
         if (params.quantity) {
           tags.push(["quantity", params.quantity]);

@@ -84,6 +84,17 @@ function publishedTemplate(): EventTemplate {
   return calls[calls.length - 1]![1] as EventTemplate;
 }
 
+// create_product_listing also signs kind-31989/31990 handler events after the
+// listing, so the listing template is the kind-30402 call, not the last call.
+function publishedListingTemplate(): EventTemplate {
+  const calls = jest.mocked(signAndPublishEvent).mock.calls;
+  const listing = calls
+    .map((c) => c[1] as EventTemplate)
+    .find((t) => t.kind === 30402);
+  expect(listing).toBeDefined();
+  return listing!;
+}
+
 describe("update_product_listing marketplace discovery tag", () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -135,5 +146,57 @@ describe("update_product_listing marketplace discovery tag", () => {
 
     const tTags = publishedTemplate().tags.filter((t) => t[0] === "t");
     expect(tTags).toEqual([["t", "SelfSown"]]);
+  });
+});
+
+describe("create_product_listing marketplace discovery tag", () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const baseParams = {
+    title: "Raw Milk",
+    description: "Fresh from the farm",
+    price: "8",
+    currency: "USD",
+  };
+
+  it("publishes exactly one SelfSown tag alongside the categories", async () => {
+    const create = tools().get("create_product_listing")!;
+    const result = payload(
+      await create({ ...baseParams, categories: ["fresh milk"] })
+    );
+    expect(result.success).toBe(true);
+
+    const tTags = publishedListingTemplate().tags.filter((t) => t[0] === "t");
+    expect(tTags.filter((t) => t[1] === "SelfSown")).toEqual([
+      ["t", "SelfSown"],
+    ]);
+    expect(tTags).toContainEqual(["t", "fresh milk"]);
+  });
+
+  it("publishes the discovery tag when no categories are given", async () => {
+    const create = tools().get("create_product_listing")!;
+    const result = payload(await create({ ...baseParams }));
+    expect(result.success).toBe(true);
+
+    const tTags = publishedListingTemplate().tags.filter((t) => t[0] === "t");
+    expect(tTags).toEqual([["t", "SelfSown"]]);
+  });
+
+  it("never carries a caller-supplied legacy MilkMarket category forward", async () => {
+    const create = tools().get("create_product_listing")!;
+    const result = payload(
+      await create({
+        ...baseParams,
+        categories: ["fresh milk", "MilkMarket", "SelfSown"],
+      })
+    );
+    expect(result.success).toBe(true);
+
+    const tTags = publishedListingTemplate().tags.filter((t) => t[0] === "t");
+    expect(tTags.some((t) => t[1] === "MilkMarket")).toBe(false);
+    expect(tTags.filter((t) => t[1] === "SelfSown")).toEqual([
+      ["t", "SelfSown"],
+    ]);
+    expect(tTags).toContainEqual(["t", "fresh milk"]);
   });
 });
