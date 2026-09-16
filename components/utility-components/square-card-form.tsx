@@ -144,6 +144,10 @@ export default function SquareCardForm({
   const containerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<SquareCard | null>(null);
   const paymentsRef = useRef<SquarePayments | null>(null);
+  // Bumped on every SDK teardown (unmount/cancel/re-init). An in-flight
+  // charge captured the old generation and must stop instead of charging a
+  // checkout whose UI is gone.
+  const lifecycleRef = useRef(0);
   const applePayRef = useRef<SquareApplePay | null>(null);
   const [applePayReady, setApplePayReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -189,6 +193,7 @@ export default function SquareCardForm({
     init();
     return () => {
       cancelled = true;
+      lifecycleRef.current += 1;
       paymentsRef.current = null;
       const applePay = applePayRef.current;
       applePayRef.current = null;
@@ -247,19 +252,34 @@ export default function SquareCardForm({
   // Shared post-tokenization charge: the card form and the Apple Pay button
   // both produce a Square nonce, and /api/square/create-payment treats them
   // identically (sourceId is opaque to it).
-  const chargeWithToken = async (token: string): Promise<void> => {
+  // `generation` is captured by the CALLER before tokenize()'s first await.
+  // If the form is torn down mid-flight (Cancel/unmount/re-init nulls the SDK
+  // refs and bumps the generation), the continuation stops silently instead
+  // of charging a checkout whose UI is gone.
+  const chargeWithToken = async (
+    token: string,
+    generation: number
+  ): Promise<void> => {
+    if (lifecycleRef.current !== generation) return;
     // SCA — Square's docs flag verifyBuyer as Important for every
     // customer-initiated payment: without the verification token,
     // SCA-mandated cards (EEA/UK) are DECLINED for lack of authentication, so
     // a failed or cancelled verification must STOP this attempt (fail closed)
-    // instead of charging into a predictable decline with a worse error. It
-    // runs AFTER tokenize() (token in hand), so the "tokenize immediately on
-    // click" rule is untouched. Skipped for sats/BTC carts — the charge
-    // amount is converted server-side, so the client can't attest a matching
-    // amount.
+    // instead of charging into a predictable decline with a worse error. A
+    // missing payments instance is treated exactly like failed verification.
+    // verifyBuyer runs AFTER tokenize() (token in hand), so the "tokenize
+    // immediately on click" rule is untouched. Skipped for sats/BTC carts —
+    // the charge amount is converted server-side, so the client can't attest
+    // a matching amount.
     let verificationToken: string | undefined;
-    const payments = paymentsRef.current;
-    if (payments && !isCrypto(currency)) {
+    if (!isCrypto(currency)) {
+      const payments = paymentsRef.current;
+      if (!payments) {
+        const msg = "Payment was interrupted. Please try again.";
+        setErrorMessage(msg);
+        onPaymentError(msg);
+        return;
+      }
       try {
         const verification = await payments.verifyBuyer(token, {
           intent: "CHARGE",
@@ -286,6 +306,8 @@ export default function SquareCardForm({
         return;
       }
     }
+    // Torn down while tokenize/verifyBuyer was in flight — never charge.
+    if (lifecycleRef.current !== generation) return;
     const res = await fetch("/api/square/create-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -323,6 +345,7 @@ export default function SquareCardForm({
 
     setIsProcessing(true);
     setErrorMessage(null);
+    const generation = lifecycleRef.current;
     try {
       const result = await card.tokenize();
       if (result.status !== "OK" || !result.token) {
@@ -332,7 +355,7 @@ export default function SquareCardForm({
         setErrorMessage(msg);
         return;
       }
-      await chargeWithToken(result.token);
+      await chargeWithToken(result.token, generation);
     } catch (err) {
       const msg =
         err instanceof Error
@@ -352,6 +375,7 @@ export default function SquareCardForm({
     if (!applePay || isProcessing) return;
     setIsProcessing(true);
     setErrorMessage(null);
+    const generation = lifecycleRef.current;
     void (async () => {
       try {
         const result = await applePay.tokenize();
@@ -363,7 +387,7 @@ export default function SquareCardForm({
           onPaymentError(msg);
           return;
         }
-        await chargeWithToken(result.token);
+        await chargeWithToken(result.token, generation);
       } catch (err) {
         const msg =
           err instanceof Error
