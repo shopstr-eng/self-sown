@@ -3,31 +3,23 @@ import { getDomainByHost } from "@/utils/db/custom-domains";
 import { hasSquareConnection } from "@/utils/db/square-service";
 import { isSelfHost } from "@/utils/self-host/config";
 
-// Apple Pay domain verification, host-aware. Each processor (Stripe, Square)
-// has its OWN static association file — Stripe's is one file identical for
-// every Stripe merchant
-// (https://stripe.com/files/apple-pay/apple-developer-merchantid-domain-association),
-// Square's is its own signed document — and Apple only ever fetches
-//   /.well-known/apple-developer-merchantid-domain-association
-// (rewritten here in proxy.ts), so a domain can verify with exactly ONE
-// processor. Routing:
-//   - self-host instance: the instance IS the seller's domain, so serve
-//     whatever the operator configured (Stripe file, or Square's for
-//     Square-only deployments).
-//   - platform marketplace host: 404. Apple Pay is intentionally disabled on
-//     the general marketplace (product decision); utils/stripe/apple-pay.ts
-//     likewise never registers the platform host.
-//   - verified seller custom domain: serve the file matching the seller's
-//     connected card processor (Square connection wins; seller card
-//     processors are mutually exclusive). A missing file for the resolved
-//     processor 404s, which simply means Apple Pay stays unavailable there.
-//   - any other hosted host: 404 (fail closed — serving one processor's file
-//     for the wrong domain can actively fail that domain's re-verification,
-//     and an unparseable NEXT_PUBLIC_BASE_URL must never fail open onto the
-//     marketplace).
-//   - DB outage: 503 (a transient fetch failure), never a wrong-file 200.
-// The contents are public verification tokens, so they live in plain env
-// vars. Google Pay is unaffected by any of this.
+// Apple Pay domain verification file — Square-connected sellers ONLY.
+//
+// Stripe no longer uses a hosted association file: checkout domains are
+// registered via the Payment Method Domain API and Stripe handles Apple's
+// merchant validation behind the scenes (see utils/stripe/apple-pay.ts).
+// Square still verifies a domain by fetching this exact well-known path, so
+// the route serves Square's file only where Square Apple Pay can legitimately
+// run:
+//   - self-host instance (SS_SELF_HOST env): the operator's own domain;
+//   - verified seller custom domain whose seller is Square-connected
+//     (seller card processors are mutually exclusive).
+// Everything else 404s — including the platform marketplace host, where Apple
+// Pay is intentionally disabled (product decision; its platform-account
+// payment method domain is disabled at Stripe), and Stripe sellers' custom
+// domains, which need no file at all. A DB outage 503s rather than risking a
+// wrong response. The file contents are a public verification token, so the
+// env var is plain (not secret). Google Pay is unaffected.
 function sendFile(res: NextApiResponse, body: string) {
   res.setHeader("Content-Type", "text/plain");
   res.setHeader("Cache-Control", "public, max-age=300");
@@ -48,18 +40,13 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const host = normalizeHost(req.headers.host);
-  const stripeFile = process.env["APPLE_PAY_DOMAIN_ASSOCIATION"];
   const squareFile = process.env["SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION"];
+  if (!squareFile) return res.status(404).end();
 
-  // Self-host: the instance's own domain is the seller's domain; the operator
-  // configures which processor's file to serve via env.
-  if (isSelfHost()) {
-    const body = stripeFile ?? squareFile;
-    if (!body) return res.status(404).end();
-    return sendFile(res, body);
-  }
+  // Self-host: the instance's own domain is the seller's domain.
+  if (isSelfHost()) return sendFile(res, squareFile);
 
+  const host = normalizeHost(req.headers.host);
   let platformHost = "";
   try {
     platformHost = normalizeHost(
@@ -72,19 +59,18 @@ export default async function handler(
     return res.status(404).end();
   }
 
-  let body: string | undefined;
   try {
     const domain = await getDomainByHost(host);
     if (!domain?.verified) return res.status(404).end();
-    body = (await hasSquareConnection(domain.pubkey))
-      ? squareFile
-      : stripeFile;
+    if (!(await hasSquareConnection(domain.pubkey))) {
+      // Stripe sellers need no hosted file — nothing to serve.
+      return res.status(404).end();
+    }
   } catch (error) {
-    // DB outage: a transient fetch failure, never a wrong-file 200.
+    // DB outage: a transient fetch failure, never a wrong 200.
     console.error("Apple Pay association: domain lookup failed:", error);
     return res.status(503).end();
   }
 
-  if (!body) return res.status(404).end();
-  return sendFile(res, body);
+  return sendFile(res, squareFile);
 }

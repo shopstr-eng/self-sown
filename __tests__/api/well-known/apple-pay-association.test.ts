@@ -1,10 +1,13 @@
 /** @jest-environment node */
 
-// Host-aware Apple Pay domain-association routing. Hosted platform: the
-// marketplace host 404s (Apple Pay disabled there by product decision),
-// verified custom domains get the file matching the seller's connected
-// processor, unknown hosts fail closed (404), DB outages 503 — never a
-// wrong-file 200. Self-host instances serve the operator-configured file.
+// Square-only Apple Pay domain verification. Stripe registers checkout
+// domains via the Payment Method Domain API (no hosted file), so this route
+// serves Square's association file ONLY where Square Apple Pay can
+// legitimately run: self-host instances and verified custom domains of
+// Square-connected sellers. The platform marketplace host 404s (Apple Pay is
+// off there — its platform-account PMD is disabled at Stripe), Stripe-seller
+// custom domains 404 (they need no file), unknown hosts fail closed, and DB
+// outages 503 — never a wrong 200.
 
 import handler from "@/pages/api/.well-known/apple-developer-merchantid-domain-association";
 import { getDomainByHost } from "@/utils/db/custom-domains";
@@ -19,7 +22,6 @@ jest.mock("@/utils/db/square-service", () => ({
 const getDomainByHostMock = getDomainByHost as jest.Mock;
 const hasSquareConnectionMock = hasSquareConnection as jest.Mock;
 
-const STRIPE_FILE = "stripe-association-body";
 const SQUARE_FILE = "square-association-body";
 const PLATFORM_HOST = "self-sown.com";
 
@@ -47,7 +49,6 @@ beforeEach(() => {
   delete process.env.MM_SELF_HOST;
   __resetSelfHostConfigCacheForTests();
   process.env.NEXT_PUBLIC_BASE_URL = `https://${PLATFORM_HOST}`;
-  process.env.APPLE_PAY_DOMAIN_ASSOCIATION = STRIPE_FILE;
   process.env.SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION = SQUARE_FILE;
   getDomainByHostMock.mockResolvedValue(null);
   hasSquareConnectionMock.mockResolvedValue(false);
@@ -55,7 +56,6 @@ beforeEach(() => {
 
 afterEach(() => {
   delete process.env.NEXT_PUBLIC_BASE_URL;
-  delete process.env.APPLE_PAY_DOMAIN_ASSOCIATION;
   delete process.env.SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION;
   delete process.env.SS_SELF_HOST;
   delete process.env.MM_SELF_HOST;
@@ -63,7 +63,7 @@ afterEach(() => {
 });
 
 describe("hosted platform", () => {
-  it("404s on the platform marketplace host even with both files set", async () => {
+  it("404s on the platform marketplace host even with the file set", async () => {
     const res = makeRes();
     await handler(makeReq(PLATFORM_HOST), res);
     expect(res.status).toHaveBeenCalledWith(404);
@@ -96,7 +96,7 @@ describe("hosted platform", () => {
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
-  it("503s on a domain-lookup outage rather than serving a wrong file", async () => {
+  it("503s on a domain-lookup outage rather than serving a wrong response", async () => {
     getDomainByHostMock.mockRejectedValue(new Error("db down"));
     const res = makeRes();
     await handler(makeReq("shop.example.com"), res);
@@ -118,17 +118,18 @@ describe("hosted platform", () => {
     expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "text/plain");
   });
 
-  it("serves the Stripe file on a verified custom domain whose seller is not Square-connected", async () => {
+  it("404s on a verified custom domain whose seller is NOT Square-connected (Stripe needs no file)", async () => {
     getDomainByHostMock.mockResolvedValue({
       verified: true,
       pubkey: "seller-pubkey",
     });
     const res = makeRes();
     await handler(makeReq("shop.example.com"), res);
-    expect(res.send).toHaveBeenCalledWith(STRIPE_FILE);
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.send).not.toHaveBeenCalled();
   });
 
-  it("404s on a verified Square-seller domain when the Square file is not configured", async () => {
+  it("404s everywhere when the Square file is not configured", async () => {
     delete process.env.SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION;
     getDomainByHostMock.mockResolvedValue({
       verified: true,
@@ -142,24 +143,15 @@ describe("hosted platform", () => {
 });
 
 describe("self-host instance", () => {
-  it("serves the configured Stripe file on the instance's own domain", async () => {
+  it("serves the Square file on the instance's own domain", async () => {
     enableSelfHost();
     const res = makeRes();
     await handler(makeReq(PLATFORM_HOST), res);
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.send).toHaveBeenCalledWith(STRIPE_FILE);
-  });
-
-  it("serves the Square file for Square-only deployments", async () => {
-    delete process.env.APPLE_PAY_DOMAIN_ASSOCIATION;
-    enableSelfHost();
-    const res = makeRes();
-    await handler(makeReq("myshop.example.org"), res);
     expect(res.send).toHaveBeenCalledWith(SQUARE_FILE);
   });
 
   it("404s when the operator configured no file", async () => {
-    delete process.env.APPLE_PAY_DOMAIN_ASSOCIATION;
     delete process.env.SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION;
     enableSelfHost();
     const res = makeRes();
