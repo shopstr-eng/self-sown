@@ -1,9 +1,9 @@
 ---
 name: Apple Pay registration (Stripe PMD) + Square association file
-description: Stripe Apple Pay registers via the Payment Method Domain API with no hosted file; the well-known route serves Square's file only for Square-connected sellers' domains; the marketplace host stays off.
+description: Stripe Apple Pay registers via the Payment Method Domain API with no hosted file; the well-known route serves Square's file for Square-connected sellers' domains and the platform host; the platform host is Apple-Pay-enabled per seller.
 ---
 
-Stripe (per current docs): register each checkout domain per charge-owning account via payment_method_domains.create (+ validate when create returns an id); Stripe handles Apple's merchant validation — no association file is hosted by us or sellers. The legacy apple_pay/domains API is deliberately not called. Apple Pay stays OFF the marketplace host: its platform-account PMD is disabled at Stripe (enabled=false is the real off switch — 404ing a file does nothing) and trustedRegistrationHost never registers it. Legacy connected-account PMDs for the marketplace host are swept by scripts/sweep-marketplace-apple-pay-pmds.ts (idempotent, report-only by default, --apply to disable); it must be re-run against the production database after deploy — the dev DB sweep is not sufficient.
+Stripe (per current docs): register each checkout domain per charge-owning account via payment_method_domains.create (+ validate when create returns an id); Stripe handles Apple's merchant validation — no association file is hosted by us or sellers. The legacy apple_pay/domains API is deliberately not called. Registration includes the platform host per charge-owning account (see the policy paragraph below). The sweep script scripts/sweep-marketplace-apple-pay-pmds.ts (--apply to disable) is a historical one-off: its disables are no longer durable, because checkout-path registration re-enables a disabled PMD.
 
 Square's flow is two-part: the association file AND POST /v2/apple-pay/domains activation. The file route serves Square's file for the platform host (Square sellers check out there), self-host instances, and verified custom domains whose seller is Square-connected; everything else 404s, DB outages 503.
 

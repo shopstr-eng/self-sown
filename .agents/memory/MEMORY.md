@@ -151,7 +151,7 @@
 - [replit.nix channel caps Node at 18](replit-nix-channel-node-cap.md) — nixpkgs 22.11 has no nodejs-22_x and replit.nix is still evaluated at env-build; runtime Node 22 comes from .replit modules, never bump replit.nix to match .nvmrc.
 - [Deploy-build publish guard](deploy-build-publish-guard.md) — deploy-build.sh refuses to run without SELF_SOWN_PUBLISH_BUILD=1, set only by the .replit [deployment] build command; keep the two in lockstep.
 - [Security scanner accepted findings](security-scan-accepted-findings.md) — recurring SAST/HoundDog classes confirmed by-design; skip them and investigate only new fingerprints.
-- [Apple Pay: Stripe PMD + Square file](apple-pay-association-host-aware.md) — Stripe registers via payment_method_domains per charge-owning account (platform host included, per-seller); disabled PMDs get re-enabled on checkout paths; Square file served on platform host + Square sellers' domains.
+- [Apple Pay: Stripe PMD + Square file](apple-pay-association-host-aware.md) — PMD per charge-owning account (platform host = per-seller); disabled PMDs re-enable on checkout; Square file on platform + seller domains.
 - [Brand palette consolidation](brand-palette-consolidation.md) — app is forced light-only; keep darkMode:'class' (HeroUI needs it); never add dark: classes.
 - [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops *-opacity-* and re-scales *-sm sizes (pinned+guarded); deprecated aliases migrated; bare shadow/rounded/blur/ring stay.
 - [Headless browser verification](headless-browser-verification.md) — no puppeteer here; use /repl/tools/bin/chromium headless for DOM/computed-style checks; kill by PID, never pkill.
