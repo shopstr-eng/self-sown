@@ -22,9 +22,12 @@ export function normalizeRegistrableHost(host: string): string | null {
 }
 
 /**
- * The only hosts we will register: the platform's own host, or a verified
- * custom domain owned by THIS seller. A spoofed Host header must never bind
- * an arbitrary domain to a seller's Stripe account.
+ * The only hosts we will register: a verified custom domain owned by THIS
+ * seller. A spoofed Host header must never bind an arbitrary domain to a
+ * seller's Stripe account. The platform marketplace host is deliberately NOT
+ * registered: Apple Pay is disabled on the general marketplace (the
+ * association route 404s there), so registering it would only trigger
+ * perpetually failing Stripe re-verifications.
  */
 export async function trustedRegistrationHost(
   hostHeader: string | string[] | undefined,
@@ -35,11 +38,6 @@ export async function trustedRegistrationHost(
   );
   if (!host) return null;
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-    if (baseUrl) {
-      const platformHost = normalizeRegistrableHost(new URL(baseUrl).host);
-      if (platformHost && host === platformHost) return host;
-    }
     if (sellerPubkey) {
       const domain = await getDomainByHost(host);
       if (
