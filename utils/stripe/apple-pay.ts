@@ -65,6 +65,16 @@ export async function trustedRegistrationHost(
   return null;
 }
 
+// Apple Pay can actually run on a domain only when its payment method domain
+// is enabled AND Apple's status is active — a bare successful create proves
+// neither, and "already registered" least of all (a domain can be disabled
+// deliberately or have been left inactive at creation).
+function pmdApplePayActive(
+  pmd: Stripe.PaymentMethodDomain | null | undefined
+): boolean {
+  return !!pmd && pmd.enabled === true && pmd.apple_pay.status === "active";
+}
+
 export async function registerApplePayDomain(
   host: string,
   connectedAccountId?: string | null
@@ -80,18 +90,15 @@ export async function registerApplePayDomain(
   const options = connectedAccountId
     ? { stripeAccount: connectedAccountId }
     : undefined;
-  // Create the payment method domain, then validate it — validate nudges a
-  // domain whose requirements weren't satisfied at creation into an active
-  // state. Validation needs the id from create, so an "already registered"
-  // create (which returns no id here) skips it — that domain is already
-  // active.
-  let pmdId: string | null = null;
+  // Create the payment method domain. On a duplicate, create returns nothing
+  // usable, so list by domain_name on the same account to find the existing
+  // PMD and inspect its real state.
+  let pmd: Stripe.PaymentMethodDomain | null = null;
   try {
-    const pmd = await stripe.paymentMethodDomains.create(
+    pmd = await stripe.paymentMethodDomains.create(
       { domain_name: domain },
       options
     );
-    pmdId = pmd.id ?? null;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (!message.toLowerCase().includes("already")) {
@@ -99,10 +106,28 @@ export async function registerApplePayDomain(
       // Not cached: a transient Stripe failure retries on the next checkout.
       return;
     }
-  }
-  if (pmdId) {
     try {
-      await stripe.paymentMethodDomains.validate(pmdId, options);
+      const existing = await stripe.paymentMethodDomains.list(
+        { domain_name: domain },
+        options
+      );
+      pmd = existing.data[0] ?? null;
+    } catch (lookupError) {
+      console.error(
+        "Apple Pay domain lookup failed:",
+        lookupError instanceof Error
+          ? lookupError.message
+          : String(lookupError)
+      );
+      return;
+    }
+  }
+  // Validate unless the domain is already enabled with Apple Pay active —
+  // validation nudges a domain whose requirements weren't met at creation
+  // into an active state.
+  if (pmd && !pmdApplePayActive(pmd)) {
+    try {
+      pmd = await stripe.paymentMethodDomains.validate(pmd.id, options);
     } catch (error) {
       console.error(
         "Apple Pay domain validation failed:",
@@ -110,5 +135,7 @@ export async function registerApplePayDomain(
       );
     }
   }
-  registeredDomains.add(cacheKey);
+  // Cache only a confirmed-active registration; anything else stays retryable
+  // on the next checkout.
+  if (pmdApplePayActive(pmd)) registeredDomains.add(cacheKey);
 }
