@@ -436,6 +436,32 @@ describe("POST /api/square/create-payment — fail closed when unconfigured", ()
   });
 });
 
+describe("POST /api/square/create-payment — SCA verification token passthrough", () => {
+  const baseBody = {
+    sourceId: "cnon_card",
+    amount: 12.34,
+    currency: "USD",
+    sellerPubkey: SELLER,
+  };
+
+  it("forwards a client-supplied verificationToken (from verifyBuyer) to the charge", async () => {
+    const res = await callHandler({ ...baseBody, verificationToken: "vftok_1" });
+    expect(res.statusCode).toBe(200);
+    const charge = createSquarePaymentMock.mock.calls.at(-1)?.[1] as any;
+    expect(charge.verificationToken).toBe("vftok_1");
+  });
+
+  it.each([["absent", {}], ["non-string", { verificationToken: 42 }], ["oversized", { verificationToken: "x".repeat(5000) }]])(
+    "charges WITHOUT a verification token when it is %s (dropped, never fatal)",
+    async (_label, over) => {
+      const res = await callHandler({ ...baseBody, ...over });
+      expect(res.statusCode).toBe(200);
+      const charge = createSquarePaymentMock.mock.calls.at(-1)?.[1] as any;
+      expect(charge.verificationToken).toBeUndefined();
+    }
+  );
+});
+
 describe("POST /api/square/create-payment — order metadata forwarded to the charge", () => {
   const baseBody = {
     sourceId: "cnon_card",
