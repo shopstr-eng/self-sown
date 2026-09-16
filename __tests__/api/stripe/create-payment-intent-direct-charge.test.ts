@@ -11,11 +11,13 @@
 // self-host-card-checkout.test.ts).
 //
 // Environment note (fixed here): the Apple Pay registration assertions send
-// `host: SITE_HOST` and the route only registers when trustedRegistrationHost
-// matches that header to the platform host derived from NEXT_PUBLIC_BASE_URL.
-// SITE_HOST is baked at module load (fallback "self-sown.com", or this
-// environment's real NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale
-// hardcoded "https://milk.market" made the header never match and the suites
+// `host: SITE_HOST` (the platform marketplace host, derived from
+// NEXT_PUBLIC_BASE_URL). Apple Pay is disabled on the marketplace, so the
+// route never registers that host — registration only happens for a verified
+// custom domain owned by the seller. SITE_HOST is baked at module load
+// (fallback "self-sown.com", or this environment's real
+// NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale hardcoded
+// "https://milk.market" made the header never match and the suites
 // went red after the brand rename / in any env where the var is set. The
 // beforeEach below stubs NEXT_PUBLIC_BASE_URL from SITE_HOST itself so the
 // two can never diverge again.
@@ -184,7 +186,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     expect(params.amount).toBe(1000);
   });
 
-  it("registers Apple Pay on the platform host for the seller's connected account", async () => {
+  it("never registers the platform marketplace host (Apple Pay disabled there)", async () => {
     getStripeConnectAccountMock.mockResolvedValue({
       stripe_account_id: "acct_seller",
       charges_enabled: true,
@@ -203,10 +205,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
       res as any
     );
     expect(res.statusCode).toBe(200);
-    expect(registerApplePayDomainMock).toHaveBeenCalledWith(
-      SITE_HOST,
-      "acct_seller"
-    );
+    expect(registerApplePayDomainMock).not.toHaveBeenCalled();
   });
 
   it("registers Apple Pay on a verified custom domain owned by that seller", async () => {

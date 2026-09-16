@@ -311,7 +311,9 @@ async function routeRequest(request: NextRequest) {
     );
   }
 
-  // Apple Pay domain verification file (identical on every host; env-backed).
+  // Apple Pay domain verification file (host-aware: the route serves the
+  // seller's processor's file on verified custom domains, 404 on the
+  // platform marketplace host, legacy Stripe file otherwise).
   if (
     pathname === "/.well-known/apple-developer-merchantid-domain-association"
   ) {

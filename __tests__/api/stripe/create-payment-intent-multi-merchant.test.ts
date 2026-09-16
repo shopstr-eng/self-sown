@@ -17,11 +17,12 @@
 // or mis-pay an affiliate. Self-host is forced OFF for every test here.
 //
 // Environment note (fixed here): the Apple Pay registration assertions send
-// `host: SITE_HOST` and the route only registers when trustedRegistrationHost
-// matches that header to the platform host derived from NEXT_PUBLIC_BASE_URL.
-// SITE_HOST is baked at module load (fallback "self-sown.com", or this
-// environment's real NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale
-// hardcoded "https://milk.market" made the header never match and the suite
+// `host: SITE_HOST` (the platform marketplace host, derived from
+// NEXT_PUBLIC_BASE_URL). Apple Pay is disabled on the marketplace, so the
+// route never registers that host. SITE_HOST is baked at module load
+// (fallback "self-sown.com", or this environment's real
+// NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale hardcoded
+// "https://milk.market" made the header never match and the suite
 // went red after the brand rename / in any env where the var is set. The
 // beforeEach below stubs NEXT_PUBLIC_BASE_URL from SITE_HOST itself so the
 // two can never diverge again.
@@ -187,7 +188,7 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
     ],
   };
 
-  it("registers only the canonical platform host, on the platform account", async () => {
+  it("never registers the platform marketplace host (Apple Pay disabled there)", async () => {
     const res = makeRes();
     await createPaymentIntentHandler(
       {
@@ -198,10 +199,7 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
       res as any
     );
     expect(res.statusCode).toBe(200);
-    expect(registerApplePayDomainMock).toHaveBeenCalledTimes(1);
-    expect(registerApplePayDomainMock.mock.calls[0][0]).toBe(SITE_HOST);
-    // Multi-seller charges are platform charges: no connected account arg.
-    expect(registerApplePayDomainMock.mock.calls[0][1]).toBeUndefined();
+    expect(registerApplePayDomainMock).not.toHaveBeenCalled();
   });
 
   it("never registers a request-controlled Host for multi-seller charges", async () => {
