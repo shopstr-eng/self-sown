@@ -5109,6 +5109,32 @@ export async function getStripeConnectAccount(pubkey: string): Promise<{
   }
 }
 
+/**
+ * List every Stripe Connect account row. Operator-tooling only (the Apple Pay
+ * payment-method-domain sweep) — a platform-wide listing has no request-time
+ * caller. Rethrows so a sweep fails loudly on a DB outage instead of
+ * reporting a false "all clear" off zero rows.
+ */
+export async function listStripeConnectAccounts(): Promise<
+  Array<{ pubkey: string; stripe_account_id: string }>
+> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT pubkey, stripe_account_id FROM stripe_connect_accounts`
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("Failed to list Stripe Connect accounts:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 // Toggle whether a seller collects sales tax (Stripe Tax) at checkout.
 export async function setStripeTaxEnabled(
   pubkey: string,
