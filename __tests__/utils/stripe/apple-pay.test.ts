@@ -8,12 +8,28 @@
  */
 const pmdCreate = jest.fn();
 const pmdValidate = jest.fn();
+const pmdList = jest.fn();
 jest.mock("stripe", () => ({
   __esModule: true,
   default: jest.fn(() => ({
-    paymentMethodDomains: { create: pmdCreate, validate: pmdValidate },
+    paymentMethodDomains: {
+      create: pmdCreate,
+      validate: pmdValidate,
+      list: pmdList,
+    },
   })),
 }));
+
+const ACTIVE_PMD = {
+  id: "pmd_1",
+  enabled: true,
+  apple_pay: { status: "active" },
+};
+const INACTIVE_PMD = {
+  id: "pmd_1",
+  enabled: true,
+  apple_pay: { status: "inactive" },
+};
 
 const getDomainByHostMock = jest.fn();
 jest.mock("@/utils/db/custom-domains", () => ({
@@ -39,17 +55,27 @@ describe("normalizeRegistrableHost", () => {
 
 describe("registerApplePayDomain", () => {
   beforeEach(() => {
-    pmdCreate.mockReset().mockResolvedValue({ id: "pmd_1" });
-    pmdValidate.mockReset().mockResolvedValue({});
+    pmdCreate.mockReset().mockResolvedValue(ACTIVE_PMD);
+    pmdValidate.mockReset().mockResolvedValue(ACTIVE_PMD);
+    pmdList.mockReset().mockResolvedValue({ data: [] });
     process.env.STRIPE_SECRET_KEY = "sk_test_x";
   });
 
-  it("creates and validates a payment method domain on the connected account", async () => {
+  it("creates and caches an already-active domain on the connected account", async () => {
     await registerApplePayDomain("shop.example.com", "acct_123");
     expect(pmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop.example.com" },
       { stripeAccount: "acct_123" }
     );
+    // Active on create: no validation round-trip needed.
+    expect(pmdValidate).not.toHaveBeenCalled();
+    await registerApplePayDomain("shop.example.com", "acct_123");
+    expect(pmdCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("validates a freshly created inactive domain", async () => {
+    pmdCreate.mockResolvedValueOnce(INACTIVE_PMD);
+    await registerApplePayDomain("newshop.example.com", "acct_123");
     expect(pmdValidate).toHaveBeenCalledWith("pmd_1", {
       stripeAccount: "acct_123",
     });
@@ -61,41 +87,65 @@ describe("registerApplePayDomain", () => {
       { domain_name: "platform.example.com" },
       undefined
     );
-    expect(pmdValidate).toHaveBeenCalledWith("pmd_1", undefined);
   });
 
-  it("absorbs 'already registered' (no id, no validate) and caches the pair", async () => {
+  it("looks up duplicate registrations and caches only when active", async () => {
     pmdCreate.mockRejectedValue(
       new Error("You have already registered this domain")
     );
+    pmdList.mockResolvedValue({ data: [ACTIVE_PMD] });
     await registerApplePayDomain("dupe.example.com", "acct_1");
     await registerApplePayDomain("dupe.example.com", "acct_1");
     expect(pmdCreate).toHaveBeenCalledTimes(1);
+    expect(pmdList).toHaveBeenCalledWith(
+      { domain_name: "dupe.example.com" },
+      { stripeAccount: "acct_1" }
+    );
     expect(pmdValidate).not.toHaveBeenCalled();
+  });
+
+  it("validates — and does not cache — a duplicate that stays inactive", async () => {
+    const disabledPmd = {
+      id: "pmd_9",
+      enabled: false,
+      apple_pay: { status: "inactive" },
+    };
+    pmdCreate.mockRejectedValue(
+      new Error("You have already registered this domain")
+    );
+    pmdList.mockResolvedValue({ data: [disabledPmd] });
+    pmdValidate.mockResolvedValue(disabledPmd);
+    await registerApplePayDomain("disabled.example.com", "acct_2");
+    expect(pmdValidate).toHaveBeenCalledWith("pmd_9", {
+      stripeAccount: "acct_2",
+    });
+    await registerApplePayDomain("disabled.example.com", "acct_2");
+    expect(pmdCreate).toHaveBeenCalledTimes(2);
   });
 
   it("swallows transient failures and does not cache (retried later)", async () => {
     pmdCreate.mockRejectedValue(new Error("stripe 500"));
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
-    await registerApplePayDomain("flaky.example.com", "acct_2");
-    await registerApplePayDomain("flaky.example.com", "acct_2");
+    await registerApplePayDomain("flaky.example.com", "acct_3");
+    await registerApplePayDomain("flaky.example.com", "acct_3");
     expect(pmdCreate).toHaveBeenCalledTimes(2);
     spy.mockRestore();
   });
 
-  it("still caches when validate fails (activation is best-effort)", async () => {
+  it("does not cache when validation fails", async () => {
+    pmdCreate.mockResolvedValue(INACTIVE_PMD);
     pmdValidate.mockRejectedValue(new Error("validate down"));
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
     await registerApplePayDomain("valflaky.example.com", "acct_9");
     await registerApplePayDomain("valflaky.example.com", "acct_9");
-    expect(pmdCreate).toHaveBeenCalledTimes(1);
+    expect(pmdCreate).toHaveBeenCalledTimes(2);
     spy.mockRestore();
   });
 
   it("skips non-registrable hosts and missing keys entirely", async () => {
-    await registerApplePayDomain("localhost:3000", "acct_3");
+    await registerApplePayDomain("localhost:3000", "acct_4");
     delete process.env.STRIPE_SECRET_KEY;
-    await registerApplePayDomain("nokey.example.com", "acct_3");
+    await registerApplePayDomain("nokey.example.com", "acct_4");
     expect(pmdCreate).not.toHaveBeenCalled();
   });
 });

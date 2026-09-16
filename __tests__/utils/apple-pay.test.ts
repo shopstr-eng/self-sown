@@ -5,6 +5,7 @@
 
 const mockPmdCreate = jest.fn();
 const mockPmdValidate = jest.fn();
+const mockPmdList = jest.fn();
 
 jest.mock("stripe", () => ({
   __esModule: true,
@@ -12,9 +13,21 @@ jest.mock("stripe", () => ({
     paymentMethodDomains: {
       create: mockPmdCreate,
       validate: mockPmdValidate,
+      list: mockPmdList,
     },
   })),
 }));
+
+const ACTIVE_PMD = {
+  id: "pmd_1",
+  enabled: true,
+  apple_pay: { status: "active" },
+};
+const INACTIVE_PMD = {
+  id: "pmd_1",
+  enabled: true,
+  apple_pay: { status: "inactive" },
+};
 
 jest.mock("@/utils/db/custom-domains", () => ({
   getDomainByHost: jest.fn(),
@@ -36,8 +49,9 @@ const SELLER_B = "bbbb2222";
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockPmdCreate.mockResolvedValue({ id: "pmd_1" });
-  mockPmdValidate.mockResolvedValue({});
+  mockPmdCreate.mockResolvedValue(ACTIVE_PMD);
+  mockPmdValidate.mockResolvedValue(ACTIVE_PMD);
+  mockPmdList.mockResolvedValue({ data: [] });
   process.env.STRIPE_SECRET_KEY = "sk_test_x";
   process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   mockGetDomainByHost.mockResolvedValue(null);
@@ -139,16 +153,20 @@ describe("trustedRegistrationHost", () => {
 });
 
 describe("registerApplePayDomain", () => {
-  it("creates and validates a payment method domain on the platform account", async () => {
+  it("creates and caches an already-active domain on the platform account", async () => {
     await registerApplePayDomain("shop-a.test");
     expect(mockPmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop-a.test" },
       undefined
     );
-    expect(mockPmdValidate).toHaveBeenCalledWith("pmd_1", undefined);
+    // Active on create: no validation round-trip needed.
+    expect(mockPmdValidate).not.toHaveBeenCalled();
+    await registerApplePayDomain("shop-a.test");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(1);
   });
 
-  it("registers on the connected account for direct charges", async () => {
+  it("validates a freshly created inactive domain on the connected account", async () => {
+    mockPmdCreate.mockResolvedValueOnce(INACTIVE_PMD);
     await registerApplePayDomain("shop-b.test", "acct_123");
     expect(mockPmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop-b.test" },
@@ -157,6 +175,8 @@ describe("registerApplePayDomain", () => {
     expect(mockPmdValidate).toHaveBeenCalledWith("pmd_1", {
       stripeAccount: "acct_123",
     });
+    await registerApplePayDomain("shop-b.test", "acct_123");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(1);
   });
 
   it("caches account+domain pairs so repeat checkouts skip the API", async () => {
@@ -166,33 +186,78 @@ describe("registerApplePayDomain", () => {
     expect(mockPmdCreate).toHaveBeenCalledTimes(2);
   });
 
-  it("treats 'already registered' as success (cached, no validate — no id)", async () => {
+  it("stays retryable when validation never activates the domain", async () => {
+    mockPmdCreate.mockResolvedValue(INACTIVE_PMD);
+    mockPmdValidate.mockResolvedValue(INACTIVE_PMD);
+    await registerApplePayDomain("shop-e.test");
+    await registerApplePayDomain("shop-e.test");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("stays retryable when validation throws", async () => {
+    mockPmdCreate.mockResolvedValue(INACTIVE_PMD);
+    mockPmdValidate.mockRejectedValue(new Error("validate down"));
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+    await registerApplePayDomain("shop-g.test");
+    await registerApplePayDomain("shop-g.test");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
+  });
+
+  it("looks up a duplicate registration and caches it when already active", async () => {
     mockPmdCreate.mockRejectedValueOnce(
       new Error("You have already registered this domain")
     );
+    mockPmdList.mockResolvedValueOnce({ data: [ACTIVE_PMD] });
     await registerApplePayDomain("shop-d.test");
+    expect(mockPmdList).toHaveBeenCalledWith(
+      { domain_name: "shop-d.test" },
+      undefined
+    );
+    expect(mockPmdValidate).not.toHaveBeenCalled();
     await registerApplePayDomain("shop-d.test");
     expect(mockPmdCreate).toHaveBeenCalledTimes(1);
-    expect(mockPmdValidate).not.toHaveBeenCalled();
+  });
+
+  it("validates a duplicate that is disabled/inactive — and keeps retrying if it stays so", async () => {
+    const disabledPmd = {
+      id: "pmd_9",
+      enabled: false,
+      apple_pay: { status: "inactive" },
+    };
+    mockPmdCreate.mockRejectedValue(
+      new Error("You have already registered this domain")
+    );
+    mockPmdList.mockResolvedValue({ data: [disabledPmd] });
+    mockPmdValidate.mockResolvedValue(disabledPmd);
+    await registerApplePayDomain("shop-h.test", "acct_1");
+    expect(mockPmdValidate).toHaveBeenCalledWith("pmd_9", {
+      stripeAccount: "acct_1",
+    });
+    await registerApplePayDomain("shop-h.test", "acct_1");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("stays retryable when the duplicate lookup fails", async () => {
+    mockPmdCreate.mockRejectedValue(
+      new Error("You have already registered this domain")
+    );
+    mockPmdList.mockRejectedValue(new Error("list down"));
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+    await registerApplePayDomain("shop-i.test");
+    await registerApplePayDomain("shop-i.test");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
 
   it("swallows other Stripe failures without caching (retried later)", async () => {
     mockPmdCreate.mockRejectedValue(new Error("stripe down"));
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
     await expect(
-      registerApplePayDomain("shop-e.test")
+      registerApplePayDomain("shop-j.test")
     ).resolves.toBeUndefined();
-    await registerApplePayDomain("shop-e.test");
+    await registerApplePayDomain("shop-j.test");
     expect(mockPmdCreate).toHaveBeenCalledTimes(2);
-    spy.mockRestore();
-  });
-
-  it("still caches when validate fails (activation is best-effort)", async () => {
-    mockPmdValidate.mockRejectedValueOnce(new Error("validate down"));
-    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
-    await registerApplePayDomain("shop-g.test");
-    await registerApplePayDomain("shop-g.test");
-    expect(mockPmdCreate).toHaveBeenCalledTimes(1);
     spy.mockRestore();
   });
 
