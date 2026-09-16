@@ -9,6 +9,7 @@ import {
   pickPrimaryLocation,
 } from "@/utils/square/square-api";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { activateSquareApplePayDomain } from "@/utils/square/apple-pay";
 import {
   isSquareConfigured,
   getSquareApplicationId,
@@ -59,6 +60,23 @@ export default async function handler(
     // Card charges need a resolved location + its settlement currency. If either
     // is missing, report the account present but card payments off (fail closed).
     const chargesEnabled = !!conn.locationId && !!conn.locationCurrency;
+
+    // Best-effort Apple Pay domain activation on the PRE-SDK path: this route
+    // runs before the Web Payments SDK initializes, so activating here is what
+    // lets a first-ever checkout on a verified custom domain show the Apple Pay
+    // button (payments.applePay() hides it on unactivated domains, and the
+    // create-payment route is only reachable after the SDK tokenizes). Awaited
+    // but bounded (abort timeout + single-flight inside); it swallows its own
+    // errors and never blocks or fails the status check.
+    if (chargesEnabled) {
+      try {
+        await activateSquareApplePayDomain(req.headers?.host, pubkey);
+      } catch (e) {
+        // activateSquareApplePayDomain already swallows its own errors; this
+        // is belt-and-braces so activation can never break the status check.
+        console.warn("Square Apple Pay activation failed (non-fatal):", e);
+      }
+    }
 
     // Apple Pay's payment request needs the merchant's countryCode. Connections
     // made before the column existed have none — backfill once from the

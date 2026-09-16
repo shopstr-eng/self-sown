@@ -5,7 +5,9 @@ description: Stripe Apple Pay registers via the Payment Method Domain API with n
 
 Stripe (per current docs): register each checkout domain per charge-owning account via payment_method_domains.create (+ validate when create returns an id); Stripe handles Apple's merchant validation — no association file is hosted by us or sellers. The legacy apple_pay/domains API is deliberately not called. Apple Pay stays OFF the marketplace host: its platform-account PMD is disabled at Stripe (enabled=false is the real off switch — 404ing a file does nothing) and trustedRegistrationHost never registers it. Existing connected-account PMDs for the platform domain were NOT swept.
 
-Square still verifies domains by fetching /.well-known/apple-developer-merchantid-domain-association, so that route serves Square's file ONLY for self-host instances and verified custom domains whose seller is Square-connected; everything else 404s, DB outages 503.
+Square's flow is two-part: the association file AND POST /v2/apple-pay/domains activation. The file route serves Square's file ONLY for self-host instances and verified custom domains whose seller is Square-connected; everything else 404s, DB outages 503.
+
+Activation design rules (hard-won): authenticate as the PLATFORM via SQUARE_ACCESS_TOKEN (Developer Dashboard access token, NOT the OAuth client secret or a seller OAuth token); feature no-ops when unset. The lazy trigger must live on the PRE-SDK seller-status route — the charge route is only reachable after payments.applePay() succeeds, so a post-SDK trigger can never bootstrap a hidden button. Cache ONLY an explicit VERIFIED response status; PENDING and even "already registered" duplicates are not proof Apple finished validating, and Square offers no status re-check endpoint, so anything non-VERIFIED must stay retryable. Any inline-awaited activation call needs an abort timeout — a stalled Square API must not hold card payments hostage.
 
 **Why:** Stripe's PMD flow replaced file-based verification (user supplied the platform pmd id to disable, 2026-09); Square's API reference still requires the hosted file.
 

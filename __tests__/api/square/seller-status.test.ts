@@ -18,6 +18,7 @@ const getSquareConnectionMock = jest.fn();
 const updateSquareLocationCountryMock = jest.fn();
 const getValidSquareAccessTokenMock = jest.fn();
 const fetchSquareLocationsMock = jest.fn();
+const activateSquareApplePayDomainMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -46,6 +47,13 @@ jest.mock("@/utils/square/square-config", () => ({
   isSquareConfigured: () => true,
   getSquareApplicationId: () => "sandbox-sq0idb-test",
   getSquareEnvironment: () => "sandbox",
+}));
+
+// Domain activation itself is covered in utils/square/apple-pay tests; here we
+// only pin that this PRE-SDK route is the lazy checkout seam that triggers it.
+jest.mock("@/utils/square/apple-pay", () => ({
+  activateSquareApplePayDomain: (...args: unknown[]) =>
+    activateSquareApplePayDomainMock(...args),
 }));
 
 import sellerStatusHandler from "@/pages/api/square/seller-status";
@@ -185,5 +193,50 @@ describe("square seller-status countryCode", () => {
       chargesEnabled: false,
     });
     expect(getValidSquareAccessTokenMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("square seller-status Apple Pay domain activation", () => {
+  it("attempts activation for a connected seller before the SDK initializes", async () => {
+    getSquareConnectionMock.mockResolvedValue(makeConn());
+    activateSquareApplePayDomainMock.mockResolvedValue("shop.example.com");
+    const res = makeRes();
+    await sellerStatusHandler(
+      {
+        method: "POST",
+        body: { pubkey: PUBKEY },
+        headers: { host: "shop.example.com" },
+        socket: {},
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.chargesEnabled).toBe(true);
+    expect(activateSquareApplePayDomainMock).toHaveBeenCalledWith(
+      "shop.example.com",
+      PUBKEY
+    );
+  });
+
+  it("never activates for unknown sellers or when charges are off", async () => {
+    getSquareConnectionMock.mockResolvedValueOnce(null);
+    await call();
+    getSquareConnectionMock.mockResolvedValueOnce(
+      makeConn({ locationId: null })
+    );
+    await call();
+    expect(activateSquareApplePayDomainMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the status response healthy when activation rejects", async () => {
+    getSquareConnectionMock.mockResolvedValue(makeConn());
+    activateSquareApplePayDomainMock.mockRejectedValue(
+      new Error("activation exploded")
+    );
+    const res = await call();
+    // Activation is best-effort: even an unexpected throw surfaces as a
+    // normal status response, never a checkout failure.
+    expect(res.statusCode).toBe(200);
+    expect(res.body.chargesEnabled).toBe(true);
   });
 });
