@@ -3,7 +3,6 @@ import dns from "dns";
 import { promisify } from "util";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getDomainByPubkey, markVerified } from "@/utils/db/custom-domains";
-import { activateSquareApplePayDomain } from "@/utils/square/apple-pay";
 import { SITE_HOST } from "@/utils/site-url";
 
 const resolveCname = promisify(dns.resolveCname);
@@ -113,10 +112,11 @@ export default async function handler(
 
     if (verified) {
       await markVerified(pubkey);
-      // If this seller is Square-connected, activate the freshly verified
-      // domain for Apple Pay with Square's platform API. Best-effort: swallows
-      // its own errors and no-ops for non-Square sellers.
-      await activateSquareApplePayDomain(domain, pubkey);
+      // Deliberately NO Square Apple Pay activation here: DNS verification
+      // fires while the domain may still be awaiting TLS attachment, and
+      // Square requires a live HTTPS domain serving the association file.
+      // The pre-SDK seller-status checkout route activates instead — it runs
+      // exactly when the domain is live and about to take payment.
     }
 
     let message = "";
