@@ -1,6 +1,5 @@
 import { useRouter } from "next/router";
 import Head from "next/head";
-import Link from "next/link";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { SITE_URL } from "@/utils/site-url";
 
@@ -216,9 +215,12 @@ export default function Developers() {
             <h2 className="mb-6 text-2xl font-bold text-black">
               Machine-readable surfaces
             </h2>
+            {/* Plain anchors, not next/link: these are raw file/endpoint
+                URLs, and client-side routing would render the not-found
+                catch-all (with the navbar) instead of the file. */}
             <div className="grid gap-4 sm:grid-cols-2">
               {MACHINE_READABLE.map((item) => (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
                   className="shadow-neo block rounded-lg border-2 border-black bg-white p-4 transition-transform hover:-translate-y-0.5"
@@ -227,7 +229,7 @@ export default function Developers() {
                     {item.label}
                   </div>
                   <div className="mt-1 text-sm text-zinc-600">{item.blurb}</div>
-                </Link>
+                </a>
               ))}
             </div>
             <p className="mt-4 text-sm text-zinc-600">

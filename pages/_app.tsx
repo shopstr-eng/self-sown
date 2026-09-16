@@ -119,6 +119,28 @@ const scheduleAfterPaint = (cb: () => void) => {
   }
 };
 
+// Raw machine-readable files (linked from /developers) are served by the
+// server as plain text/JSON/XML, never as app pages — if one is ever reached
+// via client-side routing (a catch-all render), it must not paint the app
+// navbar over the content.
+const MACHINE_READABLE_PATHS = [
+  "/openapi.json",
+  "/agents.txt",
+  "/skill.md",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/rss.xml",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/humans.txt",
+];
+function isMachineReadableRoute(asPath: string | undefined): boolean {
+  const [path = ""] = (asPath ?? "").split(/[?#]/);
+  return (
+    MACHINE_READABLE_PATHS.includes(path) || path.startsWith("/.well-known/")
+  );
+}
+
 function SelfSown({ props }: { props: AppProps }) {
   const { Component, pageProps } = props;
   const { nostr } = useContext(NostrContext);
@@ -1690,6 +1712,7 @@ function SelfSown({ props }: { props: AppProps }) {
                             }
                           >
                             {!isCustomDomainVisit &&
+                              !isMachineReadableRoute(router.asPath) &&
                               router.pathname !== "/" &&
                               router.pathname !== "/producer-guide" &&
                               router.pathname !== "/faq" &&
