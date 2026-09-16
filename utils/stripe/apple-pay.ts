@@ -2,15 +2,16 @@ import Stripe from "stripe";
 import { getDomainByHost } from "@/utils/db/custom-domains";
 import { isSelfHost } from "@/utils/self-host/config";
 
-// Apple Pay requires each checkout domain to be registered with Apple on the
-// Stripe account that owns the charge (the connected account for Connect
-// direct charges, the platform account otherwise). Registration is durable,
-// so pairs are cached in-process and Stripe's "already registered" error is
-// absorbed. Failures are logged and swallowed: a failed registration must
-// never block checkout — Apple Pay simply stays unavailable on that domain
-// until a later attempt succeeds. Verification itself is Apple fetching the
-// /.well-known/apple-developer-merchantid-domain-association file (env-backed
-// route), so registration alone grants nothing.
+// Apple Pay requires each checkout domain to be registered with Stripe on the
+// account that owns the charge (the connected account for Connect direct
+// charges, the platform account otherwise). Registration is a single Payment
+// Method Domain API call per domain+account: Stripe handles Apple's merchant
+// validation behind the scenes, so there is NO association file for us or
+// sellers to host (the legacy apple_pay/domains API is deliberately not
+// called). Registration is durable — pairs are cached in-process and Stripe's
+// "already registered" error is absorbed. Failures are logged and swallowed:
+// a failed registration must never block checkout — Apple Pay simply stays
+// unavailable on that domain until a later attempt succeeds.
 
 // Constructed lazily: no client exists (or is needed) when the key is absent.
 const registeredDomains = new Set<string>();
@@ -79,35 +80,35 @@ export async function registerApplePayDomain(
   const options = connectedAccountId
     ? { stripeAccount: connectedAccountId }
     : undefined;
-  // Register in BOTH domain systems: the legacy Apple Pay domains API and the
-  // newer payment method domains API (the Dashboard "Payment method domains"
-  // page, and the API pmd-registration requires for Connect direct charges).
-  // Elements surfaces differ in which they consult; both verify via the same
-  // association file and both are durable.
-  const attempt = async (
-    label: string,
-    call: () => Promise<unknown>
-  ): Promise<boolean> => {
-    try {
-      await call();
-      return true;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (message.toLowerCase().includes("already")) return true;
-      console.error(
-        `Apple Pay domain registration failed (${label}):`,
-        message
-      );
-      return false;
+  // Create the payment method domain, then validate it — validate nudges a
+  // domain whose requirements weren't satisfied at creation into an active
+  // state. Validation needs the id from create, so an "already registered"
+  // create (which returns no id here) skips it — that domain is already
+  // active.
+  let pmdId: string | null = null;
+  try {
+    const pmd = await stripe.paymentMethodDomains.create(
+      { domain_name: domain },
+      options
+    );
+    pmdId = pmd.id ?? null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.toLowerCase().includes("already")) {
+      console.error("Apple Pay domain registration failed:", message);
+      // Not cached: a transient Stripe failure retries on the next checkout.
+      return;
     }
-  };
-  const legacyOk = await attempt("apple_pay/domains", () =>
-    stripe.applePayDomains.create({ domain_name: domain }, options)
-  );
-  const pmdOk = await attempt("payment_method_domains", () =>
-    stripe.paymentMethodDomains.create({ domain_name: domain }, options)
-  );
-  // Cache only when every path succeeded (or was already registered), so a
-  // transient Stripe failure retries on the next checkout.
-  if (legacyOk && pmdOk) registeredDomains.add(cacheKey);
+  }
+  if (pmdId) {
+    try {
+      await stripe.paymentMethodDomains.validate(pmdId, options);
+    } catch (error) {
+      console.error(
+        "Apple Pay domain validation failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
+  registeredDomains.add(cacheKey);
 }

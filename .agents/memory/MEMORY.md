@@ -151,7 +151,7 @@
 - [replit.nix channel caps Node at 18](replit-nix-channel-node-cap.md) — nixpkgs 22.11 has no nodejs-22_x and replit.nix is still evaluated at env-build; runtime Node 22 comes from .replit modules, never bump replit.nix to match .nvmrc.
 - [Deploy-build publish guard](deploy-build-publish-guard.md) — deploy-build.sh refuses to run without SELF_SOWN_PUBLISH_BUILD=1, set only by the .replit [deployment] build command; keep the two in lockstep.
 - [Security scanner accepted findings](security-scan-accepted-findings.md) — recurring SAST/HoundDog classes confirmed by-design; skip them and investigate only new fingerprints.
-- [Apple Pay association routing](apple-pay-association-host-aware.md) — one processor's file per domain; marketplace host 404s by product decision, custom domains serve the seller's processor file.
+- [Apple Pay: Stripe PMD + Square file](apple-pay-association-host-aware.md) — Stripe registers via payment_method_domains (no hosted file; enabled=false is the off switch); well-known route serves Square's file only on Square sellers' domains.
 - [Brand palette consolidation](brand-palette-consolidation.md) — app is forced light-only; keep darkMode:'class' (HeroUI needs it); never add dark: classes.
 - [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops *-opacity-* and re-scales *-sm sizes (pinned+guarded); deprecated aliases migrated; bare shadow/rounded/blur/ring stay.
 - [Headless browser verification](headless-browser-verification.md) — no puppeteer here; use /repl/tools/bin/chromium headless for DOM/computed-style checks; kill by PID, never pkill.

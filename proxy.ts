@@ -311,9 +311,10 @@ async function routeRequest(request: NextRequest) {
     );
   }
 
-  // Apple Pay domain verification file (host-aware: the route serves the
-  // seller's processor's file on verified custom domains, 404 on the
-  // platform marketplace host, legacy Stripe file otherwise).
+  // Apple Pay domain verification file (Square-connected sellers only —
+  // Stripe registers domains via its Payment Method Domain API with no
+  // hosted file). The route serves Square's file on self-host instances and
+  // verified Square-seller custom domains; everything else 404s.
   if (
     pathname === "/.well-known/apple-developer-merchantid-domain-association"
   ) {

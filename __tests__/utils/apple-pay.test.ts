@@ -3,14 +3,16 @@
 // platform otherwise), caches account+domain pairs in-process, absorbs
 // "already registered", and never throws into checkout.
 
-const mockCreate = jest.fn();
 const mockPmdCreate = jest.fn();
+const mockPmdValidate = jest.fn();
 
 jest.mock("stripe", () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(() => ({
-    applePayDomains: { create: mockCreate },
-    paymentMethodDomains: { create: mockPmdCreate },
+    paymentMethodDomains: {
+      create: mockPmdCreate,
+      validate: mockPmdValidate,
+    },
   })),
 }));
 
@@ -34,8 +36,8 @@ const SELLER_B = "bbbb2222";
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockCreate.mockResolvedValue({});
-  mockPmdCreate.mockResolvedValue({});
+  mockPmdCreate.mockResolvedValue({ id: "pmd_1" });
+  mockPmdValidate.mockResolvedValue({});
   process.env.STRIPE_SECRET_KEY = "sk_test_x";
   process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   mockGetDomainByHost.mockResolvedValue(null);
@@ -137,75 +139,71 @@ describe("trustedRegistrationHost", () => {
 });
 
 describe("registerApplePayDomain", () => {
-  it("registers on BOTH domain APIs of the platform account", async () => {
+  it("creates and validates a payment method domain on the platform account", async () => {
     await registerApplePayDomain("shop-a.test");
-    expect(mockCreate).toHaveBeenCalledWith(
-      { domain_name: "shop-a.test" },
-      undefined
-    );
     expect(mockPmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop-a.test" },
       undefined
     );
+    expect(mockPmdValidate).toHaveBeenCalledWith("pmd_1", undefined);
   });
 
-  it("registers on BOTH domain APIs of the connected account for direct charges", async () => {
+  it("registers on the connected account for direct charges", async () => {
     await registerApplePayDomain("shop-b.test", "acct_123");
-    expect(mockCreate).toHaveBeenCalledWith(
-      { domain_name: "shop-b.test" },
-      { stripeAccount: "acct_123" }
-    );
     expect(mockPmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop-b.test" },
       { stripeAccount: "acct_123" }
     );
+    expect(mockPmdValidate).toHaveBeenCalledWith("pmd_1", {
+      stripeAccount: "acct_123",
+    });
   });
 
   it("caches account+domain pairs so repeat checkouts skip the API", async () => {
     await registerApplePayDomain("shop-c.test", "acct_1");
     await registerApplePayDomain("shop-c.test", "acct_1");
     await registerApplePayDomain("shop-c.test", "acct_2");
-    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
   });
 
-  it("treats 'already registered' as success and caches it", async () => {
-    mockCreate.mockRejectedValueOnce(new Error("Domain is already registered"));
+  it("treats 'already registered' as success (cached, no validate — no id)", async () => {
+    mockPmdCreate.mockRejectedValueOnce(
+      new Error("You have already registered this domain")
+    );
     await registerApplePayDomain("shop-d.test");
     await registerApplePayDomain("shop-d.test");
-    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockPmdCreate).toHaveBeenCalledTimes(1);
+    expect(mockPmdValidate).not.toHaveBeenCalled();
   });
 
   it("swallows other Stripe failures without caching (retried later)", async () => {
-    mockCreate.mockRejectedValue(new Error("stripe down"));
+    mockPmdCreate.mockRejectedValue(new Error("stripe down"));
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
     await expect(
       registerApplePayDomain("shop-e.test")
     ).resolves.toBeUndefined();
     await registerApplePayDomain("shop-e.test");
-    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
 
-  it("does not cache when paymentMethodDomains fails (legacy ok is not enough)", async () => {
-    mockPmdCreate.mockRejectedValueOnce(new Error("pmd down"));
+  it("still caches when validate fails (activation is best-effort)", async () => {
+    mockPmdValidate.mockRejectedValueOnce(new Error("validate down"));
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
     await registerApplePayDomain("shop-g.test");
-    // Legacy succeeded, but the pair must NOT be cached while the payment
-    // method domains registration failed — the next checkout retries both.
     await registerApplePayDomain("shop-g.test");
-    expect(mockCreate).toHaveBeenCalledTimes(2);
-    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
-    // Once both succeed the pair caches and later checkouts skip the API.
-    await registerApplePayDomain("shop-g.test");
-    expect(mockCreate).toHaveBeenCalledTimes(2);
-    expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+    expect(mockPmdCreate).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
   });
 
   it("skips hosts that cannot be registered", async () => {
     await registerApplePayDomain("localhost:3000");
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockPmdCreate).not.toHaveBeenCalled();
   });
 
   it("does nothing without a Stripe secret key", async () => {
     delete process.env.STRIPE_SECRET_KEY;
     await registerApplePayDomain("shop-f.test");
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockPmdCreate).not.toHaveBeenCalled();
   });
 });
