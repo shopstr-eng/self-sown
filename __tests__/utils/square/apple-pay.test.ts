@@ -3,8 +3,9 @@
  * well-known association file (served elsewhere) plus POST /v2/apple-pay/domains
  * authenticated as the platform. Activation is fail-open (a failure must never
  * block checkout), deduped in-process, and host trust is never
- * request-controlled — only a verified custom domain owned by the seller (or a
- * self-host instance's own domain) is registered.
+ * request-controlled — only the canonical platform host, a verified custom
+ * domain owned by the seller, or a self-host instance's own domain is
+ * registered.
  */
 const fetchMock = jest.fn();
 global.fetch = fetchMock as unknown as typeof fetch;
@@ -76,6 +77,33 @@ describe("activateSquareApplePayDomain", () => {
     // Second activation of the same domain is a cache hit — no API call.
     await activateSquareApplePayDomain("shop.example.com", SELLER);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("activates the platform host for a Square-connected seller's checkout", async () => {
+    await expect(
+      activateSquareApplePayDomain("platform.example.com", SELLER)
+    ).resolves.toBe("platform.example.com");
+    // The canonical host is trusted without a custom-domain lookup.
+    expect(getDomainByHostMock).not.toHaveBeenCalled();
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      domain_name: "platform.example.com",
+    });
+  });
+
+  it("does not activate the platform host without a seller context", async () => {
+    await expect(
+      activateSquareApplePayDomain("platform.example.com")
+    ).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not activate the platform host for a seller with no Square connection", async () => {
+    hasSquareConnectionMock.mockResolvedValue(false);
+    await expect(
+      activateSquareApplePayDomain("platform.example.com", SELLER)
+    ).resolves.toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("does not cache a PENDING registration — it retries on the next checkout", async () => {

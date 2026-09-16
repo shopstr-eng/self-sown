@@ -24,14 +24,17 @@ export function normalizeRegistrableHost(host: string): string | null {
 }
 
 /**
- * The only hosts we will register: a verified custom domain owned by THIS
- * seller — or, on a self-host instance (SS_SELF_HOST env-gated, never
- * header-trusted), the instance's own configured base host. A spoofed Host
- * header must never bind an arbitrary domain to a seller's Stripe account.
- * The hosted platform marketplace host is deliberately NOT registered: Apple
- * Pay is disabled on the general marketplace (the association route 404s
- * there), so registering it would only trigger perpetually failing Stripe
- * re-verifications.
+ * The only hosts we will register: the canonical platform host, a verified
+ * custom domain owned by THIS seller — or, on a self-host instance
+ * (SS_SELF_HOST env-gated, never header-trusted), the instance's own
+ * configured base host. A spoofed Host header must never bind an arbitrary
+ * domain to a seller's Stripe account.
+ *
+ * Platform-host registration is PER CHARGE-OWNING ACCOUNT: a seller's direct
+ * charge registers the host on that seller's connected account, platform
+ * charges on the platform account — so each seller's Apple Pay eligibility on
+ * the platform host is independent (per-seller). The PMD flow needs no hosted
+ * association file, so no platform-host file is required for Stripe.
  */
 export async function trustedRegistrationHost(
   hostHeader: string | string[] | undefined,
@@ -42,14 +45,17 @@ export async function trustedRegistrationHost(
   );
   if (!host) return null;
   try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const ownHost = baseUrl
+      ? normalizeRegistrableHost(new URL(baseUrl).host)
+      : null;
     if (isSelfHost()) {
       // Self-host: the instance's own configured domain is the tenant's.
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-      const ownHost = baseUrl
-        ? normalizeRegistrableHost(new URL(baseUrl).host)
-        : null;
       return ownHost && host === ownHost ? host : null;
     }
+    // Hosted platform: the canonical platform host is registrable (see the
+    // doc comment — per-account registration keeps eligibility per-seller).
+    if (ownHost && host === ownHost) return host;
     if (sellerPubkey) {
       const domain = await getDomainByHost(host);
       if (
@@ -120,6 +126,25 @@ export async function registerApplePayDomain(
           : String(lookupError)
       );
       return;
+    }
+  }
+  // Re-enable a deliberately-disabled PMD (e.g. a past sweep): the current
+  // policy is that checkout domains get Apple Pay, and this function only
+  // runs on checkout paths, so an enabled+active end state is always the
+  // goal. If Apple Pay must be turned off for a domain again, the off switch
+  // is the registration CALL SITES, not the PMD flag — this will re-enable it.
+  if (pmd && pmd.enabled === false) {
+    try {
+      pmd = await stripe.paymentMethodDomains.update(
+        pmd.id,
+        { enabled: true },
+        options
+      );
+    } catch (error) {
+      console.error(
+        "Apple Pay domain re-enable failed:",
+        error instanceof Error ? error.message : String(error)
+      );
     }
   }
   // Validate unless the domain is already enabled with Apple Pay active —

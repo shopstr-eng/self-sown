@@ -9,6 +9,7 @@
 const pmdCreate = jest.fn();
 const pmdValidate = jest.fn();
 const pmdList = jest.fn();
+const pmdUpdate = jest.fn();
 jest.mock("stripe", () => ({
   __esModule: true,
   default: jest.fn(() => ({
@@ -16,6 +17,7 @@ jest.mock("stripe", () => ({
       create: pmdCreate,
       validate: pmdValidate,
       list: pmdList,
+      update: pmdUpdate,
     },
   })),
 }));
@@ -58,6 +60,7 @@ describe("registerApplePayDomain", () => {
     pmdCreate.mockReset().mockResolvedValue(ACTIVE_PMD);
     pmdValidate.mockReset().mockResolvedValue(ACTIVE_PMD);
     pmdList.mockReset().mockResolvedValue({ data: [] });
+    pmdUpdate.mockReset().mockResolvedValue(ACTIVE_PMD);
     process.env.STRIPE_SECRET_KEY = "sk_test_x";
   });
 
@@ -104,7 +107,7 @@ describe("registerApplePayDomain", () => {
     expect(pmdValidate).not.toHaveBeenCalled();
   });
 
-  it("validates — and does not cache — a duplicate that stays inactive", async () => {
+  it("re-enables then validates — and does not cache — a duplicate that stays inactive", async () => {
     const disabledPmd = {
       id: "pmd_9",
       enabled: false,
@@ -114,8 +117,23 @@ describe("registerApplePayDomain", () => {
       new Error("You have already registered this domain")
     );
     pmdList.mockResolvedValue({ data: [disabledPmd] });
-    pmdValidate.mockResolvedValue(disabledPmd);
+    // Re-enable succeeds, but Apple Pay stays inactive through validation.
+    pmdUpdate.mockResolvedValue({
+      id: "pmd_9",
+      enabled: true,
+      apple_pay: { status: "inactive" },
+    });
+    pmdValidate.mockResolvedValue({
+      id: "pmd_9",
+      enabled: true,
+      apple_pay: { status: "inactive" },
+    });
     await registerApplePayDomain("disabled.example.com", "acct_2");
+    expect(pmdUpdate).toHaveBeenCalledWith(
+      "pmd_9",
+      { enabled: true },
+      { stripeAccount: "acct_2" }
+    );
     expect(pmdValidate).toHaveBeenCalledWith("pmd_9", {
       stripeAccount: "acct_2",
     });
@@ -157,10 +175,15 @@ describe("trustedRegistrationHost", () => {
     process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   });
 
-  it("rejects the platform marketplace host (Apple Pay disabled there)", async () => {
+  it("trusts the platform host — registration is per charge-owning account, keeping seller eligibility per-seller", async () => {
     await expect(
       trustedRegistrationHost("platform.example.com", SELLER)
-    ).resolves.toBeNull();
+    ).resolves.toBe("platform.example.com");
+    // No seller pubkey (platform charge) is trusted too.
+    await expect(
+      trustedRegistrationHost("Platform.Example.com:443")
+    ).resolves.toBe("platform.example.com");
+    expect(getDomainByHostMock).not.toHaveBeenCalled();
   });
 
   it("trusts a verified custom domain owned by the seller", async () => {

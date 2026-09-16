@@ -11,15 +11,16 @@ import { isSelfHost } from "@/utils/self-host/config";
 // Square still verifies a domain by fetching this exact well-known path, so
 // the route serves Square's file only where Square Apple Pay can legitimately
 // run:
+//   - the platform host (Square Apple Pay runs on platform-host checkouts for
+//     Square-connected sellers — one app-level domain activation; the button
+//     only ever renders inside a Square seller's own checkout);
 //   - self-host instance (SS_SELF_HOST env): the operator's own domain;
 //   - verified seller custom domain whose seller is Square-connected
 //     (seller card processors are mutually exclusive).
-// Everything else 404s — including the platform marketplace host, where Apple
-// Pay is intentionally disabled (product decision; its platform-account
-// payment method domain is disabled at Stripe), and Stripe sellers' custom
-// domains, which need no file at all. A DB outage 503s rather than risking a
-// wrong response. The file contents are a public verification token, so the
-// env var is plain (not secret). Google Pay is unaffected.
+// Everything else 404s — including Stripe sellers' custom domains, which need
+// no file at all. A DB outage 503s rather than risking a wrong response. The
+// file contents are a public verification token, so the env var is plain (not
+// secret). Google Pay is unaffected.
 function sendFile(res: NextApiResponse, body: string) {
   res.setHeader("Content-Type", "text/plain");
   res.setHeader("Cache-Control", "public, max-age=300");
@@ -55,8 +56,14 @@ export default async function handler(
   } catch {
     // Unparseable base URL: fail closed via the domain lookup below.
   }
-  if (!host || (platformHost && host === platformHost)) {
-    return res.status(404).end();
+  if (!host) return res.status(404).end();
+
+  // Platform host: serve Square's file so Square Apple Pay can be activated
+  // for platform-host checkouts (Square verifies the domain against OUR
+  // platform application; per-seller exposure comes from the checkout only
+  // rendering the button for Square-connected sellers).
+  if (platformHost && host === platformHost) {
+    return sendFile(res, squareFile);
   }
 
   try {
