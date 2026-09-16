@@ -54,6 +54,7 @@ jest.mock("@/utils/db/db-service", () => ({
 jest.mock("@/utils/self-host/config", () => ({
   getSelfHostConfig: (...args: unknown[]) => getSelfHostConfigMock(...args),
   isSelfHostTenant: (...args: unknown[]) => isSelfHostTenantMock(...args),
+  isSelfHost: () => false,
 }));
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
