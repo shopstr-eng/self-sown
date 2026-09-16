@@ -19,7 +19,11 @@ function makeRes() {
 
 const HOST = "self-sown.com";
 
-function makeReq(redirectUri: unknown, provider = "google", host: string = HOST) {
+function makeReq(
+  redirectUri: unknown,
+  provider = "google",
+  host: string = HOST
+) {
   return {
     query: { provider, redirect_uri: redirectUri },
     headers: { host },
@@ -38,10 +42,7 @@ describe("oauth-redirect redirect_uri validation", () => {
 
   it("accepts a same-origin https callback URI and redirects to the provider", () => {
     const res = makeRes();
-    handler(
-      makeReq(`https://${HOST}/api/auth/oauth-callback`),
-      res
-    );
+    handler(makeReq(`https://${HOST}/api/auth/oauth-callback`), res);
     expect(res.redirect).toHaveBeenCalledWith(
       expect.stringContaining("https://accounts.google.com/")
     );
@@ -69,7 +70,9 @@ describe("oauth-redirect redirect_uri validation", () => {
   it("rejects cookie-attribute injection via semicolons", () => {
     const res = makeRes();
     handler(
-      makeReq(`https://${HOST}/api/auth/oauth-callback?x=1; Domain=evil.example`),
+      makeReq(
+        `https://${HOST}/api/auth/oauth-callback?x=1; Domain=evil.example`
+      ),
       res
     );
     expect(res.status).toHaveBeenCalledWith(400);
