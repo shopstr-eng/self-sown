@@ -6,6 +6,7 @@
 const mockPmdCreate = jest.fn();
 const mockPmdValidate = jest.fn();
 const mockPmdList = jest.fn();
+const mockPmdUpdate = jest.fn();
 
 jest.mock("stripe", () => ({
   __esModule: true,
@@ -14,6 +15,7 @@ jest.mock("stripe", () => ({
       create: mockPmdCreate,
       validate: mockPmdValidate,
       list: mockPmdList,
+      update: mockPmdUpdate,
     },
   })),
 }));
@@ -52,6 +54,7 @@ beforeEach(() => {
   mockPmdCreate.mockResolvedValue(ACTIVE_PMD);
   mockPmdValidate.mockResolvedValue(ACTIVE_PMD);
   mockPmdList.mockResolvedValue({ data: [] });
+  mockPmdUpdate.mockResolvedValue(ACTIVE_PMD);
   process.env.STRIPE_SECRET_KEY = "sk_test_x";
   process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   mockGetDomainByHost.mockResolvedValue(null);
@@ -75,10 +78,14 @@ describe("normalizeRegistrableHost", () => {
 });
 
 describe("trustedRegistrationHost", () => {
-  it("rejects the platform marketplace host (Apple Pay disabled there)", async () => {
+  it("trusts the platform host — registration is per charge-owning account, so seller eligibility stays per-seller", async () => {
     await expect(
       trustedRegistrationHost("Platform.Example.com:443")
-    ).resolves.toBeNull();
+    ).resolves.toBe("platform.example.com");
+    await expect(
+      trustedRegistrationHost("platform.example.com", SELLER_A)
+    ).resolves.toBe("platform.example.com");
+    // The canonical host needs no custom-domain lookup.
     expect(mockGetDomainByHost).not.toHaveBeenCalled();
   });
 
@@ -219,7 +226,7 @@ describe("registerApplePayDomain", () => {
     expect(mockPmdCreate).toHaveBeenCalledTimes(1);
   });
 
-  it("validates a duplicate that is disabled/inactive — and keeps retrying if it stays so", async () => {
+  it("re-enables then validates a disabled duplicate — and keeps retrying while Apple Pay stays inactive", async () => {
     const disabledPmd = {
       id: "pmd_9",
       enabled: false,
@@ -229,13 +236,53 @@ describe("registerApplePayDomain", () => {
       new Error("You have already registered this domain")
     );
     mockPmdList.mockResolvedValue({ data: [disabledPmd] });
-    mockPmdValidate.mockResolvedValue(disabledPmd);
+    // Re-enable succeeds, but Apple Pay is still inactive until validation.
+    const enabledInactive = {
+      id: "pmd_9",
+      enabled: true,
+      apple_pay: { status: "inactive" },
+    };
+    mockPmdUpdate.mockResolvedValue(enabledInactive);
+    mockPmdValidate.mockResolvedValue(enabledInactive);
     await registerApplePayDomain("shop-h.test", "acct_1");
+    expect(mockPmdUpdate).toHaveBeenCalledWith(
+      "pmd_9",
+      { enabled: true },
+      { stripeAccount: "acct_1" }
+    );
     expect(mockPmdValidate).toHaveBeenCalledWith("pmd_9", {
       stripeAccount: "acct_1",
     });
     await registerApplePayDomain("shop-h.test", "acct_1");
     expect(mockPmdCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("caches a re-enabled duplicate once validation activates Apple Pay", async () => {
+    const disabledPmd = {
+      id: "pmd_10",
+      enabled: false,
+      apple_pay: { status: "inactive" },
+    };
+    mockPmdCreate.mockRejectedValue(
+      new Error("You have already registered this domain")
+    );
+    mockPmdList.mockResolvedValue({ data: [disabledPmd] });
+    mockPmdUpdate.mockResolvedValue({
+      id: "pmd_10",
+      enabled: true,
+      apple_pay: { status: "inactive" },
+    });
+    mockPmdValidate.mockResolvedValue({
+      id: "pmd_10",
+      enabled: true,
+      apple_pay: { status: "active" },
+    });
+    await registerApplePayDomain("shop-r.test", "acct_1");
+    expect(mockPmdUpdate).toHaveBeenCalledTimes(1);
+    expect(mockPmdValidate).toHaveBeenCalledTimes(1);
+    // Cached as active: no further API calls on the next checkout.
+    await registerApplePayDomain("shop-r.test", "acct_1");
+    expect(mockPmdCreate).toHaveBeenCalledTimes(1);
   });
 
   it("stays retryable when the duplicate lookup fails", async () => {

@@ -187,7 +187,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     expect(params.amount).toBe(1000);
   });
 
-  it("never registers the platform marketplace host (Apple Pay disabled there)", async () => {
+  it("registers the platform host on the SELLER's connected account (per-seller Apple Pay on platform checkouts)", async () => {
     getStripeConnectAccountMock.mockResolvedValue({
       stripe_account_id: "acct_seller",
       charges_enabled: true,
@@ -206,7 +206,10 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
       res as any
     );
     expect(res.statusCode).toBe(200);
-    expect(registerApplePayDomainMock).not.toHaveBeenCalled();
+    expect(registerApplePayDomainMock).toHaveBeenCalledWith(
+      SITE_HOST,
+      "acct_seller"
+    );
   });
 
   it("registers Apple Pay on a verified custom domain owned by that seller", async () => {

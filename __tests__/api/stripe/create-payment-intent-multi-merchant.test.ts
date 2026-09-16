@@ -189,7 +189,7 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
     ],
   };
 
-  it("never registers the platform marketplace host (Apple Pay disabled there)", async () => {
+  it("registers the platform host on the PLATFORM account for multi-seller charges", async () => {
     const res = makeRes();
     await createPaymentIntentHandler(
       {
@@ -200,7 +200,9 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
       res as any
     );
     expect(res.statusCode).toBe(200);
-    expect(registerApplePayDomainMock).not.toHaveBeenCalled();
+    // Multi-seller charges run on the platform account: no connected-account
+    // argument.
+    expect(registerApplePayDomainMock).toHaveBeenCalledWith(SITE_HOST);
   });
 
   it("never registers a request-controlled Host for multi-seller charges", async () => {

@@ -3,11 +3,10 @@
 // Square-only Apple Pay domain verification. Stripe registers checkout
 // domains via the Payment Method Domain API (no hosted file), so this route
 // serves Square's association file ONLY where Square Apple Pay can
-// legitimately run: self-host instances and verified custom domains of
-// Square-connected sellers. The platform marketplace host 404s (Apple Pay is
-// off there — its platform-account PMD is disabled at Stripe), Stripe-seller
-// custom domains 404 (they need no file), unknown hosts fail closed, and DB
-// outages 503 — never a wrong 200.
+// legitimately run: the platform host (Square-connected sellers' checkouts
+// run there), self-host instances, and verified custom domains of
+// Square-connected sellers. Stripe-seller custom domains 404 (they need no
+// file), unknown hosts fail closed, and DB outages 503 — never a wrong 200.
 
 import handler from "@/pages/api/.well-known/apple-developer-merchantid-domain-association";
 import { getDomainByHost } from "@/utils/db/custom-domains";
@@ -63,17 +62,28 @@ afterEach(() => {
 });
 
 describe("hosted platform", () => {
-  it("404s on the platform marketplace host even with the file set", async () => {
+  it("serves the Square file on the platform host (Square sellers check out there)", async () => {
+    const res = makeRes();
+    await handler(makeReq(PLATFORM_HOST), res);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(SQUARE_FILE);
+    // No domain lookup: the canonical host short-circuits.
+    expect(getDomainByHostMock).not.toHaveBeenCalled();
+  });
+
+  it("serves the file on the platform host with a trailing dot (FQDN form)", async () => {
+    const res = makeRes();
+    await handler(makeReq(`${PLATFORM_HOST}.`), res);
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.send).toHaveBeenCalledWith(SQUARE_FILE);
+  });
+
+  it("404s on the platform host when the Square file is not configured", async () => {
+    delete process.env.SQUARE_APPLE_PAY_DOMAIN_ASSOCIATION;
     const res = makeRes();
     await handler(makeReq(PLATFORM_HOST), res);
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.send).not.toHaveBeenCalled();
-  });
-
-  it("404s on the platform host with a trailing dot (FQDN form)", async () => {
-    const res = makeRes();
-    await handler(makeReq(`${PLATFORM_HOST}.`), res);
-    expect(res.status).toHaveBeenCalledWith(404);
   });
 
   it("404s with no host header", async () => {
