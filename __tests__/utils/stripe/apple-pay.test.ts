@@ -107,10 +107,10 @@ describe("trustedRegistrationHost", () => {
     process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   });
 
-  it("trusts the platform host", async () => {
+  it("rejects the platform marketplace host (Apple Pay disabled there)", async () => {
     await expect(
       trustedRegistrationHost("platform.example.com", SELLER)
-    ).resolves.toBe("platform.example.com");
+    ).resolves.toBeNull();
   });
 
   it("trusts a verified custom domain owned by the seller", async () => {

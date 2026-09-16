@@ -27,6 +27,8 @@ import { getDomainByHost } from "@/utils/db/custom-domains";
 
 const mockGetDomainByHost = getDomainByHost as jest.Mock;
 
+import { __resetSelfHostConfigCacheForTests } from "@/utils/self-host/config";
+
 const SELLER_A = "aaaa1111";
 const SELLER_B = "bbbb2222";
 
@@ -57,11 +59,25 @@ describe("normalizeRegistrableHost", () => {
 });
 
 describe("trustedRegistrationHost", () => {
-  it("accepts the platform host without any seller or domain lookup", async () => {
+  it("rejects the platform marketplace host (Apple Pay disabled there)", async () => {
     await expect(
       trustedRegistrationHost("Platform.Example.com:443")
-    ).resolves.toBe("platform.example.com");
+    ).resolves.toBeNull();
     expect(mockGetDomainByHost).not.toHaveBeenCalled();
+  });
+
+  it("trusts the configured base host on a self-host instance", async () => {
+    process.env.SS_SELF_HOST = "1";
+    __resetSelfHostConfigCacheForTests();
+    try {
+      await expect(
+        trustedRegistrationHost("Platform.Example.com:443")
+      ).resolves.toBe("platform.example.com");
+      expect(mockGetDomainByHost).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.SS_SELF_HOST;
+      __resetSelfHostConfigCacheForTests();
+    }
   });
 
   it("rejects an unverified custom domain even when owned by the requesting seller", async () => {

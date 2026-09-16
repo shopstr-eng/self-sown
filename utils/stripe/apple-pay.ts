@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { getDomainByHost } from "@/utils/db/custom-domains";
+import { isSelfHost } from "@/utils/self-host/config";
 
 // Apple Pay requires each checkout domain to be registered with Apple on the
 // Stripe account that owns the charge (the connected account for Connect
@@ -23,11 +24,13 @@ export function normalizeRegistrableHost(host: string): string | null {
 
 /**
  * The only hosts we will register: a verified custom domain owned by THIS
- * seller. A spoofed Host header must never bind an arbitrary domain to a
- * seller's Stripe account. The platform marketplace host is deliberately NOT
- * registered: Apple Pay is disabled on the general marketplace (the
- * association route 404s there), so registering it would only trigger
- * perpetually failing Stripe re-verifications.
+ * seller — or, on a self-host instance (SS_SELF_HOST env-gated, never
+ * header-trusted), the instance's own configured base host. A spoofed Host
+ * header must never bind an arbitrary domain to a seller's Stripe account.
+ * The hosted platform marketplace host is deliberately NOT registered: Apple
+ * Pay is disabled on the general marketplace (the association route 404s
+ * there), so registering it would only trigger perpetually failing Stripe
+ * re-verifications.
  */
 export async function trustedRegistrationHost(
   hostHeader: string | string[] | undefined,
@@ -38,6 +41,14 @@ export async function trustedRegistrationHost(
   );
   if (!host) return null;
   try {
+    if (isSelfHost()) {
+      // Self-host: the instance's own configured domain is the tenant's.
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+      const ownHost = baseUrl
+        ? normalizeRegistrableHost(new URL(baseUrl).host)
+        : null;
+      return ownHost && host === ownHost ? host : null;
+    }
     if (sellerPubkey) {
       const domain = await getDomainByHost(host);
       if (
