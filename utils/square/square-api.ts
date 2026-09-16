@@ -156,6 +156,9 @@ export interface CreateSquarePaymentInput {
   note?: string;
   buyerEmailAddress?: string;
   referenceId?: string;
+  // SCA verification token from the client-side verifyBuyer() call. Square
+  // declines SCA-mandated cards (EEA/UK) without it.
+  verificationToken?: string;
 }
 
 export interface SquarePaymentResult {
@@ -179,6 +182,9 @@ export async function createSquarePayment(
     body.buyer_email_address = input.buyerEmailAddress.slice(0, 255);
   }
   if (input.referenceId) body.reference_id = input.referenceId.slice(0, 40);
+  if (input.verificationToken) {
+    body.verification_token = input.verificationToken.slice(0, 4096);
+  }
 
   const data = await squareFetch<{
     payment?: { id: string; status: string };

@@ -28,6 +28,10 @@ interface SquareApplePay {
   tokenize: () => Promise<SquareTokenizeResult>;
   destroy?: () => Promise<void>;
 }
+interface SquareVerifyBuyerResult {
+  token?: string;
+  errors?: { message?: string }[];
+}
 interface SquarePayments {
   card: () => Promise<SquareCard>;
   // Opaque payment-request handle: paymentRequest() builds it, applePay()
@@ -38,6 +42,19 @@ interface SquarePayments {
     total: { amount: string; label: string };
   }) => object;
   applePay: (paymentRequest: object) => Promise<SquareApplePay>;
+  // SCA (Strong Customer Authentication): trades a payment token for a buyer
+  // verification token, presenting a 3DS challenge when the card requires it.
+  verifyBuyer: (
+    paymentToken: string,
+    verificationDetails: {
+      intent: string;
+      amount: string;
+      currencyCode: string;
+      billingContact: { email?: string };
+      customerInitiated: boolean;
+      sellerKeyedIn: boolean;
+    }
+  ) => Promise<SquareVerifyBuyerResult>;
 }
 interface SquareSdk {
   payments: (applicationId: string, locationId: string) => SquarePayments;
@@ -78,6 +95,18 @@ function loadSquareSdk(url: string): Promise<void> {
     document.head.appendChild(script);
   });
   return sdkLoaders[url];
+}
+
+// Canonical major-unit charge string — the server's OWN canonicalization
+// (toSmallestUnit: Math.ceil to minor units), so the Apple Pay sheet total
+// and the SCA verification amount always equal what
+// /api/square/create-payment charges. toFixed() alone rounds to NEAREST and
+// could under-display the charge (JPY 99.4 -> wallet 99, charged 100).
+function canonicalChargeAmount(amount: number, currency: string): string {
+  const minor = toSmallestUnit(amount, currency);
+  return ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase())
+    ? String(minor)
+    : (minor / 100).toFixed(2);
 }
 
 export default function SquareCardForm({
@@ -183,13 +212,8 @@ export default function SquareCardForm({
     (async () => {
       try {
         // The wallet total must equal what /api/square/create-payment will
-        // charge, so reuse the server's OWN canonicalization (toSmallestUnit:
-        // Math.ceil to minor units) — toFixed() alone rounds to NEAREST and
-        // could under-display the charge (JPY 99.4 -> wallet 99, charged 100).
-        const minor = toSmallestUnit(amount, currency);
-        const chargeAmount = ZERO_DECIMAL_CURRENCIES.has(currency.toLowerCase())
-          ? String(minor)
-          : (minor / 100).toFixed(2);
+        // charge, so it uses the server's own canonicalization.
+        const chargeAmount = canonicalChargeAmount(amount, currency);
         const request = payments.paymentRequest({
           countryCode: countryCode.toUpperCase(),
           currencyCode: currency.toUpperCase(),
@@ -224,6 +248,35 @@ export default function SquareCardForm({
   // both produce a Square nonce, and /api/square/create-payment treats them
   // identically (sourceId is opaque to it).
   const chargeWithToken = async (token: string): Promise<void> => {
+    // SCA — Square's docs flag verifyBuyer as Important for every
+    // customer-initiated payment: without the verification token,
+    // SCA-mandated cards (EEA/UK) can be declined for lack of authentication.
+    // It runs AFTER tokenize() (token in hand), so the "tokenize immediately
+    // on click" rule is untouched. Best-effort: a failed verification
+    // proceeds WITHOUT the token (previous behavior) rather than blocking a
+    // payment Square may still accept. Skipped for sats/BTC carts — the
+    // charge amount is converted server-side, so the client can't attest a
+    // matching amount.
+    let verificationToken: string | undefined;
+    const payments = paymentsRef.current;
+    if (payments && !isCrypto(currency)) {
+      try {
+        const verification = await payments.verifyBuyer(token, {
+          intent: "CHARGE",
+          amount: canonicalChargeAmount(amount, currency),
+          currencyCode: currency.toUpperCase(),
+          billingContact: customerEmail ? { email: customerEmail } : {},
+          customerInitiated: true,
+          sellerKeyedIn: false,
+        });
+        if (verification.token) verificationToken = verification.token;
+      } catch (err) {
+        console.warn(
+          "Square verifyBuyer failed; charging without an SCA token:",
+          err
+        );
+      }
+    }
     const res = await fetch("/api/square/create-payment", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -235,6 +288,7 @@ export default function SquareCardForm({
         customerEmail,
         productTitle,
         metadata,
+        ...(verificationToken ? { verificationToken } : {}),
       }),
     });
     const data = await res.json();
