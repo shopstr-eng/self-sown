@@ -51,7 +51,7 @@ export default function Manifesto() {
               ))}
             </div>
             <p className="mt-10 text-right font-bold text-black">
-              - Cristian Alvarez-Hernandez, Founder &amp; CEO
+              - Cristian Alvarez-Hernandez, Founder @ Self-sown
             </p>
           </div>
         </div>

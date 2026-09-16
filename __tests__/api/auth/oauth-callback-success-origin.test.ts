@@ -112,9 +112,7 @@ describe("oauth-callback success-redirect origin", () => {
     expect(res.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`${cookieOrigin}/auth/oauth-success`)
     );
-    expect(res.redirect).toHaveBeenCalledWith(
-      expect.stringContaining("nsec=")
-    );
+    expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("nsec="));
   });
 
   it("Apple (cookie-less form_post): lands on the request host the provider posted back to", async () => {
@@ -146,8 +144,6 @@ describe("oauth-callback success-redirect origin", () => {
     expect(res.redirect).toHaveBeenCalledWith(
       expect.stringContaining(`https://${SITE_HOST}/auth/oauth-success`)
     );
-    expect(res.redirect).toHaveBeenCalledWith(
-      expect.stringContaining("nsec=")
-    );
+    expect(res.redirect).toHaveBeenCalledWith(expect.stringContaining("nsec="));
   });
 });

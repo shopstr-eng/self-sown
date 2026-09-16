@@ -65,7 +65,7 @@ Our food systems are broken: grocery chains game convenience, greenwashed labels
 
 The essay argues that technology is the strongest tool against this regulatory capture: encrypted communication (Nostr) to organize buyers, co-ops, and pickup spots without platform surveillance, and Bitcoin as sound money for direct producer-to-consumer trade without banks or debasement.
 
-Free and open food markets are the foundation of thriving communities; defending them takes community. — Cristian Alvarez-Hernandez, Founder & CEO`,
+Free and open food markets are the foundation of thriving communities; defending them takes community. — Cristian Alvarez-Hernandez, Founder @ Self-sown`,
   },
   "/faq": {
     title: "Self-sown FAQ",
