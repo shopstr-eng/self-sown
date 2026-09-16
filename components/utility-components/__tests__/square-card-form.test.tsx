@@ -327,4 +327,27 @@ describe("SquareCardForm SCA verification (verifyBuyer)", () => {
     );
     expect(verifyBuyerMock).not.toHaveBeenCalled();
   });
+
+  it("stops silently (NO charge, NO callbacks) if the form is torn down while tokenization is in flight", async () => {
+    let resolveTokenize: (v: { status: string; token: string }) => void =
+      () => {};
+    cardMock.tokenize.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveTokenize = resolve;
+        })
+    );
+    const { container, props, unmount } = renderForm();
+    await waitFor(() => expect(cardMock.attach).toHaveBeenCalled());
+    fireEvent.submit(container.querySelector("form") as Element);
+    await waitFor(() => expect(cardMock.tokenize).toHaveBeenCalled());
+    // Cancel/unmount mid-tokenization: teardown nulls the SDK refs and bumps
+    // the lifecycle generation.
+    unmount();
+    resolveTokenize({ status: "OK", token: "cnon:card" });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(props.onPaymentSuccess).not.toHaveBeenCalled();
+    expect(props.onPaymentError).not.toHaveBeenCalled();
+  });
 });
