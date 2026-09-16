@@ -38,10 +38,12 @@ const applePayMock = {
   destroy: jest.fn().mockResolvedValue(undefined),
 };
 const paymentRequestMock = jest.fn((req: unknown) => req);
+const verifyBuyerMock = jest.fn().mockResolvedValue({ token: "vftok-1" });
 const paymentsMock = {
   card: jest.fn().mockResolvedValue(cardMock),
   paymentRequest: paymentRequestMock,
   applePay: jest.fn().mockResolvedValue(applePayMock),
+  verifyBuyer: verifyBuyerMock,
 };
 const fetchMock = jest.fn();
 
@@ -223,5 +225,106 @@ describe("SquareCardForm Apple Pay", () => {
     await waitFor(() => expect(cardMock.attach).toHaveBeenCalled());
     expect(paymentsMock.applePay).not.toHaveBeenCalled();
     expect(paymentRequestMock).not.toHaveBeenCalled();
+  });
+});
+
+// SCA (verifyBuyer): Square's docs flag buyer verification as Important for
+// every customer-initiated payment — SCA-mandated cards (EEA/UK) are declined
+// without it. Verification runs after tokenize and BEFORE the charge; a
+// failed/cancelled verification stops the attempt (fail closed) rather than
+// charging into a predictable decline.
+describe("SquareCardForm SCA verification (verifyBuyer)", () => {
+  const callOrder = (m: jest.Mock) => m.mock.invocationCallOrder[0] ?? 0;
+
+  it("verifies a keyed-in card after tokenize and sends the verification token with the charge", async () => {
+    const { container, props } = renderForm();
+    await waitFor(() => expect(cardMock.attach).toHaveBeenCalled());
+    fireEvent.submit(container.querySelector("form") as Element);
+    await waitFor(() =>
+      expect(props.onPaymentSuccess).toHaveBeenCalledWith("sqpay-1")
+    );
+    expect(verifyBuyerMock).toHaveBeenCalledWith("cnon:card", {
+      intent: "CHARGE",
+      amount: "25.00",
+      currencyCode: "USD",
+      billingContact: { email: "buyer@example.com" },
+      customerInitiated: true,
+      sellerKeyedIn: false,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/square/create-payment",
+      expect.objectContaining({
+        body: expect.stringContaining('"verificationToken":"vftok-1"'),
+      })
+    );
+    // Ordering: tokenize → verifyBuyer → charge.
+    expect(callOrder(cardMock.tokenize)).toBeLessThan(
+      callOrder(verifyBuyerMock)
+    );
+    expect(callOrder(verifyBuyerMock)).toBeLessThan(callOrder(fetchMock));
+  });
+
+  it("verifies the Apple Pay token before charging", async () => {
+    const { props } = renderForm();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /^pay with apple pay$/i })
+      ).toBeTruthy()
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /^pay with apple pay$/i })
+    );
+    await waitFor(() =>
+      expect(props.onPaymentSuccess).toHaveBeenCalledWith("sqpay-1")
+    );
+    expect(verifyBuyerMock).toHaveBeenCalledWith(
+      "cnon:applepay",
+      expect.objectContaining({ amount: "25.00", currencyCode: "USD" })
+    );
+    expect(callOrder(applePayMock.tokenize)).toBeLessThan(
+      callOrder(verifyBuyerMock)
+    );
+  });
+
+  it("stops the payment (NO charge) when verification throws", async () => {
+    verifyBuyerMock.mockRejectedValueOnce(new Error("3DS challenge cancelled"));
+    const { container, props } = renderForm();
+    await waitFor(() => expect(cardMock.attach).toHaveBeenCalled());
+    fireEvent.submit(container.querySelector("form") as Element);
+    await waitFor(() =>
+      expect(props.onPaymentError).toHaveBeenCalledWith(
+        "3DS challenge cancelled"
+      )
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(props.onPaymentSuccess).not.toHaveBeenCalled();
+  });
+
+  it("stops the payment (NO charge) when verification resolves without a token", async () => {
+    verifyBuyerMock.mockResolvedValueOnce({
+      errors: [{ message: "Verification incomplete" }],
+    });
+    const { container, props } = renderForm();
+    await waitFor(() => expect(cardMock.attach).toHaveBeenCalled());
+    fireEvent.submit(container.querySelector("form") as Element);
+    await waitFor(() =>
+      expect(props.onPaymentError).toHaveBeenCalledWith(
+        "Verification incomplete"
+      )
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("skips verification for crypto-denominated (sats) carts — the charge amount is converted server-side", async () => {
+    const { container, props } = renderForm({
+      currency: "sats",
+      amount: 25000,
+    });
+    await waitFor(() => expect(cardMock.attach).toHaveBeenCalled());
+    fireEvent.submit(container.querySelector("form") as Element);
+    await waitFor(() =>
+      expect(props.onPaymentSuccess).toHaveBeenCalledWith("sqpay-1")
+    );
+    expect(verifyBuyerMock).not.toHaveBeenCalled();
   });
 });

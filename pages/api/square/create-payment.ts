@@ -142,8 +142,8 @@ export default async function handler(
         : undefined;
 
     // Optional SCA verification token from the client-side verifyBuyer call.
-    // Client-supplied garbage is dropped, never fatal — the charge may still
-    // succeed without it (Square itself declines SCA-mandated cards).
+    // Only type/size are bounded here — the token is an opaque Square
+    // credential and Square validates its binding to the charge.
     const verificationToken =
       typeof rawVerificationToken === "string" &&
       rawVerificationToken.length <= 4096

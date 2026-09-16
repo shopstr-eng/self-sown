@@ -250,13 +250,13 @@ export default function SquareCardForm({
   const chargeWithToken = async (token: string): Promise<void> => {
     // SCA — Square's docs flag verifyBuyer as Important for every
     // customer-initiated payment: without the verification token,
-    // SCA-mandated cards (EEA/UK) can be declined for lack of authentication.
-    // It runs AFTER tokenize() (token in hand), so the "tokenize immediately
-    // on click" rule is untouched. Best-effort: a failed verification
-    // proceeds WITHOUT the token (previous behavior) rather than blocking a
-    // payment Square may still accept. Skipped for sats/BTC carts — the
-    // charge amount is converted server-side, so the client can't attest a
-    // matching amount.
+    // SCA-mandated cards (EEA/UK) are DECLINED for lack of authentication, so
+    // a failed or cancelled verification must STOP this attempt (fail closed)
+    // instead of charging into a predictable decline with a worse error. It
+    // runs AFTER tokenize() (token in hand), so the "tokenize immediately on
+    // click" rule is untouched. Skipped for sats/BTC carts — the charge
+    // amount is converted server-side, so the client can't attest a matching
+    // amount.
     let verificationToken: string | undefined;
     const payments = paymentsRef.current;
     if (payments && !isCrypto(currency)) {
@@ -269,12 +269,21 @@ export default function SquareCardForm({
           customerInitiated: true,
           sellerKeyedIn: false,
         });
-        if (verification.token) verificationToken = verification.token;
+        if (!verification.token) {
+          throw new Error(
+            verification.errors?.[0]?.message ||
+              "Card verification was not completed."
+          );
+        }
+        verificationToken = verification.token;
       } catch (err) {
-        console.warn(
-          "Square verifyBuyer failed; charging without an SCA token:",
-          err
-        );
+        const msg =
+          err instanceof Error
+            ? err.message
+            : "Card verification failed. Please try again.";
+        setErrorMessage(msg);
+        onPaymentError(msg);
+        return;
       }
     }
     const res = await fetch("/api/square/create-payment", {
