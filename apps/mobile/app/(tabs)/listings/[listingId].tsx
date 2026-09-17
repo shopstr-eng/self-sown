@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useListingEditorNavigation } from "@/hooks/use-listing-editor-navigation";
+import { listingHasUnsavedChanges } from "@/lib/listing-editor-state";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { Text } from "react-native";
@@ -38,6 +40,11 @@ export default function EditListingScreen() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  const initialDraft = useRef<SellerListingDraft | null>(null);
+  const allowNavigation = useListingEditorNavigation(
+    listingHasUnsavedChanges(draft, initialDraft.current),
+    saveLoading || deleteLoading || imageLoading
+  );
 
   useEffect(() => {
     if (!listingId || !listingEventsQuery.data) {
@@ -48,8 +55,11 @@ export default function EditListingScreen() {
       listingEventsQuery.data,
       listingId
     );
+    if (nextDraft && nextDraft.sourcePubkey !== session?.pubkey) return;
+    if (!initialDraft.current && nextDraft)
+      initialDraft.current = JSON.parse(JSON.stringify(nextDraft));
     setDraft((currentDraft) => currentDraft ?? nextDraft);
-  }, [listingEventsQuery.data, listingId]);
+  }, [listingEventsQuery.data, listingId, session?.pubkey]);
 
   if (!session || !listingId) {
     return null;
@@ -61,7 +71,7 @@ export default function EditListingScreen() {
 
   if (listingEventsQuery.isError && !listingEventsQuery.data) {
     return (
-      <ScreenScrollView>
+      <ScreenScrollView catalog>
         <ScreenTitle
           eyebrow="Seller listings"
           title="Listing unavailable"
@@ -85,11 +95,11 @@ export default function EditListingScreen() {
 
   if (!draft) {
     return (
-      <ScreenScrollView>
+      <ScreenScrollView catalog>
         <ScreenTitle
           eyebrow="Seller listings"
           title="Listing not found"
-          description="This listing no longer appears in the seller cache."
+          description="This product is no longer available. Return to your catalog and refresh."
         />
       </ScreenScrollView>
     );
@@ -147,6 +157,7 @@ export default function EditListingScreen() {
     setErrors(nextErrors);
     setActionError("");
     if (Object.keys(nextErrors).length > 0) {
+      setActionError("Review the highlighted fields above before saving.");
       return;
     }
 
@@ -154,7 +165,9 @@ export default function EditListingScreen() {
     try {
       await saveSellerListing(session, draft);
       await refreshListings();
-      router.replace("/listings?listingMessage=Listing%20updated." as Href);
+      allowNavigation(() =>
+        router.replace("/listings?listingMessage=Listing%20updated." as Href)
+      );
     } catch (caughtError) {
       setActionError(
         caughtError instanceof Error
@@ -177,7 +190,9 @@ export default function EditListingScreen() {
     try {
       await removeSellerListing(session, draft.eventId);
       await refreshListings();
-      router.replace("/listings?listingMessage=Listing%20deleted." as Href);
+      allowNavigation(() =>
+        router.replace("/listings?listingMessage=Listing%20deleted." as Href)
+      );
     } catch (caughtError) {
       setActionError(
         caughtError instanceof Error
@@ -196,16 +211,16 @@ export default function EditListingScreen() {
   };
 
   return (
-    <ScreenScrollView>
+    <ScreenScrollView catalog adjustForKeyboard>
       <ScreenTitle
         eyebrow="Seller listings"
-        title="Edit mobile listing"
-        description="Listing edits republish the current event shape with the same listing identity, then retire the previous cached listing event."
+        title="Edit product"
+        description="Update your product details, prices and available options."
       />
       <ListingEditor
         draft={draft}
         errors={errors}
-        submitLabel="Save listing changes"
+        submitLabel="Save changes"
         submitLoading={saveLoading}
         deleteLoading={deleteLoading}
         imageLoading={imageLoading}

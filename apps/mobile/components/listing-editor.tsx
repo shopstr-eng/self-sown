@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   getKnownSellerListingCategories,
+  parseSellerListingOptions,
   isPickupShippingOption,
   requiresShippingCost,
   SHIPPING_OPTIONS,
@@ -12,7 +13,9 @@ import {
 } from "@self-sown/domain";
 
 import { ActionButton, SellerCard, SellerField } from "@/components/seller-ui";
-import { sellerThemeTokens } from "@/theme/tokens";
+import { catalogTheme as sellerThemeTokens } from "./catalog-appearance";
+import { ListingOptionsEditor } from "./listing-options-editor";
+import { ListingBundleEditor } from "./listing-bundle-editor";
 
 const STATUS_OPTIONS: SellerListingStatus[] = ["active", "inactive"];
 
@@ -43,6 +46,9 @@ export function ListingEditor({
   onPickImages: () => void;
   onDelete?: () => void;
 }) {
+  const parsedOptions = parseSellerListingOptions(draft.sourceTags ?? []);
+  const options = draft.options ?? parsedOptions.draft;
+  const busy = submitLoading || deleteLoading || imageLoading;
   const knownCategories = useMemo(() => getKnownSellerListingCategories(), []);
   const customCategories = draft.categories.filter(
     (category) => !knownCategories.includes(category)
@@ -98,10 +104,13 @@ export function ListingEditor({
   };
 
   return (
-    <View style={styles.editor}>
+    <View
+      style={styles.editor}
+      pointerEvents={submitLoading || deleteLoading ? "none" : "auto"}
+    >
       <SellerCard
-        title="Listing basics"
-        description="Core product details published from this device."
+        title="Product details"
+        description="Tell customers what you sell."
       >
         <SellerField
           label="Title"
@@ -150,13 +159,47 @@ export function ListingEditor({
           error={errors.location}
         />
         <SellerField
-          label="Quantity"
+          label="Listing quantity"
           value={draft.quantity}
           placeholder="Optional"
           onChangeText={(value) => onChange({ ...draft, quantity: value })}
           keyboardType="number-pad"
           error={errors.quantity}
         />
+      </SellerCard>
+
+      <SellerCard
+        title="Images"
+        description="Add photos here, then choose them for your custom options."
+      >
+        <ActionButton
+          label="Add product photos"
+          onPress={onPickImages}
+          variant="secondary"
+          loading={imageLoading}
+        />
+        {errors.images ? (
+          <Text style={styles.errorText}>{errors.images}</Text>
+        ) : null}
+        {draft.images.length === 0 ? (
+          <Text style={styles.helperText}>
+            Add at least one image before publishing this listing.
+          </Text>
+        ) : (
+          <View style={styles.imageList}>
+            {draft.images.map((imageUrl, imageIndex) => (
+              <View key={`${imageIndex}:${imageUrl}`} style={styles.imageCard}>
+                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
+
+                <ActionButton
+                  label="Remove image"
+                  onPress={() => removeImage(imageUrl)}
+                  variant="secondary"
+                />
+              </View>
+            ))}
+          </View>
+        )}
       </SellerCard>
 
       <SellerCard
@@ -209,6 +252,24 @@ export function ListingEditor({
           <Text style={styles.errorText}>{errors.categories}</Text>
         ) : null}
       </SellerCard>
+
+      <ListingOptionsEditor
+        value={options}
+        errors={errors.options ?? {}}
+        issues={parsedOptions.issues}
+        productImages={draft.images}
+        currency={draft.currency}
+        disabled={busy}
+        onChange={(options) => onChange({ ...draft, options })}
+      />
+      <ListingBundleEditor
+        value={options}
+        errors={errors.options ?? {}}
+        issues={parsedOptions.issues}
+        currency={draft.currency}
+        disabled={busy}
+        onChange={(options) => onChange({ ...draft, options })}
+      />
 
       <SellerCard
         title="Fulfillment"
@@ -368,44 +429,8 @@ export function ListingEditor({
       </SellerCard>
 
       <SellerCard
-        title="Images"
-        description="Images upload through the default Blossom server path used by Self-sown."
-      >
-        <ActionButton
-          label="Add listing images"
-          onPress={onPickImages}
-          variant="secondary"
-          loading={imageLoading}
-        />
-        {errors.images ? (
-          <Text style={styles.errorText}>{errors.images}</Text>
-        ) : null}
-        {draft.images.length === 0 ? (
-          <Text style={styles.helperText}>
-            Add at least one image before publishing this listing.
-          </Text>
-        ) : (
-          <View style={styles.imageList}>
-            {draft.images.map((imageUrl) => (
-              <View key={imageUrl} style={styles.imageCard}>
-                <Image source={{ uri: imageUrl }} style={styles.imagePreview} />
-                <Text numberOfLines={2} style={styles.imageUrl}>
-                  {imageUrl}
-                </Text>
-                <ActionButton
-                  label="Remove image"
-                  onPress={() => removeImage(imageUrl)}
-                  variant="secondary"
-                />
-              </View>
-            ))}
-          </View>
-        )}
-      </SellerCard>
-
-      <SellerCard
         title="Listing status"
-        description="Publish and unpublish are modeled through the existing listing status tag."
+        description="Choose whether customers can see this product."
       >
         <View style={styles.chipWrap}>
           {STATUS_OPTIONS.map((status) => {
@@ -445,6 +470,7 @@ export function ListingEditor({
         label={submitLabel}
         onPress={onSubmit}
         loading={submitLoading}
+        disabled={busy}
       />
       {onDelete ? (
         <ActionButton
@@ -452,6 +478,7 @@ export function ListingEditor({
           onPress={onDelete}
           variant="secondary"
           loading={deleteLoading}
+          disabled={busy}
         />
       ) : null}
     </View>

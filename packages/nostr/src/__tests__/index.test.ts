@@ -322,7 +322,7 @@ describe("seller nostr helpers", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("treats a cache-failed relay publication as successful and retains retry identity", async () => {
+  test("rejects a cache-failed listing and reuses the same signed event on retry", async () => {
     const session = createSellerSessionFromNsec(
       generateSellerNsecCredentials().nsec
     );
@@ -350,11 +350,13 @@ describe("seller nostr helpers", () => {
       status: "active" as const,
     };
 
-    const firstResult = await publishSellerListing({
-      baseUrl: "http://127.0.0.1:5000",
-      session,
-      draft,
-    });
+    await expect(
+      publishSellerListing({
+        baseUrl: "http://127.0.0.1:5000",
+        session,
+        draft,
+      })
+    ).rejects.toThrow("Failed to cache the signed event.");
 
     const firstPublishedEvent = publishSpy.mock.calls[0]?.[1];
     expect(publishSpy.mock.invocationCallOrder[0]).toBeLessThan(
@@ -363,11 +365,7 @@ describe("seller nostr helpers", () => {
     expect(draft.dTag).toBe(
       firstPublishedEvent?.tags.find((tag) => tag[0] === "d")?.[1]
     );
-    expect(firstResult.id).toBe(firstPublishedEvent?.id);
-    expect(warnSpy).toHaveBeenCalledWith(
-      "Published event but failed to cache it.",
-      expect.any(SellerNostrError)
-    );
+    expect(warnSpy).not.toHaveBeenCalled();
 
     const retryEvent = await publishSellerListing({
       baseUrl: "http://127.0.0.1:5000",
@@ -376,11 +374,9 @@ describe("seller nostr helpers", () => {
     });
 
     expect(retryEvent.tags.find((tag) => tag[0] === "d")?.[1]).toBe(draft.dTag);
-    expect(retryEvent.created_at).toBeGreaterThan(
-      firstPublishedEvent?.created_at ?? 0
-    );
-    expect(publishSpy).toHaveBeenCalledTimes(6);
-    expect(fetchSpy).toHaveBeenCalledTimes(6);
+    expect(retryEvent.id).toBe(firstPublishedEvent?.id);
+    expect(publishSpy).toHaveBeenCalledTimes(4);
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
   });
 
   test("makes same-second listing updates newer than the source event", async () => {

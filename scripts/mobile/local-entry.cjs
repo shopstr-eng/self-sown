@@ -18,6 +18,14 @@ DEFAULT_SELLER_RELAYS.splice(
   DEFAULT_SELLER_RELAYS.length,
   "ws://127.0.0.1:5011"
 );
+// Preserve the real picker, file reads, signing and HTTP body. Only redirect
+// the public media provider to our local signature-checking fixture server.
+const realFixtureFetch = globalThis.fetch;
+globalThis.fetch = (input, init) => {
+  if (String(input) === "https://cdn.nostrcheck.me/upload")
+    return realFixtureFetch("http://127.0.0.1:5012/upload", init);
+  return realFixtureFetch(input, init);
+};
 require("expo-router/entry");
 // Simulator injection needs OS permission, but production opt-in correctly
 // refuses simulator token registration. This prompt exists only in fixtures.
