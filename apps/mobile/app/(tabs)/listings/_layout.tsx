@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 
-import { sellerThemeTokens } from "@/theme/tokens";
+import { catalogTheme as sellerThemeTokens } from "@/components/catalog-appearance";
 
 export default function ListingsStackLayout() {
   return (
@@ -15,11 +15,11 @@ export default function ListingsStackLayout() {
       <Stack.Screen name="index" options={{ title: "Listings" }} />
       <Stack.Screen
         name="new"
-        options={{ title: "Create listing", headerBackTitle: "Listings" }}
+        options={{ title: "Add product", headerBackTitle: "Listings" }}
       />
       <Stack.Screen
         name="[listingId]"
-        options={{ title: "Edit listing", headerBackTitle: "Listings" }}
+        options={{ title: "Edit product", headerBackTitle: "Listings" }}
       />
     </Stack>
   );

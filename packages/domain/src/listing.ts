@@ -1,11 +1,25 @@
 import { CATEGORIES, type ShippingOptionsType } from "./constants";
+import { isSellerDecimal, sellerPriceDecimals } from "./listing-option-values";
 import type { ProductFormValue, ProductFormValues } from "./forms";
 import type { NostrEventRecord } from "./seller";
 import { normalizeSellerParcel, type SellerParcel } from "./shipping";
 
+import {
+  buildSellerListingOptionTags,
+  createEmptySellerListingOptions,
+  isListingOptionTag,
+  parseSellerListingOptions,
+  validateSellerListingOptionChanges,
+  type SellerListingOptionsDraft,
+  type ListingOptionsErrors,
+} from "./listing-options";
+
 export type SellerListingStatus = "active" | "inactive";
 
 export interface SellerListingDraft {
+  options?: SellerListingOptionsDraft;
+  sourcePubkey?: string;
+  pendingEventId?: string;
   eventId?: string;
   dTag?: string;
   sourceCreatedAt?: number;
@@ -32,6 +46,7 @@ export interface SellerListingDraft {
 }
 
 export interface SellerListingDraftValidationErrors {
+  options?: ListingOptionsErrors;
   title?: string;
   description?: string;
   images?: string;
@@ -74,6 +89,7 @@ export interface NormalizedSellerListingDraft {
 
 const RESERVED_MARKETPLACE_TAGS = new Set([
   "MilkMarket",
+  "SelfSown",
   "FREEMILK",
   "SAVEBEEF",
 ]);
@@ -154,8 +170,11 @@ function parseNumberInput(input: string): number | null {
   return parsed;
 }
 
-export function createEmptySellerListingDraft(): SellerListingDraft {
+export function createEmptySellerListingDraft(): SellerListingDraft & {
+  options: SellerListingOptionsDraft;
+} {
   return {
+    options: createEmptySellerListingOptions(),
     title: "",
     description: "",
     images: [],
@@ -297,6 +316,13 @@ export function validateSellerListingDraft(
 
   if (priceInput === null || priceInput <= 0) {
     errors.price = "Enter a valid listing price.";
+  } else if (
+    !isSellerDecimal(
+      draft.price.trim().replace(/,/g, ""),
+      sellerPriceDecimals(draft.currency)
+    )
+  ) {
+    errors.price = `Use at most ${sellerPriceDecimals(draft.currency)} decimal places for ${normalized.currency}.`;
   }
 
   if (!normalized.currency || normalized.currency.length < 3) {
@@ -367,9 +393,10 @@ export function validateSellerListingDraft(
     if (
       quantityInput === null ||
       quantityInput < 0 ||
-      !Number.isInteger(quantityInput)
+      !Number.isInteger(quantityInput) ||
+      quantityInput > 2147483647
     ) {
-      errors.quantity = "Quantity must be a whole number.";
+      errors.quantity = "Quantity must be a whole number from 0 to 2147483647.";
     }
   }
 
@@ -377,12 +404,18 @@ export function validateSellerListingDraft(
     errors.status = "Select a valid listing status.";
   }
 
+  const optionsErrors = validateSellerListingOptionChanges(
+    draft.options ?? parseSellerListingOptions(draft.sourceTags ?? []).draft,
+    draft.currency,
+    draft.sourceTags
+  );
+  if (Object.keys(optionsErrors).length) errors.options = optionsErrors;
   return errors;
 }
 
 export function createSellerListingDraftFromEvent(
   event: NostrEventRecord
-): SellerListingDraft | null {
+): (SellerListingDraft & { options: SellerListingOptionsDraft }) | null {
   if (event.kind !== 30402) {
     return null;
   }
@@ -407,6 +440,8 @@ export function createSellerListingDraftFromEvent(
   const handlingTime = getTagValues(event, "handling_time")[0] ?? "";
 
   return {
+    options: parseSellerListingOptions(event.tags).draft,
+    sourcePubkey: event.pubkey,
     eventId: event.id,
     dTag,
     // Postgres bigint columns arrive as strings in cached API responses.
@@ -414,8 +449,9 @@ export function createSellerListingDraftFromEvent(
     sourceTags: cloneTags(event.tags),
     title: getTagValues(event, "title")[0] ?? "",
     description:
-      getTagValues(event, "summary")[0] ??
-      (typeof event.content === "string" ? event.content : ""),
+      (typeof event.content === "string" && event.content.trim()
+        ? event.content
+        : getTagValues(event, "summary")[0]) ?? "",
     images: getTagValues(event, "image"),
     price: priceTag && typeof priceTag[1] === "string" ? priceTag[1] : "",
     currency: priceTag && typeof priceTag[2] === "string" ? priceTag[2] : "USD",
@@ -442,19 +478,30 @@ export function buildSellerListingTags(params: {
   dTag: string;
   relayHint?: string;
 }): ProductFormValues {
+  const options =
+    params.draft.options ??
+    parseSellerListingOptions(params.draft.sourceTags ?? []).draft;
+  const optionErrors = validateSellerListingOptionChanges(
+    options,
+    params.draft.currency,
+    params.draft.sourceTags
+  );
+  if (Object.keys(optionErrors).length)
+    throw new Error("Correct the product options before saving.");
   const normalized = normalizeSellerListingDraft(params.draft);
   const relayHint = params.relayHint ?? "";
   const shippingManagedOnWeb = hasSellerListingShippingOptions(params.draft);
   const preservedTags = cloneTags(
     (params.draft.sourceTags ?? []).filter(
       (tag) =>
-        !MOBILE_EDITABLE_TAGS.has(tag[0]) ||
+        (!MOBILE_EDITABLE_TAGS.has(tag[0]) && !isListingOptionTag(tag[0])) ||
         (shippingManagedOnWeb &&
           (tag[0] === "shipping" || tag[0] === "pickup_location"))
     )
   );
   const tags: ProductFormValues = [
     ...preservedTags,
+    ...buildSellerListingOptionTags(options, params.draft.sourceTags),
     ["d", params.dTag],
     ["alt", `Product listing: ${normalized.title}`],
     [
@@ -534,7 +581,67 @@ export function buildSellerListingTags(params: {
     });
   }
 
-  return tags;
+  const source = params.draft.sourceTags
+    ? createSellerListingDraftFromEvent({
+        id: params.draft.eventId ?? "",
+        pubkey: params.pubkey,
+        kind: 30402,
+        created_at: params.draft.sourceCreatedAt ?? 0,
+        content: "",
+        tags: params.draft.sourceTags,
+      })
+    : null;
+  const preservedFields: Record<string, (keyof SellerListingDraft)[]> = {
+    price: ["price", "currency"],
+    shipping: ["shippingType", "shippingCost", "currency"],
+    quantity: ["quantity"],
+    location: ["location"],
+    status: ["status"],
+    image: ["images"],
+    t: ["categories"],
+    pickup_location: ["pickupLocations", "shippingType"],
+    ship_from_zip: ["shipFromPostalCode", "shipFromCountry"],
+    parcel: [
+      "packageWeightOz",
+      "packageLengthIn",
+      "packageWidthIn",
+      "packageHeightIn",
+    ],
+    handling_time: ["handlingTimeDays"],
+  };
+  if (source)
+    for (const [key, fields] of Object.entries(preservedFields)) {
+      if (
+        fields.every(
+          (field) =>
+            JSON.stringify(params.draft[field]) ===
+            JSON.stringify(source[field])
+        )
+      ) {
+        const originals = params.draft.sourceTags!.filter(
+          (tag) => tag[0] === key
+        );
+        for (let i = tags.length - 1; i >= 0; i--)
+          if (tags[i]![0] === key) tags.splice(i, 1);
+        tags.push(...cloneTags(originals));
+      }
+    }
+  // Keep extended managed tags when the represented values have not changed.
+  // In particular, the fourth price field can carry a recurring interval.
+  return tags.map((tag) => {
+    const original = params.draft.sourceTags?.filter(
+      (source) => source[0] === tag[0]
+    );
+    if (
+      original?.length === 1 &&
+      original[0]!.length > tag.length &&
+      tag.every((value, i) => value === original[0]![i])
+    )
+      return [...original[0]!];
+    if (tag[0] === "price" && tag.length === 3 && original?.[0]?.[3])
+      return [...tag, ...original[0].slice(3)];
+    return tag;
+  });
 }
 
 export function getKnownSellerListingCategories(): string[] {

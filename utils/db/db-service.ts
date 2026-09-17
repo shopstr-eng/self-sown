@@ -2188,30 +2188,21 @@ export async function cacheEvent(event: NostrEvent): Promise<void> {
       await client.query(query);
     }
     if (event.kind === 30402) {
-      try {
-        const { syncFromNostrEvent } = await import("./inventory-service");
-        const tags = event.tags;
-        let globalQuantity: number | undefined;
-        const sizeQuantities = new Map<string, number>();
-        for (const tag of tags) {
-          if (tag[0] === "quantity" && tag[1]) {
-            globalQuantity = Number(tag[1]);
-          }
-          if (tag[0] === "size" && tag[1] && tag[2]) {
-            sizeQuantities.set(tag[1], Number(tag[2]));
-          }
-        }
-        if (globalQuantity !== undefined || sizeQuantities.size > 0) {
-          await syncFromNostrEvent(
-            event.id,
-            event.pubkey,
-            globalQuantity,
-            sizeQuantities.size > 0 ? sizeQuantities : undefined
-          );
-        }
-      } catch (syncErr) {
-        console.error("Inventory sync from product event failed:", syncErr);
+      // The event upsert is committed. Release before inventory opens its transaction,
+      // otherwise concurrent cache requests can occupy every connection while waiting
+      // for a second connection from the same pool.
+      client.release();
+      client = undefined;
+      const { initializeProductEventStock } =
+        await import("./inventory-service");
+      const quantities = new Map<string, number>();
+      for (const tag of event.tags) {
+        if (tag[0] === "quantity" && tag[1]?.trim())
+          quantities.set("_default", Number(tag[1]));
+        if (tag[0] === "size" && tag[1] && tag[2]?.trim())
+          quantities.set(`size:${tag[1]}`, Number(tag[2]));
       }
+      await initializeProductEventStock(event.id, event.pubkey, quantities);
     }
   } catch (error) {
     if (client) {
@@ -2222,6 +2213,7 @@ export async function cacheEvent(event: NostrEvent): Promise<void> {
       }
     }
     console.error("Failed to cache event %s:", event.id, error);
+    if (event.kind === 30402) throw error;
   } finally {
     if (client) {
       client.release();

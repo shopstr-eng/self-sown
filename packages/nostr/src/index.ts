@@ -509,6 +509,11 @@ function createSellerListingRecommendationEventTemplate(params: {
   };
 }
 
+const pendingListingPublications = new WeakMap<
+  SellerListingDraft,
+  { fingerprint: string; event: Event }
+>();
+
 export async function publishSellerListing(params: {
   baseUrl: string;
   session: SellerSession;
@@ -516,6 +521,12 @@ export async function publishSellerListing(params: {
   existingEventId?: string;
   existingDTag?: string;
 }): Promise<Event> {
+  if (
+    params.draft.sourcePubkey &&
+    params.draft.sourcePubkey !== params.session.pubkey
+  ) {
+    throw new SellerNostrError("This product belongs to another seller.");
+  }
   const isExistingListing = Boolean(
     params.existingEventId || params.existingDTag || params.draft.eventId
   );
@@ -534,17 +545,23 @@ export async function publishSellerListing(params: {
     dTag,
     relayHint,
   });
-  const listingEvent = signEventTemplate(
-    params.session,
-    createSellerListingEventTemplate(params.session, tags, createdAt)
-  );
-
-  await publishAndCacheEvent(
-    params.baseUrl,
-    params.session,
-    listingEvent,
-    false
-  );
+  const fingerprint = JSON.stringify([params.session.pubkey, tags]);
+  const pending = pendingListingPublications.get(params.draft);
+  const listingEvent =
+    pending?.fingerprint === fingerprint
+      ? pending.event
+      : signEventTemplate(
+          params.session,
+          createSellerListingEventTemplate(params.session, tags, createdAt)
+        );
+  params.draft.pendingEventId = listingEvent.id;
+  pendingListingPublications.set(params.draft, {
+    fingerprint,
+    event: listingEvent,
+  });
+  await publishAndCacheEvent(params.baseUrl, params.session, listingEvent);
+  pendingListingPublications.delete(params.draft);
+  delete params.draft.pendingEventId;
 
   if (!isExistingListing) {
     const handlerEvent = signEventTemplate(

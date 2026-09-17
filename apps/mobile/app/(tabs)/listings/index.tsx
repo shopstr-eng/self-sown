@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 import { selectSellerListingSummaries } from "@milk-market/domain";
 
@@ -11,8 +11,8 @@ import {
   ScreenScrollView,
   ScreenTitle,
   SellerCard,
-  StatusPill,
 } from "@/components/seller-ui";
+import { ListingCard } from "@/components/listing-card";
 import LoadingScreen from "@/components/loading-screen";
 import { useSellerListingEvents } from "@/hooks/use-seller-bootstrap";
 import { confirmSellerListingDeletion } from "@/lib/confirm-listing-deletion";
@@ -134,7 +134,7 @@ export default function ListingsIndexScreen() {
 
   if (listingEventsQuery.isError && !listingEventsQuery.data) {
     return (
-      <ScreenScrollView>
+      <ScreenScrollView catalog>
         <ScreenTitle
           eyebrow="Seller listings"
           title="Listings unavailable"
@@ -161,13 +161,27 @@ export default function ListingsIndexScreen() {
   }
 
   return (
-    <ScreenScrollView>
+    <ScreenScrollView catalog>
       <ScreenTitle
         eyebrow="Seller listings"
-        title="Manage mobile inventory"
-        description="Create, edit, and remove products from your seller catalog."
+        title="Your products"
+        description="Keep your catalog ready for customers."
       />
 
+      {listingEventsQuery.isError ? (
+        <SellerCard
+          title="Showing saved products"
+          description="Refresh failed. Your saved catalog is still available."
+        >
+          <ActionButton
+            label="Retry refresh"
+            variant="secondary"
+            onPress={() => {
+              void listingEventsQuery.refetch();
+            }}
+          />
+        </SellerCard>
+      ) : null}
       {listingMessage ? (
         <Text style={styles.successText}>{listingMessage}</Text>
       ) : null}
@@ -177,73 +191,36 @@ export default function ListingsIndexScreen() {
       {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
 
       <ActionButton
-        label="Create listing"
+        label="Add product"
         onPress={() => router.push("/listings/new" as Href)}
       />
 
       {!listings.length ? (
         <EmptyState
           title="No seller listings yet"
-          description="Create your first mobile listing to publish it through the shared Milk Market product event model."
+          description="Add your first product with photos, prices and available options."
         />
       ) : (
         listings.map((listing) => (
-          <SellerCard
+          <ListingCard
             key={listing.id}
-            title={listing.title}
-            description={`Primary category: ${listing.primaryCategory ?? "Uncategorized"}`}
-          >
-            <View style={styles.rowBetween}>
-              <Text style={styles.metaLabel}>Status</Text>
-              <StatusPill
-                tone={listing.status === "active" ? "success" : "warning"}
-                label={listing.status}
-              />
-            </View>
-            <View style={styles.rowBetween}>
-              <Text style={styles.metaLabel}>Price</Text>
-              <Text style={styles.metaValue}>
-                {listing.price === null || !listing.currency
-                  ? "No price tag"
-                  : `${listing.price.toFixed(2)} ${listing.currency}`}
-              </Text>
-            </View>
-            <View style={styles.rowBetween}>
-              <Text style={styles.metaLabel}>Created</Text>
-              <Text style={styles.metaValue}>
-                {new Date(listing.createdAt * 1000).toLocaleDateString()}
-              </Text>
-            </View>
-            <View style={styles.buttonGroup}>
-              <ActionButton
-                label="Edit"
-                onPress={() => router.push(`/listings/${listing.id}` as Href)}
-                variant="secondary"
-              />
-              <ActionButton
-                label={
-                  listing.status === "active" ? "Mark inactive" : "Mark active"
-                }
-                onPress={() => handleStatusToggle(listing.id)}
-                variant="secondary"
-                loading={
-                  busyListingId === listing.id && busyAction === "status"
-                }
-              />
-              <ActionButton
-                label="Delete"
-                onPress={() =>
-                  confirmSellerListingDeletion(() => {
-                    void handleDelete(listing.id);
-                  })
-                }
-                variant="secondary"
-                loading={
-                  busyListingId === listing.id && busyAction === "delete"
-                }
-              />
-            </View>
-          </SellerCard>
+            listing={listing}
+            imageUrl={
+              listingEventsQuery.data
+                ?.find((event) => event.id === listing.id)
+                ?.tags.find((tag) => tag[0] === "image")?.[1]
+            }
+            busyAction={busyListingId === listing.id ? busyAction : ""}
+            onEdit={() => router.push(`/listings/${listing.id}` as Href)}
+            onToggleStatus={() => {
+              void handleStatusToggle(listing.id);
+            }}
+            onDelete={() =>
+              confirmSellerListingDeletion(() => {
+                void handleDelete(listing.id);
+              })
+            }
+          />
         ))
       )}
     </ScreenScrollView>
