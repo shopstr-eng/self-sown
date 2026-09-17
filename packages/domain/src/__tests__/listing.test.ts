@@ -1,4 +1,5 @@
 import {
+  createEmptySellerListingOptions,
   buildSellerListingTags,
   createEmptySellerListingDraft,
   createSellerListingDraftFromEvent,
@@ -9,6 +10,7 @@ import {
 describe("seller listing draft helpers", () => {
   test("creates an empty seller listing draft", () => {
     expect(createEmptySellerListingDraft()).toEqual({
+      options: createEmptySellerListingOptions(),
       title: "",
       description: "",
       images: [],
@@ -64,7 +66,7 @@ describe("seller listing draft helpers", () => {
       location: "Location is required.",
       shippingCost: "Enter a valid shipping cost.",
       pickupLocations: "Add at least one pickup location.",
-      quantity: "Quantity must be a whole number.",
+      quantity: "Quantity must be a whole number from 0 to 2147483647.",
     });
   });
 
@@ -138,6 +140,8 @@ describe("seller listing draft helpers", () => {
         ],
       })
     ).toEqual({
+      options: createEmptySellerListingOptions(),
+      sourcePubkey: "seller-pubkey",
       eventId: "listing-event",
       dTag: "listing-d-tag",
       sourceCreatedAt: 1710000000,
