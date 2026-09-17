@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useListingEditorNavigation } from "@/hooks/use-listing-editor-navigation";
+import { listingHasUnsavedChanges } from "@/lib/listing-editor-state";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter, type Href } from "expo-router";
 
@@ -6,6 +8,7 @@ import {
   createEmptySellerListingDraft,
   validateSellerListingDraft,
   type SellerListingDraftValidationErrors,
+  type SellerListingDraft,
 } from "@milk-market/domain";
 import { createSellerListingDTag } from "@milk-market/nostr";
 
@@ -19,11 +22,18 @@ export default function NewListingScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const session = useSessionStore((state) => state.session);
-  const [draft, setDraft] = useState(createEmptySellerListingDraft);
+  const [draft, setDraft] = useState<SellerListingDraft>(
+    createEmptySellerListingDraft
+  );
   const [errors, setErrors] = useState<SellerListingDraftValidationErrors>({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [actionError, setActionError] = useState("");
+  const initialDraft = useRef(draft);
+  const allowNavigation = useListingEditorNavigation(
+    listingHasUnsavedChanges(draft, initialDraft.current),
+    saveLoading || imageLoading
+  );
 
   if (!session) {
     return null;
@@ -66,6 +76,7 @@ export default function NewListingScreen() {
     setErrors(nextErrors);
     setActionError("");
     if (Object.keys(nextErrors).length > 0) {
+      setActionError("Review the highlighted fields above before saving.");
       return;
     }
 
@@ -84,7 +95,9 @@ export default function NewListingScreen() {
           queryKey: ["seller-listings", session.pubkey],
         }),
       ]);
-      router.replace("/listings?listingMessage=Listing%20published." as Href);
+      allowNavigation(() =>
+        router.replace("/listings?listingMessage=Listing%20published." as Href)
+      );
     } catch (caughtError) {
       setActionError(
         caughtError instanceof Error
@@ -97,16 +110,16 @@ export default function NewListingScreen() {
   };
 
   return (
-    <ScreenScrollView>
+    <ScreenScrollView catalog adjustForKeyboard>
       <ScreenTitle
         eyebrow="Seller listings"
-        title="Create a mobile listing"
-        description="This mobile-first form publishes the core listing fields through the same Milk Market product event model used on the web."
+        title="Add product"
+        description="Add photos, prices and the options your customers can choose."
       />
       <ListingEditor
         draft={draft}
         errors={errors}
-        submitLabel="Publish listing"
+        submitLabel="Publish product"
         submitLoading={saveLoading}
         imageLoading={imageLoading}
         actionError={actionError}

@@ -349,3 +349,49 @@ export async function checkAvailability(
     tracked: true,
   };
 }
+
+/** Initialize immutable event inventory once. Re-caching an event is not a restock. */
+export async function initializeProductEventStock(
+  productId: string,
+  sellerPubkey: string,
+  quantities: Map<string, number>
+): Promise<void> {
+  if (!quantities.size) return;
+  await ensureReady();
+  const client = await getDbPool().connect();
+  try {
+    await client.query("BEGIN");
+    // Stable ordering prevents deadlocks when duplicate events arrive concurrently.
+    for (const [variantKey, quantity] of [...quantities].sort(([a], [b]) =>
+      a.localeCompare(b)
+    )) {
+      if (
+        !Number.isInteger(quantity) ||
+        quantity < 0 ||
+        quantity > 2147483647
+      ) {
+        throw new Error(
+          "Product stock must be a nonnegative database integer."
+        );
+      }
+      const inserted = await client.query(
+        `INSERT INTO inventory(product_id, seller_pubkey, variant_key, quantity, source)
+         VALUES ($1,$2,$3,$4,'nostr_sync')
+         ON CONFLICT (product_id, variant_key) DO NOTHING RETURNING id`,
+        [productId, sellerPubkey, variantKey, quantity]
+      );
+      if (inserted.rowCount)
+        await client.query(
+          `INSERT INTO inventory_log(product_id, variant_key, change_amount, reason, previous_quantity, new_quantity)
+         VALUES ($1,$2,$3,'stock_set_nostr_sync',0,$3)`,
+          [productId, variantKey, quantity]
+        );
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}

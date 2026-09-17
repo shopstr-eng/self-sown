@@ -1,4 +1,5 @@
-import type { PropsWithChildren } from "react";
+import { useContext, type PropsWithChildren } from "react";
+import { CatalogAppearance, catalogTheme } from "./catalog-appearance";
 import {
   ActivityIndicator,
   Pressable,
@@ -13,14 +14,27 @@ import {
 
 import { sellerThemeTokens } from "@/theme/tokens";
 
-export function ScreenScrollView({ children }: PropsWithChildren) {
+export function ScreenScrollView({
+  children,
+  catalog = false,
+  adjustForKeyboard = false,
+}: PropsWithChildren<{ catalog?: boolean; adjustForKeyboard?: boolean }>) {
   return (
-    <ScrollView
-      contentContainerStyle={styles.screen}
-      keyboardShouldPersistTaps="handled"
-    >
-      {children}
-    </ScrollView>
+    <CatalogAppearance.Provider value={catalog}>
+      <ScrollView
+        style={
+          catalog ? { backgroundColor: catalogTheme.background } : undefined
+        }
+        contentContainerStyle={[
+          styles.screen,
+          catalog && { backgroundColor: catalogTheme.background },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets={adjustForKeyboard}
+      >
+        {children}
+      </ScrollView>
+    </CatalogAppearance.Provider>
   );
 }
 
@@ -33,10 +47,13 @@ export function ScreenTitle({
   title: string;
   description?: string;
 }) {
+  const catalog = useContext(CatalogAppearance);
   return (
     <View style={styles.titleBlock}>
       {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, catalog && { color: catalogTheme.text }]}>
+        {title}
+      </Text>
       {description ? (
         <Text style={styles.description}>{description}</Text>
       ) : null}
@@ -52,10 +69,25 @@ export function SellerCard({
   title: string;
   description?: string;
 }>) {
+  const catalog = useContext(CatalogAppearance);
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        catalog && {
+          borderColor: catalogTheme.border,
+          borderWidth: 2,
+          borderRadius: 8,
+          backgroundColor: catalogTheme.surface,
+        },
+      ]}
+    >
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
+        <Text
+          style={[styles.cardTitle, catalog && { color: catalogTheme.text }]}
+        >
+          {title}
+        </Text>
         {description ? (
           <Text style={styles.cardDescription}>{description}</Text>
         ) : null}
@@ -75,6 +107,7 @@ export function SellerField({
   autoCapitalize = "sentences",
   secureTextEntry = false,
   maxLength,
+  editable = true,
   error,
 }: {
   label: string;
@@ -86,17 +119,29 @@ export function SellerField({
   autoCapitalize?: TextInputProps["autoCapitalize"];
   secureTextEntry?: boolean;
   maxLength?: number;
+  editable?: boolean;
   error?: string;
 }) {
+  const catalog = useContext(CatalogAppearance);
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
       <TextInput
         style={[
           styles.fieldInput,
+          catalog && {
+            color: catalogTheme.text,
+            borderColor: catalogTheme.border,
+            borderWidth: 2,
+            backgroundColor: catalogTheme.surface,
+            borderRadius: 6,
+          },
           multiline ? styles.fieldTextarea : null,
           error ? styles.fieldError : null,
         ]}
+        accessibilityLabel={label}
+        editable={editable}
+        accessibilityState={{ disabled: !editable }}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -126,6 +171,7 @@ export function ActionButton({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const catalog = useContext(CatalogAppearance);
   const isPrimary = variant === "primary";
 
   return (
@@ -136,6 +182,14 @@ export function ActionButton({
       style={({ pressed }) => [
         styles.button,
         isPrimary ? styles.buttonPrimary : styles.buttonSecondary,
+        catalog && {
+          borderColor: catalogTheme.border,
+          borderWidth: 2,
+          borderRadius: 6,
+          backgroundColor: isPrimary
+            ? catalogTheme.primary
+            : catalogTheme.surface,
+        },
         disabled || loading ? styles.buttonDisabled : null,
         pressed && !(disabled || loading) ? styles.buttonPressed : null,
       ]}
@@ -153,6 +207,9 @@ export function ActionButton({
           style={[
             styles.buttonLabel,
             isPrimary ? styles.buttonLabelPrimary : styles.buttonLabelSecondary,
+            catalog && {
+              color: isPrimary ? catalogTheme.surface : catalogTheme.text,
+            },
           ]}
         >
           {label}

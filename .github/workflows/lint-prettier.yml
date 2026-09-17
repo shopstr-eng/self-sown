@@ -2,7 +2,8 @@ name: Lint and Prettier
 
 on:
   pull_request:
-    branches: [main, feature/phase-5-seller-shipping-mobile]
+    branches:
+      [main, feature/phase-5-seller-shipping-mobile, feature/phase-6-seller-alerts-beta]
   push:
     branches: [main]
 
