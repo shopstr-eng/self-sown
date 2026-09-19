@@ -20,6 +20,17 @@ export type PendingPaymentStatus =
 export const SPLIT_AUTHORITY_METADATA_KEY = "ssSplitAuthority";
 export const SPLIT_AUTHORITY_PENDING_RECORD = "pending-record-v1";
 
+/**
+ * Metadata flag stamped on a multi-seller subscription's split record when
+ * the subscription is cancelled for good (customer.subscription.deleted).
+ * Unlike a card PaymentIntent — which can reach process-transfers
+ * indefinitely — a subscription's split record is only needed while the
+ * subscription can still renew, so the terminal mark makes the row prunable
+ * once the grace window in pruneStripePendingPayments has elapsed (late
+ * invoice.paid events for the final invoice must still resolve splits).
+ */
+export const SUBSCRIPTION_TERMINAL_METADATA_KEY = "subscriptionTerminalAt";
+
 export interface PendingPaymentRecord {
   intentRef: string;
   paymentIntentId: string | null;
@@ -294,13 +305,51 @@ export async function getPendingPaymentByIntentId(
 }
 
 /**
+ * Mark a multi-seller subscription's split record terminal: the subscription
+ * was cancelled for good, so once the grace window passes the record is dead
+ * weight. Only rows carrying `sellerSplits` are marked (a missing row or a
+ * plain card record is a no-op) and the merge preserves the split details —
+ * a late invoice.paid for the final invoice must still resolve them until
+ * the prune sweeps the row. Returns true when a row was marked.
+ *
+ * Read-merge-write is safe here without a SQL jsonb merge: by cancellation
+ * time the create route's token-fenced writes are long finished and the
+ * invoice.paid webhook only READS the record, so this marker is the only
+ * remaining writer (and it is idempotent).
+ */
+export async function markPendingSubscriptionTerminal(
+  intentRef: string
+): Promise<boolean> {
+  const record = await getPendingPayment(intentRef);
+  if (!record) return false;
+  // Require the server-stamped cart-subscription discriminator, not just
+  // sellerSplits: a card PaymentIntent's split record must stay unprunable
+  // forever (process-transfers can be reached indefinitely).
+  if (record.metadata?.kind !== "cart-subscription") return false;
+  if (!Array.isArray(record.metadata?.sellerSplits)) return false;
+  // updatePendingPayment's metadata write REPLACES wholesale — restate the
+  // whole metadata with the flag merged in. Its updated_at bump starts the
+  // prune's grace window at cancellation, not at the last pre-cancellation
+  // write.
+  await updatePendingPayment(intentRef, {
+    metadata: {
+      ...record.metadata,
+      [SUBSCRIPTION_TERMINAL_METADATA_KEY]: Date.now(),
+    },
+  });
+  return true;
+}
+
+/**
  * Best-effort cleanup helper: drop terminal pending-payment records
  * (`succeeded`, `failed_terminal`, `abandoned`) older than `maxAgeMs`.
  * Active rows (`creating`, `created`) are preserved regardless of age so
  * orphan-recovery flows can still see them. Rows carrying multi-seller
- * `sellerSplits` are NEVER pruned: they are the authoritative payout record
- * process-transfers fails closed on, and a succeeded PaymentIntent can reach
- * that route indefinitely (e.g. buyer closed the tab before transfer).
+ * `sellerSplits` are pruned ONLY once marked terminal (subscription cancelled
+ * for good — see markPendingSubscriptionTerminal) and older than the same
+ * window; unmarked split rows are NEVER pruned because a succeeded
+ * PaymentIntent can reach process-transfers indefinitely (e.g. buyer closed
+ * the tab before transfer) and an active subscription keeps renewing.
  * Defaults to 30 days.
  */
 export async function pruneStripePendingPayments(
@@ -313,8 +362,17 @@ export async function pruneStripePendingPayments(
     const result = await client.query(
       `DELETE FROM stripe_pending_payments
         WHERE updated_at < $1
-          AND status IN ('succeeded', 'failed_terminal', 'abandoned')
-          AND (metadata -> 'sellerSplits') IS NULL`,
+          AND (
+            (
+              status IN ('succeeded', 'failed_terminal', 'abandoned')
+              AND (metadata -> 'sellerSplits') IS NULL
+            )
+            OR (
+              (metadata -> 'sellerSplits') IS NOT NULL
+              AND metadata ->> 'kind' = 'cart-subscription'
+              AND (metadata ->> '${SUBSCRIPTION_TERMINAL_METADATA_KEY}') IS NOT NULL
+            )
+          )`,
       [Date.now() - maxAgeMs]
     );
     return result.rowCount ?? 0;

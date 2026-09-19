@@ -848,6 +848,10 @@ describe("POST /api/stripe/create-payment-intent — split record persistence fa
             isMultiMerchant: "false",
             ssSplitAuthority: "forged",
             sellerSplitPubkeys: "e".repeat(64),
+            // Injected terminal mark: would make this card payment's
+            // authoritative split record prunable before process-transfers
+            // ran — it must never survive into either metadata copy.
+            subscriptionTerminalAt: "1700000000000",
           },
         },
       } as any,
@@ -862,6 +866,7 @@ describe("POST /api/stripe/create-payment-intent — split record persistence fa
     expect(params.metadata.ssSplitAuthority).toBe("pending-record-v1");
     expect(params.metadata.sellerSplitPubkeys).toBe(`${SELLER_A},${SELLER_B}`);
     expect(params.metadata.sellerSplits).toBeUndefined();
+    expect(params.metadata.subscriptionTerminalAt).toBeUndefined();
     // The durable record likewise carries only the server-computed splits.
     const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
     expect(recordCall.metadata.transferGroup).toBe(
@@ -872,5 +877,6 @@ describe("POST /api/stripe/create-payment-intent — split record persistence fa
     expect(recordCall.metadata.isMultiMerchant).toBeUndefined();
     expect(recordCall.metadata.ssSplitAuthority).toBeUndefined();
     expect(recordCall.metadata.sellerSplitPubkeys).toBeUndefined();
+    expect(recordCall.metadata.subscriptionTerminalAt).toBeUndefined();
   });
 });

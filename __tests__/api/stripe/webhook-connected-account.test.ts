@@ -145,12 +145,17 @@ const mockGetPendingPaymentByIntentId = jest.fn(
   async (..._args: any[]) => null as any
 );
 const mockGetPendingPayment = jest.fn(async (..._args: any[]) => null as any);
+const mockMarkPendingSubscriptionTerminal = jest.fn(
+  async (..._args: any[]) => true
+);
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
   markPendingPaymentByIntent: jest.fn(async () => undefined),
   getPendingPayment: (...args: any[]) => mockGetPendingPayment(...args),
   getPendingPaymentByIntentId: (...args: any[]) =>
     mockGetPendingPaymentByIntentId(...args),
+  markPendingSubscriptionTerminal: (...args: any[]) =>
+    mockMarkPendingSubscriptionTerminal(...args),
   // Mirror utils/stripe/pending-payments — the webhook gates legacy
   // referral-key mutation on this server-stamped marker.
   SPLIT_AUTHORITY_METADATA_KEY: "ssSplitAuthority",
@@ -1849,6 +1854,79 @@ describe("POST /api/stripe/subscription-webhook — orphaned cancellation", () =
       .map((args) => String(args[0]))
       .join("\n");
     expect(errCalls).not.toContain("ORPHANED_SUBSCRIPTION_CANCEL");
+  });
+});
+
+// A cancelled-for-good multi-seller subscription's split record must be
+// marked terminal so the pending-payments sweep can prune it (#434) — and a
+// failure to mark must never fail the webhook.
+describe("POST /api/stripe/subscription-webhook — cancelled multi-merchant split record", () => {
+  function fireMultiMerchantDeleted() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_mm_cancel",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: SUB_ID,
+          customer: "cus_mm",
+          status: "canceled",
+          current_period_end: 1700000000,
+          metadata: {
+            isMultiMerchant: "true",
+            transferGroup: "cart_sub_terminal",
+          },
+        },
+      },
+    });
+  }
+
+  it("marks the subscription's split record terminal on deletion", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    fireMultiMerchantDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockMarkPendingSubscriptionTerminal).toHaveBeenCalledWith(
+      "cart_sub_terminal"
+    );
+  });
+
+  it("still 200s when the terminal mark itself throws", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockMarkPendingSubscriptionTerminal.mockRejectedValueOnce(
+      new Error("db down")
+    );
+    fireMultiMerchantDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not mark anything for a single-seller subscription deletion", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockConstructEvent.mockReturnValue({
+      id: "evt_single_cancel",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: SUB_ID,
+          customer: "cus_single",
+          status: "canceled",
+          current_period_end: 1700000000,
+        },
+      },
+    });
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockMarkPendingSubscriptionTerminal).not.toHaveBeenCalled();
   });
 });
 
