@@ -403,7 +403,8 @@ export default async function handler(
                 const rebateSmallest = computeRebateSmallest(
                   net,
                   found.rebate_type,
-                  Number(found.rebate_value)
+                  Number(found.rebate_value),
+                  subscription.currency
                 );
                 await recordReferral({
                   affiliateId: found.affiliate_id,

@@ -1,0 +1,15 @@
+---
+name: Server-authoritative money records need a marker, not just a fallback
+description: When moving payout logic from client-supplied data to a server-persisted record, legacy fallback must be gated on an explicit marker — and the record must outlive every path that can act on it.
+---
+
+When an endpoint stops trusting the buyer's browser for money movement (amounts, destinations, splits) and instead reads a server-persisted record, three things must hold or the fix is bypassable:
+
+1. **Mark the authority.** Stamp a server-owned version/authority marker on the third-party object (e.g. PaymentIntent metadata) at creation time. "No record found" must fail closed for marked objects; only unmarked (genuinely legacy) objects may use the client-supplied fallback. Otherwise any modern object whose record write failed silently reopens the client-trust hole.
+2. **Fail closed at write time.** If the authoritative record (or its binding to the third-party object) can't be persisted, the object must never become usable — don't warn-and-continue, or the runtime lookup later finds nothing and has to choose between trusting the client or breaking a paid order.
+3. **Retention ≥ actionability.** Authoritative records must not be pruned while the object they govern can still reach the payout endpoint. A cleanup job that deletes terminal rows after N days quietly converts "server-authoritative" back into "client-trusted" for old objects.
+4. **Gate the fallback by era.** If any deploy window existed where the legacy location was client-injectable, "unmarked" is not proof of "legacy." Prefer a server-stamped version/authority marker on the object as the era signal — deploy-time timestamps are never known exactly in code — and fail closed for the injectable era. A small ops-reconciliation cohort beats a bypassable authority check.
+
+**Why:** partial hardenings of this shape have repeatedly failed review here: warn-only persistence, time-based pruning of authority records, and "no record → trust the client" fallbacks each silently reopened the original client-trust hole for exactly the objects the fix was meant to protect.
+
+**How to apply:** any "server record, not client payload" hardening — payouts, refunds, fee math, entitlements. Check all four legs: marker, fail-closed write, retention, era cutoff. The same era gate applies to any DB MUTATION keyed by a legacy client-controlled value (order ids, split JSON): current objects must never use it, or a forged key authorizes mutation of another object's rows. The reconciliation principles that complete the pattern: prefer server-stamped data on the third-party object over any client input; strip server-owned authority keys from client metadata at every write path; dedup money movement with a durable, globally-one-to-one server-side claim (provider idempotency keys expire); reconcile a fresh claim against the provider's own complete history before acting on it, failing closed on partial views and contradictions; and release a claim only when the provider conclusively rejected the attempt.

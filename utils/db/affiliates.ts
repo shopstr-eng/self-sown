@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { getDbPool } from "@/utils/db/db-service";
+import { isCrypto, ZERO_DECIMAL_CURRENCIES } from "@/utils/stripe/currency";
 
 export type RebateType = "percent" | "fixed";
 export type DiscountType = "percent" | "fixed";
@@ -668,10 +669,68 @@ export function isSelfReferral(
  * Compute the buyer discount in smallest units. Caps the discount strictly
  * below the gross so the buyer never pays zero / negative.
  */
+/**
+ * Re-key a pre-change referral (recorded under the client-supplied metadata
+ * order id) onto the canonical PaymentIntent id, so dedup and refund
+ * reversal see ONE row per sale. No-op when nothing matches. If a PI-keyed
+ * row already exists for the code, the legacy row is a duplicate of the
+ * same accrual — delete it (unique-violation fallback).
+ */
+export async function migrateReferralOrderId(params: {
+  legacyOrderId: string;
+  newOrderId: string;
+  codeId: number;
+  sellerPubkey: string;
+}): Promise<void> {
+  const pool = getDbPool();
+  try {
+    await pool.query(
+      `UPDATE affiliate_referrals
+          SET order_id = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE order_id = $2 AND code_id = $3 AND seller_pubkey = $4
+          AND payment_rail = 'stripe'`,
+      [
+        params.newOrderId,
+        params.legacyOrderId,
+        params.codeId,
+        params.sellerPubkey,
+      ]
+    );
+  } catch (err) {
+    if ((err as { code?: string }).code === "23505") {
+      await pool.query(
+        `DELETE FROM affiliate_referrals
+          WHERE order_id = $1 AND code_id = $2 AND seller_pubkey = $3
+            AND payment_rail = 'stripe'`,
+        [params.legacyOrderId, params.codeId, params.sellerPubkey]
+      );
+      return;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Fixed affiliate discount/rebate values are stored in MAJOR units of the
+ * code's currency (dollars, yen) — except crypto codes, whose values are
+ * already in sats. Convert with the currency's minor-unit scale: 100 for
+ * standard fiat, 1 for zero-decimal fiat (JPY/KRW/...) and sats.
+ */
+export function affiliateFixedValueToSmallest(
+  value: number,
+  currency: string
+): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const c = currency.toLowerCase();
+  const perMajor = isCrypto(c) || ZERO_DECIMAL_CURRENCIES.has(c) ? 1 : 100;
+  return Math.floor(value * perMajor);
+}
+
 export function computeBuyerDiscountSmallest(
   grossSmallest: number,
   type: DiscountType,
-  value: number
+  value: number,
+  currency: string
 ): number {
   if (!Number.isFinite(grossSmallest) || grossSmallest <= 0) return 0;
   if (!Number.isFinite(value) || value <= 0) return 0;
@@ -679,8 +738,7 @@ export function computeBuyerDiscountSmallest(
   if (type === "percent") {
     cut = Math.floor((grossSmallest * Math.min(value, 100)) / 100);
   } else {
-    // Fixed values are stored in major units (e.g. dollars); convert to cents.
-    cut = Math.floor(value * 100);
+    cut = affiliateFixedValueToSmallest(value, currency);
   }
   if (cut >= grossSmallest) return grossSmallest - 1;
   return Math.max(cut, 0);
@@ -694,7 +752,8 @@ export function computeBuyerDiscountSmallest(
 export function computeRebateSmallest(
   netSmallest: number,
   type: RebateType,
-  value: number
+  value: number,
+  currency: string
 ): number {
   if (!Number.isFinite(netSmallest) || netSmallest <= 0) return 0;
   if (!Number.isFinite(value) || value <= 0) return 0;
@@ -702,7 +761,7 @@ export function computeRebateSmallest(
   if (type === "percent") {
     cut = Math.floor((netSmallest * Math.min(value, 100)) / 100);
   } else {
-    cut = Math.floor(value * 100);
+    cut = affiliateFixedValueToSmallest(value, currency);
   }
   if (cut >= netSmallest) return netSmallest;
   return Math.max(cut, 0);

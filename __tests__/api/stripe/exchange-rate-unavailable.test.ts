@@ -78,6 +78,7 @@ jest.mock("@/utils/self-host/config", () => ({
 }));
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
+  ...jest.requireActual("@/utils/stripe/pending-payments"),
   recordPendingPayment: jest.fn(async () => undefined),
   updatePendingPayment: jest.fn(async () => undefined),
 }));

@@ -38,6 +38,7 @@ const resolveDonationCutMock = jest.fn();
 const satsToUSDMock = jest.fn();
 const registerApplePayDomainMock = jest.fn();
 const getDomainByHostMock = jest.fn();
+const lookupAffiliateCodeMock = jest.fn();
 
 jest.mock("stripe", () => {
   const Stripe = jest.fn().mockImplementation(() => ({
@@ -64,6 +65,9 @@ jest.mock("@/utils/self-host/config", () => ({
 }));
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
+  // Keep the real authority-marker constants so this suite can't drift from
+  // what the route stamps into PaymentIntent metadata.
+  ...jest.requireActual("@/utils/stripe/pending-payments"),
   recordPendingPayment: (...args: unknown[]) =>
     recordPendingPaymentMock(...args),
   updatePendingPayment: (...args: unknown[]) =>
@@ -96,6 +100,13 @@ jest.mock("@/utils/stripe/apple-pay", () => ({
 
 jest.mock("@/utils/db/custom-domains", () => ({
   getDomainByHost: (...args: unknown[]) => getDomainByHostMock(...args),
+}));
+
+jest.mock("@/utils/db/affiliates", () => ({
+  // Real pure helpers (discount/rebate math, validity, self-referral); only
+  // the seller-scoped DB lookup is mocked.
+  ...jest.requireActual("@/utils/db/affiliates"),
+  lookupAffiliateCode: (...args: unknown[]) => lookupAffiliateCodeMock(...args),
 }));
 
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
@@ -225,9 +236,53 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
 describe("POST /api/stripe/create-payment-intent — per-split affiliate rebate clamping", () => {
   it("clamps an oversized rebate so the seller keeps at least 1 unit after the donation cut", async () => {
     // Donation cut of 50 on each 500-unit split → the rebate ceiling is
-    // max(500 - 50 - 1, 0) = 449. A wildly oversized rebate must be clamped to
-    // it, never letting the affiliate drain the seller's transfer.
+    // max(500 - 50 - 1, 0) = 449. A wildly oversized rebate (from the stored
+    // code config — the request's own rebate fields are ignored) must be
+    // clamped to it, never letting the affiliate drain the seller's transfer.
     resolveDonationCutMock.mockResolvedValue({ percent: 10, cutSmallest: 50 });
+    lookupAffiliateCodeMock.mockReset().mockImplementation((seller: string) =>
+      Promise.resolve(
+        seller === SELLER_A
+          ? {
+              id: 42,
+              affiliate_id: 7,
+              seller_pubkey: SELLER_A,
+              code: "FRIEND",
+              rebate_type: "fixed",
+              rebate_value: 100000,
+              buyer_discount_type: "fixed",
+              buyer_discount_value: 0,
+              currency: null,
+              is_active: true,
+              expiration: null,
+              max_uses: null,
+              times_used: 0,
+              affiliate: {
+                affiliate_pubkey: "a".repeat(64),
+                stripe_account_id: "acct_aff",
+              },
+            }
+          : {
+              id: 8,
+              affiliate_id: 9,
+              seller_pubkey: SELLER_B,
+              code: "PAL",
+              rebate_type: "percent",
+              rebate_value: 20,
+              buyer_discount_type: "percent",
+              buyer_discount_value: 0,
+              currency: null,
+              is_active: true,
+              expiration: null,
+              max_uses: null,
+              times_used: 0,
+              affiliate: {
+                affiliate_pubkey: "b".repeat(64),
+                stripe_account_id: null,
+              },
+            }
+      )
+    );
     const res = makeRes();
     await createPaymentIntentHandler(
       {
@@ -240,16 +295,15 @@ describe("POST /api/stripe/create-payment-intent — per-split affiliate rebate 
               sellerPubkey: SELLER_A,
               amountSmallest: 500,
               currency: "usd",
-              affiliateRebateSmallest: 100000,
-              affiliateAccountId: "acct_aff",
               affiliateCode: "FRIEND",
             },
             {
               sellerPubkey: SELLER_B,
               amountSmallest: 500,
               currency: "usd",
-              // A reasonable rebate passes through unclamped (100 <= 449).
-              affiliateRebateSmallest: 100,
+              // 20% of 500 = 100 — a reasonable configured rebate passes
+              // through unclamped (100 <= 449).
+              affiliateCode: "PAL",
             },
           ],
         },
@@ -269,8 +323,24 @@ describe("POST /api/stripe/create-payment-intent — per-split affiliate rebate 
 
   it("clamps the rebate to 0 when the donation cut leaves no room", async () => {
     // 50-unit split with a 50-unit donation cut → max(50 - 50 - 1, 0) = 0, so
-    // no rebate can be paid even though one was requested.
+    // no rebate can be paid even though the stored code grants one.
     resolveDonationCutMock.mockResolvedValue({ percent: 100, cutSmallest: 50 });
+    lookupAffiliateCodeMock.mockReset().mockResolvedValue({
+      id: 42,
+      affiliate_id: 7,
+      seller_pubkey: SELLER_A,
+      code: "FRIEND",
+      rebate_type: "fixed",
+      rebate_value: 40,
+      buyer_discount_type: "percent",
+      buyer_discount_value: 0,
+      currency: null,
+      is_active: true,
+      expiration: null,
+      max_uses: null,
+      times_used: 0,
+      affiliate: { affiliate_pubkey: "a".repeat(64), stripe_account_id: null },
+    });
     const res = makeRes();
     await createPaymentIntentHandler(
       {
@@ -283,7 +353,7 @@ describe("POST /api/stripe/create-payment-intent — per-split affiliate rebate 
               sellerPubkey: SELLER_A,
               amountSmallest: 50,
               currency: "usd",
-              affiliateRebateSmallest: 40,
+              affiliateCode: "FRIEND",
             },
             {
               sellerPubkey: SELLER_B,
@@ -309,6 +379,27 @@ describe("POST /api/stripe/create-payment-intent — multi-seller metadata size"
     // can have up to 500 characters". The PI metadata must stay compact while
     // the pending-payment record carries the full details.
     resolveDonationCutMock.mockResolvedValue({ percent: 5, cutSmallest: 25 });
+    // The request's affiliate amount/ID fields are ignored; the record
+    // carries values resolved from the stored, seller-scoped code row.
+    lookupAffiliateCodeMock.mockReset().mockResolvedValue({
+      id: 7,
+      affiliate_id: 42,
+      seller_pubkey: SELLER_A,
+      code: "FRIENDOFTHEFARM",
+      rebate_type: "fixed",
+      rebate_value: 5, // major units — $5.00 = 500 smallest
+      buyer_discount_type: "percent",
+      buyer_discount_value: 0,
+      currency: null,
+      is_active: true,
+      expiration: null,
+      max_uses: null,
+      times_used: 0,
+      affiliate: {
+        affiliate_pubkey: "a".repeat(64),
+        stripe_account_id: "acct_1AffiliateA",
+      },
+    });
     const res = makeRes();
     await createPaymentIntentHandler(
       {
@@ -376,6 +467,7 @@ describe("POST /api/stripe/create-payment-intent — multi-seller metadata size"
         donationPercent: 5,
         donationCutSmallest: 25,
         affiliateRebateSmallest: 500,
+        affiliateBuyerDiscountSmallest: 0,
         affiliateAccountId: "acct_1AffiliateA",
         affiliateId: 42,
         affiliateCodeId: 7,
@@ -388,6 +480,7 @@ describe("POST /api/stripe/create-payment-intent — multi-seller metadata size"
         donationPercent: 5,
         donationCutSmallest: 25,
         affiliateRebateSmallest: 0,
+        affiliateBuyerDiscountSmallest: 0,
         affiliateAccountId: null,
         affiliateId: null,
         affiliateCodeId: null,
@@ -511,5 +604,273 @@ describe("POST /api/stripe/create-payment-intent — crypto split FX conversion"
     expect(splits[1].amountCents).toBe(200);
     const params = stripeCreateMock.mock.calls[0][0] as any;
     expect(params.amount).toBe(400);
+  });
+});
+
+describe("POST /api/stripe/create-payment-intent — affiliate attribution is server-resolved", () => {
+  const twoSellerBody = {
+    amount: 0,
+    currency: "usd",
+    sellerSplits: [
+      { sellerPubkey: SELLER_A, amountSmallest: 500, currency: "usd" },
+      { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+    ],
+  };
+
+  it("derives rebate and affiliate IDs from the stored code row, ignoring forged request values", async () => {
+    lookupAffiliateCodeMock.mockReset().mockResolvedValue({
+      id: 42,
+      affiliate_id: 7,
+      seller_pubkey: SELLER_A,
+      code: "FRIEND",
+      rebate_type: "percent",
+      rebate_value: 10,
+      buyer_discount_type: "percent",
+      buyer_discount_value: 0,
+      currency: null,
+      is_active: true,
+      expiration: null,
+      max_uses: null,
+      times_used: 0,
+      affiliate: {
+        affiliate_pubkey: "a".repeat(64),
+        stripe_account_id: "acct_aff",
+      },
+    });
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        headers: { host: SITE_HOST },
+        body: {
+          ...twoSellerBody,
+          sellerSplits: [
+            {
+              sellerPubkey: SELLER_A,
+              amountSmallest: 500,
+              currency: "usd",
+              affiliateCode: "friend",
+              // Forged: none of these may survive into the record.
+              affiliateRebateSmallest: 499,
+              affiliateId: 666,
+              affiliateCodeId: 777,
+              affiliateAccountId: "acct_evil",
+            },
+            { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(lookupAffiliateCodeMock).toHaveBeenCalledWith(SELLER_A, "friend");
+    const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
+    const splitA = recordCall.metadata.sellerSplits[0];
+    // 10% of 500 = 50 — from the stored code config, not the forged 499.
+    expect(splitA.affiliateRebateSmallest).toBe(50);
+    expect(splitA.affiliateId).toBe(7);
+    expect(splitA.affiliateCodeId).toBe(42);
+    expect(splitA.affiliateCode).toBe("FRIEND");
+    expect(splitA.affiliateAccountId).toBe("acct_aff");
+    const splitB = recordCall.metadata.sellerSplits[1];
+    expect(splitB.affiliateRebateSmallest).toBe(0);
+    expect(splitB.affiliateId).toBeNull();
+  });
+
+  it("records no attribution when the code does not resolve for that seller", async () => {
+    lookupAffiliateCodeMock.mockReset().mockResolvedValue(null);
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        headers: { host: SITE_HOST },
+        body: {
+          ...twoSellerBody,
+          sellerSplits: [
+            {
+              sellerPubkey: SELLER_A,
+              amountSmallest: 500,
+              currency: "usd",
+              affiliateCode: "NOPE",
+              affiliateRebateSmallest: 499,
+              affiliateId: 666,
+            },
+            { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
+    const splitA = recordCall.metadata.sellerSplits[0];
+    expect(splitA.affiliateRebateSmallest).toBe(0);
+    expect(splitA.affiliateId).toBeNull();
+    expect(splitA.affiliateCodeId).toBeNull();
+    expect(splitA.affiliateCode).toBeNull();
+  });
+
+  it("computes the rebate on the already-discounted split amount and records the discount for reporting", async () => {
+    // The cart applies the buyer discount when constructing amountSmallest:
+    // 10% off a 10000 gross → split 9000. The 20% rebate must be computed on
+    // that 9000 (=1800), NOT on a double-discounted 8100 (=1620).
+    lookupAffiliateCodeMock.mockReset().mockResolvedValue({
+      id: 42,
+      affiliate_id: 7,
+      seller_pubkey: SELLER_A,
+      code: "FRIEND",
+      rebate_type: "percent",
+      rebate_value: 20,
+      buyer_discount_type: "percent",
+      buyer_discount_value: 10,
+      currency: null,
+      is_active: true,
+      expiration: null,
+      max_uses: null,
+      times_used: 0,
+      affiliate: { affiliate_pubkey: "a".repeat(64), stripe_account_id: null },
+    });
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        headers: { host: SITE_HOST },
+        body: {
+          amount: 0,
+          currency: "usd",
+          sellerSplits: [
+            {
+              sellerPubkey: SELLER_A,
+              amountSmallest: 9000,
+              currency: "usd",
+              affiliateCode: "FRIEND",
+            },
+            { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
+    const splitA = recordCall.metadata.sellerSplits[0];
+    expect(splitA.affiliateRebateSmallest).toBe(1800);
+    // Reconstructed for referral reporting: gross 10000 − net 9000.
+    expect(splitA.affiliateBuyerDiscountSmallest).toBe(1000);
+  });
+
+  it("rejects a split set with a duplicate seller pubkey", async () => {
+    // Payout claims key on (paymentIntentId, sellerPubkey): a duplicated
+    // seller would pay once and misreport the rest while the buyer is
+    // charged the full sum.
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        headers: { host: SITE_HOST },
+        body: {
+          amount: 0,
+          currency: "usd",
+          sellerSplits: [
+            { sellerPubkey: SELLER_A, amountSmallest: 500, currency: "usd" },
+            { sellerPubkey: SELLER_A, amountSmallest: 700, currency: "usd" },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(400);
+    expect((res.body as any).error).toMatch(/duplicate seller/i);
+    expect(stripeCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/stripe/create-payment-intent — split record persistence fails closed", () => {
+  const twoSellerBody = {
+    amount: 0,
+    currency: "usd",
+    sellerSplits: [
+      { sellerPubkey: SELLER_A, amountSmallest: 500, currency: "usd" },
+      { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+    ],
+  };
+
+  it("stamps the server-owned split authority marker into the PaymentIntent metadata", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      { method: "POST", body: twoSellerBody } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    expect(params.metadata.ssSplitAuthority).toBe("pending-record-v1");
+  });
+
+  it("refuses checkout when the authoritative split record cannot be saved", async () => {
+    // process-transfers pays out from this record, so a checkout without it
+    // must never become payable — fail before the PaymentIntent is created.
+    recordPendingPaymentMock.mockRejectedValue(new Error("db down"));
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      { method: "POST", body: twoSellerBody } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(500);
+    expect((res.body as any).clientSecret).toBeUndefined();
+    expect(stripeCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses checkout when the payment-intent binding to the record fails", async () => {
+    // Without the payment_intent_id binding, process-transfers cannot find
+    // the record and (correctly) fails closed — so never hand the buyer a
+    // usable clientSecret for this intent.
+    updatePendingPaymentMock.mockRejectedValue(new Error("db down"));
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      { method: "POST", body: twoSellerBody } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(500);
+    expect((res.body as any).clientSecret).toBeUndefined();
+    expect(stripeCreateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("server values always win over caller-injected authority keys", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          ...twoSellerBody,
+          metadata: {
+            sellerSplits: "forged",
+            transferGroup: "cart_forged",
+            isMultiMerchant: "false",
+            ssSplitAuthority: "forged",
+            sellerSplitPubkeys: "e".repeat(64),
+          },
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    // Server-stamped values, never the injected ones.
+    expect(params.metadata.isMultiMerchant).toBe("true");
+    expect(params.metadata.transferGroup).toMatch(/^cart_/);
+    expect(params.metadata.transferGroup).not.toBe("cart_forged");
+    expect(params.metadata.ssSplitAuthority).toBe("pending-record-v1");
+    expect(params.metadata.sellerSplitPubkeys).toBe(`${SELLER_A},${SELLER_B}`);
+    expect(params.metadata.sellerSplits).toBeUndefined();
+    // The durable record likewise carries only the server-computed splits.
+    const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
+    expect(recordCall.metadata.transferGroup).toBe(
+      params.metadata.transferGroup
+    );
+    expect(Array.isArray(recordCall.metadata.sellerSplits)).toBe(true);
+    expect(recordCall.metadata.sellerSplits).toHaveLength(2);
+    expect(recordCall.metadata.isMultiMerchant).toBeUndefined();
+    expect(recordCall.metadata.ssSplitAuthority).toBeUndefined();
+    expect(recordCall.metadata.sellerSplitPubkeys).toBeUndefined();
   });
 });
