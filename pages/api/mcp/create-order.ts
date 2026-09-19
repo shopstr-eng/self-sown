@@ -74,19 +74,27 @@ export default async function handler(
     return originalEnd(...args);
   };
 
-  if (req.method === "POST") {
-    return handleCreateOrder(req, res, apiKey.id, apiKey.pubkey);
-  }
-
-  if (req.method === "GET") {
-    const { orderId } = req.query;
-    if (orderId && typeof orderId === "string") {
-      return handleGetOrder(res, orderId, apiKey.pubkey);
+  // AWAIT + try/catch, not bare return: without the await an async throw
+  // inside a helper escapes any try/catch here as an unhandled rejection
+  // instead of becoming a clean 500 JSON response.
+  try {
+    if (req.method === "POST") {
+      return await handleCreateOrder(req, res, apiKey.id, apiKey.pubkey);
     }
-    return handleListOrders(req, res, apiKey.pubkey);
-  }
 
-  return res.status(405).json({ error: "Method not allowed" });
+    if (req.method === "GET") {
+      const { orderId } = req.query;
+      if (orderId && typeof orderId === "string") {
+        return await handleGetOrder(res, orderId, apiKey.pubkey);
+      }
+      return await handleListOrders(req, res, apiKey.pubkey);
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    console.error("MCP create-order handler error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 async function handleCreateOrder(

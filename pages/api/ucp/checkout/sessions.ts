@@ -93,11 +93,21 @@ export default async function handler(
 
   const baseUrl = deriveBaseUrl(req);
 
-  if (req.method === "GET") {
-    return handleList(req, res, apiKey.pubkey, baseUrl);
-  }
+  // AWAIT + try/catch, not bare return: without the await an async throw
+  // inside a helper escapes any try/catch here as an unhandled rejection
+  // instead of becoming a clean 500 JSON response.
+  try {
+    if (req.method === "GET") {
+      return await handleList(req, res, apiKey.pubkey, baseUrl);
+    }
 
-  return handleCreate(req, res, apiKey.id, apiKey.pubkey, baseUrl);
+    return await handleCreate(req, res, apiKey.id, apiKey.pubkey, baseUrl);
+  } catch (error) {
+    console.error("UCP checkout sessions handler error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to process checkout session request" });
+  }
 }
 
 async function handleList(
