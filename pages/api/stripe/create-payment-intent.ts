@@ -56,6 +56,7 @@ import {
   updatePendingPayment,
   SPLIT_AUTHORITY_METADATA_KEY,
   SPLIT_AUTHORITY_PENDING_RECORD,
+  SUBSCRIPTION_TERMINAL_METADATA_KEY,
 } from "@/utils/stripe/pending-payments";
 import { resolveDonationCut } from "@/utils/stripe/donation";
 import {
@@ -75,6 +76,10 @@ const SERVER_OWNED_METADATA_KEYS = new Set([
   "transferGroup",
   "isMultiMerchant",
   SPLIT_AUTHORITY_METADATA_KEY,
+  // Marks a split record as a cancelled subscription's, making it prunable —
+  // an injected copy would let a buyer get their own card payment's payout
+  // authority record swept before process-transfers ran.
+  SUBSCRIPTION_TERMINAL_METADATA_KEY,
 ]);
 
 function stripServerOwnedMetadata(
@@ -145,6 +150,7 @@ export default async function handler(
     delete safeMetadata.transferGroup;
     delete safeMetadata.isMultiMerchant;
     delete safeMetadata[SPLIT_AUTHORITY_METADATA_KEY];
+    delete safeMetadata[SUBSCRIPTION_TERMINAL_METADATA_KEY];
 
     // Validate customer email format if provided — Stripe rejects malformed
     // values and the resulting 400 surfaces as "invoice generation error".
