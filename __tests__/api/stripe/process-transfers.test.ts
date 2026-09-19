@@ -178,9 +178,11 @@ beforeEach(() => {
     charges_enabled: true,
   });
   getPendingPaymentByIntentIdMock.mockReset().mockResolvedValue(null);
-  claimPayoutMock
-    .mockReset()
-    .mockResolvedValue({ created: true, transferId: null });
+  claimPayoutMock.mockReset().mockResolvedValue({
+    created: true,
+    transferId: null,
+    claimToken: "pctok_1",
+  });
   completePayoutClaimMock.mockReset().mockResolvedValue(undefined);
   releasePayoutClaimMock.mockReset().mockResolvedValue(undefined);
   paymentIntentRetrieveMock.mockReset().mockResolvedValue({
@@ -419,12 +421,14 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_A,
-      "tr_acct_a"
+      "tr_acct_a",
+      "pctok_1"
     );
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_B,
-      "tr_acct_b"
+      "tr_acct_b",
+      "pctok_1"
     );
   });
 
@@ -799,8 +803,16 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     );
     expect(res.statusCode).toBe(200);
     expect((res.body as any).success).toBe(false);
-    expect(releasePayoutClaimMock).toHaveBeenCalledWith("pi_123", SELLER_A);
-    expect(releasePayoutClaimMock).toHaveBeenCalledWith("pi_123", SELLER_B);
+    expect(releasePayoutClaimMock).toHaveBeenCalledWith(
+      "pi_123",
+      SELLER_A,
+      "pctok_1"
+    );
+    expect(releasePayoutClaimMock).toHaveBeenCalledWith(
+      "pi_123",
+      SELLER_B,
+      "pctok_1"
+    );
   });
 
   it("keeps the claim on an ambiguous failure (timeout/5xx) so a replay cannot double-pay", async () => {
@@ -852,12 +864,14 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_A,
-      "tr_old_a"
+      "tr_old_a",
+      "pctok_1"
     );
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_B,
-      "tr_old_b"
+      "tr_old_b",
+      "pctok_1"
     );
     const results = (res.body as any).results as any[];
     expect(results.map((r) => r.transferId).sort()).toEqual([
@@ -891,7 +905,8 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_A,
-      "tr_legacy_a"
+      "tr_legacy_a",
+      "pctok_1"
     );
   });
 
@@ -944,7 +959,8 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_A,
-      "tr_one"
+      "tr_one",
+      "pctok_1"
     );
     // ...and the other created its own transfer (claim completed with the
     // new transfer id), for exactly two completions total — never both
@@ -954,7 +970,8 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_B,
-      "tr_acct_shared"
+      "tr_acct_shared",
+      "pctok_1"
     );
     expect(completePayoutClaimMock).toHaveBeenCalledTimes(2);
     const results = (res.body as any).results as any[];
@@ -1023,8 +1040,16 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     );
     claimPayoutMock.mockImplementation((_pi: string, seller: string) =>
       seller === SELLER_A
-        ? Promise.resolve({ created: false, transferId: "tr_one" })
-        : Promise.resolve({ created: true, transferId: null })
+        ? Promise.resolve({
+            created: false,
+            transferId: "tr_one",
+            claimToken: null,
+          })
+        : Promise.resolve({
+            created: true,
+            transferId: null,
+            claimToken: "pctok_1",
+          })
     );
     completePayoutClaimMock.mockImplementation(
       (_pi: string, _seller: string, transferId: string) =>
@@ -1096,7 +1121,8 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect(completePayoutClaimMock).toHaveBeenCalledWith(
       "pi_123",
       SELLER_A,
-      "tr_two"
+      "tr_two",
+      "pctok_1"
     );
     expect(transferCreateMock).toHaveBeenCalledTimes(1);
     const results = (res.body as any).results as any[];
@@ -1123,8 +1149,16 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect((res.body as any).success).toBe(false);
     expect(transferCreateMock).not.toHaveBeenCalled();
     // No transfer was attempted, so the fresh claims are released for retry.
-    expect(releasePayoutClaimMock).toHaveBeenCalledWith("pi_123", SELLER_A);
-    expect(releasePayoutClaimMock).toHaveBeenCalledWith("pi_123", SELLER_B);
+    expect(releasePayoutClaimMock).toHaveBeenCalledWith(
+      "pi_123",
+      SELLER_A,
+      "pctok_1"
+    );
+    expect(releasePayoutClaimMock).toHaveBeenCalledWith(
+      "pi_123",
+      SELLER_B,
+      "pctok_1"
+    );
     const results = (res.body as any).results as any[];
     expect(results.every((r) => /reconciliation/i.test(r.error ?? ""))).toBe(
       true
@@ -1161,8 +1195,16 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     expect((res.body as any).success).toBe(false);
     expect(transferCreateMock).not.toHaveBeenCalled();
     // Nothing was paid, so the fresh claims are released for ops/retry.
-    expect(releasePayoutClaimMock).toHaveBeenCalledWith("pi_123", SELLER_A);
-    expect(releasePayoutClaimMock).toHaveBeenCalledWith("pi_123", SELLER_B);
+    expect(releasePayoutClaimMock).toHaveBeenCalledWith(
+      "pi_123",
+      SELLER_A,
+      "pctok_1"
+    );
+    expect(releasePayoutClaimMock).toHaveBeenCalledWith(
+      "pi_123",
+      SELLER_B,
+      "pctok_1"
+    );
     const results = (res.body as any).results as any[];
     expect(results.every((r) => /reconciliation/i.test(r.error ?? ""))).toBe(
       true

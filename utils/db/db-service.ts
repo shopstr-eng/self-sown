@@ -951,7 +951,12 @@ async function initializeTables(): Promise<void> {
       -- Subscriptions table for recurring product subscriptions
       CREATE TABLE IF NOT EXISTS subscriptions (
           id SERIAL PRIMARY KEY,
-          stripe_subscription_id TEXT NOT NULL UNIQUE,
+          -- NOT unique on its own: a multi-seller recurring cart creates ONE
+          -- Stripe subscription but persists one row per recurring item.
+          -- Uniqueness is the composite index
+          -- idx_subscriptions_sub_product_uq (stripe_subscription_id,
+          -- product_event_id) created below.
+          stripe_subscription_id TEXT NOT NULL,
           stripe_customer_id TEXT NOT NULL,
           buyer_pubkey TEXT,
           buyer_email TEXT NOT NULL,
@@ -974,6 +979,7 @@ async function initializeTables(): Promise<void> {
       );
 
       CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_sub_product_uq ON subscriptions(stripe_subscription_id, product_event_id);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_buyer_pubkey ON subscriptions(buyer_pubkey);
       CREATE INDEX IF NOT EXISTS idx_subscriptions_buyer_email ON subscriptions(buyer_email);
@@ -1837,6 +1843,11 @@ async function initializeTables(): Promise<void> {
       DO $sub_migrate_inline$
       BEGIN
         ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS connected_account_id TEXT;
+        -- Multi-line subscriptions: one Stripe subscription may now back
+        -- several rows (one per recurring cart item), so the legacy
+        -- single-column UNIQUE is replaced by the composite unique index
+        -- created outside this block.
+        ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_stripe_subscription_id_key;
         ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_status_check;
         ALTER TABLE subscriptions
           ADD CONSTRAINT subscriptions_status_check
@@ -5510,6 +5521,11 @@ export async function createSubscription(data: {
         discount_percent, base_price, subscription_price, currency,
         shipping_address, status, next_billing_date, next_shipping_date
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      -- Multi-line subscriptions share one stripe_subscription_id across
+      -- per-item rows; a buyer retry re-runs these inserts after the Stripe
+      -- subscription already exists, so a duplicate per-item row must be a
+      -- no-op (DO NOTHING), never a 500 that tempts another retry.
+      ON CONFLICT (stripe_subscription_id, product_event_id) DO NOTHING
       RETURNING *`,
       [
         data.stripe_subscription_id,
@@ -5542,6 +5558,29 @@ export async function createSubscription(data: {
   }
 }
 
+// A multi-seller recurring cart persists ONE row per recurring item under a
+// single Stripe subscription id, so readers must expect multiple rows.
+export async function getSubscriptionsByStripeId(
+  stripeSubscriptionId: string
+): Promise<SubscriptionRecord[]> {
+  const dbPool = getDbPool();
+  let client;
+
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT * FROM subscriptions WHERE stripe_subscription_id = $1 ORDER BY id`,
+      [stripeSubscriptionId]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error("Failed to get subscriptions:", error);
+    throw error;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export async function getSubscriptionByStripeId(
   stripeSubscriptionId: string
 ): Promise<SubscriptionRecord | null> {
@@ -5550,8 +5589,10 @@ export async function getSubscriptionByStripeId(
 
   try {
     client = await dbPool.connect();
+    // ORDER BY id keeps the single-row view deterministic when several
+    // per-item rows share the id (multi-line carts).
     const result = await client.query(
-      `SELECT * FROM subscriptions WHERE stripe_subscription_id = $1`,
+      `SELECT * FROM subscriptions WHERE stripe_subscription_id = $1 ORDER BY id`,
       [stripeSubscriptionId]
     );
     if (result.rows.length === 0) return null;

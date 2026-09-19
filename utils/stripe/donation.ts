@@ -69,9 +69,16 @@ export function computeDonationCutSmallest(
   ) {
     return 0;
   }
+  // 100% is a SUPPORTED configuration (the seller settings UI allows it and
+  // getSellerDonationPercent returns it): the seller donates the whole
+  // amount. The payout layers must skip the zero-amount transfer entirely
+  // and durably record the outcome — never fail the paid invoice forever.
+  if (donationPercent >= 100) return grossSmallest;
   const cut = Math.ceil((grossSmallest * donationPercent) / 100);
-  if (cut >= grossSmallest) return 0;
-  return cut;
+  // At a PARTIAL percent, rounding must never consume the whole payout
+  // (silently zeroing the seller) nor collapse to zero (silently waiving
+  // the fee): the seller always keeps at least one smallest unit.
+  return Math.min(cut, grossSmallest - 1);
 }
 
 export function isPlatformPubkey(

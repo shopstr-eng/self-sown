@@ -332,6 +332,15 @@ export default function CartInvoiceCard({
     return products.some((p) => subscriptionSelections[p.id]?.enabled);
   }, [products, subscriptionSelections]);
 
+  // One nonce per checkout attempt (cart state): submit retries reuse it so
+  // the server replays the SAME Stripe subscription; a changed cart is a new
+  // attempt — fresh split record, fresh Stripe objects — so reordering after
+  // a cancellation never inherits a dead attempt.
+  const subscriptionAttemptNonceRef = useRef<string | null>(null);
+  useEffect(() => {
+    subscriptionAttemptNonceRef.current = null;
+  }, [products, quantities, subscriptionSelections]);
+
   const uniqueSellerPubkeys = useMemo(() => {
     return [...new Set(products.map((p) => p.pubkey))];
   }, [products]);
@@ -3282,6 +3291,10 @@ export default function CartInvoiceCard({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            // Stable per cart state (see subscriptionAttemptNonceRef):
+            // submit retries replay the same server-side attempt.
+            attemptNonce: (subscriptionAttemptNonceRef.current ||=
+              crypto.randomUUID()),
             items: cartItems,
             customerEmail: buyerEmail,
             sellerPubkey: isSingleSeller
@@ -4083,7 +4096,18 @@ export default function CartInvoiceCard({
           : `${data.shippingName}, ${data.shippingAddress}, ${data.shippingCity}, ${data.shippingState}, ${data.shippingPostalCode}, ${data.shippingCountry}`
         : undefined;
 
-    if (isStripe && multiMerchantSellerSplits && multiMerchantTransferGroup) {
+    // Subscription carts are paid through the subscription's first-invoice
+    // PaymentIntent; their seller transfers (recurring AND bundled one-time
+    // items) run in the invoice.paid webhook, which derives payouts from the
+    // paid invoice lines. Calling process-transfers for them would reject —
+    // subscription PIs carry no top-level transfer_group — and surface a
+    // false "issue distributing funds" failure modal.
+    if (
+      isStripe &&
+      multiMerchantSellerSplits &&
+      multiMerchantTransferGroup &&
+      !hasActiveSubscription
+    ) {
       try {
         const transferResponse = await fetch("/api/stripe/process-transfers", {
           method: "POST",
