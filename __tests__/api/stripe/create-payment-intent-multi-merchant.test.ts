@@ -301,6 +301,143 @@ describe("POST /api/stripe/create-payment-intent — per-split affiliate rebate 
   });
 });
 
+describe("POST /api/stripe/create-payment-intent — multi-seller metadata size", () => {
+  it("keeps every PaymentIntent metadata value under Stripe's 500-char cap and persists full splits in the pending record", async () => {
+    // Regression: the full split-details JSON (~9 fields per seller incl.
+    // donation + affiliate) measured 566 chars with just TWO sellers, so
+    // Stripe rejected every multi-seller card checkout with "Metadata values
+    // can have up to 500 characters". The PI metadata must stay compact while
+    // the pending-payment record carries the full details.
+    resolveDonationCutMock.mockResolvedValue({ percent: 5, cutSmallest: 25 });
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          amount: 0,
+          currency: "usd",
+          productTitle: "Farm cart",
+          customerEmail: "buyer@example.com",
+          metadata: {
+            orderId: "order_abc123",
+            // Attacker-supplied copies of the server-owned membership keys:
+            // they must never survive into the PaymentIntent metadata, where
+            // order-email verification would trust them as seller proof.
+            sellerSplitPubkeys: "e".repeat(64),
+            sellerSplits: JSON.stringify([{ pubkey: "e".repeat(64) }]),
+          },
+          sellerSplits: [
+            {
+              sellerPubkey: SELLER_A,
+              amountSmallest: 12500,
+              currency: "usd",
+              affiliateRebateSmallest: 500,
+              affiliateAccountId: "acct_1AffiliateA",
+              affiliateId: 42,
+              affiliateCodeId: 7,
+              affiliateCode: "FRIENDOFTHEFARM",
+            },
+            {
+              sellerPubkey: SELLER_B,
+              amountSmallest: 8900,
+              currency: "usd",
+            },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    // Every metadata value Stripe receives fits the 500-char cap.
+    for (const [key, value] of Object.entries(params.metadata)) {
+      expect(String(value).length).toBeLessThanOrEqual(500);
+      expect(typeof value).toBe("string");
+      void key;
+    }
+    // The compact membership marker lists both sellers — the server's own
+    // value, not the attacker-supplied one from the request metadata.
+    expect(params.metadata.sellerSplitPubkeys).toBe(`${SELLER_A},${SELLER_B}`);
+    // The bulky full JSON no longer goes to Stripe, and the attacker's copy
+    // is stripped rather than passed through.
+    expect(params.metadata.sellerSplits).toBeUndefined();
+
+    // The full split details (amounts, accounts, donation, affiliate) are the
+    // durable server-side record on the pending payment.
+    expect(recordPendingPaymentMock).toHaveBeenCalledTimes(1);
+    const pending = recordPendingPaymentMock.mock.calls[0][0] as any;
+    expect(pending.metadata.transferGroup).toBe(params.metadata.transferGroup);
+    expect(pending.metadata.sellerSplits).toEqual([
+      {
+        pubkey: SELLER_A,
+        amountCents: 12500,
+        accountId: "acct_any",
+        donationPercent: 5,
+        donationCutSmallest: 25,
+        affiliateRebateSmallest: 500,
+        affiliateAccountId: "acct_1AffiliateA",
+        affiliateId: 42,
+        affiliateCodeId: 7,
+        affiliateCode: "FRIENDOFTHEFARM",
+      },
+      {
+        pubkey: SELLER_B,
+        amountCents: 8900,
+        accountId: "acct_any",
+        donationPercent: 5,
+        donationCutSmallest: 25,
+        affiliateRebateSmallest: 0,
+        affiliateAccountId: null,
+        affiliateId: null,
+        affiliateCodeId: null,
+        affiliateCode: null,
+      },
+    ]);
+  });
+  it("omits the oversized pubkey list for huge carts AND strips attacker-injected membership keys (fails closed)", async () => {
+    // 8 sellers × 64-char pubkeys + commas = 519 chars, over the 490 budget,
+    // so the trusted sellerSplitPubkeys is omitted entirely. If the route
+    // didn't strip caller-supplied copies of the reserved keys first, an
+    // attacker's injected list naming an unrelated seller would survive and
+    // pass order-email payment verification for that seller.
+    const victimSeller = "e".repeat(64);
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          amount: 0,
+          currency: "usd",
+          metadata: {
+            sellerSplitPubkeys: victimSeller,
+            sellerSplits: JSON.stringify([{ pubkey: victimSeller }]),
+          },
+          sellerSplits: Array.from({ length: 8 }, (_, i) => ({
+            sellerPubkey: String(i).repeat(64),
+            amountSmallest: 500,
+            currency: "usd",
+          })),
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    // Neither the (omitted) trusted value nor the attacker's injected copies
+    // may appear — verification downstream must fail closed for this cart.
+    expect(params.metadata.sellerSplitPubkeys).toBeUndefined();
+    expect(params.metadata.sellerSplits).toBeUndefined();
+    // The full 8-seller split details are still persisted server-side.
+    const pending = recordPendingPaymentMock.mock.calls[0][0] as any;
+    expect(pending.metadata.sellerSplits).toHaveLength(8);
+    // Nothing else exceeds the cap either.
+    for (const value of Object.values(params.metadata)) {
+      expect(String(value).length).toBeLessThanOrEqual(500);
+    }
+  });
+});
+
 describe("POST /api/stripe/create-payment-intent — crypto split FX conversion", () => {
   it("converts each crypto split to USD cents (one ceil per seller) and charges the summed splits", async () => {
     // satsToUSD returns fractional USD; the route must ceil ONCE per seller and
