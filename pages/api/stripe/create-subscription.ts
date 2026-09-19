@@ -315,8 +315,11 @@ export default async function handler(
       connectedAccountId && !isPlatformPubkey(sellerPubkey)
         ? await getSellerDonationPercent(sellerPubkey)
         : 0;
+    // 100% is a UI-supported setting (full donation) and Stripe allows
+    // application_fee_percent up to 100 — honor it verbatim; collapsing it
+    // to 0 would pay the seller the full recurring amount.
     const applicationFeePercent =
-      donationPercent > 0 && donationPercent < 100
+      donationPercent > 0 && donationPercent <= 100
         ? Math.round(donationPercent * 100) / 100
         : 0;
 

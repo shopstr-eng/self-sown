@@ -28,6 +28,13 @@ const mockUpdateSubscriptionBillingDate = jest.fn();
 jest.mock("@/utils/db/db-service", () => ({
   getSubscriptionByStripeId: (...args: any[]) =>
     mockGetSubscriptionByStripeId(...args),
+  // The routes now read ALL per-item rows (multi-line carts share one Stripe
+  // subscription id); translate this suite's fixtures (one row, an array of
+  // rows for multi-seller shared subscriptions, or null).
+  getSubscriptionsByStripeId: async (...args: any[]) => {
+    const row = await mockGetSubscriptionByStripeId(...args);
+    return Array.isArray(row) ? row : row ? [row] : [];
+  },
   updateSubscriptionStatus: (...args: any[]) =>
     mockUpdateSubscriptionStatus(...args),
   updateSubscriptionShippingAddress: (...args: any[]) =>
@@ -42,10 +49,16 @@ jest.mock("@/utils/rate-limit", () => ({
 
 const SELLER_PUBKEY = "b".repeat(64);
 
+// Captured so tests can act as the buyer or as a different seller.
+const mockExtractSignedEvent = jest.fn((..._args: any[]) => ({
+  pubkey: SELLER_PUBKEY,
+}));
+
 jest.mock("@/utils/nostr/request-auth", () => ({
   buildCancelSubscriptionProof: jest.fn(() => ({})),
   buildUpdateSubscriptionProof: jest.fn(() => ({})),
-  extractSignedEventFromRequest: jest.fn(() => ({ pubkey: SELLER_PUBKEY })),
+  extractSignedEventFromRequest: (...args: any[]) =>
+    mockExtractSignedEvent(...args),
   verifySignedHttpRequestProof: jest.fn(() => ({ ok: true })),
 }));
 
@@ -290,5 +303,96 @@ describe("subscription lookup outage vs not-found", () => {
     const res = await callHandler(updateHandler, { subscriptionId: SUB_ID });
 
     expect(res.statusCode).toBe(404);
+  });
+});
+
+describe("multi-seller shared subscriptions — whole-subscription mutations are buyer-only", () => {
+  const BUYER = "c".repeat(64);
+  const OTHER_SELLER = "d".repeat(64);
+  // Two per-item rows under ONE Stripe subscription id = a multi-seller cart.
+  const sharedRows = [
+    {
+      seller_pubkey: SELLER_PUBKEY,
+      buyer_pubkey: BUYER,
+      connected_account_id: null,
+    },
+    {
+      seller_pubkey: OTHER_SELLER,
+      buyer_pubkey: BUYER,
+      connected_account_id: null,
+    },
+  ];
+
+  it("a seller cannot cancel a subscription shared with another seller", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(sharedRows);
+    mockExtractSignedEvent.mockReturnValue({ pubkey: SELLER_PUBKEY });
+
+    const res = await callHandler(cancelHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(403);
+    expect(mockSubscriptionsUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateSubscriptionStatus).not.toHaveBeenCalled();
+  });
+
+  it("the buyer can cancel a multi-seller subscription", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(sharedRows);
+    mockExtractSignedEvent.mockReturnValue({ pubkey: BUYER });
+
+    const res = await callHandler(cancelHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdateSubscriptionStatus).toHaveBeenCalledWith(
+      SUB_ID,
+      "canceled"
+    );
+  });
+
+  it("a seller cannot update a subscription shared with another seller", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(sharedRows);
+    mockExtractSignedEvent.mockReturnValue({ pubkey: SELLER_PUBKEY });
+
+    const res = await callHandler(updateHandler, {
+      subscriptionId: SUB_ID,
+      nextBillingDate: "2027-01-01",
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(mockSubscriptionsUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateSubscriptionBillingDate).not.toHaveBeenCalled();
+  });
+
+  it("the buyer can update a multi-seller subscription", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(sharedRows);
+    mockExtractSignedEvent.mockReturnValue({ pubkey: BUYER });
+
+    const res = await callHandler(updateHandler, {
+      subscriptionId: SUB_ID,
+      shippingAddress: {
+        name: "Buyer",
+        line1: "1 Main St",
+        city: "Springfield",
+        state: "IL",
+        postalCode: "62701",
+        country: "US",
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockUpdateSubscriptionShippingAddress).toHaveBeenCalledTimes(1);
+  });
+
+  it("a seller still cancels their own single-seller subscription", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      seller_pubkey: SELLER_PUBKEY,
+      buyer_pubkey: BUYER,
+      connected_account_id: STORED_ACCOUNT,
+    });
+    mockExtractSignedEvent.mockReturnValue({ pubkey: SELLER_PUBKEY });
+
+    const res = await callHandler(cancelHandler, { subscriptionId: SUB_ID });
+
+    expect(res.statusCode).toBe(200);
+    expect(mockSubscriptionsUpdate).toHaveBeenCalledTimes(1);
   });
 });

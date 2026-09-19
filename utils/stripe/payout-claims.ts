@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { PoolClient } from "pg";
 import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 
@@ -17,6 +18,24 @@ import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 export interface PayoutClaim {
   created: boolean;
   transferId: string | null;
+  /**
+   * Ownership fencing token — present ONLY when this call created (or
+   * reclaimed) the claim. All token-gated completion/release writes carry
+   * it: after a stale takeover rotates the token, a resumed previous
+   * owner's writes match zero rows instead of clobbering the new owner.
+   */
+  claimToken: string | null;
+}
+
+/** Thrown when a token-gated write matched zero rows: the claim is owned
+ *  by a newer attempt (stale takeover rotated the token). */
+export class PayoutClaimLostError extends Error {
+  constructor(paymentIntentId: string, sellerPubkey: string) {
+    super(
+      `Payout claim ${paymentIntentId}/${sellerPubkey} is owned by a newer attempt`
+    );
+    this.name = "PayoutClaimLostError";
+  }
 }
 
 /**
@@ -54,6 +73,12 @@ async function ensureTable(client: PoolClient): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS stripe_payout_claims_transfer_id_key
       ON stripe_payout_claims (transfer_id) WHERE transfer_id IS NOT NULL
   `);
+    // Ownership fencing column (additive for pre-existing tables). NULL on
+    // legacy rows: token-gated writes against them simply match no row.
+    await client.query(`
+      ALTER TABLE stripe_payout_claims
+        ADD COLUMN IF NOT EXISTS claim_token TEXT
+  `);
   });
   tableInitialized = true;
 }
@@ -74,17 +99,20 @@ export async function claimPayout(
   const client = await pool.connect();
   try {
     await ensureTable(client);
+    const claimToken = randomUUID();
     const result = await client.query(
       `INSERT INTO stripe_payout_claims
-         (payment_intent_id, seller_pubkey, transfer_id, created_at)
-       VALUES ($1, $2, NULL, $3)
+         (payment_intent_id, seller_pubkey, transfer_id, created_at, claim_token)
+       VALUES ($1, $2, NULL, $3, $4)
        ON CONFLICT (payment_intent_id, seller_pubkey) DO NOTHING
-       RETURNING transfer_id`,
-      [paymentIntentId, sellerPubkey, Date.now()]
+       RETURNING claim_token`,
+      [paymentIntentId, sellerPubkey, Date.now(), claimToken]
     );
     if (result.rows.length > 0) {
-      return { created: true, transferId: null };
+      return { created: true, transferId: null, claimToken };
     }
+    // The claim already exists — this caller does NOT own it, so never hand
+    // out the row's token (that would defeat the fencing).
     const existing = await client.query(
       `SELECT transfer_id FROM stripe_payout_claims
         WHERE payment_intent_id = $1 AND seller_pubkey = $2`,
@@ -93,6 +121,7 @@ export async function claimPayout(
     return {
       created: false,
       transferId: existing.rows[0]?.transfer_id ?? null,
+      claimToken: null,
     };
   } finally {
     client.release();
@@ -109,17 +138,34 @@ export async function claimPayout(
 export async function completePayoutClaim(
   paymentIntentId: string,
   sellerPubkey: string,
-  transferId: string
+  transferId: string,
+  claimToken?: string | null
 ): Promise<void> {
   const pool = getDbPool();
   const client = await pool.connect();
   try {
     await ensureTable(client);
-    await client.query(
-      `UPDATE stripe_payout_claims SET transfer_id = $3
-        WHERE payment_intent_id = $1 AND seller_pubkey = $2`,
-      [paymentIntentId, sellerPubkey, transferId]
-    );
+    // Token-gated when the caller owns the claim: a stale takeover rotates
+    // the token, so a resumed previous owner's completion matches ZERO rows
+    // — fail loudly (PayoutClaimLostError) instead of silently recording
+    // its transfer onto the new owner's claim.
+    const result = claimToken
+      ? await client.query(
+          `UPDATE stripe_payout_claims SET transfer_id = $3
+            WHERE payment_intent_id = $1 AND seller_pubkey = $2
+              AND claim_token = $4
+            RETURNING payment_intent_id`,
+          [paymentIntentId, sellerPubkey, transferId, claimToken]
+        )
+      : await client.query(
+          `UPDATE stripe_payout_claims SET transfer_id = $3
+            WHERE payment_intent_id = $1 AND seller_pubkey = $2
+            RETURNING payment_intent_id`,
+          [paymentIntentId, sellerPubkey, transferId]
+        );
+    if (claimToken && result.rows.length === 0) {
+      throw new PayoutClaimLostError(paymentIntentId, sellerPubkey);
+    }
   } catch (e) {
     if ((e as { code?: string }).code === "23505") {
       throw new PayoutClaimConflictError(transferId);
@@ -137,7 +183,40 @@ export async function completePayoutClaim(
  */
 export async function releasePayoutClaim(
   paymentIntentId: string,
-  sellerPubkey: string
+  sellerPubkey: string,
+  claimToken?: string | null
+): Promise<void> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  try {
+    await ensureTable(client);
+    // Token-gated when the caller owns the claim: a resumed previous owner
+    // must never delete the replacement owner's fresh row.
+    await client.query(
+      claimToken
+        ? `DELETE FROM stripe_payout_claims
+            WHERE payment_intent_id = $1 AND seller_pubkey = $2
+              AND transfer_id IS NULL AND claim_token = $3`
+        : `DELETE FROM stripe_payout_claims
+            WHERE payment_intent_id = $1 AND seller_pubkey = $2 AND transfer_id IS NULL`,
+      claimToken
+        ? [paymentIntentId, sellerPubkey, claimToken]
+        : [paymentIntentId, sellerPubkey]
+    );
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Release only a PROVABLY stale incomplete claim (crashed owner). A fresh
+ * incomplete claim belongs to a live in-flight attempt and must survive —
+ * deleting it would let two concurrent attempts both create transfers.
+ */
+export async function releaseStalePayoutClaim(
+  paymentIntentId: string,
+  sellerPubkey: string,
+  staleAfterMs: number
 ): Promise<void> {
   const pool = getDbPool();
   const client = await pool.connect();
@@ -145,10 +224,49 @@ export async function releasePayoutClaim(
     await ensureTable(client);
     await client.query(
       `DELETE FROM stripe_payout_claims
-        WHERE payment_intent_id = $1 AND seller_pubkey = $2 AND transfer_id IS NULL`,
-      [paymentIntentId, sellerPubkey]
+         WHERE payment_intent_id = $1 AND seller_pubkey = $2
+           AND transfer_id IS NULL AND created_at < $3`,
+      [paymentIntentId, sellerPubkey, Date.now() - staleAfterMs]
     );
   } finally {
     client.release();
   }
+}
+
+/**
+ * Invoice-scoped variants for recurring subscription payouts (webhook
+ * invoice.paid). They share the stripe_payout_claims table: invoice ids
+ * (in_...) and PaymentIntent ids (pi_...) are prefix-disjoint, so the
+ * (id, seller) key space never collides.
+ */
+export async function claimInvoicePayout(
+  invoiceId: string,
+  sellerPubkey: string
+): Promise<PayoutClaim> {
+  return claimPayout(invoiceId, sellerPubkey);
+}
+
+export async function completeInvoicePayoutClaim(
+  invoiceId: string,
+  sellerPubkey: string,
+  transferId: string,
+  claimToken?: string | null
+): Promise<void> {
+  return completePayoutClaim(invoiceId, sellerPubkey, transferId, claimToken);
+}
+
+export async function releaseInvoicePayoutClaim(
+  invoiceId: string,
+  sellerPubkey: string,
+  claimToken?: string | null
+): Promise<void> {
+  return releasePayoutClaim(invoiceId, sellerPubkey, claimToken);
+}
+
+export async function releaseStaleInvoicePayoutClaim(
+  invoiceId: string,
+  sellerPubkey: string,
+  staleAfterMs: number
+): Promise<void> {
+  return releaseStalePayoutClaim(invoiceId, sellerPubkey, staleAfterMs);
 }

@@ -88,6 +88,16 @@ jest.mock("@/utils/db/affiliates", () => ({
   lookupAffiliateCode: jest.fn(async () => null),
 }));
 
+jest.mock("@/utils/stripe/pending-payments", () => ({
+  recordPendingPayment: jest.fn(async () => ({
+    created: true,
+    claimToken: "tok_stamp",
+  })),
+  reclaimPendingPayment: jest.fn(async () => null),
+  updatePendingPayment: jest.fn(async () => undefined),
+  getPendingPayment: jest.fn(async () => null),
+}));
+
 import createSubscriptionHandler from "@/pages/api/stripe/create-subscription";
 import createCartSubscriptionHandler from "@/pages/api/stripe/create-cart-subscription";
 
@@ -219,6 +229,32 @@ describe("POST /api/stripe/create-cart-subscription — connected_account_id sta
     );
   });
 
+  it("a 100% donation on a single-seller cart is honored — the application fee is not collapsed to zero", async () => {
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: CONNECT_ACCOUNT,
+      charges_enabled: true,
+    });
+    const donation = jest.requireMock("@/utils/stripe/donation");
+    (donation.getSellerDonationPercent as jest.Mock).mockResolvedValue(100);
+
+    const res = makeRes();
+    await createCartSubscriptionHandler(
+      makeReq({
+        customerEmail: "buyer@example.com",
+        items: [cartItem(SELLER_PK, "evt_item_1")],
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    // 100% is UI-supported: the platform donation must take the whole
+    // recurring amount — collapsing it to 0% would pay the seller in full.
+    expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ application_fee_percent: 100 }),
+      expect.anything()
+    );
+  });
+
   it("multi-merchant cart stamps null — the subscription lives on the platform account", async () => {
     mockGetStripeConnectAccount.mockImplementation(async (pk: string) => ({
       stripe_account_id: `acct_${pk.slice(0, 4)}`,
@@ -229,6 +265,9 @@ describe("POST /api/stripe/create-cart-subscription — connected_account_id sta
     await createCartSubscriptionHandler(
       makeReq({
         customerEmail: "buyer@example.com",
+        // Multi-seller recurring carts require a signed-in buyer (the whole-
+        // subscription lifecycle is buyer-only; a guest could never manage it).
+        buyerPubkey: "e".repeat(64),
         items: [
           cartItem(SELLER_PK, "evt_item_1"),
           cartItem(SELLER2_PK, "evt_item_2"),

@@ -31,11 +31,19 @@ import {
   releaseStripeEvent,
 } from "@/utils/stripe/processed-events";
 import {
+  getPendingPayment,
   getPendingPaymentByIntentId,
   markPendingPaymentByIntent,
   SPLIT_AUTHORITY_METADATA_KEY,
   SPLIT_AUTHORITY_PENDING_RECORD,
 } from "@/utils/stripe/pending-payments";
+import {
+  claimInvoicePayout,
+  completeInvoicePayoutClaim,
+  releaseInvoicePayoutClaim,
+  releaseStaleInvoicePayoutClaim,
+} from "@/utils/stripe/payout-claims";
+import { computeDonationCutSmallest } from "@/utils/stripe/donation";
 import { reverseReferralsForOrder } from "@/utils/db/affiliates";
 
 async function getRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -562,6 +570,41 @@ function isStripeResourceMissing(err: unknown): boolean {
   return !!e && (e.code === "resource_missing" || e.statusCode === 404);
 }
 
+/**
+ * Reconciliation for the durable payout-claim window: transfers carry
+ * metadata.invoiceId + metadata.sellerPubkey, so a transfer created by a
+ * crashed (or pre-claims) attempt can be found and adopted instead of
+ * double-paying. Paginated because transfer_group is shared across ALL of
+ * a subscription's renewals and grows unbounded over time. Fail-closed:
+ * an exhausted search throws (retryable) rather than risking a duplicate.
+ */
+async function findInvoiceTransfer(
+  stripe: Stripe,
+  transferGroup: string,
+  invoiceId: string,
+  sellerPubkey: string
+): Promise<Stripe.Transfer | null> {
+  let startingAfter: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const list = await stripe.transfers.list({
+      transfer_group: transferGroup,
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    const match = list.data.find(
+      (t) =>
+        t.metadata?.invoiceId === invoiceId &&
+        t.metadata?.sellerPubkey === sellerPubkey
+    );
+    if (match) return match;
+    if (!list.has_more || list.data.length === 0) return null;
+    startingAfter = list.data[list.data.length - 1]!.id;
+  }
+  throw new Error(
+    `Transfer reconciliation exhausted for invoice ${invoiceId} seller ${sellerPubkey} group ${transferGroup}`
+  );
+}
+
 async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
   const invoiceAny = invoice as any;
   if (!invoiceAny.subscription) return;
@@ -655,18 +698,307 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     return;
   }
 
+  // Split source of truth: multi-seller recurring carts persist their split
+  // details server-side in stripe_pending_payments keyed by the transfer
+  // group (the Stripe metadata cap of 500 chars can't hold them), so resolve
+  // the record FIRST. A thrown lookup is a transient DB outage and must
+  // propagate (webhook 500 + claim release → Stripe retry) — swallowing it
+  // as null would fall through to a legacy metadata path that no longer
+  // exists for these carts and silently skip every seller payout.
+  // Subscriptions created before split persistence carry metadata.sellerSplits
+  // and no record; the JSON parse below is their fallback.
+  const pendingSplitRecord = await getPendingPayment(transferGroup);
+
+  // Payout-blocking fail-closed: loud marker + ops alert + throw (the 500
+  // releases the claim so Stripe retries). Used when the authoritative
+  // record is malformed or a nonzero invoice line can't be attributed —
+  // paying a partial/remainder set would permanently short some seller.
+  // The alert email is AWAITED (with its own catch) before the throw so a
+  // serverless teardown after the 500 can't strand it, and an email failure
+  // can never eat the throw. Call sites `await` these and do NOT rely on
+  // never-call control-flow narrowing — validated values are narrowed with
+  // explicit casts/branches instead.
+  const failClosedPayoutBlock = async (block: {
+    marker: string;
+    logTag: string;
+    title: string;
+    summary: string;
+    reason: string;
+  }): Promise<never> => {
+    console.error(
+      `${block.marker} subscription=${subscriptionId} ` +
+        `invoice_id=${invoice.id} event_id=${event.id} ` +
+        `transferGroup=${transferGroup} reason=${block.reason} — ` +
+        `seller transfers were NOT processed`
+    );
+    await sendOrphanedStripeEventAlert({
+      title: block.title,
+      marker: block.marker,
+      logTag: block.logTag,
+      summary: block.summary,
+      details: [
+        { label: "Stripe subscription", value: subscriptionId },
+        { label: "Invoice", value: invoice.id ?? "unknown" },
+        { label: "Event", value: event.id },
+        { label: "Transfer group", value: transferGroup },
+        { label: "Reason", value: block.reason },
+      ],
+      adminEmail: process.env.DOMAINS_ADMIN_EMAIL,
+    }).catch((alertErr) =>
+      console.error(
+        `[${block.logTag}] Failed to send ops alert email:`,
+        alertErr
+      )
+    );
+    throw new Error(
+      `${block.marker} for subscription ${subscriptionId}: ${block.reason}`
+    );
+  };
+  // Grep: MALFORMED_SUBSCRIPTION_SPLIT_RECORD
+  const failClosedMalformedRecord = (reason: string): Promise<never> =>
+    failClosedPayoutBlock({
+      marker: "MALFORMED_SUBSCRIPTION_SPLIT_RECORD",
+      logTag: "malformed_subscription_split_record",
+      title: "Malformed Subscription Split Record",
+      summary:
+        "A persisted multi-seller subscription split record had malformed entries; seller transfers were NOT processed and the webhook is failing closed until the record is repaired.",
+      reason,
+    });
+  // Grep: UNALLOCATED_INVOICE_LINE
+  const failClosedUnattributedLine = (reason: string): Promise<never> =>
+    failClosedPayoutBlock({
+      marker: "UNALLOCATED_INVOICE_LINE",
+      logTag: "unallocated_invoice_line",
+      title: "Unattributed Subscription Invoice Line",
+      summary:
+        "A paid multi-seller subscription invoice had a nonzero line that does not map to any recorded seller price, or no lines at all; seller transfers were NOT processed and the webhook is failing closed until the allocation record is reconciled.",
+      reason,
+    });
+  // Grep: INCOMPLETE_INVOICE_LINES
+  const failClosedIncompleteLines = (reason: string): Promise<never> =>
+    failClosedPayoutBlock({
+      marker: "INCOMPLETE_INVOICE_LINES",
+      logTag: "incomplete_invoice_lines",
+      title: "Incomplete Subscription Invoice Lines",
+      summary:
+        "Pagination over a paid multi-seller subscription invoice's line items did not complete (has_more never settled to false); seller transfers were NOT processed and the webhook is failing closed until the full line list can be fetched.",
+      reason,
+    });
+
+  // Narrow a JSONB metadata field to a non-empty array or fail closed. The
+  // explicit cast keeps this compiling regardless of how the TS version
+  // treats never-call control-flow narrowing.
+  const requireNonEmptyArray = async (
+    value: unknown,
+    reason: string
+  ): Promise<unknown[]> => {
+    if (!Array.isArray(value) || value.length === 0) {
+      await failClosedMalformedRecord(reason);
+    }
+    return value as unknown[];
+  };
+
   let sellerSplits: {
     pubkey: string;
     amountCents: number;
     accountId: string;
+    donationPercent: number;
   }[];
-  try {
-    sellerSplits = JSON.parse(metadata.sellerSplits || "[]");
-  } catch {
-    console.error(
-      `Failed to parse sellerSplits for subscription ${subscriptionId}`
-    );
-    return;
+  if (pendingSplitRecord) {
+    sellerSplits = [];
+    for (const raw of await requireNonEmptyArray(
+      pendingSplitRecord.metadata?.sellerSplits,
+      "sellerSplits missing or not a non-empty array"
+    )) {
+      const r = raw as Record<string, unknown> | null;
+      const pubkey = r && typeof r.pubkey === "string" ? r.pubkey : "";
+      const amountCents =
+        r && typeof r.amountCents === "number" ? r.amountCents : NaN;
+      const accountId = r && typeof r.accountId === "string" ? r.accountId : "";
+      // The donation percent rides the authority record because the
+      // per-invoice derivation below pays NET of this cut. It must be
+      // present and sane — never guess 0 for a seller (that would silently
+      // waive the platform fee).
+      const isPlatformSeller =
+        pubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+      const rawPct = r?.donationPercent;
+      // 100% is a supported setting (full donation — see
+      // computeDonationCutSmallest); anything above it is malformed.
+      const pctValid =
+        typeof rawPct === "number" &&
+        Number.isFinite(rawPct) &&
+        rawPct >= 0 &&
+        rawPct <= 100;
+      if (
+        !pubkey ||
+        !Number.isFinite(amountCents) ||
+        (!isPlatformSeller && !pctValid)
+      ) {
+        await failClosedMalformedRecord(
+          `invalid split entry: ${JSON.stringify(raw)}`
+        );
+      }
+      sellerSplits.push({
+        pubkey,
+        amountCents,
+        accountId,
+        donationPercent: isPlatformSeller ? 0 : (rawPct as number),
+      });
+    }
+
+    // Static per-seller totals would re-pay EVERY item on EVERY renewal —
+    // including one-time items and other cadences absent from this invoice.
+    // When the record carries per-price allocations, derive payouts from the
+    // actual paid invoice lines instead: each invoice only pays the sellers
+    // whose items are on it.
+    const allocationsRaw = pendingSplitRecord.metadata?.priceAllocations;
+    if (allocationsRaw !== undefined && allocationsRaw !== null) {
+      const priceToSeller = new Map<string, string>();
+      for (const raw of await requireNonEmptyArray(
+        allocationsRaw,
+        "priceAllocations present but not a non-empty array"
+      )) {
+        const a = raw as Record<string, unknown> | null;
+        const priceId = a && typeof a.priceId === "string" ? a.priceId : "";
+        const sellerPubkey =
+          a && typeof a.sellerPubkey === "string" ? a.sellerPubkey : "";
+        if (!priceId || !sellerPubkey) {
+          await failClosedMalformedRecord(
+            `invalid price allocation: ${JSON.stringify(raw)}`
+          );
+        }
+        priceToSeller.set(priceId, sellerPubkey);
+      }
+
+      // The embedded invoice.lines only carries the FIRST page of line
+      // items, so page through listLineItems in the same account scope used
+      // for the subscription retrieve above. Pagination must terminate with
+      // has_more === false before ANY transfer — a partial line set would
+      // pay only the visible sellers and finalize. Any fetch failure
+      // propagates (500 + claim release → Stripe retry).
+      if (!invoice.id) {
+        await failClosedUnattributedLine(
+          "invoice id missing; cannot fetch line items"
+        );
+      }
+      const allLines: any[] = [];
+      let startingAfter: string | undefined;
+      let hasMore = true;
+      let pages = 0;
+      while (hasMore) {
+        if (++pages > 50) {
+          await failClosedIncompleteLines(
+            "pagination exceeded 50 pages without has_more settling false"
+          );
+        }
+        const resp: any = await stripe.invoices.listLineItems(
+          invoice.id as string,
+          {
+            limit: 100,
+            ...(startingAfter ? { starting_after: startingAfter } : {}),
+          },
+          retrieveAccount ? { stripeAccount: retrieveAccount } : undefined
+        );
+        const pageLines: any[] = Array.isArray(resp?.data) ? resp.data : [];
+        if (resp?.has_more === true && pageLines.length === 0) {
+          await failClosedIncompleteLines("has_more true with an empty page");
+        }
+        allLines.push(...pageLines);
+        hasMore = resp?.has_more === true;
+        if (hasMore) {
+          const lastId: unknown = pageLines[pageLines.length - 1]?.id;
+          if (typeof lastId !== "string" || !lastId) {
+            await failClosedIncompleteLines(
+              "page ended without a usable line id cursor"
+            );
+          }
+          startingAfter = lastId as string;
+        }
+      }
+      if (allLines.length === 0) {
+        await failClosedUnattributedLine("paid invoice has no line items");
+      }
+
+      const accountByPubkey = new Map(
+        sellerSplits.map((s) => [s.pubkey, s.accountId])
+      );
+      const perSeller = new Map<string, number>();
+      for (const line of allLines) {
+        const amount = typeof line?.amount === "number" ? line.amount : 0;
+        // $0 lines (trials, full-credit offsets) pay nobody — skip them.
+        if (amount === 0) continue;
+        // Invoice line price id — shape moved across API versions
+        // (line.price vs line.pricing.price_details.price), accept both.
+        const priceId: string | null =
+          typeof line?.price === "string"
+            ? line.price
+            : (line?.price?.id ?? line?.pricing?.price_details?.price ?? null);
+        const seller = priceId ? priceToSeller.get(priceId) : undefined;
+        if (seller) {
+          perSeller.set(seller, (perSeller.get(seller) ?? 0) + amount);
+        } else {
+          // A nonzero line we can't attribute must NEVER be guessed at or
+          // silently kept on the platform account — that permanently shorts
+          // a seller. Fail closed so ops reconciles before any payout.
+          await failClosedUnattributedLine(
+            `price=${priceId ?? "unknown"} amount=${amount}`
+          );
+        }
+      }
+      const donationPctByPubkey = new Map(
+        sellerSplits.map((s) => [s.pubkey, s.donationPercent])
+      );
+      sellerSplits = [...perSeller.entries()]
+        .filter(([, grossCents]) => grossCents > 0)
+        .map(([pubkey, grossCents]) => {
+          // Pay NET of the seller's donation/platform-fee cut, computed from
+          // THIS invoice's actual per-seller amount (never the static
+          // creation-time totals) — parity with single-seller subscriptions
+          // (application_fee_percent) and one-time multi-seller payouts.
+          const pct = donationPctByPubkey.get(pubkey);
+          if (typeof pct !== "number") {
+            // Unreachable (perSeller keys come from the validated record
+            // splits) — but never guess 0 and silently waive the fee.
+            throw new Error(
+              `no validated donationPercent for seller ${pubkey}`
+            );
+          }
+          const cut = computeDonationCutSmallest(grossCents, pct);
+          return {
+            pubkey,
+            amountCents: grossCents - cut,
+            accountId: accountByPubkey.get(pubkey) ?? "",
+            donationPercent: pct,
+          };
+        });
+    }
+  } else {
+    if (
+      metadata[SPLIT_AUTHORITY_METADATA_KEY] === SPLIT_AUTHORITY_PENDING_RECORD
+    ) {
+      // Marked record-era subscription with a MISSING record: falling
+      // through to the legacy metadata parse would find nothing (current
+      // carts omit metadata.sellerSplits) and 200 with zero payouts. Fail
+      // closed instead. (Awaited; the throw keeps this branch from ever
+      // reaching the legacy parse at runtime.)
+      // Grep: MISSING_SUBSCRIPTION_SPLIT_RECORD
+      await failClosedPayoutBlock({
+        marker: "MISSING_SUBSCRIPTION_SPLIT_RECORD",
+        logTag: "missing_subscription_split_record",
+        title: "Missing Subscription Split Record",
+        summary:
+          "A record-era multi-seller subscription (authority marker present) has no pending split record; seller transfers were NOT processed and the webhook is failing closed until the record is restored.",
+        reason: "authority marker present but no pending split record found",
+      });
+    }
+    try {
+      sellerSplits = JSON.parse(metadata.sellerSplits || "[]");
+    } catch {
+      console.error(
+        `Failed to parse sellerSplits for subscription ${subscriptionId}`
+      );
+      return;
+    }
   }
 
   if (sellerSplits.length === 0) return;
@@ -683,9 +1015,10 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     amountCents: number;
     error: string;
   }[] = [];
-  const nonPlatformSplits = sellerSplits.filter(
-    (s) => s.pubkey !== process.env.NEXT_PUBLIC_SELF_SOWN_PK
-  );
+  // transfers.create failures are RETRYABLE (500 → claim release → Stripe
+  // retry, safe via per-invoice/per-seller idempotency keys); resolution
+  // failures (seller has no Stripe account) are permanent and alert-only.
+  const retryableTransferFailures: string[] = [];
 
   // Resolve any missing Connect account ids for ALL splits BEFORE creating
   // the first transfer. getStripeConnectAccount rethrows on DB error, and
@@ -721,13 +1054,80 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
     const accountId = split.accountId || resolvedAccountIds.get(split.pubkey);
     if (!accountId) continue; // already recorded in failedTransfers above
 
+    // Only release/complete a claim WE created during this attempt, and
+    // only with OUR fencing token — a stale takeover rotates the token, so
+    // a resumed previous owner's writes match zero rows, and a live
+    // co-attempt's row is never touched.
+    let ownsClaimThisAttempt = false;
+    let claimTokenThisAttempt: string | null = null;
     try {
-      // Deterministic idempotency key: if anything uncaught throws later in
-      // the loop, the 500 releases the event claim and Stripe retries the
-      // webhook — without the key, sellers whose transfers already succeeded
-      // would be paid twice. Keyed on invoice.id + seller pubkey (NOT
-      // transferGroup, which is shared across a subscription's renewals).
-      await stripe.transfers.create(
+      // Durable (invoice, seller) payout claim BEFORE any transfer: Stripe
+      // idempotency keys expire after ~24h but invoice.paid retries can
+      // arrive for days, so the key alone cannot prevent a double payout on
+      // a late retry. A completed claim means this seller is already paid
+      // for this invoice — skip without calling Stripe at all.
+      let claim = await claimInvoicePayout(invoice.id, split.pubkey);
+      if (!claim.created && claim.transferId) continue;
+      if (!claim.created) {
+        // Incomplete claim: a live in-flight attempt owns it, or a crashed
+        // one left it stale. Take over only a PROVABLY stale claim so a
+        // live attempt's row is never deleted mid-flight. A live-owned
+        // unresolved claim is NOT proof of payment: finalizing here would
+        // strand this seller if the owner crashed, so fail retryable —
+        // Stripe's next retry finds the claim completed or takes it over
+        // once it is stale.
+        await releaseStaleInvoicePayoutClaim(
+          invoice.id,
+          split.pubkey,
+          10 * 60 * 1000
+        );
+        claim = await claimInvoicePayout(invoice.id, split.pubkey);
+        if (!claim.created) {
+          throw new Error(
+            `Payout claim for invoice ${invoice.id} seller ${split.pubkey} is owned by an in-flight attempt`
+          );
+        }
+      }
+      ownsClaimThisAttempt = true;
+      claimTokenThisAttempt = claim.claimToken;
+      if (split.amountCents <= 0) {
+        // A 100% donation legitimately consumes the seller's whole share —
+        // no transfer exists to create (Stripe rejects 0-amount). Record a
+        // terminal sentinel on the claim so this seller is durably resolved
+        // and retries never reprocess (or fail) the paid invoice forever.
+        await completeInvoicePayoutClaim(
+          invoice.id,
+          split.pubkey,
+          `full-donation:${invoice.id}:${split.pubkey}`,
+          claimTokenThisAttempt
+        );
+        continue;
+      }
+      // We own the claim — but a fresh claim proves nothing about pre-claim
+      // history (crash between transfer and record, or payouts predating
+      // claims), and the idempotency key below expires in ~24h. Reconcile
+      // against the transfer history and adopt any match before creating.
+      const existingTransfer = await findInvoiceTransfer(
+        stripe,
+        transferGroup,
+        invoice.id,
+        split.pubkey
+      );
+      if (existingTransfer) {
+        await completeInvoicePayoutClaim(
+          invoice.id,
+          split.pubkey,
+          existingTransfer.id,
+          claimTokenThisAttempt
+        );
+        continue;
+      }
+
+      // Deterministic idempotency key covers the <24h retry window; the
+      // claim above is the durable backstop beyond it. Keyed on invoice.id
+      // + seller pubkey (NOT transferGroup, which is shared across a
+      // subscription's renewals).
+      const transfer = await stripe.transfers.create(
         {
           amount: split.amountCents,
           currency: transferCurrency,
@@ -742,7 +1142,25 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
         },
         { idempotencyKey: `invoice-${invoice.id}-transfer-${split.pubkey}` }
       );
+      await completeInvoicePayoutClaim(
+        invoice.id,
+        split.pubkey,
+        transfer.id,
+        claimTokenThisAttempt
+      );
     } catch (error) {
+      // Release OUR claim so a retry can re-attempt (only deletes rows with
+      // no recorded transfer — a completed claim is untouched; a crash
+      // between transfer and completion is covered by the history
+      // reconciliation above on the next attempt). Claims owned by a live
+      // co-attempt are never touched.
+      if (ownsClaimThisAttempt) {
+        await releaseInvoicePayoutClaim(
+          invoice.id,
+          split.pubkey,
+          claimTokenThisAttempt
+        ).catch(() => {});
+      }
       const msg = error instanceof Error ? error.message : String(error);
       console.error(
         `Transfer failed for seller ${split.pubkey} on subscription ${subscriptionId}:`,
@@ -753,6 +1171,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
         amountCents: split.amountCents,
         error: msg,
       });
+      retryableTransferFailures.push(split.pubkey);
     }
   }
 
@@ -782,9 +1201,14 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
       console.error("Failed to send transfer failure alert email:", emailErr);
     }
 
-    if (failedTransfers.length >= nonPlatformSplits.length) {
+    // ANY retryable transfer failure must fail the webhook: the resulting
+    // 500 + claim release + Stripe retry is the ONLY reconciliation that can
+    // still pay that seller, and the per-invoice/per-seller idempotency keys
+    // above make the retry safe for sellers already paid. Finalizing the
+    // event here would leave that seller permanently unpaid.
+    if (retryableTransferFailures.length > 0) {
       throw new Error(
-        `All seller transfers failed for subscription ${subscriptionId}`
+        `Retryable seller transfer failure(s) for subscription ${subscriptionId}: ${retryableTransferFailures.join(", ")}`
       );
     }
   }

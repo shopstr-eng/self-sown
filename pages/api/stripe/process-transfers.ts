@@ -587,10 +587,10 @@ export default async function handler(
         typeof split.donationCutSmallest === "number" &&
         split.donationCutSmallest > 0
       ) {
-        donationCut = Math.min(
-          split.donationCutSmallest,
-          split.amountCents - 1
-        );
+        // The record was written server-side with the shared cut contract —
+        // trust it verbatim. A 100% donation legitimately equals the gross;
+        // the zero-net skip below handles that case.
+        donationCut = split.donationCutSmallest;
         donationPercent = split.donationPercent ?? 0;
       } else if (
         typeof split.donationPercent === "number" &&
@@ -687,10 +687,14 @@ export default async function handler(
         0
       );
       if (transferAmount <= 0) {
+        // A 100% donation (or a cut + rebate legitimately consuming the
+        // whole amount) is a supported configuration, not a failure: the
+        // seller receives nothing BY CHOICE. Skip cleanly — no transfer, no
+        // error — and no claim is taken, so replays re-evaluate the same
+        // way instead of retrying an impossible 0-amount transfer.
         results.push({
           sellerPubkey: split.sellerPubkey,
-          error:
-            "Computed transfer amount is zero after donation cut; skipping",
+          skipped: true,
           donationCutSmallest: donationCut,
           transferredAmount: 0,
         });
@@ -793,7 +797,8 @@ export default async function handler(
             await completePayoutClaim(
               paymentIntentId,
               split.sellerPubkey,
-              candidate.id
+              candidate.id,
+              claim.claimToken
             );
           } catch (adoptError) {
             if (adoptError instanceof PayoutClaimConflictError) {
@@ -820,7 +825,11 @@ export default async function handler(
           reconError
         );
         try {
-          await releasePayoutClaim(paymentIntentId, split.sellerPubkey);
+          await releasePayoutClaim(
+            paymentIntentId,
+            split.sellerPubkey,
+            claim.claimToken
+          );
         } catch (releaseError) {
           console.error(
             `Failed to release payout claim for ${paymentIntentId}/${split.sellerPubkey}:`,
@@ -863,7 +872,8 @@ export default async function handler(
           await completePayoutClaim(
             paymentIntentId,
             split.sellerPubkey,
-            transfer.id
+            transfer.id,
+            claim.claimToken
           );
         } catch (claimError) {
           // The transfer succeeded at Stripe. Do NOT release the claim on
@@ -911,7 +921,11 @@ export default async function handler(
           // the claim so a later retry can pay this seller (mirrors the
           // webhook claim-release rule).
           try {
-            await releasePayoutClaim(paymentIntentId, split.sellerPubkey);
+            await releasePayoutClaim(
+              paymentIntentId,
+              split.sellerPubkey,
+              claim.claimToken
+            );
           } catch (releaseError) {
             console.error(
               `Failed to release payout claim for ${paymentIntentId}/${split.sellerPubkey}:`,

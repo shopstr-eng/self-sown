@@ -266,6 +266,31 @@ describe("exchange-rate-unavailable contract across Stripe checkout routes", () 
         /failed to create subscription/i
       );
     });
+
+    it("honors a 100% donation — application_fee_percent 100, never collapsed to 0", async () => {
+      const donation = jest.requireMock("@/utils/stripe/donation");
+      (donation.getSellerDonationPercent as jest.Mock).mockResolvedValueOnce(
+        100
+      );
+      mockGetStripeConnectAccount.mockResolvedValueOnce({
+        stripe_account_id: "acct_seller_1",
+        charges_enabled: true,
+      });
+
+      const res = makeRes();
+      await createSubscriptionHandler(
+        makeReq({ ...subBody, amount: 10, currency: "USD" }),
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      // 100% is UI-supported: the platform donation must take the whole
+      // recurring amount, not 0% (which would pay the seller in full).
+      expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ application_fee_percent: 100 }),
+        expect.anything()
+      );
+    });
   });
 
   describe("POST /api/stripe/create-cart-subscription", () => {
