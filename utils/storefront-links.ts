@@ -7,6 +7,7 @@ import {
   StorefrontSection,
   StorefrontSocialLink,
 } from "@/utils/types/types";
+import { POLICY_SLUGS } from "@/utils/storefront-policies";
 
 const BLOCKED_URL = "about:blank";
 const ABSOLUTE_SCHEME_RE = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
@@ -38,11 +39,20 @@ function normalizeRelativeShopPath(value: string, shopSlug: string): string {
   const parts = trimmed.split(/[?#]/);
   const pathPart = parts[0] ?? "";
   const suffix = parts.length > 1 ? trimmed.slice(pathPart.length) : "";
-  const segments = pathPart
+  let segments = pathPart
     .replace(/^\/+/, "")
     .split("/")
     .map(safeSegment)
     .filter(Boolean);
+  // Idempotent: persisted hrefs are already prefixed with /stall/<shopSlug>
+  // (publish sanitizes, render sanitizes again) — strip one leading copy so
+  // re-sanitizing a stored href doesn't double-prefix it into a 404.
+  if (shopSlug) {
+    const slugSeg = safeSegment(shopSlug);
+    if (segments[0] === "stall" && segments[1] === slugSeg) {
+      segments = segments.slice(2);
+    }
+  }
   const safePath = segments.join("/");
   const base = shopSlug ? `/stall/${shopSlug}` : "";
   if (!safePath) return base || "/";
@@ -110,8 +120,65 @@ export function sanitizeStorefrontNavHref(
   return normalizeRelativeShopPath(trimmed, shopSlug);
 }
 
+// Built-in storefront subpage routes, shared by the page editor (custom pages
+// can't take these slugs) and the SSR subpage validator. UNGATED routes render
+// for every visitor; GATED routes render only when the seller enabled the
+// matching storefront flag (the renderer shows its own Not Found when off, so
+// the SSR validator must gate them the same way or they index as soft-404s).
+export const STOREFRONT_BUILTIN_SUBPAGES: ReadonlySet<string> = new Set([
+  "shop",
+  "orders",
+  "blog",
+  "my-listings",
+  "order-confirmation",
+]);
+export const STOREFRONT_GATED_SUBPAGES = {
+  wallet: "showWalletPage",
+  community: "showCommunityPage",
+} as const;
+// Policy slugs are reserved too: the policy render branch runs before custom
+// pages, so a page named "return-policy" could never display.
+export const RESERVED_PAGE_SLUGS: ReadonlySet<string> = new Set([
+  ...STOREFRONT_BUILTIN_SUBPAGES,
+  ...Object.keys(STOREFRONT_GATED_SUBPAGES),
+  ...Object.values(POLICY_SLUGS),
+]);
+
 export function isExternalStorefrontHref(href: string): boolean {
   return EXTERNAL_HREF_RE.test(href);
+}
+
+/**
+ * Append a nav link for every custom page that isn't already linked. Stored
+ * navLinks are empty on many existing storefronts (historical save paths
+ * dropped them), so without this those sellers' pages exist but are
+ * unreachable from the nav. Links the seller already configured win; pages
+ * they deliberately deleted are gone from pages[] and don't come back.
+ */
+export function injectPageNavLinks(
+  links: StorefrontNavLink[],
+  pages: { slug: string; title?: string }[] | undefined,
+  shopSlug: string
+): StorefrontNavLink[] {
+  if (!pages || pages.length === 0) return links;
+  const stallPrefix = shopSlug ? `stall/${shopSlug}/` : "";
+  const result = [...links];
+  for (const page of pages) {
+    if (!page?.slug) continue;
+    const linked = result.some((l) => {
+      if (!l.isPage) return false;
+      const h = (l.href || "").replace(/^\/+/, "");
+      return h === page.slug || h === `${stallPrefix}${page.slug}`;
+    });
+    if (!linked) {
+      result.push({
+        label: page.title || page.slug,
+        href: page.slug,
+        isPage: true,
+      });
+    }
+  }
+  return result;
 }
 
 function sanitizeSection(section: StorefrontSection): StorefrontSection {

@@ -48,9 +48,13 @@ import StorefrontShopPage from "./storefront-shop-page";
 import StorefrontOrderConfirmation from "./storefront-order-confirmation";
 import StorefrontPolicyPage from "./storefront-policy-page";
 import StorefrontEmailPopupComponent from "./storefront-email-popup";
-import { POLICY_SLUGS, getDefaultPolicies } from "@/utils/storefront-policies";
+import {
+  POLICY_SLUGS,
+  resolveStorefrontPolicy,
+} from "@/utils/storefront-policies";
 import { StorefrontPolicies } from "@/utils/types/types";
 import {
+  injectPageNavLinks,
   isExternalStorefrontHref,
   sanitizeStorefrontNavHref,
 } from "@/utils/storefront-links";
@@ -359,16 +363,17 @@ export default function StorefrontLayout({
 
   const policyPageData = useMemo(() => {
     if (!currentPage) return null;
-    const footerPolicies = storefront.footer?.policies || {};
-    const defaults = getDefaultPolicies(shopName);
     const policyKeys = Object.keys(
       POLICY_SLUGS
     ) as (keyof StorefrontPolicies)[];
     const matchedKey = policyKeys.find((k) => POLICY_SLUGS[k] === currentPage);
     if (!matchedKey) return null;
-    const policy = footerPolicies[matchedKey] || defaults[matchedKey];
-    if (!policy || !policy.enabled) return null;
-    return policy;
+    // Shared resolver — SSR validates the same route with the same semantics.
+    return resolveStorefrontPolicy(
+      storefront.footer?.policies,
+      matchedKey,
+      shopName
+    );
   }, [currentPage, storefront.footer?.policies, shopName]);
 
   const layout = storefront.productLayout || "grid";
@@ -494,10 +499,15 @@ export default function StorefrontLayout({
         links.push({ label: "Blog", href: "blog", isPage: true });
       }
     }
+    // Custom pages always surface in the nav — historical events lost their
+    // navLinks, so pages the seller built would otherwise be unreachable.
+    links = injectPageNavLinks(links, storefront.pages, shopSlug);
     return links;
   }, [
     hasNav,
     storefront.navLinks,
+    storefront.pages,
+    shopSlug,
     showCommunity,
     showWallet,
     showBlog,
