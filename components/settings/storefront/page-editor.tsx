@@ -41,15 +41,8 @@ const SECTION_TYPES: { type: StorefrontSectionType; label: string }[] = [
 ];
 
 // Slugs reserved for built-in storefront routes — custom pages can't use them.
-const RESERVED_PAGE_SLUGS = new Set([
-  "blog",
-  "shop",
-  "orders",
-  "wallet",
-  "community",
-  "my-listings",
-  "order-confirmation",
-]);
+// Shared with the SSR subpage validator via utils/storefront-links.
+import { RESERVED_PAGE_SLUGS } from "@/utils/storefront-links";
 
 // Sentinel key for expanding the built-in Blog page card.
 const BLOG_PAGE_KEY = "__blog_page__";

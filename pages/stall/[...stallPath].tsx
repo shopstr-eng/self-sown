@@ -26,6 +26,15 @@ import {
 import { getMembershipView } from "@/utils/pro/membership";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
 import { SITE_URL } from "@/utils/site-url";
+import {
+  POLICY_SLUGS,
+  resolveStorefrontPolicy,
+} from "@/utils/storefront-policies";
+import {
+  STOREFRONT_BUILTIN_SUBPAGES,
+  STOREFRONT_GATED_SUBPAGES,
+} from "@/utils/storefront-links";
+import type { StorefrontPolicies } from "@/utils/types/types";
 
 type ShopSubPageProps = {
   ogMeta: OgMetaProps;
@@ -119,21 +128,62 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         } catch {}
       }
 
-      // Validate the subPage server-side for non-built-in paths so unknown
-      // /stall/<slug>/<anything> routes return a real 404 instead of a soft one.
-      const BUILTIN_SUBPAGES = new Set(["", "orders", "blog"]);
-      if (subPage && !BUILTIN_SUBPAGES.has(subPage)) {
-        let validCustomPage = false;
+      // Validate the subPage server-side so unknown /stall/<slug>/<anything>
+      // routes return a real 404 instead of a soft one. The allowlist must
+      // mirror what StorefrontLayout actually renders: the ungated built-ins
+      // (shared RESERVED set minus the gated pair), wallet/community only when
+      // the seller enabled their flags (renderer shows its own Not Found
+      // otherwise), policy slugs resolved exactly like the renderer
+      // (policies[key] || defaults[key], then require enabled), and custom
+      // pages NESTED at content.storefront.pages routed by SLUG only —
+      // matching top-level c.pages or p.id accepts routes the renderer can't
+      // render. Extra path segments beyond blog/<post> are never a route.
+      const hasExtraSegments = pathParts.length > (subPage === "blog" ? 3 : 2);
+      if (subPage && hasExtraSegments) {
+        return stallNotFound();
+      }
+      if (subPage && !STOREFRONT_BUILTIN_SUBPAGES.has(subPage)) {
+        let validSubPage = false;
         if (shopEvent) {
           try {
             const c = JSON.parse(shopEvent.content);
-            const pages = Array.isArray(c.pages) ? c.pages : [];
-            validCustomPage = pages.some(
-              (p: { id?: string }) => p.id === subPage
-            );
+            const raw =
+              c && typeof c.storefront === "object" && c.storefront
+                ? c.storefront
+                : {};
+            // The client strips all premium storefront config for non-Pro
+            // sellers (basicStorefront keeps only shopSlug/customDomain), so
+            // validate against the same effective config — otherwise SSR 200s
+            // routes the client renders as fallback sections or Not Found.
+            const sf = membership.isPro === true ? raw : {};
+            const gatedFlag = (STOREFRONT_GATED_SUBPAGES as Record<string, string>)[
+              subPage
+            ];
+            if (gatedFlag) {
+              validSubPage = sf[gatedFlag] === true;
+            } else {
+              const policyKey = (
+                Object.keys(POLICY_SLUGS) as (keyof StorefrontPolicies)[]
+              ).find((k) => POLICY_SLUGS[k] === subPage);
+              if (policyKey) {
+                // Shared resolver, same truthiness as the renderer/footer:
+                // stored wins when present (truthy enabled), absent/null falls
+                // back to the default policy (enabled).
+                validSubPage = !!resolveStorefrontPolicy(
+                  sf.footer?.policies,
+                  policyKey,
+                  ssrShopName
+                );
+              } else {
+                const pages = Array.isArray(sf.pages) ? sf.pages : [];
+                validSubPage = pages.some(
+                  (p: { slug?: string }) => p?.slug === subPage
+                );
+              }
+            }
           } catch {}
         }
-        if (!validCustomPage) {
+        if (!validSubPage) {
           return stallNotFound();
         }
       }

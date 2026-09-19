@@ -14,6 +14,26 @@ export const POLICY_SLUGS: Record<keyof StorefrontPolicies, string> = {
   cancellationPolicy: "cancellation-policy",
 };
 
+export type ResolvedStorefrontPolicy = { enabled: boolean; content: string };
+
+/**
+ * Single source of truth for policy resolution, shared by the footer (which
+ * policies get linked), the layout (whether a policy page renders), and the
+ * SSR subpage validator (whether the route 404s). A stored policy object wins
+ * when present and must have a truthy `enabled`; an absent/null one falls
+ * back to the default policy (enabled).
+ */
+export function resolveStorefrontPolicy(
+  policies:
+    | Partial<Record<keyof StorefrontPolicies, ResolvedStorefrontPolicy | null>>
+    | undefined,
+  key: keyof StorefrontPolicies,
+  shopName: string
+): ResolvedStorefrontPolicy | null {
+  const policy = policies?.[key] || getDefaultPolicies(shopName)[key];
+  return policy && policy.enabled ? policy : null;
+}
+
 export function getDefaultPolicies(shopName: string): StorefrontPolicies {
   const name = shopName || "this shop";
   return {
