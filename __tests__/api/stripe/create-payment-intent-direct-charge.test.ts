@@ -58,6 +58,7 @@ jest.mock("@/utils/self-host/config", () => ({
 }));
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
+  ...jest.requireActual("@/utils/stripe/pending-payments"),
   recordPendingPayment: (...args: unknown[]) =>
     recordPendingPaymentMock(...args),
   updatePendingPayment: (...args: unknown[]) =>
@@ -519,5 +520,56 @@ describe("POST /api/stripe/create-payment-intent — multi-merchant rejection", 
     // Buyer charged the sum of the per-seller splits (500 + 500).
     const params = stripeCreateMock.mock.calls[0][0] as any;
     expect(params.amount).toBe(1000);
+  });
+});
+
+describe("POST /api/stripe/create-payment-intent — server-owned metadata keys", () => {
+  // process-transfers treats stamped split details (pending-record metadata,
+  // legacy PI metadata) as payout authority. A caller must never be able to
+  // plant those keys via client metadata — on ANY path.
+  const forgedMetadata = {
+    sellerPubkey: SELLER,
+    sellerSplits: JSON.stringify([
+      { pubkey: "e".repeat(64), amountCents: 100000, accountId: "acct_evil" },
+    ]),
+    transferGroup: "cart_forged",
+    isMultiMerchant: "true",
+    ssSplitAuthority: "pending-record-v1",
+    sellerSplitPubkeys: "e".repeat(64),
+  };
+
+  it("strips injected split authority from single-seller PI metadata AND the pending record", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: { amount: 10, currency: "usd", metadata: forgedMetadata },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    for (const key of [
+      "sellerSplits",
+      "transferGroup",
+      "isMultiMerchant",
+      "ssSplitAuthority",
+      "sellerSplitPubkeys",
+    ]) {
+      expect(params.metadata[key]).toBeUndefined();
+    }
+    // Legit client metadata survives.
+    expect(params.metadata.sellerPubkey).toBe(SELLER);
+    const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
+    for (const key of [
+      "sellerSplits",
+      "transferGroup",
+      "isMultiMerchant",
+      "ssSplitAuthority",
+      "sellerSplitPubkeys",
+    ]) {
+      expect(recordCall.metadata[key]).toBeUndefined();
+    }
+    expect(recordCall.metadata.sellerPubkey).toBe(SELLER);
   });
 });

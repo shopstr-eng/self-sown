@@ -53,16 +53,23 @@ export default async function handler(
     }
 
     const gross = grossSmallest ? Number(grossSmallest) : 0;
+    // Fixed code values are denominated in the code's currency; the compat
+    // check above already guarantees it matches the order currency when one
+    // was supplied.
+    const codeCurrency =
+      (typeof currency === "string" && currency) || found.currency || "usd";
     const buyerDiscountSmallest = computeBuyerDiscountSmallest(
       gross,
       found.buyer_discount_type,
-      Number(found.buyer_discount_value)
+      Number(found.buyer_discount_value),
+      codeCurrency
     );
     const net = Math.max(gross - buyerDiscountSmallest, 0);
     const rebateSmallest = computeRebateSmallest(
       net,
       found.rebate_type,
-      Number(found.rebate_value)
+      Number(found.rebate_value),
+      codeCurrency
     );
 
     return res.status(200).json({

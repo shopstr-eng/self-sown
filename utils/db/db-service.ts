@@ -2025,6 +2025,19 @@ async function initializeTables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_stripe_pending_payments_payment_intent_id
         ON stripe_pending_payments(payment_intent_id);
 
+      -- Multi-seller payout claims (utils/stripe/payout-claims.ts). The
+      -- partial unique index makes transfer adoption globally one-to-one:
+      -- a transfer id can be recorded on exactly one claim.
+      CREATE TABLE IF NOT EXISTS stripe_payout_claims (
+        payment_intent_id TEXT NOT NULL,
+        seller_pubkey TEXT NOT NULL,
+        transfer_id TEXT,
+        created_at BIGINT NOT NULL,
+        PRIMARY KEY (payment_intent_id, seller_pubkey)
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS stripe_payout_claims_transfer_id_key
+        ON stripe_payout_claims(transfer_id) WHERE transfer_id IS NOT NULL;
+
       -- UCP checkout sessions (utils/ucp/checkout-store.ts)
       CREATE TABLE IF NOT EXISTS ucp_checkout_sessions (
         id TEXT PRIMARY KEY,

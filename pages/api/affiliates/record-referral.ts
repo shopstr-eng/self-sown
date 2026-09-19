@@ -97,13 +97,15 @@ export default async function handler(
     const buyerDiscountSmallest = computeBuyerDiscountSmallest(
       gross,
       found.buyer_discount_type,
-      Number(found.buyer_discount_value)
+      Number(found.buyer_discount_value),
+      String(currency)
     );
     const net = Math.max(gross - buyerDiscountSmallest, 0);
     const rebateSmallest = computeRebateSmallest(
       net,
       found.rebate_type,
-      Number(found.rebate_value)
+      Number(found.rebate_value),
+      String(currency)
     );
 
     // recordReferral handles atomic max_uses enforcement + idempotency. If

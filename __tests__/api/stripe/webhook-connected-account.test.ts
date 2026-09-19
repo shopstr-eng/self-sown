@@ -117,8 +117,18 @@ jest.mock("@/utils/stripe/processed-events", () => ({
   releaseStripeEvent: (...args: any[]) => mockReleaseStripeEvent(...args),
 }));
 
+const mockGetPendingPaymentByIntentId = jest.fn(
+  async (..._args: any[]) => null as any
+);
+
 jest.mock("@/utils/stripe/pending-payments", () => ({
   markPendingPaymentByIntent: jest.fn(async () => undefined),
+  getPendingPaymentByIntentId: (...args: any[]) =>
+    mockGetPendingPaymentByIntentId(...args),
+  // Mirror utils/stripe/pending-payments — the webhook gates legacy
+  // referral-key mutation on this server-stamped marker.
+  SPLIT_AUTHORITY_METADATA_KEY: "ssSplitAuthority",
+  SPLIT_AUTHORITY_PENDING_RECORD: "pending-record-v1",
 }));
 
 const mockUpdateMcpOrderPayment = jest.fn();
@@ -1629,6 +1639,8 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
     });
     mockPaymentIntentsRetrieve.mockResolvedValue({
       id: "pi_refunded",
+      // Pre-cutover: legacy order-keyed referral rows genuinely exist.
+      created: 1700000000,
       metadata: { orderId: "order_1", sellerPubkey: "c".repeat(64) },
     });
   }
@@ -1661,6 +1673,15 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
         refundEventRef: "evt_refund",
       })
     );
+    // The canonical PI-id key is reversed too — recordless legacy intents
+    // paid by the current process-transfers accrue under it.
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_refunded",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund",
+      })
+    );
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 
@@ -1683,6 +1704,7 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
     });
     mockPaymentIntentsRetrieve.mockResolvedValue({
       id: "pi_refunded_connect",
+      created: 1700000000,
       metadata: { orderId: "order_2", sellerPubkey: "d".repeat(64) },
     });
 
@@ -1702,5 +1724,136 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
       })
     );
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("reverses multi-seller refunds against the authoritative split record, ignoring forged metadata", async () => {
+    // The PI metadata here is attacker-controlled: a forged orderId and a
+    // sellerPubkey naming an unrelated account. The pending-payment record
+    // persisted at creation names the real sellers — reversal must target
+    // them, keyed by the PaymentIntent id (the referral dedup key written by
+    // process-transfers), never the forged metadata.
+    mockConstructEvent.mockReturnValue({
+      id: "evt_refund_multi",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: "ch_refunded_multi",
+          payment_intent: "pi_multi",
+          amount: 1200,
+          amount_refunded: 1200,
+        },
+      },
+    });
+    mockPaymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_multi",
+      // Marked = created by current code, so its referrals can only be
+      // PI-keyed: the forged metadata orderId must never drive DB mutation.
+      metadata: {
+        orderId: "order_evil",
+        sellerPubkey: "e".repeat(64),
+        ssSplitAuthority: "pending-record-v1",
+      },
+    });
+    mockGetPendingPaymentByIntentId.mockResolvedValue({
+      paymentIntentId: "pi_multi",
+      metadata: {
+        sellerSplits: [
+          { pubkey: "c".repeat(64), amountCents: 500 },
+          { pubkey: "d".repeat(64), amountCents: 700 },
+        ],
+      },
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const reversalCalls = mockReverseReferralsForOrder.mock.calls.filter(
+      (c) => (c[0] as any).refundEventRef === "evt_refund_multi"
+    );
+    // Current intent: ONLY the canonical PI-id key, for the two
+    // authoritative sellers.
+    expect(reversalCalls).toHaveLength(2);
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_multi",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund_multi",
+      })
+    );
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_multi",
+        sellerPubkey: "d".repeat(64),
+        refundEventRef: "evt_refund_multi",
+      })
+    );
+    // The forged order key never drives DB mutation on a current intent.
+    expect(mockReverseReferralsForOrder).not.toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: "order_evil" })
+    );
+    // The forged sellerPubkey is never consulted.
+    expect(mockReverseReferralsForOrder).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sellerPubkey: "e".repeat(64) })
+    );
+  });
+
+  it("reverses under both keys for a pre-cutover intent with an authoritative record", async () => {
+    // Pre-cutover multi-seller intent: order-keyed referral rows genuinely
+    // exist, so reversal covers BOTH keys — but only for the record's
+    // authoritative sellers, never the metadata sellerPubkey.
+    mockConstructEvent.mockReturnValue({
+      id: "evt_refund_legacy_multi",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: "ch_refunded_legacy_multi",
+          payment_intent: "pi_legacy_multi",
+          amount: 1200,
+          amount_refunded: 1200,
+        },
+      },
+    });
+    mockPaymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_legacy_multi",
+      created: 1700000000,
+      metadata: { orderId: "order_legacy", sellerPubkey: "e".repeat(64) },
+    });
+    mockGetPendingPaymentByIntentId.mockResolvedValue({
+      paymentIntentId: "pi_legacy_multi",
+      metadata: {
+        sellerSplits: [
+          { pubkey: "c".repeat(64), amountCents: 500 },
+          { pubkey: "d".repeat(64), amountCents: 700 },
+        ],
+      },
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const calls = mockReverseReferralsForOrder.mock.calls.filter(
+      (c) => (c[0] as any).refundEventRef === "evt_refund_legacy_multi"
+    );
+    // 2 authoritative sellers × 2 keys (canonical PI id + legacy order id).
+    expect(calls).toHaveLength(4);
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "order_legacy",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund_legacy_multi",
+      })
+    );
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_legacy_multi",
+        sellerPubkey: "d".repeat(64),
+        refundEventRef: "evt_refund_legacy_multi",
+      })
+    );
+    expect(mockReverseReferralsForOrder).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sellerPubkey: "e".repeat(64) })
+    );
   });
 });

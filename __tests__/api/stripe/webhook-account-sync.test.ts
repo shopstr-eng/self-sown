@@ -67,6 +67,11 @@ jest.mock("@/utils/stripe/processed-events", () => ({
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
   markPendingPaymentByIntent: jest.fn(async () => undefined),
+  getPendingPaymentByIntentId: jest.fn(async () => null),
+  // Mirror utils/stripe/pending-payments — the webhook gates legacy
+  // referral-key mutation on this server-stamped marker.
+  SPLIT_AUTHORITY_METADATA_KEY: "ssSplitAuthority",
+  SPLIT_AUTHORITY_PENDING_RECORD: "pending-record-v1",
 }));
 
 import webhookHandler from "@/pages/api/stripe/webhook";

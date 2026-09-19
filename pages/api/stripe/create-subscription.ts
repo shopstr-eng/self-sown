@@ -249,7 +249,8 @@ export default async function handler(
             const serverDiscount = computeBuyerDiscountSmallest(
               grossForDiscount,
               found.buyer_discount_type,
-              Number(found.buyer_discount_value)
+              Number(found.buyer_discount_value),
+              String(stripeCurrency)
             );
             affiliateDiscountAmount = Math.min(
               serverDiscount,

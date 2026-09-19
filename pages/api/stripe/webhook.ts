@@ -30,7 +30,12 @@ import {
   finalizeStripeEvent,
   releaseStripeEvent,
 } from "@/utils/stripe/processed-events";
-import { markPendingPaymentByIntent } from "@/utils/stripe/pending-payments";
+import {
+  getPendingPaymentByIntentId,
+  markPendingPaymentByIntent,
+  SPLIT_AUTHORITY_METADATA_KEY,
+  SPLIT_AUTHORITY_PENDING_RECORD,
+} from "@/utils/stripe/pending-payments";
 import { reverseReferralsForOrder } from "@/utils/db/affiliates";
 
 async function getRawBody(req: NextApiRequest): Promise<Buffer> {
@@ -246,23 +251,81 @@ export default async function handler(
             piId,
             chargeAccount ? { stripeAccount: chargeAccount } : undefined
           );
-          const orderId = (pi.metadata && pi.metadata.orderId) || piId;
-          const sellerPubkey = pi.metadata?.sellerPubkey;
-          if (sellerPubkey) {
-            const sellers = sellerPubkey.includes(",")
-              ? sellerPubkey.split(",")
-              : [sellerPubkey];
+          // Referrals for this charge can live under two keys across the
+          // rollout boundary: the canonical PaymentIntent id (current
+          // process-transfers) and the legacy client-supplied metadata order
+          // id (pre-change rows). Reverse under BOTH — the reversal is
+          // idempotent per event, and a key with no matching rows is a no-op.
+          const legacyOrderId =
+            pi.metadata &&
+            typeof pi.metadata.orderId === "string" &&
+            pi.metadata.orderId
+              ? pi.metadata.orderId
+              : null;
+          // The authority marker is server-stamped at creation and stripped
+          // from caller metadata, so only UNMARKED intents — created before
+          // PI-id referral keying shipped — can genuinely carry order-keyed
+          // referral rows. On a marked (current) intent metadata.orderId is
+          // caller-controlled and must never drive DB mutation.
+          const isLegacyReferralEra =
+            pi.metadata?.[SPLIT_AUTHORITY_METADATA_KEY] !==
+            SPLIT_AUTHORITY_PENDING_RECORD;
+          const orderKeys =
+            isLegacyReferralEra && legacyOrderId && legacyOrderId !== piId
+              ? [piId, legacyOrderId]
+              : [piId];
+          const pending = await getPendingPaymentByIntentId(piId);
+          const recordSplits = pending?.metadata?.sellerSplits;
+          if (Array.isArray(recordSplits) && recordSplits.length > 0) {
+            // The seller set comes from the authoritative creation-time
+            // record — the forgeable metadata sellerPubkey is never
+            // consulted on this path, and the legacy order key is only ever
+            // applied to those authoritative sellers.
+            const sellers = new Set<string>();
+            for (const raw of recordSplits) {
+              if (!raw || typeof raw !== "object") continue;
+              const r = raw as Record<string, unknown>;
+              const pk =
+                typeof r.sellerPubkey === "string"
+                  ? r.sellerPubkey
+                  : typeof r.pubkey === "string"
+                    ? r.pubkey
+                    : null;
+              if (pk) sellers.add(pk);
+            }
             for (const sp of sellers) {
-              await reverseReferralsForOrder({
-                orderId,
-                sellerPubkey: sp.trim(),
-                // Pass both amounts so the helper can scale the rebate
-                // proportionally on partial refunds instead of clawing
-                // the whole thing back.
-                originalGrossSmallest: charge.amount ?? 0,
-                refundedSmallest: charge.amount_refunded ?? 0,
-                refundEventRef: event.id,
-              });
+              for (const key of orderKeys) {
+                await reverseReferralsForOrder({
+                  orderId: key,
+                  sellerPubkey: sp,
+                  originalGrossSmallest: charge.amount ?? 0,
+                  refundedSmallest: charge.amount_refunded ?? 0,
+                  refundEventRef: event.id,
+                });
+              }
+            }
+          } else {
+            // Recordless legacy intents (single-seller direct charges, or
+            // pre-record multi-seller): metadata sellers are all we have.
+            const sellerPubkey = pi.metadata?.sellerPubkey;
+            if (sellerPubkey) {
+              const sellers = sellerPubkey.includes(",")
+                ? sellerPubkey.split(",")
+                : [sellerPubkey];
+              for (const sp of sellers) {
+                for (const key of orderKeys) {
+                  await reverseReferralsForOrder({
+                    orderId: key,
+                    sellerPubkey: sp.trim(),
+                    // Pass both amounts so the helper can scale the rebate
+                    // proportionally on partial refunds instead of clawing
+                    // the whole thing back.
+                    originalGrossSmallest: charge.amount ?? 0,
+                    refundedSmallest: charge.amount_refunded ?? 0,
+                    refundEventRef: event.id,
+                  });
+                }
+              }
             }
           }
         }

@@ -8,6 +8,17 @@ export type PendingPaymentStatus =
   | "failed_terminal"
   | "abandoned";
 
+/**
+ * Server-owned marker stamped into a multi-seller PaymentIntent's metadata by
+ * create-payment-intent. Its presence tells process-transfers that an
+ * authoritative split record MUST exist in stripe_pending_payments — a
+ * marked intent with a missing/malformed record fails closed instead of
+ * falling back to the buyer's browser payload. Absence of the marker
+ * identifies genuinely legacy intents created before split persistence.
+ */
+export const SPLIT_AUTHORITY_METADATA_KEY = "ssSplitAuthority";
+export const SPLIT_AUTHORITY_PENDING_RECORD = "pending-record-v1";
+
 export interface PendingPaymentRecord {
   intentRef: string;
   paymentIntentId: string | null;
@@ -176,10 +187,40 @@ export async function getPendingPayment(
 }
 
 /**
+ * Look up a pending payment by its Stripe PaymentIntent id. Used by
+ * process-transfers to recover the authoritative server-computed split
+ * details instead of trusting the buyer's browser payload. Returns null only
+ * when the row genuinely does not exist (legacy PI created before split
+ * persistence, or a pruned terminal row) — DB errors propagate to the caller.
+ */
+export async function getPendingPaymentByIntentId(
+  paymentIntentId: string
+): Promise<PendingPaymentRecord | null> {
+  const pool = getDbPool();
+  const client = await pool.connect();
+  try {
+    await ensureTable(client);
+    const result = await client.query(
+      `SELECT * FROM stripe_pending_payments WHERE payment_intent_id = $1
+        ORDER BY created_at DESC LIMIT 1`,
+      [paymentIntentId]
+    );
+    if (result.rows.length === 0) return null;
+    return rowToRecord(result.rows[0]);
+  } finally {
+    client.release();
+  }
+}
+
+/**
  * Best-effort cleanup helper: drop terminal pending-payment records
  * (`succeeded`, `failed_terminal`, `abandoned`) older than `maxAgeMs`.
  * Active rows (`creating`, `created`) are preserved regardless of age so
- * orphan-recovery flows can still see them. Defaults to 30 days.
+ * orphan-recovery flows can still see them. Rows carrying multi-seller
+ * `sellerSplits` are NEVER pruned: they are the authoritative payout record
+ * process-transfers fails closed on, and a succeeded PaymentIntent can reach
+ * that route indefinitely (e.g. buyer closed the tab before transfer).
+ * Defaults to 30 days.
  */
 export async function pruneStripePendingPayments(
   maxAgeMs: number = 30 * 24 * 60 * 60 * 1000
@@ -191,7 +232,8 @@ export async function pruneStripePendingPayments(
     const result = await client.query(
       `DELETE FROM stripe_pending_payments
         WHERE updated_at < $1
-          AND status IN ('succeeded', 'failed_terminal', 'abandoned')`,
+          AND status IN ('succeeded', 'failed_terminal', 'abandoned')
+          AND (metadata -> 'sellerSplits') IS NULL`,
       [Date.now() - maxAgeMs]
     );
     return result.rowCount ?? 0;
