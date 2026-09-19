@@ -101,6 +101,13 @@ export default async function handler(
         safeMetadata[k] = s.length > 490 ? s.slice(0, 487) + "..." : s;
       }
     }
+    // These keys are server-owned proof of which sellers a charge belongs to
+    // (order-email payment verification trusts them fail-closed). A caller
+    // must never set them: in the normal multi-merchant branch the server's
+    // value would override anyway, but when that value is omitted (oversized
+    // pubkey list) an injected copy would survive and spoof seller membership.
+    delete safeMetadata.sellerSplitPubkeys;
+    delete safeMetadata.sellerSplits;
 
     // Validate customer email format if provided — Stripe rejects malformed
     // values and the resulting 400 surfaces as "invoice generation error".
@@ -309,6 +316,19 @@ export default async function handler(
         productDescription ? ` - ${productDescription}` : ""
       }`;
 
+      // Stripe caps every metadata value at 500 chars — the full split
+      // details JSON (donation + affiliate fields per seller) blows past that
+      // with just TWO sellers, which used to fail every multi-seller card
+      // checkout at PaymentIntent creation. The full details are persisted
+      // server-side in the pending-payment record below (keyed by the
+      // idempotency ref, carrying transferGroup) and echoed in this route's
+      // response; the PaymentIntent metadata only needs the participating
+      // seller pubkeys so card-payment verification (send-order-email) can
+      // confirm membership. Omitted entirely for pathological carts whose
+      // pubkey list alone would exceed the cap — verification then fails
+      // closed rather than the checkout failing.
+      const sellerSplitPubkeys = splitDetails.map((s) => s.pubkey).join(",");
+
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
         amount: amountInSmallestUnit,
         currency: stripeCurrency,
@@ -327,20 +347,9 @@ export default async function handler(
             taxCalculationId && {
               taxCalculationId: String(taxCalculationId),
             }),
-          sellerSplits: JSON.stringify(
-            splitDetails.map((s) => ({
-              pubkey: s.pubkey,
-              amountCents: s.amountCents,
-              accountId: s.accountId,
-              donationPercent: s.donationPercent,
-              donationCutSmallest: s.donationCutSmallest,
-              affiliateRebateSmallest: s.affiliateRebateSmallest,
-              affiliateAccountId: s.affiliateAccountId,
-              affiliateId: s.affiliateId,
-              affiliateCodeId: s.affiliateCodeId,
-              affiliateCode: s.affiliateCode,
-            }))
-          ),
+          ...(sellerSplitPubkeys.length <= 490 && {
+            sellerSplitPubkeys,
+          }),
         },
         payment_method_types: ["card"],
       };
@@ -364,7 +373,10 @@ export default async function handler(
           intentRef: intentRefMM,
           amount: amountInSmallestUnit,
           currency: stripeCurrency,
-          metadata: { ...metadata, transferGroup },
+          // Full per-seller split details live here (JSONB, no size cap) as
+          // the durable server-side record — the Stripe metadata above only
+          // carries the compact pubkey list.
+          metadata: { ...metadata, transferGroup, sellerSplits: splitDetails },
         });
       } catch (e) {
         console.warn("recordPendingPayment failed:", e);
