@@ -17,6 +17,7 @@ import {
 import { syncProStripeMeta } from "@/utils/db/pro-membership";
 import { getSellerNotificationEmail } from "@/utils/db/db-service";
 import { isProTerm } from "@/utils/pro/constants";
+import { resolveSubscriptionPaymentIntent } from "@/utils/stripe/subscription-payment-intent";
 
 // Starts a Pro subscription on the PLATFORM Stripe account (seller = customer).
 // Returns a PaymentIntent client secret for the client to confirm the card.
@@ -96,8 +97,12 @@ export default async function handler(
       cancelAtPeriodEnd: !!subscription.cancel_at_period_end,
     });
 
-    const latestInvoice = subscription.latest_invoice as any;
-    const paymentIntent = latestInvoice?.payment_intent;
+    // Clover (Basil family) removed Invoice.payment_intent, so the expand
+    // above yields nothing — resolve the PI via the invoice's payments.
+    const paymentIntent = await resolveSubscriptionPaymentIntent(
+      stripe,
+      subscription
+    );
 
     return res.status(200).json({
       subscriptionId: subscription.id,

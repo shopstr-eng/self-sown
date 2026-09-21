@@ -19,6 +19,8 @@ const mockPricesCreate = jest.fn();
 const mockSubscriptionsCreate = jest.fn();
 const mockInvoiceItemsCreate = jest.fn();
 const mockCouponsCreate = jest.fn();
+const mockInvoicePaymentsList = jest.fn();
+const mockPaymentIntentsRetrieve = jest.fn();
 
 jest.mock("stripe", () => {
   const Stripe = jest.fn().mockImplementation(() => ({
@@ -35,6 +37,12 @@ jest.mock("stripe", () => {
       create: (...args: any[]) => mockInvoiceItemsCreate(...args),
     },
     coupons: { create: (...args: any[]) => mockCouponsCreate(...args) },
+    invoicePayments: {
+      list: (...args: any[]) => mockInvoicePaymentsList(...args),
+    },
+    paymentIntents: {
+      retrieve: (...args: any[]) => mockPaymentIntentsRetrieve(...args),
+    },
   }));
   return { __esModule: true, default: Stripe };
 });
@@ -133,9 +141,19 @@ beforeEach(() => {
   mockPricesCreate.mockResolvedValue({ id: "price_1" });
   mockSubscriptionsCreate.mockResolvedValue({
     id: "sub_1",
-    status: "active",
+    status: "incomplete",
     current_period_end: 1893456000,
-    latest_invoice: { payment_intent: { client_secret: "pi_secret" } },
+    // Clover (Basil family) shape: NO top-level payment_intent on the
+    // invoice — the route must resolve the PI via invoicePayments +
+    // paymentIntents.retrieve or the buyer's card form never renders.
+    latest_invoice: { id: "in_1" },
+  });
+  mockInvoicePaymentsList.mockResolvedValue({
+    data: [{ payment: { payment_intent: "pi_1" } }],
+  });
+  mockPaymentIntentsRetrieve.mockResolvedValue({
+    id: "pi_1",
+    client_secret: "pi_secret",
   });
   mockInvoiceItemsCreate.mockResolvedValue({ id: "ii_1" });
   mockCouponsCreate.mockResolvedValue({ id: "coupon_1" });
@@ -193,6 +211,58 @@ describe("POST /api/stripe/create-subscription — connected_account_id stamping
     expect(mockCreateSubscription).toHaveBeenCalledWith(
       expect.objectContaining({ connected_account_id: null })
     );
+  });
+
+  it("resolves the buyer's clientSecret via invoicePayments on the clover invoice shape", async () => {
+    // #453: apiVersion 2025-09-30.clover (Basil family) removed
+    // Invoice.payment_intent, so expand:["latest_invoice.payment_intent"]
+    // silently yields nothing — the buyer's card form is gated on this
+    // secret, and a null here means the form never renders. The default
+    // fixture above is the clover shape.
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: CONNECT_ACCOUNT,
+      charges_enabled: true,
+    });
+
+    const res = makeRes();
+    await createSubscriptionHandler(makeReq(singleBody), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientSecret).toBe("pi_secret");
+    // Direct charge on the connected account — the PI lookup must carry
+    // the same stripeAccount header as the subscription create.
+    expect(mockInvoicePaymentsList).toHaveBeenCalledWith(
+      { invoice: "in_1", limit: 10 },
+      { stripeAccount: CONNECT_ACCOUNT }
+    );
+    expect(mockPaymentIntentsRetrieve).toHaveBeenCalledWith(
+      "pi_1",
+      {},
+      { stripeAccount: CONNECT_ACCOUNT }
+    );
+  });
+
+  it("still resolves the pre-Basil expanded shape without the invoicePayments fallback", async () => {
+    // If the API version pin ever rolls back, the expanded
+    // latest_invoice.payment_intent must be used directly — the extra calls
+    // must NOT fire (and nothing may 500 on their absence).
+    mockSubscriptionsCreate.mockResolvedValue({
+      id: "sub_1",
+      status: "incomplete",
+      current_period_end: 1893456000,
+      latest_invoice: {
+        id: "in_1",
+        payment_intent: { id: "pi_1", client_secret: "pi_secret" },
+      },
+    });
+
+    const res = makeRes();
+    await createSubscriptionHandler(makeReq(singleBody), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientSecret).toBe("pi_secret");
+    expect(mockInvoicePaymentsList).not.toHaveBeenCalled();
+    expect(mockPaymentIntentsRetrieve).not.toHaveBeenCalled();
   });
 });
 
