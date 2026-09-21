@@ -10,6 +10,12 @@
  * pages/api/stripe/create-cart-subscription.ts and the same shape existed in
  * the order/checkout routes pinned here.
  *
+ * Note: broad coverage now comes from the type-aware ESLint rule
+ * `@typescript-eslint/return-await` ("in-try-catch") in eslint.config.mjs,
+ * which flags ANY `return promise` inside try/catch in pages/api regardless
+ * of the callee's name. The name-based scan below remains as a fast,
+ * lint-independent tripwire.
+ *
  * Two layers:
  *  1. A source scan over pages/api forbidding bare `return handleX(...)`
  *     without `await` (the audit grep from .agents/memory/unawaited-helper-returns.md).
