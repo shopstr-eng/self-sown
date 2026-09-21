@@ -100,6 +100,9 @@ jest.mock("@/utils/stripe/pending-payments", () => ({
   getPendingPayment: (...args: unknown[]) => getPendingPaymentMock(...args),
   SPLIT_AUTHORITY_METADATA_KEY: "ssSplitAuthority",
   SPLIT_AUTHORITY_PENDING_RECORD: "pending-record-v1",
+  SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY: "subscriptionAttemptTracked",
+  SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY: "subscriptionCreateAttemptedAt",
+  SUBSCRIPTION_CREATE_FAILED_METADATA_KEY: "subscriptionCreateFailedAt",
 }));
 
 import handler from "@/pages/api/stripe/create-cart-subscription";
@@ -604,6 +607,84 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       attempt1OneTimePrice
     );
     expect(stripeInvoiceItemsCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("stamps the conclusive-failure marker when Stripe refuses the create with a 4xx, but not for an ambiguous timeout", async () => {
+    // #436: the prune sweep deletes split records only with durable proof
+    // that no subscription exists. A 4xx is a processed refusal — an
+    // idempotent replay returns the same refusal, so nothing exists under
+    // the key. A timeout/5xx is ambiguous: Stripe may hold a live
+    // subscription, and the webhook pays renewals out of this record
+    // regardless of status, so the marker must NOT be stamped.
+    const stripeRefusal = Object.assign(new Error("card declined"), {
+      statusCode: 402,
+    });
+    stripeSubscriptionsCreateMock.mockRejectedValueOnce(stripeRefusal);
+    // The catch re-reads the record to merge the marker without clobbering
+    // the stamped allocations.
+    getPendingPaymentMock.mockResolvedValueOnce({
+      intentRef: "cart_sub_cartsub_test_key",
+      status: "creating",
+      metadata: {
+        transferGroup: "cart_sub_cartsub_test_key",
+        sellerSplits: [{ pubkey: SELLER_A, amountCents: 100 }],
+        priceAllocations: [
+          { priceId: "price_1", sellerPubkey: SELLER_A, quantity: 1, recurring: true },
+        ],
+        kind: "cart-subscription",
+        subscriptionAttemptTracked: true,
+        subscriptionCreateAttemptedAt: Date.now(),
+      },
+    } as any);
+
+    const res1 = makeRes();
+    await handler(makeReq(twoSellerCartBody()), res1);
+    expect(res1.statusCode).toBe(500);
+
+    const conclusiveRelease = updatePendingPaymentMock.mock.calls.find(
+      (c) => c[1]?.status === "failed_terminal"
+    );
+    expect(conclusiveRelease).toBeDefined();
+    expect(
+      conclusiveRelease![1].metadata.subscriptionCreateFailedAt
+    ).toEqual(expect.any(Number));
+    // The merge preserved the pre-existing allocation data.
+    expect(conclusiveRelease![1].metadata.priceAllocations).toHaveLength(1);
+    // The pre-create marker was stamped BEFORE the create call.
+    const attemptStamp = updatePendingPaymentMock.mock.calls.find(
+      (c) => c[1]?.metadata?.subscriptionCreateAttemptedAt
+    );
+    expect(attemptStamp).toBeDefined();
+
+    // Attempt 2: the create TIMES OUT (no statusCode) — ambiguous. The
+    // release must carry NO conclusive-failure marker so the record stays
+    // unprunable while a live subscription may exist at Stripe.
+    jest.clearAllMocks();
+    recordPendingPaymentMock.mockResolvedValue({
+      created: true,
+      claimToken: "tok_1",
+    });
+    reclaimPendingPaymentMock.mockResolvedValue(null);
+    updatePendingPaymentMock.mockResolvedValue(undefined);
+    getPendingPaymentMock.mockResolvedValue(null);
+    getSellerDonationPercentMock.mockResolvedValue(2);
+    trustedRegistrationHostMock.mockResolvedValue(null);
+    registerApplePayDomainMock.mockResolvedValue(undefined);
+    createSubscriptionMock.mockResolvedValue(undefined);
+    applyRateLimitMock.mockResolvedValue(true);
+    stripeSubscriptionsCreateMock.mockRejectedValueOnce(
+      new Error("read ETIMEDOUT")
+    );
+
+    const res2 = makeRes();
+    await handler(makeReq(twoSellerCartBody()), res2);
+    expect(res2.statusCode).toBe(500);
+
+    const ambiguousRelease = updatePendingPaymentMock.mock.calls.find(
+      (c) => c[1]?.status === "failed_terminal"
+    );
+    expect(ambiguousRelease).toBeDefined();
+    expect(ambiguousRelease![1].metadata).toBeUndefined();
   });
 
   it("of two simultaneous retries after a failed attempt, exactly one wins the reclaim fence and the other 409s", async () => {

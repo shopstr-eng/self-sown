@@ -102,6 +102,9 @@ import {
   getPendingPayment,
   markPendingSubscriptionTerminal,
   pruneStripePendingPayments,
+  SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY,
+  SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY,
+  SUBSCRIPTION_CREATE_FAILED_METADATA_KEY,
   SUBSCRIPTION_TERMINAL_METADATA_KEY,
 } from "@/utils/stripe/pending-payments";
 
@@ -265,6 +268,128 @@ describe("pruneStripePendingPayments", () => {
     await pruneStripePendingPayments();
     expect(rowCountFor("card_split_succeeded_old")).toBe(1);
     expect(rowCountFor("plain_succeeded_old")).toBe(0);
+  });
+
+  it("sweeps attempts with durable evidence that no Stripe subscription exists", async () => {
+    // #436: a multi-seller subscription attempt persists its split record
+    // BEFORE any Stripe object exists. Status alone can never prove the
+    // absence of a subscription (a crash after a Stripe-side create leaves
+    // 'creating'; a post-create timeout is marked 'failed_terminal'), so the
+    // sweep keys off lifecycle markers: TRACKED-without-ATTEMPTED means the
+    // attempt died before the create call; FAILED means Stripe conclusively
+    // refused the create (4xx).
+    const tracked = {
+      ...SPLITS_METADATA,
+      [SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY]: true,
+    };
+    await insertRow({
+      intentRef: "cart_sub_abandoned_old",
+      status: "abandoned",
+      metadata: { ...tracked },
+      updatedAt: OLD,
+    });
+    await insertRow({
+      intentRef: "cart_sub_failed_old",
+      status: "failed_terminal",
+      metadata: { ...tracked },
+      updatedAt: OLD,
+    });
+    // Stuck in 'creating' far beyond the 120s reclaim window: the attempt
+    // died in validation or product/price setup, before the create call.
+    await insertRow({
+      intentRef: "cart_sub_stale_creating_old",
+      status: "creating",
+      metadata: { ...tracked },
+      updatedAt: OLD,
+    });
+    // Conclusively refused by Stripe — the create WAS attempted, but the
+    // 4xx proves no subscription exists under the idempotency key.
+    await insertRow({
+      intentRef: "cart_sub_create_rejected_old",
+      status: "failed_terminal",
+      metadata: {
+        ...tracked,
+        [SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY]: OLD,
+        [SUBSCRIPTION_CREATE_FAILED_METADATA_KEY]: OLD,
+      },
+      updatedAt: OLD,
+    });
+    await insertRow({
+      intentRef: "cart_sub_live_created_old",
+      status: "created",
+      metadata: { ...SPLITS_METADATA, stripeSubscriptionId: "sub_live" },
+      updatedAt: OLD,
+    });
+
+    await pruneStripePendingPayments();
+    expect(rowCountFor("cart_sub_abandoned_old")).toBe(0);
+    expect(rowCountFor("cart_sub_failed_old")).toBe(0);
+    expect(rowCountFor("cart_sub_stale_creating_old")).toBe(0);
+    expect(rowCountFor("cart_sub_create_rejected_old")).toBe(0);
+    expect(rowCountFor("cart_sub_live_created_old")).toBe(1);
+  });
+
+  it("preserves ambiguous rows where Stripe may hold a live subscription", async () => {
+    // #436 review: ATTEMPTED without FAILED means the create call's outcome
+    // is unknowable — a process crash after a Stripe-side success (row stays
+    // 'creating') or a timeout after Stripe accepted the idempotent create
+    // (row marked 'failed_terminal'). The invoice.paid webhook pays renewals
+    // out of this record regardless of status, so sweeping it would silently
+    // stop seller payouts on a LIVE subscription.
+    const ambiguous = {
+      ...SPLITS_METADATA,
+      [SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY]: true,
+      [SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY]: OLD,
+    };
+    await insertRow({
+      intentRef: "cart_sub_crashed_post_create",
+      status: "creating",
+      metadata: { ...ambiguous },
+      updatedAt: OLD,
+    });
+    await insertRow({
+      intentRef: "cart_sub_timed_out_post_create",
+      status: "failed_terminal",
+      metadata: { ...ambiguous },
+      updatedAt: OLD,
+    });
+    await insertRow({
+      intentRef: "cart_sub_abandoned_post_attempt",
+      status: "abandoned",
+      metadata: { ...ambiguous },
+      updatedAt: OLD,
+    });
+    // Legacy rows predate the lifecycle markers: their history is
+    // unknowable, so they stay unprunable even in a terminal-looking status.
+    await insertRow({
+      intentRef: "cart_sub_legacy_failed_old",
+      status: "failed_terminal",
+      metadata: { ...SPLITS_METADATA },
+      updatedAt: OLD,
+    });
+
+    await pruneStripePendingPayments();
+    expect(rowCountFor("cart_sub_crashed_post_create")).toBe(1);
+    expect(rowCountFor("cart_sub_timed_out_post_create")).toBe(1);
+    expect(rowCountFor("cart_sub_abandoned_post_attempt")).toBe(1);
+    expect(rowCountFor("cart_sub_legacy_failed_old")).toBe(1);
+  });
+
+  it("keeps an abandoned attempt's split record inside the grace window", async () => {
+    // A freshly-failed attempt must survive: the buyer's retry reclaims it
+    // via the fenced reclaim path instead of starting over.
+    await insertRow({
+      intentRef: "cart_sub_abandoned_recent",
+      status: "abandoned",
+      metadata: {
+        ...SPLITS_METADATA,
+        [SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY]: true,
+      },
+      updatedAt: NOW,
+    });
+
+    await pruneStripePendingPayments();
+    expect(rowCountFor("cart_sub_abandoned_recent")).toBe(1);
   });
 
   it("never prunes a card split record even if a terminal key lands in its metadata", async () => {
