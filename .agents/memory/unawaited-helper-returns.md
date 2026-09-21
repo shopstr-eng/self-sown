@@ -16,12 +16,19 @@ when a new fail-closed write was added inside the helper and tested.
 
 **How to apply:** when a helper gains a throwing call, check the call site:
 `return helper(...)` inside try/catch must become `return await helper(...)`.
-pages/api is guarded by the type-aware `@typescript-eslint/return-await`
-("in-try-catch") rule in eslint.config.mjs, backed by tsconfig.eslint.json
-(a lint-only program that, unlike tsconfig.json, covers pages/api/mcp and
-the .well-known dot-directory). New server code OUTSIDE pages/api has no
-automated guard — audit manually. Note that lint rules like `no-return-await`
-push the wrong way here — the await is semantically required inside try/catch.
+Server-side code is guarded by the type-aware `@typescript-eslint/return-await`
+("in-try-catch") rule — see eslint.config.mjs for the current scope; client
+components are intentionally excluded. Note that lint rules like
+`no-return-await` push the wrong way here — the await is semantically required
+inside try/catch. The rule also flags redundant `return await` OUTSIDE
+try/catch; removing those is behavior-neutral.
+
+When the flagged call sits inside a try/finally that holds a POOLED DB client,
+do NOT fix it by awaiting a helper that checks out its own client from the
+same pool — holding one client while waiting for a second deadlocks the pool
+(max 10) under concurrency. Run the follow-up query on the already-held
+client instead (and re-check the query's ownership scoping — the helper's
+may differ from the caller's).
 
 Await alone is not enough if the route's PREAMBLE (rate limit, table init,
 auth) still runs before the try opens: those steps hit the DB directly, so

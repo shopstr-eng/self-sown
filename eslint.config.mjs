@@ -47,11 +47,19 @@ export default [
     },
   },
   {
-    // Type-aware block, scoped to API routes: `return someHelper()` (no await)
-    // inside a try/catch lets an async throw escape the route's error mapping
-    // as an unhandled rejection. The rule requires type info, so it stays out
-    // of the base block to keep repo-wide lint fast.
-    files: ["pages/api/**/*.{ts,tsx}"],
+    // Type-aware block, scoped to server-side code: `return someHelper()`
+    // (no await) inside a try/catch lets an async throw escape the handler's
+    // error mapping as an unhandled rejection, silently skipping cleanup,
+    // claim release, or error logging. Covers API routes, the MCP server, and
+    // utils/ (the modules called from API/webhook/cron handlers). Client-side
+    // components are intentionally excluded — the bug shape is server-specific.
+    // The rule requires type info, so it stays out of the base block to keep
+    // repo-wide lint fast.
+    files: [
+      "pages/api/**/*.{ts,tsx}",
+      "mcp/**/*.ts",
+      "utils/**/*.{ts,tsx}",
+    ],
     languageOptions: {
       parserOptions: {
         // tsconfig.eslint.json covers pages/api/mcp and the .well-known
