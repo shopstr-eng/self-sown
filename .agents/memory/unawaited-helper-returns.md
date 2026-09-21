@@ -19,3 +19,11 @@ when a new fail-closed write was added inside the helper and tested.
 When auditing, grep `return handle[A-Z]` without `await` in pages/api. Note
 that lint rules like `no-return-await` push the wrong way here — the await
 is semantically required inside try/catch.
+
+Await alone is not enough if the route's PREAMBLE (rate limit, table init,
+auth) still runs before the try opens: those steps hit the DB directly, so
+the entire handler body must sit inside the one try/catch. When testing a
+route that memoizes table init behind a module-level `ready` flag, an
+init-rejection case only works on a fresh module — `jest.resetModules()` +
+dynamic re-import, or a prior passing test's flag skips the init call and
+the rejection mock is never consumed.

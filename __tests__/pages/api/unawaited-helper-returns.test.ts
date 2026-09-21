@@ -95,6 +95,13 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
   fetchAllProductsFromDb: (...args: any[]) =>
     mockFetchAllProductsFromDb(...args),
+  markDiscountCodeUsed: jest.fn(),
+}));
+
+jest.mock("@cashu/cashu-ts", () => ({
+  Mint: jest.fn(),
+  Wallet: jest.fn(),
+  MintQuoteState: { UNPAID: "UNPAID", PAID: "PAID", ISSUED: "ISSUED" },
 }));
 
 jest.mock("@/utils/parsers/product-parser-functions", () => ({
@@ -132,6 +139,7 @@ jest.mock("@/utils/nostr/nip98-auth", () => ({
 import createOrderHandler from "@/pages/api/mcp/create-order";
 import checkoutSessionsHandler from "@/pages/api/ucp/checkout/sessions";
 import inventoryHandler from "@/pages/api/inventory";
+import verifyPaymentHandler from "@/pages/api/mcp/verify-payment";
 
 // ---------------------------------------------------------------------------
 // Test harness
@@ -321,6 +329,85 @@ describe("GET /api/ucp/checkout/sessions", () => {
     expect(res.body).toMatchObject({
       error: "Failed to list checkout sessions",
     });
+  });
+});
+
+describe("preamble failures (table init / auth)", () => {
+  // The routes memoize table init behind a module-level `tablesReady` flag, so
+  // a rejection there is only reachable on a FRESH module instance — reset the
+  // registry and re-import, or the flag from an earlier test skips the call.
+  it("create-order resolves a clean 500 JSON when table init rejects", async () => {
+    mockInitializeApiKeysTable.mockRejectedValueOnce(new Error("db down"));
+    jest.resetModules();
+    const { default: handler } = await import("@/pages/api/mcp/create-order");
+    const res = await run(
+      handler,
+      createRequest("POST", { body: { productId: "p1" } })
+    );
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toMatchObject({ error: "Internal server error" });
+  });
+
+  it("create-order resolves a clean 500 JSON when auth rejects", async () => {
+    mockAuthenticateRequest.mockRejectedValue(new Error("db down"));
+    const res = await run(
+      createOrderHandler,
+      createRequest("POST", { body: { productId: "p1" } })
+    );
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toMatchObject({ error: "Internal server error" });
+  });
+
+  it("checkout sessions resolves a clean 500 JSON when table init rejects", async () => {
+    mockInitializeApiKeysTable.mockRejectedValueOnce(new Error("db down"));
+    jest.resetModules();
+    const { default: handler } = await import(
+      "@/pages/api/ucp/checkout/sessions"
+    );
+    const res = await run(
+      handler,
+      createRequest("POST", { body: { productId: "p1" } })
+    );
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toMatchObject({
+      error: "Failed to process checkout session request",
+    });
+  });
+
+  it("checkout sessions resolves a clean 500 JSON when auth rejects", async () => {
+    mockAuthenticateRequest.mockRejectedValue(new Error("db down"));
+    const res = await run(
+      checkoutSessionsHandler,
+      createRequest("POST", { body: { productId: "p1" } })
+    );
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toMatchObject({
+      error: "Failed to process checkout session request",
+    });
+  });
+
+  it("verify-payment resolves a clean 500 JSON when table init rejects", async () => {
+    mockInitializeApiKeysTable.mockRejectedValueOnce(new Error("db down"));
+    jest.resetModules();
+    const { default: handler } = await import(
+      "@/pages/api/mcp/verify-payment"
+    );
+    const res = await run(
+      handler,
+      createRequest("POST", { body: { orderId: "o1" } })
+    );
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toMatchObject({ error: "Failed to verify payment" });
+  });
+
+  it("verify-payment resolves a clean 500 JSON when auth rejects", async () => {
+    mockAuthenticateRequest.mockRejectedValue(new Error("db down"));
+    const res = await run(
+      verifyPaymentHandler,
+      createRequest("POST", { body: { orderId: "o1" } })
+    );
+    expect(res.statusCode).toBe(500);
+    expect(res.body).toMatchObject({ error: "Failed to verify payment" });
   });
 });
 
