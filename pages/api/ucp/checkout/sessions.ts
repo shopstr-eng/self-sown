@@ -71,32 +71,39 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!(await applyRateLimit(req, res, "ucp-checkout-sessions:ip", RATE_LIMIT)))
-    return;
-
-  await ensureTables();
-
-  const apiKey = await authenticateRequest(req, res, "read_write");
-  if (!apiKey) return;
-
-  if (
-    !(await applyRateLimit(
-      req,
-      res,
-      "ucp-checkout-sessions:key",
-      PER_KEY_LIMIT,
-      String(apiKey.id)
-    ))
-  ) {
-    return;
-  }
-
-  const baseUrl = deriveBaseUrl(req);
-
-  // AWAIT + try/catch, not bare return: without the await an async throw
-  // inside a helper escapes any try/catch here as an unhandled rejection
-  // instead of becoming a clean 500 JSON response.
+  // The WHOLE remaining body — rate limit, table init, auth, and dispatch —
+  // sits inside one try/catch. Table init and auth hit the DB directly, so an
+  // outage in any preamble step must also resolve as the route's clean 500
+  // JSON instead of an unhandled rejection. (The rate limiter itself fails
+  // open on store errors by design.)
   try {
+    if (
+      !(await applyRateLimit(req, res, "ucp-checkout-sessions:ip", RATE_LIMIT))
+    )
+      return;
+
+    await ensureTables();
+
+    const apiKey = await authenticateRequest(req, res, "read_write");
+    if (!apiKey) return;
+
+    if (
+      !(await applyRateLimit(
+        req,
+        res,
+        "ucp-checkout-sessions:key",
+        PER_KEY_LIMIT,
+        String(apiKey.id)
+      ))
+    ) {
+      return;
+    }
+
+    const baseUrl = deriveBaseUrl(req);
+
+    // AWAIT + try/catch, not bare return: without the await an async throw
+    // inside a helper escapes any try/catch here as an unhandled rejection
+    // instead of becoming a clean 500 JSON response.
     if (req.method === "GET") {
       return await handleList(req, res, apiKey.pubkey, baseUrl);
     }

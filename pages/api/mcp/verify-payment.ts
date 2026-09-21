@@ -32,51 +32,57 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const requestStart = Date.now();
-  await ensureTables();
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed. Use POST." });
-  }
-
-  if (!(await applyRateLimit(req, res, "mcp-verify-payment:ip", RATE_LIMIT))) {
-    recordRequest(Date.now() - requestStart, false, "verify-payment");
-    return;
-  }
-
-  const apiKey = await authenticateRequest(req, res, "read_write");
-  if (!apiKey) {
-    recordRequest(Date.now() - requestStart, false, "verify-payment");
-    return;
-  }
-
-  if (
-    !(await applyRateLimit(
-      req,
-      res,
-      "mcp-verify-payment:key",
-      PER_KEY_LIMIT,
-      String(apiKey.id)
-    ))
-  ) {
-    recordRequest(Date.now() - requestStart, false, "verify-payment");
-    return;
-  }
-
-  const originalEnd = res.end.bind(res);
-  (res as any).end = function (...args: any[]) {
-    const durationMs = Date.now() - requestStart;
-    res.setHeader("X-Response-Time", `${durationMs}ms`);
-    recordRequest(durationMs, res.statusCode < 500, "verify-payment");
-    return originalEnd(...args);
-  };
-
-  const { orderId } = req.body;
-
-  if (!orderId) {
-    return res.status(400).json({ error: "orderId is required" });
-  }
-
+  // The WHOLE handler body — table init, rate limit, auth, and dispatch — sits
+  // inside one try/catch. Table init and auth hit the DB directly, so an
+  // outage in any preamble step must also resolve as the route's clean 500
+  // JSON instead of an unhandled rejection. (The rate limiter itself fails
+  // open on store errors by design.)
   try {
+    await ensureTables();
+
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed. Use POST." });
+    }
+
+    if (!(await applyRateLimit(req, res, "mcp-verify-payment:ip", RATE_LIMIT))) {
+      recordRequest(Date.now() - requestStart, false, "verify-payment");
+      return;
+    }
+
+    const apiKey = await authenticateRequest(req, res, "read_write");
+    if (!apiKey) {
+      recordRequest(Date.now() - requestStart, false, "verify-payment");
+      return;
+    }
+
+    if (
+      !(await applyRateLimit(
+        req,
+        res,
+        "mcp-verify-payment:key",
+        PER_KEY_LIMIT,
+        String(apiKey.id)
+      ))
+    ) {
+      recordRequest(Date.now() - requestStart, false, "verify-payment");
+      return;
+    }
+
+    const originalEnd = res.end.bind(res);
+    (res as any).end = function (...args: any[]) {
+      const durationMs = Date.now() - requestStart;
+      res.setHeader("X-Response-Time", `${durationMs}ms`);
+      recordRequest(durationMs, res.statusCode < 500, "verify-payment");
+      return originalEnd(...args);
+    };
+
+    const { orderId } = req.body;
+
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
+
     const order = await getMcpOrder(orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
