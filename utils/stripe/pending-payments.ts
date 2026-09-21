@@ -31,6 +31,34 @@ export const SPLIT_AUTHORITY_PENDING_RECORD = "pending-record-v1";
  */
 export const SUBSCRIPTION_TERMINAL_METADATA_KEY = "subscriptionTerminalAt";
 
+/**
+ * Lifecycle evidence for the prune sweep. Status alone can never prove a
+ * Stripe subscription does NOT exist: `creating` survives until after the
+ * create call returns (a crash in between leaves a live subscription behind)
+ * and `failed_terminal` is also written for post-create timeouts where Stripe
+ * may have accepted the idempotent create. So the cart-subscription route
+ * stamps durable markers instead:
+ * - TRACKED: written into the record at creation time. Its presence ALSO
+ *   distinguishes new rows from pre-marker legacy rows, which stay
+ *   unprunable (their history is unknowable).
+ * - ATTEMPTED: written immediately BEFORE stripe.subscriptions.create. A
+ *   tracked row WITHOUT it never reached the create call, so no subscription
+ *   can exist under the attempt's idempotency key — safe to sweep.
+ * - FAILED: written only on a CONCLUSIVE Stripe rejection (HTTP 4xx — the
+ *   request was processed and refused, and an idempotent replay returns the
+ *   same refusal). Timeouts/connection/5xx are ambiguous: Stripe may hold a
+ *   live subscription, so the row is preserved.
+ * A row with ATTEMPTED but neither FAILED nor a stripeSubscriptionId is
+ * ambiguous and must NEVER be pruned — the invoice.paid webhook pays
+ * renewals out of it regardless of status.
+ */
+export const SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY =
+  "subscriptionAttemptTracked";
+export const SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY =
+  "subscriptionCreateAttemptedAt";
+export const SUBSCRIPTION_CREATE_FAILED_METADATA_KEY =
+  "subscriptionCreateFailedAt";
+
 export interface PendingPaymentRecord {
   intentRef: string;
   paymentIntentId: string | null;
@@ -345,11 +373,20 @@ export async function markPendingSubscriptionTerminal(
  * (`succeeded`, `failed_terminal`, `abandoned`) older than `maxAgeMs`.
  * Active rows (`creating`, `created`) are preserved regardless of age so
  * orphan-recovery flows can still see them. Rows carrying multi-seller
- * `sellerSplits` are pruned ONLY once marked terminal (subscription cancelled
+ * `sellerSplits` are pruned once marked terminal (subscription cancelled
  * for good — see markPendingSubscriptionTerminal) and older than the same
- * window; unmarked split rows are NEVER pruned because a succeeded
- * PaymentIntent can reach process-transfers indefinitely (e.g. buyer closed
- * the tab before transfer) and an active subscription keeps renewing.
+ * window. Additionally, a cart-subscription split row is swept when it
+ * carries durable evidence that no Stripe subscription can exist under its
+ * idempotency key (see the lifecycle markers above): either the attempt was
+ * TRACKED but the create call was never ATTEMPTED (it died in validation or
+ * product/price setup), or the create was conclusively rejected by Stripe
+ * (FAILED — HTTP 4xx, replay-identical refusal). Status alone is NEVER
+ * evidence: `creating` can hide a live subscription whose post-create
+ * bookkeeping crashed, and `failed_terminal` can hide one whose create
+ * succeeded Stripe-side but timed out on the wire — those ambiguous rows
+ * (ATTEMPTED without FAILED) are preserved, as are unmarked legacy rows and
+ * card split rows (a succeeded PaymentIntent can reach process-transfers
+ * indefinitely).
  * Defaults to 30 days.
  */
 export async function pruneStripePendingPayments(
@@ -370,7 +407,25 @@ export async function pruneStripePendingPayments(
             OR (
               (metadata -> 'sellerSplits') IS NOT NULL
               AND metadata ->> 'kind' = 'cart-subscription'
-              AND (metadata ->> '${SUBSCRIPTION_TERMINAL_METADATA_KEY}') IS NOT NULL
+              AND (
+                (metadata ->> '${SUBSCRIPTION_TERMINAL_METADATA_KEY}') IS NOT NULL
+                -- Conclusive refusal: Stripe processed the create and
+                -- rejected it (4xx), so no subscription exists under the
+                -- attempt's idempotency key regardless of how the route's
+                -- own bookkeeping ended.
+                OR (metadata ->> '${SUBSCRIPTION_CREATE_FAILED_METADATA_KEY}') IS NOT NULL
+                -- Never reached the create call: the attempt died in
+                -- validation or product/price setup, so nothing exists at
+                -- Stripe under the idempotency key. The TRACKED marker gates
+                -- this so pre-marker legacy rows (unknowable history) stay
+                -- unprunable.
+                OR (
+                  (metadata ->> '${SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY}') IS NOT NULL
+                  AND (metadata ->> '${SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY}') IS NULL
+                )
+                -- ATTEMPTED-without-FAILED rows are AMBIGUOUS (post-create
+                -- timeout / process death) and are deliberately NOT swept.
+              )
             )
           )`,
       [Date.now() - maxAgeMs]

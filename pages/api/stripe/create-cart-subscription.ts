@@ -36,6 +36,9 @@ import {
   getPendingPayment,
   SPLIT_AUTHORITY_METADATA_KEY,
   SPLIT_AUTHORITY_PENDING_RECORD,
+  SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY,
+  SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY,
+  SUBSCRIPTION_CREATE_FAILED_METADATA_KEY,
 } from "@/utils/stripe/pending-payments";
 
 const FREQUENCY_TO_INTERVAL: Record<
@@ -613,6 +616,10 @@ async function handleMultiMerchantSubscription(
       // JSONB has no 500-char cap — the product-coordinate lists that would
       // blow Stripe metadata live here.
       productEventIds: items.map((i) => i.productEventId),
+      // Lifecycle tracking for the prune sweep: from here on, this record's
+      // metadata durably records how far the attempt got, so cleanup can
+      // tell "no subscription can exist" apart from "unknowable".
+      [SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY]: true,
     },
   });
   // The token fences every later conditional write: a reclaim rotates it,
@@ -803,6 +810,9 @@ async function handleMultiMerchantSubscription(
           sellerSplits,
           priceAllocations,
           kind: "cart-subscription",
+          // metadata writes REPLACE wholesale — restate the lifecycle marker
+          // stamped at record creation or it is silently dropped here.
+          [SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY]: true,
         },
       });
     }
@@ -830,6 +840,29 @@ async function handleMultiMerchantSubscription(
         sellerPubkeys: sellerPubkeysJoined,
       }),
     };
+
+    // Durable pre-create marker, stamped BEFORE the create call: after this
+    // lands, a crash/timeout leaves an AMBIGUOUS record (attempted, never
+    // conclusively failed) that the prune sweep must preserve, because
+    // Stripe may hold a live subscription under the idempotency key. Fail
+    // closed like the allocation stamp above: without this marker the same
+    // crash window would leave a row that looks safe to delete. Token-gated
+    // for the same reason as every other bookkeeping write; the marker also
+    // clears any stale FAILED flag from a previous reclaimed attempt.
+    if (attemptToken) {
+      await updatePendingPayment(transferGroup, {
+        claimToken: attemptToken,
+        metadata: {
+          transferGroup,
+          sellerSplits,
+          priceAllocations,
+          kind: "cart-subscription",
+          productEventIds: items.map((i) => i.productEventId),
+          [SUBSCRIPTION_ATTEMPT_TRACKED_METADATA_KEY]: true,
+          [SUBSCRIPTION_CREATE_ATTEMPTED_METADATA_KEY]: Date.now(),
+        },
+      });
+    }
 
     // The transfer group IS the idempotency key: it is deterministic per
     // buyer+cart and the params are replay-identical (price ids come from
@@ -862,6 +895,32 @@ async function handleMultiMerchantSubscription(
     // Token-gated: a tokenless replay (live owner) must never mark the
     // record failed over the owner's head.
     if (!subscriptionCreated && attemptToken) {
+      // A 4xx from Stripe is a CONCLUSIVE refusal: the request was processed
+      // and rejected, an idempotent replay returns the same refusal, and no
+      // subscription exists under the transfer-group key — the prune sweep
+      // may delete this record once it ages out. Anything else (timeout,
+      // connection drop, 5xx) is AMBIGUOUS when raised by the create call:
+      // Stripe may hold a live subscription, so the record must survive for
+      // the invoice.paid webhook to keep paying out of it.
+      const statusCode = (err as { statusCode?: unknown })?.statusCode;
+      const conclusiveRejection =
+        typeof statusCode === "number" && statusCode >= 400 && statusCode < 500;
+      // Merge into the record's CURRENT metadata rather than restating from
+      // locals: a 4xx mid product/price creation would otherwise persist
+      // partial priceAllocations and poison a later replay. If the read
+      // fails, skip the marker (conservative: the row is preserved).
+      let metadata: Record<string, unknown> | undefined;
+      if (conclusiveRejection) {
+        const current = await getPendingPayment(transferGroup).catch(
+          () => null
+        );
+        if (current) {
+          metadata = {
+            ...current.metadata,
+            [SUBSCRIPTION_CREATE_FAILED_METADATA_KEY]: Date.now(),
+          };
+        }
+      }
       // Release the attempt claim so the buyer's retry takes over
       // immediately (released records are reclaimable at the gate above)
       // instead of 409ing until the record goes stale. Best-effort: the
@@ -870,6 +929,7 @@ async function handleMultiMerchantSubscription(
         status: "failed_terminal",
         claimToken: attemptToken,
         lastErrorMessage: err instanceof Error ? err.message : String(err),
+        ...(metadata && { metadata }),
       }).catch(() => {});
     }
     // No invoice-item cleanup is needed here: one-time items ride the
