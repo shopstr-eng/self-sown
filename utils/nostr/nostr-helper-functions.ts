@@ -134,7 +134,7 @@ export async function createNostrBlogPost(
     content: typeof draft.content === "string" ? draft.content : "",
   };
 
-  return await finalizeAndSendNostrEvent(signer, nostr, event, options);
+  return finalizeAndSendNostrEvent(signer, nostr, event, options);
 }
 
 /**
@@ -234,7 +234,7 @@ export async function createNostrProfileEvent(
   // finalizeAndSendNostrEvent already caches the signed event to the database
   // before returning. With waitForRelayPublish: false the save resolves as soon
   // as it's signed + cached, so the user isn't blocked on slow relays.
-  return await finalizeAndSendNostrEvent(signer, nostr, profileContent, {
+  return finalizeAndSendNostrEvent(signer, nostr, profileContent, {
     waitForRelayPublish: false,
   });
 }
@@ -337,7 +337,7 @@ export async function republishProductWithPageConfig(
     content: rawEvent.content || "",
   };
 
-  return await finalizeAndSendNostrEvent(signer, nostr, event);
+  return finalizeAndSendNostrEvent(signer, nostr, event);
 }
 
 /**
@@ -438,7 +438,7 @@ export async function republishProductWithParcel(
     content: rawEvent.content || "",
   };
 
-  return await finalizeAndSendNostrEvent(signer, nostr, event);
+  return finalizeAndSendNostrEvent(signer, nostr, event);
 }
 
 export async function createNostrShopEvent(
@@ -1440,7 +1440,7 @@ export async function retractApproval(
     tags: [["e", approvalEventId]],
     content: reason || `Retract approval ${approvalEventId}`,
   };
-  return await finalizeAndSendNostrEvent(signer, nostr, eventTemplate);
+  return finalizeAndSendNostrEvent(signer, nostr, eventTemplate);
 }
 
 type FinalizeAndSendOptions = {

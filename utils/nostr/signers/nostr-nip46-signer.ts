@@ -278,7 +278,7 @@ export class NostrNIP46Signer implements NostrSigner {
     args.push(
       buildNip46PermittedMethods({ escrowEnabled: isEscrowClientEnabled() })
     );
-    return await this.sendRPC("connect", args);
+    return this.sendRPC("connect", args);
   }
 
   public async close(): Promise<void> {
@@ -287,7 +287,7 @@ export class NostrNIP46Signer implements NostrSigner {
   }
 
   public async getPubKey(): Promise<string> {
-    return await this.sendRPC("get_public_key", []);
+    return this.sendRPC("get_public_key", []);
   }
 
   public async sign(event: NostrEventTemplate): Promise<NostrEvent> {
@@ -298,11 +298,11 @@ export class NostrNIP46Signer implements NostrSigner {
   }
 
   public async encrypt(pubkey: string, plainText: string): Promise<string> {
-    return await this.sendRPC("nip44_encrypt", [pubkey, plainText]);
+    return this.sendRPC("nip44_encrypt", [pubkey, plainText]);
   }
 
   public async decrypt(pubkey: string, cipherText: string): Promise<string> {
-    return await this.sendRPC("nip44_decrypt", [pubkey, cipherText]);
+    return this.sendRPC("nip44_decrypt", [pubkey, cipherText]);
   }
 
   private getNewRequestId(): string {
@@ -313,7 +313,7 @@ export class NostrNIP46Signer implements NostrSigner {
     method: string,
     id: string
   ): Promise<NostrEvent> {
-    return await newPromiseWithTimeout<NostrEvent>((resolve, reject) => {
+    return newPromiseWithTimeout<NostrEvent>((resolve, reject) => {
       this.listeners[id] = {
         method,
         reject,

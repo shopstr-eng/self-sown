@@ -214,7 +214,18 @@ export async function updateAffiliate(
       fields.push(`notes = $${i++}`);
       values.push(patch.notes);
     }
-    if (fields.length === 0) return getAffiliateById(id);
+    if (fields.length === 0) {
+      // No-op patch: read with the already-held client. Calling
+      // getAffiliateById here would acquire a SECOND pooled client while this
+      // one is still checked out — enough concurrent empty PATCHes would
+      // exhaust the pool and stall all DB work. Scope by seller_pubkey too,
+      // so an empty PATCH can't read back another seller's affiliate.
+      const result = await client.query(
+        `SELECT * FROM affiliates WHERE id = $1 AND seller_pubkey = $2`,
+        [id, sellerPubkey]
+      );
+      return (result.rows[0] as Affiliate) ?? null;
+    }
     fields.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id, sellerPubkey);
     const result = await client.query(
