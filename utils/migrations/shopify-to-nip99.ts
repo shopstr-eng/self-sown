@@ -1,5 +1,6 @@
 import type { ShopifyProduct } from "./shopify-csv-parser";
 import type { ProductFormValues } from "@/utils/types/types";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import CryptoJS from "crypto-js";
 
 export interface ShopifyMigrationOptions {
@@ -189,13 +190,18 @@ export function buildListingFromShopifyProduct(
 
   validImages.forEach((img) => tags.push(["image", img]));
 
-  // Default Self-sown category + housekeeping tags
-  if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "SelfSown"]);
-  tags.push(["t", "FREEMILK"]);
-
-  // Optional: import original Shopify tags as t-tags too (keep listings searchable)
-  extraTags.forEach((t) => tags.push(["t", t]));
+  // Default Self-sown category + housekeeping tags, plus the original Shopify
+  // tags as t-tags (keep listings searchable). Imported tags are
+  // seller-controlled, so normalize the merged set: this strips any legacy
+  // "MilkMarket" or extra "SelfSown" spellings and appends exactly one
+  // canonical discovery tag.
+  const categoryTags: string[][] = [];
+  if (defaultCategory) categoryTags.push(["t", defaultCategory]);
+  categoryTags.push(["t", "FREEMILK"]);
+  extraTags.forEach((t) => categoryTags.push(["t", t]));
+  tags.push(
+    ...(normalizeMarketplaceDiscoveryTag(categoryTags) as ProductFormValues)
+  );
 
   // Preserve the seller's existing product taxonomy from the Shopify export as
   // explicit NIP-99 tags. The UCP catalog mapper (utils/ucp/catalog.ts) reads

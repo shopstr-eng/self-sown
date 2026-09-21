@@ -1,4 +1,5 @@
 import type { ProductFormValues } from "@/utils/types/types";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import CryptoJS from "crypto-js";
 
 // Catalog shapes returned by utils/square/square-api.ts#fetchSquareCatalog. They
@@ -196,9 +197,15 @@ export function buildListingFromSquareItem(
 
   validImages.forEach((img) => tags.push(["image", img]));
 
-  if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "SelfSown"]);
-  tags.push(["t", "FREEMILK"]);
+  // Normalize the category/discovery tags: strips any legacy "MilkMarket" or
+  // extra "SelfSown" spellings (e.g. a seller-picked default category) and
+  // appends exactly one canonical discovery tag.
+  const categoryTags: string[][] = [];
+  if (defaultCategory) categoryTags.push(["t", defaultCategory]);
+  categoryTags.push(["t", "FREEMILK"]);
+  tags.push(
+    ...(normalizeMarketplaceDiscoveryTag(categoryTags) as ProductFormValues)
+  );
 
   tags.push(["status", listingStatus]);
 
