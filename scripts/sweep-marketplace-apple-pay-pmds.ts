@@ -17,10 +17,7 @@
  * aborting the run — re-run to pick them up.
  */
 import Stripe from "stripe";
-import {
-  closeDbPool,
-  listStripeConnectAccounts,
-} from "@/utils/db/db-service";
+import { closeDbPool, listStripeConnectAccounts } from "@/utils/db/db-service";
 import { sweepMarketplaceApplePayPmds } from "@/utils/stripe/apple-pay-sweep";
 
 function resolveDomain(): string {

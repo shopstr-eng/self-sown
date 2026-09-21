@@ -52,7 +52,9 @@ if (!SECRET.startsWith("sk_test")) {
 }
 const WHSEC = process.env.TEST_WEBHOOK_SECRET || "";
 if (!WHSEC.startsWith("whsec_")) {
-  console.error("REFUSING TO RUN: TEST_WEBHOOK_SECRET (whsec_...) is required.");
+  console.error(
+    "REFUSING TO RUN: TEST_WEBHOOK_SECRET (whsec_...) is required."
+  );
   process.exit(2);
 }
 const BASE_URL = process.env.BASE_URL || "http://127.0.0.1:3001";
@@ -76,7 +78,9 @@ const CENTS_B = 2500;
 const results = [];
 const check = (name, ok, detail = "") => {
   results.push({ name, ok });
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(
+    `${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`
+  );
   if (!ok) process.exitCode = 1;
 };
 
@@ -177,7 +181,10 @@ async function deliverInvoicePaidEvent(invoiceId, sinceTs) {
       obj.subscription = typeof s === "string" ? s : s?.id;
     }
     if (!obj.payment_intent) {
-      const pays = await stripe.invoicePayments.list({ invoice: invoiceId, limit: 5 });
+      const pays = await stripe.invoicePayments.list({
+        invoice: invoiceId,
+        limit: 5,
+      });
       const pi = pays.data
         .map((p) => p.payment?.payment_intent)
         .find((id) => typeof id === "string");
@@ -230,7 +237,9 @@ async function main() {
   const startTs = Math.floor(Date.now() / 1000);
   await db.connect();
   console.log(`run id: ${RUN}`);
-  console.log(`seller A: ${SELLER_A.slice(0, 12)}...  seller B: ${SELLER_B.slice(0, 12)}...`);
+  console.log(
+    `seller A: ${SELLER_A.slice(0, 12)}...  seller B: ${SELLER_B.slice(0, 12)}...`
+  );
 
   // --- 1. Test connected accounts + seller rows -------------------------
   // Two sourcing modes:
@@ -238,14 +247,21 @@ async function main() {
   //    test-mode Connect platform profile to be completed once);
   //  - E2E_ACCOUNT_A / E2E_ACCOUNT_B env: reuse pre-onboarded express
   //    accounts (not deleted in cleanup — the harness doesn't own them).
-  const acctA = process.env.E2E_ACCOUNT_A || (await createTestConnectAccount("seller-a"));
-  const acctB = process.env.E2E_ACCOUNT_B || (await createTestConnectAccount("seller-b"));
+  const acctA =
+    process.env.E2E_ACCOUNT_A || (await createTestConnectAccount("seller-a"));
+  const acctB =
+    process.env.E2E_ACCOUNT_B || (await createTestConnectAccount("seller-b"));
   if (!process.env.E2E_ACCOUNT_A) cleanup.accountIds.push(acctA);
   if (!process.env.E2E_ACCOUNT_B) cleanup.accountIds.push(acctB);
-  for (const [name, id] of [["A", acctA], ["B", acctB]]) {
+  for (const [name, id] of [
+    ["A", acctA],
+    ["B", acctB],
+  ]) {
     const f = await stripe.accounts.retrieve(id);
     if (f.capabilities?.transfers !== "active")
-      throw new Error(`account ${name} (${id}) transfers capability is ${f.capabilities?.transfers}`);
+      throw new Error(
+        `account ${name} (${id}) transfers capability is ${f.capabilities?.transfers}`
+      );
   }
   for (const [pubkey, acct] of [
     [SELLER_A, acctA],
@@ -262,7 +278,11 @@ async function main() {
       [pubkey, acct]
     );
   }
-  check("two test connected accounts active + registered", true, `${acctA}, ${acctB}`);
+  check(
+    "two test connected accounts active + registered",
+    true,
+    `${acctA}, ${acctB}`
+  );
 
   // NOTE on renewal simulation: test clocks must be set at customer
   // creation, but stripe.customers.list({email}) does NOT return test-clock
@@ -274,37 +294,40 @@ async function main() {
 
   // --- 3. Create the two-seller recurring cart --------------------------
   const attemptNonce = randomUUID().replaceAll("-", "").slice(0, 16);
-  const cartResp = await fetch(`${BASE_URL}/api/stripe/create-cart-subscription`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      customerEmail: EMAIL,
-      buyerPubkey: BUYER,
-      attemptNonce,
-      items: [
-        {
-          productTitle: "E2E Seller A Monthly Box",
-          productEventId: pk("e2e-cart-sub-product-a-v1"),
-          amount: AMOUNT_A,
-          currency: "USD",
-          quantity: 1,
-          isSubscription: true,
-          frequency: "monthly",
-          sellerPubkey: SELLER_A,
-        },
-        {
-          productTitle: "E2E Seller B Monthly Box",
-          productEventId: pk("e2e-cart-sub-product-b-v1"),
-          amount: AMOUNT_B,
-          currency: "USD",
-          quantity: 1,
-          isSubscription: true,
-          frequency: "monthly",
-          sellerPubkey: SELLER_B,
-        },
-      ],
-    }),
-  });
+  const cartResp = await fetch(
+    `${BASE_URL}/api/stripe/create-cart-subscription`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        customerEmail: EMAIL,
+        buyerPubkey: BUYER,
+        attemptNonce,
+        items: [
+          {
+            productTitle: "E2E Seller A Monthly Box",
+            productEventId: pk("e2e-cart-sub-product-a-v1"),
+            amount: AMOUNT_A,
+            currency: "USD",
+            quantity: 1,
+            isSubscription: true,
+            frequency: "monthly",
+            sellerPubkey: SELLER_A,
+          },
+          {
+            productTitle: "E2E Seller B Monthly Box",
+            productEventId: pk("e2e-cart-sub-product-b-v1"),
+            amount: AMOUNT_B,
+            currency: "USD",
+            quantity: 1,
+            isSubscription: true,
+            frequency: "monthly",
+            sellerPubkey: SELLER_B,
+          },
+        ],
+      }),
+    }
+  );
   const cart = await cartResp.json();
   check(
     "multi-seller cart subscription created (no 400)",
@@ -318,15 +341,19 @@ async function main() {
     "response carries one split per seller",
     Array.isArray(cart.sellerSplits) &&
       cart.sellerSplits.length === 2 &&
-      cart.sellerSplits.find((s) => s.pubkey === SELLER_A)?.amountCents === CENTS_A &&
-      cart.sellerSplits.find((s) => s.pubkey === SELLER_B)?.amountCents === CENTS_B,
+      cart.sellerSplits.find((s) => s.pubkey === SELLER_A)?.amountCents ===
+        CENTS_A &&
+      cart.sellerSplits.find((s) => s.pubkey === SELLER_B)?.amountCents ===
+        CENTS_B,
     JSON.stringify(cart.sellerSplits?.map((s) => s.amountCents))
   );
 
   // --- 4. Compact metadata + authority record ---------------------------
   const sub = await stripe.subscriptions.retrieve(cart.subscriptionId);
   const meta = sub.metadata || {};
-  const oversized = Object.entries(meta).filter(([, v]) => String(v).length > 490);
+  const oversized = Object.entries(meta).filter(
+    ([, v]) => String(v).length > 490
+  );
   check(
     "subscription metadata compact (no oversized values, no embedded splits)",
     meta.isMultiMerchant === "true" &&
@@ -368,8 +395,16 @@ async function main() {
   check(
     "per-item subscription rows recorded for both sellers",
     subRows.rows.length === 2 &&
-      subRows.rows.some((r) => r.seller_pubkey === SELLER_A && Number(r.subscription_price) === AMOUNT_A) &&
-      subRows.rows.some((r) => r.seller_pubkey === SELLER_B && Number(r.subscription_price) === AMOUNT_B),
+      subRows.rows.some(
+        (r) =>
+          r.seller_pubkey === SELLER_A &&
+          Number(r.subscription_price) === AMOUNT_A
+      ) &&
+      subRows.rows.some(
+        (r) =>
+          r.seller_pubkey === SELLER_B &&
+          Number(r.subscription_price) === AMOUNT_B
+      ),
     `rows=${subRows.rows.length}`
   );
 
@@ -385,7 +420,9 @@ async function main() {
     cart.clientSecret ? "present" : "NULL"
   );
   const invoice1Id =
-    typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice?.id;
+    typeof sub.latest_invoice === "string"
+      ? sub.latest_invoice
+      : sub.latest_invoice?.id;
   const invPayments1 = await stripe.invoicePayments.list({
     invoice: invoice1Id,
     limit: 10,
@@ -407,7 +444,11 @@ async function main() {
   const confirmed = await stripe.paymentIntents.confirm(piId, {
     payment_method: pm.id,
   });
-  check("first invoice payment succeeded", confirmed.status === "succeeded", `pi=${confirmed.status}`);
+  check(
+    "first invoice payment succeeded",
+    confirmed.status === "succeeded",
+    `pi=${confirmed.status}`
+  );
   cleanup.invoiceIds.push(invoice1Id);
 
   // --- 6. First invoice.paid webhook -------------------------------------
@@ -429,9 +470,21 @@ async function main() {
   check(
     "first invoice: exactly one transfer per seller for recorded amounts",
     t1.length === 2 &&
-      t1.some((t) => t.seller === SELLER_A && t.amount === CENTS_A && t.destination === acctA) &&
-      t1.some((t) => t.seller === SELLER_B && t.amount === CENTS_B && t.destination === acctB),
-    JSON.stringify(t1.map((t) => `${t.seller.slice(0, 8)}:${t.amount}->${t.destination}`))
+      t1.some(
+        (t) =>
+          t.seller === SELLER_A &&
+          t.amount === CENTS_A &&
+          t.destination === acctA
+      ) &&
+      t1.some(
+        (t) =>
+          t.seller === SELLER_B &&
+          t.amount === CENTS_B &&
+          t.destination === acctB
+      ),
+    JSON.stringify(
+      t1.map((t) => `${t.seller.slice(0, 8)}:${t.amount}->${t.destination}`)
+    )
   );
 
   // --- 7. Simulated renewal: quantity-bump proration invoice --------------
@@ -451,7 +504,10 @@ async function main() {
   });
   let invoice2 = null;
   for (let i = 0; i < 20 && !invoice2; i++) {
-    const invs = await stripe.invoices.list({ subscription: cart.subscriptionId, limit: 10 });
+    const invs = await stripe.invoices.list({
+      subscription: cart.subscriptionId,
+      limit: 10,
+    });
     const renewal = invs.data.find((x) => x.id !== invoice1Id);
     if (renewal) {
       if (renewal.status === "draft")
@@ -459,10 +515,21 @@ async function main() {
       const fresh2 = await stripe.invoices.retrieve(renewal.id);
       if (fresh2.status === "paid") invoice2 = fresh2;
       else if (fresh2.status === "open") {
-        const pays = await stripe.invoicePayments.list({ invoice: renewal.id, limit: 5 });
-        const rpi = pays.data.map((p) => p.payment?.payment_intent).find((id) => typeof id === "string");
-        if (rpi) await stripe.paymentIntents.confirm(rpi, { payment_method: pm.id }).catch(() => {});
-        else await stripe.invoices.pay(renewal.id, { payment_method: pm.id }).catch(() => {});
+        const pays = await stripe.invoicePayments.list({
+          invoice: renewal.id,
+          limit: 5,
+        });
+        const rpi = pays.data
+          .map((p) => p.payment?.payment_intent)
+          .find((id) => typeof id === "string");
+        if (rpi)
+          await stripe.paymentIntents
+            .confirm(rpi, { payment_method: pm.id })
+            .catch(() => {});
+        else
+          await stripe.invoices
+            .pay(renewal.id, { payment_method: pm.id })
+            .catch(() => {});
       }
     }
     if (!invoice2) await new Promise((r) => setTimeout(r, 3000));
@@ -470,7 +537,9 @@ async function main() {
   check(
     "renewal-style invoice paid from saved payment method",
     !!invoice2 && invoice2.amount_paid === CENTS_A + CENTS_B,
-    invoice2 ? `invoice=${invoice2.id} status=${invoice2.status} paid=${invoice2.amount_paid}` : "no renewal invoice"
+    invoice2
+      ? `invoice=${invoice2.id} status=${invoice2.status} paid=${invoice2.amount_paid}`
+      : "no renewal invoice"
   );
   if (!invoice2) throw new Error("renewal invoice never settled; aborting");
   cleanup.invoiceIds.push(invoice2.id);
@@ -480,7 +549,9 @@ async function main() {
   const priceToSeller = new Map(
     recMeta.priceAllocations.map((a) => [a.priceId, a.sellerPubkey])
   );
-  const lines2 = await stripe.invoices.listLineItems(invoice2.id, { limit: 100 });
+  const lines2 = await stripe.invoices.listLineItems(invoice2.id, {
+    limit: 100,
+  });
   const expectedByInvoice2 = new Map();
   for (const l of lines2.data) {
     const pid =
@@ -489,7 +560,10 @@ async function main() {
         : (l.price?.id ?? l.pricing?.price_details?.price);
     const seller = priceToSeller.get(pid);
     if (!seller) throw new Error(`harness: unattributed line price ${pid}`);
-    expectedByInvoice2.set(seller, (expectedByInvoice2.get(seller) ?? 0) + l.amount);
+    expectedByInvoice2.set(
+      seller,
+      (expectedByInvoice2.get(seller) ?? 0) + l.amount
+    );
   }
 
   // --- 8. Renewal invoice.paid webhook (re-sent real event) ---------------
@@ -511,7 +585,10 @@ async function main() {
       ),
     `expected=${JSON.stringify([...expectedByInvoice2.entries()].map(([k, v]) => `${k.slice(0, 8)}:${v}`))} got=${JSON.stringify(t2.map((t) => `${t.seller.slice(0, 8)}:${t.amount}->${t.destination}`))}`
   );
-  const totalTransfers = [...byInvoice.values()].reduce((n, arr) => n + arr.length, 0);
+  const totalTransfers = [...byInvoice.values()].reduce(
+    (n, arr) => n + arr.length,
+    0
+  );
   check(
     "exactly 4 transfers total across both invoices (no double pays)",
     byInvoice.size === 2 && totalTransfers === 4,
@@ -523,25 +600,46 @@ async function teardown() {
   console.log("--- cleanup ---");
   try {
     if (cleanup.subscriptionId)
-      await stripe.subscriptions.cancel(cleanup.subscriptionId).catch((e) => console.warn("cancel sub:", e.message));
+      await stripe.subscriptions
+        .cancel(cleanup.subscriptionId)
+        .catch((e) => console.warn("cancel sub:", e.message));
     if (cleanup.customerId)
-      await stripe.customers.del(cleanup.customerId).catch((e) => console.warn("del customer:", e.message));
+      await stripe.customers
+        .del(cleanup.customerId)
+        .catch((e) => console.warn("del customer:", e.message));
     for (const acct of cleanup.accountIds)
-      await stripe.accounts.del(acct).catch((e) => console.warn("del account:", e.message));
+      await stripe.accounts
+        .del(acct)
+        .catch((e) => console.warn("del account:", e.message));
   } catch (e) {
     console.warn("stripe cleanup:", e.message);
   }
   try {
     if (cleanup.transferGroup)
-      await dbQuery(`DELETE FROM stripe_pending_payments WHERE intent_ref = $1`, [cleanup.transferGroup]);
+      await dbQuery(
+        `DELETE FROM stripe_pending_payments WHERE intent_ref = $1`,
+        [cleanup.transferGroup]
+      );
     if (cleanup.subscriptionId)
-      await dbQuery(`DELETE FROM subscriptions WHERE stripe_subscription_id = $1`, [cleanup.subscriptionId]);
-    await dbQuery(`DELETE FROM stripe_connect_accounts WHERE pubkey = ANY($1)`, [[SELLER_A, SELLER_B]]);
+      await dbQuery(
+        `DELETE FROM subscriptions WHERE stripe_subscription_id = $1`,
+        [cleanup.subscriptionId]
+      );
+    await dbQuery(
+      `DELETE FROM stripe_connect_accounts WHERE pubkey = ANY($1)`,
+      [[SELLER_A, SELLER_B]]
+    );
     if (cleanup.invoiceIds.length)
       // Invoice payout claims share this table keyed under payment_intent_id.
-      await dbQuery(`DELETE FROM stripe_payout_claims WHERE payment_intent_id = ANY($1)`, [cleanup.invoiceIds]);
+      await dbQuery(
+        `DELETE FROM stripe_payout_claims WHERE payment_intent_id = ANY($1)`,
+        [cleanup.invoiceIds]
+      );
     if (cleanup.eventIds.length)
-      await dbQuery(`DELETE FROM stripe_processed_events WHERE event_id = ANY($1)`, [cleanup.eventIds]);
+      await dbQuery(
+        `DELETE FROM stripe_processed_events WHERE event_id = ANY($1)`,
+        [cleanup.eventIds]
+      );
   } catch (e) {
     console.warn("db cleanup:", e.message);
   }
@@ -556,5 +654,7 @@ main()
   .finally(async () => {
     await teardown();
     const failed = results.filter((r) => !r.ok).length;
-    console.log(`--- ${results.length - failed}/${results.length} checks passed ---`);
+    console.log(
+      `--- ${results.length - failed}/${results.length} checks passed ---`
+    );
   });

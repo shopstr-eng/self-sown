@@ -819,8 +819,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, event: Stripe.Event) {
       // per-invoice derivation below pays NET of this cut. It must be
       // present and sane — never guess 0 for a seller (that would silently
       // waive the platform fee).
-      const isPlatformSeller =
-        pubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+      const isPlatformSeller = pubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
       const rawPct = r?.donationPercent;
       // 100% is a supported setting (full donation — see
       // computeDonationCutSmallest); anything above it is malformed.

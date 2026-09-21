@@ -60,9 +60,7 @@ describe("updateAffiliate empty-patch path", () => {
   it("releases the client even when the read throws", async () => {
     query.mockRejectedValueOnce(new Error("db down"));
 
-    await expect(updateAffiliate(7, "seller-a", {})).rejects.toThrow(
-      "db down"
-    );
+    await expect(updateAffiliate(7, "seller-a", {})).rejects.toThrow("db down");
     expect(release).toHaveBeenCalledTimes(1);
   });
 });

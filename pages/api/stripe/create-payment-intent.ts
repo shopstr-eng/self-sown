@@ -82,9 +82,7 @@ const SERVER_OWNED_METADATA_KEYS = new Set([
   SUBSCRIPTION_TERMINAL_METADATA_KEY,
 ]);
 
-function stripServerOwnedMetadata(
-  metadata: unknown
-): Record<string, unknown> {
+function stripServerOwnedMetadata(metadata: unknown): Record<string, unknown> {
   if (!metadata || typeof metadata !== "object") return {};
   const copy: Record<string, unknown> = {
     ...(metadata as Record<string, unknown>),

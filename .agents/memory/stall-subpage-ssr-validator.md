@@ -6,6 +6,7 @@ description: The /stall/<slug>/<sub> validator must mirror StorefrontLayout's re
 `pages/stall/[...stallPath].tsx` getServerSideProps rejects unknown subpages with a real 404. The allowlist must match what `components/storefront/storefront-layout.tsx` actually renders, or nav/footer/checkout links 404 on BOTH platform and custom-domain hosts (proxy rewrites custom domains into /stall/<slug><path>).
 
 The contract, all shared via constants/resolvers so the two sides can't drift:
+
 - Ungated built-ins: `STOREFRONT_BUILTIN_SUBPAGES` in utils/storefront-links.ts (shop, orders, blog, my-listings, order-confirmation).
 - Flag-gated built-ins: `STOREFRONT_GATED_SUBPAGES` maps wallet/community to their `showWalletPage`/`showCommunityPage` storefront flags.
 - Editor-reserved slugs: `RESERVED_PAGE_SLUGS` = built-ins + gated + `Object.values(POLICY_SLUGS)`; page-editor.tsx imports it — never keep a local copy.

@@ -121,9 +121,7 @@ export async function registerApplePayDomain(
     } catch (lookupError) {
       console.error(
         "Apple Pay domain lookup failed:",
-        lookupError instanceof Error
-          ? lookupError.message
-          : String(lookupError)
+        lookupError instanceof Error ? lookupError.message : String(lookupError)
       );
       return;
     }

@@ -45,7 +45,9 @@ export default async function handler(
       return res.status(405).json({ error: "Method not allowed. Use POST." });
     }
 
-    if (!(await applyRateLimit(req, res, "mcp-verify-payment:ip", RATE_LIMIT))) {
+    if (
+      !(await applyRateLimit(req, res, "mcp-verify-payment:ip", RATE_LIMIT))
+    ) {
       recordRequest(Date.now() - requestStart, false, "verify-payment");
       return;
     }

@@ -33,7 +33,9 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   } catch (error) {
     console.error("Inventory handler error:", error);
-    return res.status(500).json({ error: "Failed to process inventory request" });
+    return res
+      .status(500)
+      .json({ error: "Failed to process inventory request" });
   }
 }
 

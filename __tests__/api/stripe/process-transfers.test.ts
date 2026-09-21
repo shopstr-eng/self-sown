@@ -77,8 +77,7 @@ jest.mock("@/utils/stripe/payout-claims", () => ({
   PayoutClaimConflictError: jest.requireActual("@/utils/stripe/payout-claims")
     .PayoutClaimConflictError,
   claimPayout: (...args: unknown[]) => claimPayoutMock(...args),
-  completePayoutClaim: (...args: unknown[]) =>
-    completePayoutClaimMock(...args),
+  completePayoutClaim: (...args: unknown[]) => completePayoutClaimMock(...args),
   releasePayoutClaim: (...args: unknown[]) => releasePayoutClaimMock(...args),
 }));
 
@@ -890,8 +889,18 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
       data: [
         // No metadata (very old transfer shape) — matched by destination,
         // amount and currency instead.
-        { id: "tr_legacy_a", destination: "acct_a", amount: 500, currency: "usd" },
-        { id: "tr_legacy_b", destination: "acct_b", amount: 700, currency: "usd" },
+        {
+          id: "tr_legacy_a",
+          destination: "acct_a",
+          amount: 500,
+          currency: "usd",
+        },
+        {
+          id: "tr_legacy_b",
+          destination: "acct_b",
+          amount: 700,
+          currency: "usd",
+        },
       ],
     });
     const res = makeRes();
@@ -945,7 +954,12 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     transfersListMock.mockResolvedValue({
       data: [
         // Metadata-less legacy transfer: settles exactly one of the splits.
-        { id: "tr_one", destination: "acct_shared", amount: 500, currency: "usd" },
+        {
+          id: "tr_one",
+          destination: "acct_shared",
+          amount: 500,
+          currency: "usd",
+        },
       ],
     });
     const res = makeRes();
@@ -1059,7 +1073,12 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     );
     transfersListMock.mockResolvedValue({
       data: [
-        { id: "tr_one", destination: "acct_shared", amount: 500, currency: "usd" },
+        {
+          id: "tr_one",
+          destination: "acct_shared",
+          amount: 500,
+          currency: "usd",
+        },
       ],
       has_more: false,
     });
@@ -1098,8 +1117,18 @@ describe("POST /api/stripe/process-transfers — payout claim replay safety", ()
     );
     transfersListMock.mockResolvedValue({
       data: [
-        { id: "tr_one", destination: "acct_shared", amount: 500, currency: "usd" },
-        { id: "tr_two", destination: "acct_shared", amount: 500, currency: "usd" },
+        {
+          id: "tr_one",
+          destination: "acct_shared",
+          amount: 500,
+          currency: "usd",
+        },
+        {
+          id: "tr_two",
+          destination: "acct_shared",
+          amount: 500,
+          currency: "usd",
+        },
       ],
       has_more: false,
     });

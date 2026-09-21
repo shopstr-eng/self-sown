@@ -220,7 +220,10 @@ describe("pruneStripePendingPayments", () => {
     await insertRow({
       intentRef: "cart_sub_cancelled_old",
       status: "created",
-      metadata: { ...SPLITS_METADATA, [SUBSCRIPTION_TERMINAL_METADATA_KEY]: OLD },
+      metadata: {
+        ...SPLITS_METADATA,
+        [SUBSCRIPTION_TERMINAL_METADATA_KEY]: OLD,
+      },
       updatedAt: OLD,
     });
     await insertRow({

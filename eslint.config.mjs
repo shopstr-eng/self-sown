@@ -55,11 +55,7 @@ export default [
     // components are intentionally excluded — the bug shape is server-specific.
     // The rule requires type info, so it stays out of the base block to keep
     // repo-wide lint fast.
-    files: [
-      "pages/api/**/*.{ts,tsx}",
-      "mcp/**/*.ts",
-      "utils/**/*.{ts,tsx}",
-    ],
+    files: ["pages/api/**/*.{ts,tsx}", "mcp/**/*.ts", "utils/**/*.{ts,tsx}"],
     languageOptions: {
       parserOptions: {
         // tsconfig.eslint.json covers pages/api/mcp and the .well-known

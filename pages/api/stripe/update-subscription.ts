@@ -80,9 +80,7 @@ export default async function handler(
     const ownsSubscription =
       isBuyer ||
       (distinctSellers.size === 1 &&
-        dbSubscriptions.some(
-          (row: any) => row.seller_pubkey === callerPubkey
-        ));
+        dbSubscriptions.some((row: any) => row.seller_pubkey === callerPubkey));
     if (!ownsSubscription) {
       return res
         .status(403)

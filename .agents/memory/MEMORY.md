@@ -151,7 +151,7 @@
 - [Security scanner accepted findings](security-scan-accepted-findings.md) — recurring SAST/HoundDog classes confirmed by-design; skip them and investigate only new fingerprints.
 - [Apple Pay: Stripe PMD + Square file](apple-pay-association-host-aware.md) — PMD per charge-owning account (platform host = per-seller); disabled PMDs re-enable on checkout; Square file on platform + seller domains.
 - [Brand palette consolidation](brand-palette-consolidation.md) — app is forced light-only; keep darkMode:'class' (HeroUI needs it); never add dark: classes.
-- [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops *-opacity-* and re-scales *-sm sizes (pinned+guarded); deprecated aliases migrated; bare shadow/rounded/blur/ring stay.
+- [Tailwind v4 dead vs deprecated utilities](tailwind-v4-dead-utilities.md) — v4.3.3 drops _-opacity-_ and re-scales \*-sm sizes (pinned+guarded); deprecated aliases migrated; bare shadow/rounded/blur/ring stay.
 - [Headless browser verification](headless-browser-verification.md) — no puppeteer here; use /repl/tools/bin/chromium headless for DOM/computed-style checks; kill by PID, never pkill.
 - [Pro-status transient-failure policy](pro-status-failopen-cache.md) — pro-status gating must fail closed only on definitive isPro:false; transient failures retry + use last-known-good cache.
 - [Mobile dependency security overrides](audit-override-unfixable-pins.md) — patched image-size needs a Metro filename→buffer shim; update query-string rather than forcing its ESM-only decoder under v7.

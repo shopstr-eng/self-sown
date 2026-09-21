@@ -739,7 +739,10 @@ async function handleMultiMerchantSubscription(
       priceAllocations = replayAllocations;
       for (const a of replayAllocations) {
         if (a.recurring) {
-          subscriptionLineItems.push({ price: a.priceId, quantity: a.quantity });
+          subscriptionLineItems.push({
+            price: a.priceId,
+            quantity: a.quantity,
+          });
         } else {
           // Replayed byte-identically into add_invoice_items below.
           oneTimeInvoiceItems.push({ price: a.priceId, quantity: a.quantity });
@@ -974,12 +977,11 @@ async function handleMultiMerchantSubscription(
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: customer.id,
       },
-    }).catch(
-      (err) =>
-        console.error(
-          `Failed to mark pending subscription split record ${transferGroup} as created:`,
-          err
-        )
+    }).catch((err) =>
+      console.error(
+        `Failed to mark pending subscription split record ${transferGroup} as created:`,
+        err
+      )
     );
   }
 

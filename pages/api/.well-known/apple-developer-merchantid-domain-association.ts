@@ -29,12 +29,7 @@ function sendFile(res: NextApiResponse, body: string) {
 
 // Port-, case-, and trailing-dot-insensitive host comparison.
 function normalizeHost(host: string | undefined): string {
-  return (
-    (host || "")
-      .split(":")[0]
-      ?.toLowerCase()
-      .replace(/\.$/, "") ?? ""
-  );
+  return (host || "").split(":")[0]?.toLowerCase().replace(/\.$/, "") ?? "";
 }
 
 export default async function handler(

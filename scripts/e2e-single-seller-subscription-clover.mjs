@@ -65,7 +65,9 @@ const AMOUNT = 12;
 const results = [];
 const check = (name, ok, detail = "") => {
   results.push({ name, ok });
-  console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
+  console.log(
+    `${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`
+  );
   if (!ok) process.exitCode = 1;
 };
 
@@ -73,7 +75,9 @@ const cleanup = { subscriptionId: "", customerId: "" };
 
 async function main() {
   await db.connect();
-  console.log(`run id: ${RUN}  platform seller: ${PLATFORM_PK.slice(0, 12)}...`);
+  console.log(
+    `run id: ${RUN}  platform seller: ${PLATFORM_PK.slice(0, 12)}...`
+  );
 
   // --- 1. Single-seller recurring checkout ------------------------------
   const resp = await fetch(`${BASE_URL}/api/stripe/create-subscription`, {
@@ -186,5 +190,7 @@ main()
   .finally(async () => {
     await teardown();
     const failed = results.filter((r) => !r.ok).length;
-    console.log(`--- ${results.length - failed}/${results.length} checks passed ---`);
+    console.log(
+      `--- ${results.length - failed}/${results.length} checks passed ---`
+    );
   });
