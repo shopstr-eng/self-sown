@@ -374,11 +374,16 @@ async function main() {
   );
 
   // --- 5. Pay the first invoice ------------------------------------------
-  // Observation (non-fatal): on apiVersion 2025-09-30.clover the Invoice
-  // object has no top-level payment_intent, so the route's
-  // expand:["latest_invoice.payment_intent"] yields nothing and clientSecret
-  // comes back null — the buyer-facing card form needs that secret.
-  console.log(`observation: response clientSecret is ${cart.clientSecret ? "present" : "NULL (invoice.payment_intent removed on clover)"}`);
+  // #439 regression pin: on apiVersion 2025-09-30.clover the Invoice object
+  // has no top-level payment_intent, so the route's
+  // expand:["latest_invoice.payment_intent"] yields nothing — the route must
+  // resolve the PI via the invoice's invoicePayments and return a usable
+  // clientSecret, or the buyer-facing card form never renders.
+  check(
+    "create-cart-subscription returns a card-form clientSecret on clover",
+    typeof cart.clientSecret === "string" && cart.clientSecret.length > 0,
+    cart.clientSecret ? "present" : "NULL"
+  );
   const invoice1Id =
     typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice?.id;
   const invPayments1 = await stripe.invoicePayments.list({

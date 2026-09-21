@@ -29,6 +29,7 @@ import {
   registerApplePayDomain,
   trustedRegistrationHost,
 } from "@/utils/stripe/apple-pay";
+import { resolveSubscriptionPaymentIntent } from "@/utils/stripe/subscription-payment-intent";
 import {
   recordPendingPayment,
   reclaimPendingPayment,
@@ -382,8 +383,13 @@ export default async function handler(
     );
 
     const subscriptionData = subscription as any;
-    const invoice = subscriptionData.latest_invoice;
-    const paymentIntent = invoice?.payment_intent;
+    // Clover (Basil family) removed Invoice.payment_intent, so the expand
+    // above yields nothing — resolve the PI via the invoice's payments.
+    const paymentIntent = await resolveSubscriptionPaymentIntent(
+      stripe,
+      subscription,
+      stripeOptions
+    );
 
     const nextBillingDate = subscriptionData.current_period_end
       ? new Date(subscriptionData.current_period_end * 1000)
@@ -939,8 +945,12 @@ async function handleMultiMerchantSubscription(
   }
 
   const subscriptionData = subscription as any;
-  const invoice = subscriptionData.latest_invoice;
-  const paymentIntent = invoice?.payment_intent;
+  // Clover (Basil family) removed Invoice.payment_intent, so the expand
+  // above yields nothing — resolve the PI via the invoice's payments.
+  const paymentIntent = await resolveSubscriptionPaymentIntent(
+    stripe,
+    subscription
+  );
 
   // The subscription exists and the split record above is what the
   // invoice.paid webhook pays out of — mark it live. Best-effort only: the
