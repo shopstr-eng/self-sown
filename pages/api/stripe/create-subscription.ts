@@ -20,6 +20,7 @@ import {
   registerApplePayDomain,
   trustedRegistrationHost,
 } from "@/utils/stripe/apple-pay";
+import { resolveSubscriptionPaymentIntent } from "@/utils/stripe/subscription-payment-intent";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -372,8 +373,13 @@ export default async function handler(
     );
 
     const subscriptionData = subscription as any;
-    const invoice = subscriptionData.latest_invoice;
-    const paymentIntent = invoice?.payment_intent;
+    // Clover (Basil family) removed Invoice.payment_intent, so the expand
+    // above yields nothing — resolve the PI via the invoice's payments.
+    const paymentIntent = await resolveSubscriptionPaymentIntent(
+      stripe,
+      subscription,
+      stripeOptions
+    );
 
     const nextBillingDate = subscriptionData.current_period_end
       ? new Date(subscriptionData.current_period_end * 1000)
