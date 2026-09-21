@@ -103,7 +103,7 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   rebase --exec approach). Delete refs/original/\_ after, verify with an
   empty `git diff <oldHEAD> HEAD`. If rebase --exec is used anyway (fine
   for short ranges): amend with `--no-edit --no-verify --reset-author
-  --allow-empty` — without --allow-empty the rebase stops interactively on
+--allow-empty` — without --allow-empty the rebase stops interactively on
   every empty commit (e.g. platform "Published your App"), and the -c
   user.name/email creds must be re-passed on every `rebase --continue`.
 - Repo has a "changes must go through a pull request" RULESET (the

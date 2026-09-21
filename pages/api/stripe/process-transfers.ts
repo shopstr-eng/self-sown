@@ -75,8 +75,7 @@ function normalizeSplit(raw: unknown): SellerSplit | null {
     affiliateId: typeof r.affiliateId === "number" ? r.affiliateId : null,
     affiliateCodeId:
       typeof r.affiliateCodeId === "number" ? r.affiliateCodeId : null,
-    affiliateCode:
-      typeof r.affiliateCode === "string" ? r.affiliateCode : null,
+    affiliateCode: typeof r.affiliateCode === "string" ? r.affiliateCode : null,
   };
 }
 
@@ -368,7 +367,8 @@ export default async function handler(
     // Every authoritative source was already required to match the intent's
     // own server-set transfer group (and the request was checked against it
     // above), so this is what the Stripe transfers are stamped with.
-    const effectiveTransferGroup = authoritativeTransferGroup ?? piTransferGroup;
+    const effectiveTransferGroup =
+      authoritativeTransferGroup ?? piTransferGroup;
 
     // Cross-check the client payload when the caller supplied one: the
     // seller set and every gross amount must match the authority exactly.
@@ -628,8 +628,7 @@ export default async function handler(
         );
         const affiliateCurrencyCompatible =
           !foundCode?.currency ||
-          foundCode.currency.toLowerCase() ===
-            transferCurrency.toLowerCase() ||
+          foundCode.currency.toLowerCase() === transferCurrency.toLowerCase() ||
           (foundCode.rebate_type !== "fixed" &&
             foundCode.buyer_discount_type !== "fixed");
         if (
@@ -731,8 +730,7 @@ export default async function handler(
         // reconciliation instead of transferring again.
         results.push({
           sellerPubkey: split.sellerPubkey,
-          error:
-            "Payout claim is unresolved; manual reconciliation required",
+          error: "Payout claim is unresolved; manual reconciliation required",
         });
         continue;
       }

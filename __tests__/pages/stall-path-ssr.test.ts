@@ -136,7 +136,9 @@ describe("stall subpage SSR validation (Pro seller)", () => {
     // Explicitly disabled -> 404 (others stay enabled)
     fetchShopProfileByPubkeyFromDb.mockResolvedValue(
       shopEvent({
-        footer: { policies: { privacyPolicy: { enabled: false, content: "" } } },
+        footer: {
+          policies: { privacyPolicy: { enabled: false, content: "" } },
+        },
       })
     );
     expect(await status(["naughtygoatco", "privacy-policy"])).toBe(404);

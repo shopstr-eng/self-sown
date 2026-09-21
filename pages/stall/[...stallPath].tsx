@@ -156,9 +156,9 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             // validate against the same effective config — otherwise SSR 200s
             // routes the client renders as fallback sections or Not Found.
             const sf = membership.isPro === true ? raw : {};
-            const gatedFlag = (STOREFRONT_GATED_SUBPAGES as Record<string, string>)[
-              subPage
-            ];
+            const gatedFlag = (
+              STOREFRONT_GATED_SUBPAGES as Record<string, string>
+            )[subPage];
             if (gatedFlag) {
               validSubPage = sf[gatedFlag] === true;
             } else {

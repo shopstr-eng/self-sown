@@ -367,9 +367,8 @@ describe("preamble failures (table init / auth)", () => {
   it("checkout sessions resolves a clean 500 JSON when table init rejects", async () => {
     mockInitializeApiKeysTable.mockRejectedValueOnce(new Error("db down"));
     jest.resetModules();
-    const { default: handler } = await import(
-      "@/pages/api/ucp/checkout/sessions"
-    );
+    const { default: handler } =
+      await import("@/pages/api/ucp/checkout/sessions");
     const res = await run(
       handler,
       createRequest("POST", { body: { productId: "p1" } })
@@ -395,9 +394,7 @@ describe("preamble failures (table init / auth)", () => {
   it("verify-payment resolves a clean 500 JSON when table init rejects", async () => {
     mockInitializeApiKeysTable.mockRejectedValueOnce(new Error("db down"));
     jest.resetModules();
-    const { default: handler } = await import(
-      "@/pages/api/mcp/verify-payment"
-    );
+    const { default: handler } = await import("@/pages/api/mcp/verify-payment");
     const res = await run(
       handler,
       createRequest("POST", { body: { orderId: "o1" } })

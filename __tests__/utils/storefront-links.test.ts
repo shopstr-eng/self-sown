@@ -31,13 +31,19 @@ describe("sanitizeStorefrontNavHref idempotence", () => {
     );
     expect(once).toBe("/stall/naughtygoatco/about?x=1");
     expect(
-      sanitizeStorefrontNavHref({ label: "Sale", href: once, isPage: true }, "naughtygoatco")
+      sanitizeStorefrontNavHref(
+        { label: "Sale", href: once, isPage: true },
+        "naughtygoatco"
+      )
     ).toBe(once);
   });
 
   it("still prefixes non-page relative hrefs", () => {
     expect(
-      sanitizeStorefrontNavHref({ label: "About", href: "about" }, "naughtygoatco")
+      sanitizeStorefrontNavHref(
+        { label: "About", href: "about" },
+        "naughtygoatco"
+      )
     ).toBe("/stall/naughtygoatco/about");
   });
 });
@@ -49,7 +55,11 @@ describe("injectPageNavLinks", () => {
   ];
 
   it("appends links for pages missing from the nav", () => {
-    const links = injectPageNavLinks([{ label: "Home", href: "" }], pages, "shop");
+    const links = injectPageNavLinks(
+      [{ label: "Home", href: "" }],
+      pages,
+      "shop"
+    );
     expect(links).toEqual([
       { label: "Home", href: "" },
       { label: "About Us", href: "about", isPage: true },

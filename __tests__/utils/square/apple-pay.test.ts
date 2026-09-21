@@ -17,8 +17,7 @@ jest.mock("@/utils/db/custom-domains", () => ({
 
 const hasSquareConnectionMock = jest.fn();
 jest.mock("@/utils/db/square-service", () => ({
-  hasSquareConnection: (...args: unknown[]) =>
-    hasSquareConnectionMock(...args),
+  hasSquareConnection: (...args: unknown[]) => hasSquareConnectionMock(...args),
 }));
 
 const isSelfHostMock = jest.fn();

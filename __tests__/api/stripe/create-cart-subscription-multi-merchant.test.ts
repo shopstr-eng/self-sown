@@ -73,8 +73,7 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
   getStripeConnectAccount: (...args: unknown[]) =>
     getStripeConnectAccountMock(...args),
-  createSubscription: (...args: unknown[]) =>
-    createSubscriptionMock(...args),
+  createSubscription: (...args: unknown[]) => createSubscriptionMock(...args),
 }));
 
 jest.mock("@/utils/stripe/retry-service", () => ({
@@ -293,10 +292,30 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
     expect(allocationUpdate).toBeDefined();
     expect(allocationUpdate![0]).toBe(res.body.transferGroup);
     expect(allocationUpdate![1].metadata.priceAllocations).toEqual([
-      { priceId: "price_1", sellerPubkey: SELLER_A, quantity: 1, recurring: true },
-      { priceId: "price_2", sellerPubkey: SELLER_B, quantity: 1, recurring: true },
-      { priceId: "price_3", sellerPubkey: SELLER_C, quantity: 1, recurring: true },
-      { priceId: "price_4", sellerPubkey: SELLER_B, quantity: 1, recurring: false },
+      {
+        priceId: "price_1",
+        sellerPubkey: SELLER_A,
+        quantity: 1,
+        recurring: true,
+      },
+      {
+        priceId: "price_2",
+        sellerPubkey: SELLER_B,
+        quantity: 1,
+        recurring: true,
+      },
+      {
+        priceId: "price_3",
+        sellerPubkey: SELLER_C,
+        quantity: 1,
+        recurring: true,
+      },
+      {
+        priceId: "price_4",
+        sellerPubkey: SELLER_B,
+        quantity: 1,
+        recurring: false,
+      },
     ]);
     expect(allocationUpdate![1].metadata.sellerSplits).toEqual(
       res.body.sellerSplits
@@ -436,9 +455,9 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       stripeSubscriptionsCreateMock.mock.calls[0][0].add_invoice_items
     ).toEqual([{ price: "price_8", quantity: 1 }]);
     // The idempotency key IS the deterministic transfer group.
-    expect(
-      stripeSubscriptionsCreateMock.mock.calls[0][1]?.idempotencyKey
-    ).toBe("cart_sub_cartsub_test_key");
+    expect(stripeSubscriptionsCreateMock.mock.calls[0][1]?.idempotencyKey).toBe(
+      "cart_sub_cartsub_test_key"
+    );
   });
 
   it("replays the SAME Stripe subscription when a retry follows a post-create failure", async () => {
@@ -483,10 +502,30 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       metadata: {
         transferGroup: "cart_sub_cartsub_test_key",
         priceAllocations: [
-          { priceId: "price_1", sellerPubkey: SELLER_A, quantity: 1, recurring: true },
-          { priceId: "price_2", sellerPubkey: SELLER_B, quantity: 1, recurring: true },
-          { priceId: "price_3", sellerPubkey: SELLER_C, quantity: 1, recurring: true },
-          { priceId: "price_4", sellerPubkey: SELLER_B, quantity: 1, recurring: false },
+          {
+            priceId: "price_1",
+            sellerPubkey: SELLER_A,
+            quantity: 1,
+            recurring: true,
+          },
+          {
+            priceId: "price_2",
+            sellerPubkey: SELLER_B,
+            quantity: 1,
+            recurring: true,
+          },
+          {
+            priceId: "price_3",
+            sellerPubkey: SELLER_C,
+            quantity: 1,
+            recurring: true,
+          },
+          {
+            priceId: "price_4",
+            sellerPubkey: SELLER_B,
+            quantity: 1,
+            recurring: false,
+          },
         ],
         kind: "cart-subscription",
       },
@@ -539,8 +578,18 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       metadata: {
         transferGroup: "cart_sub_cartsub_test_key",
         priceAllocations: [
-          { priceId: "price_1", sellerPubkey: SELLER_A, quantity: 1, recurring: true },
-          { priceId: "price_2", sellerPubkey: SELLER_B, quantity: 1, recurring: true },
+          {
+            priceId: "price_1",
+            sellerPubkey: SELLER_A,
+            quantity: 1,
+            recurring: true,
+          },
+          {
+            priceId: "price_2",
+            sellerPubkey: SELLER_B,
+            quantity: 1,
+            recurring: true,
+          },
         ],
         kind: "cart-subscription",
       },
@@ -566,8 +615,18 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       metadata: {
         transferGroup: "cart_sub_cartsub_test_key",
         priceAllocations: [
-          { priceId: "price_1", sellerPubkey: SELLER_A, quantity: 1, recurring: true },
-          { priceId: "price_2", sellerPubkey: SELLER_B, quantity: 1, recurring: true },
+          {
+            priceId: "price_1",
+            sellerPubkey: SELLER_A,
+            quantity: 1,
+            recurring: true,
+          },
+          {
+            priceId: "price_2",
+            sellerPubkey: SELLER_B,
+            quantity: 1,
+            recurring: true,
+          },
         ],
         kind: "cart-subscription",
       },
@@ -643,7 +702,12 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
         transferGroup: "cart_sub_cartsub_test_key",
         sellerSplits: [{ pubkey: SELLER_A, amountCents: 100 }],
         priceAllocations: [
-          { priceId: "price_1", sellerPubkey: SELLER_A, quantity: 1, recurring: true },
+          {
+            priceId: "price_1",
+            sellerPubkey: SELLER_A,
+            quantity: 1,
+            recurring: true,
+          },
         ],
         kind: "cart-subscription",
         subscriptionAttemptTracked: true,
@@ -659,9 +723,9 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       (c) => c[1]?.status === "failed_terminal"
     );
     expect(conclusiveRelease).toBeDefined();
-    expect(
-      conclusiveRelease![1].metadata.subscriptionCreateFailedAt
-    ).toEqual(expect.any(Number));
+    expect(conclusiveRelease![1].metadata.subscriptionCreateFailedAt).toEqual(
+      expect.any(Number)
+    );
     // The merge preserved the pre-existing allocation data.
     expect(conclusiveRelease![1].metadata.priceAllocations).toHaveLength(1);
     // The pre-create marker was stamped BEFORE the create call.

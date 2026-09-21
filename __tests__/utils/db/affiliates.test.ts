@@ -30,12 +30,18 @@ describe("computeBuyerDiscountSmallest", () => {
   });
 
   it("applies a percentage cleanly", () => {
-    expect(computeBuyerDiscountSmallest(10_000, "percent", 10, "usd")).toBe(1_000);
-    expect(computeBuyerDiscountSmallest(9_999, "percent", 33, "usd")).toBe(3_299);
+    expect(computeBuyerDiscountSmallest(10_000, "percent", 10, "usd")).toBe(
+      1_000
+    );
+    expect(computeBuyerDiscountSmallest(9_999, "percent", 33, "usd")).toBe(
+      3_299
+    );
   });
 
   it("caps a percentage at 100", () => {
-    expect(computeBuyerDiscountSmallest(1_000, "percent", 250, "usd")).toBe(999);
+    expect(computeBuyerDiscountSmallest(1_000, "percent", 250, "usd")).toBe(
+      999
+    );
   });
 
   it("treats fixed values as major units (cents)", () => {

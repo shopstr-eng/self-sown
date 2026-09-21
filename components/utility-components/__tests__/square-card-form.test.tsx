@@ -329,8 +329,10 @@ describe("SquareCardForm SCA verification (verifyBuyer)", () => {
   });
 
   it("stops silently (NO charge, NO callbacks) if the form is torn down while tokenization is in flight", async () => {
-    let resolveTokenize: (v: { status: string; token: string }) => void =
-      () => {};
+    let resolveTokenize: (v: {
+      status: string;
+      token: string;
+    }) => void = () => {};
     cardMock.tokenize.mockImplementationOnce(
       () =>
         new Promise((resolve) => {

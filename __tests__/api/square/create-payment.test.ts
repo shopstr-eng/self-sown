@@ -445,13 +445,20 @@ describe("POST /api/square/create-payment — SCA verification token passthrough
   };
 
   it("forwards a client-supplied verificationToken (from verifyBuyer) to the charge", async () => {
-    const res = await callHandler({ ...baseBody, verificationToken: "vftok_1" });
+    const res = await callHandler({
+      ...baseBody,
+      verificationToken: "vftok_1",
+    });
     expect(res.statusCode).toBe(200);
     const charge = createSquarePaymentMock.mock.calls.at(-1)?.[1] as any;
     expect(charge.verificationToken).toBe("vftok_1");
   });
 
-  it.each([["absent", {}], ["non-string", { verificationToken: 42 }], ["oversized", { verificationToken: "x".repeat(5000) }]])(
+  it.each([
+    ["absent", {}],
+    ["non-string", { verificationToken: 42 }],
+    ["oversized", { verificationToken: "x".repeat(5000) }],
+  ])(
     "charges WITHOUT a verification token when it is %s (dropped, never fatal)",
     async (_label, over) => {
       const res = await callHandler({ ...baseBody, ...over });
