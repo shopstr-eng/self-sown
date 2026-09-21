@@ -23,8 +23,7 @@
 - [Parcel tag is a checkout contract](parcel-tag-checkout-contract.md) — live rates need BOTH parcel tag AND a ship_from_zip origin; republish gap-fills origin from seller defaults or checkout silently uses the fixed rate.
 - [Spec shipping options (kind 30406)](spec-shipping-options-30406.md) — overlay not replacement: legacy shipping tag stays (cart/fallback), spec option wins the invoice-card cost seam; country exclusion is a hard checkout block, region/weight/dim advisory; edit hydration preserves unresolvable refs.
 - [Pasted PEM keys arrive newline-collapsed](pem-secrets-collapse-newlines.md) — secret-form pastes can land as one space-joined line; normalize PEM (quotes/literal-\n/space-collapse) at the consumption site, never print key material to diagnose.
-- [Upstream→milk-market merge strategy](upstream-merge-strategy.md) — never bulk-merge shopstr upstream (cherry-port refinements, restyle neo-brutalist).
-- [Upstream parity + dev OOM](upstream-parity-and-dev-oom.md) — record parity via `merge -s ours` (hand-off); post-install dev OOM = 1GB cold-compile, not regression.
+- [Upstream merge strategy + parity](upstream-merge-strategy.md) — never bulk-merge shopstr upstream (cherry-port, restyle neo-brutalist); record parity via `merge -s ours`; post-install dev OOM = 1GB cold-compile, not regression.
 - [Cashu API-drift guardrail](cashu-api-contract-guardrail.md) — mocked Send/Mint tests stay green when @cashu/cashu-ts renames methods; a real-library contract test is the only thing that catches the drift.
 - [Jest transformIgnorePatterns under pnpm](jest-pnpm-transformignore.md) — one optional-group ESM-allowlist regex backtracks and wrongly ignores nested @noble/curves ESM; use two explicit patterns (pnpm + classic) or real-nostr-tools tests crash.
 - [Tests must not live under pages/](nextjs-tests-under-pages.md) — a Jest test colocated in pages/ builds as a route and crashes `next build` with "expect is not defined" (dev is fine); keep tests in top-level **tests**/.
@@ -141,7 +140,6 @@
 - [Publish firewall CVE blocks](publish-firewall-cve-block.md) — 403 "Critical CVE" at npm-install = bump the pinned dep.
 - [Next build OOM](next-build-oom-contention.md) — never bare `pnpm run build` (OOMs) — verify via the Next.js Dev Server workflow log.
 - [Expo tooling peer-expects TS 5](mobile-typescript-6-peer-warning.md) — TS 6.0.3 everywhere; @expo/require-utils TS^5 peer warning verified benign (expo config/export work); mobile tsconfig must not set `baseUrl`; zod missing v3/ = corrupted pnpm store, reinstall to repair.
-- [Stale-chunk hydration kill](stale-chunk-hydration-kill.md) — rebuilds used to orphan chunk hashes, killing hydration.
 - [Orphaned SW registrations](orphaned-sw-registrations.md) — serve a self-destruct worker at every historical SW path (public/sw.js, service-worker.js).
 - [HeroUI theme must be a direct dep](heroui-theme-direct-dep.md) — Tailwind @source into node_modules silently no-ops for transitive deps under pnpm; publish builds lost ALL HeroUI slot classes (label float, image reveal).
 - [Site URL centralization gotchas](site-url-centralization.md) — getSiteUrl returns env verbatim (no trim/strip — pure-refactor contract); JSX text/expression child boundaries affect SSR bytes; tests stubbing NEXT_PUBLIC_BASE_URL must assert literals, not import SITE_URL.
@@ -157,3 +155,5 @@
 - [Headless browser verification](headless-browser-verification.md) — no puppeteer here; use /repl/tools/bin/chromium headless for DOM/computed-style checks; kill by PID, never pkill.
 - [Pro-status transient-failure policy](pro-status-failopen-cache.md) — pro-status gating must fail closed only on definitive isPro:false; transient failures retry + use last-known-good cache.
 - [Mobile dependency security overrides](audit-override-unfixable-pins.md) — patched image-size needs a Metro filename→buffer shim; update query-string rather than forcing its ESM-only decoder under v7.
+- [Stripe clover/Basil invoice shape drift](stripe-clover-shape-drift.md) — clover removed invoice.subscription/payment_intent; webhook silently no-ops on Basil-shaped events; clientSecret returns null on subscription create.
+- [Stripe test-mode E2E harness](stripe-test-mode-e2e.md) — scripts/e2e-multi-seller-subscription.mjs + env-override second instance; account quirks: no raw card APIs (tok_bypassPending), clock customers invisible to list, proration bump = renewal sim.
