@@ -16,9 +16,12 @@ when a new fail-closed write was added inside the helper and tested.
 
 **How to apply:** when a helper gains a throwing call, check the call site:
 `return helper(...)` inside try/catch must become `return await helper(...)`.
-When auditing, grep `return handle[A-Z]` without `await` in pages/api. Note
-that lint rules like `no-return-await` push the wrong way here — the await
-is semantically required inside try/catch.
+pages/api is guarded by the type-aware `@typescript-eslint/return-await`
+("in-try-catch") rule in eslint.config.mjs, backed by tsconfig.eslint.json
+(a lint-only program that, unlike tsconfig.json, covers pages/api/mcp and
+the .well-known dot-directory). New server code OUTSIDE pages/api has no
+automated guard — audit manually. Note that lint rules like `no-return-await`
+push the wrong way here — the await is semantically required inside try/catch.
 
 Await alone is not enough if the route's PREAMBLE (rate limit, table init,
 auth) still runs before the try opens: those steps hit the DB directly, so

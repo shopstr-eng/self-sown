@@ -1,0 +1,14 @@
+{
+  // Lint-only program: unlike tsconfig.json this covers pages/api/mcp and the
+  // dot-directory pages/api/.well-known (TS include globs skip dot-dirs), so
+  // type-aware ESLint rules (return-await) see every API route. Not used by
+  // next build or tsc typecheck.
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "pages/api/.well-known/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", "out", "apps", "packages", "mcp"]
+}

@@ -46,4 +46,22 @@ export default [
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
+  {
+    // Type-aware block, scoped to API routes: `return someHelper()` (no await)
+    // inside a try/catch lets an async throw escape the route's error mapping
+    // as an unhandled rejection. The rule requires type info, so it stays out
+    // of the base block to keep repo-wide lint fast.
+    files: ["pages/api/**/*.{ts,tsx}"],
+    languageOptions: {
+      parserOptions: {
+        // tsconfig.eslint.json covers pages/api/mcp and the .well-known
+        // dot-directory, which the root tsconfig misses.
+        project: "./tsconfig.eslint.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/return-await": ["error", "in-try-catch"],
+    },
+  },
 ];
