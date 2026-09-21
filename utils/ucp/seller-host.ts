@@ -7,6 +7,7 @@ import {
 } from "@/utils/db/db-service";
 import { getMembershipView } from "@/utils/pro/membership";
 import { getSelfHostConfig, isSelfHost } from "@/utils/self-host/config";
+import { getSiteUrl } from "@/utils/site-url";
 
 /**
  * Server-only resolver that maps an inbound request to a UCP host scope. This is
@@ -57,7 +58,7 @@ export function deriveBaseUrl(req: NextApiRequest): string {
   if (host && !host.startsWith("localhost") && !host.startsWith("127.")) {
     return `https://${host.replace(/:\d+$/, "")}`;
   }
-  return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000";
+  return getSiteUrl();
 }
 
 /** Resolve the seller (if any) this host is scoped to. */
