@@ -101,7 +101,11 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   GIT*AUTHOR*_/GIT*COMMITTER*_ name+email over `origin/main..HEAD` —
   preserves author dates, runs no hooks, no index.lock races (both bit the
   rebase --exec approach). Delete refs/original/\_ after, verify with an
-  empty `git diff <oldHEAD> HEAD`.
+  empty `git diff <oldHEAD> HEAD`. If rebase --exec is used anyway (fine
+  for short ranges): amend with `--no-edit --no-verify --reset-author
+  --allow-empty` — without --allow-empty the rebase stops interactively on
+  every empty commit (e.g. platform "Published your App"), and the -c
+  user.name/email creds must be re-passed on every `rebase --continue`.
 - Repo has a "changes must go through a pull request" RULESET (the
   connector's /rulesets + /rules/branches queries returned EMPTY — don't
   trust them; the bypass banner on push is the ground truth). Connector
