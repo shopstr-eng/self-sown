@@ -31,6 +31,8 @@ const stripePricesCreateMock = jest.fn();
 const stripeInvoiceItemsCreateMock = jest.fn();
 const stripeInvoiceItemsDelMock = jest.fn();
 const stripeSubscriptionsCreateMock = jest.fn();
+const stripeInvoicePaymentsListMock = jest.fn();
+const stripePaymentIntentsRetrieveMock = jest.fn();
 
 jest.mock("stripe", () => {
   const Stripe = jest.fn().mockImplementation(() => ({
@@ -47,6 +49,13 @@ jest.mock("stripe", () => {
     invoiceItems: {
       create: (...args: unknown[]) => stripeInvoiceItemsCreateMock(...args),
       del: (...args: unknown[]) => stripeInvoiceItemsDelMock(...args),
+    },
+    invoicePayments: {
+      list: (...args: unknown[]) => stripeInvoicePaymentsListMock(...args),
+    },
+    paymentIntents: {
+      retrieve: (...args: unknown[]) =>
+        stripePaymentIntentsRetrieveMock(...args),
     },
     subscriptions: {
       create: (...args: unknown[]) => stripeSubscriptionsCreateMock(...args),
@@ -151,14 +160,21 @@ beforeEach(() => {
     id: `price_${++priceCounter}`,
   }));
   stripeInvoiceItemsCreateMock.mockResolvedValue({ id: "ii_1" });
+  // Default fixture is the REAL apiVersion 2025-09-30.clover (Basil) shape:
+  // the Invoice has NO top-level payment_intent, so the route must resolve
+  // the first-payment PI via the invoice's invoicePayments entries.
   stripeSubscriptionsCreateMock.mockResolvedValue({
     id: "sub_cart_1",
     status: "incomplete",
     current_period_end: 1_800_000_000,
-    latest_invoice: {
-      id: "in_1",
-      payment_intent: { id: "pi_1", client_secret: "pi_1_secret" },
-    },
+    latest_invoice: { id: "in_1" },
+  });
+  stripeInvoicePaymentsListMock.mockResolvedValue({
+    data: [{ payment: { payment_intent: "pi_1" } }],
+  });
+  stripePaymentIntentsRetrieveMock.mockResolvedValue({
+    id: "pi_1",
+    client_secret: "pi_1_secret",
   });
 });
 
@@ -435,10 +451,8 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
       id: "sub_cart_1",
       status: "incomplete",
       current_period_end: 1_800_000_000,
-      latest_invoice: {
-        id: "in_1",
-        payment_intent: { id: "pi_1", client_secret: "pi_1_secret" },
-      },
+      // Clover shape: no top-level payment_intent on the invoice.
+      latest_invoice: { id: "in_1" },
     };
     stripeSubscriptionsCreateMock.mockImplementation(
       async (params: any, opts: any) => {
@@ -806,6 +820,50 @@ describe("POST /api/stripe/create-cart-subscription — multi-merchant", () => {
     expect(splitA.donationPercent).toBe(100);
     expect(splitA.donationCutSmallest).toBe(splitA.amountCents);
     expect(splitA.amountCents).toBeGreaterThan(0);
+  });
+
+  it("resolves the buyer's clientSecret via invoicePayments on the clover invoice shape", async () => {
+    // #439: apiVersion 2025-09-30.clover (Basil family) removed
+    // Invoice.payment_intent, so expand:["latest_invoice.payment_intent"]
+    // silently yields nothing — the buyer's card form is gated on this
+    // secret, and a null here means the form never renders.
+    const res = makeRes();
+    await handler(makeReq(twoSellerCartBody()), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientSecret).toBe("pi_1_secret");
+    expect(stripeInvoicePaymentsListMock).toHaveBeenCalledWith(
+      { invoice: "in_1", limit: 10 },
+      undefined
+    );
+    expect(stripePaymentIntentsRetrieveMock).toHaveBeenCalledWith(
+      "pi_1",
+      {},
+      undefined
+    );
+  });
+
+  it("still resolves the pre-Basil expanded shape without the invoicePayments fallback", async () => {
+    // If the API version pin ever rolls back, the expanded
+    // latest_invoice.payment_intent must be used directly — the extra calls
+    // must NOT fire (and nothing may 500 on their absence).
+    stripeSubscriptionsCreateMock.mockResolvedValue({
+      id: "sub_cart_1",
+      status: "incomplete",
+      current_period_end: 1_800_000_000,
+      latest_invoice: {
+        id: "in_1",
+        payment_intent: { id: "pi_1", client_secret: "pi_1_secret" },
+      },
+    });
+
+    const res = makeRes();
+    await handler(makeReq(twoSellerCartBody()), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientSecret).toBe("pi_1_secret");
+    expect(stripeInvoicePaymentsListMock).not.toHaveBeenCalled();
+    expect(stripePaymentIntentsRetrieveMock).not.toHaveBeenCalled();
   });
 
   it("409s a concurrent duplicate while the owning attempt is still creating Stripe objects", async () => {

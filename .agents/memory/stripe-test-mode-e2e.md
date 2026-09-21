@@ -10,7 +10,7 @@ description: scripts/e2e-multi-seller-subscription.mjs runs real Stripe test-mod
 - Raw card-number APIs are disabled on this account → create payment methods from test tokens. `tok_bypassPending` = card whose funds land in AVAILABLE balance immediately (needed for transfers).
 - Connected accounts: custom accounts are blocked until the test-dashboard Connect platform profile is completed; express accounts need hosted onboarding (TOS can't be API-accepted). Two onboarded express test accounts already exist (acct_1UHHZeHV9FUIvCCE, acct_1UHHZhQeYmxHQLVS, transfers-active) — reuse via E2E_ACCOUNT_A/B.
 - Test clocks: `customers.list({email})` cannot see clock customers, so the route creates a second clockless customer — clocks are unusable when the route owns customer creation. `billing_cycle_anchor: "now"` generates NO invoice on clover. `invoiceItems` refuse recurring prices. Working renewal simulation: quantity bump + `proration_behavior: "always_invoice"` → real immediately-paid invoice whose lines carry the recurring price ids.
-- Detached runs in this sandbox: use `setsid script >log 2>&1 </dev/null & disown` — plain `nohup ... &` children get reaped.
+- Detached runs in this sandbox: even `setsid ... & disown` standalone-server instances get reaped once the launching shell call ends — run the second instance AND the harness inside ONE shell call (start server bg, poll /api/health, run harness, kill).
 
 **Why:** these constraints cost several probe rounds to discover; each is undocumented or version-specific.
 
