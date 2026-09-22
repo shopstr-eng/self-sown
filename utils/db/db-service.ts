@@ -3589,19 +3589,20 @@ export async function fetchAllMessagesFromDb(
   }
 }
 
-// Mark messages as read in database
+// Mark messages as read in database. Returns the number of rows actually
+// marked; rows owned by another pubkey are never touched.
 export async function markMessagesAsRead(
   messageIds: string[],
   pubkey: string
-): Promise<void> {
-  if (messageIds.length === 0) return;
+): Promise<number> {
+  if (messageIds.length === 0) return 0;
 
   const dbPool = getDbPool();
   let client;
 
   try {
     client = await dbPool.connect();
-    await client.query(
+    const result = await client.query(
       `UPDATE message_events
        SET is_read = TRUE
        WHERE id = ANY($1)
@@ -3615,6 +3616,7 @@ export async function markMessagesAsRead(
        )`,
       [messageIds, pubkey] as any[]
     );
+    return result.rowCount ?? 0;
   } catch (error) {
     console.error("Failed to mark messages as read:", error);
     throw error;
