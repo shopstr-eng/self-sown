@@ -3627,7 +3627,10 @@ export async function markMessagesAsRead(
   }
 }
 
-// Get unread message count for a user
+// Get unread message count for a user. NIP-17 gift wraps carry an ephemeral
+// outer pubkey, so the seller is identified by the recipient p-tag — the same
+// scoping fetchAllMessagesFromDb and markMessagesAsRead use. Keeping the
+// pubkey = $1 branch covers any pre-NIP-17 rows addressed by outer pubkey.
 export async function getUnreadMessageCount(pubkey: string): Promise<number> {
   const dbPool = getDbPool();
   let client;
@@ -3635,7 +3638,16 @@ export async function getUnreadMessageCount(pubkey: string): Promise<number> {
   try {
     client = await dbPool.connect();
     const result = await client.query(
-      `SELECT COUNT(*) FROM message_events WHERE pubkey = $1 AND (is_read = FALSE OR is_read IS NULL)`,
+      `SELECT COUNT(*) FROM message_events
+       WHERE (is_read = FALSE OR is_read IS NULL)
+       AND (
+         pubkey = $1
+         OR EXISTS (
+           SELECT 1
+           FROM jsonb_array_elements(tags) elem
+           WHERE elem->>0 = 'p' AND elem->>1 = $1
+         )
+       )`,
       [pubkey]
     );
     return parseInt(result.rows[0].count, 10);
