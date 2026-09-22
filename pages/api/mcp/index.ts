@@ -297,7 +297,7 @@ function registerPurchaseTools(
 
   reg(
     "get_order_status",
-    "Check the status of an existing order. Requires read_write API key permission.",
+    "Check the status of an existing order. Works for orders you bought (as buyer) or sold (as seller). Requires read_write API key permission.",
     {
       orderId: z.string().describe("The order ID to check"),
     },
