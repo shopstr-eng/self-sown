@@ -221,7 +221,10 @@ const ApiKeysPage = () => {
                   <code className="rounded bg-gray-200 px-1">
                     Authorization
                   </code>{" "}
-                  header as a Bearer token.
+                  header as a Bearer token. The in-app AI assistant (Settings
+                  &rarr; AI Assistant) drives this same endpoint &mdash;
+                  configure agent signing on any key and it can make changes
+                  from chat automatically.
                 </p>
               </div>
               <div className="flex items-center gap-2">

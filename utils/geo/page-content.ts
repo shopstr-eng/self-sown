@@ -109,7 +109,7 @@ How to start selling local food and goods on Self-sown.
 5. **Customize your storefront** (Herd): colors, fonts, page builder, SEO/OG meta, and a custom domain.
 6. **Automate your email flows** (Herd): welcome series, order follow-ups, re-engagement, with open, click, and conversion analytics for every flow and one-time send. You can also send these emails (plus order confirmations) from your own SendGrid-authenticated domain; if your domain isn't verified, sending automatically falls back to the platform's verified sender so messages always go out. Analytics are private to each seller: every request is scoped to the seller's own account, so no other seller can see them and the platform does not access an individual seller's raw email analytics.
 7. **Buy shipping labels** (Herd): connect your own Shippo account, quote live rates, buy labels, and issue returns from the orders dashboard.
-8. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders.
+8. **Connect AI agents with MCP** (Herd) so autonomous agents can manage listings and orders — or chat with the built-in AI seller assistant (Settings > AI Assistant), which drives the same MCP tools.
 9. **Grow your business**: update listings, build relationships, share your story, and expand reach.
 
 To accept card payments, connect either Stripe or Square (one card processor per stall, your choice). If you connect a Stripe account, you can also turn on automatic US sales tax (free). Stripe calculates it from the buyer's shipping address and shows it at checkout on card orders.

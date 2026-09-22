@@ -9,7 +9,7 @@ Use Self-sown when an agent or application needs to:
 - Search a live catalog of local-food products (produce, meat, eggs, dairy, baked goods, honey, preserves) from independent producers.
 - Read structured product details (price, availability, shipping options, seller identity) as JSON, JSON-LD, or RSS.
 - Place and track orders programmatically, with payment over Bitcoin (Lightning, Cashu ecash) or card.
-- Manage a seller's stall: listings, orders, storefront pages, blog posts, and email flows, all through MCP tools.
+- Manage a seller's stall: listings, orders, storefront pages, blog posts, and email flows, all through MCP tools. Sellers on the Herd plan also get a built-in AI assistant (Settings > AI Assistant) that drives the same tools conversationally.
 
 Start with the MCP server for tool-style interaction, the UCP endpoints for REST catalog + checkout sessions, or the OpenAPI document for the full endpoint list. The initialize handshake and public read tools work without an API key.
 
