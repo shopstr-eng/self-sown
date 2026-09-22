@@ -89,6 +89,10 @@ upstream/main` (a parity merge makes all of upstream's history appear in the
   api.github.com. Repo paths 404 "Not Found" under the wrong owner — the
   repo lives under an ORG, while the token's `/user` login is a personal
   account; always resolve owner/repo from `git remote get-url origin`.
+  Connection objects lose their methods crossing the impure boundary —
+  listConnections AND every proxyFetch must run inside ONE "use impure"
+  function (verified 2026-09-21: proxyFetch was "not a function" on a conn
+  returned to durable scope).
 - Task-agent/platform merge commits arrive authored as Replit platform
   identities (agent@replit.com or _@users.noreply.replit.com).
   **The user wants ALL commits attributed to their own GitHub account,

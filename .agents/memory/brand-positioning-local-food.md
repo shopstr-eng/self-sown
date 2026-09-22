@@ -12,3 +12,4 @@ The platform's public positioning is **local food and artisan goods**, full stop
 - When writing or editing marketing copy, meta descriptions, JSON-LD, llms.txt/llms-full.txt, FAQs, or placeholder/preview content, lead with local food / farm-fresh / artisan / handmade categories. Do not introduce raw-milk-first lists or raw-milk-centered narratives.
 - Category lists that happen to include dairy are fine; ordering raw milk first or framing the platform around it is not.
 - Test fixtures that use raw-milk product names as sample data are acceptable.
+- Exception (2026-09-21): the owner explicitly restored the raw-milk paragraph in the Free Food Manifesto essay (pages/manifesto/index.tsx) from their pasted original. The manifesto is the founder's personal essay, not marketing positioning — do NOT rewrite it back to the local-food version.
