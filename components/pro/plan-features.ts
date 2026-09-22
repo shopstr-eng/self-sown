@@ -20,6 +20,7 @@ export const PRO_FEATURES: string[] = [
   "Custom product pages",
   "Shippo shipping labels",
   "MCP API access for AI agents",
+  "AI seller assistant (in-app chat)",
 ];
 
 // Wrangler (lifetime) includes everything in Herd PLUS the ability to run your

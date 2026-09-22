@@ -12,6 +12,7 @@ import {
   TruckIcon,
   MapPinIcon,
   ServerStackIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
 import { LogOut } from "@/utils/nostr/nostr-helper-functions";
 import ProtectedRoute from "@/components/utility-components/protected-route";
@@ -37,6 +38,14 @@ const SettingsPage = () => {
       icon: BuildingStorefrontIcon,
       iconBg: "bg-slate-600",
       route: "/settings/stall",
+    },
+    {
+      id: "assistant",
+      title: "AI Assistant",
+      description: "Chat to manage your stall, products, and orders",
+      icon: SparklesIcon,
+      iconBg: "bg-slate-600",
+      route: "/settings/assistant",
     },
     {
       id: "email-flows",

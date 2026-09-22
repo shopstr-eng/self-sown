@@ -1129,6 +1129,12 @@ export default function StandaloneLanding() {
                     shopify: true,
                     barn: false,
                   },
+                  {
+                    feature: "AI seller assistant (in-app chat)",
+                    ss: "Herd",
+                    shopify: "Sidekick",
+                    barn: false,
+                  },
                 ].map((row, i) => {
                   const renderCell = (val: boolean | string) => {
                     if (val === true)

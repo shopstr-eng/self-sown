@@ -279,7 +279,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Choose Your Membership",
-                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, and AI agent access.",
+                  text: "Selling is free with unlimited listings and no mandatory transaction fees. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you accept cards through Stripe or Square, that processor charges its own standard processing fee. Upgrade to Herd ($21/month) for custom domains, advanced stall design, automated email flows with open/click/conversion analytics, AI agent access, and an in-app AI seller assistant.",
                   url: `${SITE_URL}/producer-guide#step-2`,
                 },
                 {
@@ -315,7 +315,7 @@ const ProducerGuidePage = () => {
                 {
                   "@type": "HowToStep",
                   name: "Enable AI Agent (MCP) Access",
-                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically.",
+                  text: "Activate the Model Context Protocol endpoint so AI agents can manage your stall (creating and updating listings, tracking inventory, and handling orders), and so agentic shopping tools can discover and purchase from your stall automatically. A built-in AI seller assistant (Settings -> AI Assistant) chats over the same tools.",
                   url: `${SITE_URL}/producer-guide#step-8`,
                 },
                 {
@@ -594,8 +594,9 @@ const ProducerGuidePage = () => {
                           Go Herd for $21/month (or $168/year, saving 33%) to
                           unlock advanced stalls, custom domains, email flows
                           with open/click analytics, custom product pages,
-                          shipping labels, and AI agent (MCP) access &mdash; or
-                          go Wrangler for one-time $2,100 lifetime access
+                          shipping labels, AI agent (MCP) access, and the in-app
+                          AI seller assistant &mdash; or go Wrangler for
+                          one-time $2,100 lifetime access
                         </li>
                         <li>
                           New sellers get a 30-day free trial of Herd with no
@@ -873,6 +874,11 @@ const ProducerGuidePage = () => {
                       <li>
                         Manage your stall with AI to create and update listings,
                         track inventory, and handle orders
+                      </li>
+                      <li>
+                        Chat with the built-in AI seller assistant under
+                        Settings &gt; AI Assistant to run your stall
+                        conversationally
                       </li>
                       <li>
                         Let shopping agents browse your listings and check live

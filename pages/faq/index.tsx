@@ -65,12 +65,17 @@ export default function Faq() {
         {
           title: "How much does it cost to sell?",
           content:
-            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, and AI agent (MCP) access. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
+            "Starting is free, with unlimited listings and no mandatory transaction fees, ever. Self-sown never adds a fee of its own. Bitcoin payments have no fees at all, and if you choose to accept cards through Stripe or Square, that processor charges its own standard processing fee. Herd is $21/month (or $168/year, saving 33%) and adds advanced storefront customization, self-serve custom domains, automated email flows, custom product pages, shipping labels, AI agent (MCP) access, and an in-app AI seller assistant that manages your stall through chat. Prefer to pay once? Wrangler is a one-time $2,100 purchase for lifetime access to every Herd feature. You can set an optional donation rate to support the platform, but that's always your choice.",
         },
         {
           title: "Is there a free trial of Herd?",
           content:
             "Yes. New sellers get a 30-day free trial of Herd with no payment required up front. All Herd features are unlocked for the trial period, and we'll remind you to pay for your selected plan before the trial ends. You can stay on the free plan at any time.",
+        },
+        {
+          title: "Is there an AI assistant for sellers?",
+          content:
+            "Yes. Herd includes a built-in AI assistant under 'Settings' -> 'AI Assistant'. It works through the same MCP tools external AI agents use: ask it about orders, listings, stock, discounts, and analytics, or tell it to make changes like adding a listing or updating stock. It runs on Anthropic, which processes your chat and the account data it reads to generate answers. Moving money, deleting listings or discount codes, and sending direct messages to buyers stay manual by design.",
         },
         {
           title: "What types of items can I sell?",

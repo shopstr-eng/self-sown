@@ -213,9 +213,9 @@ const ProMembershipSection = () => {
               <p className="text-sm text-gray-600">
                 Upgrade to Herd for advanced storefronts, custom domains, email
                 flows with open &amp; click analytics, custom product pages,
-                shipping labels, and the MCP API. Start with a 30-day free
-                trial, no payment required, or go Wrangler for one-time lifetime
-                access.
+                shipping labels, the MCP API, and the in-app AI assistant. Start
+                with a 30-day free trial, no payment required, or go Wrangler
+                for one-time lifetime access.
               </p>
             </div>
             <Button

@@ -37,3 +37,15 @@ Model Context Protocol server lets AI agents participate as buyers and sellers �
 ## Self-host (Wrangler)
 
 The MCP API is a Herd/Wrangler feature. A **Wrangler** (lifetime) seller can run a private, single-tenant copy of Self-sown (see `docs/architecture/self-host.md`); on that instance the MCP server runs for the owner pubkey (entitlement bypass treats the tenant as lifetime). Because the instance is single-tenant — its PostgreSQL cache and relays carry only the owner's own products and orders — the MCP tools surface only that seller's store; there is no marketplace/discovery data to expose. `MCP_ENCRYPTION_KEY` is the only MCP-specific secret the self-hoster sets (for `full_access` server-side signing); it ships as an empty `[generate]` slot in the export bundle's `.env.example`.
+
+## In-app seller assistant
+
+Pro sellers get a built-in chat assistant at **Settings → AI Assistant** (`pages/settings/assistant.tsx`). It is a real MCP client, not a parallel tool implementation: the chat route (`pages/api/assistant/chat.ts`, NIP-98 + `requireProEntitlement`, Pro-only) runs an Anthropic tool-use loop (`utils/assistant/agent.ts`) that calls this app's own `/api/mcp` endpoint over loopback HTTP via `utils/assistant/mcp-client.ts`.
+
+Key points:
+
+- Each seller gets a dedicated `full_access` key row named **"Self-sown Assistant (in-app chat)"** (`utils/assistant/assistant-key.ts`). The raw key is never exposed: the route rotates `key_prefix`/`key_hash` on a cache miss and keeps the raw value in process memory only.
+- The tool surface is a curated allowlist (`utils/assistant/tools.ts`) — no fund movement, no deletes of listings/discounts/flows, no direct buyer messaging, no decrypted DM content, and no billing/relay config. Order-status/shipping tools still send templated buyer notifications. Enforced both when exposing tools to the model and again at call time.
+- Write tools need server-side signing, so they are only exposed when the assistant key row carries an `encrypted_nsec`. If the seller already configured agent signing on any other `full_access` key, the encrypted blob is copied across automatically; otherwise they paste their nsec in the setup card (`pages/api/assistant/setup.ts`, same posture as `/api/mcp/set-nsec`).
+- All assistant tool calls land in the same audit log as external MCP traffic.
+- Chat content and the account data the assistant reads (including order details) are processed by the AI provider (Anthropic); this is disclosed on the assistant page and in the FAQ. Signed chat/setup requests are single-use (event-ID replay guard in `utils/assistant/replay-guard.ts`), the loop runs under a 90s overall deadline, and a stale cached raw key (row revoked, or rotated by another process) is evicted and rotated once on a 401 before failing.

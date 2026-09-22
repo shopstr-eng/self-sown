@@ -154,7 +154,10 @@ export default function Developers() {
                 <code className="rounded bg-zinc-100 px-1">/api/mcp</code>. The{" "}
                 <code className="rounded bg-zinc-100 px-1">initialize</code>{" "}
                 handshake, tool listing, and the public read tools (product
-                search and details) work without an API key:
+                search and details) work without an API key. Sellers on the Herd
+                plan can also skip writing code entirely: the built-in AI
+                assistant (<em>Settings → AI Assistant</em>) drives this same
+                server conversationally.
               </p>
               <CodeBlock>{INIT_CURL}</CodeBlock>
               <p className="mt-4 text-zinc-700">
