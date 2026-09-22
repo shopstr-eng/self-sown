@@ -3508,22 +3508,17 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       if (apiKey.permissions !== "full_access") return permissionError();
 
       try {
-        const { getDbPool } = await import("@/utils/db/db-service");
-        const pool = getDbPool();
-        let client;
-        try {
-          client = await pool.connect();
-          await client.query(
-            `UPDATE message_events SET is_read = TRUE WHERE id = ANY($1)`,
-            [params.messageIds]
-          );
-        } finally {
-          if (client) client.release();
-        }
+        // Scope to the key owner's messages: a full_access key must not flip
+        // read-state on another seller's rows.
+        const { markMessagesAsRead } = await import("@/utils/db/db-service");
+        const markedRead = await markMessagesAsRead(
+          params.messageIds,
+          apiKey.pubkey
+        );
 
         return successResponse(
           {
-            markedRead: params.messageIds.length,
+            markedRead,
             messageIds: params.messageIds,
           },
           startTime
