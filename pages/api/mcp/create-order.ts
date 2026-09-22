@@ -340,7 +340,7 @@ function formatCreateOrderResult(
 async function handleGetOrder(
   res: NextApiResponse,
   orderId: string,
-  buyerPubkey: string
+  callerPubkey: string
 ) {
   try {
     const order = await getMcpOrder(orderId);
@@ -348,7 +348,11 @@ async function handleGetOrder(
       return res.status(404).json({ error: "Order not found" });
     }
 
-    if (order.buyer_pubkey !== buyerPubkey) {
+    // Buyer OR seller may read the order; a third party's key still gets 403.
+    if (
+      order.buyer_pubkey !== callerPubkey &&
+      order.seller_pubkey !== callerPubkey
+    ) {
       return res
         .status(403)
         .json({ error: "Not authorized to view this order" });
