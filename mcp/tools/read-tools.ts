@@ -22,6 +22,8 @@ import { SITE_HOST } from "@/utils/site-url";
 
 const DB_TIMEOUT_MS = 15_000;
 const MAX_PRODUCT_RESULTS = 50;
+// Upper bound for agent-supplied price filters (any currency unit).
+const MAX_PRICE_FILTER = 1e15;
 const MAX_PRODUCT_CONTENT_LENGTH = 16_000;
 const MAX_CURSOR_LENGTH = 16_384;
 const MAX_CURSOR_SEEN = 128;
@@ -484,12 +486,14 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
         .number()
         .finite()
         .min(0)
+        .max(MAX_PRICE_FILTER)
         .optional()
         .describe("Minimum price filter"),
       maxPrice: z
         .number()
         .finite()
         .min(0)
+        .max(MAX_PRICE_FILTER)
         .optional()
         .describe("Maximum price filter"),
       currency: z
@@ -828,8 +832,11 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
     {
       limit: z
         .number()
+        .int()
+        .min(1)
+        .max(1000)
         .optional()
-        .describe("Maximum number of results to return"),
+        .describe("Maximum number of results to return (1-1000)"),
     },
     async ({ limit }) => {
       const startTime = Date.now();
