@@ -189,6 +189,34 @@ describe("POST /api/mcp/create-order quantity cap", () => {
   });
 });
 
+describe("POST /api/mcp/create-order quantity type guard", () => {
+  // Unlike the UCP sibling route (pinned in ucp-checkout-quantity-type.test.ts),
+  // this route has no request-shape validation of its own — it passes quantity
+  // straight through to the real order engine. These tests pin that the
+  // engine's OrderServiceError(400) actually surfaces as an HTTP 400 rather
+  // than degrading into a 500 or a silently coerced quantity of 1, which would
+  // under-charge the buyer (charge for 1, promise 5).
+  it.each([
+    ["an integer-as-string", "5"],
+    ["a float-as-string", "5.0"],
+  ])(
+    "returns 400 naming quantity for %s instead of charging for one item",
+    async (_label, quantity) => {
+      const res = await run(createOrderHandler, {
+        productId: "p1",
+        quantity,
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toMatchObject({
+        error: expect.stringMatching(/quantity must be a positive integer/),
+      });
+      // The type check must fire BEFORE any product lookup: a failure past
+      // the DB seam would mean the guard silently moved or disappeared.
+      expect(mockFetchAllProductsFromDb).not.toHaveBeenCalled();
+    }
+  );
+});
+
 describe("POST /api/ucp/checkout/sessions quantity cap", () => {
   it("returns 400 with the cap message for an absurd quantity and persists no session", async () => {
     const res = await run(checkoutSessionsHandler, {
