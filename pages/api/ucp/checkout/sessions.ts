@@ -157,6 +157,17 @@ async function handleCreate(
     return res.status(400).json({ error: "productId is required" });
   }
 
+  // quantity must be a JSON number when present. A mistyped value ("5",
+  // "5.0", null, an array, ...) must NOT silently default to 1 — the buyer
+  // would be under-charged and under-delivered with no signal. Only an
+  // omitted quantity means "one"; the order engine rejects non-integer /
+  // out-of-range real numbers.
+  if (body.quantity !== undefined && typeof body.quantity !== "number") {
+    return res
+      .status(400)
+      .json({ error: "quantity must be a number (e.g. 2), not a string" });
+  }
+
   // Resolve the host scope and bind the requested product to it FIRST. On a
   // seller's custom domain / self-host instance, a checkout session may only be
   // opened against that seller's own products — never another seller's listing
@@ -218,7 +229,7 @@ async function handleCreate(
 
   const input: CreateOrderFlowInput = {
     productId,
-    quantity: typeof body.quantity === "number" ? body.quantity : 1,
+    quantity: body.quantity ?? 1,
     buyerEmail: body.buyerEmail ?? null,
     shippingAddress: body.shippingAddress ?? null,
     selectedSize: body.selectedSize ?? variantSelection.selectedSize,
