@@ -28,12 +28,14 @@ import Ajv2020 from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
+import { isSchemaEmail } from "@/utils/ucp/email-format";
 
 const mockApplyRateLimit = jest.fn();
 const mockAuthenticateRequest = jest.fn();
 const mockInitializeApiKeysTable = jest.fn();
 const mockResolveHostScope = jest.fn();
 const mockFetchAllProductsFromDb = jest.fn();
+const mockFetchAllProfilesFromDb = jest.fn();
 const mockParseTags = jest.fn();
 const mockInsertCheckoutSession = jest.fn();
 const mockCreateMcpOrder = jest.fn();
@@ -55,7 +57,8 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
   fetchAllProductsFromDb: (...args: any[]) =>
     mockFetchAllProductsFromDb(...args),
-  fetchAllProfilesFromDb: jest.fn(async () => []),
+  fetchAllProfilesFromDb: (...args: any[]) =>
+    mockFetchAllProfilesFromDb(...args),
   getStripeConnectAccount: jest.fn(async () => null),
   validateDiscountCode: jest.fn(async () => ({ valid: false })),
   markDiscountCodeUsed: jest.fn(),
@@ -191,6 +194,16 @@ beforeEach(() => {
   mockAuthenticateRequest.mockResolvedValue({ id: 1, pubkey: "buyer-pk" });
   mockResolveHostScope.mockResolvedValue({ scope: "platform" });
   mockFetchAllProductsFromDb.mockResolvedValue([{ id: "p1" }]);
+  // Seller profile with a fiat rail so the "fiat" paymentMethod case below can
+  // complete the real engine's fiat branch without a network call.
+  mockFetchAllProfilesFromDb.mockResolvedValue([
+    {
+      pubkey: "seller-pk",
+      kind: 0,
+      created_at: 1,
+      content: JSON.stringify({ fiat_options: ["cash"] }),
+    },
+  ]);
   // A realistically parsed product so the real engine can price a valid order.
   mockParseTags.mockReturnValue({
     pubkey: "seller-pk",
@@ -236,6 +249,15 @@ describe("published checkout-session-create schema parity with the route", () =>
       "quantity at the MAX_ORDER_QUANTITY boundary",
       { productId: "p1", quantity: MAX_ORDER_QUANTITY },
     ],
+    ["a stripe paymentMethod", { productId: "p1", paymentMethod: "stripe" }],
+    [
+      "a fiat paymentMethod",
+      { productId: "p1", paymentMethod: "fiat", fiatMethod: "cash" },
+    ],
+    [
+      "a well-formed buyerEmail",
+      { productId: "p1", buyerEmail: "buyer@example.com" },
+    ],
   ];
 
   const rejectedBodies: Array<[string, Record<string, unknown>]> = [
@@ -251,7 +273,73 @@ describe("published checkout-session-create schema parity with the route", () =>
       "quantity above MAX_ORDER_QUANTITY",
       { productId: "p1", quantity: MAX_ORDER_QUANTITY + 1 },
     ],
+    [
+      "an unknown paymentMethod",
+      { productId: "p1", paymentMethod: "venmo" },
+    ],
+    ["a non-string paymentMethod", { productId: "p1", paymentMethod: 7 }],
+    ["an empty-string paymentMethod", { productId: "p1", paymentMethod: "" }],
+    [
+      "a malformed buyerEmail",
+      { productId: "p1", buyerEmail: "not-an-email" },
+    ],
+    ["a non-string buyerEmail", { productId: "p1", buyerEmail: 42 }],
+    ["a null buyerEmail", { productId: "p1", buyerEmail: null }],
+    // These pass a loose `[^@]+@[^@]+` check but are rejected by the schema's
+    // ajv-formats `email` format — the route must agree with the schema.
+    ["a dotless-domain buyerEmail", { productId: "p1", buyerEmail: "a@b" }],
+    [
+      "a double-dot buyerEmail",
+      { productId: "p1", buyerEmail: "a..b@example.com" },
+    ],
+    [
+      "a leading-dot buyerEmail",
+      { productId: "p1", buyerEmail: ".a@example.com" },
+    ],
+    [
+      "a leading-hyphen-domain buyerEmail",
+      { productId: "p1", buyerEmail: "a@-x.com" },
+    ],
   ];
+
+  // The route cannot import ajv-formats (a devDependency), so
+  // utils/ucp/email-format.ts replicates its `email` regex. Pin byte-level
+  // equivalence against a real ajv compile so an ajv-formats upgrade that
+  // changes the format fails here instead of silently drifting the route
+  // away from the published schema.
+  it("route email check agrees with ajv-formats on a battery of addresses", async () => {
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    addFormats(ajv);
+    const validateEmail = ajv.compile({
+      type: "object",
+      properties: { buyerEmail: { type: "string", format: "email" } },
+    });
+    const addresses = [
+      "buyer@example.com",
+      "a.b+c-d_e@f-g.example.co.uk",
+      "not-an-email",
+      "a@b",
+      "a@example",
+      "a..b@example.com",
+      ".a@example.com",
+      "a.@example.com",
+      "a@-x.com",
+      "a@x-.com",
+      "a b@c.com",
+      "a@@b.com",
+      "@example.com",
+      "a@",
+      "",
+    ];
+    for (const email of addresses) {
+      expect(isSchemaEmail(email)).toBe(validateEmail({ buyerEmail: email }));
+    }
+    // ajv's format keyword ignores non-strings (the type keyword owns those);
+    // the route helper must still reject them so a typed `123` never
+    // reaches receipt_email.
+    expect(isSchemaEmail(123)).toBe(false);
+    expect(isSchemaEmail(null)).toBe(false);
+  });
 
   it.each(acceptedBodies)(
     "BOTH accept %s (schema valid, route creates a session)",

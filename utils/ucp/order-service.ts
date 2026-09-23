@@ -233,7 +233,12 @@ export type OrderFlowResult =
       connectedAccountId: string | undefined;
     };
 
-const VALID_METHODS: PaymentMethod[] = ["stripe", "lightning", "cashu", "fiat"];
+export const VALID_METHODS: PaymentMethod[] = [
+  "stripe",
+  "lightning",
+  "cashu",
+  "fiat",
+];
 
 /**
  * Top-level entry: validate, price, and initialize payment for one order.

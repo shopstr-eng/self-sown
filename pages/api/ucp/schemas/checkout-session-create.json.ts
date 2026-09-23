@@ -31,7 +31,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     $id: `${base}/api/ucp/schemas/checkout-session-create.json`,
     title: "UCP Checkout Session Create Request",
     description:
-      "Request body for POST /api/ucp/checkout/sessions. Only an omitted quantity means \"one\"; a non-number quantity (e.g. the string \"5\") is rejected with HTTP 400 rather than coerced.",
+      "Request body for POST /api/ucp/checkout/sessions. Only an omitted quantity means \"one\"; a non-number quantity (e.g. the string \"5\") is rejected with HTTP 400 rather than coerced. paymentMethod is limited to the enum below and buyerEmail must be a valid email address; the route enforces both with HTTP 400.",
     type: "object",
     properties: {
       productId: {
