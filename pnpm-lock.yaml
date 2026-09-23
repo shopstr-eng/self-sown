@@ -256,6 +256,12 @@ importers:
       '@types/uuid':
         specifier: 11.0.0
         version: 11.0.0
+      ajv:
+        specifier: 8.18.0
+        version: 8.18.0
+      ajv-formats:
+        specifier: 3.0.1
+        version: 3.0.1(ajv@8.18.0)
       babel-jest:
         specifier: 30.5.0
         version: 30.5.0(@babel/core@7.29.6)
