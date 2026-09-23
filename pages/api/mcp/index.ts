@@ -92,7 +92,10 @@ function evictIfExpired(sessionId: string, session: McpSession): boolean {
   return false;
 }
 
-setInterval(() => {
+// Unref'd so importing this module (e.g. in tests) never holds the process
+// open; a running server has plenty of other handles keeping it alive.
+// (DOM typings type setInterval as returning a number, hence the cast.)
+const sessionSweeper = setInterval(() => {
   const now = Date.now();
   for (const [sid, session] of sessions) {
     if (now - session.lastActivityAt > SESSION_TTL_MS) {
@@ -100,6 +103,7 @@ setInterval(() => {
     }
   }
 }, SWEEP_INTERVAL_MS);
+(sessionSweeper as unknown as { unref?: () => void }).unref?.();
 
 export const config = {
   api: {
@@ -107,7 +111,9 @@ export const config = {
   },
 };
 
-function registerPurchaseTools(
+// Exported for tests (pagination schema bounds) — registration still only
+// happens per-session in the handler below.
+export function registerPurchaseTools(
   server: ReturnType<typeof createMcpServer>,
   apiKey: ApiKeyRecord,
   token: string
@@ -352,12 +358,20 @@ function registerPurchaseTools(
     "list_orders",
     "List your orders. Requires read_write API key permission.",
     {
+      // Bounded like the REST list route (handleListOrders in
+      // create-order.ts): an unbounded LIMIT lets one call scan/serialize the
+      // whole mcp_orders table, and a negative offset is meaningless input.
       limit: z
         .number()
+        .int()
+        .min(1)
+        .max(100)
         .optional()
-        .describe("Maximum number of orders to return (default 50)"),
+        .describe("Maximum number of orders to return (default 50, max 100)"),
       offset: z
         .number()
+        .int()
+        .min(0)
         .optional()
         .describe("Offset for pagination (default 0)"),
     },
@@ -587,8 +601,11 @@ function registerPurchaseTools(
         .describe("Include recent order summaries (default true)"),
       orderLimit: z
         .number()
+        .int()
+        .min(1)
+        .max(100)
         .optional()
-        .describe("Max number of recent orders to return (default 10)"),
+        .describe("Max number of recent orders to return (default 10, max 100)"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -680,10 +697,15 @@ function registerPurchaseTools(
     {
       limit: z
         .number()
+        .int()
+        .min(1)
+        .max(100)
         .optional()
-        .describe("Max number of orders to return (default 50)"),
+        .describe("Max number of orders to return (default 50, max 100)"),
       offset: z
         .number()
+        .int()
+        .min(0)
         .optional()
         .describe("Offset for pagination (default 0)"),
       status: z
