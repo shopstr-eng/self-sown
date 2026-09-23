@@ -4,9 +4,11 @@ import { authenticateRequest, initializeApiKeysTable } from "@/utils/mcp/auth";
 import { fetchAllProductsFromDb } from "@/utils/db/db-service";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { deriveBaseUrl, resolveHostScope } from "@/utils/ucp/seller-host";
+import { isSchemaEmail } from "@/utils/ucp/email-format";
 import {
   createOrderFlow,
   OrderServiceError,
+  VALID_METHODS,
   type CreateOrderFlowInput,
   type OrderFlowResult,
   type PaymentMethod,
@@ -166,6 +168,32 @@ async function handleCreate(
     return res
       .status(400)
       .json({ error: "quantity must be a number (e.g. 2), not a string" });
+  }
+
+  // The published request schema (schemas/checkout-session-create.json)
+  // restricts paymentMethod to VALID_METHODS; an agent that trusts the schema
+  // and one that doesn't must get the same accept/reject answer. Enforce it
+  // here too — note "" is rejected rather than falling through `|| "stripe"`,
+  // since a blank value is a client bug, not an omission.
+  if (
+    body.paymentMethod !== undefined &&
+    (typeof body.paymentMethod !== "string" ||
+      !(VALID_METHODS as string[]).includes(body.paymentMethod))
+  ) {
+    return res.status(400).json({
+      error: `paymentMethod must be one of: ${VALID_METHODS.join(", ")}`,
+    });
+  }
+
+  // Same parity for buyerEmail: the schema declares format "email", so reject
+  // a malformed (or non-string / null) address here instead of letting it
+  // reach Stripe's receipt_email or the order-email send and fail later. The
+  // check is byte-identical to the ajv-formats `email` format schema-aware
+  // clients pre-validate with (see utils/ucp/email-format.ts).
+  if (body.buyerEmail !== undefined && !isSchemaEmail(body.buyerEmail)) {
+    return res
+      .status(400)
+      .json({ error: "buyerEmail must be a valid email address" });
   }
 
   // Resolve the host scope and bind the requested product to it FIRST. On a
