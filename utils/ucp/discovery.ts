@@ -157,6 +157,10 @@ export function buildUcpDiscoveryProfile(
       "Create and track a checkout session that places an order through Self-sown's existing order pipeline.",
     endpoints: checkoutEndpoints,
     schema: `${base}/api/ucp/schemas/checkout-session.json`,
+    // Request-side schema: the response `schema` alone can't tell a client
+    // that POST quantity must be a JSON number (a string is a 400, not a
+    // silent 1-item order). Advertise both.
+    requestSchema: `${base}/api/ucp/schemas/checkout-session-create.json`,
     spec: `${platform}/api/openapi.json`,
     paymentMethods: BASE_PAYMENT_METHODS,
     transports: [
@@ -164,6 +168,7 @@ export function buildUcpDiscoveryProfile(
         type: "rest",
         endpoints: checkoutEndpoints,
         schema: `${base}/api/ucp/schemas/checkout-session.json`,
+        requestSchema: `${base}/api/ucp/schemas/checkout-session-create.json`,
         spec: `${platform}/api/openapi.json`,
       },
       mcpTransport,

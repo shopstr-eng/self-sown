@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { SITE_URL } from "@/utils/site-url";
+import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 
 const BASE_URL = SITE_URL;
 
@@ -481,7 +482,10 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
                     quantity: {
                       type: "integer",
                       minimum: 1,
+                      maximum: MAX_ORDER_QUANTITY,
                       default: 1,
+                      description:
+                        'JSON number, NOT a string: a value like "5" is rejected with HTTP 400 rather than coerced to 1. Omit to order one.',
                     },
                     buyerEmail: {
                       type: "string",
@@ -549,7 +553,8 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
             },
             "400": {
               $ref: "#/components/responses/BadRequest",
-              description: "Missing or invalid productId",
+              description:
+                "Missing or invalid productId, or a non-number quantity (quantity must be a JSON number, not a string)",
             },
             "401": { $ref: "#/components/responses/Unauthorized" },
             "403": {
@@ -667,6 +672,26 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           summary: "JSON Schema for the UCP product shape",
           description:
             "Canonical draft 2020-12 JSON Schema describing the UCP product shape returned by the catalog endpoints; validate or introspect responses against it.",
+          parameters: [API_VERSION_PARAM],
+          responses: {
+            "200": {
+              description: "JSON Schema (draft 2020-12)",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/JsonSchemaDocument" },
+                },
+              },
+            },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
+      "/api/ucp/schemas/checkout-session-create.json": {
+        get: {
+          operationId: "ucpCheckoutSessionCreateSchema",
+          summary: "JSON Schema for the UCP checkout session create request",
+          description:
+            "Canonical draft 2020-12 JSON Schema describing the request body accepted by POST /api/ucp/checkout/sessions — including that quantity must be a JSON number (integer, bounded), never a string.",
           parameters: [API_VERSION_PARAM],
           responses: {
             "200": {
