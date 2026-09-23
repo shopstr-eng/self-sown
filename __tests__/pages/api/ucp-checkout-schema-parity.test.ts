@@ -29,6 +29,7 @@ import addFormats from "ajv-formats";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 import { isSchemaEmail } from "@/utils/ucp/email-format";
+import { VALID_METHODS } from "@/utils/ucp/order-service";
 
 const mockApplyRateLimit = jest.fn();
 const mockAuthenticateRequest = jest.fn();
@@ -377,4 +378,101 @@ describe("published checkout-session-create schema parity with the route", () =>
       expect(mockInsertCheckoutSession).not.toHaveBeenCalled();
     }
   );
+});
+
+describe("published schema keeps up with the fields the route actually reads", () => {
+  // Drift guard: the fixed body lists above only prove parity for fields this
+  // suite already knows about. If handleCreate starts reading a NEW request
+  // field (or renames one) without the published schema being updated, nothing
+  // above fails — agent clients build requests from the schema and silently
+  // lose the field. The proxy below records every property the route reads off
+  // the POST body so the schema's declared property set and the route's actual
+  // read set cannot drift in EITHER direction.
+  it("declares every request-body field handleCreate reads (proxy probe)", async () => {
+    const schema = await fetchPublishedSchema();
+    const declared = Object.keys(schema.properties ?? {});
+
+    const accessed = new Set<string>();
+    const body = new Proxy(
+      {
+        productId: "p1",
+        quantity: 2,
+        paymentMethod: "stripe",
+        buyerEmail: "buyer@example.com",
+      } as Record<string, unknown>,
+      {
+        get(target, prop, receiver) {
+          if (typeof prop === "string") accessed.add(prop);
+          return Reflect.get(target, prop, receiver);
+        },
+      }
+    );
+
+    const res = await postToRoute(body);
+    // Non-vacuous: the probe must drive the FULL create path to a 201, or an
+    // early 4xx short-circuit could hide every field read after it.
+    expect(res.statusCode).toBe(201);
+    expect(mockCreateMcpOrder).toHaveBeenCalled();
+    // The probe must actually have observed reads, not passed on an empty set.
+    expect(accessed.size).toBeGreaterThan(0);
+
+    // Route reads a field the schema does not declare → clients never send it.
+    for (const key of accessed) {
+      expect(declared).toContain(key);
+    }
+    // Schema declares a field the route never reads → dead documented field
+    // (renamed away in the route, or never wired). Both directions must hold.
+    for (const key of declared) {
+      expect(accessed).toContain(key);
+    }
+  });
+
+  it("enforces every field the schema marks required", async () => {
+    const schema = await fetchPublishedSchema();
+    const required: string[] = schema.required ?? [];
+    expect(required.length).toBeGreaterThan(0);
+
+    // Derive a schema-valid value for each required field so the baseline
+    // contains ALL of them — otherwise, once a second field becomes required
+    // and is enforced, its absence could mask missing enforcement of the
+    // others (every iteration would 400 for the wrong reason).
+    const validValueFor = (field: string): unknown => {
+      if (field === "productId") return "p1"; // the mocked catalog product id
+      const prop = schema.properties?.[field] ?? {};
+      if (prop.format === "email") return "buyer@example.com";
+      if (Array.isArray(prop.enum)) return prop.enum[0];
+      if (prop.type === "integer" || prop.type === "number") {
+        return typeof prop.minimum === "number" ? prop.minimum : 1;
+      }
+      if (prop.type === "object") return {};
+      return "x";
+    };
+    const baseline: Record<string, unknown> = {};
+    for (const field of required) baseline[field] = validValueFor(field);
+
+    // Non-vacuous: the complete baseline must genuinely reach the full create
+    // path, or every per-field 400 below could come from some OTHER defect.
+    const baselineRes = await postToRoute({ ...baseline });
+    expect(baselineRes.statusCode).toBe(201);
+    expect(mockCreateMcpOrder).toHaveBeenCalled();
+
+    for (const field of required) {
+      const body = { ...baseline };
+      delete body[field];
+      const res = await postToRoute(body);
+      // A schema-required field the route does not enforce would be accepted
+      // here, publishing a contract the API doesn't actually keep.
+      expect(res.statusCode).toBe(400);
+      // The rejection must name the missing field, so an agent client can fix
+      // its request without guessing which required field it omitted.
+      expect(JSON.stringify(res.body)).toContain(field);
+    }
+  });
+
+  it("advertises exactly the paymentMethod enum the order engine enforces", async () => {
+    const schema = await fetchPublishedSchema();
+    // VALID_METHODS comes from the REAL order engine (unmocked in this file),
+    // so adding a method to the engine without republishing the schema fails.
+    expect(schema.properties?.paymentMethod?.enum).toEqual([...VALID_METHODS]);
+  });
 });
