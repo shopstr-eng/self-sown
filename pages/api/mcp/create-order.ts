@@ -373,8 +373,15 @@ async function handleListOrders(
   res: NextApiResponse,
   buyerPubkey: string
 ) {
-  const limit = Math.min(parseInt(String(req.query.limit || "50")), 100);
-  const offset = parseInt(String(req.query.offset || "0"));
+  // parseInt("abc") is NaN, which Postgres rejects in LIMIT/OFFSET — clamp
+  // malformed pagination to safe defaults instead of 500ing.
+  const parsedLimit = parseInt(String(req.query.limit ?? "50"), 10);
+  const parsedOffset = parseInt(String(req.query.offset ?? "0"), 10);
+  const limit = Number.isNaN(parsedLimit)
+    ? 50
+    : Math.min(Math.max(parsedLimit, 1), 100);
+  const offset =
+    Number.isNaN(parsedOffset) || parsedOffset < 0 ? 0 : parsedOffset;
 
   try {
     const orders = await listMcpOrders(buyerPubkey, limit, offset);

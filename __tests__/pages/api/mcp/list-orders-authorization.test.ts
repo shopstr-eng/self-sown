@@ -199,6 +199,40 @@ describe("GET /api/mcp/create-order list-mode buyer identity binding", () => {
     });
   });
 
+  it("clamps malformed pagination instead of 500ing (?limit=abc)", async () => {
+    const res = await run(CALLER_PK, { limit: "abc" });
+    expect(res.statusCode).toBe(200);
+    // NaN must never reach the SQL placeholders — fall back to the default.
+    expect(mockListMcpOrders.mock.calls[0]).toEqual([CALLER_PK, 50, 0]);
+    expect((res.body as any).pagination).toEqual({
+      limit: 50,
+      offset: 0,
+      count: 1,
+    });
+  });
+
+  it("clamps a negative offset to 0 (?offset=-1)", async () => {
+    const res = await run(CALLER_PK, { offset: "-1" });
+    expect(res.statusCode).toBe(200);
+    expect(mockListMcpOrders.mock.calls[0]).toEqual([CALLER_PK, 50, 0]);
+    expect((res.body as any).pagination.offset).toBe(0);
+  });
+
+  it("clamps out-of-range values into 1-100 limit / non-negative offset", async () => {
+    const res = await run(CALLER_PK, { limit: "500", offset: "abc" });
+    expect(res.statusCode).toBe(200);
+    expect(mockListMcpOrders.mock.calls[0]).toEqual([CALLER_PK, 100, 0]);
+    expect((res.body as any).pagination).toEqual({
+      limit: 100,
+      offset: 0,
+      count: 1,
+    });
+
+    const res2 = await run(CALLER_PK, { limit: "0" });
+    expect(res2.statusCode).toBe(200);
+    expect(mockListMcpOrders.mock.calls[1]).toEqual([CALLER_PK, 1, 0]);
+  });
+
   it("does not invoke listMcpOrders for an unauthenticated request", async () => {
     mockAuthenticateRequest.mockResolvedValue(null);
     const res = createResponse();
