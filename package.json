@@ -109,6 +109,8 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@types/uuid": "11.0.0",
+    "ajv": "8.18.0",
+    "ajv-formats": "3.0.1",
     "babel-jest": "30.5.0",
     "eslint-config-prettier": "10.1.8",
     "husky": "9.1.7",

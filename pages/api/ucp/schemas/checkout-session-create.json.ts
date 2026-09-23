@@ -36,6 +36,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     properties: {
       productId: {
         type: "string",
+        minLength: 1,
         description: "Product id from the catalog.",
       },
       quantity: {
