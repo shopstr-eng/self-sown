@@ -154,7 +154,16 @@ export function registerPurchaseTools(
     "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. To start a recurring Subscribe & Save order, pass subscriptionFrequency (only for products that offer subscriptions); recurring orders are billed via Stripe regardless of the chosen Bitcoin paymentMethod. Requires read_write API key permission.",
     {
       productId: z.string().describe("The product event ID to purchase"),
-      quantity: z.number().optional().describe("Quantity to order (default 1)"),
+      // Bounded like limit/offset below: quantity multiplies unit price into
+      // invoice/order amounts, so an absurd agent-supplied value must be
+      // rejected by the schema before it reaches the order flow.
+      quantity: z
+        .number()
+        .int()
+        .min(1)
+        .max(10000)
+        .optional()
+        .describe("Quantity to order (default 1, max 10000)"),
       selectedSize: z
         .string()
         .optional()
@@ -175,9 +184,12 @@ export function registerPurchaseTools(
         ),
       selectedBulkUnits: z
         .number()
+        .int()
+        .min(1)
+        .max(100000)
         .optional()
         .describe(
-          "Selected bulk/bundle tier (number of units). Must match a bulk tier defined on the product."
+          "Selected bulk/bundle tier (number of units, max 100000). Must match a bulk tier defined on the product."
         ),
       shippingAddress: z
         .object({

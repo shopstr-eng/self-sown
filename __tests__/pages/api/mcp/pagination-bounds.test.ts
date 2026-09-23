@@ -195,4 +195,38 @@ describe("MCP order-listing pagination bounds", () => {
     expect(result.isError).toBeFalsy();
     expect(mockListMcpOrders).toHaveBeenCalledWith(PUBKEY, 100);
   });
+
+  it.each([
+    ["quantity of zero", { quantity: 0 }],
+    ["negative quantity", { quantity: -3 }],
+    ["fractional quantity", { quantity: 1.5 }],
+    ["quantity above the 10000 cap", { quantity: 10001 }],
+    ["absurd quantity", { quantity: 1000000000 }],
+    ["selectedBulkUnits of zero", { selectedBulkUnits: 0 }],
+    ["fractional selectedBulkUnits", { selectedBulkUnits: 2.5 }],
+    ["selectedBulkUnits above the 100000 cap", { selectedBulkUnits: 100001 }],
+    ["absurd selectedBulkUnits", { selectedBulkUnits: 1000000000 }],
+  ])("create_order rejects %s before creating anything", async (_label, args) => {
+    const result: any = await client.callTool({
+      name: "create_order",
+      arguments: { productId: "prod-1", ...args },
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/-32602|Invalid/i);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it("create_order accepts the in-range boundary values", async () => {
+    const result = await client.callTool({
+      name: "create_order",
+      arguments: { productId: "prod-1", quantity: 10000, selectedBulkUnits: 1 },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/mcp/create-order"),
+      expect.objectContaining({
+        body: expect.stringContaining('"quantity":10000'),
+      })
+    );
+  });
 });
