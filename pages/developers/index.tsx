@@ -208,7 +208,11 @@ export default function Developers() {
                 <code className="rounded bg-zinc-100 px-1">
                   /api/ucp/schemas/checkout-session.json
                 </code>
-                , and referenced from the OpenAPI document.
+                , the checkout request body is published at{" "}
+                <code className="rounded bg-zinc-100 px-1">
+                  /api/ucp/schemas/checkout-session-create.json
+                </code>
+                , and all are referenced from the OpenAPI document.
               </p>
             </div>
           </div>

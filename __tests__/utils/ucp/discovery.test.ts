@@ -65,6 +65,20 @@ describe("buildUcpDiscoveryProfile — platform scope", () => {
       `${BASE}/api/ucp/checkout/sessions/{id}/complete`
     );
   });
+
+  it("links the request-side schema alongside the response schema", () => {
+    const checkout = profile.capabilities.find(
+      (c) => c.name === UCP_CHECKOUT_CAPABILITY
+    ) as Record<string, any>;
+    expect(checkout.schema).toBe(`${BASE}/api/ucp/schemas/checkout-session.json`);
+    expect(checkout.requestSchema).toBe(
+      `${BASE}/api/ucp/schemas/checkout-session-create.json`
+    );
+    const rest = checkout.transports.find((t: any) => t.type === "rest");
+    expect(rest.requestSchema).toBe(
+      `${BASE}/api/ucp/schemas/checkout-session-create.json`
+    );
+  });
 });
 
 describe("buildUcpDiscoveryProfile — seller scope (no platformUrl)", () => {
