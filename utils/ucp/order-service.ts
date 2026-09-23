@@ -39,6 +39,14 @@ export type PaymentMethod = "stripe" | "lightning" | "cashu" | "fiat";
 
 export const DEFAULT_MINT_URL = "https://mint.minibits.cash/Bitcoin";
 
+/**
+ * Upper bound on per-line order quantity. Quantity multiplies the unit price
+ * straight into subtotal/invoice amounts, so an absurd value must be rejected
+ * here — the same bound the MCP `create_order` schema enforces — so direct
+ * REST callers of the order flow can't bypass it.
+ */
+export const MAX_ORDER_QUANTITY = 10000;
+
 // Server-controlled allowlist of Cashu mints the backend will trust for both
 // Lightning invoice creation and Cashu token redemption. Buyer-supplied mint
 // URLs that are not in this set are rejected before any network call is made.
@@ -250,6 +258,11 @@ export async function createOrderFlow(
   if (quantity < 1 || !Number.isInteger(quantity)) {
     throw new OrderServiceError(400, {
       error: "quantity must be a positive integer",
+    });
+  }
+  if (quantity > MAX_ORDER_QUANTITY) {
+    throw new OrderServiceError(400, {
+      error: `quantity must not exceed ${MAX_ORDER_QUANTITY}`,
     });
   }
   if (!VALID_METHODS.includes(paymentMethod)) {

@@ -156,7 +156,9 @@ export function registerPurchaseTools(
       productId: z.string().describe("The product event ID to purchase"),
       // Bounded like limit/offset below: quantity multiplies unit price into
       // invoice/order amounts, so an absurd agent-supplied value must be
-      // rejected by the schema before it reaches the order flow.
+      // rejected by the schema before it reaches the order flow. Keep in sync
+      // with MAX_ORDER_QUANTITY in utils/ucp/order-service.ts, which enforces
+      // the same bound server-side for direct REST callers.
       quantity: z
         .number()
         .int()
