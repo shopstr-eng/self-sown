@@ -33,6 +33,7 @@ import {
   OrderServiceError,
   MAX_ORDER_QUANTITY,
 } from "@/utils/ucp/order-service";
+import { MAX_ORDER_QUANTITY as SHARED_MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 
 const orderInput = (quantity: number) => ({
   productId: "prod-evt-id",
@@ -68,11 +69,12 @@ describe("createOrderFlow quantity cap", () => {
     expect(err.body.error).toMatch(/must not exceed/);
   });
 
-  it("keeps the cap aligned with the MCP schema bound of 10000", () => {
-    // The MCP create_order schema (pages/api/mcp/index.ts) uses .max(10000);
-    // if either bound changes, this test forces a deliberate decision instead
-    // of silent drift between the schema and the service-level guard.
-    expect(MAX_ORDER_QUANTITY).toBe(10000);
+  it("re-exports the shared order-limits constant", () => {
+    // The cap's single source of truth is utils/ucp/order-limits.ts, which the
+    // MCP create_order schema imports directly — drift between the schema and
+    // the service-level guard is structurally impossible, so this only guards
+    // the back-compat re-export.
+    expect(MAX_ORDER_QUANTITY).toBe(SHARED_MAX_ORDER_QUANTITY);
   });
 
   it("still rejects non-positive and non-integer quantities", async () => {
