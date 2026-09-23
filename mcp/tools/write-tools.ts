@@ -109,6 +109,21 @@ function permissionError() {
   };
 }
 
+// Percent-type affiliate values follow the documented 0-100 contract; the
+// /api/affiliates/codes route does not re-check them, and anything above 100
+// produces negative checkout math client-side. The zod raw-shape registration
+// can't express this cross-field rule, so enforce it in the callbacks.
+function affiliatePercentError(
+  label: string,
+  type: "percent" | "fixed" | undefined,
+  value: number | undefined
+): string | null {
+  if (type === "percent" && value !== undefined && value > 100) {
+    return `${label} must be between 0 and 100 when its type is 'percent'`;
+  }
+  return null;
+}
+
 function successResponse(data: any, startTime: number) {
   return {
     content: [
@@ -266,9 +281,9 @@ const pageConfigSectionSchema = z
       ),
     ctaText: z.string().optional(),
     ctaLink: z.string().optional(),
-    overlayOpacity: z.number().optional(),
+    overlayOpacity: z.number().min(0).max(1).optional(),
     productLayout: z.enum(["grid", "list", "featured"]).optional(),
-    productLimit: z.number().optional(),
+    productLimit: z.number().int().min(1).max(100).optional(),
     productIds: z.array(z.string()).optional(),
     heroProductId: z.string().optional(),
     email: z.string().optional(),
@@ -315,7 +330,7 @@ const pageConfigSectionSchema = z
           quote: z.string(),
           author: z.string(),
           image: z.string().optional(),
-          rating: z.number().optional(),
+          rating: z.number().min(1).max(5).optional(),
         })
       )
       .optional(),
@@ -406,6 +421,9 @@ const pageConfigSectionSchema = z
       .describe("Auto-advance slides in a banner_carousel section"),
     bannerInterval: z
       .number()
+      .int()
+      .min(500)
+      .max(600000)
       .optional()
       .describe(
         "Milliseconds between banner_carousel slides when autoplay is on"
@@ -443,9 +461,12 @@ const pageConfigSectionSchema = z
       .describe("Auto-advance a social_posts carousel (carousel layout only)"),
     socialPostsSpeed: z
       .number()
+      .int()
+      .min(1)
+      .max(600)
       .optional()
       .describe(
-        "Milliseconds between social_posts carousel slides when autoplay is on"
+        "Seconds per full scroll loop for a social_posts carousel (default 40; dashboard slider allows 10-120)"
       ),
     marqueeBackgroundColor: z
       .string()
@@ -455,6 +476,8 @@ const pageConfigSectionSchema = z
       ),
     marqueeSpeed: z
       .number()
+      .min(1)
+      .max(600)
       .optional()
       .describe(
         "Seconds per full scroll loop for a marquee section (default 20)"
@@ -475,6 +498,9 @@ const pageConfigSectionSchema = z
       .describe("Specific blog post IDs to show in a blog section"),
     blogPostLimit: z
       .number()
+      .int()
+      .min(1)
+      .max(100)
       .optional()
       .describe("Max blog posts to show in a blog section"),
     blogPostMode: z
@@ -563,6 +589,7 @@ export const emailPopupToolSchema = {
   shippingDiscountValue: z
     .number()
     .min(0)
+    .max(1000000)
     .optional()
     .describe(
       "Shipping discount amount when shippingDiscountType is 'percent' (percentage) or 'fixed' (currency units)"
@@ -754,6 +781,8 @@ export const storefrontSectionSchema = z.object({
   ctaLink: z.string().optional().describe("Call-to-action button link"),
   overlayOpacity: z
     .number()
+    .min(0)
+    .max(1)
     .optional()
     .describe("Hero/banner overlay opacity 0-1"),
   headingColor: z
@@ -778,7 +807,7 @@ export const storefrontSectionSchema = z.object({
         quote: z.string(),
         author: z.string(),
         image: z.string().optional(),
-        rating: z.number().optional(),
+        rating: z.number().min(1).max(5).optional(),
       })
     )
     .optional()
@@ -816,7 +845,13 @@ export const storefrontSectionSchema = z.object({
     .enum(["grid", "list", "featured"])
     .optional()
     .describe("Product layout for product sections"),
-  productLimit: z.number().optional().describe("Max products to show"),
+  productLimit: z
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Max products to show (1-100)"),
   email: z.string().optional().describe("Contact email"),
   phone: z.string().optional().describe("Contact phone"),
   address: z.string().optional().describe("Contact address"),
@@ -867,6 +902,9 @@ export const storefrontSectionSchema = z.object({
     .describe("Auto-advance slides in a banner_carousel section"),
   bannerInterval: z
     .number()
+    .int()
+    .min(500)
+    .max(600000)
     .optional()
     .describe(
       "Milliseconds between banner_carousel slides when autoplay is on"
@@ -904,9 +942,12 @@ export const storefrontSectionSchema = z.object({
     .describe("Auto-advance a social_posts carousel (carousel layout only)"),
   socialPostsSpeed: z
     .number()
+    .int()
+    .min(1)
+    .max(600)
     .optional()
     .describe(
-      "Milliseconds between social_posts carousel slides when autoplay is on"
+      "Seconds per full scroll loop for a social_posts carousel (default 40; dashboard slider allows 10-120)"
     ),
   marqueeBackgroundColor: z
     .string()
@@ -916,6 +957,8 @@ export const storefrontSectionSchema = z.object({
     ),
   marqueeSpeed: z
     .number()
+    .min(1)
+    .max(600)
     .optional()
     .describe(
       "Seconds per full scroll loop for a marquee section (default 20)"
@@ -936,6 +979,9 @@ export const storefrontSectionSchema = z.object({
     .describe("Specific blog post IDs to show in a blog section"),
   blogPostLimit: z
     .number()
+    .int()
+    .min(1)
+    .max(100)
     .optional()
     .describe("Max blog posts to show in a blog section"),
   blogPostMode: z
@@ -1066,6 +1112,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       darkMode: z.boolean().optional().describe("Enable dark mode for shop"),
       freeShippingThreshold: z
         .number()
+        .min(0)
+        .max(1e12)
         .optional()
         .describe("Minimum order amount for free shipping"),
       freeShippingCurrency: z
@@ -1077,7 +1125,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .optional()
         .describe("Array of merchant pubkeys associated with this shop"),
       paymentMethodDiscounts: z
-        .record(z.string(), z.number())
+        .record(z.string(), z.number().min(0).max(100))
         .optional()
         .describe(
           "Per-method discount percentages: object mapping method keys (bitcoin, stripe, venmo, cash, etc.) to discount percentages"
@@ -2347,7 +2395,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               .describe(
                 "Rating category (e.g. 'quality', 'communication', 'shipping')"
               ),
-            value: z.number().describe("Rating value (typically 0-5)"),
+            value: z.number().min(0).max(5).describe("Rating value (0-5)"),
           })
         )
         .optional()
@@ -2551,6 +2599,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe("Parent event author pubkey (for replies)"),
       parentKind: z
         .number()
+        .int()
+        .min(0)
+        .max(65535)
         .optional()
         .describe("Parent event kind (for replies)"),
     },
@@ -2635,6 +2686,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe("Whether this is an order-related message"),
       orderAmount: z
         .number()
+        .min(0)
+        .max(1e15)
         .optional()
         .describe("Order amount (for order messages)"),
       status: z
@@ -2985,6 +3038,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe("Shipping carrier name (e.g. 'USPS', 'FedEx', 'UPS', 'DHL')"),
       deliveryDays: z
         .number()
+        .int()
+        .min(0)
+        .max(3650)
         .describe("Estimated number of days until delivery"),
       productAddress: z
         .string()
@@ -3388,8 +3444,11 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         ),
       limit: z
         .number()
+        .int()
+        .min(1)
+        .max(100)
         .optional()
-        .describe("Max number of messages to return (default 20)"),
+        .describe("Max number of messages to return (default 20, max 100)"),
       senderPubkey: z
         .string()
         .optional()
@@ -3747,9 +3806,16 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "Create a discount code for your shop. Codes are percentage-based and can have optional expiration dates.",
     {
       code: z.string().describe("Discount code string (e.g. 'SUMMER20')"),
-      discountPercentage: z.number().describe("Discount percentage (0-100)"),
+      discountPercentage: z
+        .number()
+        .min(0)
+        .max(100)
+        .describe("Discount percentage (0-100)"),
       expiration: z
         .number()
+        .int()
+        .min(0)
+        .max(4102444800)
         .optional()
         .describe("Expiration as Unix timestamp (optional)"),
     },
@@ -4427,7 +4493,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       steps: z
         .array(
           z.object({
-            step_order: z.number().describe("Order of the step (1-based)"),
+            step_order: z
+              .number()
+              .int()
+              .min(1)
+              .max(1000)
+              .describe("Order of the step (1-based)"),
             subject: z
               .string()
               .describe(
@@ -4438,6 +4509,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               .describe("Email body HTML (supports merge tags)"),
             delay_hours: z
               .number()
+              .min(0)
+              .max(87600)
               .describe("Hours to delay after enrollment or previous step"),
           })
         )
@@ -4546,7 +4619,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "update_email_flow",
     "Update an email flow's name, sender settings, steps, or any combination. Can add, update, or remove individual steps.",
     {
-      flow_id: z.number().describe("The ID of the flow to update"),
+      flow_id: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("The ID of the flow to update"),
       name: z.string().optional().describe("Updated flow name"),
       from_name: z
         .string()
@@ -4563,12 +4641,24 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           z.object({
             id: z
               .number()
+              .int()
+              .min(1)
+              .max(2147483647)
               .optional()
               .describe("Step ID (omit to create a new step)"),
-            step_order: z.number().describe("Order of the step (1-based)"),
+            step_order: z
+              .number()
+              .int()
+              .min(1)
+              .max(1000)
+              .describe("Order of the step (1-based)"),
             subject: z.string().describe("Email subject line"),
             body_html: z.string().describe("Email body HTML"),
-            delay_hours: z.number().describe("Hours to delay"),
+            delay_hours: z
+              .number()
+              .min(0)
+              .max(87600)
+              .describe("Hours to delay"),
             delete: z
               .boolean()
               .optional()
@@ -4677,7 +4767,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "delete_email_flow",
     "Delete an email flow and all its steps, enrollments, and executions.",
     {
-      flow_id: z.number().describe("The ID of the flow to delete"),
+      flow_id: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("The ID of the flow to delete"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -4729,7 +4824,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "toggle_email_flow",
     "Activate or pause an email flow. Active flows will process enrollments and send emails. Paused flows stop sending.",
     {
-      flow_id: z.number().describe("The ID of the flow to toggle"),
+      flow_id: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("The ID of the flow to toggle"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -4784,7 +4884,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "get_email_flow_stats",
     "Get enrollment and send statistics for an email flow, including total enrollments, active/completed/cancelled counts, and per-step send/fail/pending counts.",
     {
-      flow_id: z.number().describe("The ID of the flow to get stats for"),
+      flow_id: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("The ID of the flow to get stats for"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -5208,6 +5313,31 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     async (params) => {
       const startTime = Date.now();
       if (apiKey.permissions !== "full_access") return permissionError();
+      // Mirror the popup-capture validation (pages/api/storefront/popup-capture.ts)
+      // so MCP can't save a welcome-code config buyers cannot redeem.
+      if (
+        params.shippingDiscountType === "percent" &&
+        params.shippingDiscountValue !== undefined &&
+        (params.shippingDiscountValue <= 0 ||
+          params.shippingDiscountValue > 100)
+      ) {
+        return errorResponse(
+          "Invalid email popup config",
+          "Percent shipping discount must be between 1 and 100",
+          startTime
+        );
+      }
+      if (
+        params.shippingDiscountType === "fixed" &&
+        params.shippingDiscountValue !== undefined &&
+        params.shippingDiscountValue <= 0
+      ) {
+        return errorResponse(
+          "Invalid email popup config",
+          "Fixed shipping discount must be greater than 0",
+          startTime
+        );
+      }
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5346,10 +5476,16 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {
       limit: z
         .number()
+        .int()
+        .min(1)
+        .max(500)
         .optional()
-        .describe("Maximum number of results to return (default: 50)"),
+        .describe("Maximum number of results to return (default: 50, max 500)"),
       offset: z
         .number()
+        .int()
+        .min(0)
+        .max(10000000)
         .optional()
         .describe("Number of results to skip for pagination (default: 0)"),
     },
@@ -5508,7 +5644,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "update_affiliate",
     "Update an existing affiliate's metadata (name, email, payout details, notes).",
     {
-      affiliateId: z.number().describe("Affiliate id to update"),
+      affiliateId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate id to update"),
       name: z.string().optional(),
       email: z.string().optional(),
       lightningAddress: z.string().optional(),
@@ -5563,7 +5704,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "delete_affiliate",
     "Delete an affiliate. Fails with a 409 if the affiliate has an unsettled balance unless `force` is true.",
     {
-      affiliateId: z.number().describe("Affiliate id to delete"),
+      affiliateId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate id to delete"),
       force: z
         .boolean()
         .optional()
@@ -5624,7 +5770,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "regenerate_affiliate_invite_token",
     "Rotate the invite token for an affiliate. Useful if the previous link was leaked or needs to be reissued.",
     {
-      affiliateId: z.number().describe("Affiliate id"),
+      affiliateId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate id"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -5681,7 +5832,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "set_affiliate_payouts_enabled",
     "Enable or disable automated payouts for a specific affiliate.",
     {
-      affiliateId: z.number().describe("Affiliate id"),
+      affiliateId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate id"),
       enabled: z.boolean().describe("Whether automated payouts are enabled"),
     },
     async (params) => {
@@ -5783,13 +5939,20 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "create_affiliate_code",
     "Create an affiliate (referral) code linked to one of your affiliates. The code is normalized to uppercase server-side.",
     {
-      affiliateId: z.number().describe("Affiliate id this code belongs to"),
+      affiliateId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate id this code belongs to"),
       code: z.string().describe("Code string (e.g. 'ALICE10')"),
       rebateType: z
         .enum(["percent", "fixed"])
         .describe("How the affiliate's rebate is computed"),
       rebateValue: z
         .number()
+        .min(0)
+        .max(9999999999.99)
         .describe(
           "Rebate value: percent (0-100) for 'percent', smallest currency unit for 'fixed'"
         ),
@@ -5799,6 +5962,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe("Buyer-facing discount type (default 'percent')"),
       buyerDiscountValue: z
         .number()
+        .min(0)
+        .max(9999999999.99)
         .optional()
         .describe("Buyer-facing discount value (default 0)"),
       currency: z
@@ -5811,16 +5976,40 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe("Cadence for automated payouts (default 'monthly')"),
       expiration: z
         .number()
+        .int()
+        .min(0)
+        .max(4102444800)
         .optional()
         .describe("Expiration as Unix timestamp (optional)"),
       maxUses: z
         .number()
+        .int()
+        .min(1)
+        .max(1000000)
         .optional()
         .describe("Maximum number of uses before deactivation (optional)"),
     },
     async (params) => {
       const startTime = Date.now();
       if (apiKey.permissions !== "full_access") return permissionError();
+      const valueError =
+        affiliatePercentError(
+          "rebateValue",
+          params.rebateType,
+          params.rebateValue
+        ) ||
+        affiliatePercentError(
+          "buyerDiscountValue",
+          params.buyerDiscountType ?? "percent",
+          params.buyerDiscountValue
+        );
+      if (valueError) {
+        return errorResponse(
+          "Invalid affiliate code value",
+          valueError,
+          startTime
+        );
+      }
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5868,19 +6057,44 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "update_affiliate_code",
     "Update an affiliate code's settings (active state, limits, expiration, etc).",
     {
-      codeId: z.number().describe("Affiliate code id"),
+      codeId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate code id"),
       isActive: z.boolean().optional(),
-      maxUses: z.number().optional(),
-      expiration: z.number().optional(),
+      maxUses: z.number().int().min(1).max(1000000).optional(),
+      expiration: z.number().int().min(0).max(4102444800).optional(),
       rebateType: z.enum(["percent", "fixed"]).optional(),
-      rebateValue: z.number().optional(),
+      rebateValue: z.number().min(0).max(9999999999.99).optional(),
       buyerDiscountType: z.enum(["percent", "fixed"]).optional(),
-      buyerDiscountValue: z.number().optional(),
+      buyerDiscountValue: z.number().min(0).max(9999999999.99).optional(),
       payoutSchedule: z.enum(["weekly", "biweekly", "monthly"]).optional(),
     },
     async (params) => {
       const startTime = Date.now();
       if (apiKey.permissions !== "full_access") return permissionError();
+      // Percent caps are only enforceable when the type travels with the
+      // value in the same update; a bare value keeps the code's stored type.
+      const valueError =
+        affiliatePercentError(
+          "rebateValue",
+          params.rebateType,
+          params.rebateValue
+        ) ||
+        affiliatePercentError(
+          "buyerDiscountValue",
+          params.buyerDiscountType,
+          params.buyerDiscountValue
+        );
+      if (valueError) {
+        return errorResponse(
+          "Invalid affiliate code value",
+          valueError,
+          startTime
+        );
+      }
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5923,7 +6137,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "delete_affiliate_code",
     "Delete an affiliate code.",
     {
-      codeId: z.number().describe("Affiliate code id to delete"),
+      codeId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate code id to delete"),
     },
     async (params) => {
       const startTime = Date.now();
@@ -6016,9 +6235,17 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "mark_affiliate_paid",
     "Manually mark an affiliate's pending balance as settled out-of-band (cash, off-platform transfer, etc). Settles the entire bundle for the given currency.",
     {
-      affiliateId: z.number().describe("Affiliate id"),
+      affiliateId: z
+        .number()
+        .int()
+        .min(1)
+        .max(2147483647)
+        .describe("Affiliate id"),
       amountSmallest: z
         .number()
+        .int()
+        .min(1)
+        .max(1e15)
         .describe("Amount in smallest currency unit (cents, sats, etc)"),
       currency: z.string().describe("Currency code (e.g. 'USD', 'SAT')"),
       note: z.string().optional().describe("Internal note for the payout"),
@@ -6078,12 +6305,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .describe("Order id whose referrals should be reversed"),
       originalGrossSmallest: z
         .number()
+        .int()
+        .min(0)
+        .max(1e15)
         .optional()
         .describe(
           "Original gross order amount in smallest unit (for partial-refund scaling)"
         ),
       refundedSmallest: z
         .number()
+        .int()
+        .min(0)
+        .max(1e15)
         .optional()
         .describe(
           "Refunded amount in smallest unit (for partial-refund scaling)"
@@ -6243,7 +6476,12 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     "Set inventory quantity for one of your products (or a specific variant). Always uses your signing pubkey as the seller.",
     {
       productId: z.string().describe("Product id (Nostr d-tag)"),
-      quantity: z.number().int().min(0).describe("New quantity"),
+      quantity: z
+        .number()
+        .int()
+        .min(0)
+        .max(1000000000)
+        .describe("New quantity"),
       variantKey: z
         .string()
         .optional()

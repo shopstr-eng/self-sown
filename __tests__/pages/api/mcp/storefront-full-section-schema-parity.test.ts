@@ -120,7 +120,7 @@ const FULL_HOME_SECTION = {
   ],
   socialPostsLayout: "carousel",
   socialPostsAutoplay: true,
-  socialPostsSpeed: 4000,
+  socialPostsSpeed: 40,
   marqueeBackgroundColor: "#ff0000",
   marqueeSpeed: 25,
   marqueeDirection: "right",
