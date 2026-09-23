@@ -17,6 +17,10 @@ import { recordRequest } from "@/utils/mcp/metrics";
 import { registerWriteTools } from "@/mcp/tools/write-tools";
 import { applyRateLimit, getRequestIp } from "@/utils/rate-limit";
 import { applyMcpAcceptHeader } from "@/utils/api/mcp-accept";
+import {
+  MAX_ORDER_QUANTITY,
+  MAX_SELECTED_BULK_UNITS,
+} from "@/utils/ucp/order-limits";
 import { wrapWithAudit, type ToolCb } from "@/mcp/audit-log";
 
 // MCP protocol entry — high per-IP cap for legitimate session traffic, with
@@ -156,16 +160,16 @@ export function registerPurchaseTools(
       productId: z.string().describe("The product event ID to purchase"),
       // Bounded like limit/offset below: quantity multiplies unit price into
       // invoice/order amounts, so an absurd agent-supplied value must be
-      // rejected by the schema before it reaches the order flow. Keep in sync
-      // with MAX_ORDER_QUANTITY in utils/ucp/order-service.ts, which enforces
-      // the same bound server-side for direct REST callers.
+      // rejected by the schema before it reaches the order flow. The bound
+      // comes from utils/ucp/order-limits.ts, the same constant the order
+      // service enforces server-side for direct REST callers.
       quantity: z
         .number()
         .int()
         .min(1)
-        .max(10000)
+        .max(MAX_ORDER_QUANTITY)
         .optional()
-        .describe("Quantity to order (default 1, max 10000)"),
+        .describe(`Quantity to order (default 1, max ${MAX_ORDER_QUANTITY})`),
       selectedSize: z
         .string()
         .optional()
@@ -188,10 +192,10 @@ export function registerPurchaseTools(
         .number()
         .int()
         .min(1)
-        .max(100000)
+        .max(MAX_SELECTED_BULK_UNITS)
         .optional()
         .describe(
-          "Selected bulk/bundle tier (number of units, max 100000). Must match a bulk tier defined on the product."
+          `Selected bulk/bundle tier (number of units, max ${MAX_SELECTED_BULK_UNITS}). Must match a bulk tier defined on the product.`
         ),
       shippingAddress: z
         .object({

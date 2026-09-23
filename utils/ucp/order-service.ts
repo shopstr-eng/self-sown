@@ -17,6 +17,7 @@ import { parseTags } from "@/utils/parsers/product-parser-functions";
 import { pickLatestSellerProfileEvent } from "@/mcp/tools/read-tools";
 import { checkAvailability, deductStock } from "@/utils/db/inventory-service";
 import { isBitcoinCurrency, SATS_PER_BTC } from "@/utils/ucp/money";
+import { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 import { sumProofAmounts } from "@/utils/cashu/proof-amount";
 
 /**
@@ -39,13 +40,10 @@ export type PaymentMethod = "stripe" | "lightning" | "cashu" | "fiat";
 
 export const DEFAULT_MINT_URL = "https://mint.minibits.cash/Bitcoin";
 
-/**
- * Upper bound on per-line order quantity. Quantity multiplies the unit price
- * straight into subtotal/invoice amounts, so an absurd value must be rejected
- * here — the same bound the MCP `create_order` schema enforces — so direct
- * REST callers of the order flow can't bypass it.
- */
-export const MAX_ORDER_QUANTITY = 10000;
+// Re-exported for back-compat with existing importers; the single source of
+// truth for this bound lives in utils/ucp/order-limits.ts, which the MCP
+// create_order schema also imports so the two caps cannot drift.
+export { MAX_ORDER_QUANTITY } from "@/utils/ucp/order-limits";
 
 // Server-controlled allowlist of Cashu mints the backend will trust for both
 // Lightning invoice creation and Cashu token redemption. Buyer-supplied mint
