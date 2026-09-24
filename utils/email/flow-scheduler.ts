@@ -60,6 +60,10 @@ async function processEscrowPayouts() {
   await callEndpoint("/api/cashu/escrow/process", { batch_size: 10 });
 }
 
+async function syncEmailSuppressions() {
+  await callEndpoint("/api/email/cron-sync-suppressions", {});
+}
+
 export function startFlowScheduler() {
   if (schedulerStarted) return;
   if (!process.env.FLOW_PROCESSOR_SECRET) {
@@ -85,6 +89,9 @@ export function startFlowScheduler() {
   const PRO_LIFECYCLE_INTERVAL = 6 * 60 * 60 * 1000;
   const SCHEDULED_BLOG_INTERVAL = 2 * 60 * 1000;
   const ESCROW_PAYOUT_INTERVAL = 60 * 1000;
+  // Bounces land on SendGrid's suppression lists minutes after a send; an
+  // hourly pull keeps dead addresses out of future broadcasts promptly.
+  const SUPPRESSION_SYNC_INTERVAL = 60 * 60 * 1000;
 
   setTimeout(() => processEmails(), 30 * 1000);
   setInterval(() => processEmails(), PROCESS_INTERVAL);
@@ -105,4 +112,10 @@ export function startFlowScheduler() {
   // sweep promptly. The endpoint is a no-op unless escrow is enabled.
   setTimeout(() => processEscrowPayouts(), 45 * 1000);
   setInterval(() => processEscrowPayouts(), ESCROW_PAYOUT_INTERVAL);
+
+  // Suppression sync is best-effort: SendGrid/DB failures are logged by the
+  // endpoint and retried on the next tick (watermark only advances on a fully
+  // recorded run).
+  setTimeout(() => syncEmailSuppressions(), 5 * 60 * 1000);
+  setInterval(() => syncEmailSuppressions(), SUPPRESSION_SYNC_INTERVAL);
 }
