@@ -1,4 +1,5 @@
 import { getDbPool } from "@/utils/db/db-service";
+import type { ShippingAddressInput } from "@/utils/shipping/types";
 
 export interface ShippingLabelRecord {
   id: number;
@@ -657,9 +658,103 @@ async function pruneAutoLabelClaimsThrottled(): Promise<void> {
   lastAutoLabelPruneAt = now;
   try {
     await pruneAutoLabelClaims();
+    await pruneShippingCheckoutContexts();
   } catch (err) {
     console.warn("pruneAutoLabelClaims failed:", err);
   }
+}
+
+// --- Checkout shipping contexts -------------------------------------------
+//
+// Checkout-time binding for the web card auto-label-purchase routes: the
+// destination/order/product the buyer entered at payment CREATION, keyed by
+// the provider-issued payment id. The auto-purchase endpoints re-verify the
+// settled payment and then derive everything from this record — never from
+// the post-payment request body — so a buyer holding any settled payment
+// cannot redirect the seller-billed label to a different address or parcel.
+
+export interface ShippingCheckoutContextRecord {
+  sellerPubkey: string;
+  orderId: string;
+  productId: string;
+  toAddress: ShippingAddressInput;
+}
+
+/**
+ * Persist the checkout contexts for one payment (one row per seller).
+ * Idempotent AND immutable: payment creation can be retried under the same
+ * provider idempotency key and returns the same provider payment id, but the
+ * provider idempotency keys deliberately do NOT cover the shipping context —
+ * so a buyer replaying the creation request after settlement with a swapped
+ * destination must NOT overwrite the binding recorded at the original
+ * checkout. First write wins (ON CONFLICT DO NOTHING); a conflicting replay
+ * keeps the original binding. Caller must sanitize inputs via
+ * sanitizeCheckoutContexts first (seller allowlist + field bounds).
+ */
+export async function recordShippingCheckoutContexts(
+  paymentRef: string,
+  contexts: ShippingCheckoutContextRecord[]
+): Promise<void> {
+  if (contexts.length === 0) return;
+  const pool = getDbPool();
+  // One INSERT per seller (a payment charges at most a handful of sellers).
+  for (const ctx of contexts) {
+    await pool.query(
+      `INSERT INTO shipping_checkout_contexts
+         (payment_ref, seller_pubkey, order_id, product_id, to_address)
+       VALUES ($1, $2, $3, $4, $5::jsonb)
+       ON CONFLICT (payment_ref, seller_pubkey) DO NOTHING`,
+      [
+        paymentRef,
+        ctx.sellerPubkey,
+        ctx.orderId,
+        ctx.productId,
+        JSON.stringify(ctx.toAddress),
+      ]
+    );
+  }
+}
+
+/**
+ * Look up the checkout-time binding for a (payment, seller) pair. Returns
+ * null ONLY when no row was recorded (legacy payment created before this
+ * binding shipped, or a non-shipping checkout) — DB errors propagate so the
+ * caller fails closed instead of treating an outage as "no binding".
+ */
+export async function getShippingCheckoutContext(
+  paymentRef: string,
+  sellerPubkey: string
+): Promise<ShippingCheckoutContextRecord | null> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `SELECT seller_pubkey, order_id, product_id, to_address
+       FROM shipping_checkout_contexts
+      WHERE payment_ref = $1 AND seller_pubkey = $2`,
+    [paymentRef, sellerPubkey]
+  );
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return {
+    sellerPubkey: row.seller_pubkey,
+    orderId: row.order_id,
+    productId: row.product_id,
+    toAddress: row.to_address,
+  };
+}
+
+/**
+ * Best-effort cleanup: bindings are only needed between payment creation and
+ * the post-payment auto-purchase POST (seconds), but an abandoned checkout
+ * would otherwise strand its rows forever. 7 days is generous headroom for
+ * slow retries.
+ */
+export async function pruneShippingCheckoutContexts(): Promise<number> {
+  const pool = getDbPool();
+  const result = await pool.query(
+    `DELETE FROM shipping_checkout_contexts
+      WHERE created_at < NOW() - INTERVAL '7 days'`
+  );
+  return result.rowCount || 0;
 }
 
 // --- Parcel templates ----------------------------------------------------

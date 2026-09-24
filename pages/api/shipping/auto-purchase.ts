@@ -2,19 +2,23 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getStripeConnectAccount } from "@/utils/db/db-service";
+import { getShippingCheckoutContext } from "@/utils/db/shipping-service";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { runAutoLabelPurchase } from "@/utils/shipping/auto-purchase";
-import type { ShippingAddressInput } from "@/utils/shipping/types";
+import { stripeCheckoutRef } from "@/utils/shipping/checkout-context";
 
 // Web (Stripe) card path for automatic shipping-label purchase.
 //
 // The buyer's browser fires this once per seller after a successful card
 // payment. We re-verify the PaymentIntent against Stripe (it must be
-// `succeeded` and name this seller in its metadata) before letting the shared
-// core buy a label on the SELLER's own Shippo account. The buyer address is
-// passed transiently in the body and is never persisted beyond the label
-// record the seller needs to ship. No Nostr proof is required; authorization
-// comes from the verified, settled payment.
+// `succeeded` and name this seller in its metadata), then derive the order,
+// product, and destination from the checkout-time record the
+// create-payment-intent route persisted against the VERIFIED PaymentIntent
+// id — never from this request's body, or a buyer holding any settled payment
+// could redirect the seller-billed label to an arbitrary address/parcel
+// (pay cheap shipping to A, ship the label to expensive B). No Nostr proof is
+// required; authorization comes from the verified, settled payment plus the
+// checkout-time binding.
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -24,10 +28,7 @@ const RATE_LIMIT = { limit: 30, windowMs: 60_000 };
 
 interface AutoPurchaseBody {
   paymentIntentId: string;
-  orderId: string;
   sellerPubkey: string;
-  productId: string;
-  toAddress: ShippingAddressInput;
 }
 
 export default async function handler(
@@ -45,20 +46,11 @@ export default async function handler(
   }
 
   try {
-    const { paymentIntentId, orderId, sellerPubkey, productId, toAddress } =
-      (req.body || {}) as Partial<AutoPurchaseBody>;
+    const { paymentIntentId, sellerPubkey } = (req.body || {}) as Partial<
+      AutoPurchaseBody
+    >;
 
-    if (
-      !paymentIntentId ||
-      !orderId ||
-      !sellerPubkey ||
-      !productId ||
-      !toAddress?.street1 ||
-      !toAddress?.city ||
-      !toAddress?.state ||
-      !toAddress?.zip ||
-      !toAddress?.country
-    ) {
+    if (!paymentIntentId || !sellerPubkey) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -104,25 +96,30 @@ export default async function handler(
         .json({ success: false, reason: "seller-mismatch" });
     }
 
+    // The order, product, and destination come from the checkout-time record
+    // bound to the VERIFIED PaymentIntent id at payment creation. A missing
+    // record (legacy payment, non-shipping checkout, pruned row) fails
+    // closed: no label, and the seller can still buy manually.
+    const context = await getShippingCheckoutContext(
+      stripeCheckoutRef(pi.id),
+      sellerPubkey
+    );
+    if (!context) {
+      return res
+        .status(200)
+        .json({ success: false, reason: "no-checkout-context" });
+    }
+
     const result = await runAutoLabelPurchase({
       sellerPubkey,
-      orderId,
+      orderId: context.orderId,
       // Dedupe on the VERIFIED PaymentIntent id, not the client-supplied
       // orderId: the buyer's browser generates orderId, so keying the claim on
       // it would let one settled PI be replayed with fresh orderIds to buy
       // unlimited seller-billed labels. pi.id is Stripe-bound and one-per-charge.
       claimRef: pi.id,
-      productId,
-      toAddress: {
-        name: toAddress.name,
-        street1: toAddress.street1,
-        street2: toAddress.street2,
-        city: toAddress.city,
-        state: toAddress.state,
-        zip: toAddress.zip,
-        country: toAddress.country,
-        email: toAddress.email,
-      },
+      productId: context.productId,
+      toAddress: context.toAddress,
     });
 
     return res.status(200).json({

@@ -147,7 +147,51 @@ import {
 // mint a NEW object on every render, which churns the dependency arrays of
 // effects/memos that list these props — the FX-total effect below sets state
 // each run, so unstable deps turn it into an infinite render loop.
+import type { ShippingCheckoutContext } from "@/utils/shipping/checkout-context";
+
 const STABLE_EMPTY_OBJECT = Object.freeze({});
+
+// Build the checkout-time shipping binding the payment-creation routes persist
+// server-side (keyed by the verified payment id): one entry per seller with
+// that seller's first product — the parcel profile the auto-label purchase
+// ships against — and the destination the buyer just entered. The post-payment
+// auto-purchase POST carries only the payment id + seller, so these contexts
+// are the ONLY source of order/product/destination the server will trust.
+// Returns undefined when the checkout has no usable shipping address (e.g.
+// pickup) — nothing is persisted then and auto-purchase later skips.
+function buildShippingCheckoutContexts(
+  data: any,
+  orderId: string,
+  products: any[],
+  sellerPubkeys: (string | undefined | null)[]
+): ShippingCheckoutContext[] | undefined {
+  if (
+    !data?.shippingName ||
+    !data?.shippingAddress ||
+    !data?.shippingCity ||
+    !data?.shippingState ||
+    !data?.shippingPostalCode
+  ) {
+    return undefined;
+  }
+  const toAddress = {
+    name: data.shippingName,
+    street1: data.shippingAddress,
+    street2: data.shippingUnitNo || undefined,
+    city: data.shippingCity,
+    state: data.shippingState,
+    zip: data.shippingPostalCode,
+    country: (data.shippingCountry || "US").trim() || "US",
+  };
+  const contexts: ShippingCheckoutContext[] = [];
+  for (const pk of sellerPubkeys) {
+    if (!pk) continue;
+    const firstProduct = products.filter((p) => p.pubkey === pk)[0];
+    if (!firstProduct?.id) continue;
+    contexts.push({ sellerPubkey: pk, orderId, productId: firstProduct.id, toAddress });
+  }
+  return contexts.length > 0 ? contexts : undefined;
+}
 
 export default function CartInvoiceCard({
   products,
@@ -514,6 +558,7 @@ export default function CartInvoiceCard({
     environment: "sandbox" | "production";
     countryCode?: string;
     metadata: Record<string, unknown>;
+    shippingContext?: ShippingCheckoutContext;
   } | null>(null);
 
   // Per-seller card processor for MULTI-seller carts. Each seller uses EITHER
@@ -3438,6 +3483,16 @@ export default function CartInvoiceCard({
               isCart: "true",
             },
             sellerSplits: sellerSplitsPayload,
+            // Checkout-time shipping binding the server persists against the
+            // verified PaymentIntent id (auto-label purchase derives the
+            // order/product/destination from it, never from the post-payment
+            // request body). One entry per seller being charged.
+            shippingContexts: buildShippingCheckoutContexts(
+              data,
+              orderId,
+              products,
+              isMultiMerchant ? uniqueSellerPubkeys : [singleSellerPubkey]
+            ),
             ...(salesTaxSmallest > 0 && {
               salesTaxSmallest,
               taxCalculationId: taxCalculationId || undefined,
@@ -3561,6 +3616,11 @@ export default function CartInvoiceCard({
           productTitle: productTitles,
           isCart: "true",
         },
+        // Checkout-time shipping binding the server persists against the
+        // verified Square payment id (see the Stripe path above).
+        shippingContext: buildShippingCheckoutContexts(data, orderId, products, [
+          singleSellerPubkey,
+        ])?.[0],
       });
       setPendingStripeData(data);
       setShowInvoiceCard(true);
@@ -3587,7 +3647,8 @@ export default function CartInvoiceCard({
   // state so only one form is mounted at a time.
   const configureMultiCardStep = async (
     index: number,
-    queue: { pubkey: string; processor: "stripe" | "square" }[]
+    queue: { pubkey: string; processor: "stripe" | "square" }[],
+    data: any
   ) => {
     const step = queue[index];
     if (!step) return;
@@ -3623,6 +3684,13 @@ export default function CartInvoiceCard({
         environment: proc.square.environment,
         countryCode: proc.square.countryCode,
         metadata,
+        // Checkout-time shipping binding (see the single-seller path above).
+        shippingContext: buildShippingCheckoutContexts(
+          data,
+          multiCardOrderIdRef.current,
+          products,
+          [step.pubkey]
+        )?.[0],
       });
       setMultiCardIndex(index);
       setShowInvoiceCard(true);
@@ -3645,6 +3713,13 @@ export default function CartInvoiceCard({
             : `guest-${multiCardOrderIdRef.current.substring(0, 8)}@nostr.com`),
         productTitle: `Cart Order: ${sellerProductTitles}`,
         metadata,
+        // Checkout-time shipping binding (see the single-seller path above).
+        shippingContexts: buildShippingCheckoutContexts(
+          data,
+          multiCardOrderIdRef.current,
+          products,
+          [step.pubkey]
+        ),
       }),
     });
     if (!response.ok) {
@@ -3710,7 +3785,7 @@ export default function CartInvoiceCard({
       }
 
       setMultiCardQueue(queue);
-      await configureMultiCardStep(0, queue);
+      await configureMultiCardStep(0, queue, data);
     } catch (error) {
       console.error("Multi-seller card payment error:", error);
       if (setInvoiceGenerationFailed) {
@@ -3780,7 +3855,7 @@ export default function CartInvoiceCard({
           step.processor === "stripe" ? paymentId : undefined
         );
       },
-      configureNextStep: () => configureMultiCardStep(index + 1, queue),
+      configureNextStep: () => configureMultiCardStep(index + 1, queue, data),
       onAdvanceError: (error) => {
         console.error("Failed to set up next seller's card form:", error);
         const detail = error instanceof Error ? error.message : "Unknown error";
@@ -3848,10 +3923,12 @@ export default function CartInvoiceCard({
 
     // Fire-and-forget automatic shipping-label purchase on the seller's own
     // Shippo account (card path, US destinations only). The server re-verifies
-    // the payment (Stripe PaymentIntent or Square payment) and the
-    // per-(seller, order) claim dedups concurrent line POSTs, so one label is
-    // bought per seller. Buyer address is transient — sent only for this
-    // request, never persisted client-side.
+    // the payment (Stripe PaymentIntent or Square payment) and derives the
+    // order, product, and destination from the checkout-time binding recorded
+    // when the payment was CREATED — this POST carries only the payment id and
+    // seller, so nothing the buyer sends here can redirect the seller-billed
+    // label. The per-(seller, order) claim dedups concurrent line POSTs, so
+    // one label is bought per seller.
     const autoShipCountry = (data.shippingCountry || "").trim().toUpperCase();
     const autoShipIsUs =
       autoShipCountry === "US" ||
@@ -3867,33 +3944,12 @@ export default function CartInvoiceCard({
       data.shippingState &&
       data.shippingPostalCode
     ) {
-      const autoShipToAddress = {
-        name: data.shippingName,
-        street1: data.shippingAddress,
-        street2: data.shippingUnitNo || undefined,
-        city: data.shippingCity,
-        state: data.shippingState,
-        zip: data.shippingPostalCode,
-        country: "US",
-      };
       const autoShipUrl = isStripe
         ? "/api/shipping/auto-purchase"
         : "/api/shipping/auto-purchase-square";
       const autoShipBody = isStripe
-        ? {
-            paymentIntentId,
-            orderId,
-            sellerPubkey: sellerPk,
-            productId: autoShipLineProduct.id,
-            toAddress: autoShipToAddress,
-          }
-        : {
-            squarePaymentId: paymentIntentId,
-            orderId,
-            sellerPubkey: sellerPk,
-            productId: autoShipLineProduct.id,
-            toAddress: autoShipToAddress,
-          };
+        ? { paymentIntentId, sellerPubkey: sellerPk }
+        : { squarePaymentId: paymentIntentId, sellerPubkey: sellerPk };
       fetch(autoShipUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -8942,6 +8998,7 @@ export default function CartInvoiceCard({
                           customerEmail={buyerEmail || undefined}
                           productTitle={squareCheckout.productTitle}
                           metadata={squareCheckout.metadata}
+                          shippingContext={squareCheckout.shippingContext}
                           onPaymentSuccess={(pid) =>
                             multiCardQueue
                               ? onMultiCardStepSuccess(pid)
