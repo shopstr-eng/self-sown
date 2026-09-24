@@ -5,7 +5,7 @@ import {
   imageFitClass,
   resolveContentWidth,
 } from "./section-style";
-import SectionElementFlow from "./section-elements";
+import SectionElementFlow, { joinClassNames } from "./section-elements";
 
 interface SectionImageProps {
   section: StorefrontSection;
@@ -45,12 +45,16 @@ export default function SectionImage({ section, colors }: SectionImageProps) {
                 alt={section.caption || section.heading || ""}
                 className={
                   fixedHeight
-                    ? `w-full ${fixedHeight} ${imageFitClass(section)} ${
-                        isFullWidth ? "" : "rounded-xl shadow-lg"
-                      }`.trim()
-                    : `mx-auto h-auto max-w-full ${
-                        isFullWidth ? "" : "rounded-xl shadow-lg"
-                      }`.trim()
+                    ? joinClassNames(
+                        "w-full",
+                        fixedHeight,
+                        imageFitClass(section),
+                        !isFullWidth && "rounded-xl shadow-lg"
+                      )
+                    : joinClassNames(
+                        "mx-auto h-auto max-w-full",
+                        !isFullWidth && "rounded-xl shadow-lg"
+                      )
                 }
               />
               {section.caption && (

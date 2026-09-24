@@ -17,7 +17,7 @@ import {
   SignerContext,
   NostrContext,
 } from "@/components/utility-components/nostr-context-provider";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import {
   BLUEBUTTONCLASSNAMES,
@@ -36,6 +36,7 @@ import {
   buildUpdateSubscriptionProof,
   SIGNED_EVENT_HEADER,
 } from "@/utils/nostr/request-auth";
+import { joinClassNames } from "@/utils/class-names";
 
 interface SubscriptionData {
   id: number;
@@ -447,7 +448,7 @@ const SubscriptionManagement = ({
   const neoModalClasses = {
     wrapper: "shadow-neo",
     base: "border-2 border-black rounded-md",
-    backdrop: "bg-black/20 backdrop-blur-sm",
+    backdrop: "bg-black/20 backdrop-blur-xs",
     header: "border-b-2 border-black bg-white rounded-t-md text-black",
     body: "py-6 bg-white",
     footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -514,7 +515,7 @@ const SubscriptionManagement = ({
   if (isLoading) {
     return (
       <div className="flex h-[66vh] items-center justify-center">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }
@@ -748,11 +749,12 @@ const SubscriptionManagement = ({
                             </td>
                             <td className="px-4 py-4 text-sm whitespace-nowrap">
                               <span
-                                className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                                className={joinClassNames(
+                                  "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                                   sub.status === "paused"
                                     ? "bg-yellow-200 text-black"
                                     : "bg-gray-200 text-black"
-                                }`}
+                                )}
                               >
                                 {sub.status}
                               </span>

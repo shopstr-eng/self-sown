@@ -19,7 +19,7 @@ const RATE_LIMIT = { limit: 30, windowMs: 60000 };
 function isAllowedAbsoluteRedirect(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "milkmarket:";
+    return ["https:", "selfsown:", "milkmarket:"].includes(parsed.protocol);
   } catch {
     return false;
   }
@@ -146,7 +146,7 @@ export default async function handler(
         if (!isAllowedAbsoluteRedirect(abs)) {
           return {
             ok: false,
-            error: "Redirect URLs must use https:// or milkmarket://",
+            error: "Redirect URLs must use https:// or selfsown://",
           };
         }
         return { ok: true, value: abs };

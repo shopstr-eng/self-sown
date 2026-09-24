@@ -28,6 +28,7 @@ import {
 import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { NostrEvent } from "@/utils/types/types";
 import { bindAffiliateRefToSeller } from "@/components/utility-components/affiliate-ref-tracker";
+import { SITE_URL } from "@/utils/site-url";
 
 type ListingPageProps = {
   ogMeta: OgMetaProps;
@@ -74,22 +75,22 @@ function resolveListingStateFromEvent(
 
 const LISTING_FALLBACK: OgMetaProps = {
   ...DEFAULT_OG,
-  title: "Milk Market Listing",
-  description: "Check out this listing on Milk Market!",
+  title: "Self-sown Listing",
+  description: "Check out this listing on Self-sown!",
 };
 
-const PLATFORM_ORIGIN = "https://milk.market";
+const PLATFORM_ORIGIN = SITE_URL;
 
 // Resolve the exact canonical URL this listing page settles on so the JSON-LD
 // Product/Offer link matches the page's canonical link tag. That means the
 // friendly title slug (the client redirects raw id/dTag/naddr routes to it) on
 // the correct origin (the seller's custom domain when the request arrives via
-// one, forwarded by proxy.ts as `x-mm-custom-domain-host`, else the platform).
+// one, forwarded by proxy.ts as `x-ss-custom-domain-host`, else the platform).
 async function resolveListingCanonicalUrl(
   event: NostrEvent,
   headers: { [key: string]: string | string[] | undefined }
 ): Promise<string> {
-  const rawHost = headers["x-mm-custom-domain-host"];
+  const rawHost = headers["x-ss-custom-domain-host"];
   const customHost = (typeof rawHost === "string" ? rawHost : "")
     .toLowerCase()
     .trim()

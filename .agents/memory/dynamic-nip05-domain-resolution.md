@@ -10,20 +10,20 @@ kind:0 profile username -> their raw hex pubkey: `{"names":{"<name>":"<hex>"}}`.
 The proxy intercepts `/.well-known/nostr.json` only inside the custom-domain
 block (platform host keeps serving the static `public/.well-known/nostr.json`)
 and rewrites to the API route, forwarding the real host via
-`x-mm-custom-domain-host`.
+`x-ss-custom-domain-host`.
 
 **Rule:** The API route must resolve the owning seller FROM THE DOMAIN
-(`x-mm-custom-domain-host` header, or `?domain=` fallback) against
+(`x-ss-custom-domain-host` header, or `?domain=` fallback) against
 `custom_domains WHERE verified=true`, then apply the `getMembershipView().isHidden`
 gate — exactly like `/api/storefront/lookup`. It must NOT trust any
-caller-supplied pubkey header (e.g. `x-mm-shop-pubkey`).
+caller-supplied pubkey header (e.g. `x-ss-shop-pubkey`).
 
 **Why:** `/api/storefront/nostr-json` is publicly reachable on its own, so a
 direct caller can forge headers. Trusting a supplied pubkey lets a direct call
 bypass the hidden/lapsed membership gate for any account. Resolving from the
 verified domain makes the gate mandatory on both the proxied and direct paths.
 Forging the host only ever returns that domain's already-public NIP-05, so it
-grants no extra access. (Same family of bug as the spoofable `x-mm-self-host`
+grants no extra access. (Same family of bug as the spoofable `x-ss-self-host`
 header — never trust a forgeable identity header for an authz decision.)
 
 **How to apply:** Any new public endpoint that emits per-seller data keyed off a

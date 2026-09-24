@@ -75,7 +75,7 @@ describe("create stripe account link api", () => {
   beforeEach(() => {
     createAccountLink.mockReset();
     mockedGetStripeConnectAccount.mockReset();
-    process.env.NEXT_PUBLIC_BASE_URL = "https://milkmarket.example";
+    process.env.NEXT_PUBLIC_BASE_URL = "https://selfsown.example";
   });
 
   afterAll(() => {
@@ -109,9 +109,9 @@ describe("create stripe account link api", () => {
     expect(createAccountLink).toHaveBeenCalledWith(
       expect.objectContaining({
         return_url:
-          "https://milkmarket.example/onboarding/stripe-connect?success=true",
+          "https://selfsown.example/onboarding/stripe-connect?success=true",
         refresh_url:
-          "https://milkmarket.example/onboarding/stripe-connect?refresh=true",
+          "https://selfsown.example/onboarding/stripe-connect?refresh=true",
       })
     );
     expect(response.statusCode).toBe(200);
@@ -174,7 +174,7 @@ describe("create stripe account link api", () => {
     expect(response.statusCode).toBe(400);
     expect(response.body).toEqual(
       expect.objectContaining({
-        error: "Redirect URLs must use https:// or milkmarket://",
+        error: "Redirect URLs must use https:// or selfsown://",
       })
     );
   });

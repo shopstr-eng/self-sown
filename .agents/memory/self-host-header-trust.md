@@ -1,11 +1,11 @@
 ---
 name: Self-host header trust must be env-gated
-description: Why the x-mm-self-host signal can never be trusted from the header alone; how forceSelfHostChrome is kept fail-closed on the hosted platform.
+description: Why the x-ss-self-host signal can never be trusted from the header alone; how forceSelfHostChrome is kept fail-closed on the hosted platform.
 ---
 
 # Self-host header trust must be env-gated (fail-closed)
 
-The `x-mm-self-host` request header is set by `proxy.ts` only on a real
+The `x-ss-self-host` request header is set by `proxy.ts` only on a real
 self-host deployment, but it is a **client-spoofable inbound header** on the
 hosted platform. Anything that flips behavior off this header must ALSO require
 the server process to genuinely be in self-host mode (`MM_SELF_HOST` env).
@@ -18,13 +18,13 @@ helper `selfHostHeaderTrusted(process.env.MM_SELF_HOST, header)` in
 `entitled = forceSelfHostChrome || sellerIsPro`.
 
 **Why:** if `__isSelfHostSsr` were set from the header alone, a crafted
-`x-mm-self-host: 1` on the hosted platform would set `forceSelfHostChrome` and
+`x-ss-self-host: 1` on the hosted platform would set `forceSelfHostChrome` and
 bypass the render-layer Pro gate — serving a non-Pro seller's branded chrome.
 The render layer is the only enforcement for storefront chrome (the design is
 published to Nostr, no server write path to gate), so this gate being spoofable
 is a real Pro-feature bypass.
 
-**How to apply:** never trust `x-mm-self-host` (or any proxy-injected `x-mm-*`
+**How to apply:** never trust `x-ss-self-host` (or any proxy-injected `x-ss-*`
 routing header) from the header alone in code that runs in the hosted app. Gate
 it on the server-side `MM_SELF_HOST` env too. Keep the trust decision in the
 import-free `routing.ts` so `_app.tsx` (bundled for the client) can share it

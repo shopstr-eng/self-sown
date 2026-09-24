@@ -9,7 +9,7 @@ import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { verifyEvent } from "nostr-tools";
-import { parseBlogPostEvent } from "@milk-market/domain";
+import { parseBlogPostEvent } from "@self-sown/domain";
 
 jest.mock("@/utils/db/db-service", () => ({
   upsertScheduledBlogPost: jest.fn(),
@@ -27,7 +27,7 @@ jest.mock("@/utils/rate-limit", () => ({
 jest.mock("nostr-tools", () => ({
   verifyEvent: jest.fn(() => true),
 }));
-jest.mock("@milk-market/domain", () => ({
+jest.mock("@self-sown/domain", () => ({
   parseBlogPostEvent: jest.fn(),
 }));
 

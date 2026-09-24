@@ -10,6 +10,7 @@ import {
 } from "@/utils/db/db-service";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { getSiteUrl } from "@/utils/site-url";
 
 const PER_IP_LIMIT = { limit: 10, windowMs: 60 * 1000 };
 const PER_PUBKEY_LIMIT = { limit: 10, windowMs: 60 * 1000 };
@@ -141,7 +142,7 @@ export default async function handler(
         .map((e) => e.recipient_email.trim().toLowerCase())
     );
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+    const baseUrl = getSiteUrl();
     const shopUrl = `${baseUrl}/${authResult.pubkey}`;
 
     let enrolled = 0;
@@ -166,7 +167,7 @@ export default async function handler(
           recipient_email: email,
           recipient_pubkey: null,
           enrollment_data: {
-            shop_name: flow.from_name || "Milk Market",
+            shop_name: flow.from_name || "Self-sown",
             shop_url: shopUrl,
             discount_code: contact.discount_code || "",
             discount_percentage:
@@ -180,7 +181,17 @@ export default async function handler(
         await scheduleStepExecutions(enrollment.id, flow.id);
         enrolled++;
       } catch (contactError) {
-        console.error("Failed to enroll contact in flow:", email, contactError);
+        // Log only the domain (never the local part) and the pg error
+        // code/name — error messages can echo the recipient value.
+        const at = typeof email === "string" ? email.indexOf("@") : -1;
+        const maskedEmail = at > 0 ? `***${email.slice(at)}` : "***";
+        console.error(
+          "Failed to enroll contact in flow:",
+          maskedEmail,
+          (contactError as { code?: string; name?: string } | null)?.code ??
+            (contactError as { code?: string; name?: string } | null)?.name ??
+            "error"
+        );
         skipped++;
         // If the enrollment row was created but scheduling failed, cancel it so
         // it doesn't linger as "active" with no emails queued — that would make

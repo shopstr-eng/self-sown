@@ -16,6 +16,7 @@ export interface SquareConnectionRecord {
   merchantId: string | null;
   locationId: string | null;
   locationCurrency: string | null;
+  locationCountry: string | null;
   scope: string | null;
   status: string;
   createdAt: string;
@@ -30,6 +31,7 @@ interface SquareConnectionRow {
   merchant_id: string | null;
   location_id: string | null;
   location_currency: string | null;
+  location_country: string | null;
   scope: string | null;
   status: string;
   created_at: string;
@@ -45,6 +47,7 @@ function mapConnectionRow(row: SquareConnectionRow): SquareConnectionRecord {
     merchantId: row.merchant_id,
     locationId: row.location_id,
     locationCurrency: row.location_currency,
+    locationCountry: row.location_country,
     scope: row.scope,
     status: row.status,
     createdAt: row.created_at,
@@ -60,6 +63,7 @@ export interface UpsertSquareConnectionInput {
   merchantId?: string | null;
   locationId?: string | null;
   locationCurrency?: string | null;
+  locationCountry?: string | null;
   scope?: string | null;
   status?: string;
 }
@@ -71,8 +75,8 @@ export async function upsertSquareConnection(
   const result = await pool.query<SquareConnectionRow>(
     `INSERT INTO square_oauth_connections
        (pubkey, access_token, refresh_token, expires_at, merchant_id,
-        location_id, location_currency, scope, status, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+        location_id, location_currency, location_country, scope, status, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
      ON CONFLICT (pubkey) DO UPDATE SET
        access_token = EXCLUDED.access_token,
        refresh_token = EXCLUDED.refresh_token,
@@ -80,6 +84,7 @@ export async function upsertSquareConnection(
        merchant_id = EXCLUDED.merchant_id,
        location_id = EXCLUDED.location_id,
        location_currency = EXCLUDED.location_currency,
+       location_country = EXCLUDED.location_country,
        scope = EXCLUDED.scope,
        status = EXCLUDED.status,
        updated_at = NOW()
@@ -92,6 +97,7 @@ export async function upsertSquareConnection(
       input.merchantId ?? null,
       input.locationId ?? null,
       input.locationCurrency ?? null,
+      input.locationCountry ?? null,
       input.scope ?? null,
       input.status ?? "connected",
     ]
@@ -154,6 +160,23 @@ export async function updateSquareTokens(
   );
 }
 
+// Persist ONLY the location country (Apple Pay payment-request field). Kept
+// separate from updateSquareTokens so the seller-status lazy backfill never
+// touches token fields.
+export async function updateSquareLocationCountry(
+  pubkey: string,
+  country: string
+): Promise<void> {
+  const pool = getDbPool();
+  await pool.query(
+    `UPDATE square_oauth_connections
+        SET location_country = $2,
+            updated_at = NOW()
+      WHERE pubkey = $1`,
+    [pubkey, country]
+  );
+}
+
 export async function deleteSquareConnection(pubkey: string): Promise<boolean> {
   const pool = getDbPool();
   const result = await pool.query(
@@ -174,7 +197,8 @@ const OAUTH_STATE_TTL_MINUTES = 15;
 
 export async function createSquareOAuthState(
   pubkey: string,
-  state: string
+  state: string,
+  redirectUri?: string
 ): Promise<void> {
   const pool = getDbPool();
   await pool.query(
@@ -182,25 +206,31 @@ export async function createSquareOAuthState(
      WHERE created_at < NOW() - INTERVAL '${OAUTH_STATE_TTL_MINUTES} minutes'`
   );
   await pool.query(
-    `INSERT INTO square_oauth_states (state, pubkey)
-     VALUES ($1, $2)
+    `INSERT INTO square_oauth_states (state, pubkey, redirect_uri)
+     VALUES ($1, $2, $3)
      ON CONFLICT (state) DO NOTHING`,
-    [state, pubkey]
+    [state, pubkey, redirectUri ?? null]
   );
 }
 
-// Single-use: returns the bound pubkey and deletes the row. Null if unknown or
-// expired.
+// Single-use: returns the bound pubkey plus the authorize-time redirect URI
+// (the token exchange must replay it exactly — even if the base domain
+// changed mid-flow, e.g. the proxy 301'd the callback page to the new domain)
+// and deletes the row. Null if unknown or expired.
 export async function consumeSquareOAuthState(
   state: string
-): Promise<string | null> {
+): Promise<{ pubkey: string; redirectUri: string | null } | null> {
   const pool = getDbPool();
-  const result = await pool.query<{ pubkey: string }>(
+  const result = await pool.query<{
+    pubkey: string;
+    redirect_uri: string | null;
+  }>(
     `DELETE FROM square_oauth_states
      WHERE state = $1
        AND created_at > NOW() - INTERVAL '${OAUTH_STATE_TTL_MINUTES} minutes'
-     RETURNING pubkey`,
+     RETURNING pubkey, redirect_uri`,
     [state]
   );
-  return result.rows[0]?.pubkey || null;
+  const row = result.rows[0];
+  return row ? { pubkey: row.pubkey, redirectUri: row.redirect_uri } : null;
 }

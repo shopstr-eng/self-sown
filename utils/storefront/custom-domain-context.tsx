@@ -53,7 +53,7 @@ export function useIsCustomDomainKnown(): {
  * (e.g. `/about`, `/orders`, `/policies/returns`) instead of leaking the
  * platform's stall namespace into the seller's URLs.
  *
- * No-op on milk.market (isCustomDomain=false) and when the href doesn't
+ * No-op on the platform host (isCustomDomain=false) and when the href doesn't
  * start with the stall prefix.
  */
 export function applyCustomDomainHref(

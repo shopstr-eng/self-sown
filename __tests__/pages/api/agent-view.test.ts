@@ -3,8 +3,9 @@
 // Endpoint-layer coverage for the platform marketing/legal agent view.
 //
 // marketing-page-negotiation.test.ts proves proxy.ts ROUTES the platform-host
-// marketing/legal pages (/, /about, /faq, /contact, /producer-guide, /terms,
-// /privacy) to /api/agent-view with the right negotiated format. It stops at
+// marketing/legal pages (/, /about, /manifesto, /faq, /contact,
+// /producer-guide, /terms, /privacy) to /api/agent-view with the right
+// negotiated format. It stops at
 // the routing decision. This block exercises pages/api/agent-view.ts DIRECTLY
 // to prove the endpoint then produces the correct representation: a non-empty
 // body, the right content-type, the content that matches the requested page,
@@ -17,6 +18,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import handler from "@/pages/api/agent-view";
 import { PAGE_CONTENT } from "@/utils/geo/page-content";
 import { __resetRateLimitBuckets } from "@/utils/rate-limit";
+import { SITE_URL } from "@/utils/site-url";
 
 // Force the rate limiter onto its deterministic in-memory fallback. The shared
 // Postgres store is exercised in utils/__tests__/rate-limit.test.ts; here we
@@ -35,6 +37,7 @@ jest.mock("@/utils/db/db-service", () => ({
 const MARKETING_PATHS = [
   "/",
   "/about",
+  "/manifesto",
   "/faq",
   "/contact",
   "/producer-guide",
@@ -45,10 +48,11 @@ const MARKETING_PATHS = [
 // A distinctive phrase from each page's markdown, used to prove the endpoint
 // returned the representation for the REQUESTED path (not a stale/wrong page).
 const PAGE_FINGERPRINT: Record<string, string> = {
-  "/": "# Milk Market",
-  "/about": "# About Milk Market",
-  "/faq": "# Milk Market FAQ",
-  "/contact": "# Contact Milk Market",
+  "/": "# Self-sown",
+  "/about": "# About Self-sown",
+  "/manifesto": "# Free Food Manifesto",
+  "/faq": "# Self-sown FAQ",
+  "/contact": "# Contact Self-sown",
   "/producer-guide": "# Producer Guide",
   "/terms": "# Terms of Service",
   "/privacy": "# Privacy Policy",
@@ -183,7 +187,7 @@ describe("/api/agent-view — endpoint representation", () => {
         expect(body.content).toBe(PAGE_CONTENT[path]!.markdown);
         expect(body.content.length).toBeGreaterThan(0);
         expect(body.content).toContain(PAGE_FINGERPRINT[path]);
-        expect(body.links.html).toBe(`https://milk.market${path}`);
+        expect(body.links.html).toBe(`${SITE_URL}${path}`);
       }
     );
 
@@ -226,13 +230,13 @@ describe("/api/agent-view — endpoint representation", () => {
     expect(res.headers["Content-Type"]).toBe("application/json; charset=utf-8");
     const body = res.body as { path: string; content: string };
     expect(body.path).toBe("/faq");
-    expect(body.content).toContain("# Milk Market FAQ");
+    expect(body.content).toContain("# Self-sown FAQ");
   });
 
   it("falls back to the query when no header is present", async () => {
     const res = await run("/about", "md", "query");
     expect(res.statusCode).toBe(200);
-    expect(res.body as string).toContain("# About Milk Market");
+    expect(res.body as string).toContain("# About Self-sown");
   });
 
   describe("fail-closed behaviour", () => {
@@ -252,15 +256,15 @@ describe("/api/agent-view — endpoint representation", () => {
     it("does not leak another page's content for an unknown path", async () => {
       const res = await run("/does-not-exist", "md", "header");
       const serialized = JSON.stringify(res.body);
-      expect(serialized).not.toContain("# About Milk Market");
-      expect(serialized).not.toContain("# Milk Market FAQ");
+      expect(serialized).not.toContain("# About Self-sown");
+      expect(serialized).not.toContain("# Self-sown FAQ");
     });
 
     it("falls back to the homepage when no path is supplied at all", async () => {
       const res = await run("", undefined, "header");
       // rawPath is empty → defaults to "/".
       expect(res.statusCode).toBe(200);
-      expect(res.body as string).toContain("# Milk Market");
+      expect(res.body as string).toContain("# Self-sown");
     });
 
     it("treats an unknown format as markdown rather than emitting HTML or empty", async () => {
@@ -271,7 +275,7 @@ describe("/api/agent-view — endpoint representation", () => {
       expect(res.headers["Content-Type"]).toBe("text/markdown; charset=utf-8");
       const body = res.body as string;
       expect(body.length).toBeGreaterThan(0);
-      expect(body).toContain("# About Milk Market");
+      expect(body).toContain("# About Self-sown");
       expect(body).not.toContain("<!DOCTYPE");
       expect(body).not.toContain("<html");
     });
@@ -279,7 +283,7 @@ describe("/api/agent-view — endpoint representation", () => {
     it("normalizes a trailing slash so /about/ resolves to /about", async () => {
       const res = await run("/about/", "md", "header");
       expect(res.statusCode).toBe(200);
-      expect(res.body as string).toContain("# About Milk Market");
+      expect(res.body as string).toContain("# About Self-sown");
     });
   });
 

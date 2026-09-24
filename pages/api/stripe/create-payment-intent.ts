@@ -35,11 +35,11 @@ interface SellerSplit {
   // Legacy raw-amount field, kept for back-compat with any older callers.
   amount?: number;
   currency: string;
-  // Optional affiliate attribution — when present, the seller's share will be
-  // reduced by `affiliateRebateSmallest` and that amount will be transferred
-  // to `affiliateAccountId` (Stripe Connect) by process-transfers. If no
-  // account is connected we still record the rebate in metadata so it can
-  // accrue to the affiliate's balance.
+  // Optional affiliate attribution. ONLY the code string is honored: the
+  // rebate amount and affiliate/code IDs are always resolved server-side
+  // from the stored, seller-scoped code row. The remaining fields are
+  // legacy request shape and are IGNORED — a caller must never be able to
+  // set the rebate amount or point it at arbitrary affiliate IDs.
   affiliateRebateSmallest?: number;
   affiliateAccountId?: string | null;
   affiliateId?: number;
@@ -54,8 +54,42 @@ import {
 import {
   recordPendingPayment,
   updatePendingPayment,
+  SPLIT_AUTHORITY_METADATA_KEY,
+  SPLIT_AUTHORITY_PENDING_RECORD,
+  SUBSCRIPTION_TERMINAL_METADATA_KEY,
 } from "@/utils/stripe/pending-payments";
 import { resolveDonationCut } from "@/utils/stripe/donation";
+import {
+  computeRebateSmallest,
+  isAffiliateCodeValid,
+  isSelfReferral,
+  lookupAffiliateCode,
+} from "@/utils/db/affiliates";
+
+// Server-owned metadata keys a caller must never inject. They back
+// fail-closed payment verification and payout authority, so they are
+// stripped from client metadata before ANY use — the Stripe PaymentIntent
+// metadata and the durable pending-payment record alike.
+const SERVER_OWNED_METADATA_KEYS = new Set([
+  "sellerSplitPubkeys",
+  "sellerSplits",
+  "transferGroup",
+  "isMultiMerchant",
+  SPLIT_AUTHORITY_METADATA_KEY,
+  // Marks a split record as a cancelled subscription's, making it prunable —
+  // an injected copy would let a buyer get their own card payment's payout
+  // authority record swept before process-transfers ran.
+  SUBSCRIPTION_TERMINAL_METADATA_KEY,
+]);
+
+function stripServerOwnedMetadata(metadata: unknown): Record<string, unknown> {
+  if (!metadata || typeof metadata !== "object") return {};
+  const copy: Record<string, unknown> = {
+    ...(metadata as Record<string, unknown>),
+  };
+  for (const key of SERVER_OWNED_METADATA_KEYS) delete copy[key];
+  return copy;
+}
 
 // Rate limit: per-IP cap to bound abuse of payment endpoints.
 const RATE_LIMIT = { limit: 30, windowMs: 60000 };
@@ -101,6 +135,20 @@ export default async function handler(
         safeMetadata[k] = s.length > 490 ? s.slice(0, 487) + "..." : s;
       }
     }
+    // These keys are server-owned proof of which sellers a charge belongs to
+    // (order-email payment verification trusts them fail-closed) and of
+    // payout authority (process-transfers treats stamped split details as
+    // the payout source of truth). A caller must never set them: in the
+    // normal multi-merchant branch the server's value would override anyway,
+    // but when that value is omitted (oversized pubkey list) — or anywhere on
+    // the single-seller path — an injected copy would survive and spoof
+    // seller membership or fabricate payout authority.
+    delete safeMetadata.sellerSplitPubkeys;
+    delete safeMetadata.sellerSplits;
+    delete safeMetadata.transferGroup;
+    delete safeMetadata.isMultiMerchant;
+    delete safeMetadata[SPLIT_AUTHORITY_METADATA_KEY];
+    delete safeMetadata[SUBSCRIPTION_TERMINAL_METADATA_KEY];
 
     // Validate customer email format if provided — Stripe rejects malformed
     // values and the resulting 400 surfaces as "invoice generation error".
@@ -178,7 +226,7 @@ export default async function handler(
       !selfHost &&
       !isMultiMerchant &&
       singleSellerPubkey &&
-      singleSellerPubkey !== process.env.NEXT_PUBLIC_MILK_MARKET_PK
+      singleSellerPubkey !== process.env.NEXT_PUBLIC_SELF_SOWN_PK
         ? await getStripeConnectAccount(singleSellerPubkey)
         : null;
 
@@ -205,6 +253,7 @@ export default async function handler(
       donationPercent: number;
       donationCutSmallest: number;
       affiliateRebateSmallest: number;
+      affiliateBuyerDiscountSmallest: number;
       affiliateAccountId: string | null;
       affiliateId: number | null;
       affiliateCodeId: number | null;
@@ -216,9 +265,17 @@ export default async function handler(
         .toString(36)
         .substring(2, 8)}`;
 
+      const seenSellerPubkeys = new Set<string>();
       for (const split of sellerSplits as SellerSplit[]) {
+        // Payout claims key on (paymentIntentId, sellerPubkey): a duplicated
+        // seller would pay once and misreport the rest while the buyer is
+        // charged the full split sum. Reject up front.
+        if (seenSellerPubkeys.has(split.sellerPubkey)) {
+          return res.status(400).json({ error: "Duplicate seller in split" });
+        }
+        seenSellerPubkeys.add(split.sellerPubkey);
         const isPlatformAccount =
-          split.sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+          split.sellerPubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
 
         let accountId = "";
         if (!isPlatformAccount) {
@@ -266,26 +323,99 @@ export default async function handler(
         const { percent: donationPercent, cutSmallest: donationCutSmallest } =
           await resolveDonationCut(split.sellerPubkey, splitAmountSmallest);
 
+        // Affiliate attribution is resolved SERVER-SIDE: the client may name
+        // a code, but the rebate amount and affiliate/code IDs always come
+        // from the stored, seller-scoped code row — never from the request.
+        // Otherwise a caller could inflate the rebate or aim it at arbitrary
+        // affiliate IDs and divert the seller's share.
+        let affiliateRebateSmallest = 0;
+        let affiliateBuyerDiscountSmallest = 0;
+        let affiliateAccountId: string | null = null;
+        let affiliateId: number | null = null;
+        let affiliateCodeId: number | null = null;
+        let affiliateCode: string | null = null;
+        if (
+          typeof split.affiliateCode === "string" &&
+          split.affiliateCode.trim().length > 0
+        ) {
+          const found = await lookupAffiliateCode(
+            split.sellerPubkey,
+            split.affiliateCode.trim()
+          );
+          // Same validity, currency and self-referral rules as the
+          // record-referral route. An unusable code simply means no
+          // attribution — checkout must never fail over it.
+          const currencyCompatible =
+            !found?.currency ||
+            found.currency.toLowerCase() === stripeCurrency.toLowerCase() ||
+            (found.rebate_type !== "fixed" &&
+              found.buyer_discount_type !== "fixed");
+          if (
+            found &&
+            currencyCompatible &&
+            (await isAffiliateCodeValid(found)) &&
+            !isSelfReferral(
+              split.sellerPubkey,
+              found.affiliate?.affiliate_pubkey
+            )
+          ) {
+            // The cart applies the buyer discount when constructing
+            // amountSmallest, so splitAmountSmallest is ALREADY the
+            // discounted net — compute the rebate on it directly.
+            // Recomputing and subtracting the configured discount here
+            // would double-count it and underpay the affiliate.
+            affiliateRebateSmallest = Math.min(
+              computeRebateSmallest(
+                splitAmountSmallest,
+                found.rebate_type,
+                Number(found.rebate_value),
+                stripeCurrency
+              ),
+              // The seller must keep at least one unit after the donation
+              // cut and the rebate.
+              Math.max(splitAmountSmallest - donationCutSmallest - 1, 0)
+            );
+            // Reconstruct the discount from the code config for referral
+            // reporting only (gross = net + discount); it never affects the
+            // charge or the payout. Percent reconstruction can be off by one
+            // unit from cart-side rounding — a reporting tolerance, not
+            // money movement.
+            if (
+              found.buyer_discount_type === "percent" &&
+              Number(found.buyer_discount_value) > 0 &&
+              Number(found.buyer_discount_value) < 100
+            ) {
+              const p = Number(found.buyer_discount_value);
+              affiliateBuyerDiscountSmallest = Math.max(
+                Math.round(splitAmountSmallest / (1 - p / 100)) -
+                  splitAmountSmallest,
+                0
+              );
+            } else if (found.buyer_discount_type === "fixed") {
+              affiliateBuyerDiscountSmallest = Math.max(
+                Math.floor(Number(found.buyer_discount_value) * 100),
+                0
+              );
+            }
+            affiliateAccountId = found.affiliate?.stripe_account_id ?? null;
+            affiliateId = found.affiliate_id;
+            affiliateCodeId = found.id;
+            affiliateCode = found.code;
+          }
+        }
+
         splitDetails.push({
           pubkey: split.sellerPubkey,
           amountCents: splitAmountSmallest,
           accountId,
           donationPercent,
           donationCutSmallest,
-          affiliateRebateSmallest:
-            typeof split.affiliateRebateSmallest === "number"
-              ? Math.max(
-                  0,
-                  Math.min(
-                    split.affiliateRebateSmallest,
-                    Math.max(splitAmountSmallest - donationCutSmallest - 1, 0)
-                  )
-                )
-              : 0,
-          affiliateAccountId: split.affiliateAccountId ?? null,
-          affiliateId: split.affiliateId ?? null,
-          affiliateCodeId: split.affiliateCodeId ?? null,
-          affiliateCode: split.affiliateCode ?? null,
+          affiliateRebateSmallest,
+          affiliateBuyerDiscountSmallest,
+          affiliateAccountId,
+          affiliateId,
+          affiliateCodeId,
+          affiliateCode,
         });
       }
 
@@ -309,6 +439,19 @@ export default async function handler(
         productDescription ? ` - ${productDescription}` : ""
       }`;
 
+      // Stripe caps every metadata value at 500 chars — the full split
+      // details JSON (donation + affiliate fields per seller) blows past that
+      // with just TWO sellers, which used to fail every multi-seller card
+      // checkout at PaymentIntent creation. The full details are persisted
+      // server-side in the pending-payment record below (keyed by the
+      // idempotency ref, carrying transferGroup) and echoed in this route's
+      // response; the PaymentIntent metadata only needs the participating
+      // seller pubkeys so card-payment verification (send-order-email) can
+      // confirm membership. Omitted entirely for pathological carts whose
+      // pubkey list alone would exceed the cap — verification then fails
+      // closed rather than the checkout failing.
+      const sellerSplitPubkeys = splitDetails.map((s) => s.pubkey).join(",");
+
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
         amount: amountInSmallestUnit,
         currency: stripeCurrency,
@@ -320,6 +463,11 @@ export default async function handler(
           originalCurrency: currency,
           isMultiMerchant: "true",
           transferGroup,
+          // Server-owned authority marker: tells process-transfers an
+          // authoritative split record MUST exist for this intent — a marked
+          // intent with a missing/malformed record fails closed rather than
+          // trusting the buyer's browser payload.
+          [SPLIT_AUTHORITY_METADATA_KEY]: SPLIT_AUTHORITY_PENDING_RECORD,
           ...(taxAddSmallest > 0 && {
             salesTaxSmallest: taxAddSmallest.toString(),
           }),
@@ -327,20 +475,9 @@ export default async function handler(
             taxCalculationId && {
               taxCalculationId: String(taxCalculationId),
             }),
-          sellerSplits: JSON.stringify(
-            splitDetails.map((s) => ({
-              pubkey: s.pubkey,
-              amountCents: s.amountCents,
-              accountId: s.accountId,
-              donationPercent: s.donationPercent,
-              donationCutSmallest: s.donationCutSmallest,
-              affiliateRebateSmallest: s.affiliateRebateSmallest,
-              affiliateAccountId: s.affiliateAccountId,
-              affiliateId: s.affiliateId,
-              affiliateCodeId: s.affiliateCodeId,
-              affiliateCode: s.affiliateCode,
-            }))
-          ),
+          ...(sellerSplitPubkeys.length <= 490 && {
+            sellerSplitPubkeys,
+          }),
         },
         payment_method_types: ["card"],
       };
@@ -359,16 +496,26 @@ export default async function handler(
         sellerSplits: sellerSplits ?? null,
         transferGroup,
       });
-      try {
-        await recordPendingPayment({
-          intentRef: intentRefMM,
-          amount: amountInSmallestUnit,
-          currency: stripeCurrency,
-          metadata: { ...metadata, transferGroup },
-        });
-      } catch (e) {
-        console.warn("recordPendingPayment failed:", e);
-      }
+      // Fail closed: process-transfers pays out from this record (never the
+      // buyer's browser payload), so a checkout whose authoritative split
+      // record can't be durably saved must NOT become payable. Retrying the
+      // request is safe — recordPendingPayment is INSERT ... ON CONFLICT DO
+      // NOTHING on the stable intentRef.
+      await recordPendingPayment({
+        intentRef: intentRefMM,
+        amount: amountInSmallestUnit,
+        currency: stripeCurrency,
+        // Full per-seller split details live here (JSONB, no size cap) as
+        // the durable server-side record — the Stripe metadata above only
+        // carries the compact pubkey list. Client metadata is stripped of
+        // server-owned keys first so an injected sellerSplits/transferGroup
+        // can never survive into the payout authority record.
+        metadata: {
+          ...stripServerOwnedMetadata(metadata),
+          transferGroup,
+          sellerSplits: splitDetails,
+        },
+      });
       // Multi-seller charges run on the platform account: register the
       // canonical platform host for Apple Pay there before the buyer's wallet
       // element initializes (never request-controlled hosts).
@@ -379,14 +526,14 @@ export default async function handler(
           idempotencyKey: intentRefMM,
         })
       );
-      try {
-        await updatePendingPayment(intentRefMM, {
-          paymentIntentId: paymentIntent.id,
-          status: "created",
-        });
-      } catch (e) {
-        console.warn("updatePendingPayment failed:", e);
-      }
+      // Fail closed on the binding too: an unbound record can't be found by
+      // process-transfers (it looks up by payment_intent_id), so this PI
+      // must never reach the buyer as payable. The buyer sees an error and
+      // retries; the same idempotency key re-uses both the row and the PI.
+      await updatePendingPayment(intentRefMM, {
+        paymentIntentId: paymentIntent.id,
+        status: "created",
+      });
 
       return res.status(200).json({
         success: true,
@@ -448,6 +595,8 @@ export default async function handler(
         originalCurrency: currency,
         ...(connectedAccountId && { connectedAccountId }),
         ...(singleDonationCut > 0 && {
+          ssDonationPercent: singleDonationPercent.toString(),
+          ssDonationCutSmallest: singleDonationCut.toString(),
           mmDonationPercent: singleDonationPercent.toString(),
           mmDonationCutSmallest: singleDonationCut.toString(),
         }),
@@ -483,7 +632,13 @@ export default async function handler(
         intentRef,
         amount: amountInSmallestUnit,
         currency: stripeCurrency,
-        metadata: { ...metadata, connectedAccountId },
+        // Single-seller payments must never carry split authority: strip
+        // server-owned keys so a caller can't plant a forged sellerSplits /
+        // transferGroup into the row process-transfers later reads.
+        metadata: {
+          ...stripServerOwnedMetadata(metadata),
+          connectedAccountId,
+        },
       });
     } catch (e) {
       console.warn("recordPendingPayment failed:", e);

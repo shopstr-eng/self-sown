@@ -40,53 +40,66 @@ export default async function handler(
 ) {
   const requestStart = Date.now();
 
-  if (!(await applyRateLimit(req, res, "mcp-create-order:ip", RATE_LIMIT))) {
-    recordRequest(Date.now() - requestStart, false, "create-order");
-    return;
-  }
-
-  await ensureTables();
-
-  const apiKey = await authenticateRequest(req, res, "read_write");
-  if (!apiKey) {
-    recordRequest(Date.now() - requestStart, false, "create-order");
-    return;
-  }
-
-  if (
-    !(await applyRateLimit(
-      req,
-      res,
-      "mcp-create-order:key",
-      PER_KEY_LIMIT,
-      String(apiKey.id)
-    ))
-  ) {
-    recordRequest(Date.now() - requestStart, false, "create-order");
-    return;
-  }
-
-  const originalEnd = res.end.bind(res);
-  (res as any).end = function (...args: any[]) {
-    const durationMs = Date.now() - requestStart;
-    res.setHeader("X-Response-Time", `${durationMs}ms`);
-    recordRequest(durationMs, res.statusCode < 500, "create-order");
-    return originalEnd(...args);
-  };
-
-  if (req.method === "POST") {
-    return handleCreateOrder(req, res, apiKey.id, apiKey.pubkey);
-  }
-
-  if (req.method === "GET") {
-    const { orderId } = req.query;
-    if (orderId && typeof orderId === "string") {
-      return handleGetOrder(res, orderId, apiKey.pubkey);
+  // The WHOLE handler body — rate limit, table init, auth, and dispatch — sits
+  // inside one try/catch. Table init and auth hit the DB directly, so an
+  // outage in any preamble step must also resolve as the route's clean 500
+  // JSON instead of an unhandled rejection. (The rate limiter itself fails
+  // open on store errors by design.)
+  try {
+    if (!(await applyRateLimit(req, res, "mcp-create-order:ip", RATE_LIMIT))) {
+      recordRequest(Date.now() - requestStart, false, "create-order");
+      return;
     }
-    return handleListOrders(req, res, apiKey.pubkey);
-  }
 
-  return res.status(405).json({ error: "Method not allowed" });
+    await ensureTables();
+
+    const apiKey = await authenticateRequest(req, res, "read_write");
+    if (!apiKey) {
+      recordRequest(Date.now() - requestStart, false, "create-order");
+      return;
+    }
+
+    if (
+      !(await applyRateLimit(
+        req,
+        res,
+        "mcp-create-order:key",
+        PER_KEY_LIMIT,
+        String(apiKey.id)
+      ))
+    ) {
+      recordRequest(Date.now() - requestStart, false, "create-order");
+      return;
+    }
+
+    const originalEnd = res.end.bind(res);
+    (res as any).end = function (...args: any[]) {
+      const durationMs = Date.now() - requestStart;
+      res.setHeader("X-Response-Time", `${durationMs}ms`);
+      recordRequest(durationMs, res.statusCode < 500, "create-order");
+      return originalEnd(...args);
+    };
+
+    // AWAIT + try/catch, not bare return: without the await an async throw
+    // inside a helper escapes any try/catch here as an unhandled rejection
+    // instead of becoming a clean 500 JSON response.
+    if (req.method === "POST") {
+      return await handleCreateOrder(req, res, apiKey.id, apiKey.pubkey);
+    }
+
+    if (req.method === "GET") {
+      const { orderId } = req.query;
+      if (orderId && typeof orderId === "string") {
+        return await handleGetOrder(res, orderId, apiKey.pubkey);
+      }
+      return await handleListOrders(req, res, apiKey.pubkey);
+    }
+
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    console.error("MCP create-order handler error:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 async function handleCreateOrder(

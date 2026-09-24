@@ -61,7 +61,8 @@ interface ShippoRawTokenResponse {
 }
 
 export async function exchangeShippoCodeForToken(
-  code: string
+  code: string,
+  redirectUri: string = getShippoRedirectUri()
 ): Promise<ShippoTokenResponse> {
   const clientId = process.env.SHIPPO_OAUTH_CLIENT_ID || "";
   const clientSecret = process.env.SHIPPO_OAUTH_CLIENT_SECRET || "";
@@ -77,7 +78,7 @@ export async function exchangeShippoCodeForToken(
       client_secret: clientSecret,
       code,
       grant_type: "authorization_code",
-      redirect_uri: getShippoRedirectUri(),
+      redirect_uri: redirectUri,
     }),
   });
 

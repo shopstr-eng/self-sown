@@ -19,7 +19,7 @@ import {
   ReviewsContext,
 } from "../../utils/context/context";
 import { NostrMessageEvent } from "../../utils/types/types";
-import MilkMarketSpinner from "../utility-components/mm-spinner";
+import SelfSownSpinner from "../utility-components/ss-spinner";
 import { ProfileWithDropdown } from "@/components/utility-components/profile/profile-dropdown";
 import ClaimButton from "@/components/utility-components/claim-button";
 import SellerEscrowCell from "@/components/escrow/seller-escrow-cell";
@@ -59,6 +59,7 @@ import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions"
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { persistSellerOrderStatusThrough } from "@/utils/orders/persist-order-status";
 import { getSellerFulfillmentActions } from "@/utils/orders/seller-fulfillment-actions";
+import { joinClassNames } from "@/utils/class-names";
 import {
   buildSignedHttpRequestProofTemplate,
   buildUpdateSubscriptionProof,
@@ -2015,7 +2016,7 @@ const OrdersDashboard = ({
   if (isLoading || !chatsContext || chatsContext.isLoading) {
     return (
       <div className="flex h-[66vh] items-center justify-center">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }
@@ -2032,21 +2033,23 @@ const OrdersDashboard = ({
             <div className="inline-flex rounded-md border-2 border-black bg-white p-1">
               <button
                 onClick={() => setDisplayCurrency("sats")}
-                className={`rounded-md px-4 py-2 text-sm font-bold transition-transform ${
+                className={joinClassNames(
+                  "rounded-md px-4 py-2 text-sm font-bold transition-transform",
                   displayCurrency === "sats"
                     ? "bg-primary-yellow shadow-neo border-2 border-black text-black"
                     : "border-2 border-transparent bg-white text-black hover:-translate-y-0.5"
-                }`}
+                )}
               >
                 sats
               </button>
               <button
                 onClick={() => setDisplayCurrency("USD")}
-                className={`rounded-md px-4 py-2 text-sm font-bold transition-transform ${
+                className={joinClassNames(
+                  "rounded-md px-4 py-2 text-sm font-bold transition-transform",
                   displayCurrency === "USD"
                     ? "bg-primary-yellow shadow-neo border-2 border-black text-black"
                     : "border-2 border-transparent bg-white text-black hover:-translate-y-0.5"
-                }`}
+                )}
               >
                 USD
               </button>
@@ -2172,9 +2175,10 @@ const OrdersDashboard = ({
                     return (
                       <tr
                         key={order.orderId}
-                        className={`bg-white hover:bg-gray-50 ${
+                        className={joinClassNames(
+                          "bg-white hover:bg-gray-50",
                           isNewOrder ? "border-l-primary-yellow border-l-4" : ""
-                        }`}
+                        )}
                       >
                         <td className="px-4 py-4 text-sm whitespace-nowrap text-black">
                           <div className="flex flex-col gap-1">
@@ -2209,11 +2213,12 @@ const OrdersDashboard = ({
                         </td>
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <span
-                            className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                            className={joinClassNames(
+                              "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                               order.isSale
                                 ? "bg-purple-200 text-black"
                                 : "bg-orange-200 text-black"
-                            }`}
+                            )}
                           >
                             {order.isSale ? "Sale" : "Purchase"}
                           </span>
@@ -2275,7 +2280,8 @@ const OrdersDashboard = ({
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                              className={joinClassNames(
+                                "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                                 order.status === "completed"
                                   ? "bg-blue-200 text-black"
                                   : order.status === "shipped"
@@ -2283,7 +2289,7 @@ const OrdersDashboard = ({
                                     : order.status === "pending"
                                       ? "bg-primary-yellow text-black"
                                       : "bg-gray-200 text-black"
-                              }`}
+                              )}
                             >
                               {order.status}
                             </span>
@@ -2479,11 +2485,12 @@ const OrdersDashboard = ({
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           <div className="flex flex-col gap-1">
                             <span
-                              className={`inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold ${
+                              className={joinClassNames(
+                                "inline-flex rounded-md border-2 border-black px-2 py-1 text-xs font-bold",
                                 order.isSubscription
                                   ? "bg-green-200 text-black"
                                   : "bg-gray-200 text-black"
-                              }`}
+                              )}
                             >
                               {order.isSubscription ? "Yes" : "No"}
                             </span>
@@ -2568,7 +2575,7 @@ const OrdersDashboard = ({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -2786,7 +2793,7 @@ const OrdersDashboard = ({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "py-6 bg-white",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -2807,11 +2814,12 @@ const OrdersDashboard = ({
                   <button
                     type="button"
                     aria-label="Rate good overall"
-                    className={`cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors ${
+                    className={joinClassNames(
+                      "cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors",
                       selectedThumb === "up"
                         ? "border-green-500"
                         : "border-black hover:border-green-500"
-                    }`}
+                    )}
                     onClick={() => setSelectedThumb("up")}
                   >
                     👍
@@ -2821,11 +2829,12 @@ const OrdersDashboard = ({
                   <button
                     type="button"
                     aria-label="Rate bad overall"
-                    className={`cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors ${
+                    className={joinClassNames(
+                      "cursor-pointer rounded-md border-2 p-2 text-4xl leading-none transition-colors",
                       selectedThumb === "down"
                         ? "border-red-500"
                         : "border-black hover:border-red-500"
-                    }`}
+                    )}
                     onClick={() => setSelectedThumb("down")}
                   >
                     👎
@@ -2946,7 +2955,7 @@ const OrdersDashboard = ({
           scrollBehavior="inside"
           classNames={{
             body: "py-6 bg-white",
-            backdrop: "bg-black/20 backdrop-blur-sm",
+            backdrop: "bg-black/20 backdrop-blur-xs",
             header: "border-b-2 border-black bg-white rounded-t-md text-black",
             footer: "border-t-2 border-black bg-white rounded-b-md",
             closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -2954,7 +2963,7 @@ const OrdersDashboard = ({
           className="max-h-[90vh]"
         >
           <ModalContent className="flex h-full flex-col">
-            <ModalHeader className="flex-shrink-0 border-b bg-white">
+            <ModalHeader className="shrink-0 border-b bg-white">
               <div className="flex items-center gap-2 text-black">
                 <span aria-hidden="true" className="text-lg leading-none">
                   📄
@@ -2964,9 +2973,9 @@ const OrdersDashboard = ({
                   : "Review & Sign Agreement"}
               </div>
             </ModalHeader>
-            <ModalBody className="flex flex-grow flex-col p-4">
+            <ModalBody className="flex grow flex-col p-4">
               <div className="flex h-full flex-col rounded-lg border bg-white">
-                <div className="flex-grow overflow-auto p-4">
+                <div className="grow overflow-auto p-4">
                   <PDFAnnotator
                     pdfUrl={currentPdfUrl}
                     annotations={annotations}
@@ -2975,7 +2984,7 @@ const OrdersDashboard = ({
                 </div>
               </div>
             </ModalBody>
-            <ModalFooter className="flex-shrink-0 border-t bg-gray-50">
+            <ModalFooter className="shrink-0 border-t bg-gray-50">
               <div className="flex w-full justify-end gap-3">
                 <Button
                   color="default"
@@ -3009,7 +3018,7 @@ const OrdersDashboard = ({
         classNames={{
           wrapper: "shadow-neo",
           base: "border-2 border-black rounded-md",
-          backdrop: "bg-black/20 backdrop-blur-sm",
+          backdrop: "bg-black/20 backdrop-blur-xs",
           header: "border-b-2 border-black bg-white rounded-t-md text-black",
           body: "bg-white text-black",
           footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -3038,11 +3047,12 @@ const OrdersDashboard = ({
                     <button
                       key={type}
                       onClick={() => handleReturnRequestTypeChange(type)}
-                      className={`rounded-md border-2 px-3 py-1.5 text-sm font-bold transition-colors ${
+                      className={joinClassNames(
+                        "rounded-md border-2 px-3 py-1.5 text-sm font-bold transition-colors",
                         returnRequestType === type
                           ? "border-black bg-orange-200 text-black"
                           : "border-gray-300 bg-white text-gray-600 hover:border-black"
-                      }`}
+                      )}
                     >
                       {type.charAt(0).toUpperCase() + type.slice(1)}
                     </button>
@@ -3057,7 +3067,7 @@ const OrdersDashboard = ({
                   value={returnRequestMessage}
                   onChange={(e) => setReturnRequestMessage(e.target.value)}
                   rows={5}
-                  className="w-full rounded-md border-2 border-gray-300 bg-white p-3 text-sm text-black focus:border-black focus:outline-none"
+                  className="w-full rounded-md border-2 border-gray-300 bg-white p-3 text-sm text-black focus:border-black focus:outline-hidden"
                   placeholder="Describe the reason for your request..."
                 />
               </div>

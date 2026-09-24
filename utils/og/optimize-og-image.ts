@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/utils/site-url";
+
 /**
  * Rewrite an absolute og:image URL so crawlers/social-preview bots fetch a
  * compressed, right-sized copy from /api/og-image instead of the (often
@@ -33,7 +35,7 @@ export function toOptimizedOgImageUrl(
 export function resolveOgImageOrigin(
   ssrStoreUrl: string | undefined,
   isCustomDomain: boolean,
-  fallbackOrigin = "https://milk.market"
+  fallbackOrigin = SITE_URL
 ): string {
   if (ssrStoreUrl) {
     try {

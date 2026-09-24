@@ -179,7 +179,7 @@ function run() {
 beforeEach(() => {
   jest.clearAllMocks();
   process.env.FLOW_PROCESSOR_SECRET = SECRET;
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
 
   mocked.applyRateLimit.mockReturnValue(true);
 

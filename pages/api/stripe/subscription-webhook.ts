@@ -38,6 +38,7 @@ import {
   claimStripeEvent,
   releaseStripeEvent,
 } from "@/utils/stripe/processed-events";
+import { markPendingSubscriptionTerminal } from "@/utils/stripe/pending-payments";
 
 async function getRawBody(req: NextApiRequest): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -403,7 +404,8 @@ export default async function handler(
                 const rebateSmallest = computeRebateSmallest(
                   net,
                   found.rebate_type,
-                  Number(found.rebate_value)
+                  Number(found.rebate_value),
+                  subscription.currency
                 );
                 await recordReferral({
                   affiliateId: found.affiliate_id,
@@ -473,6 +475,28 @@ export default async function handler(
         const deletedSubscription = event.data.object as any;
 
         await updateSubscriptionStatus(deletedSubscription.id, "canceled");
+
+        // A cancelled-for-good multi-seller subscription's split record is
+        // only needed while it can still renew — mark it terminal so the
+        // pending-payments sweep prunes it after the grace window (a late
+        // invoice.paid for the final invoice must still resolve the splits
+        // until then). Best-effort: a miss leaves one dead row, which is
+        // never worth failing the webhook over.
+        const deletedMeta = deletedSubscription.metadata ?? {};
+        if (
+          deletedMeta.isMultiMerchant === "true" &&
+          typeof deletedMeta.transferGroup === "string" &&
+          deletedMeta.transferGroup
+        ) {
+          await markPendingSubscriptionTerminal(
+            deletedMeta.transferGroup
+          ).catch((err) =>
+            console.error(
+              `Failed to mark cancelled subscription split record ${deletedMeta.transferGroup} terminal:`,
+              err
+            )
+          );
+        }
 
         const subscription = await getSubscriptionByStripeId(
           deletedSubscription.id

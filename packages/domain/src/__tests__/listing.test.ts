@@ -234,7 +234,7 @@ describe("seller listing draft helpers", () => {
       ["alt", "Product listing: Fresh Beef"],
       [
         "client",
-        "Milk Market",
+        "Self-sown",
         "31990:seller-pubkey:listing-d-tag",
         "wss://relay.damus.io",
       ],
@@ -250,7 +250,7 @@ describe("seller listing draft helpers", () => {
       ["image", "https://example.com/beef.jpg"],
       ["t", "Beef"],
       ["t", "Bundle"],
-      ["t", "MilkMarket"],
+      ["t", "SelfSown"],
       ["t", "FREEMILK"],
       ["t", "SAVEBEEF"],
       ["quantity", "4"],

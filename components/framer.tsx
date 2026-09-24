@@ -25,7 +25,7 @@ const Tabs = ({
   return (
     <nav
       role="tablist"
-      className="relative z-0 flex w-full flex-shrink-0 flex-wrap items-center justify-center gap-2 p-2"
+      className="relative z-0 flex w-full shrink-0 flex-wrap items-center justify-center gap-2 p-2"
     >
       {tabs.map((item, i) => {
         const isActive = selectedTabIndex === i;

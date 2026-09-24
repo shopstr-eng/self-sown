@@ -1,4 +1,4 @@
-import type { BlogPost } from "@milk-market/domain";
+import type { BlogPost } from "@self-sown/domain";
 
 /**
  * schema.org BlogPosting JSON-LD for a single blog post, built server-side in

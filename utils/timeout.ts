@@ -20,7 +20,7 @@ export async function newPromiseWithTimeout<T>(
   callback: PromiseWithTimeoutCallback<T>,
   { timeout = 60000 }: { timeout?: number } = {}
 ): Promise<T> {
-  return await new Promise<T>(
+  return new Promise<T>(
     (resolve: (val: T) => void, reject: (err: Error) => void) => {
       const abortController = new AbortController();
       const abortSignal = abortController.signal;

@@ -126,7 +126,7 @@ export default function SectionContactForm({
     color: "var(--sf-text)",
   };
   const inputClass =
-    "font-body w-full rounded-lg border px-4 py-3 text-base outline-none transition focus:border-current";
+    "font-body w-full rounded-lg border px-4 py-3 text-base outline-hidden transition focus:border-current";
   const labelClass = "font-body mb-1 block text-sm font-semibold opacity-80";
 
   return (

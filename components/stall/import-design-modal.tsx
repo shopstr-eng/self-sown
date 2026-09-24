@@ -23,7 +23,7 @@ import {
   WHITEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import {
   IMPORT_DESIGN_DRAFT_KEY,
   type ImportedStoreDesign,
@@ -285,7 +285,7 @@ export default function ImportDesignModal({
         <ModalBody className="text-black">
           {error && (
             <div className="flex items-start gap-2 rounded-md border-2 border-red-500 bg-red-50 p-3 text-sm text-red-700">
-              <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+              <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -311,7 +311,7 @@ export default function ImportDesignModal({
                     label="Website address"
                     placeholder={
                       isProductMode
-                        ? "yourshop.com/products/raw-milk"
+                        ? "yourshop.com/products/wildflower-honey"
                         : "yourshop.com"
                     }
                     value={url}

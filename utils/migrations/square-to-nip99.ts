@@ -1,4 +1,5 @@
 import type { ProductFormValues } from "@/utils/types/types";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import CryptoJS from "crypto-js";
 
 // Catalog shapes returned by utils/square/square-api.ts#fetchSquareCatalog. They
@@ -144,7 +145,7 @@ export function buildListingFromSquareItem(
     );
   }
 
-  // Warn when variations span a real price range — a Milk Market listing
+  // Warn when variations span a real price range — a Self-sown listing
   // carries a single price, so the seller should know which one we picked.
   const majorPrices = pricedVariations
     .map((v) =>
@@ -173,13 +174,13 @@ export function buildListingFromSquareItem(
     );
   }
 
-  const mmStatus = item.isArchived ? "inactive" : "active";
+  const listingStatus = item.isArchived ? "inactive" : "active";
   const shippingOption = defaultShippingOption;
 
   const tags: ProductFormValues = [
     ["d", dTag],
     ["alt", "Product listing: " + title],
-    ["client", "Milk Market", "31990:" + pubkey + ":" + dTag, relayHint],
+    ["client", "Self-sown", "31990:" + pubkey + ":" + dTag, relayHint],
     ["title", title],
     ["summary", description],
     ["price", price.toFixed(decimals), currency],
@@ -196,11 +197,17 @@ export function buildListingFromSquareItem(
 
   validImages.forEach((img) => tags.push(["image", img]));
 
-  if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "MilkMarket"]);
-  tags.push(["t", "FREEMILK"]);
+  // Normalize the category/discovery tags: strips any legacy "MilkMarket" or
+  // extra "SelfSown" spellings (e.g. a seller-picked default category) and
+  // appends exactly one canonical discovery tag.
+  const categoryTags: string[][] = [];
+  if (defaultCategory) categoryTags.push(["t", defaultCategory]);
+  categoryTags.push(["t", "FREEMILK"]);
+  tags.push(
+    ...(normalizeMarketplaceDiscoveryTag(categoryTags) as ProductFormValues)
+  );
 
-  tags.push(["status", mmStatus]);
+  tags.push(["status", listingStatus]);
 
   if (
     pickupLocations &&

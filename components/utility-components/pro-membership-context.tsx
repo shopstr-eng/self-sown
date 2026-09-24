@@ -324,7 +324,7 @@ export function ProMembershipProvider({ children }: { children: ReactNode }) {
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="?([^"]+)"?/i);
       const filename =
-        match?.[1] || `milk-market-self-host-${pk.slice(0, 12)}.zip`;
+        match?.[1] || `self-sown-self-host-${pk.slice(0, 12)}.zip`;
       return { blob, filename };
     },
     [requireAuth]

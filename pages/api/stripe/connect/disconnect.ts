@@ -14,7 +14,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 // Rate limit: per-IP cap to bound abuse of payment endpoints.
 const RATE_LIMIT = { limit: 30, windowMs: 60000 };
 
-// Disconnects (unlinks) the seller's Stripe Connect account from Milk Market so
+// Disconnects (unlinks) the seller's Stripe Connect account from Self-sown so
 // they can connect a different one. This removes the link from our database
 // only; the Stripe account itself is left untouched (it may still hold a balance
 // or pending payouts), and the seller manages or closes it from Stripe directly.

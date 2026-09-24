@@ -1,10 +1,10 @@
 # Self-Host (Single-Tenant Wrangler Export)
 
-A **Wrangler** (lifetime) seller can run their OWN private copy of Milk Market
+A **Wrangler** (lifetime) seller can run their OWN private copy of Self-sown
 that serves exactly one storefront — theirs. The marketplace, discovery, AND all
 platform pages (about/faq/producer-guide/contact/terms/privacy) are hidden,
 every served page (settings included) wears the seller's storefront theme with
-no Milk Market chrome, Pro/Herd is unlocked only for the owner pubkey, and card
+no Self-sown chrome, Pro/Herd is unlocked only for the owner pubkey, and card
 payments run on the seller's OWN standard Stripe account (direct charges, no
 Connect, no platform fees). When self-host is **off**, every code path below is
 inert and the hosted platform behaves exactly as before.
@@ -12,7 +12,7 @@ inert and the hosted platform behaves exactly as before.
 ## Configuration (`utils/self-host/config.ts`)
 
 Server-only (imports `fs`/`path`). Reads env first, with an optional
-`milk-market.config.json` at the repo root as fallback; **env always wins**.
+`self-sown.config.json` at the repo root as fallback; **env always wins**.
 
 - `getSelfHostConfig()` → `{ enabled, tenantPubkey, tenantSlug, relays, blossomServers, ownStripe, upstreamRepo }` (memoized; `__resetSelfHostConfigCacheForTests()` clears it).
 - `isSelfHost()` → master switch.
@@ -20,9 +20,9 @@ Server-only (imports `fs`/`path`). Reads env first, with an optional
 - `normalizeTenantPubkey()` accepts npub or 64-char hex, lowercases, else null.
 - `buildSelfHostConfig(env, file)` is the pure builder (test seam).
 
-Env vars (`.env.example`): `MM_SELF_HOST`, `MM_SELF_HOST_PUBKEY`,
-`MM_SELF_HOST_SLUG`, `MM_SELF_HOST_RELAYS`, `MM_SELF_HOST_BLOSSOM_SERVERS`,
-`MM_SELF_HOST_OWN_STRIPE`, `MM_SELF_HOST_UPSTREAM_REPO`, `MM_SELF_HOST_CONFIG_PATH`.
+Env vars (`.env.example`): `SS_SELF_HOST`, `SS_SELF_HOST_PUBKEY`,
+`SS_SELF_HOST_SLUG`, `SS_SELF_HOST_RELAYS`, `SS_SELF_HOST_BLOSSOM_SERVERS`,
+`SS_SELF_HOST_OWN_STRIPE`, `SS_SELF_HOST_UPSTREAM_REPO`, `SS_SELF_HOST_CONFIG_PATH`.
 `ownStripe` auto-enables when `STRIPE_SECRET_KEY` is present unless overridden.
 
 ## Entitlement bypass (`utils/pro/membership.ts`)
@@ -35,7 +35,7 @@ still resolves from the DB. The pure resolver `membership-status.ts` is untouche
 
 ## Proxy routing (`proxy.ts` + `utils/self-host/routing.ts`)
 
-The proxy reads `MM_SELF_HOST*` inline (edge runtime; must not import the
+The proxy reads `SS_SELF_HOST*` inline (edge runtime; must not import the
 server-only config module) and delegates each decision to the pure helpers:
 
 - `isSelfHostBlockedPage(path)` — marketplace, `/pro`, communities, discovery,
@@ -49,7 +49,7 @@ server-only config module) and delegates each decision to the pure helpers:
   404, EXCEPT `SELF_HOST_CONNECT_ALLOW` (`/api/stripe/connect/seller-status`,
   made self-host-aware). `/api/pro/status` and `/api/pro/export-store` stay live.
 - `selfHostStallRewritePath(path, slug)` — root → `/stall/<slug>`; the proxy
-  seeds `x-mm-custom-domain` + `x-mm-self-host` headers so the storefront renders
+  seeds `x-ss-custom-domain` + `x-ss-self-host` headers so the storefront renders
   as the tenant's stall. When self-host is enabled but the slug is missing the
   proxy **fails closed**: every path returns a 503 misconfiguration error rather
   than falling through to normal multi-tenant routing (which would expose the
@@ -57,11 +57,11 @@ server-only config module) and delegates each decision to the pure helpers:
 
 ## UI lockdown & theming (`pages/_app.tsx` + `components/storefront/storefront-theme-wrapper.tsx`)
 
-So the seller only ever sees their OWN branded store (never Milk Market chrome),
+So the seller only ever sees their OWN branded store (never Self-sown chrome),
 self-host forces the storefront theme for EVERY served page — settings and all
 non-stall pages included — not just the stall:
 
-- `pages/_app.tsx` forwards the proxy's `x-mm-self-host` header into
+- `pages/_app.tsx` forwards the proxy's `x-ss-self-host` header into
   `pageProps.__isSelfHostSsr` (via `getInitialProps`) and passes
   `forceSelfHostChrome` to `StorefrontThemeWrapper` when set. The client-side
   hostname auto-detection effect early-returns under SSR self-host, so there is
@@ -73,7 +73,7 @@ non-stall pages included — not just the stall:
   Pro lookup. `usePublicMembershipStatus` is NOT changed globally; the override
   is local to the wrapper and default-false, so hosted behavior is untouched.
 
-Combined with `isSelfHostBlockedPage`, the net result: no Milk Market TopNav or
+Combined with `isSelfHostBlockedPage`, the net result: no Self-sown TopNav or
 footer anywhere, all platform pages hidden, and settings + every page wear the
 seller's storefront theme — all inert when self-host is off.
 
@@ -107,7 +107,7 @@ The ZIP is assembled by the pure, fs-free `utils/self-host/export-bundle.ts`
 `utils/self-host/zip.ts` (`createZip`, STORE method + CRC32 — **adds no
 packages**, keeping lockfiles pristine for `--frozen-lockfile` deploys).
 
-Contents: `milk-market.config.json` (the caller's PUBLIC config — pubkey, slug,
+Contents: `self-sown.config.json` (the caller's PUBLIC config — pubkey, slug,
 relays, Blossom servers, optional branding snapshot), `.env.example`
 (placeholders only), `README.md`, `SETUP.md`, `setup.sh` (git clone upstream +
 apply config), `manifest.json`. **Never** includes secrets or another seller's
@@ -126,12 +126,16 @@ download via `useProMembership().exportSelfHostStore()`.
 
 ## Running a self-hosted copy
 
-1. `bash setup.sh` (clones `MM_SELF_HOST_UPSTREAM_REPO`, applies your config).
+1. `bash setup.sh` (clones `SS_SELF_HOST_UPSTREAM_REPO`, applies your config).
 2. Create a PostgreSQL database; apply `db/schema.sql`.
 3. Copy `.env.example` → `.env`; set `DATABASE_URL`, optional `STRIPE_SECRET_KEY`
-   (+ `MM_SELF_HOST_OWN_STRIPE=1`), optional `SENDGRID_API_KEY`.
-4. `pnpm install && pnpm build && pnpm start`.
-5. Update later with `git pull` (your `.env` + `milk-market.config.json` are not
+   (+ `SS_SELF_HOST_OWN_STRIPE=1`), optional `SENDGRID_API_KEY`.
+4. `pnpm install && pnpm build && pnpm start` (`pnpm start` boots the
+   standalone server `.next/standalone/server.js` via
+   `scripts/start-standalone.mjs` — the app builds with `output: "standalone"`,
+   where `next start` is unsupported; the script first folds `.next/static` +
+   `public` into the bundle and repairs Sharp natives, best-effort).
+5. Update later with `git pull` (your `.env` + `self-sown.config.json` are not
    overwritten).
 
 ## Boot smoke check
@@ -146,7 +150,7 @@ the loop without needing a full Next build:
 2. `bash -n` the generated `setup.sh` (syntax-checks the bootstrap without
    running it) and assert it is strict-mode bash that clones the upstream repo.
 3. Feed the generated `.env.example` (env path) AND the committed
-   `milk-market.config.json` (file-fallback path, for `git pull` sellers) back
+   `self-sown.config.json` (file-fallback path, for `git pull` sellers) back
    through the ACTUAL runtime reader `buildSelfHostConfig`. This is the key
    guarantee: the bundle's output is in the exact shape the running instance
    consumes, so config drift between export and runtime is caught.
@@ -175,7 +179,7 @@ GATED behind `RUN_SELF_HOST_BUILD=1` (mirroring the `RUN_TESTCONTAINERS`
 pattern), so it is skipped in normal `jest` runs and in the agent sandbox (where
 a cold Next compile OOMs). When it runs it: generates the REAL bundle, runs the
 generated `setup.sh` with the checked-out tree as the clone target, writes a
-test `.env` with `MM_SELF_HOST=1` (no Stripe key), runs `pnpm install` +
+test `.env` with `SS_SELF_HOST=1` (no Stripe key), runs `pnpm install` +
 `pnpm build`, boots with `pnpm start`, and asserts over real HTTP that `/` serves
 the tenant stall (200), `/marketplace` and `/pro` redirect home (307 → `/`), and
 the cart offers Lightning/Cashu only (the seller-status endpoint reports card
@@ -187,8 +191,8 @@ self-host runtime, generate a bundle from a Wrangler account's settings page (or
 call the exported pure builder), then in a scratch directory:
 
 ```bash
-bash setup.sh                 # clones MM_SELF_HOST_UPSTREAM_REPO → ./milk-market
-cd milk-market
+bash setup.sh                 # clones SS_SELF_HOST_UPSTREAM_REPO → ./self-sown
+cd self-sown
 cp ../.env.example .env        # set DATABASE_URL; optionally add STRIPE_SECRET_KEY
 psql "$DATABASE_URL" -f db/schema.sql
 pnpm install && pnpm build && pnpm start
@@ -200,6 +204,6 @@ Stripe key was added). Fold any drift back into `setup.sh` / the env template.
 
 ## License
 
-Milk Market is GNU AGPL/GPL v3. Running and modifying your own copy is within
+Self-sown is GNU AGPL/GPL v3. Running and modifying your own copy is within
 your rights; network-distributed modifications must be shared under the same
 license.

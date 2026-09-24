@@ -30,6 +30,7 @@ import {
   publishProofEvent,
 } from "@/utils/nostr/nostr-helper-functions";
 import { pickMintForPayment } from "@/utils/cashu/wallet-mint-sync";
+import { joinClassNames } from "@/utils/class-names";
 import {
   Mint as CashuMint,
   Wallet as CashuWallet,
@@ -253,7 +254,7 @@ const SendButton = () => {
         onClose={handleToggleSendModal}
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           footer: "border-t-4 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -314,7 +315,7 @@ const SendButton = () => {
               />
               {signer instanceof NostrNIP46Signer && (
                 <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
-                  <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                  <InformationCircleIcon className="h-6 w-6 shrink-0 text-black" />
                   <p className="ml-2 text-xs text-black">
                     If the token is taking a while to be generated, make sure to
                     check your bunker application to approve the transaction
@@ -363,14 +364,16 @@ const SendButton = () => {
                         </p>
                         <ClipboardIcon
                           onClick={handleCopyTokenString}
-                          className={`h-6 w-6 cursor-pointer text-black hover:text-gray-600 ${
+                          className={joinClassNames(
+                            "h-6 w-6 cursor-pointer text-black hover:text-gray-600",
                             copiedToClipboard ? "hidden" : ""
-                          }`}
+                          )}
                         />
                         <CheckIcon
-                          className={`h-6 w-6 cursor-pointer text-green-600 ${
+                          className={joinClassNames(
+                            "h-6 w-6 cursor-pointer text-green-600",
                             copiedToClipboard ? "" : "hidden"
-                          }`}
+                          )}
                         />
                       </div>
                     ) : (

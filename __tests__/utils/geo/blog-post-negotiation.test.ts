@@ -19,6 +19,7 @@
 import { NextRequest } from "next/server";
 import type { NextResponse } from "next/server";
 import { negotiatePostFormat, proxy } from "@/proxy";
+import { SITE_HOST } from "@/utils/site-url";
 
 // The custom-domain branch resolves the seller slug for the request host via
 // lookupByHost (DB/cache backed). Stub it so the routing test is hermetic.
@@ -158,7 +159,7 @@ function expectHtmlArticle(res: NextResponse) {
 }
 
 describe("proxy() blog negotiation — platform host /stall/<slug>/blog/<postSlug>", () => {
-  const HOST = "milk.market";
+  const HOST = SITE_HOST;
   const PATH = `/stall/acme/blog/${POST_SLUG}`;
 
   it("rewrites an LLM crawler to the agent view (markdown)", async () => {

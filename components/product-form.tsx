@@ -28,6 +28,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
+import { joinClassNames } from "@/utils/class-names";
 import {
   PREVNEXTBUTTONSTYLES,
   CATEGORIES,
@@ -496,7 +497,7 @@ export default function ProductForm({
       ["alt", ("Product listing: " + data["Product Name"]) as string],
       [
         "client",
-        "Milk Market",
+        "Self-sown",
         "31990:" + pubkey + ":" + (oldValues?.d || hashHex),
         relayHint || "",
       ],
@@ -558,7 +559,7 @@ export default function ProductForm({
     (data["Category"] as string).split(",").forEach((category) => {
       tags.push(["t", category]);
     });
-    tags.push(["t", "MilkMarket"]);
+    tags.push(["t", "SelfSown"]);
     tags.push(["t", "FREEMILK"]);
 
     if (data["Quantity"]) {
@@ -826,7 +827,7 @@ export default function ProductForm({
         created_at: Math.floor(Date.now() / 1000),
         tags: [
           ["t", "zapsnag"],
-          ["t", "milk-market-zapsnag"],
+          ["t", "self-sown-zapsnag"],
           ["d", "zapsnag"],
         ],
         content: finalContent,
@@ -1007,10 +1008,10 @@ export default function ProductForm({
         isOpen={showModal}
         onClose={handleModalToggle}
         classNames={{
-          body: "py-6 bg-dark-fg",
-          backdrop: "bg-dark-modal/50 backdrop-opacity-60",
-          header: "border-b-[1px] border-dark-modal bg-dark-fg rounded-t-lg",
-          footer: "border-t-[1px] border-dark-modal bg-dark-fg rounded-b-lg",
+          body: "py-6 bg-primary-blue",
+          backdrop: "bg-black/50 backdrop-opacity-60",
+          header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+          footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
           closeButton: "hover:bg-black/5 active:bg-white/10",
         }}
         scrollBehavior={"outside"}
@@ -1092,7 +1093,7 @@ export default function ProductForm({
                       }}
                       title={label}
                     >
-                      <ChevronLeftIcon className="text-dark-text h-6 w-6" />
+                      <ChevronLeftIcon className="h-6 w-6 text-black" />
                     </button>
                   )
                 }
@@ -1108,7 +1109,7 @@ export default function ProductForm({
                       }}
                       title={label}
                     >
-                      <ChevronRightIcon className="text-dark-text h-6 w-6" />
+                      <ChevronRightIcon className="h-6 w-6 text-black" />
                     </button>
                   )
                 }
@@ -1168,7 +1169,7 @@ export default function ProductForm({
                               color="danger"
                               aria-label="Trash"
                               radius="full"
-                              className="bg-gradient-to-tr from-blue-950 to-red-950 text-white"
+                              className="bg-linear-to-tr from-blue-950 to-red-950 text-white"
                               variant="bordered"
                               onClick={(e) => e.stopPropagation()}
                             >
@@ -1329,7 +1330,7 @@ export default function ProductForm({
                               return (
                                 <div className="flex items-center">
                                   <select
-                                    className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-none invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
+                                    className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-hidden invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
                                     key={"currency"}
                                     id="currency"
                                     name="currency"
@@ -1359,16 +1360,19 @@ export default function ProductForm({
 
               <div className="mx-0 my-4 flex items-start text-left">
                 <Tooltip
-                  content="This donation helps fund Milk Market and keep the marketplace running. You can change it at any time."
+                  content="This donation helps fund Self-sown and keep the marketplace running. You can change it at any time."
                   placement="top"
                   className="max-w-xs"
                 >
-                  <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 flex-shrink-0 cursor-help text-black" />
+                  <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 shrink-0 cursor-help text-black" />
                 </Tooltip>
                 <p className="text-xs text-black">
                   Your donation rate on sales is set to{" "}
                   {profileContext.profileData.get(pubkey)?.content
-                    ?.mm_donation ?? 0}
+                    ?.ss_donation ??
+                    profileContext.profileData.get(pubkey)?.content
+                      ?.mm_donation ??
+                    0}
                   %. You can modify this in your{" "}
                   <span
                     className="cursor-pointer underline hover:text-blue-600"
@@ -1946,7 +1950,7 @@ export default function ProductForm({
                           endContent={
                             <div className="flex items-center">
                               <select
-                                className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-none invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
+                                className="[&>option:hover]:bg-primary-yellow rounded-md border-2 border-black bg-white px-3 py-2 text-base font-semibold text-black outline-hidden invalid:bg-white hover:bg-white focus:bg-white [&>option]:bg-white"
                                 key={"currency"}
                                 id="currency"
                                 name="currency"
@@ -2584,22 +2588,24 @@ export default function ProductForm({
                                   <Button
                                     type="button"
                                     onClick={() => onDisplayChange("buttons")}
-                                    className={`shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold ${
+                                    className={joinClassNames(
+                                      "shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold",
                                       mode === "buttons"
                                         ? "bg-primary-yellow text-black"
                                         : "bg-white text-black"
-                                    }`}
+                                    )}
                                   >
                                     Selectable Buttons
                                   </Button>
                                   <Button
                                     type="button"
                                     onClick={() => onDisplayChange("dropdown")}
-                                    className={`shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold ${
+                                    className={joinClassNames(
+                                      "shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold",
                                       mode === "dropdown"
                                         ? "bg-primary-yellow text-black"
                                         : "bg-white text-black"
-                                    }`}
+                                    )}
                                   >
                                     Dropdown
                                   </Button>
@@ -3656,7 +3662,7 @@ export default function ProductForm({
               )}
 
               <div className="mx-0 my-4 flex items-start text-left">
-                <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 flex-shrink-0 text-black" />
+                <InformationCircleIcon className="mt-0.5 mr-2 h-5 w-5 shrink-0 text-black" />
                 <p className="text-xs text-black">
                   Your payment preference is set to{" "}
                   {(() => {

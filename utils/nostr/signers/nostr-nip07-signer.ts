@@ -43,15 +43,15 @@ export class NostrNIP07Signer implements NostrSigner {
   }
 
   public async sign(event: NostrEventTemplate): Promise<NostrEvent> {
-    return await window.nostr.signEvent(event);
+    return window.nostr.signEvent(event);
   }
 
   public async encrypt(pubkey: string, plainText: string): Promise<string> {
-    return await window.nostr.nip44.encrypt(pubkey, plainText);
+    return window.nostr.nip44.encrypt(pubkey, plainText);
   }
 
   public async decrypt(pubkey: string, cipherText: string): Promise<string> {
-    return await window.nostr.nip44.decrypt(pubkey, cipherText);
+    return window.nostr.nip44.decrypt(pubkey, cipherText);
   }
 
   public async close(): Promise<void> {

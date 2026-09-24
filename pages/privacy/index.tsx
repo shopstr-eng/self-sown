@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
     {
       title: "Introduction",
       content:
-        "Milk Market is committed to protecting your privacy and to being honest about the data we handle. The platform is built on two layers: a decentralized core (the Nostr protocol and the Bitcoin/Lightning network) that keeps you in control of your identity and funds, and a hosted backend we operate to make the marketplace fast and to power optional features like card payments, email notifications, custom domains, and analytics. This policy explains, plainly, what stays under your control, what we store on our servers, and how it is protected.",
+        "Self-sown is committed to protecting your privacy and to being honest about the data we handle. The platform is built on two layers: a decentralized core (the Nostr protocol and the Bitcoin/Lightning network) that keeps you in control of your identity and funds, and a hosted backend we operate to make the marketplace fast and to power optional features like card payments, email notifications, custom domains, and analytics. This policy explains, plainly, what stays under your control, what we store on our servers, and how it is protected.",
     },
     {
       title: "How the Platform Is Structured",
@@ -22,7 +22,7 @@ export default function PrivacyPolicy() {
     {
       title: "Account & Sign-In Data",
       content:
-        "You can use much of Milk Market without an account. If you choose to sign in with an email address or a third-party (OAuth) provider, we store your email, a securely hashed version of your password (never the plaintext), and an encrypted copy of your Nostr secret key (nsec). Your nsec is encrypted with a key derived from your password or recovery key, so we cannot decrypt it or access your funds. Account recovery stores your email together with hashed recovery credentials and time-limited verification tokens.",
+        "You can use much of Self-sown without an account. If you choose to sign in with an email address or a third-party (OAuth) provider, we store your email, a securely hashed version of your password (never the plaintext), and an encrypted copy of your Nostr secret key (nsec). Your nsec is encrypted with a key derived from your password or recovery key, so we cannot decrypt it or access your funds. Account recovery stores your email together with hashed recovery credentials and time-limited verification tokens.",
     },
     {
       title: "Bitcoin, Lightning & Cashu Data",
@@ -52,7 +52,7 @@ export default function PrivacyPolicy() {
     {
       title: "Sellers, Storefronts & Custom Domains",
       content:
-        "If you sell on Milk Market, we store operational records for your storefront, including your shop URL slug, inventory counts and variants, and, if you connect a custom domain, the domain name along with its TLS and verification status. This data is used to run your storefront and route visitors to it.",
+        "If you sell on Self-sown, we store operational records for your storefront, including your shop URL slug, inventory counts and variants, and, if you connect a custom domain, the domain name along with its TLS and verification status. This data is used to run your storefront and route visitors to it.",
     },
     {
       title: "Affiliate Program Data",
@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
     {
       title: "Third-Party Services",
       content:
-        "Depending on how you use Milk Market, your data may be handled by third parties with their own privacy practices, including Stripe (card payments, payouts, and sales-tax calculation), SendGrid (email delivery), Shippo (shipping address verification, rate quotes, and labels when a seller uses our shipping-label tools), Nostr relays you select, Bitcoin/Lightning nodes, Cashu mints, Blossom media hosts, and DNS providers (for custom domains and NIP-05 verification). We recommend reviewing the privacy policies of any third-party services you rely on.",
+        "Depending on how you use Self-sown, your data may be handled by third parties with their own privacy practices, including Stripe (card payments, payouts, and sales-tax calculation), SendGrid (email delivery), Shippo (shipping address verification, rate quotes, and labels when a seller uses our shipping-label tools), Nostr relays you select, Bitcoin/Lightning nodes, Cashu mints, Blossom media hosts, and DNS providers (for custom domains and NIP-05 verification). We recommend reviewing the privacy policies of any third-party services you rely on.",
     },
     {
       title: "Data Retention",
@@ -87,12 +87,12 @@ export default function PrivacyPolicy() {
     {
       title: "Changes to Privacy Policy",
       content:
-        "We may update this policy as the platform evolves, for example when we add or change hosted features. Material changes will be reflected here along with an updated date at the top of this page. Continued use of Milk Market after an update constitutes acceptance of the revised policy.",
+        "We may update this policy as the platform evolves, for example when we add or change hosted features. Material changes will be reflected here along with an updated date at the top of this page. Continued use of Self-sown after an update constitutes acceptance of the revised policy.",
     },
     {
       title: "Contact Information",
       content:
-        "For privacy-related questions or data requests, you can reach the Milk Market team through our Nostr channels or GitHub repository.",
+        "For privacy-related questions or data requests, you can reach the Self-sown team through our Nostr channels or GitHub repository.",
     },
   ];
 
@@ -117,7 +117,7 @@ export default function PrivacyPolicy() {
               Privacy Policy
             </h1>
             <p className="mt-4 text-center text-lg text-zinc-600">
-              How Milk Market protects your privacy
+              How Self-sown protects your privacy
             </p>
             <p className="mt-2 text-center text-sm text-zinc-500">
               Last updated: 2026-06-13

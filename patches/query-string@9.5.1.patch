@@ -1,0 +1,21 @@
+diff --git a/index.d.ts b/index.d.ts
+index 5385c476d5656c5ea07a92ce71f1648bcac39e04..f7035999476071e8da7e7417b749e140cdee17e5 100644
+--- a/index.d.ts
++++ b/index.d.ts
+@@ -3,6 +3,7 @@
+ // Workaround for TS missing feature.
+ import * as queryString from './base.js';
+ 
++export * from './base.js';
+ export default queryString;
+ 
+ export {
+diff --git a/index.js b/index.js
+index 0480a96d718c997b0a5a54b775e635e2e048e796..ba596de8956640bd1ce0795eb94dcd5d9026ebf4 100644
+--- a/index.js
++++ b/index.js
+@@ -1,3 +1,4 @@
+ import * as queryString from './base.js';
+ 
++export * from './base.js';
+ export default queryString;

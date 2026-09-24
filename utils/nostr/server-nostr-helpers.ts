@@ -12,13 +12,14 @@ import {
   cacheEvent,
   getDbPool,
   fetchRelayConfigFromDb,
+  withSchemaDdlLock,
 } from "@/utils/db/db-service";
 import { fetchKind10002FromIndexers } from "@/utils/nostr/nip65-indexer-fetch";
 import { publishEventToRelay } from "@/utils/nostr/contained-relay";
 import { isSafePublicHostname } from "@/utils/url-safety";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@self-sown/domain";
 
 const RELAY_PUBLISH_TIMEOUT_MS = 21000;
-const BLASTR_RELAY = "wss://sendit.nosflare.com";
 
 function generateRandomTimestamp(): number {
   const now = Math.floor(Date.now() / 1000);
@@ -27,13 +28,7 @@ function generateRandomTimestamp(): number {
 }
 
 function getDefaultRelays(): string[] {
-  return [
-    "wss://relay.damus.io",
-    "wss://nos.lol",
-    "wss://relay.nostr.band",
-    "wss://purplepag.es",
-    "wss://relay.primal.net",
-  ];
+  return [...DEFAULT_SELLER_RELAYS];
 }
 
 async function trackFailedRelayPublish(
@@ -43,7 +38,12 @@ async function trackFailedRelayPublish(
 ): Promise<void> {
   try {
     const dbPool = getDbPool();
-    await dbPool.query(`
+    // Dedicated client so the advisory lock is held for the whole DDL batch
+    // (pool.query would check out a different client per statement).
+    const ddlClient = await dbPool.connect();
+    try {
+      await withSchemaDdlLock(ddlClient, async () => {
+        await ddlClient.query(`
       CREATE TABLE IF NOT EXISTS failed_relay_publishes (
         event_id TEXT PRIMARY KEY,
         event_data TEXT NOT NULL,
@@ -52,6 +52,10 @@ async function trackFailedRelayPublish(
         retry_count INTEGER DEFAULT 0
       )
     `);
+      });
+    } finally {
+      ddlClient.release();
+    }
     const values: (string | number)[] = [
       eventId,
       JSON.stringify(event),

@@ -175,9 +175,7 @@ const SettingsPage = () => {
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="text-base font-bold text-black">Log out</h3>
-                  <p className="text-sm text-gray-600">
-                    Log out of Milk Market
-                  </p>
+                  <p className="text-sm text-gray-600">Log out of Self-sown</p>
                 </div>
               </div>
             </button>

@@ -14,6 +14,26 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid provider" });
   }
 
+  // Pin redirect_uri to this origin's callback endpoint: the value is stored
+  // in a cookie, sent to the OAuth provider, and replayed at the callback for
+  // the token-exchange byte-match, so it must never point off-site, and it
+  // must not contain characters that could inject cookie attributes when it
+  // lands in a Set-Cookie header.
+  try {
+    const u = new URL(redirect_uri as string);
+    const isLocal = u.hostname === "localhost" || u.hostname === "127.0.0.1";
+    if (
+      (u.protocol !== "https:" && !(u.protocol === "http:" && isLocal)) ||
+      u.host !== req.headers.host ||
+      u.pathname !== "/api/auth/oauth-callback" ||
+      /[\s;]/.test(redirect_uri as string)
+    ) {
+      return res.status(400).json({ error: "Invalid redirect_uri" });
+    }
+  } catch {
+    return res.status(400).json({ error: "Invalid redirect_uri" });
+  }
+
   // Correlate the callback with the browser that started the flow
   // (login-CSRF protection). The state cookie must survive Apple's
   // cross-site form_post, hence SameSite=None + Secure; the app is always

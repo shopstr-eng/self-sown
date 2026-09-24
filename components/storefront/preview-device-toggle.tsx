@@ -1,3 +1,5 @@
+import { joinClassNames } from "./sections/section-elements";
+
 export type PreviewDevice = "mobile" | "tablet" | "desktop";
 
 export const DEVICE_WIDTHS: Record<PreviewDevice, number> = {
@@ -26,11 +28,12 @@ export default function PreviewDeviceToggle({ value, onChange }: Props) {
           type="button"
           onClick={() => onChange(d.key)}
           aria-label={d.label}
-          className={`px-3 py-1 text-xs font-medium ${
+          className={joinClassNames(
+            "px-3 py-1 text-xs font-medium",
             value === d.key
               ? "rounded bg-black text-white"
               : "text-gray-600 hover:text-black"
-          }`}
+          )}
         >
           <span className="mr-1">{d.icon}</span>
           {d.label}

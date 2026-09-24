@@ -8,7 +8,7 @@ import {
   getSellerOrderStatusLabel,
   type SellerOrderFilter,
 } from "../../apps/mobile/lib/order-presenter";
-import type { SellerOrder } from "@milk-market/domain";
+import type { SellerOrder } from "@self-sown/domain";
 
 function makeOrder(
   orderId: string,

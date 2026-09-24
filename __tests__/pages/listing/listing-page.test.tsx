@@ -40,7 +40,7 @@ jest.mock(
       children: ReactNode;
       onPress?: () => void;
     }) => <button onClick={onPress}>{children}</button>,
-    Spinner: () => <div data-testid="mm-spinner" />,
+    Spinner: () => <div data-testid="ss-spinner" />,
     useDisclosure: () => ({
       isOpen: false,
       onOpen: () => undefined,
@@ -134,11 +134,11 @@ jest.mock("../../../components/ZapsnagButton", () => () => (
   <div data-testid="zapsnag-button" />
 ));
 
-// Downstream uses the MilkMarketSpinner (mm-spinner) instead of the upstream
+// Downstream uses the SelfSownSpinner (ss-spinner) instead of the upstream
 // shopstr-spinner. Mock it with a stable testid for not-found/loading states.
-jest.mock("@/components/utility-components/mm-spinner", () => ({
+jest.mock("@/components/utility-components/ss-spinner", () => ({
   __esModule: true,
-  default: () => <div data-testid="mm-spinner" />,
+  default: () => <div data-testid="ss-spinner" />,
 }));
 
 const mockUseRouter = useRouter as jest.Mock;
@@ -180,9 +180,9 @@ function createEvent({
 }
 
 const defaultOgMeta = {
-  title: "Milk Market Listing",
-  description: "Check out this listing on Milk Market!",
-  image: "/milk-market.png",
+  title: "Self-sown Listing",
+  description: "Check out this listing on Self-sown!",
+  image: "/self-sown-black.png",
   url: `/listing/${relayHintedIdentifier}`,
 };
 
@@ -368,7 +368,7 @@ describe("Listing page direct-load reconciliation", () => {
     await waitFor(() =>
       expect(screen.queryByTestId("checkout-card")).not.toBeInTheDocument()
     );
-    expect(screen.getByTestId("mm-spinner")).toBeInTheDocument();
+    expect(screen.getByTestId("ss-spinner")).toBeInTheDocument();
     expect(screen.queryByText("Cold Load Listing")).not.toBeInTheDocument();
   });
 });

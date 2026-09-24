@@ -73,6 +73,9 @@ export interface NormalizedSellerListingDraft {
 }
 
 const RESERVED_MARKETPLACE_TAGS = new Set([
+  "SelfSown",
+  // Pre-rebrand listings carry the legacy MilkMarket tag; keep it reserved so
+  // old events don't leak it into the user-facing category list.
   "MilkMarket",
   "FREEMILK",
   "SAVEBEEF",
@@ -457,12 +460,7 @@ export function buildSellerListingTags(params: {
     ...preservedTags,
     ["d", params.dTag],
     ["alt", `Product listing: ${normalized.title}`],
-    [
-      "client",
-      "Milk Market",
-      `31990:${params.pubkey}:${params.dTag}`,
-      relayHint,
-    ],
+    ["client", "Self-sown", `31990:${params.pubkey}:${params.dTag}`, relayHint],
     ["title", normalized.title],
     ["summary", normalized.description],
     ["price", String(normalized.price), normalized.currency],
@@ -512,7 +510,7 @@ export function buildSellerListingTags(params: {
   normalized.categories.forEach((category) => {
     tags.push(["t", category]);
   });
-  tags.push(["t", "MilkMarket"]);
+  tags.push(["t", "SelfSown"]);
   tags.push(["t", "FREEMILK"]);
 
   if (

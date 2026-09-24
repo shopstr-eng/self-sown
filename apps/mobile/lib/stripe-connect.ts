@@ -4,7 +4,7 @@ export type StripeConnectCallbackStatus = "success" | "refresh";
 
 export function createStripeConnectRedirectBaseUrl() {
   return Linking.createURL("/stripe-connect-return", {
-    scheme: "milkmarket",
+    scheme: "selfsown",
   });
 }
 
@@ -12,7 +12,7 @@ export function createStripeConnectRedirectUrl(
   status?: StripeConnectCallbackStatus
 ) {
   return Linking.createURL("/stripe-connect-return", {
-    scheme: "milkmarket",
+    scheme: "selfsown",
     queryParams:
       status === "success"
         ? { success: "true" }

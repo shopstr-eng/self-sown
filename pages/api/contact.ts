@@ -31,7 +31,7 @@ export default async function handler(
     const { client, fromEmail } = await getUncachableSendGridClient();
 
     await client.send({
-      to: "freemilk@milk.market",
+      to: "freemilk@self-sown.com",
       from: fromEmail,
       replyTo: email,
       subject: `[Contact Form] ${subject || "General Inquiry"} - from ${name}`,

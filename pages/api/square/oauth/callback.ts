@@ -43,12 +43,13 @@ export default async function handler(
       return res.status(400).json({ error: "code and state are required" });
     }
 
-    const pubkey = await consumeSquareOAuthState(state);
-    if (!pubkey) {
+    const bound = await consumeSquareOAuthState(state);
+    if (!bound) {
       return res
         .status(400)
         .json({ error: "Invalid or expired authorization state" });
     }
+    const pubkey = bound.pubkey;
 
     // Re-check the XOR at completion: a seller could have connected Stripe in
     // the window between starting and finishing the Square flow. Never store a
@@ -62,17 +63,26 @@ export default async function handler(
       });
     }
 
-    const token = await exchangeSquareCodeForToken(code);
+    // Replay the authorize-time redirect URI: after a base-domain cutover the
+    // proxy 301s the callback page to the new domain, so reconstructing from
+    // the current base URL would no longer match Square's registered URI.
+    const token = await exchangeSquareCodeForToken(
+      code,
+      bound.redirectUri ?? undefined
+    );
 
     // Resolve the seller's primary location + its currency so checkout can
-    // refuse a cart-currency mismatch later.
+    // refuse a cart-currency mismatch later. Country is captured too: Apple
+    // Pay's payment request requires the merchant's countryCode.
     let locationId: string | null = null;
     let locationCurrency: string | null = null;
+    let locationCountry: string | null = null;
     try {
       const locations = await fetchSquareLocations(token.accessToken);
       const primary = pickPrimaryLocation(locations);
       locationId = primary?.id ?? null;
       locationCurrency = primary?.currency ?? null;
+      locationCountry = primary?.country ?? null;
     } catch (e) {
       // Non-fatal: store the connection; the seller can re-sync, and checkout
       // fails closed (no location => Square not offered) until resolved.
@@ -87,6 +97,7 @@ export default async function handler(
       merchantId: token.merchantId,
       locationId,
       locationCurrency,
+      locationCountry,
       scope: SQUARE_OAUTH_SCOPES.join(" "),
       status: "connected",
     });

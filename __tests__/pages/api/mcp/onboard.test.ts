@@ -226,7 +226,7 @@ describe("MCP onboard API quick-start correctness", () => {
   });
 
   it("prefers NEXT_PUBLIC_BASE_URL and normalizes trailing slashes", async () => {
-    process.env.NEXT_PUBLIC_BASE_URL = "https://milkmarket.example/";
+    process.env.NEXT_PUBLIC_BASE_URL = "https://selfsown.example/";
 
     const req = createMockRequest({
       headers: {
@@ -239,18 +239,18 @@ describe("MCP onboard API quick-start correctness", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.jsonBody).toMatchObject({
-      mcpEndpoint: "https://milkmarket.example/api/mcp",
-      manifestUrl: "https://milkmarket.example/.well-known/agent.json",
+      mcpEndpoint: "https://selfsown.example/api/mcp",
+      manifestUrl: "https://selfsown.example/.well-known/agent.json",
     });
   });
 
   it("uses allowlisted forwarded host and protocol when present", async () => {
-    process.env.MCP_ALLOWED_HOSTS = "milkmarket.example";
+    process.env.MCP_ALLOWED_HOSTS = "selfsown.example";
 
     const req = createMockRequest({
       headers: {
         host: "127.0.0.1:5000",
-        "x-forwarded-host": "milkmarket.example",
+        "x-forwarded-host": "selfsown.example",
         "x-forwarded-proto": "https",
       },
     });
@@ -260,8 +260,8 @@ describe("MCP onboard API quick-start correctness", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.jsonBody).toMatchObject({
-      mcpEndpoint: "https://milkmarket.example/api/mcp",
-      manifestUrl: "https://milkmarket.example/.well-known/agent.json",
+      mcpEndpoint: "https://selfsown.example/api/mcp",
+      manifestUrl: "https://selfsown.example/.well-known/agent.json",
     });
   });
 
@@ -283,11 +283,11 @@ describe("MCP onboard API quick-start correctness", () => {
 
   it("ignores unallowlisted forwarded hosts in production", async () => {
     setNodeEnv("production");
-    process.env.MCP_ALLOWED_HOSTS = "milkmarket.example";
+    process.env.MCP_ALLOWED_HOSTS = "selfsown.example";
 
     const req = createMockRequest({
       headers: {
-        host: "milkmarket.example",
+        host: "selfsown.example",
         "x-forwarded-host": "evil.example",
         "x-forwarded-proto": "https",
       },
@@ -298,8 +298,8 @@ describe("MCP onboard API quick-start correctness", () => {
 
     expect(res.statusCode).toBe(201);
     expect(res.jsonBody).toMatchObject({
-      mcpEndpoint: "https://milkmarket.example/api/mcp",
-      manifestUrl: "https://milkmarket.example/.well-known/agent.json",
+      mcpEndpoint: "https://selfsown.example/api/mcp",
+      manifestUrl: "https://selfsown.example/.well-known/agent.json",
     });
   });
 
@@ -308,7 +308,7 @@ describe("MCP onboard API quick-start correctness", () => {
 
     const req = createMockRequest({
       headers: {
-        host: "milkmarket.example",
+        host: "selfsown.example",
       },
     });
     const res = createMockResponse();

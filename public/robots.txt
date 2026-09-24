@@ -48,7 +48,7 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Sitemap: https://milk.market/sitemap.xml
+Sitemap: https://self-sown.com/sitemap.xml
 
 # Resources for agents and LLMs
 # /llms.txt

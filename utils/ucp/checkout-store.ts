@@ -1,5 +1,5 @@
 import type { PoolClient } from "pg";
-import { getDbPool } from "@/utils/db/db-service";
+import { getDbPool, withSchemaDdlLock } from "@/utils/db/db-service";
 import { randomBytes } from "crypto";
 import {
   CHECKOUT_STATUSES,
@@ -84,7 +84,8 @@ export async function initCheckoutSessionsTable(): Promise<void> {
   let client: PoolClient | undefined;
   try {
     client = await pool.connect();
-    await client.query(`
+    await withSchemaDdlLock(client, async (client) => {
+      await client.query(`
       CREATE TABLE IF NOT EXISTS ucp_checkout_sessions (
         id TEXT PRIMARY KEY,
         api_key_id INTEGER REFERENCES mcp_api_keys(id),
@@ -109,12 +110,12 @@ export async function initCheckoutSessionsTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
     `);
 
-    // Idempotent migration to the UCP lifecycle status names. A table created by
-    // an earlier build of this feature carries the legacy CHECK constraint +
-    // legacy status values; drop the constraint, remap any legacy rows, then
-    // re-add the constraint with the canonical UCP statuses. (Postgres auto-names
-    // a column CHECK as <table>_<column>_check, so the name is deterministic.)
-    await client.query(`
+      // Idempotent migration to the UCP lifecycle status names. A table created by
+      // an earlier build of this feature carries the legacy CHECK constraint +
+      // legacy status values; drop the constraint, remap any legacy rows, then
+      // re-add the constraint with the canonical UCP statuses. (Postgres auto-names
+      // a column CHECK as <table>_<column>_check, so the name is deterministic.)
+      await client.query(`
       DO $migrate$
       BEGIN
         ALTER TABLE ucp_checkout_sessions
@@ -139,6 +140,7 @@ export async function initCheckoutSessionsTable(): Promise<void> {
       END
       $migrate$;
     `);
+    });
     tableReady = true;
   } catch (error) {
     console.error("Failed to initialize ucp_checkout_sessions table:", error);

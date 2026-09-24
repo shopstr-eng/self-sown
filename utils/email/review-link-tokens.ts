@@ -6,7 +6,7 @@
  * known, which product) the review is for, the seller, and — when the buyer
  * checked out with Nostr keys — the buyer pubkey. The link points at the
  * seller's orders dashboard (their verified custom domain when they have one,
- * otherwise milk.market). When the buyer opens it, the dashboard verifies the
+ * otherwise self-sown.com). When the buyer opens it, the dashboard verifies the
  * token via `/api/email/flows/review-link`, finds the matching decrypted order,
  * and auto-opens the existing Nostr review modal.
  *
@@ -156,7 +156,7 @@ export function verifyReviewLinkToken(
 
 /**
  * Where a seller's buyers should land to manage their orders: the seller's
- * verified, TLS-active custom domain when they have one, else milk.market. We
+ * verified, TLS-active custom domain when they have one, else self-sown.com. We
  * require the domain to be both verified and TLS attached/active so we never
  * send a buyer to a half-provisioned domain that won't load over https.
  */

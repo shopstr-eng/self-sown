@@ -2,7 +2,8 @@
 
 import { useCallback, useContext, useEffect, useState } from "react";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
+import { joinClassNames } from "@/utils/class-names";
 
 type DnsRecord = {
   key: string;
@@ -64,11 +65,12 @@ function DnsRow({ record }: { record: DnsRecord }) {
           {record.key}
         </span>
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-bold ${
+          className={joinClassNames(
+            "rounded-full px-2 py-0.5 text-xs font-bold",
             record.valid
               ? "bg-green-100 text-green-800"
               : "bg-amber-100 text-amber-800"
-          }`}
+          )}
         >
           {record.valid ? "Verified" : "Pending"}
         </span>
@@ -257,7 +259,7 @@ export default function EmailSenderDomainSection() {
     if (!signer?.sign || !userPubkey) return;
     if (
       !confirm(
-        "Disconnect this email domain? Your emails will go back to being sent from the default Milk Market address."
+        "Disconnect this email domain? Your emails will go back to being sent from the default Self-sown address."
       )
     )
       return;
@@ -306,7 +308,7 @@ export default function EmailSenderDomainSection() {
           Send From Your Own Domain
         </h3>
         <p className="mt-1 text-sm text-gray-600">
-          By default your order and flow emails come from Milk Market. Connect
+          By default your order and flow emails come from Self-sown. Connect
           your own domain so customers see them coming straight from you (e.g.{" "}
           <code className="rounded bg-gray-100 px-1 py-0.5 text-xs">
             orders@yourfarm.com
@@ -339,7 +341,7 @@ export default function EmailSenderDomainSection() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="yourfarm.com"
-              className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-none"
+              className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-hidden"
               disabled={busy}
             />
             <button
@@ -365,11 +367,12 @@ export default function EmailSenderDomainSection() {
               </p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${
+              className={joinClassNames(
+                "rounded-full px-3 py-1 text-xs font-bold",
                 record.valid
                   ? "bg-green-100 text-green-800"
                   : "bg-amber-100 text-amber-800"
-              }`}
+              )}
             >
               {record.valid ? "Verified" : "Waiting for DNS"}
             </span>
@@ -413,7 +416,7 @@ export default function EmailSenderDomainSection() {
                   value={fromInput}
                   onChange={(e) => setFromInput(e.target.value)}
                   placeholder={`orders@${record.domain}`}
-                  className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-none"
+                  className="min-w-[240px] flex-1 rounded-md border-2 border-black px-3 py-2 text-sm focus:outline-hidden"
                   disabled={busy}
                 />
                 <button

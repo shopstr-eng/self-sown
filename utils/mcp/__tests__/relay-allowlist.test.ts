@@ -15,34 +15,29 @@ jest.mock("nostr-tools", () => ({
 
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   getDefaultRelays: jest.fn(() => [
-    "wss://relay.damus.io",
-    "wss://nos.lol",
-    "wss://purplepag.es",
-    "wss://relay.primal.net",
-    "wss://relay.nostr.band",
+    ...jest.requireActual("@self-sown/domain").DEFAULT_SELLER_RELAYS,
   ]),
   withBlastr: jest.fn((relays: string[]) => [
     ...relays,
-    "wss://sendit.nosflare.com",
+    jest.requireActual("@self-sown/domain").BLASTR_RELAY,
   ]),
 }));
 
 jest.mock("@/utils/db/db-service", () => ({ cacheEvent: jest.fn() }));
 
 import { McpRelayManager, MCP_RELAY_ALLOWLIST } from "../nostr-signing";
+import { DEFAULT_SELLER_RELAYS, BLASTR_RELAY } from "@self-sown/domain";
 
 describe("MCP_RELAY_ALLOWLIST", () => {
-  it("contains the 6 known Shopstr relays", () => {
-    expect(MCP_RELAY_ALLOWLIST.has("wss://relay.damus.io")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://nos.lol")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://purplepag.es")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://relay.primal.net")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://relay.nostr.band")).toBe(true);
-    expect(MCP_RELAY_ALLOWLIST.has("wss://sendit.nosflare.com")).toBe(true);
+  it("contains every shared default relay plus the blastr broadcaster", () => {
+    for (const relay of DEFAULT_SELLER_RELAYS) {
+      expect(MCP_RELAY_ALLOWLIST.has(relay)).toBe(true);
+    }
+    expect(MCP_RELAY_ALLOWLIST.has(BLASTR_RELAY)).toBe(true);
   });
 
-  it("has exactly 6 entries", () => {
-    expect(MCP_RELAY_ALLOWLIST.size).toBe(6);
+  it("has exactly one entry per default relay plus blastr", () => {
+    expect(MCP_RELAY_ALLOWLIST.size).toBe(DEFAULT_SELLER_RELAYS.length + 1);
   });
 });
 

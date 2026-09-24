@@ -1,7 +1,7 @@
 import {
   SELLER_ORDER_STATUSES,
   type SellerOrderStatus,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export type SellerOrdersApiErrorCode =
   | "INVALID_REQUEST"

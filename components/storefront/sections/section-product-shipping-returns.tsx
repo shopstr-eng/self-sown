@@ -1,7 +1,7 @@
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
 import FormattedText from "../formatted-text";
-import SectionElementFlow, { headingSizeClass } from "./section-elements";
+import SectionElementFlow, { headingClassName } from "./section-elements";
 
 interface Props {
   section: StorefrontSection;
@@ -37,10 +37,11 @@ export default function SectionProductShippingReturns({
         slots={{
           heading: (
             <h2
-              className={`font-heading mb-6 ${headingSizeClass(
+              className={`font-heading mb-6 ${headingClassName(
                 section,
-                "text-2xl"
-              )} font-bold ${section.headingSize ? "" : "md:text-3xl"}`.trim()}
+                "text-2xl",
+                "md:text-3xl"
+              )}`}
               style={{ color: colors.text }}
             >
               {heading}

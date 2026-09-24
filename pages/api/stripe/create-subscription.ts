@@ -20,6 +20,7 @@ import {
   registerApplePayDomain,
   trustedRegistrationHost,
 } from "@/utils/stripe/apple-pay";
+import { resolveSubscriptionPaymentIntent } from "@/utils/stripe/subscription-payment-intent";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -131,7 +132,7 @@ export default async function handler(
 
     let connectedAccountId: string | null = null;
     const isPlatformAccount =
-      sellerPubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+      sellerPubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK;
 
     if (!isPlatformAccount) {
       const connectAccount = await getStripeConnectAccount(sellerPubkey);
@@ -249,7 +250,8 @@ export default async function handler(
             const serverDiscount = computeBuyerDiscountSmallest(
               grossForDiscount,
               found.buyer_discount_type,
-              Number(found.buyer_discount_value)
+              Number(found.buyer_discount_value),
+              String(stripeCurrency)
             );
             affiliateDiscountAmount = Math.min(
               serverDiscount,
@@ -308,14 +310,17 @@ export default async function handler(
       originalAmount: amount,
       originalCurrency: currency,
     });
-    // Apply mm_donation as application_fee_percent for direct-charge
+    // Apply ss_donation as application_fee_percent for direct-charge
     // subscriptions on a connected account (parity with Bitcoin paths).
     const donationPercent =
       connectedAccountId && !isPlatformPubkey(sellerPubkey)
         ? await getSellerDonationPercent(sellerPubkey)
         : 0;
+    // 100% is a UI-supported setting (full donation) and Stripe allows
+    // application_fee_percent up to 100 — honor it verbatim; collapsing it
+    // to 0 would pay the seller the full recurring amount.
     const applicationFeePercent =
-      donationPercent > 0 && donationPercent < 100
+      donationPercent > 0 && donationPercent <= 100
         ? Math.round(donationPercent * 100) / 100
         : 0;
 
@@ -344,6 +349,7 @@ export default async function handler(
             originalAmount: amount.toString(),
             originalCurrency: currency,
             ...(applicationFeePercent > 0 && {
+              ssDonationPercent: applicationFeePercent.toString(),
               mmDonationPercent: applicationFeePercent.toString(),
             }),
             // Only stamp affiliate metadata when a coupon was actually
@@ -367,8 +373,13 @@ export default async function handler(
     );
 
     const subscriptionData = subscription as any;
-    const invoice = subscriptionData.latest_invoice;
-    const paymentIntent = invoice?.payment_intent;
+    // Clover (Basil family) removed Invoice.payment_intent, so the expand
+    // above yields nothing — resolve the PI via the invoice's payments.
+    const paymentIntent = await resolveSubscriptionPaymentIntent(
+      stripe,
+      subscription,
+      stripeOptions
+    );
 
     const nextBillingDate = subscriptionData.current_period_end
       ? new Date(subscriptionData.current_period_end * 1000)

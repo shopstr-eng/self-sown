@@ -14,6 +14,7 @@ import PreviewDeviceToggle, {
 import { useDragReorder } from "@/utils/hooks/useDragReorder";
 import type { ProductData } from "@/utils/parsers/product-parser-functions";
 import { PLACEHOLDER_PRODUCT } from "@/utils/storefront/placeholder-product";
+import { joinClassNames } from "@/utils/class-names";
 
 interface PreviewContext {
   colors: StorefrontColorScheme;
@@ -110,22 +111,24 @@ export default function ProductPageEditor({
           <button
             type="button"
             onClick={() => setView("edit")}
-            className={`rounded border px-3 py-1 text-xs font-medium ${
+            className={joinClassNames(
+              "rounded border px-3 py-1 text-xs font-medium",
               view === "edit"
                 ? "border-black bg-black text-white"
                 : "border-gray-300 text-gray-700"
-            }`}
+            )}
           >
             Edit
           </button>
           <button
             type="button"
             onClick={() => setView("preview")}
-            className={`rounded border px-3 py-1 text-xs font-medium ${
+            className={joinClassNames(
+              "rounded border px-3 py-1 text-xs font-medium",
               view === "preview"
                 ? "border-black bg-black text-white"
                 : "border-gray-300 text-gray-700"
-            }`}
+            )}
           >
             Preview
           </button>
@@ -147,13 +150,13 @@ export default function ProductPageEditor({
                 <div
                   key={section.id}
                   {...drag.rootProps}
-                  className={`transition-all ${
-                    drag.isDragging ? "opacity-40" : ""
-                  } ${
+                  className={joinClassNames(
+                    "transition-all",
+                    drag.isDragging ? "opacity-40" : "",
                     drag.isDragOver
                       ? "rounded-lg ring-2 ring-blue-400 ring-offset-1"
                       : ""
-                  }`}
+                  )}
                 >
                   <SectionEditor
                     section={section}
@@ -203,13 +206,14 @@ export default function ProductPageEditor({
 
           {showSizeReadout && (
             <div
-              className={`rounded-lg border-2 p-3 text-xs ${
+              className={joinClassNames(
+                "rounded-lg border-2 p-3 text-xs",
                 sizeBlock
                   ? "border-red-400 bg-red-50 text-red-800"
                   : sizeWarn
                     ? "border-yellow-400 bg-yellow-50 text-yellow-900"
                     : "border-gray-200 bg-gray-50 text-gray-600"
-              }`}
+              )}
             >
               Template size: {sizeKb} KB
               {sizeWarn &&

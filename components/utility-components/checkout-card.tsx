@@ -54,6 +54,7 @@ import SellerReviewReply from "./seller-review-reply";
 import useReportEventFlow from "./use-report-event-flow";
 import { getLocalStorageJson } from "@/utils/safe-json";
 import { CartDiscountsMap, isCartDiscountsMap } from "@/utils/cart-discounts";
+import { joinClassNames } from "@/utils/class-names";
 import { getAffiliateRefCookie } from "./affiliate-ref-tracker";
 
 const SUMMARY_CHARACTER_LIMIT = 200;
@@ -627,11 +628,12 @@ export default function CheckoutCard({
             (productData.sizeQuantities?.get(size) || 0) > 0 ? (
               <button
                 key={size}
-                className={`shadow-neo rounded-md border-2 border-black p-2 text-sm font-bold transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black p-2 text-sm font-bold transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   selectedSize === size
                     ? "bg-primary-yellow text-black"
                     : "bg-white text-black"
-                }`}
+                )}
                 onClick={() => setSelectedSize(size)}
               >
                 {size}
@@ -715,11 +717,13 @@ export default function CheckoutCard({
                   title={variant}
                   aria-label={variant}
                   onClick={() => handleSelectVariant(variant)}
-                  className={`flex flex-col items-center gap-1 rounded-md border-2 p-1 transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                  className={joinClassNames(
+                    "flex flex-col items-center gap-1 rounded-md border-2 p-1 transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                     isSelected
                       ? "border-primary-yellow shadow-neo"
-                      : "border-black"
-                  } bg-white`}
+                      : "border-black",
+                    "bg-white"
+                  )}
                 >
                   <img
                     src={optionImage}
@@ -737,11 +741,12 @@ export default function CheckoutCard({
               <button
                 key={variant}
                 type="button"
-                className={`shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                className={joinClassNames(
+                  "shadow-neo rounded-md border-2 border-black px-3 py-2 text-sm font-bold transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                   isSelected
                     ? "bg-primary-yellow text-black"
                     : "bg-white text-black"
-                }`}
+                )}
                 onClick={() => handleSelectVariant(variant)}
               >
                 {variant}
@@ -844,11 +849,12 @@ export default function CheckoutCard({
                           key={index}
                           src={image}
                           alt={`Product image ${index + 1}`}
-                          className={`w-full cursor-pointer rounded-md object-cover ${
+                          className={joinClassNames(
+                            "w-full cursor-pointer rounded-md object-cover",
                             image === selectedImage
                               ? "border-primary-yellow border-2"
                               : "border-2 border-transparent"
-                          }`}
+                          )}
                           style={{ aspectRatio: "1 / 1" }}
                           onClick={() => setSelectedImage(image)}
                         />
@@ -1002,9 +1008,10 @@ export default function CheckoutCard({
                 {/* Expiration */}
                 {productData.expiration && (
                   <p
-                    className={`mt-1 text-left text-sm ${
+                    className={joinClassNames(
+                      "mt-1 text-left text-sm",
                       isExpired ? "font-medium text-red-500" : "text-gray-500"
-                    }`}
+                    )}
                   >
                     {isExpired ? "Expired on: " : "Valid until: "}{" "}
                     {new Date(
@@ -1204,14 +1211,15 @@ export default function CheckoutCard({
                         <>
                           {/* Buy Now - Solid Yellow */}
                           <Button
-                            className={`bg-primary-yellow shadow-neo rounded-md border-2 border-black px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "bg-primary-yellow shadow-neo rounded-md border-2 border-black px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                               (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume) ||
-                              (hasWeights && !selectedWeight) ||
-                              (hasVariants && !selectedVariant)
+                                (hasVolumes && !selectedVolume) ||
+                                (hasWeights && !selectedWeight) ||
+                                (hasVariants && !selectedVariant)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             onClick={toggleBuyNow}
                             disabled={
                               (hasSizes && !selectedSize) ||
@@ -1227,15 +1235,16 @@ export default function CheckoutCard({
 
                           {/* Add To Cart - Light Blue */}
                           <Button
-                            className={`shadow-neo rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5 ${
+                            className={joinClassNames(
+                              "shadow-neo rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5",
                               isAdded ||
-                              (hasSizes && !selectedSize) ||
-                              (hasVolumes && !selectedVolume) ||
-                              (hasWeights && !selectedWeight) ||
-                              (hasVariants && !selectedVariant)
+                                (hasSizes && !selectedSize) ||
+                                (hasVolumes && !selectedVolume) ||
+                                (hasWeights && !selectedWeight) ||
+                                (hasVariants && !selectedVariant)
                                 ? "cursor-not-allowed opacity-50"
                                 : ""
-                            }`}
+                            )}
                             onClick={handleAddToCart}
                             disabled={
                               isAdded ||
@@ -1325,11 +1334,12 @@ export default function CheckoutCard({
                                   return (
                                     <Chip
                                       key={index}
-                                      className={`shadow-neo border-2 border-black font-bold ${
+                                      className={joinClassNames(
+                                        "shadow-neo border-2 border-black font-bold",
                                         value === "1"
                                           ? "bg-green-400"
                                           : "bg-red-400"
-                                      }`}
+                                      )}
                                     >
                                       {`overall: ${
                                         value === "1" ? "👍" : "👎"
@@ -1340,11 +1350,12 @@ export default function CheckoutCard({
                                   return (
                                     <Chip
                                       key={index}
-                                      className={`shadow-neo border-2 border-black font-bold ${
+                                      className={joinClassNames(
+                                        "shadow-neo border-2 border-black font-bold",
                                         value === "1"
                                           ? "bg-green-400"
                                           : "bg-red-400"
-                                      }`}
+                                      )}
                                     >
                                       {`${category}: ${
                                         value === "1" ? "👍" : "👎"

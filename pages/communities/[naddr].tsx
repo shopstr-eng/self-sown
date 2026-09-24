@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { nip19 } from "nostr-tools";
 import { CommunityContext } from "@/utils/context/context";
 import { Community } from "@/utils/types/types";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import CommunityFeed from "@/components/communities/CommunityFeed";
 import { sanitizeUrl } from "@braintree/sanitize-url";
 import { GetServerSideProps } from "next";
@@ -40,11 +40,11 @@ export const getServerSideProps: GetServerSideProps<
           return {
             props: {
               ogMeta: {
-                title: community.name || "Milk Market Community",
+                title: community.name || "Self-sown Community",
                 description:
                   community.description ||
-                  "Check out this community on Milk Market!",
-                image: community.image || "/milk-market.png",
+                  "Check out this community on Self-sown!",
+                image: community.image || "/self-sown-black.png",
                 url: `/communities/${naddrStr}`,
               },
               community,
@@ -100,7 +100,7 @@ const SingleCommunityPage = ({
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-white">
-        <MilkMarketSpinner label="Loading Community..." />
+        <SelfSownSpinner label="Loading Community..." />
       </div>
     );
   }
@@ -125,7 +125,7 @@ const SingleCommunityPage = ({
                 backgroundImage: `url(${sanitizeUrl(community.image)})`,
               }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50"></div>
+              <div className="absolute inset-0 bg-linear-to-b from-transparent to-black/50"></div>
             </div>
           ) : (
             <div className="flex h-48 w-full items-center justify-center bg-gray-200">

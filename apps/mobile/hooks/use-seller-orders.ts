@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-import type { SellerSession } from "@milk-market/domain";
+import type { SellerSession } from "@self-sown/domain";
 
 import {
   findSellerOrder,

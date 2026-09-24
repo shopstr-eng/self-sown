@@ -20,13 +20,23 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method === "GET") {
-    return handleGet(req, res);
+  // AWAIT + try/catch, not bare return: without the await an async throw
+  // inside a helper escapes any try/catch here as an unhandled rejection
+  // instead of becoming a clean 500 JSON response.
+  try {
+    if (req.method === "GET") {
+      return await handleGet(req, res);
+    }
+    if (req.method === "POST") {
+      return await handlePost(req, res);
+    }
+    return res.status(405).json({ error: "Method not allowed" });
+  } catch (error) {
+    console.error("Inventory handler error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to process inventory request" });
   }
-  if (req.method === "POST") {
-    return handlePost(req, res);
-  }
-  return res.status(405).json({ error: "Method not allowed" });
 }
 
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {

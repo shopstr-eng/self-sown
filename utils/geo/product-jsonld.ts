@@ -54,7 +54,7 @@ export function moneyToPriceString(money: UcpMoney): string {
 export function buildProductJsonLd(
   product: UcpProduct
 ): Record<string, unknown> {
-  const sellerName = product.seller.name || "Milk Market seller";
+  const sellerName = product.seller.name || "Self-sown seller";
 
   const offer: Record<string, unknown> = {
     "@type": "Offer",
@@ -121,10 +121,10 @@ export function buildProductJsonLd(
   const node: Record<string, unknown> = {
     "@context": SCHEMA_CONTEXT,
     "@type": "Product",
-    name: product.title || "Milk Market Listing",
+    name: product.title || "Self-sown Listing",
     url: product.url,
     sku: product.id,
-    brand: { "@type": "Brand", name: product.seller.name || "Milk Market" },
+    brand: { "@type": "Brand", name: product.seller.name || "Self-sown" },
     offers: offer,
   };
 
@@ -155,7 +155,7 @@ export function buildItemListJsonLd(
       "@type": "ListItem",
       position: i + 1,
       url: p.url,
-      name: p.title || "Milk Market Listing",
+      name: p.title || "Self-sown Listing",
     })),
   };
   if (opts.name) node.name = opts.name;

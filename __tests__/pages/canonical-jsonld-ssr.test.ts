@@ -4,7 +4,7 @@
 // has its own unit test for the canonicalUrl OVERRIDE; this exercises the page
 // that actually RESOLVES that canonical URL from the request — the friendly
 // title slug plus the seller's custom-domain origin forwarded by proxy.ts as
-// `x-mm-custom-domain-host` / `x-mm-original-path`. A regression here would
+// `x-ss-custom-domain-host` / `x-ss-original-path`. A regression here would
 // silently emit raw identifier URLs to Google / AI shopping agents even though
 // the page's <link rel="canonical"> points at the friendly slug.
 //
@@ -37,7 +37,7 @@ jest.mock("@/components/storefront/storefront-load-error", () => ({
   __esModule: true,
   default: () => null,
 }));
-jest.mock("@/components/utility-components/mm-spinner", () => ({
+jest.mock("@/components/utility-components/ss-spinner", () => ({
   __esModule: true,
   default: () => null,
 }));
@@ -71,6 +71,7 @@ import {
 import { getMembershipView } from "@/utils/pro/membership";
 import { getServerSideProps as listingGetServerSideProps } from "@/pages/listing/[[...productId]]";
 import { getServerSideProps as stallGetServerSideProps } from "@/pages/stall/[slug]";
+import { SITE_URL } from "@/utils/site-url";
 
 const SELLER_PUBKEY = "a".repeat(64);
 
@@ -137,9 +138,9 @@ describe("listing page getServerSideProps canonical JSON-LD url", () => {
     )) as { props: { ogMeta: unknown } };
 
     const product = getProductJsonLd(result.props.ogMeta);
-    expect(product.url).toBe(`https://milk.market/listing/${FRIENDLY_SLUG}`);
+    expect(product.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
     const offer = product.offers as Record<string, unknown>;
-    expect(offer.url).toBe(`https://milk.market/listing/${FRIENDLY_SLUG}`);
+    expect(offer.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
   });
 
   test("emits the friendly slug on the seller's custom-domain origin", async () => {
@@ -151,7 +152,7 @@ describe("listing page getServerSideProps canonical JSON-LD url", () => {
     const result = (await listingGetServerSideProps(
       makeContext(
         { productId: ["evt-raw-milk"] },
-        { "x-mm-custom-domain-host": "Farmer.com:443" }
+        { "x-ss-custom-domain-host": "Farmer.com:443" }
       )
     )) as { props: { ogMeta: unknown } };
 
@@ -176,7 +177,7 @@ describe("listing page getServerSideProps canonical JSON-LD url", () => {
     )) as { props: { ogMeta: unknown } };
 
     const product = getProductJsonLd(result.props.ogMeta);
-    expect(product.url).toBe(`https://milk.market/listing/${FRIENDLY_SLUG}`);
+    expect(product.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
   });
 });
 
@@ -212,9 +213,9 @@ describe("stall page getServerSideProps canonical ItemList url", () => {
     )) as { props: { ogMeta: unknown } };
 
     const list = getItemList(result.props.ogMeta);
-    expect(list.url).toBe(`https://milk.market/stall/${SHOP_SLUG}`);
+    expect(list.url).toBe(`${SITE_URL}/stall/${SHOP_SLUG}`);
     const items = list.itemListElement as Record<string, unknown>[];
-    expect(items[0]!.url).toBe(`https://milk.market/listing/${FRIENDLY_SLUG}`);
+    expect(items[0]!.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
   });
 
   test("custom domain: ItemList url is the domain root and product links stay on that origin", async () => {
@@ -224,8 +225,8 @@ describe("stall page getServerSideProps canonical ItemList url", () => {
       makeContext(
         { slug: SHOP_SLUG },
         {
-          "x-mm-custom-domain-host": "Farmer.com",
-          "x-mm-original-path": "/",
+          "x-ss-custom-domain-host": "Farmer.com",
+          "x-ss-original-path": "/",
         }
       )
     )) as { props: { ogMeta: unknown } };
@@ -275,9 +276,9 @@ describe("stall page product-as-landing canonical JSON-LD url", () => {
     )) as { props: { ogMeta: unknown } };
 
     const product = getProductJsonLd(result.props.ogMeta);
-    expect(product.url).toBe(`https://milk.market/stall/${SHOP_SLUG}`);
+    expect(product.url).toBe(`${SITE_URL}/stall/${SHOP_SLUG}`);
     const offer = product.offers as Record<string, unknown>;
-    expect(offer.url).toBe(`https://milk.market/stall/${SHOP_SLUG}`);
+    expect(offer.url).toBe(`${SITE_URL}/stall/${SHOP_SLUG}`);
     // The product d-tag must NOT leak into the canonical URL.
     expect(product.url).not.toContain(`/listing/${PRODUCT_DTAG}`);
     expect(product.url).not.toContain(`/listing/${FRIENDLY_SLUG}`);
@@ -290,8 +291,8 @@ describe("stall page product-as-landing canonical JSON-LD url", () => {
       makeContext(
         { slug: SHOP_SLUG },
         {
-          "x-mm-custom-domain-host": "Farmer.com",
-          "x-mm-original-path": "/",
+          "x-ss-custom-domain-host": "Farmer.com",
+          "x-ss-original-path": "/",
         }
       )
     )) as { props: { ogMeta: unknown } };
@@ -353,9 +354,9 @@ describe("stall page product-as-landing fallback to catalog ItemList", () => {
 
     // It must be the catalog ItemList, NOT Product JSON-LD or default OG meta.
     const list = getItemList(result.props.ogMeta);
-    expect(list.url).toBe(`https://milk.market/stall/${SHOP_SLUG}`);
+    expect(list.url).toBe(`${SITE_URL}/stall/${SHOP_SLUG}`);
     const items = list.itemListElement as Record<string, unknown>[];
-    expect(items[0]!.url).toBe(`https://milk.market/listing/${FRIENDLY_SLUG}`);
+    expect(items[0]!.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
   });
 
   test("landing product fetch throwing falls back to catalog ItemList", async () => {
@@ -369,9 +370,9 @@ describe("stall page product-as-landing fallback to catalog ItemList", () => {
     )) as { props: { ogMeta: unknown } };
 
     const list = getItemList(result.props.ogMeta);
-    expect(list.url).toBe(`https://milk.market/stall/${SHOP_SLUG}`);
+    expect(list.url).toBe(`${SITE_URL}/stall/${SHOP_SLUG}`);
     const items = list.itemListElement as Record<string, unknown>[];
-    expect(items[0]!.url).toBe(`https://milk.market/listing/${FRIENDLY_SLUG}`);
+    expect(items[0]!.url).toBe(`${SITE_URL}/listing/${FRIENDLY_SLUG}`);
   });
 });
 
@@ -422,7 +423,7 @@ describe("stall page non-Pro seller never serves product-as-landing OG meta", ()
 
     const { ogMeta } = result.props;
     // Seller stall meta, NOT the pinned product's title/description.
-    expect(ogMeta.title).toBe("Happy Farm | Milk Market");
+    expect(ogMeta.title).toBe("Happy Farm | Self-sown");
     // No structured data at all — neither Product nor ItemList JSON-LD.
     expect(ogMeta.jsonLd).toBeUndefined();
   });

@@ -208,7 +208,7 @@ describe("SendButton", () => {
     await screen.findByText("New token string is ready to be copied and sent!");
 
     const recordCall = setItemSpy.mock.calls
-      .filter((call) => call[0] === "milkmarket.outgoingSendTokens")
+      .filter((call) => call[0] === "selfsown.outgoingSendTokens")
       .pop();
     expect(recordCall).toBeDefined();
     const entries = JSON.parse(recordCall![1]);
@@ -236,7 +236,7 @@ describe("SendButton", () => {
     setItemSpy = jest
       .spyOn(Storage.prototype, "setItem")
       .mockImplementation(function (this: Storage, key: string, value: string) {
-        if (key === "milkmarket.outgoingSendTokens") {
+        if (key === "selfsown.outgoingSendTokens") {
           throw new Error("quota exceeded");
         }
         return originalSetItem.call(this, key, value);

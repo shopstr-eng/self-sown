@@ -111,7 +111,7 @@ export default function PageLoadingBar() {
       }}
     >
       <div
-        className="h-full bg-gradient-to-r from-orange-500 to-orange-400"
+        className="h-full bg-linear-to-r from-orange-500 to-orange-400"
         style={{
           width: `${width}%`,
           boxShadow: "0 0 8px rgba(249, 115, 22, 0.7)",

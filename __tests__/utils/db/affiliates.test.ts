@@ -25,40 +25,62 @@ import {
 
 describe("computeBuyerDiscountSmallest", () => {
   it("returns 0 for non-positive gross", () => {
-    expect(computeBuyerDiscountSmallest(0, "percent", 10)).toBe(0);
-    expect(computeBuyerDiscountSmallest(-100, "percent", 10)).toBe(0);
+    expect(computeBuyerDiscountSmallest(0, "percent", 10, "usd")).toBe(0);
+    expect(computeBuyerDiscountSmallest(-100, "percent", 10, "usd")).toBe(0);
   });
 
   it("applies a percentage cleanly", () => {
-    expect(computeBuyerDiscountSmallest(10_000, "percent", 10)).toBe(1_000);
-    expect(computeBuyerDiscountSmallest(9_999, "percent", 33)).toBe(3_299);
+    expect(computeBuyerDiscountSmallest(10_000, "percent", 10, "usd")).toBe(
+      1_000
+    );
+    expect(computeBuyerDiscountSmallest(9_999, "percent", 33, "usd")).toBe(
+      3_299
+    );
   });
 
   it("caps a percentage at 100", () => {
-    expect(computeBuyerDiscountSmallest(1_000, "percent", 250)).toBe(999);
+    expect(computeBuyerDiscountSmallest(1_000, "percent", 250, "usd")).toBe(
+      999
+    );
   });
 
   it("treats fixed values as major units (cents)", () => {
-    expect(computeBuyerDiscountSmallest(10_000, "fixed", 5)).toBe(500);
+    expect(computeBuyerDiscountSmallest(10_000, "fixed", 5, "usd")).toBe(500);
+  });
+
+  it("converts fixed values with the code currency's minor-unit scale", () => {
+    // Zero-decimal fiat: ¥50 / ₩50 is 50 smallest units, not 5000.
+    expect(computeBuyerDiscountSmallest(10_000, "fixed", 50, "jpy")).toBe(50);
+    expect(computeBuyerDiscountSmallest(10_000, "fixed", 50, "krw")).toBe(50);
+    // Crypto codes store fixed values directly in sats.
+    expect(computeBuyerDiscountSmallest(10_000, "fixed", 500, "sats")).toBe(
+      500
+    );
   });
 
   it("never lets a fixed cut equal or exceed gross", () => {
-    expect(computeBuyerDiscountSmallest(500, "fixed", 9)).toBe(499);
+    expect(computeBuyerDiscountSmallest(500, "fixed", 9, "usd")).toBe(499);
   });
 });
 
 describe("computeRebateSmallest", () => {
   it("applies a percentage to the net subtotal", () => {
-    expect(computeRebateSmallest(9_000, "percent", 10)).toBe(900);
+    expect(computeRebateSmallest(9_000, "percent", 10, "usd")).toBe(900);
   });
 
   it("caps at the net so we never owe more than the buyer paid", () => {
-    expect(computeRebateSmallest(100, "fixed", 5)).toBe(100);
+    expect(computeRebateSmallest(100, "fixed", 5, "usd")).toBe(100);
+  });
+
+  it("converts fixed rebates with the code currency's minor-unit scale", () => {
+    expect(computeRebateSmallest(10_000, "fixed", 50, "jpy")).toBe(50);
+    expect(computeRebateSmallest(10_000, "fixed", 50, "krw")).toBe(50);
+    expect(computeRebateSmallest(10_000, "fixed", 500, "sats")).toBe(500);
   });
 
   it("returns 0 for a zero or negative net", () => {
-    expect(computeRebateSmallest(0, "percent", 50)).toBe(0);
-    expect(computeRebateSmallest(-10, "fixed", 1)).toBe(0);
+    expect(computeRebateSmallest(0, "percent", 50, "usd")).toBe(0);
+    expect(computeRebateSmallest(-10, "fixed", 1, "usd")).toBe(0);
   });
 });
 

@@ -120,7 +120,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
       classNames={{
         wrapper: "shadow-neo",
         base: "border-2 border-black rounded-md",
-        backdrop: "bg-black/20 backdrop-blur-sm",
+        backdrop: "bg-black/20 backdrop-blur-xs",
         header: "border-b-2 border-black bg-white rounded-t-md text-black",
         body: "py-6 bg-white",
         footer: "border-t-2 border-black bg-white rounded-b-md",
@@ -142,7 +142,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
         <ModalBody className="text-black">
           <p className="text-base font-medium">
             Quick setup: we&apos;ll create a new Stripe account for you so you
-            can accept credit card payments from buyers on Milk Market.
+            can accept credit card payments from buyers on Self-sown.
           </p>
           <div className="mt-3">
             <Select

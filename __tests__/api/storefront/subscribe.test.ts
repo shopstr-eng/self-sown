@@ -13,7 +13,7 @@ import {
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
-import { parseSellerShopProfileEvent } from "@milk-market/domain";
+import { parseSellerShopProfileEvent } from "@self-sown/domain";
 
 jest.mock("@/utils/db/db-service", () => ({
   fetchShopProfileByPubkeyFromDb: jest.fn(),
@@ -31,7 +31,7 @@ jest.mock("@/utils/rate-limit", () => ({
 jest.mock("@/utils/pro/membership", () => ({
   isPubkeyProEntitled: jest.fn(),
 }));
-jest.mock("@milk-market/domain", () => ({
+jest.mock("@self-sown/domain", () => ({
   parseSellerShopProfileEvent: jest.fn(),
 }));
 

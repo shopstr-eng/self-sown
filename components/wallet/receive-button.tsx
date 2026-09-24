@@ -148,7 +148,7 @@ const ReceiveButton = () => {
           onClose={handleToggleReceiveModal}
           classNames={{
             body: "py-6 bg-white",
-            backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+            backdrop: "bg-black/50 backdrop-opacity-60",
             header: "border-b-4 border-black bg-white rounded-t-md",
             footer: "border-t-4 border-black bg-white rounded-b-md",
             closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -208,7 +208,7 @@ const ReceiveButton = () => {
                 />
                 {signer instanceof NostrNIP46Signer && (
                   <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
-                    <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                    <InformationCircleIcon className="h-6 w-6 shrink-0 text-black" />
                     <p className="ml-2 text-xs text-black">
                       If the token is taking a while to be received, make sure
                       to check your bunker application to approve the
@@ -243,7 +243,7 @@ const ReceiveButton = () => {
             onClose={() => setIsClaimed(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -262,7 +262,7 @@ const ReceiveButton = () => {
               </ModalHeader>
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  Your Milk Market wallet balance should now be updated.
+                  Your Self-sown wallet balance should now be updated.
                 </div>
               </ModalBody>
             </ModalContent>
@@ -277,7 +277,7 @@ const ReceiveButton = () => {
             onClose={() => setIsDuplicateToken(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -296,8 +296,8 @@ const ReceiveButton = () => {
               </ModalHeader>
               <ModalBody className="flex flex-col overflow-hidden text-black">
                 <div className="flex items-center justify-center">
-                  The token you are trying to claim is already in your Milk
-                  Market wallet.
+                  The token you are trying to claim is already in your Self-sown
+                  wallet.
                 </div>
               </ModalBody>
             </ModalContent>
@@ -312,7 +312,7 @@ const ReceiveButton = () => {
             onClose={() => setIsInvalidToken(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -346,7 +346,7 @@ const ReceiveButton = () => {
             onClose={() => setIsSpent(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",

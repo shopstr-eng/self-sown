@@ -37,7 +37,7 @@ Seller-managed affiliate links and codes that work for both Stripe and Bitcoin/C
 
 - `components/market/affiliates.tsx` — seller dashboard (Affiliates / Codes / Balances / Payouts).
 - `pages/affiliate/[token].tsx` — affiliate self-service. Per-currency pending/ready/paid balances, recent payouts, paused-state warning.
-- `components/utility-components/affiliate-ref-tracker.tsx` (mounted in `_app.tsx`) — on `?ref=CODE` URL stores code in 30-day `mm_aff_ref` cookie. Cookie is JSON map keyed by seller pubkey (with `*` wildcard) so codes don't bleed across sellers. `?ref_seller=PUBKEY` binds explicitly. Click POST is at-most-once per session.
+- `components/utility-components/affiliate-ref-tracker.tsx` (mounted in `_app.tsx`) — on `?ref=CODE` URL stores code in 30-day `ss_aff_ref` cookie. Cookie is JSON map keyed by seller pubkey (with `*` wildcard) so codes don't bleed across sellers. `?ref_seller=PUBKEY` binds explicitly. Click POST is at-most-once per session.
 - `pages/cart/index.tsx` calls `getAffiliateRefCookie(sellerPubkey)` per seller and validates against `/api/affiliates/validate`.
 - `cart-invoice-card.tsx` passes affiliate fields into payment-intent + per-seller splits. Cashu success POSTs `/api/affiliates/record-referral`; Stripe success no longer does (process-transfers + webhook are authoritative).
 

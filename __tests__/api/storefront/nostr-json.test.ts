@@ -95,7 +95,7 @@ describe("/api/storefront/nostr-json", () => {
     const res = createResponse();
 
     await handler(
-      makeRequest({ headers: { "x-mm-custom-domain-host": "farm.example" } }),
+      makeRequest({ headers: { "x-ss-custom-domain-host": "farm.example" } }),
       res
     );
 
@@ -116,7 +116,7 @@ describe("/api/storefront/nostr-json", () => {
 
     await handler(
       makeRequest({
-        headers: { "x-mm-custom-domain-host": "farm.example:443" },
+        headers: { "x-ss-custom-domain-host": "farm.example:443" },
       }),
       res
     );
@@ -133,7 +133,7 @@ describe("/api/storefront/nostr-json", () => {
     const res = createResponse();
 
     await handler(
-      makeRequest({ headers: { "x-mm-custom-domain-host": "forest.example" } }),
+      makeRequest({ headers: { "x-ss-custom-domain-host": "forest.example" } }),
       res
     );
 
@@ -150,7 +150,7 @@ describe("/api/storefront/nostr-json", () => {
     await handler(
       makeRequest({
         query: { name: "FARMSTAND" },
-        headers: { "x-mm-custom-domain-host": "farm.example" },
+        headers: { "x-ss-custom-domain-host": "farm.example" },
       }),
       res
     );
@@ -166,7 +166,7 @@ describe("/api/storefront/nostr-json", () => {
     await handler(
       makeRequest({
         query: { name: "someoneelse" },
-        headers: { "x-mm-custom-domain-host": "farm.example" },
+        headers: { "x-ss-custom-domain-host": "farm.example" },
       }),
       res
     );
@@ -180,7 +180,7 @@ describe("/api/storefront/nostr-json", () => {
     const res = createResponse();
 
     await handler(
-      makeRequest({ headers: { "x-mm-custom-domain-host": "lapsed.example" } }),
+      makeRequest({ headers: { "x-ss-custom-domain-host": "lapsed.example" } }),
       res
     );
 
@@ -188,11 +188,11 @@ describe("/api/storefront/nostr-json", () => {
     expect(mockedFetchCachedEvents).not.toHaveBeenCalled();
   });
 
-  it("ignores a forged x-mm-shop-pubkey header (no domain => empty names)", async () => {
+  it("ignores a forged x-ss-shop-pubkey header (no domain => empty names)", async () => {
     const res = createResponse();
 
     await handler(
-      makeRequest({ headers: { "x-mm-shop-pubkey": "f".repeat(64) } }),
+      makeRequest({ headers: { "x-ss-shop-pubkey": "f".repeat(64) } }),
       res
     );
 
@@ -208,7 +208,7 @@ describe("/api/storefront/nostr-json", () => {
 
     await handler(
       makeRequest({
-        headers: { "x-mm-custom-domain-host": "unknown.example" },
+        headers: { "x-ss-custom-domain-host": "unknown.example" },
       }),
       res
     );
@@ -224,7 +224,7 @@ describe("/api/storefront/nostr-json", () => {
     const res = createResponse();
 
     await handler(
-      makeRequest({ headers: { "x-mm-custom-domain-host": "farm.example" } }),
+      makeRequest({ headers: { "x-ss-custom-domain-host": "farm.example" } }),
       res
     );
 
@@ -258,7 +258,7 @@ describe("/api/storefront/nostr-json", () => {
     const res = createResponse();
 
     await handler(
-      makeRequest({ headers: { "x-mm-custom-domain-host": "farm.example" } }),
+      makeRequest({ headers: { "x-ss-custom-domain-host": "farm.example" } }),
       res
     );
 

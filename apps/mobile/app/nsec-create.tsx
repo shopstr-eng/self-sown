@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   createSellerSessionFromNsec,
   generateSellerNsecCredentials,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 import {
   ActionButton,

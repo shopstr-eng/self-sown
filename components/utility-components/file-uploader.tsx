@@ -14,6 +14,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_STRIP_SIZE = 25 * 1024 * 1024;
@@ -431,7 +432,10 @@ export const FileUploaderButton = ({
 
   const wrapperClassName = containerClassName
     ? `flex w-fit flex-col gap-4 ${containerClassName}`
-    : `flex flex-col gap-4 ${isPlaceholder || isProductUpload ? "w-full" : ""}`;
+    : joinClassNames(
+        "flex flex-col gap-4",
+        isPlaceholder || isProductUpload ? "w-full" : ""
+      );
 
   return (
     <div className={wrapperClassName}>
@@ -443,25 +447,25 @@ export const FileUploaderButton = ({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative transition-all duration-300 ${
+        className={joinClassNames(
+          "relative transition-all duration-300",
           isPlaceholder
             ? "flex h-full min-h-[250px] w-full items-center justify-center rounded-md border-2 border-dashed border-black p-6"
             : isProductUpload
-              ? "w-full" +
-                (!isDragging
-                  ? " border-2 border-dashed border-transparent"
-                  : "")
-              : !isDragging
-                ? "border-2 border-dashed border-transparent"
-                : ""
-        }`}
+              ? "w-full"
+              : "",
+          !isPlaceholder &&
+            !isDragging &&
+            "border-2 border-dashed border-transparent"
+        )}
       >
         {/* Drag overlay or placeholder state */}
         {(isDragging || isPlaceholder) && (
           <motion.div
-            className={`${
-              !isPlaceholder && "absolute inset-0"
-            } z-10 flex flex-col items-center justify-center rounded-xl`}
+            className={joinClassNames(
+              !isPlaceholder && "absolute inset-0",
+              "z-10 flex flex-col items-center justify-center rounded-xl"
+            )}
             initial={{ opacity: isPlaceholder ? 1 : 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -495,9 +499,12 @@ export const FileUploaderButton = ({
             onClick={handleClick}
             isIconOnly={isIconOnly || loading}
             disabled={disabled || loading}
-            className={`${PRIMARYBUTTONCLASSNAMES} ${
-              isProductUpload ? "w-full" : ""
-            } ${className} transition-all`}
+            className={joinClassNames(
+              PRIMARYBUTTONCLASSNAMES,
+              isProductUpload ? "w-full" : "",
+              className,
+              "transition-all"
+            )}
             startContent={
               loading ? undefined : (
                 <motion.div
@@ -579,7 +586,7 @@ export const FileUploaderButton = ({
             exit={{ opacity: 0, y: -10 }}
             className="flex items-center gap-2 rounded-lg border border-red-300 bg-red-50 p-3"
           >
-            <XCircleIcon className="h-5 w-5 flex-shrink-0 text-red-500" />
+            <XCircleIcon className="h-5 w-5 shrink-0 text-red-500" />
             <span className="flex-1 text-sm text-red-700">{failureText}</span>
             <button
               type="button"
@@ -587,7 +594,7 @@ export const FileUploaderButton = ({
                 setShowFailureModal(false);
                 setFailureText("");
               }}
-              className="flex-shrink-0 rounded-full p-0.5 text-red-500 hover:bg-red-100"
+              className="shrink-0 rounded-full p-0.5 text-red-500 hover:bg-red-100"
             >
               <XMarkIcon className="h-4 w-4" />
             </button>

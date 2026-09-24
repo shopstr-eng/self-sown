@@ -42,7 +42,7 @@ import {
   buildStripeDisconnectProof,
 } from "@/utils/mcp/request-proof";
 import StripeConnectModal from "@/components/stripe-connect/StripeConnectModal";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import {
   STRIPE_CONNECT_COUNTRIES,
   COUNTRIES_WITH_REGIONAL_TAX,
@@ -54,6 +54,7 @@ import {
   disconnectSquare,
   type SquareConnectionStatus,
 } from "@/utils/square/client-api";
+import { joinClassNames } from "@/utils/class-names";
 
 interface AccountStatus {
   hasAccount: boolean;
@@ -200,7 +201,6 @@ const PaymentsSettingsPage = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pubkey, signer]);
 
   // Begin the Square OAuth flow: sign the proof, get the authorize URL, and
@@ -333,7 +333,7 @@ const PaymentsSettingsPage = () => {
     }
   };
 
-  // Unlink the seller's Stripe account from Milk Market so they can connect a
+  // Unlink the seller's Stripe account from Self-sown so they can connect a
   // different one. Leaves the account untouched at Stripe; only removes our link.
   const handleDisconnect = async () => {
     if (!pubkey || !signer?.sign) return;
@@ -504,13 +504,13 @@ const PaymentsSettingsPage = () => {
           </p>
 
           {loading || squareLoading ? (
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           ) : (
             <div className="shadow-neo space-y-4 rounded-md border-2 border-black bg-white p-5">
               {squareStatus?.connected ? (
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <BuildingStorefrontIcon className="text-primary-blue mt-0.5 h-6 w-6 flex-shrink-0" />
+                    <BuildingStorefrontIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
                     <div>
                       <p className="font-bold text-black">Square connected</p>
                       <p className="text-sm text-gray-700">
@@ -571,8 +571,8 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Square</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Square account from Milk Market, for example
-                      to switch to Stripe or a different Square account. Card
+                      Remove this Square account from Self-sown, for example to
+                      switch to Stripe or a different Square account. Card
                       payments will stop until you connect a processor again.
                       Your Square account itself isn&apos;t deleted.
                     </p>
@@ -598,7 +598,7 @@ const PaymentsSettingsPage = () => {
               ) : !status?.hasAccount ? (
                 <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <ExclamationTriangleIcon className="mt-0.5 h-6 w-6 flex-shrink-0 text-yellow-600" />
+                    <ExclamationTriangleIcon className="mt-0.5 h-6 w-6 shrink-0 text-yellow-600" />
                     <div>
                       <p className="font-bold text-black">
                         No card processor connected
@@ -628,7 +628,7 @@ const PaymentsSettingsPage = () => {
                         <p className="text-xs text-gray-600">
                           We create a Stripe account for you in a few minutes.
                           You manage payouts from a simplified dashboard without
-                          leaving Milk Market.
+                          leaving Self-sown.
                         </p>
                         <Button
                           className={BLUEBUTTONCLASSNAMES}
@@ -816,7 +816,7 @@ const PaymentsSettingsPage = () => {
                     <div className="space-y-3 border-t-2 border-black pt-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-2">
-                          <ReceiptPercentIcon className="text-primary-blue mt-0.5 h-6 w-6 flex-shrink-0" />
+                          <ReceiptPercentIcon className="text-primary-blue mt-0.5 h-6 w-6 shrink-0" />
                           <div>
                             <p className="font-bold text-black">Sales Tax</p>
                             <p className="text-sm text-gray-700">
@@ -842,7 +842,7 @@ const PaymentsSettingsPage = () => {
                       </div>
 
                       {taxLoading ? (
-                        <MilkMarketSpinner />
+                        <SelfSownSpinner />
                       ) : (
                         taxStatus?.taxEnabled && (
                           <div className="space-y-3">
@@ -975,12 +975,11 @@ const PaymentsSettingsPage = () => {
                   <div className="space-y-2 border-t-2 border-black pt-4">
                     <p className="font-bold text-black">Disconnect Stripe</p>
                     <p className="text-sm text-gray-700">
-                      Remove this Stripe account from Milk Market, for example
-                      if you need to switch to a different account or fix a
-                      broken connection. Card payments will stop until you
-                      connect an account again. Your Stripe account itself
-                      isn&apos;t deleted; you can still manage or close it from
-                      Stripe.
+                      Remove this Stripe account from Self-sown, for example if
+                      you need to switch to a different account or fix a broken
+                      connection. Card payments will stop until you connect an
+                      account again. Your Stripe account itself isn&apos;t
+                      deleted; you can still manage or close it from Stripe.
                     </p>
                     <Button
                       className={`${DANGERBUTTONCLASSNAMES} mt-1`}
@@ -1028,7 +1027,7 @@ const PaymentsSettingsPage = () => {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white",
@@ -1047,7 +1046,7 @@ const PaymentsSettingsPage = () => {
               </ModalHeader>
               <ModalBody className="text-black">
                 <p className="text-sm">
-                  This removes your Stripe account from Milk Market. You
+                  This removes your Stripe account from Self-sown. You
                   won&apos;t be able to accept card payments until you connect
                   an account again, and you&apos;ll need to re-enter any sales
                   tax settings on the new account.
@@ -1089,7 +1088,7 @@ const PaymentsSettingsPage = () => {
             classNames={{
               wrapper: "shadow-neo",
               base: "border-2 border-black rounded-md",
-              backdrop: "bg-black/20 backdrop-blur-sm",
+              backdrop: "bg-black/20 backdrop-blur-xs",
               header:
                 "border-b-2 border-black bg-white rounded-t-md text-black",
               body: "py-6 bg-white",
@@ -1108,7 +1107,7 @@ const PaymentsSettingsPage = () => {
               </ModalHeader>
               <ModalBody className="text-black">
                 <p className="text-sm">
-                  This removes your Square account from Milk Market. You
+                  This removes your Square account from Self-sown. You
                   won&apos;t be able to accept card payments until you connect a
                   processor again.
                 </p>
@@ -1149,9 +1148,10 @@ const PaymentsSettingsPage = () => {
 
 const StatusPill = ({ label, ok }: { label: string; ok: boolean }) => (
   <div
-    className={`flex items-center gap-2 rounded-md border-2 border-black p-2 text-sm font-bold ${
+    className={joinClassNames(
+      "flex items-center gap-2 rounded-md border-2 border-black p-2 text-sm font-bold",
       ok ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"
-    }`}
+    )}
   >
     {ok ? (
       <CheckCircleIcon className="h-5 w-5 text-green-700" />

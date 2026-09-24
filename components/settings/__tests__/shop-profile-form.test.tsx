@@ -40,7 +40,7 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
   ),
 }));
 
-jest.mock("@/components/utility-components/mm-spinner", () => () => null);
+jest.mock("@/components/utility-components/ss-spinner", () => () => null);
 
 jest.mock("../storefront/storefront-preview-panel", () => () => null);
 

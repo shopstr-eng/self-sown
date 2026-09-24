@@ -37,14 +37,20 @@ export default async function handler(
       return res.status(400).json({ error: "code and state are required" });
     }
 
-    const pubkey = await consumeShippoOAuthState(state);
-    if (!pubkey) {
+    const bound = await consumeShippoOAuthState(state);
+    if (!bound) {
       return res
         .status(400)
         .json({ error: "Invalid or expired authorization state" });
     }
+    const pubkey = bound.pubkey;
 
-    const token = await exchangeShippoCodeForToken(code);
+    // Replay the authorize-time redirect URI (cutover continuity — see the
+    // Square callback).
+    const token = await exchangeShippoCodeForToken(
+      code,
+      bound.redirectUri ?? undefined
+    );
     await upsertShippoConnection({
       pubkey,
       accessToken: token.accessToken,

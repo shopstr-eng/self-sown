@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Input, Button } from "@heroui/react";
 import { copyToClipboard } from "@/utils/clipboard";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import { joinClassNames } from "@/utils/class-names";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 
 type ContactSource = "popup" | "subscription";
 
@@ -174,11 +175,12 @@ export default function ContactsDashboard({
               key={value}
               type="button"
               onClick={() => setSourceFilter(value)}
-              className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors ${
+              className={joinClassNames(
+                "rounded-full border-2 px-3 py-1 text-xs font-medium transition-colors",
                 sourceFilter === value
                   ? "border-black bg-black text-white"
                   : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              }`}
+              )}
             >
               {label}
             </button>
@@ -254,7 +256,7 @@ export default function ContactsDashboard({
 
         {loading && contacts === null ? (
           <div className="flex justify-center py-16">
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           </div>
         ) : !filtered.length ? (
           <EmptyState
@@ -299,11 +301,12 @@ export default function ContactsDashboard({
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        className={joinClassNames(
+                          "rounded-full px-2 py-0.5 text-xs font-medium",
                           c.source === "subscription"
                             ? "bg-blue-50 text-blue-700"
                             : "bg-purple-50 text-purple-700"
-                        }`}
+                        )}
                       >
                         {sourceLabel(c.source)}
                       </span>

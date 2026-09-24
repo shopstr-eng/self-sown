@@ -32,7 +32,8 @@ import {
   signNostrBlogPost,
   deleteEvent,
 } from "@/utils/nostr/nostr-helper-functions";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
+import { joinClassNames } from "@/utils/class-names";
 import {
   BLOG_POST_KIND,
   parseBlogPostEvent,
@@ -41,7 +42,7 @@ import {
   type BlogPost,
   type BlogPostDraft,
   type ScheduledBlogPost,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 const BROADCAST_PATH = "/api/email/broadcast-blog-post";
 const SCHEDULED_POST_PATH = "/api/storefront/blog/scheduled-post";
@@ -711,13 +712,13 @@ const BlogSettingsPage = () => {
     <>
       {error && (
         <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-red-100 p-3 text-red-700">
-          <ExclamationCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+          <ExclamationCircleIcon className="mr-2 h-5 w-5 shrink-0" />
           <span className="text-sm">{error}</span>
         </div>
       )}
       {successMessage && (
         <div className="shadow-neo mb-4 flex items-center rounded-md border-2 border-black bg-green-100 p-3 text-green-700">
-          <CheckCircleIcon className="mr-2 h-5 w-5 flex-shrink-0" />
+          <CheckCircleIcon className="mr-2 h-5 w-5 shrink-0" />
           <span className="text-sm">{successMessage}</span>
         </div>
       )}
@@ -946,7 +947,7 @@ const BlogSettingsPage = () => {
         {banner}
 
         <div className="shadow-neo mb-6 flex items-start gap-2 rounded-md border-2 border-black bg-gray-50 p-4">
-          <NewspaperIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600" />
+          <NewspaperIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
           <div className="text-sm text-gray-700">
             <p>
               Write blog posts that appear on your storefront. Posts are
@@ -976,19 +977,21 @@ const BlogSettingsPage = () => {
                   return (
                     <div
                       key={item.dTag}
-                      className={`shadow-neo rounded-md border-2 border-black p-4 ${
+                      className={joinClassNames(
+                        "shadow-neo rounded-md border-2 border-black p-4",
                         health === "failed" ? "bg-red-50" : "bg-yellow-50"
-                      }`}
+                      )}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <span
-                              className={`inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold ${
+                              className={joinClassNames(
+                                "inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold",
                                 item.status === "scheduled"
                                   ? "bg-blue-100 text-blue-800"
                                   : "bg-gray-100 text-gray-700"
-                              }`}
+                              )}
                             >
                               {item.status === "scheduled" ? (
                                 <ClockIcon className="h-3 w-3" />
@@ -1007,11 +1010,12 @@ const BlogSettingsPage = () => {
                             )}
                             {health && (
                               <span
-                                className={`inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold ${
+                                className={joinClassNames(
+                                  "inline-flex items-center gap-1 rounded border-2 border-black px-2 py-0.5 text-xs font-bold",
                                   health === "failed"
                                     ? "bg-red-200 text-red-900"
                                     : "bg-orange-100 text-orange-800"
-                                }`}
+                                )}
                               >
                                 <ExclamationCircleIcon className="h-3 w-3" />
                                 {health === "failed" ? "Failed" : "Retrying"}
@@ -1036,11 +1040,12 @@ const BlogSettingsPage = () => {
                           )}
                           {health && (
                             <p
-                              className={`mt-1 text-xs font-semibold ${
+                              className={joinClassNames(
+                                "mt-1 text-xs font-semibold",
                                 health === "failed"
                                   ? "text-red-700"
                                   : "text-orange-700"
-                              }`}
+                              )}
                             >
                               {health === "failed"
                                 ? `Couldn't publish after ${item.attemptCount} tries. `
@@ -1052,7 +1057,7 @@ const BlogSettingsPage = () => {
                             </p>
                           )}
                         </div>
-                        <div className="flex flex-shrink-0 gap-2">
+                        <div className="flex shrink-0 gap-2">
                           <Button
                             className={BLUEBUTTONCLASSNAMES}
                             size="sm"
@@ -1138,7 +1143,7 @@ const BlogSettingsPage = () => {
                           ` · ${post.hashtags.map((h) => `#${h}`).join(" ")}`}
                       </p>
                     </div>
-                    <div className="flex flex-shrink-0 gap-2">
+                    <div className="flex shrink-0 gap-2">
                       {canEmail && (
                         <>
                           <select

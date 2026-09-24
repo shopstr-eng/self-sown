@@ -21,6 +21,7 @@ import {
   buildProductJsonLd,
   buildItemListJsonLd,
 } from "@/utils/geo/product-jsonld";
+import { SITE_URL } from "@/utils/site-url";
 import { UCP_BITCOIN_CURRENCY } from "@/utils/ucp/money";
 import type { UcpMoney } from "@/utils/ucp/money";
 import type { UcpProduct } from "@/utils/ucp/types";
@@ -63,7 +64,7 @@ function makeProduct(overrides: Partial<UcpProduct> = {}): UcpProduct {
     type: "product",
     title: "Raw Milk",
     description: "Fresh from the farm",
-    url: "https://milk.market/listing/raw-milk",
+    url: `${SITE_URL}/listing/raw-milk`,
     images: ["https://cdn.example/a.png"],
     price: usd(1200),
     categories: ["milk"],
@@ -121,7 +122,7 @@ describe("product structured-data: no duplicate Product node", () => {
       title: "Raw Milk",
       description: "Fresh from the farm",
       image: "https://cdn.example/a.png",
-      url: "https://milk.market/listing/raw-milk",
+      url: `${SITE_URL}/listing/raw-milk`,
       jsonLd: [buildProductJsonLd(makeProduct())],
     };
 
@@ -140,7 +141,7 @@ describe("product structured-data: no duplicate Product node", () => {
       title: "Raw Milk",
       description: "Fresh from the farm",
       image: "https://cdn.example/a.png",
-      url: "https://milk.market/listing/raw-milk",
+      url: `${SITE_URL}/listing/raw-milk`,
       jsonLd: [
         buildProductJsonLd(
           makeProduct({
@@ -161,17 +162,17 @@ describe("product structured-data: no duplicate Product node", () => {
 describe("stall structured-data: no duplicate ItemList node", () => {
   it("emits exactly one ItemList node plus the global Organization/WebSite", () => {
     const products = [
-      makeProduct({ url: "https://milk.market/listing/a", title: "A" }),
-      makeProduct({ url: "https://milk.market/listing/b", title: "B" }),
+      makeProduct({ url: `${SITE_URL}/listing/a`, title: "A" }),
+      makeProduct({ url: `${SITE_URL}/listing/b`, title: "B" }),
     ];
     const ssrOgMeta: OgMetaProps = {
       title: "Farm Stall",
       description: "Catalog",
       image: "https://cdn.example/a.png",
-      url: "https://milk.market/stall/farm",
+      url: `${SITE_URL}/stall/farm`,
       jsonLd: [
         buildItemListJsonLd(products, {
-          url: "https://milk.market/stall/farm",
+          url: `${SITE_URL}/stall/farm`,
           name: "Farm Stall",
         }),
       ],

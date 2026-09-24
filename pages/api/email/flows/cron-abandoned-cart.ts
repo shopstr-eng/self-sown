@@ -8,6 +8,7 @@ import {
   getFlowEnrollments,
 } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { getSiteUrl } from "@/utils/site-url";
 
 export default async function handler(
   req: NextApiRequest,
@@ -90,13 +91,12 @@ export default async function handler(
           cartItemsSummary = "";
         }
 
-        const baseUrl =
-          process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+        const baseUrl = getSiteUrl();
 
         const enrollmentData = {
           buyer_name: "",
           product_title: cartItemsSummary || "your creamy goodness",
-          shop_name: activeFlow.from_name || "Milk Market",
+          shop_name: activeFlow.from_name || "Self-sown",
           shop_url: `${baseUrl}/${cart.seller_pubkey}`,
         };
 

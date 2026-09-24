@@ -72,7 +72,7 @@ export default async function handler(
     res.setHeader("Content-Type", "application/zip");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="milk-market-self-host-${fileSlug}.zip"`
+      `attachment; filename="self-sown-self-host-${fileSlug}.zip"`
     );
     res.setHeader("Content-Length", String(zip.length));
     res.setHeader("Cache-Control", "no-store");

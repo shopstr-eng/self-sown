@@ -10,7 +10,7 @@
 // subscription lives on the platform account and splits via transfers).
 
 const PLATFORM_PK = "c".repeat(64);
-process.env.NEXT_PUBLIC_MILK_MARKET_PK = PLATFORM_PK;
+process.env.NEXT_PUBLIC_SELF_SOWN_PK = PLATFORM_PK;
 
 const mockCustomersList = jest.fn();
 const mockCustomersCreate = jest.fn();
@@ -19,6 +19,8 @@ const mockPricesCreate = jest.fn();
 const mockSubscriptionsCreate = jest.fn();
 const mockInvoiceItemsCreate = jest.fn();
 const mockCouponsCreate = jest.fn();
+const mockInvoicePaymentsList = jest.fn();
+const mockPaymentIntentsRetrieve = jest.fn();
 
 // Apple Pay now checks seller-owned domains. Domain registration is outside
 // these subscription persistence tests; do not open a real DB at import time.
@@ -41,6 +43,12 @@ jest.mock("stripe", () => {
       create: (...args: any[]) => mockInvoiceItemsCreate(...args),
     },
     coupons: { create: (...args: any[]) => mockCouponsCreate(...args) },
+    invoicePayments: {
+      list: (...args: any[]) => mockInvoicePaymentsList(...args),
+    },
+    paymentIntents: {
+      retrieve: (...args: any[]) => mockPaymentIntentsRetrieve(...args),
+    },
   }));
   return { __esModule: true, default: Stripe };
 });
@@ -52,6 +60,11 @@ jest.mock("@/utils/db/db-service", () => ({
   getStripeConnectAccount: (...args: any[]) =>
     mockGetStripeConnectAccount(...args),
   createSubscription: (...args: any[]) => mockCreateSubscription(...args),
+  // utils/stripe/apple-pay.ts → utils/db/custom-domains.ts calls getDbPool()
+  // at module scope; without this the suite dies at import time. The pool is
+  // never queried here (requests carry no Host header, so the Apple Pay
+  // trusted-host check returns null before any domain lookup).
+  getDbPool: jest.fn(() => ({ query: jest.fn() })),
 }));
 
 jest.mock("@/utils/rate-limit", () => ({
@@ -66,7 +79,7 @@ jest.mock("@/utils/stripe/retry-service", () => ({
 jest.mock("@/utils/stripe/donation", () => ({
   getSellerDonationPercent: jest.fn(async () => null),
   isPlatformPubkey: jest.fn(
-    (pk: string) => pk === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    (pk: string) => pk === process.env.NEXT_PUBLIC_SELF_SOWN_PK
   ),
   computeDonationCutSmallest: jest.fn(() => 0),
 }));
@@ -87,6 +100,16 @@ jest.mock("@/utils/db/affiliates", () => ({
   isAffiliateCodeValid: jest.fn(async () => false),
   isSelfReferral: jest.fn(() => false),
   lookupAffiliateCode: jest.fn(async () => null),
+}));
+
+jest.mock("@/utils/stripe/pending-payments", () => ({
+  recordPendingPayment: jest.fn(async () => ({
+    created: true,
+    claimToken: "tok_stamp",
+  })),
+  reclaimPendingPayment: jest.fn(async () => null),
+  updatePendingPayment: jest.fn(async () => undefined),
+  getPendingPayment: jest.fn(async () => null),
 }));
 
 import createSubscriptionHandler from "@/pages/api/stripe/create-subscription";
@@ -124,9 +147,19 @@ beforeEach(() => {
   mockPricesCreate.mockResolvedValue({ id: "price_1" });
   mockSubscriptionsCreate.mockResolvedValue({
     id: "sub_1",
-    status: "active",
+    status: "incomplete",
     current_period_end: 1893456000,
-    latest_invoice: { payment_intent: { client_secret: "pi_secret" } },
+    // Clover (Basil family) shape: NO top-level payment_intent on the
+    // invoice — the route must resolve the PI via invoicePayments +
+    // paymentIntents.retrieve or the buyer's card form never renders.
+    latest_invoice: { id: "in_1" },
+  });
+  mockInvoicePaymentsList.mockResolvedValue({
+    data: [{ payment: { payment_intent: "pi_1" } }],
+  });
+  mockPaymentIntentsRetrieve.mockResolvedValue({
+    id: "pi_1",
+    client_secret: "pi_secret",
   });
   mockInvoiceItemsCreate.mockResolvedValue({ id: "ii_1" });
   mockCouponsCreate.mockResolvedValue({ id: "coupon_1" });
@@ -185,6 +218,58 @@ describe("POST /api/stripe/create-subscription — connected_account_id stamping
       expect.objectContaining({ connected_account_id: null })
     );
   });
+
+  it("resolves the buyer's clientSecret via invoicePayments on the clover invoice shape", async () => {
+    // #453: apiVersion 2025-09-30.clover (Basil family) removed
+    // Invoice.payment_intent, so expand:["latest_invoice.payment_intent"]
+    // silently yields nothing — the buyer's card form is gated on this
+    // secret, and a null here means the form never renders. The default
+    // fixture above is the clover shape.
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: CONNECT_ACCOUNT,
+      charges_enabled: true,
+    });
+
+    const res = makeRes();
+    await createSubscriptionHandler(makeReq(singleBody), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientSecret).toBe("pi_secret");
+    // Direct charge on the connected account — the PI lookup must carry
+    // the same stripeAccount header as the subscription create.
+    expect(mockInvoicePaymentsList).toHaveBeenCalledWith(
+      { invoice: "in_1", limit: 10 },
+      { stripeAccount: CONNECT_ACCOUNT }
+    );
+    expect(mockPaymentIntentsRetrieve).toHaveBeenCalledWith(
+      "pi_1",
+      {},
+      { stripeAccount: CONNECT_ACCOUNT }
+    );
+  });
+
+  it("still resolves the pre-Basil expanded shape without the invoicePayments fallback", async () => {
+    // If the API version pin ever rolls back, the expanded
+    // latest_invoice.payment_intent must be used directly — the extra calls
+    // must NOT fire (and nothing may 500 on their absence).
+    mockSubscriptionsCreate.mockResolvedValue({
+      id: "sub_1",
+      status: "incomplete",
+      current_period_end: 1893456000,
+      latest_invoice: {
+        id: "in_1",
+        payment_intent: { id: "pi_1", client_secret: "pi_secret" },
+      },
+    });
+
+    const res = makeRes();
+    await createSubscriptionHandler(makeReq(singleBody), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.clientSecret).toBe("pi_secret");
+    expect(mockInvoicePaymentsList).not.toHaveBeenCalled();
+    expect(mockPaymentIntentsRetrieve).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/stripe/create-cart-subscription — connected_account_id stamping", () => {
@@ -220,6 +305,32 @@ describe("POST /api/stripe/create-cart-subscription — connected_account_id sta
     );
   });
 
+  it("a 100% donation on a single-seller cart is honored — the application fee is not collapsed to zero", async () => {
+    mockGetStripeConnectAccount.mockResolvedValue({
+      stripe_account_id: CONNECT_ACCOUNT,
+      charges_enabled: true,
+    });
+    const donation = jest.requireMock("@/utils/stripe/donation");
+    (donation.getSellerDonationPercent as jest.Mock).mockResolvedValue(100);
+
+    const res = makeRes();
+    await createCartSubscriptionHandler(
+      makeReq({
+        customerEmail: "buyer@example.com",
+        items: [cartItem(SELLER_PK, "evt_item_1")],
+      }),
+      res
+    );
+
+    expect(res.statusCode).toBe(200);
+    // 100% is UI-supported: the platform donation must take the whole
+    // recurring amount — collapsing it to 0% would pay the seller in full.
+    expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ application_fee_percent: 100 }),
+      expect.anything()
+    );
+  });
+
   it("multi-merchant cart stamps null — the subscription lives on the platform account", async () => {
     mockGetStripeConnectAccount.mockImplementation(async (pk: string) => ({
       stripe_account_id: `acct_${pk.slice(0, 4)}`,
@@ -230,6 +341,9 @@ describe("POST /api/stripe/create-cart-subscription — connected_account_id sta
     await createCartSubscriptionHandler(
       makeReq({
         customerEmail: "buyer@example.com",
+        // Multi-seller recurring carts require a signed-in buyer (the whole-
+        // subscription lifecycle is buyer-only; a guest could never manage it).
+        buyerPubkey: "e".repeat(64),
         items: [
           cartItem(SELLER_PK, "evt_item_1"),
           cartItem(SELLER2_PK, "evt_item_2"),

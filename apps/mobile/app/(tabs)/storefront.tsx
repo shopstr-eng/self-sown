@@ -10,12 +10,12 @@ import {
   type StorefrontBasicsDraft,
   type StorefrontBasicsValidationErrors,
   type StorefrontSlugState,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   createSignedSellerActionAuthEvent,
   createSignedStorefrontSlugAuthEvent,
   publishSellerShopProfile,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 import {
   ActionButton,
@@ -377,7 +377,7 @@ export default function StorefrontScreen() {
           label="Stall name"
           value={draft.shopName}
           onChangeText={(value) => handleFieldChange("shopName", value)}
-          placeholder="Milk Market Farm"
+          placeholder="Self-sown Farm"
           error={errors.shopName}
         />
         <SellerField
@@ -403,7 +403,7 @@ export default function StorefrontScreen() {
           label="Stall slug"
           value={draft.shopSlug}
           onChangeText={(value) => handleFieldChange("shopSlug", value)}
-          placeholder="milk-market-farm"
+          placeholder="self-sown-farm"
           autoCapitalize="none"
           error={errors.shopSlug || slugState.error}
         />

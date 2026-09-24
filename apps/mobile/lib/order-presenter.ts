@@ -2,7 +2,7 @@ import {
   getNextSellerOrderStatus,
   type SellerOrder,
   type SellerOrderStatus,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export type SellerOrderFilter = "all" | SellerOrderStatus;
 

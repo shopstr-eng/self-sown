@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getPageContent } from "@/utils/geo/page-content";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { sendAgentError } from "@/utils/api/agent-error";
+import { getSiteUrl } from "@/utils/site-url";
 
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
@@ -61,6 +62,7 @@ export default async function handler(
   }
 
   if (format === "json") {
+    const siteUrl = getSiteUrl();
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     return res.status(200).json({
       path,
@@ -68,9 +70,9 @@ export default async function handler(
       description: content.description,
       content: content.markdown,
       links: {
-        html: `https://milk.market${path}`,
-        llms: "https://milk.market/llms.txt",
-        skill: "https://milk.market/skill.md",
+        html: `${siteUrl}${path}`,
+        llms: `${siteUrl}/llms.txt`,
+        skill: `${siteUrl}/skill.md`,
       },
     });
   }

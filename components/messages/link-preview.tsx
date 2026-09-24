@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { joinClassNames } from "@/utils/class-names";
 
 type OGData = {
   title?: string;
@@ -61,11 +62,12 @@ const LinkPreview = ({
     hostname = new URL(url).hostname.replace(/^www\./, "");
   } catch {}
 
-  const linkClass = `underline ${
+  const linkClass = joinClassNames(
+    "underline",
     isUserMessage
       ? "text-white/90 hover:text-white"
       : "text-primary-yellow hover:text-yellow-400"
-  }`;
+  );
 
   if (status === "loading" || status === "link") {
     return (
@@ -86,9 +88,10 @@ const LinkPreview = ({
       href={getSafePreviewHref(ogData?.url, url)}
       target="_blank"
       rel="noopener noreferrer"
-      className={`shadow-neo mt-1 block overflow-hidden rounded-md border-2 border-black no-underline transition-opacity hover:opacity-80 ${
+      className={joinClassNames(
+        "shadow-neo mt-1 block overflow-hidden rounded-md border-2 border-black no-underline transition-opacity hover:opacity-80",
         isUserMessage ? "border-white/30 bg-white/10" : "border-black bg-white"
-      }`}
+      )}
       onClick={(e) => e.stopPropagation()}
     >
       {ogData?.image && (
@@ -104,26 +107,29 @@ const LinkPreview = ({
       <div className="p-2">
         {ogData?.title && (
           <p
-            className={`truncate text-sm font-semibold ${
+            className={joinClassNames(
+              "truncate text-sm font-semibold",
               isUserMessage ? "text-white" : "text-black"
-            }`}
+            )}
           >
             {ogData.title}
           </p>
         )}
         {ogData?.description && (
           <p
-            className={`mt-0.5 line-clamp-2 text-xs ${
+            className={joinClassNames(
+              "mt-0.5 line-clamp-2 text-xs",
               isUserMessage ? "text-white/70" : "text-gray-600"
-            }`}
+            )}
           >
             {ogData.description}
           </p>
         )}
         <p
-          className={`mt-1 truncate text-xs ${
+          className={joinClassNames(
+            "mt-1 truncate text-xs",
             isUserMessage ? "text-white/50" : "text-gray-400"
-          }`}
+          )}
         >
           {hostname}
         </p>

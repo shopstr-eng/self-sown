@@ -631,7 +631,7 @@ export default function FooterEditor({
             onChange({ ...footer, showPoweredBy: e.target.checked })
           }
         />
-        Show &quot;Powered by Milk Market&quot;
+        Show &quot;Powered by Self-sown&quot;
       </label>
     </div>
   );

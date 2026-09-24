@@ -14,6 +14,7 @@ import {
   createNip98AuthorizationHeader,
   verifyNip98Request,
 } from "@/utils/nostr/nip98-auth";
+import { SITE_URL } from "@/utils/site-url";
 
 function buildAuthHeader(event: Record<string, unknown>): string {
   return `Nostr ${Buffer.from(JSON.stringify(event), "utf-8").toString(
@@ -35,7 +36,7 @@ describe("verifyNip98Request", () => {
         kind: 27235,
         created_at: 1710000000,
         tags: [
-          ["u", "https://milk.market/api?note=€"],
+          ["u", `${SITE_URL}/api?note=€`],
           ["method", "GET"],
         ],
         content: "🥛",
@@ -45,7 +46,7 @@ describe("verifyNip98Request", () => {
 
     const header = await createNip98AuthorizationHeader(
       signer,
-      "https://milk.market/api?note=€",
+      `${SITE_URL}/api?note=€`,
       "GET"
     );
 

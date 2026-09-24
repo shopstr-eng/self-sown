@@ -5,7 +5,7 @@ import { sanitizeStorefrontSectionLink } from "@/utils/storefront-links";
 import { safeCssColor as safeColor } from "./section-style";
 import SectionElementFlow, {
   SectionButtons,
-  headingSizeClass,
+  headingClassName,
   bodySizeClass,
   buttonLabelColor,
 } from "./section-elements";
@@ -87,10 +87,11 @@ export default function SectionHero({
               <FormattedText
                 text={section.heading || shopName}
                 as="h1"
-                className={`font-heading ${headingSizeClass(
+                className={`font-heading ${headingClassName(
                   section,
-                  "text-4xl"
-                )} font-bold${section.headingSize ? "" : "md:text-5xl"}`}
+                  "text-4xl",
+                  "md:text-5xl"
+                )}`}
                 style={{ color: headingColor, ...headingOutlineStyle }}
               />
             ),

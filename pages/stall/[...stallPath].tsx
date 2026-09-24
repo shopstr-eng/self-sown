@@ -5,7 +5,7 @@ import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
 import ThemedStallOrders from "@/components/storefront/themed-stall-orders";
 import ThemedBlog from "@/components/storefront/themed-blog";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { matchShopSlug } from "@/utils/storefront/match-shop-slug";
 import { GetServerSideProps } from "next";
@@ -16,7 +16,7 @@ import {
   fetchProfileByPubkeyFromDb,
   fetchBlogPostsByPubkeyFromDb,
 } from "@/utils/db/db-service";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { findBlogPostBySlug } from "@/utils/url-slugs";
 import { eventToBlogOgMeta } from "@/utils/og/blog-og";
 import {
@@ -25,6 +25,16 @@ import {
 } from "@/utils/storefront/stall-branding";
 import { getMembershipView } from "@/utils/pro/membership";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
+import { SITE_URL } from "@/utils/site-url";
+import {
+  POLICY_SLUGS,
+  resolveStorefrontPolicy,
+} from "@/utils/storefront-policies";
+import {
+  STOREFRONT_BUILTIN_SUBPAGES,
+  STOREFRONT_GATED_SUBPAGES,
+} from "@/utils/storefront-links";
+import type { StorefrontPolicies } from "@/utils/types/types";
 
 type ShopSubPageProps = {
   ogMeta: OgMetaProps;
@@ -32,7 +42,7 @@ type ShopSubPageProps = {
   ssrShopName: string;
   ssrShopAbout: string;
   ssrStoreUrl: string;
-  ssrBlogPosts: import("@milk-market/domain").BlogPost[] | null;
+  ssrBlogPosts: import("@self-sown/domain").BlogPost[] | null;
 };
 
 export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
@@ -44,17 +54,15 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
 
   // Resolve canonical stall root URL (same logic as [slug].tsx) so structured
   // data on sub-pages uses the correct origin on custom domains.
-  const rawHost = context.req.headers["x-mm-custom-domain-host"];
+  const rawHost = context.req.headers["x-ss-custom-domain-host"];
   const customHost = (typeof rawHost === "string" ? rawHost : "")
     .toLowerCase()
     .trim()
     .replace(/:\d+$/, "");
-  const rawOriginalPath = context.req.headers["x-mm-original-path"];
+  const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost
-    ? `https://${customHost}`
-    : "https://milk.market";
+  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
   const stallRootPath = customHost
     ? originalPath?.split("/").slice(0, 2).join("/") || "/"
     : `/stall/${slug}`;
@@ -120,21 +128,62 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
         } catch {}
       }
 
-      // Validate the subPage server-side for non-built-in paths so unknown
-      // /stall/<slug>/<anything> routes return a real 404 instead of a soft one.
-      const BUILTIN_SUBPAGES = new Set(["", "orders", "blog"]);
-      if (subPage && !BUILTIN_SUBPAGES.has(subPage)) {
-        let validCustomPage = false;
+      // Validate the subPage server-side so unknown /stall/<slug>/<anything>
+      // routes return a real 404 instead of a soft one. The allowlist must
+      // mirror what StorefrontLayout actually renders: the ungated built-ins
+      // (shared RESERVED set minus the gated pair), wallet/community only when
+      // the seller enabled their flags (renderer shows its own Not Found
+      // otherwise), policy slugs resolved exactly like the renderer
+      // (policies[key] || defaults[key], then require enabled), and custom
+      // pages NESTED at content.storefront.pages routed by SLUG only —
+      // matching top-level c.pages or p.id accepts routes the renderer can't
+      // render. Extra path segments beyond blog/<post> are never a route.
+      const hasExtraSegments = pathParts.length > (subPage === "blog" ? 3 : 2);
+      if (subPage && hasExtraSegments) {
+        return stallNotFound();
+      }
+      if (subPage && !STOREFRONT_BUILTIN_SUBPAGES.has(subPage)) {
+        let validSubPage = false;
         if (shopEvent) {
           try {
             const c = JSON.parse(shopEvent.content);
-            const pages = Array.isArray(c.pages) ? c.pages : [];
-            validCustomPage = pages.some(
-              (p: { id?: string }) => p.id === subPage
-            );
+            const raw =
+              c && typeof c.storefront === "object" && c.storefront
+                ? c.storefront
+                : {};
+            // The client strips all premium storefront config for non-Pro
+            // sellers (basicStorefront keeps only shopSlug/customDomain), so
+            // validate against the same effective config — otherwise SSR 200s
+            // routes the client renders as fallback sections or Not Found.
+            const sf = membership.isPro === true ? raw : {};
+            const gatedFlag = (
+              STOREFRONT_GATED_SUBPAGES as Record<string, string>
+            )[subPage];
+            if (gatedFlag) {
+              validSubPage = sf[gatedFlag] === true;
+            } else {
+              const policyKey = (
+                Object.keys(POLICY_SLUGS) as (keyof StorefrontPolicies)[]
+              ).find((k) => POLICY_SLUGS[k] === subPage);
+              if (policyKey) {
+                // Shared resolver, same truthiness as the renderer/footer:
+                // stored wins when present (truthy enabled), absent/null falls
+                // back to the default policy (enabled).
+                validSubPage = !!resolveStorefrontPolicy(
+                  sf.footer?.policies,
+                  policyKey,
+                  ssrShopName
+                );
+              } else {
+                const pages = Array.isArray(sf.pages) ? sf.pages : [];
+                validSubPage = pages.some(
+                  (p: { slug?: string }) => p?.slug === subPage
+                );
+              }
+            }
           } catch {}
         }
-        if (!validCustomPage) {
+        if (!validSubPage) {
           return stallNotFound();
         }
       }
@@ -178,8 +227,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
             // Blog index: seed with SSR posts so crawlers see archive links in
             // the first HTML response. The component routes this to ThemedBlog.
             const ogTitle = ssrShopName
-              ? `${ssrShopName} Blog | Milk Market`
-              : "Milk Market Stall Blog";
+              ? `${ssrShopName} Blog | Self-sown`
+              : "Self-sown Stall Blog";
             return {
               props: {
                 ogMeta: {
@@ -220,7 +269,7 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           : "";
         const title = branding.seo?.metaTitle
           ? `${branding.seo.metaTitle}${pageSuffix}`
-          : `${branding.shopName}${pageSuffix} | Milk Market`;
+          : `${branding.shopName}${pageSuffix} | Self-sown`;
 
         return {
           props: {
@@ -245,9 +294,9 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
           ogMeta: {
             ...DEFAULT_OG,
             title: ssrShopName
-              ? `${ssrShopName} | Milk Market`
-              : "Milk Market Stall",
-            description: ssrShopAbout || "Check out this shop on Milk Market!",
+              ? `${ssrShopName} | Self-sown`
+              : "Self-sown Stall",
+            description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${pathParts.join("/")}`,
           },
           shopPubkey: pubkey,
@@ -268,8 +317,8 @@ export const getServerSideProps: GetServerSideProps<ShopSubPageProps> = async (
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: `/stall/${pathParts.join("/")}`,
       },
       shopPubkey: "",
@@ -313,7 +362,7 @@ export default function ShopSubPage({
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center pt-20">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter, type Href } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 
-import { selectSellerListingSummaries } from "@milk-market/domain";
+import { selectSellerListingSummaries } from "@self-sown/domain";
 
 import {
   ActionButton,
@@ -184,7 +184,7 @@ export default function ListingsIndexScreen() {
       {!listings.length ? (
         <EmptyState
           title="No seller listings yet"
-          description="Create your first mobile listing to publish it through the shared Milk Market product event model."
+          description="Create your first mobile listing to publish it through the shared Self-sown product event model."
         />
       ) : (
         listings.map((listing) => (

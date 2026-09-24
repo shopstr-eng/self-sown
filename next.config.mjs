@@ -64,6 +64,8 @@ const withPWA = withPWAInit({
   },
 });
 
+const isDevBuild = process.env.SS_DEV_BUILD === "1";
+
 const nextConfig = {
   allowedDevOrigins: [
     "e9ba601a-36d6-4d29-ba29-e886d75befcb-00-o2i19us8bom3.picard.replit.dev",
@@ -82,13 +84,40 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   transpilePackages: [
-    "@milk-market/domain",
-    "@milk-market/nostr",
-    "@milk-market/api-client",
+    "@self-sown/domain",
+    "@self-sown/nostr",
+    "@self-sown/api-client",
   ],
   turbopack: {
     root: process.cwd(),
   },
+  // Memory-bounded build settings for the dev-workflow preview build only
+  // (SS_DEV_BUILD is set by scripts/dev-server.sh). Cold Turbopack production
+  // builds in this ~8GiB container kept getting SIGKILLed (exit 137):
+  //  - The build FS cache (default-on in 16.3.x) buffers cache serialization
+  //    in memory during the build — measured as the difference between a
+  //    passing cold build (~7.0GB) and a SIGKILL (~7.1GB). Warm rebuilds here
+  //    weren't faster anyway (every restart rebuilds fully), so no upside.
+  //  - Turbopack runs PostCSS/Babel loaders in a pool of child PROCESSES
+  //    (the "postcss worker" that dies mid-IPC); workerThreads runs the same
+  //    work in-process, using less memory and CPU.
+  //  - Static-generation workers default to nproc-1 child processes; cpus: 2
+  //    and workerThreads cap and share that memory instead.
+  //  - Production source maps cost hundreds of MB to emit and are useless in
+  //    the dev preview.
+  // Deploy builds (scripts/deploy-build.sh) do NOT set SS_DEV_BUILD and are
+  // unchanged.
+  ...(isDevBuild
+    ? {
+        experimental: {
+          turbopackFileSystemCacheForBuild: false,
+          turbopackPluginRuntimeStrategy: "workerThreads",
+          turbopackSourceMaps: false,
+          cpus: 2,
+          workerThreads: true,
+        },
+      }
+    : {}),
   async rewrites() {
     return {
       beforeFiles: [

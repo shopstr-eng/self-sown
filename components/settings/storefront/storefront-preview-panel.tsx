@@ -16,6 +16,7 @@ import { resolveNavLayout } from "@/utils/storefront/nav-layout";
 import SectionRenderer from "@/components/storefront/section-renderer";
 import StorefrontFooterComponent from "@/components/storefront/storefront-footer";
 import FormattedText from "@/components/storefront/formatted-text";
+import { joinClassNames } from "@/utils/class-names";
 
 const PLACEHOLDER_IMAGES = [
   "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=400&fit=crop",
@@ -68,7 +69,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
   },
   about: {
     heading: "About Our Farm",
-    body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our raw milk and farmstead cheeses to our pasture-raised eggs and grass-fed meats. We believe in food freedom: your right to choose real, nutrient-dense food direct from the source.",
+    body: "We're a small family farm dedicated to producing the highest quality food using traditional, sustainable methods. Our animals are raised on open pasture, and our produce is grown without synthetic chemicals.\n\nEvery product we offer is made with care, from our farmstead cheeses and small-batch preserves to our pasture-raised eggs and grass-fed meats. We believe in food freedom: your right to choose real, nutrient-dense food direct from the source.",
     image: PLACEHOLDER_ABOUT_IMAGE,
     imagePosition: "right" as const,
   },
@@ -79,7 +80,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
       {
         year: "2018",
         heading: "The Beginning",
-        body: "Started with just two dairy cows and a dream of producing the finest raw milk in the county.",
+        body: "Started with a roadside stand and a dream of sharing the finest small-batch preserves in the county.",
         image: PLACEHOLDER_STORY_IMAGE,
       },
       {
@@ -108,7 +109,7 @@ const SECTION_PLACEHOLDERS: Record<string, Partial<StorefrontSection>> = {
     testimonials: [
       {
         quote:
-          "The best raw milk I've ever tasted. My whole family loves it, and we've noticed a real difference in how we feel.",
+          "The freshest food we've ever bought — you can taste the difference in every bite. My whole family loves it.",
         author: "Sarah M.",
         rating: 5,
       },
@@ -340,9 +341,9 @@ export const MOCK_PRODUCTS: ProductData[] = [
     id: "preview-1",
     pubkey: "preview",
     createdAt: 0,
-    title: "Farm Fresh Raw Milk",
+    title: "Farm Fresh Whole Milk",
     summary:
-      "Pure, unprocessed whole milk from grass-fed cows. Rich in natural enzymes and beneficial bacteria.",
+      "Creamy whole milk from grass-fed cows, gently pasteurized and non-homogenized.",
     publishedAt: "",
     images: [PLACEHOLDER_IMAGES[0]!],
     categories: ["dairy"],
@@ -372,7 +373,7 @@ export const MOCK_PRODUCTS: ProductData[] = [
     createdAt: 0,
     title: "Artisan Farmstead Cheese",
     summary:
-      "Handcrafted aged cheddar made from our own raw milk. 6-month aged for complex flavor.",
+      "Handcrafted aged cheddar from our pasture-raised cows, aged six months for complex flavor.",
     publishedAt: "",
     images: [PLACEHOLDER_IMAGES[2]!],
     categories: ["dairy"],
@@ -798,15 +799,17 @@ export default function StorefrontPreviewPanel({
       `}</style>
 
       <div
-        className={`flex items-center justify-between border-b border-gray-700 bg-gray-900 ${
+        className={joinClassNames(
+          "flex items-center justify-between border-b border-gray-700 bg-gray-900",
           compact ? "px-3 py-2" : "px-4 py-3"
-        }`}
+        )}
       >
         <div className="flex items-center gap-3">
           <h3
-            className={`font-bold text-white ${
+            className={joinClassNames(
+              "font-bold text-white",
               compact ? "text-sm" : "text-base"
-            }`}
+            )}
           >
             {previewPage
               ? `Page: ${
@@ -832,11 +835,12 @@ export default function StorefrontPreviewPanel({
                 key={v.key}
                 type="button"
                 onClick={() => setViewportWidth(v.key)}
-                className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                className={joinClassNames(
+                  "rounded px-2 py-1 text-xs font-medium transition-colors",
                   viewportWidth === v.key
                     ? "bg-gray-600 text-white"
                     : "text-gray-400 hover:text-white"
-                }`}
+                )}
                 title={v.fullLabel}
               >
                 {compact ? v.label : v.fullLabel}
@@ -848,22 +852,24 @@ export default function StorefrontPreviewPanel({
             <button
               type="button"
               onClick={() => setPreviewPage("")}
-              className={`rounded px-2 py-1 text-xs font-medium ${
+              className={joinClassNames(
+                "rounded px-2 py-1 text-xs font-medium",
                 !previewPage
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:text-white"
-              }`}
+              )}
             >
               Home
             </button>
             <button
               type="button"
               onClick={() => setPreviewPage(STALL_SENTINEL)}
-              className={`rounded px-2 py-1 text-xs font-medium ${
+              className={joinClassNames(
+                "rounded px-2 py-1 text-xs font-medium",
                 previewPage === STALL_SENTINEL
                   ? "bg-blue-600 text-white"
                   : "text-gray-400 hover:text-white"
-              }`}
+              )}
             >
               Stall
             </button>
@@ -872,11 +878,12 @@ export default function StorefrontPreviewPanel({
                 key={page.id}
                 type="button"
                 onClick={() => setPreviewPage(page.slug)}
-                className={`rounded px-2 py-1 text-xs font-medium ${
+                className={joinClassNames(
+                  "rounded px-2 py-1 text-xs font-medium",
                   previewPage === page.slug
                     ? "bg-blue-600 text-white"
                     : "text-gray-400 hover:text-white"
-                }`}
+                )}
               >
                 {page.title}
               </button>
@@ -899,7 +906,10 @@ export default function StorefrontPreviewPanel({
         >
           <div
             ref={containerRef}
-            className={`preview-container ${neoShadows ? "sf-neo" : ""} min-h-[600px] overflow-hidden rounded-lg shadow-2xl`}
+            className={joinClassNames(
+              "preview-container min-h-[600px] overflow-hidden rounded-lg shadow-2xl",
+              neoShadows ? "sf-neo" : ""
+            )}
             style={{
               width: targetWidth,
               transform: `scale(${previewScale})`,
@@ -1076,7 +1086,7 @@ export default function StorefrontPreviewPanel({
                             onSectionClick(section.id);
                           }
                         }}
-                        className="preview-section-clickable relative cursor-pointer outline-none"
+                        className="preview-section-clickable relative cursor-pointer outline-hidden"
                         title="Click to edit this section"
                       >
                         <div className="preview-section-overlay pointer-events-none absolute inset-0 z-10 transition-all" />
@@ -1196,9 +1206,11 @@ function PreviewNav({
           <div className="flex flex-1 items-center">{logoNode}</div>
         ) : (
           <div
-            className={`flex flex-1 items-center ${resolved.linkGapClass} ${
+            className={joinClassNames(
+              "flex flex-1 items-center",
+              resolved.linkGapClass,
               resolved.linkJustifyClass || "justify-center"
-            }`}
+            )}
           >
             {linkItems}
           </div>
@@ -1220,9 +1232,11 @@ function PreviewNav({
     inner = (
       <div className="mx-auto grid max-w-6xl grid-cols-3 items-center px-4 py-2 md:px-6">
         <div
-          className={`flex items-center ${resolved.linkGapClass} ${
+          className={joinClassNames(
+            "flex items-center",
+            resolved.linkGapClass,
             resolved.linkJustifyClass || "justify-start"
-          }`}
+          )}
         >
           {linkItems}
         </div>
@@ -1367,7 +1381,7 @@ function PreviewProductCard({
           <img
             src={product.images[0]}
             alt={product.title}
-            className="h-24 w-24 flex-shrink-0 rounded-lg object-cover"
+            className="h-24 w-24 shrink-0 rounded-lg object-cover"
           />
         )}
         <div className="flex flex-1 flex-col justify-center">

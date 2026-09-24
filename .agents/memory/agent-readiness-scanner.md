@@ -9,7 +9,7 @@ External agent-readiness scanners (e.g. metaend-grade) probe the **live deployed
 
 All agent-facing 404s route through `tryWriteAgentNotFound` / `acceptsMarkdown` / `buildAgentNotFoundMarkdown` in `utils/api/agent-error.ts`. **Any new agent-facing 404 surface must reuse those helpers** — do not hand-roll negotiation.
 
-- **Surfaces wired:** root catch-all `pages/[...notFound].tsx`, API catch-all `pages/api/[...notFound].ts`, all stall GSSP `notFound` sites (via a `stallNotFound()` closure that names the public path from `x-mm-original-path` on custom domains), and both 404s in `pages/api/stall-agent-view.ts` (proxy routes non-HTML stall requests there, bypassing the page GSSP — so both layers need wiring).
+- **Surfaces wired:** root catch-all `pages/[...notFound].tsx`, API catch-all `pages/api/[...notFound].ts`, all stall GSSP `notFound` sites (via a `stallNotFound()` closure that names the public path from `x-ss-original-path` on custom domains), and both 404s in `pages/api/stall-agent-view.ts` (proxy routes non-HTML stall requests there, bypassing the page GSSP — so both layers need wiring).
 - **Negotiation is q-aware (RFC 9110):** markdown wins ties, HTML only when strictly preferred, `*/*` gets JSON. A naive `accept.includes("text/html")` check fails `Accept: text/markdown, text/html;q=0.1`.
 - The `res.end()` then `return { props: {} }` pattern in GSSP is safe on Next 16 (finished response suppresses render).
 - After `res.end()`, return `{ props: {} as Props }` to satisfy typed GSSP.
@@ -20,7 +20,7 @@ All agent-facing 404s route through `tryWriteAgentNotFound` / `acceptsMarkdown` 
 
 Only the agent API endpoints set them; the homepage/general responses didn't.
 **Fix:** wrap the proxy — rename the body to `routeRequest`, export a `proxy` that calls `withAdvisoryRateLimitHeaders(await routeRequest(req))`. It adds advisory `RateLimit-*`/`X-RateLimit-*`/`RateLimit-Policy` to every response (covers both hosts).
-**Duplicate guardrail:** endpoints that already set accurate per-request headers via `applyRateLimit` (WBA directory + agent-view + stall-agent-view rewrites) tag their middleware response with an `x-mm-rl-skip` marker; the wrapper skips them and strips the marker. **Watch indentation:** the platform `/stall/<slug>` agent branch is more deeply nested, so a bulk replace keyed on 6-space indent misses it — verify every rewrite branch carries the marker.
+**Duplicate guardrail:** endpoints that already set accurate per-request headers via `applyRateLimit` (WBA directory + agent-view + stall-agent-view rewrites) tag their middleware response with an `x-ss-rl-skip` marker; the wrapper skips them and strips the marker. **Watch indentation:** the platform `/stall/<slug>` agent branch is more deeply nested, so a bulk replace keyed on 6-space indent misses it — verify every rewrite branch carries the marker.
 
 ## 3. Public keys discoverable (optional)
 

@@ -17,7 +17,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 function isAllowedAbsoluteRedirect(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "milkmarket:";
+    return ["https:", "selfsown:", "milkmarket:"].includes(parsed.protocol);
   } catch {
     return false;
   }
@@ -39,7 +39,7 @@ function resolveRedirectUrl(params: {
     if (!isAllowedAbsoluteRedirect(absoluteUrl)) {
       return {
         ok: false,
-        error: "Redirect URLs must use https:// or milkmarket://",
+        error: "Redirect URLs must use https:// or selfsown://",
       };
     }
 

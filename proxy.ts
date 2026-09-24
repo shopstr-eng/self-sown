@@ -12,6 +12,7 @@ import {
   isApiVersionSupported,
   unsupportedApiVersionBody,
 } from "@/utils/api/api-version";
+import { SITE_HOST, SITE_URL, LEGACY_SITE_HOST } from "@/utils/site-url";
 
 // Routes that should NOT be rewritten under /stall/<slug>/ on a custom
 // domain — they live at the root of the seller's site (or fall through to
@@ -29,7 +30,7 @@ const CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES = [
 
 // Any path ending in a known static-asset extension is served as-is from
 // /public on the custom domain. Without this, root-level files like
-// `/instagram-icon.png`, `/milk-market.png`, `/workbox-*.js`,
+// `/instagram-icon.png`, `/self-sown-black.png`, `/workbox-*.js`,
 // `/currencySelection.json`, uploaded fonts, etc. get rewritten to
 // `/stall/<slug>/<file>` and return the storefront HTML instead of the
 // real asset.
@@ -97,7 +98,7 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   // serve the seller's premium design (custom colors/fonts/sections). It fails
   // closed, so without this gated in the proxy returns 403, the render layer
   // reads that as "not Pro", and EVERY custom-domain stall reverts to the
-  // default Milk Market look even when the seller is fully entitled.
+  // default Self-sown look even when the seller is fully entitled.
   "/api/pro/status",
   "/api/og-preview",
   // Compressed og:image proxy. DynamicHead points social-card image URLs at
@@ -112,6 +113,9 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   "/api/validate-password-auth",
   "/api/encryption/",
   "/api/health",
+  // Build-version probe for the update-available toast. Read-only, leaks only
+  // the build ID (already public in every page's __NEXT_DATA__ + chunk URLs).
+  "/api/version",
 ];
 
 // Canonical platform hosts that should NEVER be treated as a seller's
@@ -120,7 +124,13 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
 // "replit" or "milk.market" as a substring (e.g. `myreplitfarm.com`) are
 // still routed correctly.
 const PLATFORM_HOST_SUFFIXES = [
-  "milk.market", // milk.market + *.milk.market
+  SITE_HOST, // <apex> + *.<apex>
+  // Previous base domain (pre-cutover). Page traffic on it 301s to SITE_HOST
+  // (block below); /api/ + /.well-known/ stay here so they keep being served
+  // as platform traffic — never as a seller custom domain — or webhooks and
+  // old links would break / render the "Domain Not Configured" placeholder.
+  // If the domain is ever dropped, remove this entry AND the redirect block.
+  LEGACY_SITE_HOST,
   "replit.app", // *.replit.app
   "replit.dev", // *.replit.dev (preview)
   "repl.co",
@@ -137,6 +147,7 @@ const PLATFORM_HOST_EXACT = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
 const AGENT_VIEW_PATHS = new Set([
   "/",
   "/about",
+  "/manifesto",
   "/faq",
   "/contact",
   "/producer-guide",
@@ -229,7 +240,7 @@ function isCustomDomain(rawHost: string): boolean {
 // Endpoints that set their OWN accurate, per-request RateLimit headers (via
 // applyRateLimit) carry this marker so the advisory wrapper below doesn't add a
 // second, duplicate set. The marker is stripped before the response is returned.
-const RL_SKIP_HEADER = "x-mm-rl-skip";
+const RL_SKIP_HEADER = "x-ss-rl-skip";
 
 // Advisory RateLimit headers for agents/scanners. Real per-IP enforcement lives
 // in the API handlers (utils/rate-limit.ts); these inform automated clients of
@@ -250,6 +261,19 @@ function withAdvisoryRateLimitHeaders(res: NextResponse): NextResponse {
     res.headers.set("X-RateLimit-Reset", "60");
   }
   return res;
+}
+
+// Internal x-ss-* (and legacy x-mm-*) headers are set authoritatively by this
+// proxy on custom-domain/self-host paths and consumed downstream (_app.tsx,
+// nostr-json, seller-host, ...). The fallthrough NextResponse.next() paths
+// forward request headers unchanged, so strip any inbound copies: a direct
+// caller must not be able to forge custom-domain/self-host context.
+function stripInternalHeaders(base: Headers): Headers {
+  const h = new Headers(base);
+  for (const key of [...h.keys()]) {
+    if (key.startsWith("x-mm-") || key.startsWith("x-ss-")) h.delete(key);
+  }
+  return h;
 }
 
 export async function proxy(request: NextRequest) {
@@ -282,11 +306,15 @@ async function routeRequest(request: NextRequest) {
 
   if (pathname === "/.well-known/agent.json") {
     return NextResponse.rewrite(
-      new URL("/api/.well-known/agent.json", request.url)
+      new URL("/api/.well-known/agent.json", request.url),
+      { request: { headers: stripInternalHeaders(request.headers) } }
     );
   }
 
-  // Apple Pay domain verification file (identical on every host; env-backed).
+  // Apple Pay domain verification file (Square-connected sellers only —
+  // Stripe registers domains via its Payment Method Domain API with no
+  // hosted file). The route serves Square's file on self-host instances and
+  // verified Square-seller custom domains; everything else 404s.
   if (
     pathname === "/.well-known/apple-developer-merchantid-domain-association"
   ) {
@@ -294,13 +322,41 @@ async function routeRequest(request: NextRequest) {
       new URL(
         "/api/.well-known/apple-developer-merchantid-domain-association",
         request.url
-      )
+      ),
+      { request: { headers: stripInternalHeaders(request.headers) } }
     );
   }
 
-  if (hostname === "www.milk.market") {
+  // Legacy base domain (milk.market): 301 page traffic to the canonical host,
+  // preserving path + query so previously-sent email deep links (order
+  // confirmations, HMAC-signed review/unsubscribe links with 90-day click
+  // TTLs) keep working. Every *.milk.market subdomain redirects too —
+  // subdomains were never stall-mapped, they just served the platform app.
+  // /api/ and /.well-known/ traffic is NOT redirected: webhook senders
+  // (Stripe) treat 3xx as delivery failure, and verification/discovery files
+  // must stay reachable on the old domain during the transition window; those
+  // paths fall through and are served as platform traffic (LEGACY_SITE_HOST
+  // stays in PLATFORM_HOST_SUFFIXES).
+  // hostStripPort: a port-bearing Host header (milk.market:443) must not
+  // bypass the redirect.
+  const legacyHost = hostStripPort(hostname);
+  if (
+    SITE_HOST !== LEGACY_SITE_HOST &&
+    (legacyHost === LEGACY_SITE_HOST ||
+      legacyHost.endsWith(`.${LEGACY_SITE_HOST}`)) &&
+    !pathname.startsWith("/api/") &&
+    !pathname.startsWith("/.well-known/")
+  ) {
+    // Build the destination from the configured canonical origin — not the
+    // incoming request URL — so http:// or port-bearing legacy requests still
+    // land on the canonical scheme/host/port. Path + query carry over.
+    const origin = SITE_URL.includes("://") ? SITE_URL : `https://${SITE_URL}`;
+    return NextResponse.redirect(new URL(`${pathname}${search}`, origin), 301);
+  }
+
+  if (hostname === `www.${SITE_HOST}`) {
     const url = new URL(request.url);
-    url.hostname = "milk.market";
+    url.hostname = SITE_HOST;
     return NextResponse.redirect(url, 301);
   }
 
@@ -310,13 +366,17 @@ async function routeRequest(request: NextRequest) {
   // custom domain.
   if (pathname === "/.well-known/http-message-signatures-directory") {
     const res = NextResponse.rewrite(
-      new URL("/api/.well-known/http-message-signatures-directory", request.url)
+      new URL(
+        "/api/.well-known/http-message-signatures-directory",
+        request.url
+      ),
+      { request: { headers: stripInternalHeaders(request.headers) } }
     );
     res.headers.set(RL_SKIP_HEADER, "1");
     return res;
   }
 
-  // Single-tenant self-host mode. When MM_SELF_HOST is on, this whole instance
+  // Single-tenant self-host mode. When SS_SELF_HOST is on, this whole instance
   // serves exactly one seller's storefront regardless of host: the marketplace,
   // Nostr discovery, and platform Pro-billing surfaces are hidden, and every
   // other path is served under the owner's /stall/<slug>. We take this branch
@@ -327,14 +387,20 @@ async function routeRequest(request: NextRequest) {
   // the full multi-tenant platform (which would expose the marketplace,
   // discovery, and every other seller on what is meant to be a private,
   // single-tenant instance).
+  // Legacy MM_* env names remain honored so pre-rename self-host installs
+  // keep working on upgrade.
   const selfHostEnabled = /^(1|true|yes|on)$/i.test(
-    (process.env.MM_SELF_HOST || "").trim()
+    (process.env.SS_SELF_HOST ?? process.env.MM_SELF_HOST ?? "").trim()
   );
-  const selfHostSlug = (process.env.MM_SELF_HOST_SLUG || "").trim();
+  const selfHostSlug = (
+    process.env.SS_SELF_HOST_SLUG ??
+    process.env.MM_SELF_HOST_SLUG ??
+    ""
+  ).trim();
   if (selfHostEnabled) {
     if (!selfHostSlug) {
       return new NextResponse(
-        "Self-host mode is enabled (MM_SELF_HOST) but MM_SELF_HOST_SLUG is " +
+        "Self-host mode is enabled (SS_SELF_HOST) but SS_SELF_HOST_SLUG is " +
           "not set. Configure your storefront slug to start serving your store.",
         {
           status: 503,
@@ -351,7 +417,9 @@ async function routeRequest(request: NextRequest) {
   // Unlike /.well-known/agent.json (identical on every host) the UCP profile is
   // host-scoped, so it is NOT short-circuited at the top of the router.
   if (!isCustomDomain(hostname) && pathname === "/.well-known/ucp") {
-    return NextResponse.rewrite(new URL("/api/.well-known/ucp", request.url));
+    return NextResponse.rewrite(new URL("/api/.well-known/ucp", request.url), {
+      request: { headers: stripInternalHeaders(request.headers) },
+    });
   }
 
   // Content negotiation for LLMs/agents on the main platform host only. Custom
@@ -368,7 +436,7 @@ async function routeRequest(request: NextRequest) {
       // Forward path/format via request headers too: NextResponse.rewrite can
       // override the destination query string with the original request's, so
       // headers are the reliable channel for the API route to read.
-      const requestHeaders = new Headers(request.headers);
+      const requestHeaders = stripInternalHeaders(request.headers);
       requestHeaders.set("x-agent-view-path", pathname);
       requestHeaders.set("x-agent-view-format", format);
       const res = NextResponse.rewrite(url, {
@@ -401,7 +469,7 @@ async function routeRequest(request: NextRequest) {
         const url = new URL("/api/stall-agent-view", request.url);
         url.searchParams.set("slug", stallSlug);
         url.searchParams.set("format", format);
-        const requestHeaders = new Headers(request.headers);
+        const requestHeaders = stripInternalHeaders(request.headers);
         requestHeaders.set("x-stall-slug", stallSlug);
         requestHeaders.set("x-stall-format", format);
         const res = NextResponse.rewrite(url, {
@@ -436,7 +504,7 @@ async function routeRequest(request: NextRequest) {
           const url = new URL("/api/stall-agent-view", request.url);
           url.searchParams.set("slug", stallSlug);
           url.searchParams.set("format", format);
-          const requestHeaders = new Headers(request.headers);
+          const requestHeaders = stripInternalHeaders(request.headers);
           requestHeaders.set("x-stall-slug", stallSlug);
           requestHeaders.set("x-stall-format", format);
           const res = NextResponse.rewrite(url, {
@@ -477,7 +545,7 @@ async function routeRequest(request: NextRequest) {
           url.searchParams.set("slug", stallSlug);
           url.searchParams.set("postSlug", postSlug);
           url.searchParams.set("format", format);
-          const requestHeaders = new Headers(request.headers);
+          const requestHeaders = stripInternalHeaders(request.headers);
           requestHeaders.set("x-stall-slug", stallSlug);
           requestHeaders.set("x-post-slug", postSlug);
           requestHeaders.set("x-stall-format", format);
@@ -506,11 +574,13 @@ async function routeRequest(request: NextRequest) {
       (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
         STATIC_ASSET_EXT_RE.test(pathname))
     ) {
-      return NextResponse.next();
+      return NextResponse.next({
+        request: { headers: stripInternalHeaders(request.headers) },
+      });
     }
 
     // Look up the shop slug for this custom domain up-front so we can flag
-    // every render with `x-mm-custom-domain` + `x-mm-shop-slug`. _app.tsx
+    // every render with `x-ss-custom-domain` + `x-ss-shop-slug`. _app.tsx
     // reads these in getInitialProps to suppress the platform TopNav and
     // wrap the page in the storefront chrome on the very first SSR pass
     // (no client-side flash).
@@ -523,21 +593,21 @@ async function routeRequest(request: NextRequest) {
     const pubkey = resolution.pubkey;
 
     const buildHeaders = () => {
-      const h = new Headers(request.headers);
-      h.set("x-mm-custom-domain", "1");
-      h.set("x-mm-custom-domain-host", hostname);
+      const h = stripInternalHeaders(request.headers);
+      h.set("x-ss-custom-domain", "1");
+      h.set("x-ss-custom-domain-host", hostname);
       // Pass the original public pathname so SSR can emit correct canonical
       // and og:url for this custom domain (the internal Next.js rewrite turns
       // "/" into "/stall/<slug>", but the canonical must stay at the seller
       // domain's public path, e.g. "https://farmer.com/" not
       // "https://milk.market/stall/farmname").
-      h.set("x-mm-original-path", pathname || "/");
-      if (slug) h.set("x-mm-shop-slug", slug);
+      h.set("x-ss-original-path", pathname || "/");
+      if (slug) h.set("x-ss-shop-slug", slug);
       // Seed SSR with the seller pubkey so _app.tsx can mount the storefront
       // wrapper on first render. Without this, the page renders once bare,
       // fetches the slug client-side, then remounts inside the wrapper —
       // visible as a flash or, in Safari with stale SW caches, a blank screen.
-      if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
+      if (pubkey) h.set("x-ss-shop-pubkey", pubkey);
       return h;
     };
 
@@ -561,7 +631,10 @@ async function routeRequest(request: NextRequest) {
     // to the platform's static /public copies.
     const geoFormat = STALL_GEO_DYNAMIC_FORMAT[pathname];
     if (geoFormat) {
-      if (!slug) return NextResponse.next();
+      if (!slug)
+        return NextResponse.next({
+          request: { headers: stripInternalHeaders(request.headers) },
+        });
       return rewriteToStallAgentView(geoFormat);
     }
 
@@ -571,7 +644,10 @@ async function routeRequest(request: NextRequest) {
     // above, so pass it through via header. If the domain has no resolved seller
     // (unconfigured/hidden), fall through to the platform's static /public copy.
     if (isCustomDomainNostrJson) {
-      if (!pubkey) return NextResponse.next();
+      if (!pubkey)
+        return NextResponse.next({
+          request: { headers: stripInternalHeaders(request.headers) },
+        });
       const url = new URL("/api/storefront/nostr-json", request.url);
       const res = NextResponse.rewrite(url, {
         request: { headers: buildHeaders() },
@@ -582,7 +658,7 @@ async function routeRequest(request: NextRequest) {
 
     // UCP discovery profile, scoped to this seller. Served even when no slug
     // resolved: the endpoint resolves + membership-gates the seller from the
-    // verified domain (forwarded via x-mm-custom-domain-host) and 404s if none.
+    // verified domain (forwarded via x-ss-custom-domain-host) and 404s if none.
     if (pathname === "/.well-known/ucp") {
       const res = NextResponse.rewrite(
         new URL("/api/.well-known/ucp", request.url),
@@ -642,7 +718,7 @@ async function routeRequest(request: NextRequest) {
     }
 
     // API routes: gate to the allow-list. Storefront browsing + checkout +
-    // account flows on the custom domain still call back into milk.market's
+    // account flows on the custom domain still call back into the platform's
     // shared APIs (Stripe, Lightning, email, etc.) so they need to pass.
     if (pathname.startsWith("/api/")) {
       const allowed = CUSTOM_DOMAIN_API_ALLOWLIST.some((p) =>
@@ -723,14 +799,20 @@ async function routeRequest(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return NextResponse.next({
+    request: { headers: stripInternalHeaders(request.headers) },
+  });
 }
 
 // Resolve the configured self-host owner pubkey to lowercase hex. Accepts an
 // npub or 64-char hex; returns null for anything else (the header is simply
 // omitted, so a malformed value can never seed SSR with a bogus pubkey).
 function selfHostPubkeyHex(): string | null {
-  const raw = (process.env.MM_SELF_HOST_PUBKEY || "").trim();
+  const raw = (
+    process.env.SS_SELF_HOST_PUBKEY ??
+    process.env.MM_SELF_HOST_PUBKEY ??
+    ""
+  ).trim();
   if (!raw) return null;
   if (raw.startsWith("npub1")) {
     try {
@@ -758,15 +840,15 @@ function routeSelfHost(request: NextRequest, slug: string) {
   const pubkey = selfHostPubkeyHex();
 
   const buildHeaders = () => {
-    const h = new Headers(request.headers);
+    const h = stripInternalHeaders(request.headers);
     // Reuse the custom-domain SSR signals so _app.tsx wraps every page in the
     // storefront chrome and suppresses the platform TopNav on the first render.
-    h.set("x-mm-custom-domain", "1");
-    h.set("x-mm-self-host", "1");
-    h.set("x-mm-custom-domain-host", hostname);
-    h.set("x-mm-original-path", pathname || "/");
-    h.set("x-mm-shop-slug", slug);
-    if (pubkey) h.set("x-mm-shop-pubkey", pubkey);
+    h.set("x-ss-custom-domain", "1");
+    h.set("x-ss-self-host", "1");
+    h.set("x-ss-custom-domain-host", hostname);
+    h.set("x-ss-original-path", pathname || "/");
+    h.set("x-ss-shop-slug", slug);
+    if (pubkey) h.set("x-ss-shop-pubkey", pubkey);
     return h;
   };
 
@@ -778,7 +860,9 @@ function routeSelfHost(request: NextRequest, slug: string) {
     (CUSTOM_DOMAIN_PASSTHROUGH_PREFIXES.some((p) => pathname.startsWith(p)) ||
       STATIC_ASSET_EXT_RE.test(pathname))
   ) {
-    return NextResponse.next();
+    return NextResponse.next({
+      request: { headers: stripInternalHeaders(request.headers) },
+    });
   }
 
   // UCP discovery profile for this single-tenant instance (the endpoint scopes

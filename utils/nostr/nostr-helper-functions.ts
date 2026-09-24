@@ -17,6 +17,7 @@ import {
   SavedAddress,
 } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import { Proof } from "@cashu/cashu-ts";
 import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
@@ -30,11 +31,14 @@ import {
 } from "@/utils/nostr/request-auth";
 import { newPromiseWithTimeout } from "@/utils/timeout";
 import { getLocalStorageJson } from "@/utils/safe-json";
+import { SITE_URL } from "@/utils/site-url";
 import {
   BLOG_POST_KIND,
   buildBlogPostTags,
+  DEFAULT_SELLER_RELAYS,
+  BLASTR_RELAY,
   type BlogPostDraft,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   encryptNIP46SignerCredentials,
   type NIP46SignerCredentials,
@@ -82,7 +86,7 @@ export async function deleteEvent(
 ) {
   const deletionEvent = createNostrDeleteEvent(
     event_ids_to_delete,
-    "Milk Market deletion request",
+    "Self-sown deletion request",
     deletedKind
   );
 
@@ -130,7 +134,7 @@ export async function createNostrBlogPost(
     content: typeof draft.content === "string" ? draft.content : "",
   };
 
-  return await finalizeAndSendNostrEvent(signer, nostr, event, options);
+  return finalizeAndSendNostrEvent(signer, nostr, event, options);
 }
 
 /**
@@ -230,7 +234,7 @@ export async function createNostrProfileEvent(
   // finalizeAndSendNostrEvent already caches the signed event to the database
   // before returning. With waitForRelayPublish: false the save resolves as soon
   // as it's signed + cached, so the user isn't blocked on slow relays.
-  return await finalizeAndSendNostrEvent(signer, nostr, profileContent, {
+  return finalizeAndSendNostrEvent(signer, nostr, profileContent, {
     waitForRelayPublish: false,
   });
 }
@@ -263,9 +267,7 @@ export async function PostListing(
   const handlerDTag = uuidv4();
 
   const origin =
-    window && typeof window !== undefined
-      ? window.location.origin
-      : "https://milk.market";
+    window && typeof window !== undefined ? window.location.origin : SITE_URL;
 
   const handlerEvent: EventTemplate = {
     kind: 31990,
@@ -315,8 +317,12 @@ export async function republishProductWithPageConfig(
   if (!signer) throw new Error("Signer required");
   if (!nostr) throw new Error("Nostr writer required");
 
-  const tags = rawEvent.tags.filter(
-    (t) => t[0] !== "page_config" && t[0] !== "published_at"
+  // Replacement events must carry the canonical discovery tag, not the
+  // legacy MilkMarket one a pre-rebrand listing may still have.
+  const tags = normalizeMarketplaceDiscoveryTag(
+    rawEvent.tags.filter(
+      (t) => t[0] !== "page_config" && t[0] !== "published_at"
+    )
   );
   if (pageConfig) {
     tags.push(["page_config", JSON.stringify(pageConfig)]);
@@ -331,7 +337,7 @@ export async function republishProductWithPageConfig(
     content: rawEvent.content || "",
   };
 
-  return await finalizeAndSendNostrEvent(signer, nostr, event);
+  return finalizeAndSendNostrEvent(signer, nostr, event);
 }
 
 /**
@@ -404,8 +410,10 @@ export async function republishProductWithParcel(
   const parcelTag = buildParcelTag(parcel);
   if (!parcelTag) throw new Error("Parcel template needs a valid weight");
 
-  const tags = rawEvent.tags.filter(
-    (t) => t[0] !== "parcel" && t[0] !== "published_at"
+  // Replacement events must carry the canonical discovery tag, not the
+  // legacy MilkMarket one a pre-rebrand listing may still have.
+  const tags = normalizeMarketplaceDiscoveryTag(
+    rawEvent.tags.filter((t) => t[0] !== "parcel" && t[0] !== "published_at")
   );
   tags.push(parcelTag);
 
@@ -430,7 +438,7 @@ export async function republishProductWithParcel(
     content: rawEvent.content || "",
   };
 
-  return await finalizeAndSendNostrEvent(signer, nostr, event);
+  return finalizeAndSendNostrEvent(signer, nostr, event);
 }
 
 export async function createNostrShopEvent(
@@ -727,8 +735,8 @@ async function fetchRecipientReadRelays(
   baseRelays: string[]
 ): Promise<string[]> {
   try {
-    // Always include default relays (NIP-65 indexers like purplepag.es /
-    // relay.nostr.band) for the lookup so discovery works even if the buyer's
+    // Always include default relays (NIP-65 indexers like user.kingpag.es /
+    // relay.noswhere.com) for the lookup so discovery works even if the buyer's
     // localStorage relays were customized — and is independent of our server.
     const lookupRelays = Array.from(
       new Set([...baseRelays, ...getDefaultRelays()])
@@ -1269,7 +1277,7 @@ export async function createOrUpdateCommunity(
     ["name", details.name],
     ["description", details.description],
     ["image", details.image],
-    ["t", "milkmarket"],
+    ["t", "selfsown"],
   ];
 
   // moderators as p tags with role marker
@@ -1432,7 +1440,7 @@ export async function retractApproval(
     tags: [["e", approvalEventId]],
     content: reason || `Retract approval ${approvalEventId}`,
   };
-  return await finalizeAndSendNostrEvent(signer, nostr, eventTemplate);
+  return finalizeAndSendNostrEvent(signer, nostr, eventTemplate);
 }
 
 type FinalizeAndSendOptions = {
@@ -2272,21 +2280,14 @@ export function nostrExtensionLoaded() {
 }
 
 export function getDefaultRelays(): string[] {
-  return [
-    "wss://relay.damus.io",
-    "wss://nos.lol",
-    "wss://purplepag.es",
-    "wss://relay.primal.net",
-    "wss://relay.nostr.band",
-  ];
+  return [...DEFAULT_SELLER_RELAYS];
 }
 
 export function withBlastr(relays: string[]): string[] {
   const out = [...relays];
 
-  const blastrRelay = "wss://sendit.nosflare.com";
-  if (!containsRelay(out, blastrRelay)) {
-    out.push(blastrRelay);
+  if (!containsRelay(out, BLASTR_RELAY)) {
+    out.push(BLASTR_RELAY);
   }
   return out;
 }
@@ -2348,6 +2349,11 @@ export const saveNWCString = (nwcString: string) => {
 };
 
 export const getLocalUserProfileKey = (pubkey: string) =>
+  `self-sown:user-profile:${pubkey}`;
+
+// Pre-rebrand key. Readers fall back to this so a locally cached profile
+// written before the rename is still found; writes always use the new key.
+export const getLegacyLocalUserProfileKey = (pubkey: string) =>
   `milk-market:user-profile:${pubkey}`;
 
 export interface LocalProfileFallback {

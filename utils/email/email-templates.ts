@@ -3,7 +3,7 @@ import { StorefrontBranding } from "./storefront-branding";
 
 export type { StorefrontBranding } from "./storefront-branding";
 
-const BRAND_NAME = "Milk Market";
+const BRAND_NAME = "Self-sown";
 
 function escapeHtml(str: string): string {
   return str
@@ -453,7 +453,7 @@ export function sellerNewOrderEmail(
       ${buyerContactSection}
       ${buyerEmailSection}
     </table>
-    <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">Please check your Milk Market orders dashboard for full details and to manage this order.</p>`;
+    <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">Please check your Self-sown orders dashboard for full details and to manage this order.</p>`;
 
   return {
     subject: `New Order - ${esc(params.productTitle)} (#${esc(
@@ -530,7 +530,7 @@ export function subscriptionConfirmationEmail(
     }% on every order.</p>
     ${buildSubscriptionDetailsSection(params)}
     ${addressSection}
-    <p style="margin:24px 0 0;color:#374151;font-size:15px;line-height:1.6;">You'll receive a reminder email before each renewal. You can manage your subscription from your orders page on Milk Market.</p>`;
+    <p style="margin:24px 0 0;color:#374151;font-size:15px;line-height:1.6;">You'll receive a reminder email before each renewal. You can manage your subscription from your orders page on Self-sown.</p>`;
 
   return {
     subject: `Subscription Confirmed - ${esc(params.productTitle)}`,
@@ -557,7 +557,7 @@ export function renewalReminderEmail(
       params.nextBillingDate
     )}</strong>.</p>
     ${buildSubscriptionDetailsSection(params)}
-    <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">If you'd like to make changes to your subscription, such as updating your shipping address or canceling, please visit your orders page on Milk Market before the renewal date.</p>`;
+    <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">If you'd like to make changes to your subscription, such as updating your shipping address or canceling, please visit your orders page on Self-sown before the renewal date.</p>`;
 
   return {
     subject: `Upcoming Renewal - ${esc(params.productTitle)} on ${esc(
@@ -637,7 +637,7 @@ export function subscriptionCancellationEmail(
     <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">You will continue to receive your subscription benefits until ${esc(
       params.endDate
     )}. After that, no further charges will be made.</p>
-    <p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">If you change your mind, you can resubscribe anytime from the product listing on Milk Market.</p>`;
+    <p style="margin:16px 0 0;color:#374151;font-size:15px;line-height:1.6;">If you change your mind, you can resubscribe anytime from the product listing on Self-sown.</p>`;
 
   return {
     subject: `Subscription Canceled - ${esc(params.productTitle)}`,
@@ -705,7 +705,7 @@ export function orderUpdateEmail(
       params.message
     )}</p>
     ${trackingSection}
-    <p style="margin:24px 0 0;color:#374151;font-size:15px;line-height:1.6;">Check your Milk Market orders page for more details.</p>`;
+    <p style="margin:24px 0 0;color:#374151;font-size:15px;line-height:1.6;">Check your Self-sown orders page for more details.</p>`;
 
   return {
     subject: subjectLine,

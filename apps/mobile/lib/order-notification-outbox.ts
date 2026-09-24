@@ -39,7 +39,7 @@ interface CreateOutboxOptions {
   verifyEvent(event: Event): boolean;
 }
 
-const PREFIX = "milk-market:seller-order-outbox:v1:";
+const PREFIX = "self-sown:seller-order-outbox:v1:";
 const HEX_64 = /^[0-9a-f]{64}$/;
 const HEX_128 = /^[0-9a-f]{128}$/;
 const ORDER_ID = /^[A-Za-z0-9._:-]{1,128}$/;

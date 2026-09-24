@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
 import {
   Button,
   Input,
@@ -35,6 +35,8 @@ import {
 } from "@/utils/context/context";
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import type { ProductData } from "@/utils/parsers/product-parser-functions";
+import { SITE_HOST } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 import {
   WHITEBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
@@ -53,7 +55,7 @@ import {
   buildStripeAccountStatusProof,
 } from "@/utils/mcp/request-proof";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import currencySelection from "@/public/currencySelection.json";
 import {
   StorefrontConfig,
@@ -74,7 +76,7 @@ import {
 import {
   DEFAULT_PAYMENT_METHOD_ORDER,
   orderedPaymentMethodGroups,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import SectionEditor from "./storefront/section-editor";
 import { useDragReorder } from "@/utils/hooks/useDragReorder";
 import FooterEditor from "./storefront/footer-editor";
@@ -86,6 +88,7 @@ import { sanitizeStorefrontConfigLinks } from "@/utils/storefront-links";
 import { isEscrowClientEnabled } from "@/utils/cashu/escrow-config";
 import {
   IMPORT_DESIGN_DRAFT_KEY,
+  LEGACY_IMPORT_DESIGN_DRAFT_KEY,
   type ImportedStoreDesign,
 } from "@/utils/migrations/site-design";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
@@ -418,7 +421,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
   const watchBanner = watch("banner");
   const watchPicture = watch("picture");
-  const defaultImage = "/milk-market.png";
+  const defaultImage = "/self-sown-black.png";
 
   // Track every settings value driving the form so we can detect when any of
   // them change after a successful save. The "Saved" confirmation should stay
@@ -638,7 +641,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
     let draft: ImportedStoreDesign | null = null;
     try {
-      const raw = localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY);
+      const raw =
+        localStorage.getItem(IMPORT_DESIGN_DRAFT_KEY) ??
+        localStorage.getItem(LEGACY_IMPORT_DESIGN_DRAFT_KEY);
       if (raw) draft = JSON.parse(raw) as ImportedStoreDesign;
     } catch (err) {
       console.error("Failed to read imported design draft:", err);
@@ -647,6 +652,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     const clearDraft = () => {
       try {
         localStorage.removeItem(IMPORT_DESIGN_DRAFT_KEY);
+        localStorage.removeItem(LEGACY_IMPORT_DESIGN_DRAFT_KEY);
       } catch {
         // ignore
       }
@@ -888,17 +894,17 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
 
     if (seoMeta.autoGenerate !== false) {
       const autoTitle = name
-        ? `${name}: Farm-Fresh Products | Milk Market`
+        ? `${name}: Farm-Fresh Products | Self-sown`
         : undefined;
       const autoDescription = about
         ? about.length > 160
           ? about.slice(0, 157) + "..."
           : about
         : name
-          ? `Shop farm-fresh products from ${name} on Milk Market. Direct from the producer to your door.`
+          ? `Shop farm-fresh products from ${name} on Self-sown. Direct from the producer to your door.`
           : undefined;
       const autoKeywords = name
-        ? `${name}, farm fresh, raw milk, dairy, local farm, ${shopSlug}`
+        ? `${name}, farm fresh, local food, artisan goods, local farm, ${shopSlug}`
         : undefined;
 
       return {
@@ -1201,7 +1207,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   };
 
   if (isFetchingShop) {
-    return <MilkMarketSpinner />;
+    return <SelfSownSpinner />;
   }
 
   return (
@@ -1657,11 +1663,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                           <div className="flex-1">
                             <Input
                               classNames={{
-                                inputWrapper: `border-3 ${
+                                inputWrapper: joinClassNames(
+                                  "border-3 rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black",
                                   shopSlugRequired
                                     ? "border-red-500"
                                     : "border-black"
-                                } rounded-lg bg-white shadow-none hover:bg-white data-[hover=true]:bg-white group-data-[focus=true]:border-4 group-data-[focus=true]:border-black`,
+                                ),
                                 input: "text-base !text-black",
                               }}
                               variant="bordered"
@@ -1679,7 +1686,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                               }}
                               startContent={
                                 <span className="text-sm text-gray-400">
-                                  milk.market/stall/
+                                  {`${SITE_HOST}/stall/`}
                                 </span>
                               }
                             />
@@ -1703,7 +1710,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                         {shopSlug && slugStatus !== "error" && (
                           <p className="mt-1 text-xs text-gray-400">
                             Your shop will also be available at {shopSlug}
-                            .milk.market
+                            {`.${SITE_HOST}`}
                           </p>
                         )}
                       </div>
@@ -1731,11 +1738,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     setColorScheme(preset.colors);
                                     setIsCustomColorScheme(false);
                                   }}
-                                  className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
+                                  className={joinClassNames(
+                                    "flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
                                     isActive
                                       ? "shadow-neo border-black"
                                       : "border-gray-300 hover:border-black"
-                                  }`}
+                                  )}
                                 >
                                   <div className="flex gap-1">
                                     <div
@@ -1765,11 +1773,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             <button
                               type="button"
                               onClick={() => setIsCustomColorScheme(true)}
-                              className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all ${
+                              className={joinClassNames(
+                                "flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm font-medium transition-all",
                                 isCustomColorScheme
                                   ? "shadow-neo border-black"
                                   : "border-gray-300 hover:border-black"
-                              }`}
+                              )}
                             >
                               <div className="flex gap-1">
                                 <div
@@ -1836,7 +1845,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                         [key]: e.target.value,
                                       }))
                                     }
-                                    className="mt-0.5 h-8 w-8 flex-shrink-0 cursor-pointer rounded border-2 border-black"
+                                    className="mt-0.5 h-8 w-8 shrink-0 cursor-pointer rounded border-2 border-black"
                                   />
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-1.5">
@@ -1900,7 +1909,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       [key]: e.target.value,
                                     }))
                                   }
-                                  className="mt-0.5 h-8 w-8 flex-shrink-0 cursor-pointer rounded border-2 border-black"
+                                  className="mt-0.5 h-8 w-8 shrink-0 cursor-pointer rounded border-2 border-black"
                                 />
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -1978,7 +1987,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       [key]: e.target.value,
                                     }))
                                   }
-                                  className="mt-0.5 h-8 w-8 flex-shrink-0 cursor-pointer rounded border-2 border-black"
+                                  className="mt-0.5 h-8 w-8 shrink-0 cursor-pointer rounded border-2 border-black"
                                 />
                                 <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
@@ -2041,11 +2050,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 onClick={() =>
                                   handleLandingPageStyleChange(style.value)
                                 }
-                                className={`rounded-lg border-2 p-2 text-center transition-all ${
+                                className={joinClassNames(
+                                  "rounded-lg border-2 p-2 text-center transition-all",
                                   landingPageStyle === style.value
                                     ? "shadow-neo border-black"
                                     : "border-gray-300 hover:border-black"
-                                }`}
+                                )}
                               >
                                 <div className="mb-2 flex justify-center">
                                   <LandingPagePreviewSvg
@@ -2090,11 +2100,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 key={mode.value}
                                 type="button"
                                 onClick={() => setLandingPageMode(mode.value)}
-                                className={`rounded-lg border-2 p-3 text-center transition-all ${
+                                className={joinClassNames(
+                                  "rounded-lg border-2 p-3 text-center transition-all",
                                   landingPageMode === mode.value
                                     ? "shadow-neo border-black"
                                     : "border-gray-300 hover:border-black"
-                                }`}
+                                )}
                               >
                                 <span className="block text-sm font-bold text-black">
                                   {mode.label}
@@ -2164,11 +2175,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 onClick={() =>
                                   handleProductLayoutChange(layout.value)
                                 }
-                                className={`rounded-lg border-2 p-2 text-center transition-all ${
+                                className={joinClassNames(
+                                  "rounded-lg border-2 p-2 text-center transition-all",
                                   productLayout === layout.value
                                     ? "shadow-neo border-black"
                                     : "border-gray-300 hover:border-black"
-                                }`}
+                                )}
                               >
                                 <div className="mb-2 flex justify-center">
                                   <ProductLayoutPreviewSvg
@@ -2221,7 +2233,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       setCustomFontHeadingUrl("");
                                       setCustomFontHeadingName("");
                                     }}
-                                    className="flex-shrink-0 text-xs text-gray-400 hover:text-red-500"
+                                    className="shrink-0 text-xs text-gray-400 hover:text-red-500"
                                   >
                                     Remove
                                   </button>
@@ -2336,7 +2348,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                       setCustomFontBodyUrl("");
                                       setCustomFontBodyName("");
                                     }}
-                                    className="flex-shrink-0 text-xs text-gray-400 hover:text-red-500"
+                                    className="shrink-0 text-xs text-gray-400 hover:text-red-500"
                                   >
                                     Remove
                                   </button>
@@ -2447,8 +2459,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                           </label>
                           <p className="ml-7 text-sm text-gray-500">
                             Adds a hard offset shadow to bordered cards across
-                            your stall, the same look used on the main Milk
-                            Market marketplace.
+                            your stall, the same look used on the main Self-sown
+                            marketplace.
                           </p>
                         </div>
 
@@ -2766,11 +2778,12 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                             displayMode: opt.value,
                                           })
                                         }
-                                        className={`flex-1 rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors ${
+                                        className={joinClassNames(
+                                          "flex-1 rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors",
                                           active
                                             ? "border-black bg-black text-white"
                                             : "border-gray-300 bg-white text-black hover:border-black"
-                                        }`}
+                                        )}
                                       >
                                         {opt.label}
                                       </button>
@@ -3498,7 +3511,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 placeholder={
                                   seoMeta.autoGenerate !== false
                                     ? "Auto-generated from shop name"
-                                    : "e.g. Green Valley Farm: Fresh Raw Milk"
+                                    : "e.g. Green Valley Farm: Fresh Local Food"
                                 }
                                 value={seoMeta.metaTitle || ""}
                                 onChange={(e) =>
@@ -3596,7 +3609,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 placeholder={
                                   seoMeta.autoGenerate !== false
                                     ? "Auto-generated from shop name"
-                                    : "raw milk, farm fresh dairy, organic eggs, ..."
+                                    : "farm fresh produce, handmade goods, organic eggs, ..."
                                 }
                                 value={seoMeta.keywords || ""}
                                 onChange={(e) =>
@@ -3708,13 +3721,13 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                 <div
                                   key={section.id}
                                   {...drag.rootProps}
-                                  className={`transition-all ${
-                                    drag.isDragging ? "opacity-40" : ""
-                                  } ${
+                                  className={joinClassNames(
+                                    "transition-all",
+                                    drag.isDragging ? "opacity-40" : "",
                                     drag.isDragOver
                                       ? "rounded-lg ring-2 ring-blue-400 ring-offset-1"
                                       : ""
-                                  }`}
+                                  )}
                                 >
                                   <SectionEditor
                                     section={section}
@@ -3900,7 +3913,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                         setSections([...sections, newSection]);
                                       }
                                     }}
-                                    className="group flex flex-col items-center rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-black hover:shadow-sm"
+                                    className="group flex flex-col items-center rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-black hover:shadow-xs"
                                   >
                                     <div className="mb-2">
                                       <SectionPreviewSvg type={st.type} />

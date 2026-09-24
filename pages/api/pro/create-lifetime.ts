@@ -74,6 +74,9 @@ export default async function handler(
           automatic_payment_methods: { enabled: true },
           metadata: {
             proLifetime: "true",
+            // Dual-write: new key canonical; mmProPubkey kept so readers
+            // against pre-rename PaymentIntents keep resolving.
+            ssProPubkey: pubkey,
             mmProPubkey: pubkey,
           },
         },

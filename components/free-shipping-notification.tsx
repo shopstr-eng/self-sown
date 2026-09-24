@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShopProfile } from "@/utils/types/types";
 import { ProductData } from "@/utils/parsers/product-parser-functions";
+import { joinClassNames } from "@/utils/class-names";
 
 interface SellerProgress {
   sellerPubkey: string;
@@ -130,11 +131,12 @@ export default function FreeShippingNotification({
                     initial={{ width: 0 }}
                     animate={{ width: `${progress.percentage}%` }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
-                    className={`h-full rounded-full ${
+                    className={joinClassNames(
+                      "h-full rounded-full",
                       progress.percentage >= 100
                         ? "bg-green-500"
                         : "bg-primary-blue"
-                    }`}
+                    )}
                   />
                 </div>
               </div>

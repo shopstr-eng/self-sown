@@ -22,6 +22,7 @@ import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getBlogPostSlug } from "@/utils/url-slugs";
+import { SITE_URL } from "@/utils/site-url";
 
 jest.mock("@/utils/db/db-service", () => ({
   fetchBlogPostByDTagAndPubkey: jest.fn(),
@@ -138,7 +139,7 @@ beforeEach(() => {
   mocked.fetchBlogPostByDTagAndPubkey.mockResolvedValue(blogEvent());
   mocked.resolveSellerSenderEmail.mockResolvedValue("shop@verified.example");
   mocked.buildSellerEmailUnsubscribeUrl.mockReturnValue(
-    "https://milk.market/api/email/unsubscribe?token=x"
+    `${SITE_URL}/api/email/unsubscribe?token=x`
   );
   mocked.claimBlogBroadcast.mockResolvedValue(true);
   // No prior broadcast claims or delivered recipients for this version.

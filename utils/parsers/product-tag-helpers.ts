@@ -14,6 +14,24 @@ export type ParsedShippingTag = {
   shippingCurrency: string;
 };
 
+// Marketplace discovery tags that mark a listing as part of this marketplace.
+// "MilkMarket" is the pre-rebrand spelling still present on older events.
+const MARKETPLACE_DISCOVERY_TAGS = new Set(["SelfSown", "MilkMarket"]);
+
+/**
+ * Replacement writers (edit/republish flows) must never carry the legacy
+ * discovery tag forward: strip both spellings from the copied tag list and
+ * append exactly one canonical "SelfSown" tag. User categories and other
+ * reserved tags (FREEMILK, SAVEBEEF) pass through untouched.
+ */
+export function normalizeMarketplaceDiscoveryTag(tags: string[][]): string[][] {
+  const rest = tags.filter(
+    (t) => !(t[0] === "t" && MARKETPLACE_DISCOVERY_TAGS.has(t[1] ?? ""))
+  );
+  rest.push(["t", "SelfSown"]);
+  return rest;
+}
+
 export function parseShippingTag(
   tag?: string[]
 ): ParsedShippingTag | undefined {

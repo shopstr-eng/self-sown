@@ -19,6 +19,8 @@ jest.mock("next/router", () => ({
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   createNostrProfileEvent: jest.fn(),
   getLocalUserProfileKey: (pubkey: string) => `shopstr:user-profile:${pubkey}`,
+  getLegacyLocalUserProfileKey: (pubkey: string) =>
+    `shopstr-legacy:user-profile:${pubkey}`,
   parseLocalProfileFallback: (raw: string | null) =>
     raw ? { content: JSON.parse(raw), updatedAt: 0 } : null,
 }));
@@ -37,7 +39,7 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
   ),
 }));
 
-jest.mock("@/components/utility-components/mm-spinner", () => () => null);
+jest.mock("@/components/utility-components/ss-spinner", () => () => null);
 
 const mockUserPubkey = "test_pubkey_123";
 const mockProfileData = new Map([
@@ -246,7 +248,7 @@ describe("MarketProfileForm", () => {
       expect(mockCreateNostrProfileEvent).toHaveBeenCalledWith(
         expect.any(Object),
         expect.any(Object),
-        expect.stringContaining('"mm_donation":"5.5"')
+        expect.stringContaining('"ss_donation":"5.5"')
       );
     });
   });

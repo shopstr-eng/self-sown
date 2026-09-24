@@ -6,7 +6,11 @@
  * the indexer list is operator-overridable.
  */
 import { finalizeEvent, generateSecretKey, getPublicKey } from "nostr-tools";
-import { fetchKind10002FromIndexers } from "@/utils/nostr/nip65-indexer-fetch";
+import { DEFAULT_SELLER_RELAYS } from "@self-sown/domain";
+import {
+  DEFAULT_NIP65_INDEXER_RELAYS,
+  fetchKind10002FromIndexers,
+} from "@/utils/nostr/nip65-indexer-fetch";
 
 const queryMock = jest.fn();
 jest.mock("@/utils/nostr/contained-relay", () => ({
@@ -27,6 +31,18 @@ const relayList = (sk: Uint8Array, createdAt: number, kind = 10002) =>
     },
     sk
   );
+
+describe("DEFAULT_NIP65_INDEXER_RELAYS ↔ DEFAULT_SELLER_RELAYS", () => {
+  it("every built-in indexer stays in the default publish set", () => {
+    // The whole point of the pinned indexer pair is that the app publishes
+    // kind:10002 lists to DEFAULT_SELLER_RELAYS, so an indexer that is NOT
+    // in that set silently stops finding the app's own relay lists.
+    const publishSet = new Set<string>(DEFAULT_SELLER_RELAYS);
+    for (const indexer of DEFAULT_NIP65_INDEXER_RELAYS) {
+      expect(publishSet.has(indexer)).toBe(true);
+    }
+  });
+});
 
 describe("fetchKind10002FromIndexers", () => {
   beforeEach(() => {
@@ -71,7 +87,7 @@ describe("fetchKind10002FromIndexers", () => {
   it("one indexer returning nothing does not discard the other's results", async () => {
     const hit = relayList(skA, 1000);
     queryMock.mockImplementation((url: string) =>
-      Promise.resolve(url.includes("purplepag.es") ? [] : [hit])
+      Promise.resolve(url.includes("user.kingpag.es") ? [] : [hit])
     );
     const result = await fetchKind10002FromIndexers(pkA);
     expect(result?.id).toBe(hit.id);

@@ -3,7 +3,7 @@
  *
  * UCP catalog entries and Product/Offer JSON-LD are far more useful to shopping
  * agents and search engines when each product carries a standard taxonomy code.
- * Milk Market products only have free-form `t` category tags (see CATEGORIES),
+ * Self-sown products only have free-form `t` category tags (see CATEGORIES),
  * so this module maps those to:
  *   - the Google Product Category full-path string (used by Merchant Center,
  *     consumed by most shopping agents), and
@@ -21,7 +21,7 @@ export interface ProductTaxonomy {
   shopify?: string;
 }
 
-// Lower-cased Milk Market category → taxonomy full paths. Top-level food
+// Lower-cased Self-sown category → taxonomy full paths. Top-level food
 // groupings are accurate; we intentionally avoid inventing precise leaf IDs the
 // platforms don't publish, keeping the defaults safe and overridable.
 const GOOGLE_DAIRY = "Food, Beverages & Tobacco > Food Items > Dairy Products";
@@ -57,7 +57,7 @@ const CATEGORY_TAXONOMY: Record<string, ProductTaxonomy> = {
     google: "Food, Beverages & Tobacco > Food Items > Eggs",
     shopify: "Food, Beverages & Tobacco > Food > Eggs",
   },
-  // Broad fallbacks for the remaining Milk Market categories.
+  // Broad fallbacks for the remaining Self-sown categories.
   food: {
     google: "Food, Beverages & Tobacco > Food Items",
     shopify: "Food, Beverages & Tobacco > Food",

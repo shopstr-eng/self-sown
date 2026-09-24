@@ -3,6 +3,7 @@ import dns from "dns";
 import { promisify } from "util";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { getDomainByPubkey, markVerified } from "@/utils/db/custom-domains";
+import { SITE_HOST } from "@/utils/site-url";
 
 const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
@@ -11,14 +12,10 @@ const resolveTxt = promisify(dns.resolveTxt);
 const RATE_LIMIT = { limit: 30, windowMs: 60 * 1000 };
 
 const PRIMARY_HOST = (
-  process.env.REPLIT_DEPLOYMENT_HOST || "milk.market"
+  process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST
 ).toLowerCase();
 
-const VALID_CNAME_TARGETS = [
-  PRIMARY_HOST,
-  "milk.market",
-  "milk-market.replit.app",
-]
+const VALID_CNAME_TARGETS = [PRIMARY_HOST, SITE_HOST, "milk-market.replit.app"]
   .map((h) => h.toLowerCase().replace(/\.$/, ""))
   .filter((v, i, a) => a.indexOf(v) === i);
 
@@ -89,7 +86,18 @@ export default async function handler(
 
     if (expectedToken) {
       try {
-        const txt = await resolveTxt(`_milkmarket.${domain}`);
+        // Accept both the current and pre-rename TXT owner names so sellers
+        // who already added `_milkmarket.` records keep verifying without
+        // touching their DNS.
+        const [primary, legacy] = await Promise.allSettled([
+          resolveTxt(`_self-sown.${domain}`),
+          resolveTxt(`_milkmarket.${domain}`),
+        ]);
+        const txt = [
+          ...(primary.status === "fulfilled" ? primary.value : []),
+          ...(legacy.status === "fulfilled" ? legacy.value : []),
+        ];
+        if (txt.length === 0) throw new Error("no TXT records");
         const flat = txt.map((parts) => parts.join("")).flat();
         observed.txt = flat;
         txtMatch = flat.some((v) => v.trim() === expectedToken);
@@ -104,6 +112,11 @@ export default async function handler(
 
     if (verified) {
       await markVerified(pubkey);
+      // Deliberately NO Square Apple Pay activation here: DNS verification
+      // fires while the domain may still be awaiting TLS attachment, and
+      // Square requires a live HTTPS domain serving the association file.
+      // The pre-SDK seller-status checkout route activates instead — it runs
+      // exactly when the domain is live and about to take payment.
     }
 
     let message = "";
@@ -116,7 +129,7 @@ export default async function handler(
     } else if (!dnsTargetMatch) {
       message = `TXT verification succeeded, but no CNAME pointing to ${VALID_CNAME_TARGETS[0]} (or A record matching ${PRIMARY_HOST}) was found.`;
     } else {
-      message = `DNS target verified, but the TXT record at _milkmarket.${domain} doesn't match. Make sure the value is exactly: ${expectedToken}`;
+      message = `DNS target verified, but the TXT record at _self-sown.${domain} doesn't match. Make sure the value is exactly: ${expectedToken}`;
     }
 
     return res.status(200).json({
@@ -127,7 +140,7 @@ export default async function handler(
       expected: {
         cnameAnyOf: VALID_CNAME_TARGETS,
         txt: expectedToken
-          ? { host: `_milkmarket.${domain}`, value: expectedToken }
+          ? { host: `_self-sown.${domain}`, value: expectedToken }
           : null,
       },
       message,

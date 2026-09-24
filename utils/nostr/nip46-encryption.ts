@@ -3,7 +3,10 @@ import {
   encryptCredential,
 } from "@/utils/nostr/credential-encryption";
 
-const CONTEXT = "milk-market:nip46:v1";
+const CONTEXT = "self-sown:nip46:v1";
+// Signer credentials encrypted before the rebrand used this context; it is
+// tried as a decrypt fallback so stored bunker sessions keep working.
+const LEGACY_CONTEXT = "milk-market:nip46:v1";
 
 export type NIP46SignerCredentials = {
   type: "nip46";
@@ -45,9 +48,18 @@ export async function decryptNIP46SignerCredentials(
   passphrase: string
 ): Promise<NIP46SignerCredentials> {
   try {
-    const payload: unknown = JSON.parse(
-      await decryptCredential(encryptedSigner, passphrase, CONTEXT)
-    );
+    let plaintext: string;
+    try {
+      plaintext = await decryptCredential(encryptedSigner, passphrase, CONTEXT);
+    } catch {
+      // Pre-rebrand payloads were sealed with the legacy context.
+      plaintext = await decryptCredential(
+        encryptedSigner,
+        passphrase,
+        LEGACY_CONTEXT
+      );
+    }
+    const payload: unknown = JSON.parse(plaintext);
     if (
       !payload ||
       typeof payload !== "object" ||

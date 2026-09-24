@@ -15,6 +15,7 @@ import {
   type StallPostInput,
   type StallPostDetail,
 } from "@/utils/geo/stall-content";
+import { SITE_URL } from "@/utils/site-url";
 
 const postDetail = (over: Partial<StallPostDetail> = {}): StallPostDetail => ({
   title: "Why raw milk matters",
@@ -31,7 +32,7 @@ const postDetail = (over: Partial<StallPostDetail> = {}): StallPostDetail => ({
 const baseInput = (over: Partial<StallPostInput> = {}): StallPostInput => ({
   shopName: "Green Pastures",
   slug: "green-pastures",
-  siteUrl: "https://milk.market/stall/green-pastures",
+  siteUrl: `${SITE_URL}/stall/green-pastures`,
   isCustomDomain: false,
   post: postDetail(),
   ...over,
@@ -57,7 +58,7 @@ describe("buildPostMarkdown", () => {
   it("links back to the post on the platform host", () => {
     const md = buildPostMarkdown(baseInput());
     expect(md).toContain(
-      "Post: https://milk.market/stall/green-pastures/blog/why-raw-milk-matters"
+      `Post: ${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters`
     );
   });
 
@@ -95,7 +96,7 @@ describe("buildPostJson", () => {
     const json = buildPostJson(baseInput()) as Record<string, unknown>;
     expect(json.type).toBe("article");
     expect(json.url).toBe(
-      "https://milk.market/stall/green-pastures/blog/why-raw-milk-matters"
+      `${SITE_URL}/stall/green-pastures/blog/why-raw-milk-matters`
     );
     expect(json.post).toEqual({
       title: "Why raw milk matters",
@@ -151,6 +152,6 @@ describe("buildPostLlmsTxt", () => {
     expect(txt).toContain("## Article");
     expect(txt).toContain("Raw milk is best straight from the farm.");
     expect(txt).toContain("## For AI Agents");
-    expect(txt).toContain("https://milk.market/.well-known/l402.json");
+    expect(txt).toContain(`${SITE_URL}/.well-known/l402.json`);
   });
 });

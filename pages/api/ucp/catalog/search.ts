@@ -7,6 +7,7 @@ import {
 import { applyRateLimit } from "@/utils/rate-limit";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 import type { UcpProduct } from "@/utils/ucp/types";
+import { getSiteUrl } from "@/utils/site-url";
 import {
   deriveBaseUrl,
   fetchSellerNames,
@@ -85,8 +86,7 @@ export default async function handler(
       : await fetchAllProductsFromDb(SCAN_CAP, 0);
 
     const sellerOrigin = scope === "seller" ? baseUrl : undefined;
-    const platformUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+    const platformUrl = getSiteUrl();
 
     let products = buildUcpCatalog(events, { platformUrl, sellerOrigin });
 

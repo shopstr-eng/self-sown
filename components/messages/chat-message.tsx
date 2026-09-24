@@ -15,6 +15,7 @@ import LinkPreview from "./link-preview";
 import { NostrMessageEvent } from "../../utils/types/types";
 import { timeSinceMessageDisplayText } from "../../utils/messages/utils";
 import { copyToClipboard } from "@/utils/clipboard";
+import { joinClassNames } from "@/utils/class-names";
 import { getDecodedToken } from "@cashu/cashu-ts";
 import {
   NostrContext,
@@ -586,9 +587,10 @@ const ChatMessage = ({
 
             <Button
               size="sm"
-              className={`mt-2 w-full ${
-                isSignedAgreement ? "text-dark-text" : "text-light-text"
-              }`}
+              className={joinClassNames(
+                "mt-2 w-full",
+                isSignedAgreement ? "text-white" : "text-black"
+              )}
               color={
                 isSignedAgreement
                   ? "success"
@@ -666,18 +668,20 @@ const ChatMessage = ({
     <>
       <div
         key={index}
-        className={`my-2 flex ${
+        className={joinClassNames(
+          "my-2 flex",
           isUserMessage
             ? "justify-end"
             : messageEvent.pubkey === currentChatPubkey
               ? "justify-start"
               : ""
-        }`}
+        )}
       >
         <div
-          className={`shadow-neo flex max-w-[90%] flex-col rounded-md border-2 border-black px-4 py-3 ${
+          className={joinClassNames(
+            "shadow-neo flex max-w-[90%] flex-col rounded-md border-2 border-black px-4 py-3",
             isUserMessage ? "bg-primary-blue text-white" : "bg-white text-black"
-          }`}
+          )}
         >
           <div className="flex flex-col overflow-x-hidden break-words">
             {cashuPrefix && canDecodeToken && tokenAfterCashuVersion ? (
@@ -729,9 +733,10 @@ const ChatMessage = ({
         </div>
         <div className="m-1"></div>
         <span
-          className={`text-xs opacity-60 ${
+          className={joinClassNames(
+            "text-xs opacity-60",
             isUserMessage ? "text-right" : "text-left"
-          }`}
+          )}
         >
           {timeSinceMessageDisplayText(messageEvent.created_at).dateTime}
         </span>
@@ -755,16 +760,16 @@ const ChatMessage = ({
           size="5xl"
           scrollBehavior="inside"
           classNames={{
-            body: "py-6 bg-dark-fg",
-            backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-            header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-            footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+            body: "py-6 bg-primary-blue",
+            backdrop: "bg-black/50 backdrop-opacity-60",
+            header: "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+            footer: "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
             closeButton: "hover:bg-black/5 active:bg-white/10",
           }}
           className="max-h-[90vh]"
         >
           <ModalContent className="flex h-full flex-col">
-            <ModalHeader className="flex-shrink-0 border-b bg-white">
+            <ModalHeader className="shrink-0 border-b bg-white">
               <div className="flex items-center gap-2">
                 <span aria-hidden="true" className="text-lg leading-none">
                   📄
@@ -772,9 +777,9 @@ const ChatMessage = ({
                 Review & Sign Agreement
               </div>
             </ModalHeader>
-            <ModalBody className="flex flex-grow flex-col p-4">
+            <ModalBody className="flex grow flex-col p-4">
               <div className="flex h-full flex-col rounded-lg border bg-white">
-                <div className="flex-grow overflow-auto p-4">
+                <div className="grow overflow-auto p-4">
                   <PDFAnnotator
                     pdfUrl={currentPdfUrl}
                     annotations={annotations}
@@ -783,7 +788,7 @@ const ChatMessage = ({
                 </div>
               </div>
             </ModalBody>
-            <ModalFooter className="flex-shrink-0 border-t bg-gray-50">
+            <ModalFooter className="shrink-0 border-t bg-gray-50">
               <div className="flex w-full justify-end gap-3">
                 <Button
                   color="default"

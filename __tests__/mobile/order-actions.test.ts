@@ -12,7 +12,7 @@ import {
   type AsyncKeyValueStorage,
   type SellerOrderNotificationOutbox,
 } from "@/apps/mobile/lib/order-notification-outbox";
-import type { SellerOrder, SellerSession } from "@milk-market/domain";
+import type { SellerOrder, SellerSession } from "@self-sown/domain";
 
 const sellerPubkey = "a".repeat(64);
 const buyerPubkey = "b".repeat(64);

@@ -5,7 +5,7 @@
 //
 // Unlike the per-stall surfaces (stall homepage, blog posts, GEO files) which
 // rewrite to /api/stall-agent-view, the public marketing/legal pages —
-//   /, /about, /faq, /contact, /producer-guide, /terms, /privacy
+//   /, /about, /manifesto, /faq, /contact, /producer-guide, /terms, /privacy
 // — are served as tailored markdown/JSON/plain-text via /api/agent-view for
 // agents (Accept header or known LLM UA) while browsers and HTML-only
 // social/SEO bots keep getting the HTML SSR page (so OpenGraph/link previews
@@ -22,6 +22,7 @@
 import { NextRequest } from "next/server";
 import type { NextResponse } from "next/server";
 import { proxy } from "@/proxy";
+import { SITE_HOST } from "@/utils/site-url";
 
 // The custom-domain branch resolves the seller slug/pubkey for the request host
 // via lookupByHost (DB/cache backed). Stub it so the routing test is hermetic.
@@ -38,6 +39,7 @@ const TWITTERBOT_UA = "Twitterbot/1.0";
 const MARKETING_PATHS = [
   "/",
   "/about",
+  "/manifesto",
   "/faq",
   "/contact",
   "/producer-guide",
@@ -102,7 +104,7 @@ function expectHtmlPage(res: NextResponse) {
 // --- Platform host: each marketing path negotiates for agents ----------------
 
 describe("proxy() marketing-page negotiation — platform host", () => {
-  const HOST = "milk.market";
+  const HOST = SITE_HOST;
 
   it.each(MARKETING_PATHS)(
     "rewrites an LLM crawler on %s to the agent view (markdown)",
@@ -183,7 +185,14 @@ describe("proxy() marketing-page negotiation — platform host", () => {
 // negotiates separately as the stall homepage.)
 describe("proxy() marketing-page negotiation — custom domains fall through", () => {
   const HOST = "farmer.example";
-  const SELLER_PATHS = ["/about", "/faq", "/contact", "/terms", "/privacy"];
+  const SELLER_PATHS = [
+    "/about",
+    "/manifesto",
+    "/faq",
+    "/contact",
+    "/terms",
+    "/privacy",
+  ];
 
   it.each(SELLER_PATHS)(
     "does NOT divert an LLM crawler on %s to /api/agent-view",

@@ -8,7 +8,7 @@ import {
  *
  * UCP/agentic clients expect every price as a structured Money object: an
  * integer amount expressed in the currency's *minor units* plus the currency
- * code and the number of decimal places. This module maps a Milk Market price
+ * code and the number of decimal places. This module maps a Self-sown price
  * (a plain number + a NIP-99 `currency` tag) onto that shape.
  *
  * IMPORTANT — no FX here. Catalog prices are surfaced in their *native*
@@ -66,7 +66,7 @@ export function currencyExponent(currency: string): number {
 }
 
 /**
- * Convert a Milk Market price (plain number) + NIP-99 currency tag into a UCP
+ * Convert a Self-sown price (plain number) + NIP-99 currency tag into a UCP
  * Money object with the amount in integer minor units. Pure and synchronous —
  * performs no exchange-rate lookups (see the module note). A missing/blank
  * currency is treated as sats, matching the catalog parser's default. Negative

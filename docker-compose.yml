@@ -3,17 +3,17 @@ version: "3.8"
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: milk-market-postgres
+    container_name: self-sown-postgres
     environment:
-      POSTGRES_USER: milkmarket
-      POSTGRES_PASSWORD: milkmarket
-      POSTGRES_DB: milkmarket
+      POSTGRES_USER: selfsown
+      POSTGRES_PASSWORD: selfsown
+      POSTGRES_DB: selfsown
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U milkmarket"]
+      test: ["CMD-SHELL", "pg_isready -U selfsown"]
       interval: 10s
       timeout: 5s
       retries: 5

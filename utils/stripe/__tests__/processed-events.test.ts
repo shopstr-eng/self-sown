@@ -14,6 +14,10 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: () => ({
     connect: async () => ({ query: mockQuery, release: mockRelease }),
   }),
+  // The DDL lock wrapper is exercised separately (schema-boot-single-flight);
+  // here it just runs the callback on the stateful mock client.
+  withSchemaDdlLock: async (client: any, fn: (c: any) => Promise<unknown>) =>
+    fn(client),
 }));
 
 import {

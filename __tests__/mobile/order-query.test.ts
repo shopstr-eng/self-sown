@@ -8,12 +8,12 @@ import {
   type SellerOrdersLoaderDependencies,
 } from "../../apps/mobile/lib/order-query";
 import { queryClient } from "../../apps/mobile/lib/query-client";
-import type { CachedSellerMessage } from "@milk-market/api-client";
+import type { CachedSellerMessage } from "@self-sown/api-client";
 import type {
   SellerOrderEvent,
   SellerOrderStatus,
   SellerSession,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 const sellerPubkey = "a".repeat(64);
 const buyerPubkey = "b".repeat(64);

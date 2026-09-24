@@ -16,11 +16,12 @@ import {
 import {
   createNostrProfileEvent,
   getLocalUserProfileKey,
+  getLegacyLocalUserProfileKey,
   parseLocalProfileFallback,
   isProfileContentPopulated,
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
 interface MarketProfileFormProps {
@@ -48,9 +49,20 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
       website: "",
       lud16: "",
       fiat_options: {} as FiatOptionsType,
-      mm_donation: 0,
+      ss_donation: 0,
     },
   });
+
+  // Pre-rebrand profiles store the donation rate under mm_donation; map it
+  // onto the canonical ss_donation field when hydrating the form.
+  const withDonationMigration = (
+    content: Record<string, unknown> | undefined
+  ) =>
+    content &&
+    content.ss_donation === undefined &&
+    content.mm_donation !== undefined
+      ? { ...content, ss_donation: content.mm_donation }
+      : content;
 
   const watchPicture = watch("picture");
   const defaultImage = useMemo(() => {
@@ -79,7 +91,8 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
       .then((r) => r.json())
       .then((data) => {
         if (contextLoadedRef.current) return;
-        if (data?.profile?.content) reset(data.profile.content);
+        if (data?.profile?.content)
+          reset(withDonationMigration(data.profile.content));
       })
       .catch(() => {})
       .finally(() => {
@@ -95,7 +108,8 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
     setIsFetchingProfile(true);
 
     const localFallback = parseLocalProfileFallback(
-      localStorage.getItem(getLocalUserProfileKey(userPubkey))
+      localStorage.getItem(getLocalUserProfileKey(userPubkey)) ??
+        localStorage.getItem(getLegacyLocalUserProfileKey(userPubkey))
     );
     const profileCreatedAt = profile.created_at || 0;
     const shouldUseLocalFallback =
@@ -103,7 +117,11 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
       localFallback.updatedAt > profileCreatedAt &&
       isProfileContentPopulated(localFallback.content);
 
-    reset(shouldUseLocalFallback ? localFallback.content : profile.content);
+    reset(
+      withDonationMigration(
+        shouldUseLocalFallback ? localFallback.content : profile.content
+      )
+    );
 
     try {
       localStorage.setItem(
@@ -141,9 +159,12 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
         ...existingProfile,
         ...data,
       };
-      // Drop any legacy donation field; mm_donation is the canonical key.
+      // Drop any legacy donation field; ss_donation is the canonical key.
       if ("shopstr_donation" in updatedData) {
         delete updatedData.shopstr_donation;
+      }
+      if ("mm_donation" in updatedData) {
+        delete updatedData.mm_donation;
       }
       // The payment preference is derived, never chosen manually.
       updatedData.payment_preference = derivePaymentPreference(
@@ -198,7 +219,7 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
   }, [watch]);
 
   if (isFetchingProfile) {
-    return <MilkMarketSpinner />;
+    return <SelfSownSpinner />;
   }
 
   return (
@@ -494,12 +515,12 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
           </div>
         </div>
 
-        {/* Milk Market Donation */}
+        {/* Self-sown Donation */}
         <div className="space-y-2">
           <label className="flex items-center gap-1.5 text-base font-bold text-black">
-            Milk Market donation (%)
+            Self-sown donation (%)
             <Tooltip
-              content="This donation helps fund Milk Market and keep the marketplace running. You can change it at any time."
+              content="This donation helps fund Self-sown and keep the marketplace running. You can change it at any time."
               placement="top"
               className="max-w-xs"
             >
@@ -507,7 +528,7 @@ const MarketProfileForm = ({ isOnboarding }: MarketProfileFormProps) => {
             </Tooltip>
           </label>
           <Controller
-            name="mm_donation"
+            name="ss_donation"
             control={control}
             render={({ field: { onChange, onBlur, value } }) => (
               <Input

@@ -33,7 +33,7 @@ function escapeHtml(str: string): string {
 
 const MERGE_TAG_DEFAULTS: Record<string, string> = {
   buyer_name: "Milk Enjoyer",
-  shop_name: "Milk Market",
+  shop_name: "Self-sown",
   product_title: "your creamy goodness",
   order_id: "",
   product_image: "",
@@ -126,7 +126,7 @@ function flowBaseTemplate(
             <td style="background-color:${footerBg};padding:20px 32px;text-align:center;border-top:1px solid ${accentBorder};">
               <p style="margin:0;color:${footerText};font-size:12px;">You received this email from ${escapeHtml(
                 shopName
-              )}. Sent via Milk Market.</p>
+              )}. Sent via Self-sown.</p>
             </td>
           </tr>
         </table>
@@ -166,7 +166,7 @@ export function renderFlowEmail(
 ): { subject: string; html: string } {
   const renderedSubject = replaceMergeTags(subject, data);
   let renderedBody = replaceMergeTags(bodyHtml, data);
-  const shopName = data.shop_name || "Milk Market";
+  const shopName = data.shop_name || "Self-sown";
 
   if (style) {
     renderedBody = applyStorefrontButtonColors(renderedBody, style);

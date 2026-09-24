@@ -9,6 +9,18 @@
 // heavy deps mocked so a future refactor can't silently mis-charge a buyer or
 // skim sales tax. Self-host is forced OFF here (covered separately in
 // self-host-card-checkout.test.ts).
+//
+// Environment note (fixed here): the Apple Pay registration assertions send
+// `host: SITE_HOST` (the platform marketplace host, derived from
+// NEXT_PUBLIC_BASE_URL). Apple Pay is disabled on the marketplace, so the
+// route never registers that host — registration only happens for a verified
+// custom domain owned by the seller. SITE_HOST is baked at module load
+// (fallback "self-sown.com", or this environment's real
+// NEXT_PUBLIC_BASE_URL), so stubbing the env to the stale hardcoded
+// "https://milk.market" made the header never match and the suites
+// went red after the brand rename / in any env where the var is set. The
+// beforeEach below stubs NEXT_PUBLIC_BASE_URL from SITE_HOST itself so the
+// two can never diverge again.
 
 const applyRateLimitMock = jest.fn();
 const getStripeConnectAccountMock = jest.fn();
@@ -42,9 +54,11 @@ jest.mock("@/utils/db/db-service", () => ({
 jest.mock("@/utils/self-host/config", () => ({
   getSelfHostConfig: (...args: unknown[]) => getSelfHostConfigMock(...args),
   isSelfHostTenant: (...args: unknown[]) => isSelfHostTenantMock(...args),
+  isSelfHost: () => false,
 }));
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
+  ...jest.requireActual("@/utils/stripe/pending-payments"),
   recordPendingPayment: (...args: unknown[]) =>
     recordPendingPaymentMock(...args),
   updatePendingPayment: (...args: unknown[]) =>
@@ -69,6 +83,7 @@ jest.mock("@/utils/db/custom-domains", () => ({
 }));
 
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
+import { SITE_HOST } from "@/utils/site-url";
 
 const SELLER = "c".repeat(64);
 const SELLER_B = "d".repeat(64);
@@ -104,7 +119,7 @@ function hostedCfg(over: Record<string, unknown> = {}) {
 }
 
 const ORIGINAL_KEY = process.env.STRIPE_SECRET_KEY;
-const ORIGINAL_PK = process.env.NEXT_PUBLIC_MILK_MARKET_PK;
+const ORIGINAL_PK = process.env.NEXT_PUBLIC_SELF_SOWN_PK;
 const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
 beforeEach(() => {
@@ -125,15 +140,18 @@ beforeEach(() => {
   process.env.STRIPE_SECRET_KEY = "sk_test_platform";
   // Keep the seller pubkey distinct from the platform pubkey so the route
   // treats it as a connected seller (not the platform account).
-  process.env.NEXT_PUBLIC_MILK_MARKET_PK = "f".repeat(64);
-  process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+  process.env.NEXT_PUBLIC_SELF_SOWN_PK = "f".repeat(64);
+  // Derive the platform origin from SITE_HOST (see header note): the Apple
+  // Pay tests send `host: SITE_HOST`, and trustedRegistrationHost only
+  // registers when it matches the host of NEXT_PUBLIC_BASE_URL.
+  process.env.NEXT_PUBLIC_BASE_URL = `https://${SITE_HOST}`;
 });
 
 afterAll(() => {
   if (ORIGINAL_KEY === undefined) delete process.env.STRIPE_SECRET_KEY;
   else process.env.STRIPE_SECRET_KEY = ORIGINAL_KEY;
-  if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_MILK_MARKET_PK;
-  else process.env.NEXT_PUBLIC_MILK_MARKET_PK = ORIGINAL_PK;
+  if (ORIGINAL_PK === undefined) delete process.env.NEXT_PUBLIC_SELF_SOWN_PK;
+  else process.env.NEXT_PUBLIC_SELF_SOWN_PK = ORIGINAL_PK;
   if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
   else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
 });
@@ -170,7 +188,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     expect(params.amount).toBe(1000);
   });
 
-  it("registers Apple Pay on the platform host for the seller's connected account", async () => {
+  it("registers the platform host on the SELLER's connected account (per-seller Apple Pay on platform checkouts)", async () => {
     getStripeConnectAccountMock.mockResolvedValue({
       stripe_account_id: "acct_seller",
       charges_enabled: true,
@@ -179,7 +197,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     await createPaymentIntentHandler(
       {
         method: "POST",
-        headers: { host: "milk.market" },
+        headers: { host: SITE_HOST },
         body: {
           amount: 10,
           currency: "usd",
@@ -190,7 +208,7 @@ describe("POST /api/stripe/create-payment-intent — single-seller direct charge
     );
     expect(res.statusCode).toBe(200);
     expect(registerApplePayDomainMock).toHaveBeenCalledWith(
-      "milk.market",
+      SITE_HOST,
       "acct_seller"
     );
   });
@@ -502,5 +520,56 @@ describe("POST /api/stripe/create-payment-intent — multi-merchant rejection", 
     // Buyer charged the sum of the per-seller splits (500 + 500).
     const params = stripeCreateMock.mock.calls[0][0] as any;
     expect(params.amount).toBe(1000);
+  });
+});
+
+describe("POST /api/stripe/create-payment-intent — server-owned metadata keys", () => {
+  // process-transfers treats stamped split details (pending-record metadata,
+  // legacy PI metadata) as payout authority. A caller must never be able to
+  // plant those keys via client metadata — on ANY path.
+  const forgedMetadata = {
+    sellerPubkey: SELLER,
+    sellerSplits: JSON.stringify([
+      { pubkey: "e".repeat(64), amountCents: 100000, accountId: "acct_evil" },
+    ]),
+    transferGroup: "cart_forged",
+    isMultiMerchant: "true",
+    ssSplitAuthority: "pending-record-v1",
+    sellerSplitPubkeys: "e".repeat(64),
+  };
+
+  it("strips injected split authority from single-seller PI metadata AND the pending record", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: { amount: 10, currency: "usd", metadata: forgedMetadata },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    const params = stripeCreateMock.mock.calls[0][0] as any;
+    for (const key of [
+      "sellerSplits",
+      "transferGroup",
+      "isMultiMerchant",
+      "ssSplitAuthority",
+      "sellerSplitPubkeys",
+    ]) {
+      expect(params.metadata[key]).toBeUndefined();
+    }
+    // Legit client metadata survives.
+    expect(params.metadata.sellerPubkey).toBe(SELLER);
+    const recordCall = recordPendingPaymentMock.mock.calls[0][0] as any;
+    for (const key of [
+      "sellerSplits",
+      "transferGroup",
+      "isMultiMerchant",
+      "ssSplitAuthority",
+      "sellerSplitPubkeys",
+    ]) {
+      expect(recordCall.metadata[key]).toBeUndefined();
+    }
+    expect(recordCall.metadata.sellerPubkey).toBe(SELLER);
   });
 });

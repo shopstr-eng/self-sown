@@ -15,11 +15,12 @@ import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import {
   createNostrProfileEvent,
   getLocalUserProfileKey,
+  getLegacyLocalUserProfileKey,
   parseLocalProfileFallback,
   isProfileContentPopulated,
 } from "@/utils/nostr/nostr-helper-functions";
 import { FileUploaderButton } from "@/components/utility-components/file-uploader";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { derivePaymentPreference } from "@/utils/lightning/direct-lnurl";
 
@@ -79,7 +80,8 @@ const UserProfilePage = () => {
     if (!userPubkey || profileContext.isLoading) return;
 
     const localFallback = parseLocalProfileFallback(
-      localStorage.getItem(getLocalUserProfileKey(userPubkey))
+      localStorage.getItem(getLocalUserProfileKey(userPubkey)) ??
+        localStorage.getItem(getLegacyLocalUserProfileKey(userPubkey))
     );
 
     const profileMap = profileContext.profileData;
@@ -148,9 +150,17 @@ const UserProfilePage = () => {
         typeof data.lud16 === "string" ? data.lud16 : "",
         acceptBitcoin
       );
-      // Drop any legacy donation field; mm_donation (set in shop settings) is
-      // the canonical key — never propagate the stale upstream one.
+      // Migrate the donation key forward if needed; ss_donation (set in shop
+      // settings) is the canonical key — never propagate the stale legacy
+      // ones, but never lose the value either.
+      if (
+        updatedData.ss_donation === undefined &&
+        updatedData.mm_donation !== undefined
+      ) {
+        updatedData.ss_donation = updatedData.mm_donation;
+      }
       delete updatedData.shopstr_donation;
+      delete updatedData.mm_donation;
 
       try {
         localStorage.setItem(
@@ -184,15 +194,15 @@ const UserProfilePage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="bg-light-bg dark:bg-dark-bg flex min-h-screen flex-col pt-24 md:pb-20">
+      <div className="flex min-h-screen flex-col bg-white pt-24 md:pb-20">
         <div className="mx-auto h-full w-full px-4 lg:w-1/2">
           <SettingsBreadCrumbs />
           {isFetchingProfile ? (
-            <MilkMarketSpinner />
+            <SelfSownSpinner />
           ) : (
             <>
-              <div className="bg-light-fg dark:bg-dark-fg mb-20 h-40 rounded-lg">
-                <div className="bg-accent-light-text dark:bg-dark-fg relative flex h-40 items-center justify-center rounded-lg">
+              <div className="mb-20 h-40 rounded-lg bg-white">
+                <div className="bg-primary-yellow relative flex h-40 items-center justify-center rounded-lg">
                   {watchBanner && (
                     <Image
                       alt={"User banner image"}
@@ -201,7 +211,7 @@ const UserProfilePage = () => {
                     />
                   )}
                   <FileUploaderButton
-                    className={`bg-accent-light-text absolute right-5 bottom-5 z-20 border-2 border-white shadow-md ${PRIMARYBUTTONCLASSNAMES}`}
+                    className={`bg-primary-yellow absolute right-5 bottom-5 z-20 border-2 border-white shadow-md ${PRIMARYBUTTONCLASSNAMES}`}
                     imgCallbackOnUpload={(imgUrl) => setValue("banner", imgUrl)}
                   >
                     Upload Banner
@@ -230,7 +240,7 @@ const UserProfilePage = () => {
               </div>
 
               <div
-                className="border-light-fg dark:border-dark-fg mx-auto mb-2 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2 hover:opacity-60"
+                className="mx-auto mb-2 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 border-black p-2 hover:opacity-60"
                 onClick={() => {
                   if (userNPub) navigator.clipboard.writeText(userNPub);
                   setIsNPubCopied(true);
@@ -240,7 +250,7 @@ const UserProfilePage = () => {
                 }}
               >
                 <span
-                  className="lg:text-md text-light-text dark:text-dark-text pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
+                  className="pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm lg:text-base"
                   suppressHydrationWarning
                 >
                   {userNPub}
@@ -248,14 +258,14 @@ const UserProfilePage = () => {
                 {isNPubCopied ? (
                   <span
                     aria-hidden="true"
-                    className="flex-shrink-0 text-sm leading-none"
+                    className="shrink-0 text-sm leading-none"
                   >
                     ✔️
                   </span>
                 ) : (
                   <span
                     aria-hidden="true"
-                    className="flex-shrink-0 text-sm leading-none"
+                    className="shrink-0 text-sm leading-none"
                   >
                     📋
                   </span>
@@ -263,9 +273,9 @@ const UserProfilePage = () => {
               </div>
 
               {userNSec ? (
-                <div className="border-light-fg dark:border-dark-fg mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 p-2">
+                <div className="mx-auto mb-12 flex w-full max-w-2xl cursor-pointer flex-row items-center justify-center rounded-lg border-2 border-black p-2">
                   <span
-                    className="lg:text-md text-light-text dark:text-dark-text pr-2 text-[0.50rem] font-bold break-all sm:text-xs md:text-sm"
+                    className="pr-2 text-[0.50rem] font-bold break-all text-black sm:text-xs md:text-sm lg:text-base"
                     suppressHydrationWarning
                   >
                     {viewState === "shown"
@@ -275,7 +285,7 @@ const UserProfilePage = () => {
                   {isNSecCopied ? (
                     <span
                       aria-hidden="true"
-                      className="flex-shrink-0 text-sm leading-none"
+                      className="shrink-0 text-sm leading-none"
                     >
                       ✔️
                     </span>
@@ -283,7 +293,7 @@ const UserProfilePage = () => {
                     <button
                       type="button"
                       aria-label="Copy nsec"
-                      className="flex-shrink-0 cursor-pointer text-sm leading-none"
+                      className="shrink-0 cursor-pointer text-sm leading-none"
                       onClick={() => {
                         navigator.clipboard.writeText(userNSec);
                         setIsNSecCopied(true);
@@ -299,7 +309,7 @@ const UserProfilePage = () => {
                     <button
                       type="button"
                       aria-label="Hide nsec"
-                      className="flex-shrink-0 cursor-pointer px-1 text-xl leading-none"
+                      className="shrink-0 cursor-pointer px-1 text-xl leading-none"
                       onClick={() => {
                         setViewState("hidden");
                       }}
@@ -310,7 +320,7 @@ const UserProfilePage = () => {
                     <button
                       type="button"
                       aria-label="Show nsec"
-                      className="flex-shrink-0 cursor-pointer px-1 text-xl leading-none"
+                      className="shrink-0 cursor-pointer px-1 text-xl leading-none"
                       onClick={async () => {
                         // Only decrypt nsec when user explicitly asks to see it.
                         if (!userNSec && signer instanceof NostrNSecSigner) {
@@ -348,9 +358,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="pb-4 text-black"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -381,9 +391,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="pb-4 text-black"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -414,9 +424,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Textarea
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="pb-4 text-black"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -447,9 +457,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="pb-4 text-black"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -479,9 +489,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="pb-4 text-black"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -512,9 +522,9 @@ const UserProfilePage = () => {
                       : "";
                     return (
                       <Input
-                        className="text-light-text dark:text-dark-text pb-4"
+                        className="pb-4 text-black"
                         classNames={{
-                          label: "text-light-text dark:text-dark-text text-lg",
+                          label: "text-black text-lg",
                         }}
                         variant="bordered"
                         fullWidth={true}
@@ -532,10 +542,10 @@ const UserProfilePage = () => {
                   }}
                 />
                 <div className="pb-4">
-                  <label className="text-light-text dark:text-dark-text block pb-2 text-lg">
+                  <label className="block pb-2 text-lg text-black">
                     Payment preference
                   </label>
-                  <div className="text-light-text dark:text-dark-text border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium">
+                  <div className="border-default-200 flex h-12 items-center rounded-xl border-2 px-3 text-base font-medium text-black">
                     {(() => {
                       const derived = derivePaymentPreference(
                         watch("lud16"),
@@ -548,7 +558,7 @@ const UserProfilePage = () => {
                           : "Cashu (Bitcoin)";
                     })()}
                   </div>
-                  <p className="text-light-text dark:text-dark-text mt-2 text-sm font-medium opacity-70">
+                  <p className="mt-2 text-sm font-medium text-black opacity-70">
                     This is set automatically: Lightning when you have a
                     Lightning address, Cashu when no address is set, and Local
                     Currency (Fiat) when Bitcoin payments are turned off in your

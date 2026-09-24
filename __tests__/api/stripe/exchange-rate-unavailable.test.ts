@@ -9,7 +9,7 @@
 // wrap → isExchangeRateError → response-code chain is pinned end to end.
 
 const PLATFORM_PK = "f".repeat(64);
-process.env.NEXT_PUBLIC_MILK_MARKET_PK = PLATFORM_PK;
+process.env.NEXT_PUBLIC_SELF_SOWN_PK = PLATFORM_PK;
 process.env.STRIPE_SECRET_KEY = "sk_test_platform";
 
 const getFiatValueMock = jest.fn();
@@ -78,6 +78,7 @@ jest.mock("@/utils/self-host/config", () => ({
 }));
 
 jest.mock("@/utils/stripe/pending-payments", () => ({
+  ...jest.requireActual("@/utils/stripe/pending-payments"),
   recordPendingPayment: jest.fn(async () => undefined),
   updatePendingPayment: jest.fn(async () => undefined),
 }));
@@ -86,7 +87,7 @@ jest.mock("@/utils/stripe/donation", () => ({
   resolveDonationCut: jest.fn(async () => ({ percent: 0, cutSmallest: 0 })),
   getSellerDonationPercent: jest.fn(async () => null),
   isPlatformPubkey: jest.fn(
-    (pk: string) => pk === process.env.NEXT_PUBLIC_MILK_MARKET_PK
+    (pk: string) => pk === process.env.NEXT_PUBLIC_SELF_SOWN_PK
   ),
   computeDonationCutSmallest: jest.fn(() => 0),
 }));
@@ -263,6 +264,31 @@ describe("exchange-rate-unavailable contract across Stripe checkout routes", () 
       expect(res.body as any).not.toHaveProperty("code");
       expect(String((res.body as any).error)).toMatch(
         /failed to create subscription/i
+      );
+    });
+
+    it("honors a 100% donation — application_fee_percent 100, never collapsed to 0", async () => {
+      const donation = jest.requireMock("@/utils/stripe/donation");
+      (donation.getSellerDonationPercent as jest.Mock).mockResolvedValueOnce(
+        100
+      );
+      mockGetStripeConnectAccount.mockResolvedValueOnce({
+        stripe_account_id: "acct_seller_1",
+        charges_enabled: true,
+      });
+
+      const res = makeRes();
+      await createSubscriptionHandler(
+        makeReq({ ...subBody, amount: 10, currency: "USD" }),
+        res
+      );
+
+      expect(res.statusCode).toBe(200);
+      // 100% is UI-supported: the platform donation must take the whole
+      // recurring amount, not 0% (which would pay the seller in full).
+      expect(mockSubscriptionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ application_fee_percent: 100 }),
+        expect.anything()
       );
     });
   });

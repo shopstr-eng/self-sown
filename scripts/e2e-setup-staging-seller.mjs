@@ -17,7 +17,7 @@ import fs from "node:fs";
 
 // Deterministic keypair: sha256 of a fixed label. Staging fixture only.
 const sellerSk = createHash("sha256")
-  .update("milk-market-staging-escrow-seller-v1")
+  .update("self-sown-staging-escrow-seller-v1")
   .digest();
 const sellerPk = getPublicKey(sellerSk);
 console.log("seller pubkey:", sellerPk);

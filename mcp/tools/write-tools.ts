@@ -10,6 +10,7 @@ import { EventTemplate } from "nostr-tools";
 import {
   buildHandlingTimeTag,
   buildShipsToTags,
+  normalizeMarketplaceDiscoveryTag,
 } from "@/utils/parsers/product-tag-helpers";
 import {
   cacheEvent,
@@ -75,7 +76,8 @@ const resolveCname = promisify(dns.resolveCname);
 const resolve4 = promisify(dns.resolve4);
 import { getDefaultFlowSteps } from "@/utils/email/flow-email-templates";
 import { v4 as uuidv4 } from "uuid";
-import { createSellerActionAuthEventTemplate } from "@milk-market/nostr";
+import { createSellerActionAuthEventTemplate } from "@self-sown/nostr";
+import { getSiteUrl, SITE_HOST } from "@/utils/site-url";
 
 function noSignerError() {
   return {
@@ -1118,7 +1120,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe(
-          "URL slug for the storefront (e.g. 'fresh-farm' for milk.market/stall/fresh-farm). Must be lowercase alphanumeric with hyphens."
+          `URL slug for the storefront (e.g. 'fresh-farm' for ${SITE_HOST}/stall/fresh-farm). Must be lowercase alphanumeric with hyphens.`
         ),
       storefrontFontHeading: z
         .string()
@@ -1243,7 +1245,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             .boolean()
             .optional()
             .describe(
-              "Let Milk Market auto-generate SEO/GEO metadata for the storefront"
+              "Let Self-sown auto-generate SEO/GEO metadata for the storefront"
             ),
         })
         .optional()
@@ -1307,7 +1309,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           showPoweredBy: z
             .boolean()
             .optional()
-            .describe("Show 'Powered by Milk Market' in footer"),
+            .describe("Show 'Powered by Self-sown' in footer"),
           newsletter: z
             .object({
               enabled: z.boolean().optional(),
@@ -1517,7 +1519,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
   reg(
     "register_shop_slug",
-    "Register, update, or delete your shop's URL slug for the storefront. The slug becomes part of your shop URL (e.g. milk.market/stall/your-slug). Slug must be lowercase alphanumeric with hyphens, 3-50 characters. Reserved words (stall, admin, api, etc.) are not allowed. To delete, set action to 'delete'.",
+    `Register, update, or delete your shop's URL slug for the storefront. The slug becomes part of your shop URL (e.g. ${SITE_HOST}/stall/your-slug). Slug must be lowercase alphanumeric with hyphens, 3-50 characters. Reserved words (stall, admin, api, etc.) are not allowed. To delete, set action to 'delete'.`,
     {
       slug: z
         .string()
@@ -1815,7 +1817,11 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             tags.push(["t", cat]);
           }
         }
-        tags.push(["t", "MilkMarket"]);
+        // Categories are caller-supplied: a legacy "MilkMarket" or duplicate
+        // "SelfSown" spelling must not survive into the published event, so
+        // the discovery tag goes through the shared normalizer instead of an
+        // unconditional append.
+        tags.splice(0, tags.length, ...normalizeMarketplaceDiscoveryTag(tags));
 
         if (params.quantity) {
           tags.push(["quantity", params.quantity]);
@@ -1910,8 +1916,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         const signedEvent = await signAndPublishEvent(signer, eventTemplate);
 
         const handlerDTag = uuidv4();
-        const origin =
-          process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+        const origin = getSiteUrl();
 
         const handlerEvent: EventTemplate = {
           kind: 31990,
@@ -2147,7 +2152,6 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         if (params.categories) {
           stripKeys(["t"]);
           for (const cat of params.categories) baseTags.push(["t", cat]);
-          baseTags.push(["t", "MilkMarket"]);
         }
         if (params.quantity !== undefined) {
           stripKeys(["quantity"]);
@@ -2243,13 +2247,18 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           if (pageConfigTag) baseTags.push(pageConfigTag);
         }
 
+        // Every replacement event carries exactly one canonical discovery
+        // tag — never the legacy MilkMarket tag copied from a pre-rebrand
+        // listing, and present even when the existing-event fetch failed.
+        const mergedTags = normalizeMarketplaceDiscoveryTag(baseTags);
+
         const created_at = Math.floor(Date.now() / 1000);
-        baseTags.push(["published_at", String(created_at)]);
+        mergedTags.push(["published_at", String(created_at)]);
 
         const eventTemplate: EventTemplate = {
           created_at,
           kind: 30402,
-          tags: baseTags,
+          tags: mergedTags,
           content:
             params.description !== undefined
               ? params.description
@@ -2662,7 +2671,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
           await import("@/utils/nostr/nostr-helper-functions");
 
         const defaultRelays = getDefaultRelays();
-        const relayHint = defaultRelays[0] || "wss://relay.damus.io";
+        // getDefaultRelays() always returns DEFAULT_SELLER_RELAYS (never
+        // empty); never hardcode a fallback relay literal here.
+        const relayHint = defaultRelays[0]!;
 
         const innerTags: string[][] = [
           ["p", params.recipientPubkey, relayHint],
@@ -3020,8 +3031,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
         const senderPubkey = signer.getPubKey();
         const defaultRelays = getDefaultRelays();
-        const relayHint: string =
-          defaultRelays.length > 0 ? defaultRelays[0]! : "wss://relay.damus.io";
+        // getDefaultRelays() always returns DEFAULT_SELLER_RELAYS (never
+        // empty); never hardcode a fallback relay literal here.
+        const relayHint: string = defaultRelays[0]!;
 
         const currentTimestamp = Math.floor(Date.now() / 1000);
         const etaTimestamp =
@@ -3252,10 +3264,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
 
             const senderPubkey = signer.getPubKey();
             const defaultRelays = getDefaultRelays();
-            const relayHint: string =
-              defaultRelays.length > 0
-                ? defaultRelays[0]!
-                : "wss://relay.damus.io";
+            // getDefaultRelays() always returns DEFAULT_SELLER_RELAYS (never
+            // empty); never hardcode a fallback relay literal here.
+            const relayHint: string = defaultRelays[0]!;
 
             const subjectMap: Record<string, string> = {
               confirmed: "order-info",
@@ -4871,12 +4882,19 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     }
   );
 
-  const VALID_DOMAIN_TARGETS = ["milk.market", "milk-market.replit.app"];
+  const DOMAIN_CNAME_TARGET = process.env.REPLIT_DEPLOYMENT_HOST || SITE_HOST;
+  // The pre-rebrand replit.app host stays accepted: existing sellers already
+  // CNAME to it and it still resolves to the deployment.
+  const VALID_DOMAIN_TARGETS = [
+    SITE_HOST,
+    DOMAIN_CNAME_TARGET,
+    "milk-market.replit.app",
+  ];
 
   registerTool(
     server,
     "manage_custom_domain",
-    "Register, verify, get, or delete a custom domain for your storefront. You must have a shop slug set up first. After registering, add a CNAME record pointing your domain to milk-market.replit.app, then use the 'verify' action to check DNS propagation.",
+    "Register, verify, get, or delete a custom domain for your storefront. You must have a shop slug set up first. After registering, add a CNAME record pointing your domain to the deployment host shown after registering, then use the 'verify' action to check DNS propagation.",
     {
       action: z
         .enum(["register", "get", "verify", "delete"])
@@ -4947,8 +4965,8 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               instructions: {
                 type: "CNAME",
                 host: cleanDomain,
-                value: "milk-market.replit.app",
-                note: "Add a CNAME record pointing your domain to milk-market.replit.app. Verification may take up to 48 hours after DNS propagation.",
+                value: DOMAIN_CNAME_TARGET,
+                note: `Add a CNAME record pointing your domain to ${DOMAIN_CNAME_TARGET}. Verification may take up to 48 hours after DNS propagation.`,
               },
             },
             startTime
@@ -4994,10 +5012,10 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
             );
           } catch {
             try {
-              const milkMarketIps = await resolve4("milk.market");
+              const siteHostIps = await resolve4(SITE_HOST);
               const domainIps = await resolve4(domain);
               verified = domainIps.some((ip: string) =>
-                milkMarketIps.includes(ip)
+                siteHostIps.includes(ip)
               );
             } catch {
               verified = false;
@@ -5017,7 +5035,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               verified,
               message: verified
                 ? "Domain verified successfully!"
-                : "DNS records not found yet. Make sure your CNAME record points to milk-market.replit.app and wait for DNS propagation (can take up to 48 hours).",
+                : "DNS records not found yet. Make sure your CNAME record points to the deployment host and wait for DNS propagation (can take up to 48 hours).",
             },
             startTime
           );
@@ -6540,13 +6558,13 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
         .string()
         .optional()
         .describe(
-          "Absolute https:// or milkmarket:// URL to return to after onboarding completes"
+          "Absolute https:// or selfsown:// URL to return to after onboarding completes"
         ),
       refreshUrl: z
         .string()
         .optional()
         .describe(
-          "Absolute https:// or milkmarket:// URL Stripe sends the user to if the link expires"
+          "Absolute https:// or selfsown:// URL Stripe sends the user to if the link expires"
         ),
     },
     async (params) => {

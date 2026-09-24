@@ -27,7 +27,7 @@ export default function Document() {
           rel="alternate"
           type="application/rss+xml"
           href="/rss.xml"
-          title="Milk Market - Local Food Listings"
+          title="Self-sown - Local Food Listings"
         />
       </Head>
       <body>

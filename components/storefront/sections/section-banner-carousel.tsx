@@ -10,7 +10,7 @@ import {
   imageFitClass,
   safeCssColor as safeColor,
 } from "./section-style";
-import { buttonLabelColor } from "./section-elements";
+import { buttonLabelColor, joinClassNames } from "./section-elements";
 
 interface SectionBannerCarouselProps {
   section: StorefrontSection;
@@ -95,14 +95,18 @@ export default function SectionBannerCarousel({
   return (
     <div className={isFullWidth ? "" : "mx-auto max-w-6xl px-4 py-16 md:px-6"}>
       <div
-        className={`relative w-full overflow-hidden ${
-          isFullWidth ? "" : "rounded-2xl border-2 shadow-lg"
-        }`}
+        className={joinClassNames(
+          "relative w-full overflow-hidden",
+          !isFullWidth && "rounded-2xl border-2 shadow-lg"
+        )}
         style={isFullWidth ? undefined : { borderColor: colors.primary }}
         aria-roledescription="carousel"
       >
         <div
-          className={`relative w-full ${autoHeight ? "" : heightClass}`.trim()}
+          className={joinClassNames(
+            "relative w-full",
+            !autoHeight && heightClass
+          )}
         >
           {slides.map((slide, idx) => {
             const isActive = idx === current;
@@ -122,9 +126,11 @@ export default function SectionBannerCarousel({
             return (
               <div
                 key={idx}
-                className={`${positionClass} transition-opacity duration-700 ${
+                className={joinClassNames(
+                  positionClass,
+                  "transition-opacity duration-700",
                   isActive ? "opacity-100" : "pointer-events-none opacity-0"
-                }`}
+                )}
                 aria-hidden={!isActive}
               >
                 <img

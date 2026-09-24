@@ -16,6 +16,7 @@ import {
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { useProMembership } from "@/components/utility-components/pro-membership-context";
 import UpgradeBanner from "@/components/pro/upgrade-banner";
+import { joinClassNames } from "@/utils/class-names";
 import {
   SUPPORTED_CARRIERS,
   ShippoConnectionStatus,
@@ -464,11 +465,12 @@ export default function BuyShippingLabelModal({
                             key={c.id}
                             type="button"
                             onClick={() => toggleCarrier(c.id)}
-                            className={`rounded-md border-2 border-black px-2.5 py-1 text-xs font-semibold ${
+                            className={joinClassNames(
+                              "rounded-md border-2 border-black px-2.5 py-1 text-xs font-semibold",
                               active
                                 ? "bg-primary-yellow text-black"
                                 : "bg-white text-black hover:bg-gray-100"
-                            }`}
+                            )}
                           >
                             {c.label}
                           </button>
@@ -485,11 +487,12 @@ export default function BuyShippingLabelModal({
                       {rates.map((r) => (
                         <label
                           key={r.id}
-                          className={`flex cursor-pointer items-center justify-between rounded-md border-2 p-3 ${
+                          className={joinClassNames(
+                            "flex cursor-pointer items-center justify-between rounded-md border-2 p-3",
                             selectedRateId === r.id
                               ? "border-black bg-yellow-50"
                               : "border-gray-300 bg-white"
-                          }`}
+                          )}
                         >
                           <span className="flex items-center gap-2">
                             <input

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { isSafePublicHostname } from "@/utils/url-safety";
+import { SITE_URL } from "@/utils/site-url";
 
 // Each call performs an outbound HTTPS fetch + HTML parse; tight per-IP
 // cap to prevent us from being used as an SSRF amplifier.
@@ -108,8 +109,7 @@ export default async function handler(
       signal: controller.signal,
       redirect: "manual",
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; MilkMarket/1.0; +https://milk.market)",
+        "User-Agent": `Mozilla/5.0 (compatible; SelfSown/1.0; +${SITE_URL})`,
         Accept: "text/html,application/xhtml+xml",
       },
     });

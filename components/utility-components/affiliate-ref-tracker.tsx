@@ -1,23 +1,24 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
 
-const COOKIE_NAME = "mm_aff_ref";
+const COOKIE_NAME = "ss_aff_ref";
+// Pre-rebrand cookie name. Reads fall back to it so in-flight referrals set
+// before the rename still resolve; writes always use the new name.
+const LEGACY_COOKIE_NAME = "mm_aff_ref";
 const COOKIE_DAYS = 30;
 const MAX_ENTRIES = 32;
 // One sessionStorage marker per (seller, code) pair so a refresh inside the
 // same tab session doesn't double-count the click. We accept that opening a
 // link in a new tab counts twice — that's the same trade-off Plausible et al
 // make and avoids server-side dedupe on a public, unauthenticated endpoint.
-const SESSION_KEY = "mm_aff_clicks_recorded";
+const SESSION_KEY = "ss_aff_clicks_recorded";
+const LEGACY_SESSION_KEY = "mm_aff_clicks_recorded";
 
 type RefMap = Record<string, string>;
 
-function readMap(): RefMap {
-  if (typeof document === "undefined") return {};
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`)
-  );
-  if (!match) return {};
+function readCookieMap(name: string): RefMap | null {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  if (!match) return null;
   try {
     const parsed = JSON.parse(decodeURIComponent(match[1]!));
     if (parsed && typeof parsed === "object") return parsed as RefMap;
@@ -25,7 +26,38 @@ function readMap(): RefMap {
     // legacy cookies stored a bare string under the "*" wildcard slot
     return { "*": decodeURIComponent(match[1]!) };
   }
-  return {};
+  return null;
+}
+
+function readMap(): RefMap {
+  if (typeof document === "undefined") return {};
+  // Union both cookie generations so a mixed-version rollout (e.g. two tabs
+  // on different builds) never loses referrals written to either name. New
+  // wins on conflicts; the next writeMap persists the merged map under the
+  // new name, completing the migration.
+  const legacy = readCookieMap(LEGACY_COOKIE_NAME);
+  const current = readCookieMap(COOKIE_NAME);
+  if (!legacy) return current ?? {};
+  if (!current) return legacy;
+  return { ...legacy, ...current };
+}
+
+function readSessionMarkers(): Set<string> {
+  const set = new Set<string>();
+  if (typeof window === "undefined" || !window.sessionStorage) return set;
+  for (const key of [LEGACY_SESSION_KEY, SESSION_KEY]) {
+    const raw = window.sessionStorage.getItem(key);
+    if (raw) for (const m of raw.split("|")) if (m) set.add(m);
+  }
+  return set;
+}
+
+function writeSessionMarkers(set: Set<string>) {
+  if (typeof window === "undefined" || !window.sessionStorage) return;
+  window.sessionStorage.setItem(
+    SESSION_KEY,
+    Array.from(set).slice(-64).join("|")
+  );
 }
 
 function writeMap(map: RefMap) {
@@ -68,19 +100,10 @@ export function bindAffiliateRefToSeller(
   }
   try {
     const marker = `${normalizedSeller}:${existing}`;
-    const seen =
-      typeof window !== "undefined" && window.sessionStorage
-        ? window.sessionStorage.getItem(SESSION_KEY)
-        : null;
-    const seenSet = new Set(seen ? seen.split("|") : []);
+    const seenSet = readSessionMarkers();
     if (seenSet.has(marker)) return;
     seenSet.add(marker);
-    if (typeof window !== "undefined" && window.sessionStorage) {
-      window.sessionStorage.setItem(
-        SESSION_KEY,
-        Array.from(seenSet).slice(-64).join("|")
-      );
-    }
+    writeSessionMarkers(seenSet);
     void fetch("/api/affiliates/record-click", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -183,19 +206,10 @@ export default function AffiliateRefTracker({
     if (!seller) return;
     try {
       const marker = `${seller}:${trimmed}`;
-      const seen =
-        typeof window !== "undefined" && window.sessionStorage
-          ? window.sessionStorage.getItem(SESSION_KEY)
-          : null;
-      const seenSet = new Set(seen ? seen.split("|") : []);
+      const seenSet = readSessionMarkers();
       if (seenSet.has(marker)) return;
       seenSet.add(marker);
-      if (typeof window !== "undefined" && window.sessionStorage) {
-        window.sessionStorage.setItem(
-          SESSION_KEY,
-          Array.from(seenSet).slice(-64).join("|")
-        );
-      }
+      writeSessionMarkers(seenSet);
       void fetch("/api/affiliates/record-click", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

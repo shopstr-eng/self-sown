@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import { persistSellerOrderStatusThrough } from "@/utils/orders/persist-order-status";
+import { SITE_URL } from "@/utils/site-url";
 
 const sellerPubkey = "a".repeat(64);
 const buyerPubkey = "b".repeat(64);
@@ -31,7 +32,7 @@ describe("persistSellerOrderStatusThrough", () => {
 
     await persistSellerOrderStatusThrough({
       signer,
-      origin: "https://milk.market",
+      origin: SITE_URL,
       orderId: "order-123",
       sellerPubkey,
       buyerPubkey,
@@ -66,7 +67,7 @@ describe("persistSellerOrderStatusThrough", () => {
 
     await persistSellerOrderStatusThrough({
       signer: { sign: jest.fn(async (event) => event) } as any,
-      origin: "https://milk.market",
+      origin: SITE_URL,
       orderId: "order-123",
       sellerPubkey,
       buyerPubkey,
@@ -90,7 +91,7 @@ describe("persistSellerOrderStatusThrough", () => {
 
     await persistSellerOrderStatusThrough({
       signer: { sign: jest.fn(async (event) => event) } as any,
-      origin: "https://milk.market",
+      origin: SITE_URL,
       orderId: "order-123",
       sellerPubkey,
       buyerPubkey,

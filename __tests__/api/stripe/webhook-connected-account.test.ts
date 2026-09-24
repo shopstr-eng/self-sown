@@ -9,6 +9,9 @@
 const mockConstructEvent = jest.fn();
 const mockSubscriptionsRetrieve = jest.fn();
 const mockTransfersCreate = jest.fn();
+const mockListLineItems = jest.fn(
+  async (..._args: any[]): Promise<any> => ({ data: [], has_more: false })
+);
 const mockPaymentIntentsRetrieve = jest.fn();
 
 jest.mock("stripe", () => {
@@ -21,6 +24,10 @@ jest.mock("stripe", () => {
     },
     transfers: {
       create: (...args: any[]) => mockTransfersCreate(...args),
+      list: (...args: any[]) => mockTransfersList(...args),
+    },
+    invoices: {
+      listLineItems: (...args: any[]) => mockListLineItems(...args),
     },
     paymentIntents: {
       retrieve: (...args: any[]) => mockPaymentIntentsRetrieve(...args),
@@ -110,6 +117,23 @@ jest.mock("@/utils/rate-limit", () => ({
 const mockClaimStripeEvent = jest.fn();
 const mockFinalizeStripeEvent = jest.fn();
 const mockReleaseStripeEvent = jest.fn();
+const mockTransfersList = jest.fn();
+const mockClaimInvoicePayout = jest.fn();
+const mockCompleteInvoicePayoutClaim = jest.fn();
+const mockReleaseInvoicePayoutClaim = jest.fn();
+const mockReleaseStaleInvoicePayoutClaim = jest.fn();
+
+jest.mock("@/utils/stripe/payout-claims", () => ({
+  claimInvoicePayout: (...args: any[]) => mockClaimInvoicePayout(...args),
+  completeInvoicePayoutClaim: (...args: any[]) =>
+    mockCompleteInvoicePayoutClaim(...args),
+  releaseInvoicePayoutClaim: (...args: any[]) =>
+    mockReleaseInvoicePayoutClaim(...args),
+  releaseStaleInvoicePayoutClaim: (...args: any[]) =>
+    mockReleaseStaleInvoicePayoutClaim(...args),
+  PayoutClaimConflictError: jest.requireActual("@/utils/stripe/payout-claims")
+    .PayoutClaimConflictError,
+}));
 
 jest.mock("@/utils/stripe/processed-events", () => ({
   claimStripeEvent: (...args: any[]) => mockClaimStripeEvent(...args),
@@ -117,9 +141,30 @@ jest.mock("@/utils/stripe/processed-events", () => ({
   releaseStripeEvent: (...args: any[]) => mockReleaseStripeEvent(...args),
 }));
 
+const mockGetPendingPaymentByIntentId = jest.fn(
+  async (..._args: any[]) => null as any
+);
+const mockGetPendingPayment = jest.fn(async (..._args: any[]) => null as any);
+const mockMarkPendingSubscriptionTerminal = jest.fn(
+  async (..._args: any[]) => true
+);
+
 jest.mock("@/utils/stripe/pending-payments", () => ({
   markPendingPaymentByIntent: jest.fn(async () => undefined),
+  getPendingPayment: (...args: any[]) => mockGetPendingPayment(...args),
+  getPendingPaymentByIntentId: (...args: any[]) =>
+    mockGetPendingPaymentByIntentId(...args),
+  markPendingSubscriptionTerminal: (...args: any[]) =>
+    mockMarkPendingSubscriptionTerminal(...args),
+  // Mirror utils/stripe/pending-payments — the webhook gates legacy
+  // referral-key mutation on this server-stamped marker.
+  SPLIT_AUTHORITY_METADATA_KEY: "ssSplitAuthority",
+  SPLIT_AUTHORITY_PENDING_RECORD: "pending-record-v1",
 }));
+
+// Mirrors the mocked utils/stripe/pending-payments constant above (the
+// jest.mock factory is hoisted, so test bodies can't import from it).
+const SPLIT_AUTHORITY_PENDING_RECORD = "pending-record-v1";
 
 const mockUpdateMcpOrderPayment = jest.fn();
 const mockAutoPurchaseForMcpOrder = jest.fn(
@@ -230,6 +275,18 @@ beforeEach(() => {
   mockClaimStripeEvent.mockResolvedValue(1_700_000_000_789);
   mockFinalizeStripeEvent.mockResolvedValue(undefined);
   mockReleaseStripeEvent.mockResolvedValue(undefined);
+  // Durable payout claims: default every (invoice, seller) pair to a fresh
+  // claim with no history match; tests override per scenario.
+  mockClaimInvoicePayout.mockReset();
+  mockClaimInvoicePayout.mockResolvedValue({
+    created: true,
+    transferId: null,
+    claimToken: "ctok_1",
+  });
+  mockCompleteInvoicePayoutClaim.mockResolvedValue(undefined);
+  mockReleaseInvoicePayoutClaim.mockResolvedValue(undefined);
+  mockReleaseStaleInvoicePayoutClaim.mockResolvedValue(undefined);
+  mockTransfersList.mockResolvedValue({ data: [], has_more: false });
   mockProSettingsStore.clear();
   mockProSettingsLocks.clear();
   mockSubscriptionsRetrieve.mockResolvedValue({
@@ -340,7 +397,14 @@ describe("POST /api/stripe/subscription-webhook — invoice.payment_succeeded", 
 });
 
 describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => {
-  function fireInvoicePaid() {
+  function fireInvoicePaid(lines?: any[]) {
+    // The webhook pages stripe.invoices.listLineItems (the embedded
+    // invoice.lines is only the first page), so tests drive lines through
+    // this mock — a single complete page by default.
+    mockListLineItems.mockResolvedValue({
+      data: lines ?? [],
+      has_more: false,
+    });
     mockConstructEvent.mockReturnValue({
       id: "evt_invoice_paid",
       type: "invoice.paid",
@@ -483,7 +547,10 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
     fireInvoicePaid();
     const res1 = makeRes();
     await webhookHandler(makeReq(), res1);
-    expect(res1.statusCode).toBe(200); // transfer failures are caught + alerted
+    // Seller B's retryable transfer failure must NOT finalize the event:
+    // the 500 releases the claim so Stripe retries and can still pay B.
+    expect(res1.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalled();
     expect(mockTransfersCreate).toHaveBeenCalledTimes(2);
 
     // Stripe retries the same event (at-least-once delivery).
@@ -509,6 +576,709 @@ describe("POST /api/stripe/webhook — invoice.paid (handleInvoicePaid)", () => 
       idempotencyKey: `invoice-in_paid-transfer-${sellerB}`,
     });
     expect(createdByKey.size).toBe(2);
+  });
+
+  // Shared fixture for record-based multi-seller recurring carts: a weekly
+  // item per seller A and B, a monthly item for seller C, and a one-time
+  // item for seller B. Allocation mirrors what create-cart-subscription
+  // persists in stripe_pending_payments.
+  const REC_SELLER_A = "c".repeat(64);
+  const REC_SELLER_B = "d".repeat(64);
+  const REC_SELLER_C = "e".repeat(64);
+  function setupRecordBasedCart() {
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: null,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: {
+        isMultiMerchant: "true",
+        transferGroup: "cart_sub_record",
+        // Deliberately NO sellerSplits — this is the post-cap-fix shape.
+        ssSplitAuthority: SPLIT_AUTHORITY_PENDING_RECORD,
+      },
+    });
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_record",
+      metadata: {
+        transferGroup: "cart_sub_record",
+        // Static totals are creation-time context only; with allocations
+        // present the webhook must pay from the invoice's actual lines.
+        sellerSplits: [
+          // donationPercent rides the authority record: payouts are NET of
+          // the cut, computed per-invoice from the actual line amounts.
+          {
+            pubkey: REC_SELLER_A,
+            amountCents: 9999,
+            accountId: "acct_a",
+            donationPercent: 10, // 1125 → 1012
+          },
+          {
+            pubkey: REC_SELLER_B,
+            amountCents: 9999,
+            accountId: "acct_b",
+            donationPercent: 0, // no fee: net === gross
+          },
+          {
+            pubkey: REC_SELLER_C,
+            amountCents: 9999,
+            accountId: "acct_c",
+            donationPercent: 20, // 4000 → 3200
+          },
+        ],
+        priceAllocations: [
+          { priceId: "price_weekly_a", sellerPubkey: REC_SELLER_A },
+          { priceId: "price_weekly_b", sellerPubkey: REC_SELLER_B },
+          { priceId: "price_monthly_c", sellerPubkey: REC_SELLER_C },
+          { priceId: "price_onetime_b", sellerPubkey: REC_SELLER_B },
+        ],
+      },
+    });
+    mockTransfersCreate.mockResolvedValue({ id: "tr_ok" });
+  }
+
+  function transfersBySeller() {
+    return new Map(
+      mockTransfersCreate.mock.calls.map((c) => [
+        c[0].metadata.sellerPubkey,
+        c[0].amount,
+      ])
+    );
+  }
+
+  it("resolves splits from the record and pays the INITIAL invoice's actual lines, one-time items included", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 3600, price: { id: "price_weekly_b" } },
+      { amount: 4000, price: { id: "price_monthly_c" } },
+      { amount: 900, price: { id: "price_onetime_b" } },
+    ]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockGetPendingPayment).toHaveBeenCalledWith("cart_sub_record");
+    // Amounts come from the invoice lines (not the static 9999 totals), and
+    // seller B gets its weekly + one-time lines combined.
+    const bySeller = transfersBySeller();
+    // Transfers are NET of each seller's recorded donation/platform-fee
+    // cut: A 1125 - 10% = 1012, B 0% = gross, C 4000 - 20% = 3200.
+    expect(bySeller.get(REC_SELLER_A)).toBe(1012);
+    expect(bySeller.get(REC_SELLER_B)).toBe(4500);
+    expect(bySeller.get(REC_SELLER_C)).toBe(3200);
+  });
+
+  it("weekly renewal pays only the weekly sellers — never the monthly seller or the one-time item again", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 3600, price: { id: "price_weekly_b" } },
+    ]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const bySeller = transfersBySeller();
+    expect(bySeller.get(REC_SELLER_A)).toBe(1012); // 1125 net of 10% cut
+    expect(bySeller.get(REC_SELLER_B)).toBe(3600); // 0% fee: gross
+    expect(bySeller.has(REC_SELLER_C)).toBe(false);
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("monthly renewal pays only the monthly seller", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([{ amount: 4000, price: { id: "price_monthly_c" } }]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const bySeller = transfersBySeller();
+    expect(bySeller.get(REC_SELLER_C)).toBe(3200); // 4000 net of 20% cut
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("500s + releases the claim when ONE seller's transfer fails retryably — Stripe's retry is the only reconciliation", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 3600, price: { id: "price_weekly_b" } },
+    ]);
+    // Seller B's transfer fails transiently; seller A's succeeds. Finalizing
+    // the event would leave B permanently unpaid, so the webhook must throw:
+    // the 500 releases the claim, Stripe retries, and A is protected from
+    // double-pay by the per-invoice/per-seller idempotency key.
+    mockTransfersCreate.mockImplementation(async (params: any) => {
+      if (params.metadata.sellerPubkey === REC_SELLER_B) {
+        throw new Error("transient stripe error");
+      }
+      return { id: "tr_ok" };
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    // Both transfers were still attempted before the throw.
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(2);
+    expect(mockReleaseStripeEvent).toHaveBeenCalled();
+  });
+
+  it("a webhook retry AFTER Stripe's ~24h idempotency window cannot double-pay: the durable invoice+seller claim decides", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 3600, price: { id: "price_weekly_b" } },
+    ]);
+    // Attempt 1: A pays (claim completed), B's transfer fails (claim
+    // released) → 500 → Stripe schedules a retry.
+    mockTransfersCreate.mockImplementation(async (params: any) => {
+      if (params.metadata.sellerPubkey === REC_SELLER_B) {
+        throw new Error("stripe 500");
+      }
+      return { id: "tr_A_paid" };
+    });
+    const res1 = makeRes();
+    await webhookHandler(makeReq(), res1);
+    expect(res1.statusCode).toBe(500);
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(2);
+    // B's failed attempt released ITS OWN claim with ITS OWN fencing token.
+    expect(mockReleaseInvoicePayoutClaim).toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_B,
+      "ctok_1"
+    );
+
+    // Attempt 2 — days later: Stripe's idempotency cache has EXPIRED (this
+    // create mock would happily mint a brand-new transfer for anyone who
+    // asks). The durable claim is the only thing still protecting seller A.
+    mockTransfersCreate.mockClear();
+    mockTransfersCreate.mockResolvedValue({ id: "tr_B_late" });
+    mockClaimInvoicePayout.mockImplementation(
+      async (_invoiceId: string, seller: string) =>
+        seller === REC_SELLER_B
+          ? // B's failed attempt released its claim; this is a fresh one.
+            { created: true, transferId: null, claimToken: "ctok_B2" }
+          : { created: false, transferId: "tr_A_paid", claimToken: null } // A: durably paid
+    );
+
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 3600, price: { id: "price_weekly_b" } },
+    ]);
+    const res2 = makeRes();
+    await webhookHandler(makeReq(), res2);
+
+    expect(res2.statusCode).toBe(200);
+    // ONLY seller B's transfer is created — A is skipped from the claim
+    // alone, without any Stripe call.
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(1);
+    expect(mockTransfersCreate.mock.calls[0][0].metadata.sellerPubkey).toBe(
+      REC_SELLER_B
+    );
+    expect(mockCompleteInvoicePayoutClaim).toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_B,
+      "tr_B_late",
+      "ctok_B2"
+    );
+  });
+
+  it("does NOT finalize while a seller's payout claim is owned by an in-flight attempt", async () => {
+    // B's claim exists, is incomplete, and is FRESH (inside the stale
+    // window): another attempt owns it. An unresolved claim is not proof of
+    // payment — finalizing a 200 here would strand B if the owner crashed.
+    // The webhook must fail retryable so Stripe retries until the claim
+    // completes or goes stale enough to take over.
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 3600, price: { id: "price_weekly_b" } },
+    ]);
+    mockClaimInvoicePayout.mockImplementation(
+      async (_invoiceId: string, seller: string) =>
+        seller === REC_SELLER_B
+          ? { created: false, transferId: null } // live-owned, incomplete
+          : { created: true, transferId: null }
+    );
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockReleaseStripeEvent).toHaveBeenCalled();
+    // A still paid (net of its 10% cut)...
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(1);
+    expect(mockTransfersCreate.mock.calls[0][0].metadata.sellerPubkey).toBe(
+      REC_SELLER_A
+    );
+    // ...and B's live-owned claim was never released or completed by us.
+    expect(mockReleaseInvoicePayoutClaim).not.toHaveBeenCalled();
+    expect(mockCompleteInvoicePayoutClaim).not.toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_B,
+      expect.anything()
+    );
+  });
+
+  it("fences a stale owner out after claim takeover: completion carries the CURRENT attempt's rotated token", async () => {
+    // Attempt 1 claimed with token ctok_A, then crashed. Attempt 2 found
+    // the claim provably stale, released it, and reclaimed — receiving a
+    // ROTATED token ctok_B. Completion must carry ctok_B, so a resumed
+    // attempt 1 writing with ctok_A matches zero rows at SQL level and
+    // fails loudly instead of recording its transfer on the new owner's
+    // claim (the SQL-level proof lives in payout-claims-live.test.ts).
+    setupRecordBasedCart();
+    fireInvoicePaid([{ amount: 1125, price: { id: "price_weekly_a" } }]);
+    mockClaimInvoicePayout
+      .mockResolvedValueOnce({
+        created: false, // the stale row — not ours, no token handed out
+        transferId: null,
+        claimToken: null,
+      })
+      .mockResolvedValueOnce({
+        created: true, // reclaimed after the stale release, token rotated
+        transferId: null,
+        claimToken: "ctok_B",
+      });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockReleaseStaleInvoicePayoutClaim).toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_A,
+      600000
+    );
+    expect(mockCompleteInvoicePayoutClaim).toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_A,
+      "tr_ok",
+      "ctok_B"
+    );
+  });
+
+  it("a 100%-donation seller (a UI-supported setting) is skipped cleanly: no zero-amount transfer, claim resolved with a terminal sentinel", async () => {
+    // If the webhook rejected or retried a paid invoice forever because a
+    // seller donates everything, checkout would be paid-but-permanently-
+    // unpayable. The seller's share is durably resolved instead.
+    setupRecordBasedCart();
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_record",
+      metadata: {
+        transferGroup: "cart_sub_record",
+        sellerSplits: [
+          {
+            pubkey: REC_SELLER_A,
+            amountCents: 9999,
+            accountId: "acct_a",
+            donationPercent: 10,
+          },
+          {
+            pubkey: REC_SELLER_C,
+            amountCents: 9999,
+            accountId: "acct_c",
+            donationPercent: 100,
+          },
+        ],
+        priceAllocations: [
+          { priceId: "price_weekly_a", sellerPubkey: REC_SELLER_A },
+          { priceId: "price_monthly_c", sellerPubkey: REC_SELLER_C },
+        ],
+      },
+    });
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 4000, price: { id: "price_monthly_c" } },
+    ]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    // A is paid net of its 10% cut; C gets NO transfer (Stripe rejects
+    // 0-amount) — the claim carries a terminal sentinel instead.
+    const bySeller = transfersBySeller();
+    expect(bySeller.get(REC_SELLER_A)).toBe(1012);
+    expect(bySeller.has(REC_SELLER_C)).toBe(false);
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(1);
+    expect(mockCompleteInvoicePayoutClaim).toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_C,
+      `full-donation:in_paid:${REC_SELLER_C}`,
+      "ctok_1"
+    );
+  });
+
+  it("a renewal whose only seller donates 100% succeeds with zero transfers", async () => {
+    setupRecordBasedCart();
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_record",
+      metadata: {
+        transferGroup: "cart_sub_record",
+        sellerSplits: [
+          {
+            pubkey: REC_SELLER_C,
+            amountCents: 9999,
+            accountId: "acct_c",
+            donationPercent: 100,
+          },
+        ],
+        priceAllocations: [
+          { priceId: "price_monthly_c", sellerPubkey: REC_SELLER_C },
+        ],
+      },
+    });
+    fireInvoicePaid([{ amount: 4000, price: { id: "price_monthly_c" } }]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockCompleteInvoicePayoutClaim).toHaveBeenCalledWith(
+      "in_paid",
+      REC_SELLER_C,
+      `full-donation:in_paid:${REC_SELLER_C}`,
+      "ctok_1"
+    );
+  });
+
+  it("rounding never consumes the whole payout at a partial percent — the seller keeps at least 1 unit", async () => {
+    // ceil(3 * 0.99) = 3 = gross: the shared contract clamps the cut to 2
+    // so the fee is neither waived nor the seller zeroed.
+    setupRecordBasedCart();
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_record",
+      metadata: {
+        transferGroup: "cart_sub_record",
+        sellerSplits: [
+          {
+            pubkey: REC_SELLER_A,
+            amountCents: 9999,
+            accountId: "acct_a",
+            donationPercent: 99,
+          },
+        ],
+        priceAllocations: [
+          { priceId: "price_weekly_a", sellerPubkey: REC_SELLER_A },
+        ],
+      },
+    });
+    fireInvoicePaid([{ amount: 3, price: { id: "price_weekly_a" } }]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(transfersBySeller().get(REC_SELLER_A)).toBe(1);
+  });
+
+  it("fails closed when a record split's donationPercent is missing or malformed", async () => {
+    // The payout cut is computed from this percent — guessing 0 would
+    // silently waive the platform fee — so a malformed record must 500 and
+    // pay nobody, never fall back to gross transfers.
+    setupRecordBasedCart();
+    fireInvoicePaid([{ amount: 1125, price: { id: "price_weekly_a" } }]);
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_record",
+      metadata: {
+        transferGroup: "cart_sub_record",
+        sellerSplits: [
+          // donationPercent deliberately absent
+          { pubkey: REC_SELLER_A, amountCents: 9999, accountId: "acct_a" },
+        ],
+        priceAllocations: [
+          { priceId: "price_weekly_a", sellerPubkey: REC_SELLER_A },
+        ],
+      },
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalled();
+  });
+
+  it("paginates listLineItems so sellers beyond the first page are still paid", async () => {
+    // The embedded invoice.lines is only the first handful of lines; paying
+    // from it alone would silently short sellers on later pages.
+    setupRecordBasedCart();
+    fireInvoicePaid();
+    mockListLineItems.mockImplementation(async (_id: string, params: any) => {
+      if (!params?.starting_after) {
+        return {
+          data: [
+            { id: "li_1", amount: 1125, price: { id: "price_weekly_a" } },
+            { id: "li_2", amount: 4000, price: { id: "price_monthly_c" } },
+          ],
+          has_more: true,
+        };
+      }
+      expect(params.starting_after).toBe("li_2");
+      return {
+        data: [
+          { id: "li_3", amount: 3600, price: { id: "price_weekly_b" } },
+          { id: "li_4", amount: 900, price: { id: "price_onetime_b" } },
+        ],
+        has_more: false,
+      };
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockListLineItems).toHaveBeenCalledTimes(2);
+    const bySeller = transfersBySeller();
+    // Transfers are NET of each seller's recorded donation/platform-fee
+    // cut: A 1125 - 10% = 1012, B 0% = gross, C 4000 - 20% = 3200.
+    expect(bySeller.get(REC_SELLER_A)).toBe(1012);
+    expect(bySeller.get(REC_SELLER_B)).toBe(4500);
+    expect(bySeller.get(REC_SELLER_C)).toBe(3200);
+  });
+
+  it("fails closed when a nonzero invoice line maps to no recorded seller price", async () => {
+    // An unattributed line must never be guessed at or silently kept on the
+    // platform account — that permanently shorts a seller.
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 700, price: { id: "price_unknown" } },
+    ]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("UNALLOCATED_INVOICE_LINE");
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ marker: "UNALLOCATED_INVOICE_LINE" })
+    );
+  });
+
+  it("fails closed when a paid invoice has no line items at all", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
+  });
+
+  it("skips $0 lines without failing (trials and full-credit offsets pay nobody)", async () => {
+    setupRecordBasedCart();
+    fireInvoicePaid([
+      { amount: 1125, price: { id: "price_weekly_a" } },
+      { amount: 0, price: { id: "price_unknown_freebie" } },
+    ]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const bySeller = transfersBySeller();
+    expect(bySeller.get(REC_SELLER_A)).toBe(1012); // net of 10% cut
+    expect(mockTransfersCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when the authority marker is present but the split record is missing", async () => {
+    // A record-era subscription must NEVER fall through to the legacy
+    // metadata path — it carries no sellerSplits, so that path would 200
+    // with zero payouts.
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: null,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: {
+        isMultiMerchant: "true",
+        transferGroup: "cart_sub_gone",
+        ssSplitAuthority: SPLIT_AUTHORITY_PENDING_RECORD,
+      },
+    });
+    mockGetPendingPayment.mockResolvedValue(null);
+    fireInvoicePaid([{ amount: 1125, price: { id: "price_weekly_a" } }]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("MISSING_SUBSCRIPTION_SPLIT_RECORD");
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({ marker: "MISSING_SUBSCRIPTION_SPLIT_RECORD" })
+    );
+  });
+
+  it("fails closed when line-item pagination never settles has_more to false", async () => {
+    // A partial line set must never reach the transfer loop — it would pay
+    // only the visible sellers and finalize the claim.
+    setupRecordBasedCart();
+    fireInvoicePaid();
+    mockListLineItems.mockResolvedValue({
+      data: [],
+      has_more: true, // claims more pages but returns nothing to page with
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("INCOMPLETE_INVOICE_LINES");
+  });
+
+  it("500s and releases the claim when the pending split-record lookup hits a DB outage, so Stripe retries", async () => {
+    // The record is the payout source of truth for new multi-seller
+    // recurring carts; swallowing a lookup outage as null would fall through
+    // to a legacy metadata path that doesn't exist for them and skip every
+    // seller payout. Propagate instead (500 + claim release → Stripe retry).
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: null,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: { isMultiMerchant: "true", transferGroup: "cart_sub_db" },
+    });
+    mockGetPendingPayment.mockRejectedValue(new Error("db down"));
+    fireInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
+  });
+
+  it("fails closed on the WHOLE record when any split entry is malformed — no partial payout, claim released, ops alerted", async () => {
+    // A malformed entry in the authoritative record means the record can't be
+    // trusted to name every seller/amount; paying the well-formed remainder
+    // would permanently short the malformed seller. 500 + claim release +
+    // ops alert, zero transfers.
+    const sellerA = "c".repeat(64);
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: null,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: { isMultiMerchant: "true", transferGroup: "cart_sub_mixed" },
+    });
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_mixed",
+      metadata: {
+        sellerSplits: [
+          { pubkey: sellerA, amountCents: 500, accountId: "acct_a" },
+          { pubkey: "", amountCents: 300, accountId: "acct_b" },
+          null,
+        ],
+      },
+    });
+    mockTransfersCreate.mockResolvedValue({ id: "tr_ok" });
+    fireInvoicePaid();
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
+    const errCalls = (console.error as jest.Mock).mock.calls
+      .map((args) => String(args[0]))
+      .join("\n");
+    expect(errCalls).toContain("MALFORMED_SUBSCRIPTION_SPLIT_RECORD");
+    expect(mockSendOrphanedStripeEventAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        marker: "MALFORMED_SUBSCRIPTION_SPLIT_RECORD",
+      })
+    );
+  });
+
+  it("fails closed when a price allocation entry is malformed", async () => {
+    const sellerA = "c".repeat(64);
+    mockGetSubscriptionByStripeId.mockResolvedValue({
+      stripe_subscription_id: SUB_ID,
+      seller_pubkey: "b".repeat(64),
+      connected_account_id: null,
+    });
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: SUB_ID,
+      status: "active",
+      metadata: { isMultiMerchant: "true", transferGroup: "cart_sub_badalloc" },
+    });
+    mockGetPendingPayment.mockResolvedValue({
+      intentRef: "cart_sub_badalloc",
+      metadata: {
+        sellerSplits: [
+          { pubkey: sellerA, amountCents: 500, accountId: "acct_a" },
+        ],
+        priceAllocations: [{ priceId: "", sellerPubkey: sellerA }],
+      },
+    });
+    fireInvoicePaid([{ amount: 500, price: { id: "price_a" } }]);
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(500);
+    expect(mockTransfersCreate).not.toHaveBeenCalled();
+    expect(mockReleaseStripeEvent).toHaveBeenCalledWith(
+      "evt_invoice_paid",
+      1_700_000_000_789
+    );
   });
 
   it("logs ORPHANED_SUBSCRIPTION_INVOICE_PAID and still 200s when no row matches AND the platform account cannot see the subscription", async () => {
@@ -1087,6 +1857,79 @@ describe("POST /api/stripe/subscription-webhook — orphaned cancellation", () =
   });
 });
 
+// A cancelled-for-good multi-seller subscription's split record must be
+// marked terminal so the pending-payments sweep can prune it (#434) — and a
+// failure to mark must never fail the webhook.
+describe("POST /api/stripe/subscription-webhook — cancelled multi-merchant split record", () => {
+  function fireMultiMerchantDeleted() {
+    mockConstructEvent.mockReturnValue({
+      id: "evt_mm_cancel",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: SUB_ID,
+          customer: "cus_mm",
+          status: "canceled",
+          current_period_end: 1700000000,
+          metadata: {
+            isMultiMerchant: "true",
+            transferGroup: "cart_sub_terminal",
+          },
+        },
+      },
+    });
+  }
+
+  it("marks the subscription's split record terminal on deletion", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    fireMultiMerchantDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockMarkPendingSubscriptionTerminal).toHaveBeenCalledWith(
+      "cart_sub_terminal"
+    );
+  });
+
+  it("still 200s when the terminal mark itself throws", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockMarkPendingSubscriptionTerminal.mockRejectedValueOnce(
+      new Error("db down")
+    );
+    fireMultiMerchantDeleted();
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("does not mark anything for a single-seller subscription deletion", async () => {
+    mockGetSubscriptionByStripeId.mockResolvedValue(null);
+    mockConstructEvent.mockReturnValue({
+      id: "evt_single_cancel",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          id: SUB_ID,
+          customer: "cus_single",
+          status: "canceled",
+          current_period_end: 1700000000,
+        },
+      },
+    });
+
+    const res = makeRes();
+    await subscriptionWebhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(mockMarkPendingSubscriptionTerminal).not.toHaveBeenCalled();
+  });
+});
+
 // A renewal reminder whose lookup finds no row silently never warns the buyer
 // about the upcoming charge — it must be loud instead.
 describe("POST /api/stripe/subscription-webhook — orphaned renewal reminder", () => {
@@ -1629,6 +2472,8 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
     });
     mockPaymentIntentsRetrieve.mockResolvedValue({
       id: "pi_refunded",
+      // Pre-cutover: legacy order-keyed referral rows genuinely exist.
+      created: 1700000000,
       metadata: { orderId: "order_1", sellerPubkey: "c".repeat(64) },
     });
   }
@@ -1661,6 +2506,15 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
         refundEventRef: "evt_refund",
       })
     );
+    // The canonical PI-id key is reversed too — recordless legacy intents
+    // paid by the current process-transfers accrue under it.
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_refunded",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund",
+      })
+    );
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
   });
 
@@ -1683,6 +2537,7 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
     });
     mockPaymentIntentsRetrieve.mockResolvedValue({
       id: "pi_refunded_connect",
+      created: 1700000000,
       metadata: { orderId: "order_2", sellerPubkey: "d".repeat(64) },
     });
 
@@ -1702,5 +2557,136 @@ describe("POST /api/stripe/webhook — charge.refunded affiliate reversal failur
       })
     );
     expect(mockReleaseStripeEvent).not.toHaveBeenCalled();
+  });
+
+  it("reverses multi-seller refunds against the authoritative split record, ignoring forged metadata", async () => {
+    // The PI metadata here is attacker-controlled: a forged orderId and a
+    // sellerPubkey naming an unrelated account. The pending-payment record
+    // persisted at creation names the real sellers — reversal must target
+    // them, keyed by the PaymentIntent id (the referral dedup key written by
+    // process-transfers), never the forged metadata.
+    mockConstructEvent.mockReturnValue({
+      id: "evt_refund_multi",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: "ch_refunded_multi",
+          payment_intent: "pi_multi",
+          amount: 1200,
+          amount_refunded: 1200,
+        },
+      },
+    });
+    mockPaymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_multi",
+      // Marked = created by current code, so its referrals can only be
+      // PI-keyed: the forged metadata orderId must never drive DB mutation.
+      metadata: {
+        orderId: "order_evil",
+        sellerPubkey: "e".repeat(64),
+        ssSplitAuthority: "pending-record-v1",
+      },
+    });
+    mockGetPendingPaymentByIntentId.mockResolvedValue({
+      paymentIntentId: "pi_multi",
+      metadata: {
+        sellerSplits: [
+          { pubkey: "c".repeat(64), amountCents: 500 },
+          { pubkey: "d".repeat(64), amountCents: 700 },
+        ],
+      },
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const reversalCalls = mockReverseReferralsForOrder.mock.calls.filter(
+      (c) => (c[0] as any).refundEventRef === "evt_refund_multi"
+    );
+    // Current intent: ONLY the canonical PI-id key, for the two
+    // authoritative sellers.
+    expect(reversalCalls).toHaveLength(2);
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_multi",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund_multi",
+      })
+    );
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_multi",
+        sellerPubkey: "d".repeat(64),
+        refundEventRef: "evt_refund_multi",
+      })
+    );
+    // The forged order key never drives DB mutation on a current intent.
+    expect(mockReverseReferralsForOrder).not.toHaveBeenCalledWith(
+      expect.objectContaining({ orderId: "order_evil" })
+    );
+    // The forged sellerPubkey is never consulted.
+    expect(mockReverseReferralsForOrder).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sellerPubkey: "e".repeat(64) })
+    );
+  });
+
+  it("reverses under both keys for a pre-cutover intent with an authoritative record", async () => {
+    // Pre-cutover multi-seller intent: order-keyed referral rows genuinely
+    // exist, so reversal covers BOTH keys — but only for the record's
+    // authoritative sellers, never the metadata sellerPubkey.
+    mockConstructEvent.mockReturnValue({
+      id: "evt_refund_legacy_multi",
+      type: "charge.refunded",
+      data: {
+        object: {
+          id: "ch_refunded_legacy_multi",
+          payment_intent: "pi_legacy_multi",
+          amount: 1200,
+          amount_refunded: 1200,
+        },
+      },
+    });
+    mockPaymentIntentsRetrieve.mockResolvedValue({
+      id: "pi_legacy_multi",
+      created: 1700000000,
+      metadata: { orderId: "order_legacy", sellerPubkey: "e".repeat(64) },
+    });
+    mockGetPendingPaymentByIntentId.mockResolvedValue({
+      paymentIntentId: "pi_legacy_multi",
+      metadata: {
+        sellerSplits: [
+          { pubkey: "c".repeat(64), amountCents: 500 },
+          { pubkey: "d".repeat(64), amountCents: 700 },
+        ],
+      },
+    });
+
+    const res = makeRes();
+    await webhookHandler(makeReq(), res);
+
+    expect(res.statusCode).toBe(200);
+    const calls = mockReverseReferralsForOrder.mock.calls.filter(
+      (c) => (c[0] as any).refundEventRef === "evt_refund_legacy_multi"
+    );
+    // 2 authoritative sellers × 2 keys (canonical PI id + legacy order id).
+    expect(calls).toHaveLength(4);
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "order_legacy",
+        sellerPubkey: "c".repeat(64),
+        refundEventRef: "evt_refund_legacy_multi",
+      })
+    );
+    expect(mockReverseReferralsForOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderId: "pi_legacy_multi",
+        sellerPubkey: "d".repeat(64),
+        refundEventRef: "evt_refund_legacy_multi",
+      })
+    );
+    expect(mockReverseReferralsForOrder).not.toHaveBeenCalledWith(
+      expect.objectContaining({ sellerPubkey: "e".repeat(64) })
+    );
   });
 });

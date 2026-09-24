@@ -4,6 +4,7 @@ import FormattedText from "../formatted-text";
 import SectionElementFlow, {
   headingSizeClass,
   bodySizeClass,
+  joinClassNames,
 } from "./section-elements";
 
 interface SectionStoryProps {
@@ -50,9 +51,10 @@ export default function SectionStory({ section, colors }: SectionStoryProps) {
                   {section.timelineItems.map((item, idx) => (
                     <div
                       key={idx}
-                      className={`relative flex flex-col md:flex-row ${
-                        idx % 2 === 0 ? "" : "md:flex-row-reverse"
-                      }`}
+                      className={joinClassNames(
+                        "relative flex flex-col md:flex-row",
+                        idx % 2 !== 0 && "md:flex-row-reverse"
+                      )}
                     >
                       <div className="absolute top-2 left-4 z-10 md:left-1/2 md:-translate-x-1/2">
                         <div
@@ -64,9 +66,10 @@ export default function SectionStory({ section, colors }: SectionStoryProps) {
                         />
                       </div>
                       <div
-                        className={`ml-12 md:ml-0 md:w-1/2 ${
+                        className={joinClassNames(
+                          "ml-12 md:ml-0 md:w-1/2",
                           idx % 2 === 0 ? "md:pr-12 md:text-right" : "md:pl-12"
-                        }`}
+                        )}
                       >
                         {item.year && (
                           <span

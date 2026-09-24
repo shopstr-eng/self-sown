@@ -55,6 +55,7 @@ export default async function handler(
       customerEmail,
       productTitle,
       metadata,
+      verificationToken: rawVerificationToken,
     } = req.body;
 
     if (!sourceId || typeof sourceId !== "string") {
@@ -140,6 +141,15 @@ export default async function handler(
         ? metadata.orderId
         : undefined;
 
+    // Optional SCA verification token from the client-side verifyBuyer call.
+    // Only type/size are bounded here — the token is an opaque Square
+    // credential and Square validates its binding to the charge.
+    const verificationToken =
+      typeof rawVerificationToken === "string" &&
+      rawVerificationToken.length <= 4096
+        ? rawVerificationToken
+        : undefined;
+
     const payment = await createSquarePayment(access.accessToken, {
       sourceId,
       idempotencyKey,
@@ -149,6 +159,7 @@ export default async function handler(
       note: typeof productTitle === "string" ? productTitle : undefined,
       buyerEmailAddress,
       referenceId,
+      verificationToken,
     });
 
     // autocomplete:true means a successful charge settles as COMPLETED. APPROVED

@@ -135,6 +135,8 @@ jest.mock(
 jest.mock("@/utils/nostr/nostr-helper-functions", () => ({
   createNostrProfileEvent: jest.fn(),
   getLocalUserProfileKey: (pubkey: string) => `shopstr:user-profile:${pubkey}`,
+  getLegacyLocalUserProfileKey: (pubkey: string) =>
+    `shopstr-legacy:user-profile:${pubkey}`,
   parseLocalProfileFallback: (raw: string | null) =>
     raw ? { content: JSON.parse(raw), updatedAt: 0 } : null,
   isProfileContentPopulated: () => true,
@@ -155,8 +157,8 @@ jest.mock("@/components/utility-components/file-uploader", () => ({
 }));
 const mockFileUploaderButton = FileUploaderButton as jest.Mock;
 
-// Downstream uses MilkMarketSpinner (mm-spinner), not the upstream shopstr-spinner.
-jest.mock("@/components/utility-components/mm-spinner", () => () => null);
+// Downstream uses SelfSownSpinner (ss-spinner), not the upstream shopstr-spinner.
+jest.mock("@/components/utility-components/ss-spinner", () => () => null);
 
 const mockUserPubkey = "test_pubkey_123";
 const mockProfileData = new Map([
@@ -248,7 +250,7 @@ describe("UserProfileForm", () => {
 
   // SKIPPED: Upstream's UserProfileForm renders the form even without a pubkey.
   // Downstream's page gates rendering on `!userPubkey` (isFetchingProfile -> true)
-  // and shows MilkMarketSpinner instead of the form, so the label never appears.
+  // and shows SelfSownSpinner instead of the form, so the label never appears.
   // test("does not fetch profile if userPubkey is missing", ...)
 
   test("displays default image when no picture is available", async () => {
@@ -348,9 +350,10 @@ describe("UserProfileForm", () => {
         expect.stringContaining('"payment_preference":"lightning"')
       );
     });
-    // The legacy shopstr_donation key must never be written; mm_donation
+    // The legacy shopstr_donation key must never be written; ss_donation
     // (shop settings) is canonical.
     const savedPayload = mockCreateNostrProfileEvent.mock.calls.at(-1)?.[2];
     expect(savedPayload).not.toContain("shopstr_donation");
+    expect(savedPayload).not.toContain("mm_donation");
   });
 });

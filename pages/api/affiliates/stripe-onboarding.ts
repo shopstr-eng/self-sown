@@ -30,7 +30,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
 function isAllowedAbsoluteRedirect(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" || parsed.protocol === "milkmarket:";
+    return ["https:", "selfsown:", "milkmarket:"].includes(parsed.protocol);
   } catch {
     return false;
   }

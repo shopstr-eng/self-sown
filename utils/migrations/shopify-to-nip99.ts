@@ -1,5 +1,6 @@
 import type { ShopifyProduct } from "./shopify-csv-parser";
 import type { ProductFormValues } from "@/utils/types/types";
+import { normalizeMarketplaceDiscoveryTag } from "@/utils/parsers/product-tag-helpers";
 import CryptoJS from "crypto-js";
 
 export interface ShopifyMigrationOptions {
@@ -23,7 +24,7 @@ export interface BuiltShopifyListing {
   warnings: string[];
 }
 
-const SHOPIFY_TO_MM_STATUS: Record<string, string> = {
+const SHOPIFY_TO_LISTING_STATUS: Record<string, string> = {
   active: "active",
   draft: "inactive",
   archived: "inactive",
@@ -102,7 +103,7 @@ export function buildListingFromShopifyProduct(
     );
   }
 
-  // Warn if the variants span a non-trivial price range — Milk Market
+  // Warn if the variants span a non-trivial price range — Self-sown
   // listings carry a single price, so the seller should be aware which one
   // we picked.
   const variantPrices = product.variants
@@ -121,8 +122,8 @@ export function buildListingFromShopifyProduct(
   const currency = defaultCurrency;
 
   // Map Shopify status to MM status
-  const mmStatus =
-    SHOPIFY_TO_MM_STATUS[(product.status || "active").toLowerCase()] ||
+  const listingStatus =
+    SHOPIFY_TO_LISTING_STATUS[(product.status || "active").toLowerCase()] ||
     "active";
 
   // Validate images
@@ -172,7 +173,7 @@ export function buildListingFromShopifyProduct(
   const tags: ProductFormValues = [
     ["d", dTag],
     ["alt", "Product listing: " + title],
-    ["client", "Milk Market", "31990:" + pubkey + ":" + dTag, relayHint],
+    ["client", "Self-sown", "31990:" + pubkey + ":" + dTag, relayHint],
     ["title", title],
     ["summary", description],
     ["price", price.toFixed(2), currency],
@@ -189,13 +190,18 @@ export function buildListingFromShopifyProduct(
 
   validImages.forEach((img) => tags.push(["image", img]));
 
-  // Default Milk Market category + housekeeping tags
-  if (defaultCategory) tags.push(["t", defaultCategory]);
-  tags.push(["t", "MilkMarket"]);
-  tags.push(["t", "FREEMILK"]);
-
-  // Optional: import original Shopify tags as t-tags too (keep listings searchable)
-  extraTags.forEach((t) => tags.push(["t", t]));
+  // Default Self-sown category + housekeeping tags, plus the original Shopify
+  // tags as t-tags (keep listings searchable). Imported tags are
+  // seller-controlled, so normalize the merged set: this strips any legacy
+  // "MilkMarket" or extra "SelfSown" spellings and appends exactly one
+  // canonical discovery tag.
+  const categoryTags: string[][] = [];
+  if (defaultCategory) categoryTags.push(["t", defaultCategory]);
+  categoryTags.push(["t", "FREEMILK"]);
+  extraTags.forEach((t) => categoryTags.push(["t", t]));
+  tags.push(
+    ...(normalizeMarketplaceDiscoveryTag(categoryTags) as ProductFormValues)
+  );
 
   // Preserve the seller's existing product taxonomy from the Shopify export as
   // explicit NIP-99 tags. The UCP catalog mapper (utils/ucp/catalog.ts) reads
@@ -239,7 +245,7 @@ export function buildListingFromShopifyProduct(
   }
 
   // Status
-  tags.push(["status", mmStatus]);
+  tags.push(["status", listingStatus]);
 
   // Pickup locations if shipping option includes pickup
   if (

@@ -15,7 +15,7 @@ import {
   type NostrEventRecord,
   type SellerListingDraft,
   type SellerSession,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 
 export * from "./order-messages";
 
@@ -81,7 +81,10 @@ function getPrimaryRelayHint(session: SellerSession): string {
 }
 
 function getWebsiteOrigin(baseUrl: string): string {
-  return baseUrl.replace(/\/+$/, "") || "https://milk.market";
+  // NOTE: packages/* cannot import the app's @/utils/site-url (separate
+  // workspace package also consumed by apps/mobile). This fallback must stay
+  // in sync with FALLBACK_SITE_URL in utils/site-url.ts.
+  return baseUrl.replace(/\/+$/, "") || "https://self-sown.com";
 }
 
 function createRandomDTag(prefix: string): string {
@@ -457,7 +460,7 @@ export function createSellerListingEventTemplate(
 export function createSellerListingDeleteEventTemplate(
   session: SellerSession,
   eventIds: string[],
-  reason = "Milk Market deletion request"
+  reason = "Self-sown deletion request"
 ): EventTemplateWithPubkey {
   return {
     pubkey: session.pubkey,

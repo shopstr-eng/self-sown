@@ -15,7 +15,7 @@ import {
   getBlogPostSlug,
   findBlogPostBySlug,
 } from "@/utils/url-slugs";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { applyRateLimit } from "@/utils/rate-limit";
 import {
   sendAgentError,
@@ -41,6 +41,7 @@ import {
   type StallBlogSummary,
   type StallPostInput,
 } from "@/utils/geo/stall-content";
+import { getSiteUrl } from "@/utils/site-url";
 
 // Backing endpoint for per-stall content negotiation. `proxy.ts` rewrites a
 // seller's custom domain (and platform /stall/<slug>) requests here, passing
@@ -51,8 +52,6 @@ import {
 // keep getting HTML. When `x-post-slug` (or ?postSlug) is set, it instead
 // renders a single blog post's full article body (markdown / JSON / plain-text /
 // llms) for /blog/<slug> content negotiation.
-
-const PLATFORM = "https://milk.market";
 
 const RATE_LIMIT = { limit: 600, windowMs: 60 * 1000 };
 
@@ -79,9 +78,9 @@ export default async function handler(
   // When set, render a single blog post (full body) instead of the stall view.
   const postSlug =
     headerStr(req, "x-post-slug") || queryStr(req, "postSlug") || "";
-  const host = headerStr(req, "x-mm-custom-domain-host");
+  const host = headerStr(req, "x-ss-custom-domain-host");
   const isCustomDomain = !!host;
-  const siteUrl = host ? `https://${host}` : `${PLATFORM}/stall/${slug}`;
+  const siteUrl = host ? `https://${host}` : `${getSiteUrl()}/stall/${slug}`;
 
   res.setHeader("Vary", "Accept, User-Agent");
   // Entitlement-gated content: never shared-cacheable. A public max-age could

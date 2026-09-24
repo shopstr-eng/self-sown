@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import Stripe from "stripe";
 import {
-  getSubscriptionByStripeId,
+  getSubscriptionsByStripeId,
   updateSubscriptionStatus,
 } from "@/utils/db/db-service";
 
@@ -38,8 +38,10 @@ export default async function handler(
       return res.status(400).json({ error: "Subscription ID is required" });
     }
 
-    const dbSubscription = await getSubscriptionByStripeId(subscriptionId);
-    if (!dbSubscription) {
+    // A multi-seller recurring cart stores ONE row per recurring item under
+    // the same Stripe subscription id — ownership is ANY row's buyer/seller.
+    const dbSubscriptions = await getSubscriptionsByStripeId(subscriptionId);
+    if (dbSubscriptions.length === 0) {
       return res.status(404).json({ error: "Subscription not found" });
     }
 
@@ -56,12 +58,23 @@ export default async function handler(
         .status(verification.status)
         .json({ error: verification.error });
     }
-    const sub = dbSubscription as any;
     const callerPubkey = signedEvent!.pubkey;
-    if (
-      callerPubkey !== sub.seller_pubkey &&
-      callerPubkey !== sub.buyer_pubkey
-    ) {
+    // Cancel acts on the WHOLE Stripe subscription. When one subscription
+    // holds items from multiple independent sellers, letting any one seller
+    // cancel would cancel every other seller's items too — whole-
+    // subscription mutations are buyer-only. Single-seller subscriptions
+    // keep seller access.
+    const distinctSellers = new Set(
+      dbSubscriptions.map((row: any) => row.seller_pubkey)
+    );
+    const isBuyer = dbSubscriptions.some(
+      (row: any) => row.buyer_pubkey === callerPubkey
+    );
+    const ownsSubscription =
+      isBuyer ||
+      (distinctSellers.size === 1 &&
+        dbSubscriptions.some((row: any) => row.seller_pubkey === callerPubkey));
+    if (!ownsSubscription) {
       return res
         .status(403)
         .json({ error: "You do not own this subscription" });
@@ -71,7 +84,9 @@ export default async function handler(
     // time; a seller who reconnects a different Stripe account would
     // otherwise target the wrong account and orphan this subscription.
     // Fall back to the caller-supplied account for legacy rows.
-    const targetAccountId = sub.connected_account_id || connectedAccountId;
+    const targetAccountId =
+      (dbSubscriptions.find((row: any) => row.connected_account_id) as any)
+        ?.connected_account_id || connectedAccountId;
     const stripeOptions = targetAccountId
       ? { stripeAccount: targetAccountId }
       : undefined;

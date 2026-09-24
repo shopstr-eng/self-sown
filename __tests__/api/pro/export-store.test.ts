@@ -121,7 +121,7 @@ describe("POST /api/pro/export-store", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["Content-Type"]).toBe("application/zip");
     expect(res.headers["Content-Disposition"]).toContain(
-      "milk-market-self-host-my-farm.zip"
+      "self-sown-self-host-my-farm.zip"
     );
     expect(Buffer.isBuffer(res.body)).toBe(true);
     // Real ZIP: starts with the local file header signature PK\x03\x04.

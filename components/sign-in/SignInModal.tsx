@@ -19,7 +19,7 @@ import {
 } from "@/utils/nostr/nostr-helper-functions";
 import * as nip49 from "nostr-tools/nip49";
 import { getPublicKey } from "nostr-tools";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { RelaysContext } from "../../utils/context/context";
 import { useRouter } from "next/router";
 import FailureModal from "../../components/utility-components/failure-modal";
@@ -28,6 +28,7 @@ import { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { NostrNSecSigner } from "@/utils/nostr/signers/nostr-nsec-signer";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import RecoveryKeyModal from "./RecoveryKeyModal";
+import { joinClassNames } from "@/utils/class-names";
 
 export default function SignInModal({
   isOpen,
@@ -45,10 +46,10 @@ export default function SignInModal({
   sellerFontBody?: string;
 }) {
   // When the modal is shown on a seller's custom domain / stall, present the
-  // seller's shop name + logo instead of the Milk Market branding. Falls back
-  // to Milk Market on the main marketplace (no branding passed).
-  const brandName = sellerBranding?.shopName?.trim() || "Milk Market";
-  const brandLogo = sellerBranding?.logoUrl?.trim() || "/milk-market.png";
+  // seller's shop name + logo instead of the Self-sown branding. Falls back
+  // to Self-sown on the main marketplace (no branding passed).
+  const brandName = sellerBranding?.shopName?.trim() || "Self-sown";
+  const brandLogo = sellerBranding?.logoUrl?.trim() || "/self-sown-black.png";
 
   // On a seller's custom stall / domain (branding present), new accounts have no
   // association to the marketplace and are always buyers — skip the role
@@ -574,7 +575,7 @@ export default function SignInModal({
                       alt="Google"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign up with Google</span>
                   </Button>
@@ -588,7 +589,7 @@ export default function SignInModal({
                       alt="Apple"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign up with Apple</span>
                   </Button>
@@ -656,17 +657,20 @@ export default function SignInModal({
                           setShowNsecSignIn(false);
                           setShowBunkerSignIn(true);
                         }}
-                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                        className={joinClassNames(
+                          WHITEBUTTONCLASSNAMES,
+                          "w-full",
                           showBunkerSignIn ? "hidden" : ""
-                        }`}
+                        )}
                       >
                         Nostr Bunker Sign-up
                       </Button>
                     </div>
                     <div
-                      className={`flex flex-col justify-between space-y-3 ${
+                      className={joinClassNames(
+                        "flex flex-col justify-between space-y-3",
                         showBunkerSignIn ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <div>
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -711,7 +715,7 @@ export default function SignInModal({
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
-                              <MilkMarketSpinner />
+                              <SelfSownSpinner />
                             </div>
                           ) : (
                             <>Bunker Sign-up</>
@@ -734,17 +738,20 @@ export default function SignInModal({
                           setShowBunkerSignIn(false);
                           setShowNsecSignIn(true);
                         }}
-                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                        className={joinClassNames(
+                          WHITEBUTTONCLASSNAMES,
+                          "w-full",
                           showNsecSignIn ? "hidden" : ""
-                        }`}
+                        )}
                       >
                         Nostr nsec / ncryptsec Sign-up
                       </Button>
                     </div>
                     <div
-                      className={`flex flex-col justify-between space-y-3 ${
+                      className={joinClassNames(
+                        "flex flex-col justify-between space-y-3",
                         showNsecSignIn ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <div>
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -920,7 +927,7 @@ export default function SignInModal({
                       alt="Google"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign in with Google</span>
                   </Button>
@@ -934,7 +941,7 @@ export default function SignInModal({
                       alt="Apple"
                       width={20}
                       height={20}
-                      className="flex-shrink-0"
+                      className="shrink-0"
                     />
                     <span>Sign in with Apple</span>
                   </Button>
@@ -963,17 +970,20 @@ export default function SignInModal({
                           setShowNsecSignIn(false);
                           setShowBunkerSignIn(true);
                         }}
-                        className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                        className={joinClassNames(
+                          WHITEBUTTONCLASSNAMES,
+                          "w-full",
                           showBunkerSignIn ? "hidden" : ""
-                        }`}
+                        )}
                       >
                         Nostr Bunker Sign-in
                       </Button>
                     </div>
                     <div
-                      className={`flex flex-col justify-between space-y-3 ${
+                      className={joinClassNames(
+                        "flex flex-col justify-between space-y-3",
                         showBunkerSignIn ? "" : "hidden"
-                      }`}
+                      )}
                     >
                       <div>
                         <label className="mb-2 block text-sm font-bold text-black">
@@ -1018,7 +1028,7 @@ export default function SignInModal({
                         >
                           {isBunkerConnecting ? (
                             <div className="flex items-center justify-center">
-                              <MilkMarketSpinner />
+                              <SelfSownSpinner />
                             </div>
                           ) : (
                             <>Bunker Sign-in</>
@@ -1042,17 +1052,20 @@ export default function SignInModal({
                         setShowBunkerSignIn(false);
                         setShowNsecSignIn(true);
                       }}
-                      className={`${WHITEBUTTONCLASSNAMES} w-full ${
+                      className={joinClassNames(
+                        WHITEBUTTONCLASSNAMES,
+                        "w-full",
                         showNsecSignIn ? "hidden" : ""
-                      }`}
+                      )}
                     >
                       Nostr nsec / ncryptsec Sign-in
                     </Button>
                   </div>
                   <div
-                    className={`flex flex-col justify-between space-y-3 ${
+                    className={joinClassNames(
+                      "flex flex-col justify-between space-y-3",
                       showNsecSignIn ? "" : "hidden"
-                    }`}
+                    )}
                   >
                     <div>
                       <label className="mb-2 block text-sm font-bold text-black">
@@ -1233,7 +1246,7 @@ export default function SignInModal({
                     />
                     {isEmailSignUp && (
                       <div className="mt-2 flex items-start gap-2 rounded-md border-2 border-yellow-500 bg-yellow-50 p-3">
-                        <InformationCircleIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-700" />
+                        <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-yellow-700" />
                         <p className="text-xs font-medium text-yellow-900">
                           Passwords cannot currently be recovered or changed.
                           Please store your password securely.

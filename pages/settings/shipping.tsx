@@ -43,6 +43,7 @@ import {
   startShippoOAuth,
   upsertShippoParcelTemplate,
 } from "@/utils/shipping/client-api";
+import { joinClassNames } from "@/utils/class-names";
 
 const inputCls = {
   input: "text-base !text-black",
@@ -597,11 +598,12 @@ const ShippingSettingsPage = () => {
                               key={c.id}
                               type="button"
                               onClick={() => toggleCarrier(c.id)}
-                              className={`rounded-md border-2 border-black px-3 py-1.5 text-sm font-semibold ${
+                              className={joinClassNames(
+                                "rounded-md border-2 border-black px-3 py-1.5 text-sm font-semibold",
                                 active
                                   ? "bg-primary-yellow text-black"
                                   : "bg-white text-black hover:bg-gray-100"
-                              }`}
+                              )}
                             >
                               {c.label}
                             </button>

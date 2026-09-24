@@ -109,6 +109,9 @@ export interface SquareLocation {
   name: string | null;
   currency: string | null;
   status: string | null;
+  // ISO 3166-1 alpha-2 merchant country. Apple Pay's payment request requires
+  // it, so it is captured alongside currency at connect time.
+  country: string | null;
 }
 
 export async function fetchSquareLocations(
@@ -120,6 +123,7 @@ export async function fetchSquareLocations(
       name?: string;
       currency?: string;
       status?: string;
+      country?: string;
     }[];
   }>(accessToken, "/v2/locations");
   return (data.locations || []).map((l) => ({
@@ -127,6 +131,7 @@ export async function fetchSquareLocations(
     name: l.name ?? null,
     currency: l.currency ?? null,
     status: l.status ?? null,
+    country: l.country ?? null,
   }));
 }
 
@@ -151,6 +156,9 @@ export interface CreateSquarePaymentInput {
   note?: string;
   buyerEmailAddress?: string;
   referenceId?: string;
+  // SCA verification token from the client-side verifyBuyer() call. Square
+  // declines SCA-mandated cards (EEA/UK) without it.
+  verificationToken?: string;
 }
 
 export interface SquarePaymentResult {
@@ -174,6 +182,9 @@ export async function createSquarePayment(
     body.buyer_email_address = input.buyerEmailAddress.slice(0, 255);
   }
   if (input.referenceId) body.reference_id = input.referenceId.slice(0, 40);
+  if (input.verificationToken) {
+    body.verification_token = input.verificationToken.slice(0, 4096);
+  }
 
   const data = await squareFetch<{
     payment?: { id: string; status: string };

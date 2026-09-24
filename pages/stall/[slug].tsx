@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { ShopMapContext } from "@/utils/context/context";
 import StorefrontLayout from "@/components/storefront/storefront-layout";
 import StorefrontLoadError from "@/components/storefront/storefront-load-error";
-import MilkMarketSpinner from "@/components/utility-components/mm-spinner";
+import SelfSownSpinner from "@/components/utility-components/ss-spinner";
 import { useStorefrontLookup } from "@/utils/storefront/use-storefront-lookup";
 import { matchShopSlug } from "@/utils/storefront/match-shop-slug";
 import { GetServerSideProps } from "next";
@@ -24,6 +24,7 @@ import { eventToProductOgMeta } from "@/utils/og/product-og";
 import { buildUcpCatalog } from "@/utils/ucp/catalog";
 import { buildItemListJsonLd } from "@/utils/geo/product-jsonld";
 import { tryWriteAgentNotFound } from "@/utils/api/agent-error";
+import { SITE_URL } from "@/utils/site-url";
 
 type ShopPageProps = {
   ogMeta: OgMetaProps;
@@ -44,17 +45,15 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
   // arrives via a seller custom domain the proxy forwards the original host +
   // public path (e.g. "https://farmer.com/"); otherwise it's the platform stall
   // URL. Mirrors the canonical logic in DynamicHead.
-  const rawHost = context.req.headers["x-mm-custom-domain-host"];
+  const rawHost = context.req.headers["x-ss-custom-domain-host"];
   const customHost = (typeof rawHost === "string" ? rawHost : "")
     .toLowerCase()
     .trim()
     .replace(/:\d+$/, "");
-  const rawOriginalPath = context.req.headers["x-mm-original-path"];
+  const rawOriginalPath = context.req.headers["x-ss-original-path"];
   const originalPath =
     typeof rawOriginalPath === "string" ? rawOriginalPath : "";
-  const stallOrigin = customHost
-    ? `https://${customHost}`
-    : "https://milk.market";
+  const stallOrigin = customHost ? `https://${customHost}` : SITE_URL;
   const stallPath = customHost ? originalPath || "/" : `/stall/${shopSlug}`;
   const canonicalStallUrl = `${stallOrigin}${stallPath === "/" ? "" : stallPath}`;
 
@@ -164,7 +163,7 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
         const branding = resolveStallBranding(content, profileContent);
         const title = branding.seo?.metaTitle
           ? branding.seo.metaTitle
-          : `${branding.shopName}: Farm-Fresh Products | Milk Market`;
+          : `${branding.shopName}: Farm-Fresh Products | Self-sown`;
 
         // schema.org ItemList of the storefront's products so crawlers + AI
         // shopping agents can discover the stall's catalog from the SSR HTML.
@@ -217,9 +216,9 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
           ogMeta: {
             ...DEFAULT_OG,
             title: ssrShopName
-              ? `${ssrShopName} | Milk Market`
-              : "Milk Market Stall",
-            description: ssrShopAbout || "Check out this shop on Milk Market!",
+              ? `${ssrShopName} | Self-sown`
+              : "Self-sown Stall",
+            description: ssrShopAbout || "Check out this shop on Self-sown!",
             url: `/stall/${shopSlug}`,
           },
           shopPubkey: pubkey,
@@ -239,8 +238,8 @@ export const getServerSideProps: GetServerSideProps<ShopPageProps> = async (
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: `/stall/${shopSlug}`,
       },
       shopPubkey: "",
@@ -279,7 +278,7 @@ export default function ShopPage({
   if (state.phase === "loading") {
     return (
       <div className="flex min-h-screen items-center justify-center pt-20">
-        <MilkMarketSpinner />
+        <SelfSownSpinner />
       </div>
     );
   }

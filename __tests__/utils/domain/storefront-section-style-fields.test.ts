@@ -1,4 +1,4 @@
-import { parseSellerShopProfileEvent } from "@milk-market/domain";
+import { parseSellerShopProfileEvent } from "@self-sown/domain";
 
 const PUBKEY = "a".repeat(64);
 

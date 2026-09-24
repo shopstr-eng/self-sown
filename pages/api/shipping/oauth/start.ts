@@ -9,6 +9,7 @@ import {
 import { verifyAndConsumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 import {
   buildShippoAuthorizeUrl,
+  getShippoRedirectUri,
   isShippoOAuthConfigured,
 } from "@/utils/shipping/shippo-oauth";
 import { createShippoOAuthState } from "@/utils/db/shipping-service";
@@ -89,7 +90,8 @@ export default async function handler(
     if (!(await requireProEntitlement(pubkey, res))) return;
 
     const state = randomBytes(24).toString("hex");
-    await createShippoOAuthState(pubkey, state);
+    // Pin the authorize-time redirect URI (cutover continuity — see Square).
+    await createShippoOAuthState(pubkey, state, getShippoRedirectUri());
     const authorizeUrl = buildShippoAuthorizeUrl(state);
 
     return res.status(200).json({ success: true, authorizeUrl });

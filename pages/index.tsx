@@ -27,6 +27,8 @@ import {
   WRANGLER_EXTRA_FEATURES,
 } from "@/components/pro/plan-features";
 import { WRANGLER_LIFETIME_PRICE_USD } from "@/utils/pro/constants";
+import { SITE_HOST } from "@/utils/site-url";
+import { joinClassNames } from "@/utils/class-names";
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,14 +42,15 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       >
         <span>{question}</span>
         <ChevronDownIcon
-          className={`h-5 w-5 transition-transform ${
+          className={joinClassNames(
+            "h-5 w-5 transition-transform",
             isOpen ? "rotate-180" : ""
-          }`}
+          )}
           aria-hidden="true"
         />
       </button>
       <div
-        className={`pb-4 text-zinc-600 ${isOpen ? "" : "hidden"}`}
+        className={joinClassNames("pb-4 text-zinc-600", isOpen ? "" : "hidden")}
         aria-hidden={!isOpen}
       >
         <p>{answer}</p>
@@ -106,7 +109,7 @@ function YouTubeCarousel() {
             href={`https://www.youtube.com/watch?v=${video.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group shadow-neo block w-64 flex-shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
+            className="group shadow-neo block w-64 shrink-0 overflow-hidden rounded-lg border-2 border-black bg-white transition-all hover:-translate-y-1 active:translate-y-0 active:shadow-none sm:w-80"
           >
             <div className="relative aspect-video overflow-hidden">
               <Image
@@ -114,7 +117,7 @@ function YouTubeCarousel() {
                 alt={video.title}
                 className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
-              <div className="bg-opacity-0 group-hover:bg-opacity-20 absolute inset-0 flex items-center justify-center bg-black transition-all">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all group-hover:bg-black/20">
                 <div className="rounded-full bg-red-600 p-3 opacity-0 transition-opacity group-hover:opacity-100">
                   <svg
                     className="h-6 w-6 text-white"
@@ -153,10 +156,10 @@ type ShowcaseStall = {
 const SHOWCASE_STALLS: ShowcaseStall[] = [
   {
     name: "Free Milk",
-    url: "milk.market/stall/freemilk",
+    url: `${SITE_HOST}/stall/freemilk`,
     href: "/stall/freemilk",
     image: "/stall-freemilk.png",
-    alt: "Free Milk stall on Milk Market showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
+    alt: "Free Milk stall on Self-sown showing real products: raw goat milk, cheddar cheese, and raw Nubian goat milk with prices",
   },
   {
     name: "Naughty Goat Co.",
@@ -167,10 +170,10 @@ const SHOWCASE_STALLS: ShowcaseStall[] = [
   },
   {
     name: "Your Farm",
-    url: "milk.market/stall/your-farm",
+    url: `${SITE_HOST}/stall/your-farm`,
     href: "/onboarding/new-account",
     placeholder: true,
-    alt: "Open your own customizable stall on Milk Market in minutes",
+    alt: "Open your own customizable stall on Self-sown in minutes",
   },
 ];
 
@@ -416,15 +419,15 @@ export default function StandaloneLanding() {
         <div className="flex min-w-0 items-center gap-x-6">
           <div className="flex min-w-0 items-center space-x-2">
             <Image
-              src="/milk-market.png"
-              alt="Milk Market logo - local food and artisan marketplace"
+              src="/self-sown-black.png"
+              alt="Self-sown logo - local food and artisan marketplace"
               width={32}
               height={32}
               className="h-8 w-8 shrink-0"
               loading="eager"
             />
-            <span className="hidden truncate text-lg font-bold sm:inline-block sm:text-xl">
-              Milk Market
+            <span className="truncate text-lg font-bold sm:text-xl">
+              Self-sown
             </span>
           </div>
 
@@ -536,7 +539,7 @@ export default function StandaloneLanding() {
         {/* Background Milk Cartons */}
         <div className="pointer-events-none absolute top-[15%] left-[10%] opacity-[0.06]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={80}
             height={80}
@@ -545,7 +548,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute top-[20%] right-[12%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={100}
             height={100}
@@ -554,7 +557,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute bottom-[20%] left-[8%] opacity-[0.07]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={90}
             height={90}
@@ -563,7 +566,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute right-[15%] bottom-[15%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={70}
             height={70}
@@ -677,7 +680,7 @@ export default function StandaloneLanding() {
       <section className="border-b-2 border-black bg-white py-12">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <p className="text-lg text-zinc-600 md:text-xl">
-            Milk Market is built for farmers, food makers, and artisan producers
+            Self-sown is built for farmers, food makers, and artisan producers
             who are tired of handing over 2.9% + 30 cents per sale plus $39 to
             $2,300 a month just to run their own store. List your products in
             minutes. Get paid directly. Keep everything you earn.
@@ -699,7 +702,7 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-lg text-zinc-600">
               Every seller gets a customizable stall with their own products,
-              prices, and branding. Here are real, live shops on Milk Market.
+              prices, and branding. Here are real, live shops on Self-sown.
             </p>
           </div>
 
@@ -772,7 +775,7 @@ export default function StandaloneLanding() {
 
             <div className="rounded-lg border-2 border-green-200 bg-green-50 p-8">
               <h3 className="mb-4 text-xl font-black text-green-700">
-                With Milk Market
+                With Self-sown
               </h3>
               <ul className="space-y-3 text-zinc-700">
                 <li className="flex items-start gap-2">
@@ -790,8 +793,8 @@ export default function StandaloneLanding() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-green-500">&#10003;</span>
-                  Even if Milk Market disappeared tomorrow, your store would
-                  stay online
+                  Even if Self-sown disappeared tomorrow, your store would stay
+                  online
                 </li>
               </ul>
             </div>
@@ -809,7 +812,7 @@ export default function StandaloneLanding() {
         {/* Background Milk Cartons */}
         <div className="pointer-events-none absolute top-[12%] left-[8%] opacity-[0.06]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={95}
             height={95}
@@ -818,7 +821,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute right-[10%] bottom-[15%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={85}
             height={85}
@@ -846,7 +849,7 @@ export default function StandaloneLanding() {
               </div>
               <div className="space-y-4">
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     1
                   </div>
                   <div>
@@ -855,7 +858,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     2
                   </div>
                   <div>
@@ -869,7 +872,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     3
                   </div>
                   <div>
@@ -902,7 +905,7 @@ export default function StandaloneLanding() {
               </div>
               <div className="space-y-4">
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     1
                   </div>
                   <div>
@@ -916,7 +919,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     2
                   </div>
                   <div>
@@ -930,7 +933,7 @@ export default function StandaloneLanding() {
                   </div>
                 </div>
                 <div className="shadow-neo flex items-start gap-4 rounded-lg border-2 border-black bg-white p-5">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-lg font-bold text-white">
                     3
                   </div>
                   <div>
@@ -985,15 +988,15 @@ export default function StandaloneLanding() {
               <p className="text-zinc-600">
                 Barn2Door charges $99 to $299 a month plus 2.9% + 30 cents per
                 transaction. At $200 a month, that is $2,400 a year in
-                subscription fees before you sell a single item. On Milk Market
+                subscription fees before you sell a single item. On Self-sown
                 that is $0. You can choose to donate to support the platform,
                 but it is always your call.
               </p>
               <p className="mt-3 text-sm text-zinc-500">
-                That 0% is Milk Market&apos;s own fee. Bitcoin payments have no
+                That 0% is Self-sown&apos;s own fee. Bitcoin payments have no
                 fees at all. If you choose to accept cards through Stripe or
                 Square, that processor charges its own standard processing fee,
-                and Milk Market still adds nothing on top.
+                and Self-sown still adds nothing on top.
               </p>
             </div>
             <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-center">
@@ -1001,7 +1004,7 @@ export default function StandaloneLanding() {
               <h3 className="mb-2 text-xl font-bold">Own Your Store</h3>
               <p className="text-zinc-600">
                 Your store and your customer list belong to you. No one can
-                freeze your account or take your store away. Even if Milk Market
+                freeze your account or take your store away. Even if Self-sown
                 disappeared tomorrow, your store would stay online, because your
                 data lives on Nostr, an open network that runs independently of
                 us.
@@ -1036,7 +1039,7 @@ export default function StandaloneLanding() {
         </div>
       </section>
 
-      {/* Comparison - Milk Market vs Shopify vs Barn2Door */}
+      {/* Comparison - Self-sown vs Shopify vs Barn2Door */}
       <section
         id="compare"
         className="relative z-10 border-b-2 border-black bg-white py-16"
@@ -1048,7 +1051,7 @@ export default function StandaloneLanding() {
             </h2>
             <p className="mx-auto max-w-2xl text-zinc-600">
               Barn2Door starts at $99 a month plus a $399 setup fee. Shopify
-              adds transaction fees on top of its monthly plans. Milk Market is
+              adds transaction fees on top of its monthly plans. Self-sown is
               free to start and has no mandatory fees. Here&apos;s how we
               compare.
             </p>
@@ -1060,7 +1063,7 @@ export default function StandaloneLanding() {
                 <tr className="border-b-2 border-black">
                   <th className="p-2 text-xs font-black sm:p-4 sm:text-sm"></th>
                   <th className="bg-primary-yellow border-x-2 border-black p-2 text-center text-xs font-black sm:p-4 sm:text-base">
-                    Milk Market
+                    Self-sown
                   </th>
                   <th className="p-2 text-center text-xs font-bold text-zinc-700 sm:p-4 sm:text-base">
                     Shopify
@@ -1074,55 +1077,55 @@ export default function StandaloneLanding() {
                 {[
                   {
                     feature: "Up-front & platform fees",
-                    mm: "0%",
+                    ss: "0%",
                     shopify: "Up to 2%¹",
                     barn: "$399+ setup fee¹ ²",
                   },
                   {
                     feature: "Monthly subscription",
-                    mm: "Free, or $21 Herd",
+                    ss: "Free, or $21 Herd",
                     shopify: "From $39/mo",
                     barn: "From $99/mo²",
                   },
                   {
                     feature: "Built for local food & makers",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: true,
                   },
                   {
                     feature: "Open & decentralized, so you own your store",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Self-host your own store",
-                    mm: "Wrangler",
+                    ss: "Wrangler",
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Accepts Bitcoin, Lightning & cash natively",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Censorship-resistant, with no central shutdown",
-                    mm: true,
+                    ss: true,
                     shopify: false,
                     barn: false,
                   },
                   {
                     feature: "Custom domain & stall",
-                    mm: "Herd",
+                    ss: "Herd",
                     shopify: true,
                     barn: true,
                   },
                   {
                     feature: "AI agent commerce (MCP)",
-                    mm: true,
+                    ss: true,
                     shopify: true,
                     barn: false,
                   },
@@ -1145,15 +1148,16 @@ export default function StandaloneLanding() {
                   return (
                     <tr
                       key={row.feature}
-                      className={`border-b border-zinc-200 last:border-b-0 ${
+                      className={joinClassNames(
+                        "border-b border-zinc-200 last:border-b-0",
                         i % 2 === 1 ? "bg-zinc-50" : ""
-                      }`}
+                      )}
                     >
                       <td className="p-2 align-top font-bold sm:p-4">
                         {row.feature}
                       </td>
                       <td className="bg-primary-yellow/20 border-x-2 border-black p-2 text-center align-top sm:p-4">
-                        {renderCell(row.mm)}
+                        {renderCell(row.ss)}
                       </td>
                       <td className="p-2 text-center align-top text-zinc-700 sm:p-4">
                         {renderCell(row.shopify)}
@@ -1342,7 +1346,7 @@ export default function StandaloneLanding() {
         {/* Background Milk Cartons */}
         <div className="pointer-events-none absolute top-[18%] left-[12%] opacity-[0.06]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={90}
             height={90}
@@ -1351,7 +1355,7 @@ export default function StandaloneLanding() {
         </div>
         <div className="pointer-events-none absolute right-[8%] bottom-[20%] opacity-[0.05]">
           <Image
-            src="/milk-carton.png"
+            src="/self-sown-mark.png"
             alt=""
             width={80}
             height={80}
@@ -1375,7 +1379,7 @@ export default function StandaloneLanding() {
 
           <div className="mt-8 text-center">
             <a
-              href="https://www.youtube.com/@milkmarketmedia"
+              href="https://www.youtube.com/@self-sown"
               target="_blank"
               rel="noopener noreferrer"
               className={`${WHITEBUTTONCLASSNAMES} inline-flex items-center gap-2`}
@@ -1449,7 +1453,7 @@ export default function StandaloneLanding() {
                   placeholder={
                     contactType === "email" ? "your@email.com" : "npub1..."
                   }
-                  className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-none"
+                  className="shadow-neo w-full rounded-lg border-2 border-black p-3 focus:outline-hidden"
                   style={{ backgroundColor: "#f0f0f0" }}
                 />
               </div>
@@ -1465,11 +1469,12 @@ export default function StandaloneLanding() {
 
             {submitMessage && (
               <div
-                className={`mt-4 rounded-lg p-4 ${
+                className={joinClassNames(
+                  "mt-4 rounded-lg p-4",
                   submitMessage.type === "success"
                     ? "border border-green-200 bg-green-100 text-green-800"
                     : "border border-red-200 bg-red-100 text-red-800"
-                }`}
+                )}
               >
                 <p className="flex items-center space-x-2">
                   <span>
@@ -1543,13 +1548,13 @@ export default function StandaloneLanding() {
           <div className="border-t border-zinc-700 pt-8 text-center">
             <div className="mb-6 flex items-center justify-center space-x-2">
               <Image
-                src="/milk-market.png"
-                alt="Milk Market logo - decentralized local food marketplace"
+                src="/self-sown-white.png"
+                alt="Self-sown logo - decentralized local food marketplace"
                 width={32}
                 height={32}
                 className="h-8 w-8"
               />
-              <span className="text-xl font-bold">Milk Market</span>
+              <span className="text-xl font-bold">Self-sown</span>
             </div>
             <p className="mb-6 text-lg font-bold">
               Rearchitecting the food system. Freeing the food.
@@ -1557,6 +1562,9 @@ export default function StandaloneLanding() {
             <div className="mb-6 flex flex-wrap items-center justify-center gap-6">
               <Link href="/about" className="text-sm hover:underline">
                 About Us
+              </Link>
+              <Link href="/manifesto" className="text-sm hover:underline">
+                Manifesto
               </Link>
               <Link href="/contact" className="text-sm hover:underline">
                 Contact
@@ -1585,86 +1593,47 @@ export default function StandaloneLanding() {
             </div>
             <div className="mb-6 flex flex-wrap items-center justify-center gap-6">
               <a
-                href="https://github.com/shopstr-eng/milk-market"
+                href="https://github.com/shopstr-eng/self-sown"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
               >
                 <Image
                   src="/github-mark-white.png"
-                  alt="Milk Market open source code on GitHub"
+                  alt="Self-sown open source code on GitHub"
                   width={24}
                   height={24}
                 />
               </a>
               <a
-                href="https://njump.me/milkmarket@milk.market"
+                href="https://njump.me/self-sown@self-sown.com"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
               >
                 <Image
                   src="/nostr-icon-white-transparent-256x256.png"
-                  alt="Milk Market on Nostr decentralized network"
+                  alt="Self-sown on Nostr decentralized network"
                   width={32}
                   height={32}
                 />
               </a>
               <a
-                href="https://x.com/milkmarketmedia"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
-              >
-                <Image
-                  src="/x-logo-white.png"
-                  alt="Follow Milk Market on X (Twitter)"
-                  width={24}
-                  height={24}
-                />
-              </a>
-              <a
-                href="https://www.youtube.com/@milkmarketmedia"
+                href="https://www.youtube.com/@self-sown"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="transition-transform hover:scale-110"
               >
                 <Image
                   src="/youtube-icon.png"
-                  alt="Milk Market YouTube channel - local food and farming videos"
-                  width={24}
-                  height={24}
-                />
-              </a>
-              <a
-                href="https://www.instagram.com/milkmarketmedia/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
-              >
-                <Image
-                  src="/instagram-icon.png"
-                  alt="Milk Market on Instagram"
-                  width={24}
-                  height={24}
-                />
-              </a>
-              <a
-                href="https://www.tiktok.com/@milkmarket.media"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:scale-110"
-              >
-                <Image
-                  src="/tiktok-icon.png"
-                  alt="Milk Market on TikTok"
+                  alt="Self-sown YouTube channel - local food and farming videos"
                   width={24}
                   height={24}
                 />
               </a>
             </div>
             <p className="text-sm text-zinc-500">
-              &copy; {new Date().getFullYear()} Milk Market LLC. All rights
+              &copy; {new Date().getFullYear()} Self-sown LLC. All rights
               reserved.
             </p>
           </div>

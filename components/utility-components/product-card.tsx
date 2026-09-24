@@ -16,6 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { RawEventModal, EventIdModal } from "./modals/event-modals";
 import { nip19 } from "nostr-tools";
+import { DEFAULT_SELLER_RELAYS } from "@self-sown/domain";
 import { getLocalStorageData } from "@/utils/nostr/nostr-helper-functions";
 import { locationAvatar } from "./dropdowns/location-dropdown";
 import ImageCarousel from "./image-carousel";
@@ -172,7 +173,7 @@ export default function ProductCard({
       const targetRelays =
         relays.length > 0
           ? relays.slice(0, 3)
-          : ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
+          : [...DEFAULT_SELLER_RELAYS].slice(0, 3);
       const nevent = nip19.neventEncode({
         id: productData.id,
         author: productData.pubkey,
@@ -204,7 +205,7 @@ export default function ProductCard({
               <h3 className="line-clamp-2 min-w-0 flex-1 text-xl leading-snug font-bold text-black">
                 {productData.title}
               </h3>
-              <div className="relative z-10 flex flex-shrink-0 items-center gap-1">
+              <div className="relative z-10 flex shrink-0 items-center gap-1">
                 {isZapsnag && productData.pubkey === userPubkey && (
                   <button
                     onClick={handleNjumpClick}
@@ -290,17 +291,17 @@ export default function ProductCard({
                 )}
                 {router.pathname === "/settings/stall" &&
                   productData.status === "active" && (
-                    <Chip className="flex-shrink-0 border-2 border-black bg-green-500 text-xs font-bold text-white">
+                    <Chip className="shrink-0 border-2 border-black bg-green-500 text-xs font-bold text-white">
                       Active
                     </Chip>
                   )}
                 {productData.status === "sold" && (
-                  <Chip className="flex-shrink-0 border-2 border-black bg-red-500 text-xs font-bold text-white">
+                  <Chip className="shrink-0 border-2 border-black bg-red-500 text-xs font-bold text-white">
                     Sold
                   </Chip>
                 )}
                 {productData.status === "soon" && (
-                  <Chip className="flex-shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
+                  <Chip className="shrink-0 border-2 border-black bg-yellow-500 text-xs font-bold text-black">
                     Soon
                   </Chip>
                 )}
@@ -372,7 +373,7 @@ export default function ProductCard({
     <a
       href={href}
       aria-label={primaryControlLabel}
-      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-none focus-visible:ring-inset"
+      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-hidden focus-visible:ring-inset"
       onClickCapture={handleCardClickCapture}
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
@@ -383,7 +384,7 @@ export default function ProductCard({
     <button
       type="button"
       aria-label={primaryControlLabel}
-      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-none focus-visible:ring-inset"
+      className="focus-visible:ring-primary-yellow absolute inset-0 z-0 cursor-pointer rounded-md focus-visible:ring-4 focus-visible:outline-hidden focus-visible:ring-inset"
       onClick={handleCardClick}
       onKeyDown={handleCardKeyDown}
     >

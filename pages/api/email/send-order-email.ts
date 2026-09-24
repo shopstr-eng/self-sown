@@ -21,6 +21,7 @@ import { applyRateLimit } from "@/utils/rate-limit";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import Stripe from "stripe";
+import { getSiteUrl } from "@/utils/site-url";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-09-30.clover",
@@ -259,7 +260,7 @@ async function autoEnrollInFlows(params: {
   } = params;
 
   const flows = await getEmailFlows(sellerPubkey);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://milk.market";
+  const baseUrl = getSiteUrl();
   const enrollmentData = {
     order_id: orderId,
     product_title: productTitle,
@@ -279,7 +280,7 @@ async function autoEnrollInFlows(params: {
   if (postPurchaseFlow) {
     const flowData = {
       ...enrollmentData,
-      shop_name: postPurchaseFlow.from_name || "Milk Market",
+      shop_name: postPurchaseFlow.from_name || "Self-sown",
     };
     await tryEnroll(postPurchaseFlow.id, buyerEmail, buyerPubkey, flowData);
   }
@@ -296,7 +297,7 @@ async function autoEnrollInFlows(params: {
     if (isFirstOrder) {
       const flowData = {
         ...enrollmentData,
-        shop_name: welcomeFlow.from_name || "Milk Market",
+        shop_name: welcomeFlow.from_name || "Self-sown",
       };
       await tryEnroll(welcomeFlow.id, buyerEmail, buyerPubkey, flowData);
     }
@@ -366,7 +367,9 @@ function normalizeEmail(email: string): string {
 // address Stripe holds on the charge so a genuine payment can't be replayed to
 // send a seller-branded email to someone else. Fail-closed: any uncertainty
 // returns false and the confirmation falls back to the global verified sender.
-async function verifyCardPaymentForSeller(params: {
+// Exported for tests — this is the fail-closed gate behind seller-domain
+// order confirmations, so its metadata parsing is pinned by route-level tests.
+export async function verifyCardPaymentForSeller(params: {
   paymentIntentId?: string;
   sellerPubkey?: string;
   buyerEmail?: string;
@@ -392,22 +395,34 @@ async function verifyCardPaymentForSeller(params: {
     }
 
     // Multi-merchant cart: the PaymentIntent lives on the platform account and
-    // names each participating seller (with a server-resolved connected
-    // account) in `sellerSplits`. The seller must be listed there.
+    // names each participating seller. New carts carry the compact
+    // `sellerSplitPubkeys` list (the full split JSON outgrew Stripe's 500-char
+    // metadata cap with just two sellers); carts created before that change
+    // carry the legacy full `sellerSplits` JSON. Accept either — the seller
+    // must be listed.
     if (!paymentIntent) {
       const platformPi = await stripe.paymentIntents.retrieve(paymentIntentId);
-      const splitsRaw = platformPi.metadata?.sellerSplits;
-      if (splitsRaw) {
-        try {
-          const splits = JSON.parse(splitsRaw);
-          if (
-            Array.isArray(splits) &&
-            splits.some((s: { pubkey?: string }) => s?.pubkey === sellerPubkey)
-          ) {
-            paymentIntent = platformPi;
+      const pubkeysRaw = platformPi.metadata?.sellerSplitPubkeys;
+      if (pubkeysRaw) {
+        if (pubkeysRaw.split(",").includes(sellerPubkey)) {
+          paymentIntent = platformPi;
+        }
+      } else {
+        const splitsRaw = platformPi.metadata?.sellerSplits;
+        if (splitsRaw) {
+          try {
+            const splits = JSON.parse(splitsRaw);
+            if (
+              Array.isArray(splits) &&
+              splits.some(
+                (s: { pubkey?: string }) => s?.pubkey === sellerPubkey
+              )
+            ) {
+              paymentIntent = platformPi;
+            }
+          } catch {
+            // Malformed metadata -> treat as unverified.
           }
-        } catch {
-          // Malformed metadata -> treat as unverified.
         }
       }
     }

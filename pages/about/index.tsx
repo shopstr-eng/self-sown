@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { safeJsonLdString } from "@/utils/safe-json-ld";
+import { SITE_URL } from "@/utils/site-url";
 import {
   PRIMARYBUTTONCLASSNAMES,
   WHITEBUTTONCLASSNAMES,
@@ -18,21 +19,21 @@ export default function AboutPage() {
             __html: safeJsonLdString({
               "@context": "https://schema.org",
               "@type": "AboutPage",
-              name: "About Milk Market",
-              url: "https://milk.market/about",
+              name: "About Self-sown",
+              url: `${SITE_URL}/about`,
               description:
-                "Milk Market is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers.",
+                "Self-sown is a decentralized marketplace connecting local food producers directly with consumers. Learn about our mission for food sovereignty, zero-fee commerce, and empowering local producers.",
               mainEntity: {
                 "@type": "Organization",
-                name: "Milk Market",
-                url: "https://milk.market",
-                logo: "https://milk.market/milk-market.png",
+                name: "Self-sown",
+                url: SITE_URL,
+                logo: `${SITE_URL}/self-sown-black.png`,
                 foundingDate: "2024",
                 description:
                   "Decentralized, permissionless marketplace connecting local food producers directly with consumers. Zero mandatory platform fees, direct payments via Bitcoin and traditional methods.",
                 founder: {
                   "@type": "Person",
-                  name: "Milk Market Team",
+                  name: "Self-sown Team",
                   description:
                     "Advocates for food sovereignty and direct farm-to-consumer commerce, with expertise in decentralized marketplace technology and local food supply chains.",
                 },
@@ -41,11 +42,8 @@ export default function AboutPage() {
                   name: "United States",
                 },
                 sameAs: [
-                  "https://github.com/shopstr-eng/milk-market",
-                  "https://x.com/milkmarketmedia",
-                  "https://www.youtube.com/@milkmarketmedia",
-                  "https://www.instagram.com/milkmarketmedia/",
-                  "https://www.tiktok.com/@milkmarket.media",
+                  "https://github.com/shopstr-eng/self-sown",
+                  "https://www.youtube.com/@self-sown",
                 ],
               },
             }),
@@ -68,17 +66,18 @@ export default function AboutPage() {
           </div>
 
           <h1 className="mb-8 text-4xl font-black md:text-5xl">
-            About Milk Market
+            About Self-sown
           </h1>
 
           <section className="mb-12">
             <h2 className="mb-4 text-2xl font-black">Our Mission</h2>
             <p className="mb-4 text-lg text-zinc-700">
-              Milk Market exists to restore the direct connection between local
+              Self-sown exists to restore the direct connection between local
               food producers and the people they feed. We believe everyone
-              deserves access to fresh, high-quality food &mdash; from raw milk
-              and dairy to meat, eggs, and produce &mdash; without middlemen
-              inflating prices or dictating what you can buy.
+              deserves access to fresh, high-quality food &mdash; from
+              farm-fresh produce and dairy to meat, eggs, and handmade goods
+              &mdash; without middlemen inflating prices or dictating what you
+              can buy.
             </p>
             <p className="mb-4 text-lg text-zinc-700">
               According to the{" "}
@@ -138,7 +137,7 @@ export default function AboutPage() {
               </span>
             </blockquote>
             <p className="text-zinc-700">
-              Milk Market solves this by creating a permissionless marketplace
+              Self-sown solves this by creating a permissionless marketplace
               where farmers list products, set their own prices, and keep their
               earnings. There are no mandatory platform fees or per-sale
               commissions &mdash; farmers can optionally elect a donation rate
@@ -199,7 +198,7 @@ export default function AboutPage() {
           <section className="shadow-neo mb-12 rounded-lg border-2 border-black bg-zinc-50 p-8">
             <h2 className="mb-4 text-2xl font-black">Our Team</h2>
             <p className="mb-4 text-zinc-700">
-              Milk Market was founded by a team of technologists and food
+              Self-sown was founded by a team of technologists and food
               sovereignty advocates who believe that the future of food commerce
               is decentralized, private, and fair. Our team brings together
               expertise in:
@@ -290,7 +289,7 @@ export default function AboutPage() {
             <h2 className="mb-4 text-2xl font-black">Ready to Get Started?</h2>
             <p className="mb-6 text-zinc-300">
               Whether you&apos;re a farmer looking to sell or a consumer seeking
-              fresh local food, Milk Market is here for you.
+              fresh local food, Self-sown is here for you.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link href="/marketplace">

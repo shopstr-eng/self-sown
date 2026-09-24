@@ -43,7 +43,7 @@ const MINT = process.env.E2E_MINT_URL ?? "http://localhost:3338";
 // event id alone would change on every setup rerun.
 const LISTING_ID =
   process.env.E2E_LISTING_ID ??
-  "naddr1qvzqqqrkcgpzqpy99ncvwyl2cy7v9mwgxynysz9lvl9edq3dfj2m0gd0ned2upj5qq3hxarpva5kueedv4ekxun0wukhgetnwskkjar9d5knyve3xucnzdpcxgcs6sj65j";
+  "naddr1qvzqqqrkcgpzpdcqt333na25uthrfxnw5r3jrqxuwk8vxtmjpd3hk7aqfsccs045qq38xarpva5kueedv4ekxun0wukhgetnwskkjar9d5knzwfkxgcrjdfkxy69lcwn";
 const CHROMIUM =
   process.env.CHROMIUM_PATH ??
   "/nix/store/qa9cnw4v5xkxyip6mb9kxqfq1z4x2dx1-chromium-138.0.7204.100/bin/chromium";

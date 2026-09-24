@@ -29,11 +29,11 @@ A cold `next build` can fail with `TurbopackInternalError: [project]/styles/glob
 
 # Memory-free preview = build + run the standalone server (not next dev, not next start)
 
-To preview without the dev OOM, the `dev` script does a memory-bumped production build then serves it: `next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public && PORT=5000 HOSTNAME=0.0.0.0 node .next/standalone/server.js`. The old hot-reload dev is preserved as `dev:hot`.
+The `dev` script is `bash scripts/dev-server.sh` — a supervisor that production-builds then serves the standalone bundle (see next-build-oom-contention.md for the OOM mechanics; the assembly/fallback details live in the script header). The old hot-reload dev is preserved as `dev:hot`.
 
-**Why:** `next.config` sets `output: "standalone"`. `next start` with standalone prints a warning and doesn't serve the bundle's static/public assets (you get asset 404s). The standalone server (`node .next/standalone/server.js`) reads `PORT`/`HOSTNAME` env (not `-p`/`-H` flags) and needs `.next/static` + `public` folded in first — same steps as `scripts/deploy-build.sh`. A prod build runs comfortably at `--max-old-space-size=2048`.
+**Why:** `next.config` sets `output: "standalone"`. `next start` with standalone prints a warning and doesn't serve the bundle's static/public assets (you get asset 404s). The standalone server (`node .next/standalone/server.js`) reads `PORT`/`HOSTNAME` env (not `-p`/`-H` flags) and needs `.next/static` + `public` folded in first — same steps as `scripts/deploy-build.sh`.
 
-**How to apply:** trade hot-reload for stability — after code changes, restart the workflow to rebuild (~50–65s). Unrelated pre-existing 404s remain in this preview: `/sw.js`, `/workbox*` (PWA service worker, not emitted by this config) and `/favicon.ico`; they don't affect rendering, don't chase them as part of preview work.
+**How to apply:** trade hot-reload for stability — after code changes, restart the workflow to rebuild. Unrelated pre-existing 404s remain in this preview: `/sw.js`, `/workbox*` (PWA service worker, not emitted by this config) and `/favicon.ico`; they don't affect rendering, don't chase them as part of preview work.
 
 # Prod-build Turbopack panic = OOM under IDE memory contention
 

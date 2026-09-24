@@ -3,7 +3,7 @@ name: pg-mem test harness quirks
 description: Durable pg-mem behavioral defects that db test wrappers must compensate for.
 ---
 
-pg-mem enforces unique constraints on `ON CONFLICT ... DO NOTHING` (no duplicate row is written) but misreports the conflicting insert as `rowCount: 1` with a phantom RETURNING row, and direct `memDb.public.none()` does not bind `$n` params (the pg-adapter client's `query` does).
+pg-mem enforces unique constraints on `ON CONFLICT ... DO NOTHING` (no duplicate row is written) but misreports the conflicting insert as `rowCount: 1` with a phantom RETURNING row, and direct `memDb.public.none()` does not bind `$n` params (the pg-adapter client's `query` does). Its parser also rejects dollar-quoted (`$$...$$`) literals, and jsonb mutation is unsupported: `metadata || $n::jsonb` fails converting the JS-level concat result back to jsonb, and `jsonb_set` is not implemented — write jsonb-merging helpers as read-merge-write in JS if they need pg-mem coverage, and bind JSON through adapter query params (`$n::jsonb` in INSERT works).
 
 **Why:** Verified by direct repro (Sept 2026): conflict insert reports rows.length=1/rowCount=1 while the table holds exactly 1 row — so claim functions keyed on `rowCount > 0` see a false "inserted" under pg-mem only.
 

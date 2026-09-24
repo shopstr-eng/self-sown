@@ -22,6 +22,7 @@ import {
   WHITEBUTTONCLASSNAMES,
   BLUEBUTTONCLASSNAMES,
 } from "@/utils/STATIC-VARIABLES";
+import { joinClassNames } from "@/utils/class-names";
 import {
   ArrowUturnLeftIcon,
   ArrowsUpDownIcon,
@@ -414,7 +415,7 @@ const ChatPanel = ({
   if (!currentChatPubkey)
     return (
       <div className="absolute z-20 hidden h-[85vh] w-full flex-col overflow-clip bg-white px-2 md:relative md:flex">
-        <div className="mt-10 flex flex-grow items-center justify-center py-10">
+        <div className="mt-10 flex grow items-center justify-center py-10">
           <div className="shadow-neo w-full max-w-xl rounded-lg border-2 border-black bg-[#2C3E50] p-10 text-center">
             <ChatBubbleLeftIcon className="mx-auto mb-5 h-20 w-20 text-white" />
             <span className="block text-5xl font-bold text-white">
@@ -537,17 +538,19 @@ const ChatPanel = ({
             isOpen={showShippingModal}
             onClose={handleToggleShippingModal}
             classNames={{
-              body: "py-6 bg-dark-fg",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
-              header: "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
-              footer: "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+              body: "py-6 bg-primary-blue",
+              backdrop: "bg-black/50 backdrop-opacity-60",
+              header:
+                "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
+              footer:
+                "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
               closeButton: "hover:bg-black/5 active:bg-white/10",
             }}
             scrollBehavior={"outside"}
             size="2xl"
           >
             <ModalContent>
-              <ModalHeader className="text-dark-text flex flex-col gap-1">
+              <ModalHeader className="flex flex-col gap-1 text-white">
                 Enter Shipping Details
               </ModalHeader>
               <form onSubmit={handleShippingSubmit(onShippingSubmit)}>
@@ -574,7 +577,7 @@ const ChatPanel = ({
                           variant="bordered"
                           isInvalid={isErrored}
                           errorMessage={errorMessage}
-                          className="text-dark-text"
+                          className="text-white"
                           type="number"
                           onChange={onChange}
                           onBlur={onBlur}
@@ -604,7 +607,7 @@ const ChatPanel = ({
                           placeholder="Fedex, UPS, etc. "
                           isInvalid={isErrored}
                           errorMessage={errorMessage}
-                          className="text-dark-text"
+                          className="text-white"
                           onChange={onChange}
                           onBlur={onBlur}
                           value={value}
@@ -637,7 +640,7 @@ const ChatPanel = ({
                           variant="bordered"
                           isInvalid={isErrored}
                           errorMessage={errorMessage}
-                          className="text-dark-text"
+                          className="text-white"
                           onChange={onChange}
                           onBlur={onBlur}
                           value={value}
@@ -687,45 +690,47 @@ const ChatPanel = ({
               isOpen={showReviewModal}
               onClose={handleToggleReviewModal}
               classNames={{
-                body: "py-6 bg-dark-fg",
-                backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+                body: "py-6 bg-primary-blue",
+                backdrop: "bg-black/50 backdrop-opacity-60",
                 header:
-                  "border-b-[1px] border-[#292f46] bg-dark-fg rounded-t-lg",
+                  "border-b-[1px] border-black bg-primary-blue rounded-t-lg",
                 footer:
-                  "border-t-[1px] border-[#292f46] bg-dark-fg rounded-b-lg",
+                  "border-t-[1px] border-black bg-primary-blue rounded-b-lg",
                 closeButton: "hover:bg-black/5 active:bg-white/10",
               }}
               scrollBehavior={"outside"}
               size="2xl"
             >
               <ModalContent>
-                <ModalHeader className="text-dark-text flex flex-col gap-1">
+                <ModalHeader className="flex flex-col gap-1 text-white">
                   Leave a Review
                 </ModalHeader>
                 <form onSubmit={handleReviewSubmit(onReviewSubmit)}>
                   <ModalBody>
                     <div className="mb-4 flex items-center justify-center gap-16">
                       <div className="flex items-center gap-3">
-                        <span className="text-dark-text">Good Overall</span>
+                        <span className="text-white">Good Overall</span>
                         <HandThumbUpIcon
-                          className={`h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors ${
+                          className={joinClassNames(
+                            "h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors",
                             selectedThumb === "up"
                               ? "border-green-500 text-green-500"
-                              : "border-dark-text text-dark-text hover:border-green-500 hover:text-green-500"
-                          }`}
+                              : "border-white text-white hover:border-green-500 hover:text-green-500"
+                          )}
                           onClick={() => setSelectedThumb("up")}
                         />
                       </div>
                       <div className="flex items-center gap-3">
                         <HandThumbDownIcon
-                          className={`h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors ${
+                          className={joinClassNames(
+                            "h-12 w-12 cursor-pointer rounded-lg border-2 p-2 transition-colors",
                             selectedThumb === "down"
                               ? "border-red-500 text-red-500"
-                              : "border-dark-text text-dark-text hover:border-red-500 hover:text-red-500"
-                          }`}
+                              : "border-white text-white hover:border-red-500 hover:text-red-500"
+                          )}
                           onClick={() => setSelectedThumb("down")}
                         />
-                        <span className="text-dark-text">Bad Overall</span>
+                        <span className="text-white">Bad Overall</span>
                       </div>
                     </div>
 
@@ -742,7 +747,7 @@ const ChatPanel = ({
                             })
                           }
                         />
-                        <span className="text-dark-text">Good Value</span>
+                        <span className="text-white">Good Value</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -756,7 +761,7 @@ const ChatPanel = ({
                             })
                           }
                         />
-                        <span className="text-dark-text">Good Quality</span>
+                        <span className="text-white">Good Quality</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -770,7 +775,7 @@ const ChatPanel = ({
                             })
                           }
                         />
-                        <span className="text-dark-text">Quick Delivery</span>
+                        <span className="text-white">Quick Delivery</span>
                       </label>
                       <label className="flex items-center gap-2">
                         <input
@@ -787,9 +792,7 @@ const ChatPanel = ({
                             })
                           }
                         />
-                        <span className="text-dark-text">
-                          Good Communication
-                        </span>
+                        <span className="text-white">Good Communication</span>
                       </label>
                     </div>
 
@@ -801,7 +804,7 @@ const ChatPanel = ({
                         <div>
                           <textarea
                             {...field}
-                            className="border-dark-fg bg-dark-bg text-dark-text w-full rounded-md border-2 p-2"
+                            className="border-primary-blue w-full rounded-md border-2 bg-black p-2 text-white"
                             rows={4}
                             placeholder="Write your review comment here..."
                           />

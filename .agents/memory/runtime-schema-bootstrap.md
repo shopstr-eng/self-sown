@@ -26,10 +26,10 @@ stripe_processed_events): create the missing table in the DEV database with the 
 own DDL; the diff then sees no removal. Prevention (done 2026-09): every lazily-created
 table (stripe_processed_events, stripe_pending_payments, ucp_checkout_sessions, MCP
 tables, inventory, email_auth, failed_relay_publishes) is now ALSO created in
-initializeTables() — IF NOT EXISTS makes coexistence safe; lazy ensure* functions remain
+initializeTables() — IF NOT EXISTS makes coexistence safe; lazy ensure\* functions remain
 as no-ops and keep their data migrations. Any NEW lazy table must be registered there
 too, or the rename/drop trap returns. Enforcement (2026-09): Jest guard
-__tests__/utils/db/central-table-registration.test.ts fs-scans source dirs for CREATE
+**tests**/utils/db/central-table-registration.test.ts fs-scans source dirs for CREATE
 TABLE and fails if the table isn't also in db-service.ts (dynamic ${} table names are
 flagged for manual review). The MCP tables (mcp_api_keys/mcp_orders/mcp_request_proofs)
 exist in THREE copies — utils/mcp/auth.ts, db-service.ts initializeTables(), AND

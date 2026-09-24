@@ -15,13 +15,13 @@ changelog:
 - **`framer-motion` 12 → 13**: v13's only React breaking change removes
   `@emotion/is-prop-valid` as an optional dependency in favor of explicit
   `MotionConfig isValidProp` injection; it affects only styled-components /
-  Emotion users. Milk Market uses neither — usage is plain `motion.*`,
+  Emotion users. Self-sown uses neither — usage is plain `motion.*`,
   `AnimatePresence`, and `useReducedMotion` (`components/framer.tsx`,
   `components/utility-components/file-uploader.tsx`,
   `components/storefront/storefront-email-popup.tsx`,
   `components/free-shipping-notification.tsx`).
 - **`@getalby/lightning-tools` 8 → 9**: v9's only breaking change reworks
-  units in the 402/L402 fetch _client_ response. Milk Market never uses that
+  units in the 402/L402 fetch _client_ response. Self-sown never uses that
   client API (its L402 support is a self-built server in `utils/l402/` +
   `pages/api/mcp/create-order.ts`); local usage is `LightningAddress`,
   `Invoice`, `getSatoshiValue`, `getFiatValue` only.

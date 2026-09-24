@@ -115,7 +115,7 @@ describe("StorefrontThemeWrapper platform-chrome preservation", () => {
     jest.clearAllMocks();
   });
 
-  it("does not set sf-active for a seller with no storefront config, so the Milk Market nav stays", async () => {
+  it("does not set sf-active for a seller with no storefront config, so the Self-sown nav stays", async () => {
     renderWrapper({ isPro: true, hasStorefrontConfig: false });
     expect(screen.getByTestId("page-content")).toBeInTheDocument();
     // Give effects a chance to run

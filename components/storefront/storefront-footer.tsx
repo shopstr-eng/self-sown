@@ -9,7 +9,7 @@ import FormattedText from "./formatted-text";
 import {
   POLICY_LABELS,
   POLICY_SLUGS,
-  getDefaultPolicies,
+  resolveStorefrontPolicy,
 } from "@/utils/storefront-policies";
 import {
   isExternalStorefrontHref,
@@ -21,6 +21,7 @@ import {
   useIsCustomDomain,
 } from "@/utils/storefront/custom-domain-context";
 import StorefrontFooterNewsletter from "./storefront-footer-newsletter";
+import { joinClassNames } from "./sections/section-elements";
 
 interface StorefrontFooterProps {
   footer: StorefrontFooter;
@@ -73,12 +74,12 @@ export default function StorefrontFooterComponent({
   const accent = footerColors?.accent || colors.primary;
 
   const policies = footer.policies || {};
-  const defaults = getDefaultPolicies(shopName);
 
-  const enabledPolicies = POLICY_KEYS.filter((key) => {
-    const policy = policies[key] || defaults[key];
-    return policy && policy.enabled;
-  });
+  // Shared resolver — same semantics as the policy page renderer and the SSR
+  // subpage validator (stored wins when present + enabled, else default).
+  const enabledPolicies = POLICY_KEYS.filter((key) =>
+    resolveStorefrontPolicy(policies, key, shopName)
+  );
 
   // Footer layout controls, mirroring the top-nav's navLayout. All optional; an
   // absent field preserves the historical render (centered mobile, spread
@@ -270,16 +271,17 @@ export default function StorefrontFooterComponent({
 
         {showPoweredBy && (
           <div
-            className={`${
-              enabledPolicies.length > 0 ? "mt-4" : "mt-8 border-t pt-6"
-            } text-center text-sm opacity-40`}
+            className={joinClassNames(
+              enabledPolicies.length > 0 ? "mt-4" : "mt-8 border-t pt-6",
+              "text-center text-sm opacity-40"
+            )}
             style={
               enabledPolicies.length > 0 ? {} : { borderColor: text + "11" }
             }
           >
             Powered by{" "}
             <Link href="/" className="underline" style={{ color: accent }}>
-              Milk Market
+              Self-sown
             </Link>
           </div>
         )}

@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-// Drift guard between the two copies of Milk Market's marketing/legal facts:
+// Drift guard between the two copies of Self-sown's marketing/legal facts:
 //
 //   1. The machine-readable copy served to AI agents — `utils/geo/page-content.ts`
 //      (returned by /api/agent-view on content negotiation).

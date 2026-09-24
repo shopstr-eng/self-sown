@@ -1,20 +1,37 @@
 /**
- * Apple Pay / payment-method domain registration. Per Stripe's
+ * Apple Pay payment-method domain registration. Per Stripe's
  * pmd-registration doc, Connect direct charges must register the checkout
  * domain on the CONNECTED account (Stripe-Account header); platform charges
- * register on the platform account. Both the legacy apple_pay/domains and
- * the newer payment_method_domains APIs are written, registration is
- * fail-open, and host trust is never request-controlled.
+ * register on the platform account. Registration is PMD-only (create +
+ * validate — Stripe handles Apple's merchant validation, no hosted
+ * association file), fail-open, and host trust is never request-controlled.
  */
-const applePayCreate = jest.fn();
 const pmdCreate = jest.fn();
+const pmdValidate = jest.fn();
+const pmdList = jest.fn();
+const pmdUpdate = jest.fn();
 jest.mock("stripe", () => ({
   __esModule: true,
   default: jest.fn(() => ({
-    applePayDomains: { create: applePayCreate },
-    paymentMethodDomains: { create: pmdCreate },
+    paymentMethodDomains: {
+      create: pmdCreate,
+      validate: pmdValidate,
+      list: pmdList,
+      update: pmdUpdate,
+    },
   })),
 }));
+
+const ACTIVE_PMD = {
+  id: "pmd_1",
+  enabled: true,
+  apple_pay: { status: "active" },
+};
+const INACTIVE_PMD = {
+  id: "pmd_1",
+  enabled: true,
+  apple_pay: { status: "inactive" },
+};
 
 const getDomainByHostMock = jest.fn();
 jest.mock("@/utils/db/custom-domains", () => ({
@@ -40,62 +57,113 @@ describe("normalizeRegistrableHost", () => {
 
 describe("registerApplePayDomain", () => {
   beforeEach(() => {
-    applePayCreate.mockReset().mockResolvedValue({});
-    pmdCreate.mockReset().mockResolvedValue({});
+    pmdCreate.mockReset().mockResolvedValue(ACTIVE_PMD);
+    pmdValidate.mockReset().mockResolvedValue(ACTIVE_PMD);
+    pmdList.mockReset().mockResolvedValue({ data: [] });
+    pmdUpdate.mockReset().mockResolvedValue(ACTIVE_PMD);
     process.env.STRIPE_SECRET_KEY = "sk_test_x";
   });
 
-  it("registers on both domain APIs with the connected account header", async () => {
+  it("creates and caches an already-active domain on the connected account", async () => {
     await registerApplePayDomain("shop.example.com", "acct_123");
-    expect(applePayCreate).toHaveBeenCalledWith(
-      { domain_name: "shop.example.com" },
-      { stripeAccount: "acct_123" }
-    );
     expect(pmdCreate).toHaveBeenCalledWith(
       { domain_name: "shop.example.com" },
       { stripeAccount: "acct_123" }
     );
+    // Active on create: no validation round-trip needed.
+    expect(pmdValidate).not.toHaveBeenCalled();
+    await registerApplePayDomain("shop.example.com", "acct_123");
+    expect(pmdCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it("validates a freshly created inactive domain", async () => {
+    pmdCreate.mockResolvedValueOnce(INACTIVE_PMD);
+    await registerApplePayDomain("newshop.example.com", "acct_123");
+    expect(pmdValidate).toHaveBeenCalledWith("pmd_1", {
+      stripeAccount: "acct_123",
+    });
   });
 
   it("omits the account header for platform-account charges", async () => {
     await registerApplePayDomain("platform.example.com");
-    expect(applePayCreate).toHaveBeenCalledWith(
-      { domain_name: "platform.example.com" },
-      undefined
-    );
     expect(pmdCreate).toHaveBeenCalledWith(
       { domain_name: "platform.example.com" },
       undefined
     );
   });
 
-  it("absorbs 'already registered' and caches the pair", async () => {
-    applePayCreate.mockRejectedValue(new Error("Domain already registered"));
+  it("looks up duplicate registrations and caches only when active", async () => {
     pmdCreate.mockRejectedValue(
       new Error("You have already registered this domain")
     );
+    pmdList.mockResolvedValue({ data: [ACTIVE_PMD] });
     await registerApplePayDomain("dupe.example.com", "acct_1");
     await registerApplePayDomain("dupe.example.com", "acct_1");
-    expect(applePayCreate).toHaveBeenCalledTimes(1);
     expect(pmdCreate).toHaveBeenCalledTimes(1);
+    expect(pmdList).toHaveBeenCalledWith(
+      { domain_name: "dupe.example.com" },
+      { stripeAccount: "acct_1" }
+    );
+    expect(pmdValidate).not.toHaveBeenCalled();
   });
 
-  it("swallows transient failures, still attempts the other API, and does not cache", async () => {
-    applePayCreate.mockRejectedValue(new Error("stripe 500"));
+  it("re-enables then validates — and does not cache — a duplicate that stays inactive", async () => {
+    const disabledPmd = {
+      id: "pmd_9",
+      enabled: false,
+      apple_pay: { status: "inactive" },
+    };
+    pmdCreate.mockRejectedValue(
+      new Error("You have already registered this domain")
+    );
+    pmdList.mockResolvedValue({ data: [disabledPmd] });
+    // Re-enable succeeds, but Apple Pay stays inactive through validation.
+    pmdUpdate.mockResolvedValue({
+      id: "pmd_9",
+      enabled: true,
+      apple_pay: { status: "inactive" },
+    });
+    pmdValidate.mockResolvedValue({
+      id: "pmd_9",
+      enabled: true,
+      apple_pay: { status: "inactive" },
+    });
+    await registerApplePayDomain("disabled.example.com", "acct_2");
+    expect(pmdUpdate).toHaveBeenCalledWith(
+      "pmd_9",
+      { enabled: true },
+      { stripeAccount: "acct_2" }
+    );
+    expect(pmdValidate).toHaveBeenCalledWith("pmd_9", {
+      stripeAccount: "acct_2",
+    });
+    await registerApplePayDomain("disabled.example.com", "acct_2");
+    expect(pmdCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("swallows transient failures and does not cache (retried later)", async () => {
+    pmdCreate.mockRejectedValue(new Error("stripe 500"));
     const spy = jest.spyOn(console, "error").mockImplementation(() => {});
-    await registerApplePayDomain("flaky.example.com", "acct_2");
-    expect(pmdCreate).toHaveBeenCalledTimes(1);
-    applePayCreate.mockResolvedValue({});
-    await registerApplePayDomain("flaky.example.com", "acct_2");
-    expect(applePayCreate).toHaveBeenCalledTimes(2);
+    await registerApplePayDomain("flaky.example.com", "acct_3");
+    await registerApplePayDomain("flaky.example.com", "acct_3");
+    expect(pmdCreate).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
+  });
+
+  it("does not cache when validation fails", async () => {
+    pmdCreate.mockResolvedValue(INACTIVE_PMD);
+    pmdValidate.mockRejectedValue(new Error("validate down"));
+    const spy = jest.spyOn(console, "error").mockImplementation(() => {});
+    await registerApplePayDomain("valflaky.example.com", "acct_9");
+    await registerApplePayDomain("valflaky.example.com", "acct_9");
+    expect(pmdCreate).toHaveBeenCalledTimes(2);
     spy.mockRestore();
   });
 
   it("skips non-registrable hosts and missing keys entirely", async () => {
-    await registerApplePayDomain("localhost:3000", "acct_3");
+    await registerApplePayDomain("localhost:3000", "acct_4");
     delete process.env.STRIPE_SECRET_KEY;
-    await registerApplePayDomain("nokey.example.com", "acct_3");
-    expect(applePayCreate).not.toHaveBeenCalled();
+    await registerApplePayDomain("nokey.example.com", "acct_4");
     expect(pmdCreate).not.toHaveBeenCalled();
   });
 });
@@ -104,13 +172,18 @@ describe("trustedRegistrationHost", () => {
   const SELLER = "ab".repeat(32);
   beforeEach(() => {
     getDomainByHostMock.mockReset().mockResolvedValue(null);
-    process.env.NEXT_PUBLIC_BASE_URL = "https://milk.market";
+    process.env.NEXT_PUBLIC_BASE_URL = "https://platform.example.com";
   });
 
-  it("trusts the platform host", async () => {
-    await expect(trustedRegistrationHost("milk.market", SELLER)).resolves.toBe(
-      "milk.market"
-    );
+  it("trusts the platform host — registration is per charge-owning account, keeping seller eligibility per-seller", async () => {
+    await expect(
+      trustedRegistrationHost("platform.example.com", SELLER)
+    ).resolves.toBe("platform.example.com");
+    // No seller pubkey (platform charge) is trusted too.
+    await expect(
+      trustedRegistrationHost("Platform.Example.com:443")
+    ).resolves.toBe("platform.example.com");
+    expect(getDomainByHostMock).not.toHaveBeenCalled();
   });
 
   it("trusts a verified custom domain owned by the seller", async () => {

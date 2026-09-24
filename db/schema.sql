@@ -356,7 +356,10 @@ CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sess
 -- Subscriptions table for recurring product subscriptions
 CREATE TABLE IF NOT EXISTS subscriptions (
     id SERIAL PRIMARY KEY,
-    stripe_subscription_id TEXT NOT NULL UNIQUE,
+    -- NOT unique alone: a multi-seller recurring cart creates ONE Stripe
+    -- subscription but persists one row per recurring item. Uniqueness is
+    -- the composite index idx_subscriptions_sub_product_uq below.
+    stripe_subscription_id TEXT NOT NULL,
     stripe_customer_id TEXT NOT NULL,
     buyer_pubkey TEXT,
     buyer_email TEXT NOT NULL,
@@ -380,6 +383,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_subscription_id ON subscriptions(stripe_subscription_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_sub_product_uq ON subscriptions(stripe_subscription_id, product_event_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_customer_id ON subscriptions(stripe_customer_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_buyer_pubkey ON subscriptions(buyer_pubkey);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_buyer_email ON subscriptions(buyer_email);

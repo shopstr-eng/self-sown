@@ -1,5 +1,6 @@
 import { Select, SelectItem } from "@heroui/react";
 import { formatWithCommas } from "./display-monetary-info";
+import { joinClassNames } from "@/utils/class-names";
 
 export type SubscriptionFrequencyOption =
   | "weekly"
@@ -48,18 +49,20 @@ export default function SubscriptionPricingCards({
     <div className="flex w-full flex-col gap-3">
       <div
         onClick={() => onSelectionChange(true)}
-        className={`relative cursor-pointer rounded-md border-2 p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+        className={joinClassNames(
+          "relative cursor-pointer rounded-md border-2 p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
           isSubscription
             ? "bg-primary-yellow shadow-neo border-black"
             : "border-gray-300 bg-white"
-        }`}
+        )}
       >
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <div
-              className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+              className={joinClassNames(
+                "flex h-5 w-5 items-center justify-center rounded-full border-2",
                 isSubscription ? "border-black bg-black" : "border-gray-400"
-              }`}
+              )}
             >
               {isSubscription && (
                 <div className="bg-primary-yellow h-2 w-2 rounded-full" />
@@ -128,17 +131,19 @@ export default function SubscriptionPricingCards({
 
       <div
         onClick={() => onSelectionChange(false)}
-        className={`cursor-pointer rounded-md border-2 p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5 ${
+        className={joinClassNames(
+          "cursor-pointer rounded-md border-2 p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
           !isSubscription
             ? "shadow-neo border-black bg-white"
             : "border-gray-300 bg-white"
-        }`}
+        )}
       >
         <div className="flex items-center gap-2">
           <div
-            className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+            className={joinClassNames(
+              "flex h-5 w-5 items-center justify-center rounded-full border-2",
               !isSubscription ? "border-black bg-black" : "border-gray-400"
-            }`}
+            )}
           >
             {!isSubscription && (
               <div className="h-2 w-2 rounded-full bg-white" />

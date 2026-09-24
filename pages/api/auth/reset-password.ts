@@ -6,6 +6,7 @@ import {
   decryptNsecWithRecoveryKey,
   encryptNsecWithRecoveryKey,
 } from "@/utils/auth/recovery";
+import { EMAIL_AUTH_SALT } from "@/utils/auth/salts";
 import { recoveryResetLimiter } from "@/utils/auth/rate-limit";
 
 export default async function handler(
@@ -93,7 +94,7 @@ export default async function handler(
       const newPasswordHash = CryptoJS.SHA256(email + newPassword).toString();
       const newEncryptionKey = CryptoJS.PBKDF2(
         email + newPassword,
-        "milk-market-salt",
+        EMAIL_AUTH_SALT,
         { keySize: 256 / 32, iterations: 1000 }
       ).toString();
       const newEncryptedNsec = CryptoJS.AES.encrypt(

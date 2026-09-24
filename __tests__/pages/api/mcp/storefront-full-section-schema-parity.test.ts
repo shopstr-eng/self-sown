@@ -32,12 +32,12 @@ jest.mock("@/mcp/tools/register-tool", () => ({ registerTool: jest.fn() }));
 jest.mock("@modelcontextprotocol/sdk/server/mcp.js", () => ({
   McpServer: class {},
 }));
-jest.mock("@milk-market/nostr", () => ({
+jest.mock("@self-sown/nostr", () => ({
   createSellerActionAuthEventTemplate: jest.fn(),
 }));
 
 import { storefrontSectionSchema } from "@/mcp/tools/write-tools";
-import { parseSellerShopProfileEvent } from "@milk-market/domain";
+import { parseSellerShopProfileEvent } from "@self-sown/domain";
 
 // Every field the full homepage sections[] sanitizer keeps, fully populated
 // with values that are valid in both the sanitizer and the zod schema.

@@ -1,7 +1,7 @@
 import { StorefrontSection, StorefrontColorScheme } from "@/utils/types/types";
 import { useState } from "react";
 import FormattedText from "../formatted-text";
-import SectionElementFlow, { headingSizeClass } from "./section-elements";
+import SectionElementFlow, { headingClassName } from "./section-elements";
 
 interface SectionFaqProps {
   section: StorefrontSection;
@@ -27,12 +27,11 @@ export default function SectionFaq({ section, colors }: SectionFaqProps) {
             <FormattedText
               text={section.heading}
               as="h2"
-              className={`font-heading mb-8 max-w-full min-w-0 text-center ${headingSizeClass(
+              className={`font-heading mb-8 max-w-full min-w-0 text-center ${headingClassName(
                 section,
-                "text-2xl"
-              )} font-bold break-words ${
-                section.headingSize ? "" : "sm:text-3xl"
-              }`.trim()}
+                "text-2xl",
+                "sm:text-3xl"
+              )} break-words`}
               style={{
                 color: "var(--sf-text)",
                 overflowWrap: "anywhere",
@@ -70,7 +69,7 @@ export default function SectionFaq({ section, colors }: SectionFaqProps) {
                       }}
                     />
                     <span
-                      className="flex-shrink-0 text-xl transition-transform"
+                      className="shrink-0 text-xl transition-transform"
                       style={{
                         transform:
                           openIndex === idx ? "rotate(45deg)" : "rotate(0deg)",

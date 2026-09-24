@@ -1,4 +1,4 @@
-import type { SellerOrder, SellerSession } from "@milk-market/domain";
+import type { SellerOrder, SellerSession } from "@self-sown/domain";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createNip98AuthorizationHeader,
@@ -6,7 +6,7 @@ import {
   createSellerOrderStatusGiftWrap,
   publishSellerOrderStatusGiftWrap,
   unwrapSellerOrderGiftWraps,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 import { verifyEvent } from "nostr-tools";
 
 import { getApiBaseUrl } from "@/lib/api-base-url";

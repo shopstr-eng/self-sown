@@ -296,7 +296,7 @@ const PayButton = () => {
         onClose={handleTogglePayModal}
         classNames={{
           body: "py-6 bg-white",
-          backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+          backdrop: "bg-black/50 backdrop-opacity-60",
           header: "border-b-4 border-black bg-white rounded-t-md",
           footer: "border-t-4 border-black bg-white rounded-b-md",
           closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -371,7 +371,7 @@ const PayButton = () => {
               />
               {signer instanceof NostrNIP46Signer && (
                 <div className="mx-4 my-2 flex items-center justify-center rounded-md border-2 border-black bg-blue-50 p-3 text-center">
-                  <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+                  <InformationCircleIcon className="h-6 w-6 shrink-0 text-black" />
                   <p className="ml-2 text-xs text-black">
                     If the invoice payment is taking a while to be confirmed,
                     make sure to check your bunker application to approve the
@@ -389,7 +389,7 @@ const PayButton = () => {
                   onClose={() => setPaymentFailed(false)}
                   classNames={{
                     body: "py-6 bg-white",
-                    backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+                    backdrop: "bg-black/50 backdrop-opacity-60",
                     header: "border-b-4 border-black bg-white rounded-t-md",
                     footer: "border-t-4 border-black bg-white rounded-b-md",
                     closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -426,7 +426,7 @@ const PayButton = () => {
                   onClose={() => setIsPaid(false)}
                   classNames={{
                     body: "py-6 bg-white",
-                    backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+                    backdrop: "bg-black/50 backdrop-opacity-60",
                     header: "border-b-4 border-black bg-white rounded-t-md",
                     footer: "border-t-4 border-black bg-white rounded-b-md",
                     closeButton: "hover:bg-black/5 active:bg-white/10",

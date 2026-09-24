@@ -57,7 +57,7 @@ const NostrKeysSection = () => {
     <>
       {/* Nostr Info Box */}
       <div className="mb-6 flex w-full items-start gap-3 rounded-md border-3 border-black bg-white p-4">
-        <InformationCircleIcon className="h-6 w-6 flex-shrink-0 text-black" />
+        <InformationCircleIcon className="h-6 w-6 shrink-0 text-black" />
         <p className="text-sm text-black">
           Accounts are created using{" "}
           <a
@@ -89,7 +89,7 @@ const NostrKeysSection = () => {
             isIconOnly
             aria-label={isNPubCopied ? "npub copied" : "Copy npub"}
             variant="light"
-            className="h-6 w-6 min-w-0 flex-shrink-0 p-0 text-black"
+            className="h-6 w-6 min-w-0 shrink-0 p-0 text-black"
             onClick={async () => {
               await copyToClipboard(userNPub!);
               setIsNPubCopied(true);
@@ -109,7 +109,7 @@ const NostrKeysSection = () => {
               ? userNSec
               : "•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
           </p>
-          <div className="flex flex-shrink-0 gap-2">
+          <div className="flex shrink-0 gap-2">
             <Tooltip
               content={isNSecVisible ? "Hide nsec" : "Show nsec"}
               classNames={{
@@ -173,7 +173,7 @@ const NostrKeysSection = () => {
                 : "•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••"}
             </p>
           </div>
-          <div className="flex flex-shrink-0 gap-2">
+          <div className="flex shrink-0 gap-2">
             <Tooltip
               content={isNcryptsecVisible ? "Hide ncryptsec" : "Show ncryptsec"}
               classNames={{

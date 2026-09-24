@@ -3,11 +3,12 @@ import {
   getDbPool,
   fetchStorefrontBlogPostEventsForSitemap,
 } from "@/utils/db/db-service";
-import { parseBlogPostEvent, type BlogPost } from "@milk-market/domain";
+import { parseBlogPostEvent, type BlogPost } from "@self-sown/domain";
 import { getBlogPostSlug } from "@/utils/url-slugs";
 import { nip19 } from "nostr-tools";
+import { SITE_URL } from "@/utils/site-url";
 
-const BASE_URL = "https://milk.market";
+const BASE_URL = SITE_URL;
 
 function xmlEscape(s: string): string {
   return s
@@ -55,6 +56,7 @@ export default async function handler(
     { url: "/marketplace", changefreq: "daily", priority: "0.9" },
     { url: "/producer-guide", changefreq: "weekly", priority: "0.8" },
     { url: "/about", changefreq: "monthly", priority: "0.7" },
+    { url: "/manifesto", changefreq: "yearly", priority: "0.7" },
     { url: "/contact", changefreq: "monthly", priority: "0.7" },
     { url: "/faq", changefreq: "weekly", priority: "0.6" },
     { url: "/developers", changefreq: "monthly", priority: "0.6" },

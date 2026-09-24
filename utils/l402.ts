@@ -14,6 +14,7 @@
 
 import type { NextApiResponse } from "next";
 import { randomBytes } from "crypto";
+import { getSiteUrl } from "@/utils/site-url";
 
 export interface L402Challenge {
   macaroon: string;
@@ -64,7 +65,7 @@ export function buildL402Body(challenge: L402Challenge) {
     macaroon: challenge.macaroon,
     invoice: challenge.invoice,
     authorizationHeaderExample: `L402 ${challenge.macaroon}:<preimage>`,
-    discovery: "https://milk.market/.well-known/l402.json",
+    discovery: `${getSiteUrl()}/.well-known/l402.json`,
     specification:
       "https://docs.lightning.engineering/the-lightning-network/l402",
   };

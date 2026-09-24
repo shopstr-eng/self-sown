@@ -4,7 +4,7 @@ import {
   createSellerActionAuthEventTemplate,
   type SellerActionAuthBinding,
   type SellerActionAuthTag,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 const AUTH_EVENT_KIND = 27235;
 // Asymmetric time bounds. We accept events whose `created_at` is up to

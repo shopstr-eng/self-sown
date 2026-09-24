@@ -1,14 +1,14 @@
 import { useRouter } from "next/router";
 import Head from "next/head";
-import Link from "next/link";
 import { WHITEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
+import { SITE_URL } from "@/utils/site-url";
 
 // Developer/agent portal: the one human-readable page that ties together every
 // machine-readable surface (MCP, UCP, OpenAPI, discovery documents) plus the
 // error-model and versioning contracts agents can rely on. Keep claims here
 // consistent with public/llms.txt and public/.well-known/*.
 
-const INIT_CURL = `curl -X POST https://milk.market/api/mcp \\
+const INIT_CURL = `curl -X POST ${SITE_URL}/api/mcp \\
   -H "Content-Type: application/json" \\
   -H "Accept: application/json, text/event-stream" \\
   -d '{
@@ -22,7 +22,7 @@ const INIT_CURL = `curl -X POST https://milk.market/api/mcp \\
     }
   }'`;
 
-const TOOLS_LIST_CURL = `curl -X POST https://milk.market/api/mcp \\
+const TOOLS_LIST_CURL = `curl -X POST ${SITE_URL}/api/mcp \\
   -H "Content-Type: application/json" \\
   -H "Accept: application/json, text/event-stream" \\
   -H "mcp-session-id: <session id from the initialize response>" \\
@@ -33,9 +33,9 @@ const ERROR_EXAMPLE = `{
   "code": "not_found",
   "status": 404,
   "documentation": {
-    "openapi": "https://milk.market/openapi.json",
-    "mcp": "https://milk.market/.well-known/mcp.json",
-    "agents": "https://milk.market/agents.txt"
+    "openapi": "${SITE_URL}/openapi.json",
+    "mcp": "${SITE_URL}/.well-known/mcp.json",
+    "agents": "${SITE_URL}/agents.txt"
   }
 }`;
 
@@ -58,7 +58,7 @@ const MACHINE_READABLE: { href: string; label: string; blurb: string }[] = [
   {
     href: "/skill.md",
     label: "skill.md",
-    blurb: "Agent skill: how an agent should drive Milk Market.",
+    blurb: "Agent skill: how an agent should drive Self-sown.",
   },
   {
     href: "/llms.txt",
@@ -117,10 +117,10 @@ export default function Developers() {
   return (
     <>
       <Head>
-        <title>Developers & AI Agents | Milk Market</title>
+        <title>Developers & AI Agents | Self-sown</title>
         <meta
           name="description"
-          content="Build on Milk Market: MCP server for AI agents, UCP REST catalog and checkout, OpenAPI reference, error model, and versioning policy."
+          content="Build on Self-sown: MCP server for AI agents, UCP REST catalog and checkout, OpenAPI reference, error model, and versioning policy."
         />
       </Head>
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">
@@ -136,12 +136,12 @@ export default function Developers() {
               Back
             </button>
             <h1 className="text-center text-5xl font-bold text-black">
-              Milk Market for Developers & AI Agents
+              Self-sown for Developers & AI Agents
             </h1>
             <p className="mt-4 text-center text-lg text-zinc-600">
-              Milk Market is built to be operated by machines: search the
-              catalog, place orders, and run a stall through documented,
-              machine-readable interfaces.
+              Self-sown is built to be operated by machines: search the catalog,
+              place orders, and run a stall through documented, machine-readable
+              interfaces.
             </p>
           </div>
 
@@ -215,9 +215,12 @@ export default function Developers() {
             <h2 className="mb-6 text-2xl font-bold text-black">
               Machine-readable surfaces
             </h2>
+            {/* Plain anchors, not next/link: these are raw file/endpoint
+                URLs, and client-side routing would render the not-found
+                catch-all (with the navbar) instead of the file. */}
             <div className="grid gap-4 sm:grid-cols-2">
               {MACHINE_READABLE.map((item) => (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
                   className="shadow-neo block rounded-lg border-2 border-black bg-white p-4 transition-transform hover:-translate-y-0.5"
@@ -226,13 +229,13 @@ export default function Developers() {
                     {item.label}
                   </div>
                   <div className="mt-1 text-sm text-zinc-600">{item.blurb}</div>
-                </Link>
+                </a>
               ))}
             </div>
             <p className="mt-4 text-sm text-zinc-600">
               Seller custom domains and self-hosted instances serve the same
               discovery documents and honor the same content negotiation, so an
-              agent can treat any Milk Market storefront as a first-class
+              agent can treat any Self-sown storefront as a first-class
               endpoint.
             </p>
           </div>

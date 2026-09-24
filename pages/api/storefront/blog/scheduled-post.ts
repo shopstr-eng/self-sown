@@ -7,7 +7,7 @@ import {
   upsertScheduledBlogPost,
   deleteScheduledBlogPost,
 } from "@/utils/db/db-service";
-import { parseBlogPostEvent } from "@milk-market/domain";
+import { parseBlogPostEvent } from "@self-sown/domain";
 
 const AUTH_PATH = "/api/storefront/blog/scheduled-post";
 // A scheduled time must be at least this far out (avoids "schedule" that is

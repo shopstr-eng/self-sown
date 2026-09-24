@@ -1,5 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
-
 import { useContext, useEffect, useMemo, useState, useRef, useId } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -40,6 +38,7 @@ import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wra
 import { getLocalStorageJson } from "@/utils/safe-json";
 import { CartDiscountsMap, isCartDiscountsMap } from "@/utils/cart-discounts";
 import { getAffiliateRefCookie } from "@/components/utility-components/affiliate-ref-tracker";
+import { joinClassNames } from "@/utils/class-names";
 
 interface QuantitySelectorProps {
   value: number;
@@ -83,7 +82,7 @@ function QuantitySelector({
         }}
         min={min}
         max={max}
-        className="w-16 rounded-md border-2 border-black bg-white px-2 py-1 text-center font-semibold text-black outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        className="w-16 rounded-md border-2 border-black bg-white px-2 py-1 text-center font-semibold text-black outline-hidden [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
       />
       <button
         type="button"
@@ -267,7 +266,7 @@ export default function Component() {
       const statuses: Record<string, boolean> = {};
       for (const pubkey of uniqueSellerPubkeys) {
         if (cancelled) return;
-        if (pubkey === process.env.NEXT_PUBLIC_MILK_MARKET_PK) {
+        if (pubkey === process.env.NEXT_PUBLIC_SELF_SOWN_PK) {
           statuses[pubkey] = true;
           continue;
         }
@@ -1153,7 +1152,7 @@ export default function Component() {
             </div>
             {sfSellerPubkey && excludedItemCount > 0 && (
               <div className="mb-4 flex items-start rounded-md border-2 border-black bg-yellow-50 p-4">
-                <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-yellow-600" />
+                <InformationCircleIcon className="mr-3 h-5 w-5 shrink-0 text-yellow-600" />
                 <p className="text-sm text-black">
                   You have {excludedItemCount} other{" "}
                   {excludedItemCount === 1 ? "item" : "items"} from other
@@ -1190,7 +1189,7 @@ export default function Component() {
                               <img
                                 src={product.images[0]}
                                 alt={product.title}
-                                className="h-24 w-24 flex-shrink-0 rounded-md border-2 border-black object-cover"
+                                className="h-24 w-24 shrink-0 rounded-md border-2 border-black object-cover"
                               />
                               <div className="flex min-w-0 flex-1 flex-col">
                                 <div className="flex items-start justify-between gap-4">
@@ -1305,20 +1304,22 @@ export default function Component() {
                                           },
                                         }));
                                       }}
-                                      className={`relative inline-flex h-6 w-11 items-center rounded-full border-2 border-black transition-colors ${
+                                      className={joinClassNames(
+                                        "relative inline-flex h-6 w-11 items-center rounded-full border-2 border-black transition-colors",
                                         subscriptionSelections[product.id]
                                           ?.enabled
                                           ? "bg-purple-600"
                                           : "bg-gray-300"
-                                      }`}
+                                      )}
                                     >
                                       <span
-                                        className={`inline-block h-4 w-4 transform rounded-full border border-black bg-white transition-transform ${
+                                        className={joinClassNames(
+                                          "inline-block h-4 w-4 transform rounded-full border border-black bg-white transition-transform",
                                           subscriptionSelections[product.id]
                                             ?.enabled
                                             ? "translate-x-5"
                                             : "translate-x-0.5"
-                                        }`}
+                                        )}
                                       />
                                     </button>
                                   </div>
@@ -1390,7 +1391,7 @@ export default function Component() {
                           </div>
                         ))}
                         {/* Discount code section for this seller */}
-                        <div className="rounded-lg border border-gray-300 p-4 shadow-sm">
+                        <div className="rounded-lg border border-gray-300 p-4 shadow-xs">
                           <h3 className="mb-3 font-semibold">
                             Have a discount code from this seller?
                           </h3>
@@ -1533,11 +1534,12 @@ export default function Component() {
                               </div>
                               <div className="h-3 w-full overflow-hidden rounded-full border border-black bg-gray-200">
                                 <div
-                                  className={`h-full rounded-full transition-all duration-500 ${
+                                  className={joinClassNames(
+                                    "h-full rounded-full transition-all duration-500",
                                     isFreeShipping
                                       ? "bg-green-500"
                                       : "bg-primary-blue"
-                                  }`}
+                                  )}
                                   style={{ width: `${progress}%` }}
                                 />
                               </div>
@@ -1574,7 +1576,7 @@ export default function Component() {
                 <div className="mt-6 space-y-4">
                   {Object.keys(productsBySeller).length > 1 && (
                     <div className="flex items-start rounded-md border-2 border-black bg-blue-50 p-4">
-                      <InformationCircleIcon className="mr-3 h-5 w-5 flex-shrink-0 text-blue-600" />
+                      <InformationCircleIcon className="mr-3 h-5 w-5 shrink-0 text-blue-600" />
                       <p className="text-sm text-black">
                         Only Bitcoin payments are supported for carts with
                         products from different merchants. To pay with credit,
@@ -1585,7 +1587,7 @@ export default function Component() {
                   )}
                   {hasSubscriptionStripeConflict && (
                     <div className="flex items-start rounded-md border-2 border-red-400 bg-red-50 p-4">
-                      <ArrowPathIcon className="mr-3 h-5 w-5 flex-shrink-0 text-red-600" />
+                      <ArrowPathIcon className="mr-3 h-5 w-5 shrink-0 text-red-600" />
                       <div>
                         <p className="text-sm font-semibold text-red-700">
                           Checkout unavailable
@@ -1606,7 +1608,7 @@ export default function Component() {
                     !hasSubscriptionStripeConflict &&
                     uniqueSellerPubkeys.length > 1 && (
                       <div className="flex items-start rounded-md border-2 border-purple-400 bg-purple-50 p-4">
-                        <ArrowPathIcon className="mr-3 h-5 w-5 flex-shrink-0 text-purple-600" />
+                        <ArrowPathIcon className="mr-3 h-5 w-5 shrink-0 text-purple-600" />
                         <p className="text-sm text-purple-800">
                           Subscription items require card payment. All merchants
                           in your cart have Stripe enabled, so checkout will
@@ -1632,11 +1634,12 @@ export default function Component() {
                       )}
                     </p>
                     <Button
-                      className={`${BLUEBUTTONCLASSNAMES} ${
+                      className={joinClassNames(
+                        BLUEBUTTONCLASSNAMES,
                         hasSubscriptionStripeConflict
                           ? "cursor-not-allowed opacity-50"
                           : ""
-                      }`}
+                      )}
                       onClick={toggleCheckout}
                       disabled={hasSubscriptionStripeConflict}
                       size="lg"
@@ -1716,7 +1719,7 @@ export default function Component() {
             onClose={() => setInvoiceGenerationFailed(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",
@@ -1752,7 +1755,7 @@ export default function Component() {
             onClose={() => setCashuPaymentFailed(false)}
             classNames={{
               body: "py-6 bg-white",
-              backdrop: "bg-[#292f46]/50 backdrop-opacity-60",
+              backdrop: "bg-black/50 backdrop-opacity-60",
               header: "border-b-4 border-black bg-white rounded-t-md",
               footer: "border-t-4 border-black bg-white rounded-b-md",
               closeButton: "hover:bg-black/5 active:bg-white/10",

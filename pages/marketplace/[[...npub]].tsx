@@ -10,6 +10,7 @@ import {
   getShopSlugByPubkey,
 } from "@/utils/db/db-service";
 import parseTags from "@/utils/parsers/product-parser-functions";
+import { joinClassNames } from "@/utils/class-names";
 
 type SsrProduct = { id: string; title: string };
 
@@ -32,16 +33,16 @@ function shopEventToOgMeta(
   try {
     const content = JSON.parse(shopEvent.content);
     return {
-      title: content.name ? `${content.name} Stall` : "Milk Market Stall",
-      description: content.about || "Check out this shop on Milk Market!",
-      image: content.ui?.picture || "/milk-market.png",
+      title: content.name ? `${content.name} Stall` : "Self-sown Stall",
+      description: content.about || "Check out this shop on Self-sown!",
+      image: content.ui?.picture || "/self-sown-black.png",
       url: urlPath,
     };
   } catch {
     return {
       ...DEFAULT_OG,
-      title: "Milk Market Stall",
-      description: "Check out this shop on Milk Market!",
+      title: "Self-sown Stall",
+      description: "Check out this shop on Self-sown!",
       url: urlPath,
     };
   }
@@ -55,10 +56,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
       props: {
         ogMeta: {
-          title: "Milk Market - Browse Local Food Producers",
+          title: "Self-sown - Browse Local Food Producers",
           description:
-            "Discover farms, dairies, and local food producers on Milk Market. Shop raw milk, pastured meats, fresh eggs, and more directly from sellers near you.",
-          image: "/milk-market.png",
+            "Discover local farms, food producers, and artisans on Self-sown. Shop farm-fresh food, handmade goods, pastured meats, fresh eggs, and more directly from sellers near you.",
+          image: "/self-sown-black.png",
           url: "/marketplace",
         } as OgMetaProps,
         initialFocusedPubkey: "",
@@ -163,8 +164,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
           ? shopEventToOgMeta(shopEvent, canonicalUrl)
           : ({
               ...DEFAULT_OG,
-              title: "Milk Market Stall",
-              description: "Check out this shop on Milk Market!",
+              title: "Self-sown Stall",
+              description: "Check out this shop on Self-sown!",
               url: canonicalUrl,
             } as OgMetaProps),
         initialFocusedPubkey: pubkey,
@@ -181,8 +182,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     props: {
       ogMeta: {
         ...DEFAULT_OG,
-        title: "Milk Market Stall",
-        description: "Check out this shop on Milk Market!",
+        title: "Self-sown Stall",
+        description: "Check out this shop on Self-sown!",
         url: urlPath,
       },
       initialFocusedPubkey: "",
@@ -226,10 +227,10 @@ export default function SellerView({
   return (
     <>
       {isSeller && ssrSellerName ? (
-        <h1 className="sr-only">{ssrSellerName} — Milk Market Stall</h1>
+        <h1 className="sr-only">{ssrSellerName} — Self-sown Stall</h1>
       ) : (
         <h1 className="sr-only">
-          Milk Market — raw milk &amp; farm-fresh dairy marketplace
+          Self-sown — local food &amp; artisan goods marketplace
         </h1>
       )}
       {/* SSR-rendered seller intro: in the initial HTML for crawlers and bots
@@ -265,17 +266,18 @@ export default function SellerView({
       {!focusedPubkey && !initialFocusedPubkey && (
         <div className="flex h-auto w-full items-center justify-center bg-black bg-cover bg-center pt-20">
           <img
-            src="/free-milk.png"
-            alt="Milk Market Banner"
+            src="/free-the-food.png"
+            alt="Free the Food — Self-sown Banner"
             className="max-h-[300px] w-full items-center justify-center object-contain py-8"
             fetchPriority="high"
           />
         </div>
       )}
       <div
-        className={`flex h-full min-h-screen flex-col bg-white ${
+        className={joinClassNames(
+          "flex h-full min-h-screen flex-col bg-white",
           focusedPubkey || initialFocusedPubkey ? "pt-20" : ""
-        }`}
+        )}
       >
         <HomeFeed
           focusedPubkey={focusedPubkey}

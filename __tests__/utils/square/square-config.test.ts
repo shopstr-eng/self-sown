@@ -9,7 +9,10 @@
 // falls back to "sandbox", so a production deploy that set only the id/secret
 // would expose Square in sandbox mode instead of being unavailable.
 
-import { isSquareConfigured } from "@/utils/square/square-config";
+import {
+  isSquareConfigured,
+  getSquareRedirectUri,
+} from "@/utils/square/square-config";
 
 describe("isSquareConfigured (fail-closed)", () => {
   const ORIGINAL = process.env;
@@ -59,5 +62,24 @@ describe("isSquareConfigured (fail-closed)", () => {
     process.env.SQUARE_OAUTH_CLIENT_SECRET = "secret";
     process.env.SQUARE_ENVIRONMENT = "  Production  ";
     expect(isSquareConfigured()).toBe(true);
+  });
+});
+
+// The callback URL must EXACTLY match the Square dashboard registration, so
+// pin the construction: base URL with trailing slashes stripped + fixed path.
+describe("getSquareRedirectUri", () => {
+  it("appends /square-oauth-redirect to NEXT_PUBLIC_BASE_URL, stripping trailing slashes", () => {
+    process.env.NEXT_PUBLIC_BASE_URL = "https://self-sown.com/";
+    expect(getSquareRedirectUri()).toBe(
+      "https://self-sown.com/square-oauth-redirect"
+    );
+  });
+
+  it("falls back to the Replit dev domain without a base URL", () => {
+    delete process.env.NEXT_PUBLIC_BASE_URL;
+    process.env.REPLIT_DEV_DOMAIN = "abc.replit.dev";
+    expect(getSquareRedirectUri()).toBe(
+      "https://abc.replit.dev/square-oauth-redirect"
+    );
   });
 });

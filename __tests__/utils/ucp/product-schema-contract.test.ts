@@ -16,6 +16,7 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 
 import handler from "@/pages/api/ucp/schemas/product.json";
+import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 import { eventToUcpProduct } from "@/utils/ucp/catalog";
 import type { NostrEvent } from "@/utils/types/types";
 
@@ -42,7 +43,7 @@ function getSchema(): JsonSchema {
     end: () => res,
   } as unknown as NextApiResponse;
   handler(
-    { method: "GET", headers: { host: "milk.market" } } as NextApiRequest,
+    { method: "GET", headers: { host: SITE_HOST } } as NextApiRequest,
     res
   );
   if (!body) throw new Error("schema handler did not emit a body");
@@ -67,7 +68,7 @@ function makeFullyLoadedProduct() {
       ["handling_time", "2"],
     ],
   } as NostrEvent;
-  return eventToUcpProduct(event, { platformUrl: "https://milk.market" });
+  return eventToUcpProduct(event, { platformUrl: SITE_URL });
 }
 
 describe("UCP product JSON Schema ↔ catalog mapper contract", () => {

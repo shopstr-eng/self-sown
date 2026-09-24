@@ -7,11 +7,11 @@ import {
   withNotificationEmail,
   type NostrEventRecord,
   type SellerSession,
-} from "@milk-market/domain";
+} from "@self-sown/domain";
 import {
   createSignedSellerActionAuthEvent,
   createSignedStripeConnectAuthEvent,
-} from "@milk-market/nostr";
+} from "@self-sown/nostr";
 
 import { mobileApiClient } from "@/lib/api-client";
 

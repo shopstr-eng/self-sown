@@ -7,6 +7,7 @@ import {
 } from "@/utils/types/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { copyToClipboard } from "@/utils/clipboard";
+import { joinClassNames } from "./sections/section-elements";
 
 interface StorefrontEmailPopupProps {
   config: StorefrontEmailPopup;
@@ -203,7 +204,10 @@ export default function StorefrontEmailPopupComponent({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className={`fixed inset-0 z-[9999] flex items-center justify-center ${isFullscreen ? "" : "p-4"}`}
+          className={joinClassNames(
+            "fixed inset-0 z-[9999] flex items-center justify-center",
+            isFullscreen ? undefined : "p-4"
+          )}
           style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
           onClick={(e) => {
             if (e.target === e.currentTarget) handleDismiss();
@@ -227,7 +231,10 @@ export default function StorefrontEmailPopupComponent({
             className={
               isFullscreen
                 ? "relative h-full w-full overflow-hidden"
-                : `relative w-full max-w-md overflow-hidden rounded-2xl ${neoShadows ? "border-2" : "shadow-2xl"}`
+                : joinClassNames(
+                    "relative w-full max-w-md overflow-hidden rounded-2xl",
+                    neoShadows ? "border-2" : "shadow-2xl"
+                  )
             }
             style={{
               backgroundColor: bg,
@@ -430,7 +437,7 @@ export default function StorefrontEmailPopupComponent({
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               required
-                              className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
+                              className="w-full rounded-lg border-2 px-4 py-3 text-sm outline-hidden transition-colors focus:ring-2"
                               style={{
                                 borderColor: text + "22",
                                 color: text,
@@ -448,7 +455,7 @@ export default function StorefrontEmailPopupComponent({
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
                                 required={config.requirePhone}
-                                className="w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors outline-none focus:ring-2"
+                                className="w-full rounded-lg border-2 px-4 py-3 text-sm outline-hidden transition-colors focus:ring-2"
                                 style={{
                                   borderColor: text + "22",
                                   color: text,

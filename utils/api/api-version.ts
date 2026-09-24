@@ -6,6 +6,8 @@
  * and the shared Error body shape rather than silently serving a different
  * contract than the agent asked for.
  */
+import { SITE_URL } from "@/utils/site-url";
+
 export const API_VERSION = "2";
 
 export function isApiVersionSupported(
@@ -22,8 +24,8 @@ export function unsupportedApiVersionBody(received: string) {
     status: 400,
     supportedVersions: [API_VERSION],
     documentation: {
-      openapi: "https://milk.market/openapi.json",
-      versioning: "https://milk.market/developers#versioning",
+      openapi: `${SITE_URL}/openapi.json`,
+      versioning: `${SITE_URL}/developers#versioning`,
     },
   };
 }
