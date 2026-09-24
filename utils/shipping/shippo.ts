@@ -431,17 +431,31 @@ interface ShippoTransactionList {
   next?: string | null;
 }
 
+export type ShipmentChargeState = "charged" | "in-flight" | "none";
+
 export interface ShipmentChargeLookup {
+  /**
+   * The reconstructed label, present only when a charged transaction ALSO
+   * carries usable label metadata. A "charged" state with a null label is
+   * still a charge — Shippo can report SUCCESS without a label_url (buyLabel
+   * itself throws on that response), so the seller was billed even though no
+   * label can be reconstructed. Callers must treat it as money spent.
+   */
   label: PurchasedLabel | null;
   /**
-   * A transaction stamped with this reconcile token exists in a nonterminal
-   * state (WAITING/QUEUED): it may still become a charge, so "not found" is
-   * not proof of "no charge".
+   * - "charged": a matching transaction reached a money-moving state
+   *   (SUCCESS, or a refund-track status — the charge happened even if it was
+   *   later refunded). NEVER buy again.
+   * - "in-flight": a matching transaction is in a nonterminal state
+   *   (WAITING/QUEUED/unknown) and may still succeed — "not found" is not
+   *   proof of "no charge". Fail closed.
+   * - "none": only terminal failures (ERROR) or no matching transaction at
+   *   all — and even then only trustworthy when coveredWindow is true.
    */
-  hasInFlight: boolean;
+  chargeState: ShipmentChargeState;
   /**
    * True only when the scan covered every transaction back through `sinceMs`
-   * (or exhausted the account's transaction list). A null label is proof of
+   * (or exhausted the account's transaction list). A "none" state is proof of
    * "no charge" ONLY when this is true — a high-volume account can push a
    * transaction past the scanned pages, so an uncovered window must be
    * treated as UNKNOWN, never as "no charge".
@@ -449,22 +463,31 @@ export interface ShipmentChargeLookup {
   coveredWindow: boolean;
 }
 
+// Statuses where Shippo moved (or is reversing) money. REFUND* all imply the
+// charge landed first, so they block any rebuy just like SUCCESS.
+const CHARGED_TX_STATUSES = new Set(["SUCCESS", "REFUNDED", "REFUNDPENDING"]);
+// Terminal statuses where the charge definitively did not happen.
+const UNCHARGED_TX_STATUSES = new Set(["ERROR", "REFUNDREJECTED"]);
+
 /**
  * Reconciliation for the non-idempotent purchase POST: when a buyLabel call's
  * outcome was lost (timeout/network failure after Shippo may have accepted
- * the charge), find the transaction stamped with this claim key. Pages the
- * newest-first transaction list until it reaches transactions older than
- * `sinceMs` (the claim's charge window) or the list ends; a page-cap exit
- * reports coveredWindow=false.
+ * the charge), find the transaction stamped with this claim's reconcile token
+ * and determine what Shippo actually recorded. Pages the newest-first
+ * transaction list until it reaches transactions older than `sinceMs` (the
+ * claim's charge window) or the list ends; a page-cap exit reports
+ * coveredWindow=false. One attempt can produce several transactions (Shippo
+ * retries), so the scan only stops early on a CHARGED match — an in-flight
+ * or failed transaction on a newer page never hides a charge on an older one.
  */
-export async function findSuccessfulTransactionForShipment(args: {
+export async function lookupShipmentCharge(args: {
   accessToken: string;
   shipmentId: string;
   reconcileToken: string;
   sinceMs: number;
 }): Promise<ShipmentChargeLookup> {
   let path: string | null = "/transactions/?results=25";
-  let hasInFlight = false;
+  let sawInFlight = false;
   for (let page = 0; page < 8 && path; page++) {
     const list: ShippoTransactionList =
       await shippoFetch<ShippoTransactionList>(args.accessToken, path, {
@@ -474,42 +497,56 @@ export async function findSuccessfulTransactionForShipment(args: {
     const matches = txs.filter(
       (tx: ShippoTransaction) => tx.metadata === args.reconcileToken
     );
-    const success = matches.find(
-      (tx: ShippoTransaction) => tx.status === "SUCCESS" && !!tx.label_url
+    const charged = matches.find((tx: ShippoTransaction) =>
+      CHARGED_TX_STATUSES.has(tx.status)
     );
-    if (success) {
+    if (charged) {
       return {
-        label: await transactionToLabel(
-          args.accessToken,
-          success,
-          args.shipmentId
-        ),
-        hasInFlight,
+        // No label_url: the charge happened but the label metadata is
+        // unusable — report the charge with a null label rather than
+        // pretending nothing was billed.
+        label: charged.label_url
+          ? await transactionToLabel(args.accessToken, charged, args.shipmentId)
+          : null,
+        chargeState: "charged",
         coveredWindow: true,
       };
     }
     if (
       matches.some(
-        (tx: ShippoTransaction) =>
-          tx.status === "WAITING" || tx.status === "QUEUED"
+        (tx: ShippoTransaction) => !UNCHARGED_TX_STATUSES.has(tx.status)
       )
     ) {
-      hasInFlight = true;
+      sawInFlight = true;
     }
     const oldestMs = txs.reduce((min, tx) => {
       const t = Date.parse(tx.object_created || "");
       return Number.isFinite(t) && t < min ? t : min;
     }, Infinity);
     if (oldestMs <= args.sinceMs) {
-      return { label: null, hasInFlight, coveredWindow: true };
+      return {
+        label: null,
+        chargeState: sawInFlight ? "in-flight" : "none",
+        coveredWindow: true,
+      };
     }
     const nextUrl: string | null | undefined = list.next;
     // The list is exhausted — every transaction was scanned, so the window
     // is covered by definition.
-    if (!nextUrl) return { label: null, hasInFlight, coveredWindow: true };
+    if (!nextUrl) {
+      return {
+        label: null,
+        chargeState: sawInFlight ? "in-flight" : "none",
+        coveredWindow: true,
+      };
+    }
     path = nextUrl.replace(/^https?:\/\/[^/]+/, "");
   }
-  // Page cap hit before reaching the claim's window: a null here proves
-  // nothing.
-  return { label: null, hasInFlight, coveredWindow: false };
+  // Page cap hit before reaching the claim's window: prove nothing — but an
+  // in-flight sighting still fails closed.
+  return {
+    label: null,
+    chargeState: sawInFlight ? "in-flight" : "none",
+    coveredWindow: false,
+  };
 }

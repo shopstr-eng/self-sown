@@ -18,7 +18,7 @@ import type { NostrEvent } from "@/utils/types/types";
 import type { ShippingAddressInput } from "@/utils/shipping/types";
 import {
   buyLabel,
-  findSuccessfulTransactionForShipment,
+  lookupShipmentCharge,
   getRates,
 } from "@/utils/shipping/shippo";
 import {
@@ -388,14 +388,16 @@ export async function runAutoLabelPurchase(
           // In this catch we only care whether a charge EXISTS; coverage and
           // in-flight states only gate claim RELEASE (claim-reconcile.ts) — a
           // held claim is always the fail-closed outcome here.
-          const lookup = await findSuccessfulTransactionForShipment({
+          const lookup = await lookupShipmentCharge({
             accessToken,
             shipmentId,
             reconcileToken,
             sinceMs: Date.now() - 5 * 60 * 1000,
           });
-          const label = lookup.label;
-          if (label) {
+          if (lookup.chargeState === "charged") {
+            // Shippo billed the seller even when the transaction returned no
+            // usable label metadata (SUCCESS without label_url) — mark the
+            // claim purchased so no path ever buys a second label.
             await markAutoLabelPurchased(claimKey, shipmentId);
             if (paymentClaimKey) {
               try {
@@ -406,6 +408,14 @@ export async function runAutoLabelPurchase(
                   { paymentClaimKey, markErr }
                 );
               }
+            }
+            const label = lookup.label;
+            if (!label) {
+              console.error(
+                "CRITICAL: Shippo charged (SUCCESS without label metadata); claim marked purchased but no label can be reconstructed:",
+                { claimKey, shipmentId }
+              );
+              return { purchased: true, labelId: null };
             }
             try {
               const rec = await insertShippingLabel({
