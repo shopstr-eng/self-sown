@@ -125,6 +125,25 @@ export async function initializeApiKeysTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_buyer_pubkey ON mcp_orders(buyer_pubkey);
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_seller_pubkey ON mcp_orders(seller_pubkey);
       CREATE INDEX IF NOT EXISTS idx_mcp_orders_api_key_id ON mcp_orders(api_key_id);
+
+      -- Pending Lightning quotes (one per order awaiting settlement).
+      -- Persisted so verify-payment survives restarts / multi-instance polls;
+      -- expires_at is TIMESTAMPTZ so the stored deadline is zone-independent.
+      CREATE TABLE IF NOT EXISTS mcp_lightning_quotes (
+        order_id TEXT PRIMARY KEY,
+        quote TEXT NOT NULL,
+        mint_url TEXT NOT NULL,
+        amount BIGINT NOT NULL,
+        product_id TEXT NOT NULL,
+        quantity INTEGER NOT NULL,
+        inventory_variant_key TEXT NOT NULL DEFAULT '_default',
+        discount_code TEXT,
+        seller_pubkey TEXT,
+        expires_at TIMESTAMPTZ,
+        claimed_at TIMESTAMPTZ,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_mcp_lightning_quotes_expires_at ON mcp_lightning_quotes(expires_at);
     `);
 
       // Optional migrations run under savepoints: the lock wrapper above holds
@@ -158,6 +177,14 @@ export async function initializeApiKeysTable(): Promise<void> {
         );
         await client.query(
           `ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd'`
+        );
+      });
+
+      // Self-migrate databases where an initializer created
+      // mcp_lightning_quotes before the settlement-claim column existed.
+      await optionalMigration(async () => {
+        await client.query(
+          `ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ`
         );
       });
 

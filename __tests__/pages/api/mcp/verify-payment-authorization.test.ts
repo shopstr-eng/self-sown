@@ -17,6 +17,9 @@ const mockAuthenticateRequest = jest.fn();
 const mockInitializeApiKeysTable = jest.fn();
 const mockGetMcpOrder = jest.fn();
 const mockUpdateMcpOrderPayment = jest.fn();
+const mockGetPendingLightningQuote = jest.fn();
+const mockClaimPendingLightningQuote = jest.fn();
+const mockDeletePendingLightningQuote = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: any[]) => mockApplyRateLimit(...args),
@@ -34,12 +37,14 @@ jest.mock("@/mcp/tools/purchase-tools", () => ({
   getMcpOrder: (...args: any[]) => mockGetMcpOrder(...args),
   updateMcpOrderPayment: (...args: any[]) =>
     mockUpdateMcpOrderPayment(...args),
-}));
-
-// verify-payment imports pendingLightningPayments from the sibling route;
-// stub the module so this suite never pulls in the order-service graph.
-jest.mock("@/pages/api/mcp/create-order", () => ({
-  pendingLightningPayments: new Map(),
+  // Pending Lightning quotes are DB-backed (mcp_lightning_quotes); these
+  // accessor mocks keep this suite off the order-service/DB graph.
+  getPendingLightningQuote: (...args: any[]) =>
+    mockGetPendingLightningQuote(...args),
+  claimPendingLightningQuote: (...args: any[]) =>
+    mockClaimPendingLightningQuote(...args),
+  deletePendingLightningQuote: (...args: any[]) =>
+    mockDeletePendingLightningQuote(...args),
 }));
 
 jest.mock("@/utils/db/inventory-service", () => ({
@@ -131,6 +136,9 @@ beforeEach(() => {
   mockApplyRateLimit.mockResolvedValue(true);
   mockInitializeApiKeysTable.mockResolvedValue(undefined);
   mockGetMcpOrder.mockResolvedValue(ORDER);
+  mockGetPendingLightningQuote.mockResolvedValue(null);
+  mockClaimPendingLightningQuote.mockResolvedValue(null);
+  mockDeletePendingLightningQuote.mockResolvedValue(undefined);
 });
 
 afterEach(() => {

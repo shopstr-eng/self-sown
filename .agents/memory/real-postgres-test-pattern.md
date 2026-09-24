@@ -14,5 +14,7 @@ Working pattern for real-Postgres tests (proven with utils/db/**tests**/cashu-es
 - A finalize racing an opposite-action enqueue locks the outbox and registration rows in opposite order — Postgres deadlock detection aborts one. That's fail-closed/retryable, NOT a correctness bug; assert invariants (one row, single resolution) rather than which side wins.
 - Test files with only `await import()` and no top-level import/export are global scripts — type aliases collide across test files under project-wide tsc; add `export {};`.
 
+Fallback when the dev DB is unavailable (e.g. Neon endpoint disabled): the Nix store has full Postgres binaries (find via `ls /nix/store | grep postgresql`). initdb + pg_ctl start + createdb + jest + pg_ctl stop must ALL run in ONE ShellExec command — the sandbox reaps the postmaster between calls, so "start now, test later" fails with connection-refused. Use a Unix-socket dir with a URL-encoded host in the connection URL, pass `-d postgres` to psql, and auth=trust.
+
 **Why:** memory previously said "real-Postgres testcontainer tests aren't agent-runnable" — the precise blocker is port binding, and the dev-DATABASE_URL mode makes them agent-runnable after all.
 **How to apply:** any new real-DB concurrency/isolation test should copy the dual-gate harness and be verified against the dev DB before handoff.

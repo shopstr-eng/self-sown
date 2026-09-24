@@ -5,9 +5,14 @@ import {
   MintQuoteState,
 } from "@cashu/cashu-ts";
 import { authenticateRequest, initializeApiKeysTable } from "@/utils/mcp/auth";
-import { getMcpOrder, updateMcpOrderPayment } from "@/mcp/tools/purchase-tools";
+import {
+  claimPendingLightningQuote,
+  deletePendingLightningQuote,
+  getMcpOrder,
+  getPendingLightningQuote,
+  updateMcpOrderPayment,
+} from "@/mcp/tools/purchase-tools";
 import { recordRequest } from "@/utils/mcp/metrics";
-import { pendingLightningPayments } from "./create-order";
 import { deductStock } from "@/utils/db/inventory-service";
 import { markDiscountCodeUsed } from "@/utils/db/db-service";
 import { applyRateLimit } from "@/utils/rate-limit";
@@ -105,7 +110,11 @@ export default async function handler(
       });
     }
 
-    const pending = pendingLightningPayments.get(orderId);
+    // DB-backed lookup (mcp_lightning_quotes): a quote written by another
+    // instance — or before a restart wiped this process — still verifies.
+    // The accessor THROWS on a DB outage (caught below → retryable 500);
+    // null means the quote is genuinely settled/expired/nonexistent.
+    const pending = await getPendingLightningQuote(orderId);
     if (!pending) {
       if (
         order.payment_intent_id &&
@@ -136,6 +145,43 @@ export default async function handler(
       quoteStatus.state === MintQuoteState.PAID ||
       quoteStatus.state === MintQuoteState.ISSUED
     ) {
+      // The mint says the money arrived — this is the ONLY settlement
+      // authority, so it wins even when the quote is past its advertised
+      // expiry (a payment in flight at the deadline can still settle).
+      //
+      // Claim the row atomically before any side effect: two racing polls
+      // (retries, or polls landing on different instances now that quotes
+      // live in Postgres) must not both consume the discount code and
+      // deduct stock. A stale claim is re-takable so a winner that crashes
+      // mid-settlement can't strand the order.
+      const claim = await claimPendingLightningQuote(orderId);
+      if (!claim) {
+        // Another poll is settling (or just settled) this order.
+        const fresh = await getMcpOrder(orderId);
+        if (fresh?.payment_status === "paid") {
+          return res.status(200).json({
+            success: true,
+            status: "paid",
+            message: "Payment has already been confirmed.",
+            orderId,
+          });
+        }
+        return res.status(200).json({
+          success: true,
+          status: "unpaid",
+          message:
+            "Payment received; confirmation is in progress. Please poll again.",
+          orderId,
+          payment: {
+            method: "lightning",
+            amount: pending.amount,
+            currency: "sats",
+            quoteId: pending.quote,
+            mintUrl: pending.mintUrl,
+          },
+        });
+      }
+
       await updateMcpOrderPayment(orderId, `ln_${pending.quote}`, "paid");
 
       // Lightning invoice has settled — only now do we consume the discount
@@ -167,7 +213,10 @@ export default async function handler(
         console.error("Inventory deduction failed (lightning verify):", invErr);
       }
 
-      pendingLightningPayments.delete(orderId);
+      // Settlement fully recorded — only now reap the quote row. Deleting
+      // any earlier would destroy the only link between this order and the
+      // mint quote a late poll needs.
+      await deletePendingLightningQuote(orderId);
 
       // NOTE: No automatic shipping-label purchase for Lightning. Auto-purchase
       // spends the seller's own Shippo funds, so it only runs for payments the
@@ -186,6 +235,18 @@ export default async function handler(
           currency: "sats",
           quoteId: pending.quote,
         },
+      });
+    }
+
+    // Mint says UNPAID. Past the advertised expiry no new payment can start,
+    // so tell the agent the invoice is done — but RETAIN the row for the
+    // grace period: a payment already in flight at the deadline can still
+    // settle, and the next poll must still find the quote to confirm it.
+    if (pending.expiresAt && Date.parse(pending.expiresAt) <= Date.now()) {
+      return res.status(400).json({
+        error:
+          "No pending Lightning payment found for this order. It may have expired.",
+        orderId,
       });
     }
 

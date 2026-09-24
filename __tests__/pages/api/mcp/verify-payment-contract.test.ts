@@ -36,6 +36,9 @@ const mockAuthenticateRequest = jest.fn();
 const mockInitializeApiKeysTable = jest.fn();
 const mockGetMcpOrder = jest.fn();
 const mockUpdateMcpOrderPayment = jest.fn();
+const mockGetPendingLightningQuote = jest.fn();
+const mockClaimPendingLightningQuote = jest.fn();
+const mockDeletePendingLightningQuote = jest.fn();
 const mockCheckMintQuoteBolt11 = jest.fn();
 const mockLoadMint = jest.fn();
 
@@ -55,15 +58,16 @@ jest.mock("@/mcp/tools/purchase-tools", () => ({
   getMcpOrder: (...args: any[]) => mockGetMcpOrder(...args),
   updateMcpOrderPayment: (...args: any[]) =>
     mockUpdateMcpOrderPayment(...args),
-}));
-
-// verify-payment imports pendingLightningPayments from the sibling route;
-// stub the module so this suite controls the map (seeded via the mocked
-// import below) and never pulls in the order-service graph. The Map must be
-// created inline in the factory: a module-scope const is still in its TDZ
-// when the factory runs (SWC hoists requires above const initializers).
-jest.mock("@/pages/api/mcp/create-order", () => ({
-  pendingLightningPayments: new Map<string, Record<string, unknown>>(),
+  // Pending Lightning quotes live in Postgres (mcp_lightning_quotes), not in
+  // process memory — the whole point is that verify-payment still confirms a
+  // paid invoice after a restart. These accessor mocks stand in for the DB;
+  // a "pending" seeded below is exactly what a post-restart read returns.
+  getPendingLightningQuote: (...args: any[]) =>
+    mockGetPendingLightningQuote(...args),
+  claimPendingLightningQuote: (...args: any[]) =>
+    mockClaimPendingLightningQuote(...args),
+  deletePendingLightningQuote: (...args: any[]) =>
+    mockDeletePendingLightningQuote(...args),
 }));
 
 jest.mock("@/utils/db/inventory-service", () => ({
@@ -87,14 +91,6 @@ jest.mock("@cashu/cashu-ts", () => ({
 }));
 
 import verifyPaymentHandler from "@/pages/api/mcp/verify-payment";
-// Mocked above — importing it here hands us the same Map instance the route
-// reads, so tests can seed/clear pending payments.
-import { pendingLightningPayments } from "@/pages/api/mcp/create-order";
-
-const pendingMap = pendingLightningPayments as unknown as Map<
-  string,
-  Record<string, unknown>
->;
 
 // --- MCP verify-payment contract --------------------------------------------
 // The nested lightning payment block reuses the shared lightning field
@@ -214,11 +210,28 @@ async function postVerify(
   {
     pending,
     quoteState,
-  }: { pending?: Record<string, unknown>; quoteState?: string } = {}
+    claimWon = true,
+    orderOnReRead,
+  }: {
+    pending?: Record<string, unknown>;
+    quoteState?: string;
+    claimWon?: boolean;
+    orderOnReRead?: Record<string, unknown>;
+  } = {}
 ) {
-  mockGetMcpOrder.mockResolvedValue(order);
-  pendingMap.clear();
-  if (pending) pendingMap.set("order-1", pending);
+  if (orderOnReRead) {
+    mockGetMcpOrder
+      .mockResolvedValueOnce(order)
+      .mockResolvedValue(orderOnReRead);
+  } else {
+    mockGetMcpOrder.mockResolvedValue(order);
+  }
+  // Seeding the accessor = a quote row read back from Postgres, e.g. after a
+  // restart wiped every in-memory structure this process ever had.
+  mockGetPendingLightningQuote.mockResolvedValue(pending ?? null);
+  mockClaimPendingLightningQuote.mockResolvedValue(
+    claimWon ? { orderId: "order-1" } : null
+  );
   if (quoteState) mockCheckMintQuoteBolt11.mockResolvedValue({ state: quoteState });
   const res = createResponse();
   await verifyPaymentHandler(
@@ -241,11 +254,13 @@ async function postVerify(
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(console, "error").mockImplementation(() => {});
-  pendingMap.clear();
   mockApplyRateLimit.mockResolvedValue(true);
   mockInitializeApiKeysTable.mockResolvedValue(undefined);
   mockAuthenticateRequest.mockResolvedValue({ id: 7, pubkey: BUYER_PK });
   mockLoadMint.mockResolvedValue(undefined);
+  mockGetPendingLightningQuote.mockResolvedValue(null);
+  mockClaimPendingLightningQuote.mockResolvedValue({ orderId: "order-1" });
+  mockDeletePendingLightningQuote.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -303,6 +318,103 @@ describe("MCP verify-payment response contract", () => {
       "ln_quote_1",
       "paid"
     );
+    // Settled quotes are reaped so a later poll can't re-run stock/discount
+    // side effects off the same row.
+    expect(mockDeletePendingLightningQuote).toHaveBeenCalledWith("order-1");
+  });
+
+  it("still confirms a paid invoice after a restart (quote read back from the DB)", async () => {
+    // Regression pin for the in-memory pendingLightningPayments map: a
+    // redeploy/restart between create-order and the poll used to strand paid
+    // invoices in "No pending Lightning payment found" forever. The quote now
+    // comes from Postgres, so a process with zero in-memory state — exactly
+    // what this suite is — must still confirm settlement and run the
+    // stock/discount side effects.
+    const { statusCode, body } = await postVerify(ORDER, {
+      pending: PENDING,
+      quoteState: "PAID",
+    });
+    expect(statusCode).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "paid" });
+    expect(mockGetPendingLightningQuote).toHaveBeenCalledWith("order-1");
+    expect(mockUpdateMcpOrderPayment).toHaveBeenCalledWith(
+      "order-1",
+      "ln_quote_1",
+      "paid"
+    );
+    expect(mockDeletePendingLightningQuote).toHaveBeenCalledWith("order-1");
+  });
+
+  it("confirms an invoice paid AFTER its advertised expiry (mint state beats the clock)", async () => {
+    // Regression pin: an earlier version deleted + 400'd any quote past its
+    // deadline WITHOUT asking the mint, permanently stranding a buyer who
+    // paid just before expiry. The mint's PAID is the only settlement
+    // authority.
+    const expiredPending = {
+      ...PENDING,
+      expiresAt: new Date(Date.now() - 60_000).toISOString(),
+    };
+    const { statusCode, body } = await postVerify(ORDER, {
+      pending: expiredPending,
+      quoteState: "PAID",
+    });
+    expect(statusCode).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "paid" });
+    expect(mockUpdateMcpOrderPayment).toHaveBeenCalledWith(
+      "order-1",
+      "ln_quote_1",
+      "paid"
+    );
+  });
+
+  it("expired AND unpaid: 400, but the row is retained for late-settlement reconciliation", async () => {
+    const expiredPending = {
+      ...PENDING,
+      expiresAt: new Date(Date.now() - 60_000).toISOString(),
+    };
+    const { statusCode, body } = await postVerify(ORDER, {
+      pending: expiredPending,
+      quoteState: "UNPAID",
+    });
+    expect(statusCode).toBe(400);
+    const validate = compile(NO_PENDING_ERROR);
+    const ok: boolean = validate(body);
+    expect(ok ? true : JSON.stringify(validate.errors)).toBe(true);
+    // A payment in flight at the deadline can still settle — the quote row
+    // must survive so the next poll can confirm it.
+    expect(mockDeletePendingLightningQuote).not.toHaveBeenCalled();
+    expect(mockClaimPendingLightningQuote).not.toHaveBeenCalled();
+    expect(mockUpdateMcpOrderPayment).not.toHaveBeenCalled();
+  });
+
+  it("racing polls: the claim loser sees the winner's completed payment", async () => {
+    const { statusCode, body } = await postVerify(ORDER, {
+      pending: PENDING,
+      quoteState: "PAID",
+      claimWon: false,
+      orderOnReRead: { ...ORDER, payment_status: "paid" },
+    });
+    expect(statusCode).toBe(200);
+    expect(body).toMatchObject({ success: true, status: "paid" });
+    // The loser runs NO side effects — discount/stock happen exactly once.
+    expect(mockUpdateMcpOrderPayment).not.toHaveBeenCalled();
+    expect(mockDeletePendingLightningQuote).not.toHaveBeenCalled();
+  });
+
+  it("racing polls: the claim loser polls again while settlement is in flight", async () => {
+    const { statusCode, body } = await postVerify(ORDER, {
+      pending: PENDING,
+      quoteState: "PAID",
+      claimWon: false,
+      orderOnReRead: ORDER,
+    });
+    expect(statusCode).toBe(200);
+    expect(body.status).toBe("unpaid");
+    expect(body.message).toMatch(/confirmation is in progress/);
+    const validate = compile(envelopeSchema({ withPayment: true }));
+    const ok: boolean = validate(body);
+    expect(ok ? true : JSON.stringify(validate.errors)).toBe(true);
+    expect(mockUpdateMcpOrderPayment).not.toHaveBeenCalled();
   });
 
   it("lightning unpaid: payment block matches the shared lightning fields (mintUrl present)", async () => {

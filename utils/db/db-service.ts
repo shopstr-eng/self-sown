@@ -1180,6 +1180,26 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_mcp_request_proofs_created_at ON mcp_request_proofs(created_at);
 
+      -- Pending Lightning quotes (one per order awaiting settlement).
+      -- Persisted so verify-payment survives restarts / multi-instance polls;
+      -- expires_at is TIMESTAMPTZ so the stored deadline is zone-independent.
+      CREATE TABLE IF NOT EXISTS mcp_lightning_quotes (
+          order_id TEXT PRIMARY KEY,
+          quote TEXT NOT NULL,
+          mint_url TEXT NOT NULL,
+          amount BIGINT NOT NULL,
+          product_id TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          inventory_variant_key TEXT NOT NULL DEFAULT '_default',
+          discount_code TEXT,
+          seller_pubkey TEXT,
+          expires_at TIMESTAMPTZ,
+          claimed_at TIMESTAMPTZ,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_mcp_lightning_quotes_expires_at ON mcp_lightning_quotes(expires_at);
+
       -- Self-migrate deployments whose MCP tables predate the canonical
       -- module DDL (utils/mcp/auth.ts): added columns + widened permissions
       -- check. Whichever initializer runs first wins the CREATE, so both
@@ -1188,6 +1208,7 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS buyer_email TEXT;
       ALTER TABLE mcp_orders ADD COLUMN IF NOT EXISTS payment_intent_id TEXT;
       ALTER TABLE mcp_orders ALTER COLUMN currency SET DEFAULT 'usd';
+      ALTER TABLE mcp_lightning_quotes ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
       ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check;
       ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check
         CHECK (permissions IN ('read', 'read_write', 'full_access'));

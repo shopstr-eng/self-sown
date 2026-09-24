@@ -72,7 +72,6 @@ jest.mock("@/utils/ucp/order-service", () => {
     __esModule: true,
     OrderServiceError,
     createOrderFlow: jest.fn(),
-    pendingLightningPayments: new Map(),
   };
 });
 

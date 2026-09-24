@@ -29,6 +29,8 @@ jest.mock("@/mcp/tools/purchase-tools", () => ({
     order_id: orderId,
   })),
   updateMcpOrderPayment: jest.fn(),
+  // Lightning quotes persist to Postgres now; keep the suite off the DB.
+  savePendingLightningQuote: jest.fn(async () => {}),
 }));
 
 const mockCreateMintQuoteBolt11 = jest.fn();

@@ -12,7 +12,6 @@ import { issueMacaroon, setL402Challenge, buildL402Body } from "@/utils/l402";
 import {
   createOrderFlow,
   OrderServiceError,
-  pendingLightningPayments,
   type CreateOrderFlowInput,
   type OrderFlowResult,
   type PaymentMethod,
@@ -398,5 +397,3 @@ async function handleListOrders(
     return res.status(500).json({ error: "Failed to list orders" });
   }
 }
-
-export { pendingLightningPayments };
