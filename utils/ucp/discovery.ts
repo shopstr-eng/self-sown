@@ -148,6 +148,7 @@ export function buildUcpDiscoveryProfile(
     create_session: `${base}/api/ucp/checkout/sessions`,
     get_session: `${base}/api/ucp/checkout/sessions/{id}`,
     complete_session: `${base}/api/ucp/checkout/sessions/{id}/complete`,
+    retry_session: `${base}/api/ucp/checkout/sessions/{id}/retry`,
   };
 
   const checkoutCapability: Record<string, unknown> = {

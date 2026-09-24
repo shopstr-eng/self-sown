@@ -100,6 +100,10 @@ jest.mock("@/utils/ucp/checkout-store", () => {
     // production one; the insert mock maps the input into a row it can read.
     formatCheckoutSession: actual.formatCheckoutSession,
     formatEphemeralCheckoutSession: actual.formatEphemeralCheckoutSession,
+    // describeResult moved into checkout-store so session creation and
+    // escalation retry share one translator; the route now imports it from
+    // here, so the mock must provide the real one.
+    describeResult: actual.describeResult,
     generateCheckoutSessionId: actual.generateCheckoutSessionId,
     initCheckoutSessionsTable: jest.fn(() => Promise.resolve()),
     insertCheckoutSession: (...args: any[]) =>

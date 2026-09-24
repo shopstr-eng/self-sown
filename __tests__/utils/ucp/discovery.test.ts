@@ -66,6 +66,19 @@ describe("buildUcpDiscoveryProfile — platform scope", () => {
     );
   });
 
+  it("advertises the checkout retry_session endpoint", () => {
+    const checkout = profile.capabilities.find(
+      (c) => c.name === UCP_CHECKOUT_CAPABILITY
+    ) as Record<string, any>;
+    expect(checkout.endpoints.retry_session).toBe(
+      `${BASE}/api/ucp/checkout/sessions/{id}/retry`
+    );
+    const rest = checkout.transports.find((t: any) => t.type === "rest");
+    expect(rest.endpoints.retry_session).toBe(
+      `${BASE}/api/ucp/checkout/sessions/{id}/retry`
+    );
+  });
+
   it("links the request-side schema alongside the response schema", () => {
     const checkout = profile.capabilities.find(
       (c) => c.name === UCP_CHECKOUT_CAPABILITY

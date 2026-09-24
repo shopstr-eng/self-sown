@@ -666,6 +666,83 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           },
         },
       },
+      "/api/ucp/checkout/sessions/{id}/retry": {
+        post: {
+          operationId: "ucpRetryCheckoutSession",
+          summary: "Retry an escalated checkout session (owner-only)",
+          description:
+            "Resumes a pre-order requires_escalation session (no order was placed) with a different paymentMethod, keeping one session timeline instead of opening a new session. Order details come from the stored request; redacted fields (buyerEmail, shippingAddress, discountCode, mintUrl, cashuToken) must be re-supplied when the new method needs them. A repeat recoverable failure returns HTTP 200 with the session still in requires_escalation carrying the fresh error/code; a successful retry returns the session with the new payment descriptor. Requires a read_write API key.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            API_VERSION_PARAM,
+            {
+              name: "id",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          requestBody: {
+            required: false,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    paymentMethod: {
+                      type: "string",
+                      enum: ["stripe", "lightning", "cashu", "fiat"],
+                      description:
+                        "Payment method for the retry; defaults to the session's last attempted method.",
+                    },
+                    buyerEmail: { type: "string", format: "email" },
+                    shippingAddress: {
+                      type: "object",
+                      additionalProperties: { type: "string" },
+                    },
+                    discountCode: { type: "string" },
+                    mintUrl: { type: "string", format: "uri" },
+                    cashuToken: { type: "string" },
+                    fiatMethod: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Checkout session after the retry (resumed, or still escalated with the fresh error/code)",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/UcpCheckoutSession",
+                  },
+                },
+              },
+            },
+            "400": {
+              $ref: "#/components/responses/BadRequest",
+              description: "Invalid paymentMethod or buyerEmail",
+            },
+            "401": { $ref: "#/components/responses/Unauthorized" },
+            "404": {
+              $ref: "#/components/responses/NotFound",
+              description: "Checkout session not found",
+            },
+            "409": {
+              description:
+                "Session is not retriable (not in requires_escalation, already has an order, or a retry is already in flight)",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Error" },
+                },
+              },
+            },
+            "429": { $ref: "#/components/responses/RateLimited" },
+          },
+        },
+      },
       "/api/ucp/schemas/product.json": {
         get: {
           operationId: "ucpProductSchema",
