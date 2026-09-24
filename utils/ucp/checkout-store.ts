@@ -5,6 +5,7 @@ import {
   CHECKOUT_STATUSES,
   type CheckoutSessionStatus,
 } from "./checkout-status";
+import type { OrderFlowResult } from "./order-service";
 
 /**
  * Persistence + lifecycle for UCP checkout sessions.
@@ -220,6 +221,190 @@ export async function insertCheckoutSession(
   }
 }
 
+/**
+ * Atomically claim a pre-order escalation for retry: flips
+ * requires_escalation → incomplete in ONE statement so two concurrent retries
+ * of the same session can't both reach the order engine and double-create an
+ * order. Returns the claimed row, or null when the session was not in
+ * requires_escalation (already retried, reconciled away, or never escalated).
+ * The caller MUST settle the claim via resolveCheckoutSessionRetry (success),
+ * failCheckoutSessionRetry (a PROVABLY pre-order failure — back to
+ * requires_escalation), or rescueCheckoutSessionRetry (ambiguous failure:
+ * the engine may have created an order, so the session must never become
+ * retriable again).
+ */
+export async function claimCheckoutSessionRetry(
+  id: string,
+  buyerPubkey: string
+): Promise<CheckoutSessionRow | null> {
+  const pool = getDbPool();
+  let client: PoolClient | undefined;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `UPDATE ucp_checkout_sessions
+       SET status = 'incomplete', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND buyer_pubkey = $2 AND status = 'requires_escalation'
+       RETURNING *`,
+      [id, buyerPubkey]
+    );
+    return result.rows[0] || null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** Fields written when a retry succeeds and the session leaves escalation. */
+export interface ResolveCheckoutSessionRetryInput {
+  status: CheckoutSessionStatus;
+  messages: CheckoutSessionMessage[];
+  payment: Record<string, any> | null;
+  quote: Record<string, any> | null;
+  mcpOrderId: string | null;
+  amountTotal: number;
+  currency: string;
+  paymentMethod: string;
+}
+
+/**
+ * Settle a claimed retry that produced an order/payment descriptor: record the
+ * new order, descriptor, total, and attempted payment method, and clear the
+ * escalation error/code. The WHERE status='incomplete' guard fences the write
+ * to sessions this process actually claimed.
+ */
+export async function resolveCheckoutSessionRetry(
+  id: string,
+  input: ResolveCheckoutSessionRetryInput
+): Promise<CheckoutSessionRow | null> {
+  const pool = getDbPool();
+  let client: PoolClient | undefined;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `UPDATE ucp_checkout_sessions
+       SET status = $2, messages = $3, payment = $4, quote = $5,
+           mcp_order_id = $6, amount_total = $7, currency = $8,
+           payment_method = $9, error = NULL, code = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'incomplete'
+       RETURNING *`,
+      [
+        id,
+        input.status,
+        JSON.stringify(input.messages || []),
+        input.payment ? JSON.stringify(input.payment) : null,
+        input.quote ? JSON.stringify(input.quote) : null,
+        input.mcpOrderId,
+        input.amountTotal,
+        input.currency,
+        input.paymentMethod,
+      ] as any[]
+    );
+    return result.rows[0] || null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Settle a claimed retry that did NOT produce an order: the session goes back
+ * to requires_escalation with the timeline and the latest error/code (the
+ * engine's fresh escalation reason on a repeat escalation, or the previous
+ * reason preserved by the caller on a hard validation failure).
+ */
+export async function failCheckoutSessionRetry(
+  id: string,
+  messages: CheckoutSessionMessage[],
+  error: string | null,
+  code: string | null,
+  paymentMethod: string
+): Promise<CheckoutSessionRow | null> {
+  const pool = getDbPool();
+  let client: PoolClient | undefined;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `UPDATE ucp_checkout_sessions
+       SET status = 'requires_escalation', messages = $2, error = $3,
+           code = $4, payment_method = $5, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status = 'incomplete'
+       RETURNING *`,
+      [id, JSON.stringify(messages || []), error, code, paymentMethod]
+    );
+    return result.rows[0] || null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/** Fields written when a claimed retry's outcome is ambiguous or unrecorded. */
+export interface RescueCheckoutSessionRetryInput {
+  /** The order the engine created before the failure/persist gap, when known.
+   * Attached so read-time reconciliation can recover the session AND so the
+   * retry route's post-order guard permanently blocks a second attempt. */
+  mcpOrderId: string | null;
+  payment?: Record<string, any> | null;
+  quote?: Record<string, any> | null;
+  amountTotal?: number;
+  currency?: string;
+  paymentMethod?: string;
+  messages: CheckoutSessionMessage[];
+  error: string | null;
+  code: string | null;
+}
+
+/**
+ * Settle a claimed retry whose outcome is AMBIGUOUS: the engine may already
+ * have created an order/payment (every payment initializer can throw after
+ * createMcpOrder) or the success write failed after the order was placed. In
+ * either case the session must NEVER return to a retriable pre-order
+ * escalation — that would let a later retry place a second order.
+ *
+ * Deliberately STATUS-PRESERVING: during a claimed retry no code path sets
+ * requires_escalation (read-time reconcile and /complete both need an
+ * mcp_order_id the row doesn't have yet), so leaving status alone guarantees
+ * the session stays non-retriable, while the attached order id lets GET
+ * reconcile it against the canonical mcp_orders.payment_status on next read.
+ */
+export async function rescueCheckoutSessionRetry(
+  id: string,
+  input: RescueCheckoutSessionRetryInput
+): Promise<CheckoutSessionRow | null> {
+  const pool = getDbPool();
+  let client: PoolClient | undefined;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `UPDATE ucp_checkout_sessions
+       SET mcp_order_id = COALESCE($2, mcp_order_id),
+           payment = COALESCE($3, payment),
+           quote = COALESCE($4, quote),
+           amount_total = COALESCE($5, amount_total),
+           currency = COALESCE($6, currency),
+           payment_method = COALESCE($7, payment_method),
+           messages = $8, error = $9, code = $10,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [
+        id,
+        input.mcpOrderId,
+        input.payment ? JSON.stringify(input.payment) : null,
+        input.quote ? JSON.stringify(input.quote) : null,
+        input.amountTotal ?? null,
+        input.currency ?? null,
+        input.paymentMethod ?? null,
+        JSON.stringify(input.messages || []),
+        input.error,
+        input.code,
+      ] as any[]
+    );
+    return result.rows[0] || null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
 export async function getCheckoutSession(
   id: string
 ): Promise<CheckoutSessionRow | null> {
@@ -286,6 +471,156 @@ export async function updateCheckoutSessionStatus(
 }
 
 /**
+ * Translate the neutral order-engine result into the session's status, payment
+ * descriptor, and opening timeline. Cashu settles synchronously, so the session
+ * is already `completed`; every other method has the payment descriptor ready
+ * and the buyer/agent an action to take, so it opens `ready_for_complete` and is
+ * driven to `completed` via POST …/complete (or read-time reconciliation).
+ *
+ * Shared by session creation (POST /api/ucp/checkout/sessions) and escalation
+ * retry (POST …/sessions/[id]/retry); the retry route drops the
+ * `session_created` opening message and records a `session_retried` entry
+ * instead, so the timeline reflects ONE continued session.
+ */
+export function describeResult(result: OrderFlowResult): {
+  status: CheckoutSessionStatus;
+  payment: Record<string, any>;
+  mcpOrderId: string | null;
+  amountTotal: number;
+  currency: string;
+  messages: CheckoutSessionMessage[];
+} {
+  const created = makeMessage("session_created", "Checkout session created.");
+
+  if (result.kind === "lightning") {
+    return {
+      status: "ready_for_complete",
+      mcpOrderId: result.order.order_id,
+      amountTotal: Number(result.order.amount_total),
+      currency: result.order.currency,
+      payment: {
+        method: "lightning",
+        bolt11: result.bolt11,
+        quoteId: result.quoteId,
+        amount: result.amountSats,
+        currency: "sats",
+        mintUrl: result.mintUrl,
+        verifyUrl: "/api/mcp/verify-payment",
+      },
+      messages: [
+        created,
+        makeMessage(
+          "ready_for_complete",
+          "Pay the Lightning invoice, then it will confirm automatically."
+        ),
+      ],
+    };
+  }
+
+  if (result.kind === "cashu") {
+    return {
+      status: "completed",
+      mcpOrderId: result.order.order_id,
+      amountTotal: Number(result.order.amount_total),
+      currency: result.order.currency,
+      payment: {
+        method: "cashu",
+        amount: result.tokenAmount,
+        required: result.requiredAmount,
+        change: result.change,
+        status: "paid",
+      },
+      messages: [
+        created,
+        makeMessage("completed", "Cashu token redeemed. Order confirmed."),
+      ],
+    };
+  }
+
+  if (result.kind === "fiat") {
+    return {
+      status: "ready_for_complete",
+      mcpOrderId: result.order.order_id,
+      amountTotal: Number(result.order.amount_total),
+      currency: result.order.currency,
+      payment: {
+        method: "fiat",
+        selectedMethod: result.selectedMethod,
+        availableMethods: result.fiatOptions,
+        amount: result.amount,
+        currency: result.currency,
+        sellerContact: result.sellerContact,
+      },
+      messages: [
+        created,
+        makeMessage(
+          "ready_for_complete",
+          "Send fiat payment to the seller using the details provided; the seller confirms receipt."
+        ),
+      ],
+    };
+  }
+
+  if (result.kind === "subscription") {
+    return {
+      status: "ready_for_complete",
+      mcpOrderId: null,
+      amountTotal: result.recurringAmount,
+      currency: result.currency,
+      payment: {
+        method: "stripe",
+        type: "subscription",
+        subscriptionId: result.subscriptionId,
+        frequency: result.frequency,
+        clientSecret: result.clientSecret,
+        customerId: result.customerId,
+        connectedAccountId: result.connectedAccountId,
+        recurringAmount: result.recurringAmount,
+        currency: result.currency,
+      },
+      messages: [
+        created,
+        makeMessage(
+          "ready_for_complete",
+          "Confirm the first payment with the clientSecret to activate the subscription."
+        ),
+      ],
+    };
+  }
+
+  // result.kind === "stripe"
+  return {
+    status: "ready_for_complete",
+    mcpOrderId: result.order.order_id,
+    amountTotal: Number(result.order.amount_total),
+    currency: result.order.currency,
+    payment: {
+      method: "stripe",
+      amount: result.amount,
+      currency: result.currency,
+      paymentIntentId: result.paymentIntentId,
+      clientSecret: result.clientSecret,
+      connectedAccountId: result.connectedAccountId,
+    },
+    messages: [
+      created,
+      makeMessage(
+        "ready_for_complete",
+        "Confirm the Stripe payment with the clientSecret to complete the order."
+      ),
+    ],
+  };
+}
+
+/** A pre-order escalation (no order placed) is the one shape retry accepts. */
+function isRetriable(
+  status: CheckoutSessionStatus,
+  mcpOrderId: string | null | undefined
+): boolean {
+  return status === "requires_escalation" && !mcpOrderId;
+}
+
+/**
  * Fields of an EPHEMERAL (unpersisted) checkout-session response: the 201
  * persist-failure fallback in /api/ucp/checkout/sessions, and the same
  * fallback for the 200 requires_escalation envelope when the escalation row
@@ -344,6 +679,11 @@ export function formatEphemeralCheckoutSession(
     links: {
       self: `${baseUrl}/api/ucp/checkout/sessions/${input.id}`,
       discovery: `${baseUrl}/.well-known/ucp`,
+      // A retriable escalation advertises its retry action so an agent finds
+      // the resume path from the session itself, not from out-of-band docs.
+      ...(isRetriable(input.status, input.mcpOrderId)
+        ? { retry: `${baseUrl}/api/ucp/checkout/sessions/${input.id}/retry` }
+        : {}),
     },
   };
 }
@@ -378,6 +718,9 @@ export function formatCheckoutSession(
     links: {
       self: `${baseUrl}/api/ucp/checkout/sessions/${row.id}`,
       discovery: `${baseUrl}/.well-known/ucp`,
+      ...(isRetriable(row.status, row.mcp_order_id)
+        ? { retry: `${baseUrl}/api/ucp/checkout/sessions/${row.id}/retry` }
+        : {}),
     },
   };
 }

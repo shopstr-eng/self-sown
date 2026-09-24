@@ -214,6 +214,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         properties: {
           self: { type: "string", format: "uri" },
           discovery: { type: "string", format: "uri" },
+          retry: {
+            type: "string",
+            format: "uri",
+            description:
+              "Present only on a retriable pre-order escalation (status requires_escalation with no orderId): POST here with a different paymentMethod to resume the same session.",
+          },
         },
         required: ["self", "discovery"],
         additionalProperties: false,

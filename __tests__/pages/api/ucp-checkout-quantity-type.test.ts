@@ -55,6 +55,10 @@ jest.mock("@/utils/ucp/seller-host", () => ({
 
 jest.mock("@/utils/ucp/checkout-store", () => ({
   decodeVariantId: jest.fn(() => ({ ok: false, error: "no variants in test" })),
+  // describeResult moved into checkout-store (shared by create + retry); the
+  // route imports it from here, so the mock must provide the real one.
+  describeResult: jest.requireActual("@/utils/ucp/checkout-store")
+    .describeResult,
   formatCheckoutSession: jest.fn((row: any) => row),
   formatEphemeralCheckoutSession: jest.fn((input: any) => input),
   generateCheckoutSessionId: jest.fn(() => "ucp_cs_test"),
