@@ -903,9 +903,9 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
             price: { $ref: "#/components/schemas/Money" },
             categories: { type: "array", items: { type: "string" } },
             availability: {
-              type: "object",
-              description: "Availability state plus optional restock metadata.",
-              additionalProperties: true,
+              type: "string",
+              description: "Availability state.",
+              enum: ["in_stock", "out_of_stock", "preorder", "unknown"],
             },
             seller: {
               type: "object",
