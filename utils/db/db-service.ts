@@ -1526,6 +1526,26 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE shipping_label_order_claims
         ADD COLUMN IF NOT EXISTS reconcile_token TEXT;
 
+      -- Checkout-time shipping binding for the web card auto-label-purchase
+      -- routes (pages/api/shipping/auto-purchase*.ts): the destination, order
+      -- and product the buyer entered when the payment was CREATED, keyed by
+      -- the provider-issued payment id ('stripe:<pi_id>' / 'square:<id>') and
+      -- seller. The auto-purchase routes re-verify settlement and then derive
+      -- all three from this record instead of the request body, so a buyer
+      -- holding a settled payment cannot redirect the seller-billed label to
+      -- an arbitrary address or parcel. Transient: pruned after ~7 days.
+      CREATE TABLE IF NOT EXISTS shipping_checkout_contexts (
+        payment_ref TEXT NOT NULL,
+        seller_pubkey TEXT NOT NULL,
+        order_id TEXT NOT NULL,
+        product_id TEXT NOT NULL,
+        to_address JSONB NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (payment_ref, seller_pubkey)
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_checkout_contexts_created_at
+        ON shipping_checkout_contexts(created_at);
+
       -- Backfill the auto-purchase toggle for sellers whose shipping_defaults
       -- row predates this column (defaults ON to match the new-row default).
       ALTER TABLE shipping_defaults

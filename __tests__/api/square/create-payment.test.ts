@@ -26,6 +26,7 @@ const getValidSquareAccessTokenMock = jest.fn();
 const createSquarePaymentMock = jest.fn();
 const isSquareConfiguredMock = jest.fn();
 const satsToFiatMock = jest.fn();
+const recordShippingCheckoutContextsMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -39,6 +40,11 @@ jest.mock("@/utils/square/square-api", () => ({
 
 jest.mock("@/utils/square/square-config", () => ({
   isSquareConfigured: (...args: unknown[]) => isSquareConfiguredMock(...args),
+}));
+
+jest.mock("@/utils/db/shipping-service", () => ({
+  recordShippingCheckoutContexts: (...args: unknown[]) =>
+    recordShippingCheckoutContextsMock(...args),
 }));
 
 // Keep isCrypto/toSmallestUnit/isExchangeRateError real (they drive the
@@ -97,6 +103,72 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue({ id: "sqpay_1", status: "COMPLETED" });
   satsToFiatMock.mockReset();
+  recordShippingCheckoutContextsMock.mockReset().mockResolvedValue(undefined);
+});
+
+describe("POST /api/square/create-payment — checkout shipping binding", () => {
+  const shippingContext = {
+    sellerPubkey: SELLER,
+    orderId: "order-1",
+    productId: "prod_evt_1",
+    toAddress: {
+      name: "Buyer Person",
+      street1: "100 Buyer St",
+      city: "Buyerville",
+      state: "CA",
+      zip: "90001",
+      country: "US",
+    },
+  };
+
+  it("persists the checkout context keyed by the VERIFIED Square payment id after a COMPLETED charge", async () => {
+    const res = await callHandler({
+      sourceId: "cnon_card",
+      amount: 10,
+      currency: "USD",
+      sellerPubkey: SELLER,
+      shippingContext,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(recordShippingCheckoutContextsMock).toHaveBeenCalledTimes(1);
+    const [ref, contexts] = recordShippingCheckoutContextsMock.mock.calls[0];
+    expect(ref).toBe("square:sqpay_1");
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0]).toMatchObject({
+      sellerPubkey: SELLER,
+      orderId: "order-1",
+      productId: "prod_evt_1",
+      toAddress: { street1: "100 Buyer St", zip: "90001" },
+    });
+  });
+
+  it("drops a context naming a seller other than the one being charged", async () => {
+    const res = await callHandler({
+      sourceId: "cnon_card",
+      amount: 10,
+      currency: "USD",
+      sellerPubkey: SELLER,
+      shippingContext: { ...shippingContext, sellerPubkey: "b".repeat(64) },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(recordShippingCheckoutContextsMock).not.toHaveBeenCalled();
+  });
+
+  it("records no binding when the charge is not COMPLETED", async () => {
+    createSquarePaymentMock.mockResolvedValue({
+      id: "sqpay_1",
+      status: "APPROVED",
+    });
+    const res = await callHandler({
+      sourceId: "cnon_card",
+      amount: 10,
+      currency: "USD",
+      sellerPubkey: SELLER,
+      shippingContext,
+    });
+    expect(res.statusCode).toBe(402);
+    expect(recordShippingCheckoutContextsMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("POST /api/square/create-payment — only COMPLETED confirms an order", () => {

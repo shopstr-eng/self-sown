@@ -2,19 +2,27 @@
 
 // Route-level coverage for the web (Stripe) auto-label-purchase endpoint
 // (pages/api/shipping/auto-purchase.ts). This endpoint takes no Nostr proof —
-// its authorization is a re-verified, settled PaymentIntent. These tests pin
-// the money-safety gates so a buyer can never make a seller buy a label without
+// its authorization is a re-verified, settled PaymentIntent PLUS the
+// checkout-time binding recorded at payment creation. These tests pin the
+// money-safety gates so a buyer can never make a seller buy a label without
 // a real payment that names that seller:
 //   - A PaymentIntent that isn't `succeeded` is rejected (no core call).
 //   - A PaymentIntent whose metadata doesn't name this seller is rejected.
 //   - A missing / unretrievable PaymentIntent is rejected.
 //   - Single-seller charges are looked up on the connected account, with a
 //     platform-account fallback for multi-merchant charges.
-//   - Only a verified payment reaches the shared purchase core.
+//   - The order, product, and destination come from the server-side
+//     checkout-time record (keyed by the VERIFIED PaymentIntent id) — the
+//     request body's orderId/productId/toAddress are ignored entirely, so a
+//     buyer cannot pay cheap shipping to one address and then trigger the
+//     seller-billed label to another.
+//   - A settled, seller-matching payment with NO recorded binding fails
+//     closed (no label).
 
 const applyRateLimitMock = jest.fn();
 const isShippoOAuthConfiguredMock = jest.fn();
 const getStripeConnectAccountMock = jest.fn();
+const getShippingCheckoutContextMock = jest.fn();
 const runAutoLabelPurchaseMock = jest.fn();
 const retrieveMock = jest.fn();
 
@@ -41,6 +49,11 @@ jest.mock("@/utils/db/db-service", () => ({
     getStripeConnectAccountMock(...args),
 }));
 
+jest.mock("@/utils/db/shipping-service", () => ({
+  getShippingCheckoutContext: (...args: unknown[]) =>
+    getShippingCheckoutContextMock(...args),
+}));
+
 jest.mock("@/utils/shipping/auto-purchase", () => ({
   runAutoLabelPurchase: (...args: unknown[]) =>
     runAutoLabelPurchaseMock(...args),
@@ -50,6 +63,23 @@ import handler from "@/pages/api/shipping/auto-purchase";
 
 const SELLER = "a".repeat(64);
 const OTHER = "b".repeat(64);
+
+// The server-side checkout-time binding, as recorded by
+// pages/api/stripe/create-payment-intent.ts when the buyer created the
+// PaymentIntent.
+const STORED_CONTEXT = {
+  sellerPubkey: SELLER,
+  orderId: "order-1",
+  productId: "prod_evt_1",
+  toAddress: {
+    name: "Buyer Person",
+    street1: "100 Buyer St",
+    city: "Buyerville",
+    state: "CA",
+    zip: "90001",
+    country: "US",
+  },
+};
 
 function createResponse() {
   return {
@@ -69,17 +99,7 @@ function createResponse() {
 function validBody(overrides: Record<string, unknown> = {}) {
   return {
     paymentIntentId: "pi_1",
-    orderId: "order-1",
     sellerPubkey: SELLER,
-    productId: "prod_evt_1",
-    toAddress: {
-      name: "Buyer Person",
-      street1: "100 Buyer St",
-      city: "Buyerville",
-      state: "CA",
-      zip: "90001",
-      country: "US",
-    },
     ...overrides,
   };
 }
@@ -104,16 +124,23 @@ beforeEach(() => {
     status: "succeeded",
     metadata: { sellerPubkey: SELLER, source: "cart" },
   });
+  getShippingCheckoutContextMock.mockResolvedValue(STORED_CONTEXT);
   runAutoLabelPurchaseMock.mockResolvedValue({ purchased: true, labelId: 99 });
 });
 
 describe("/api/shipping/auto-purchase — happy path", () => {
-  it("verifies the PaymentIntent and invokes the purchase core", async () => {
+  it("verifies the PaymentIntent and invokes the purchase core with the stored checkout binding", async () => {
     const res = createResponse();
     await handler(makeRequest(validBody()), res as any);
 
     expect(res.statusCode).toBe(200);
     expect(res.jsonBody).toMatchObject({ success: true, labelId: 99 });
+
+    // The binding is looked up by the VERIFIED PaymentIntent id + seller.
+    expect(getShippingCheckoutContextMock).toHaveBeenCalledWith(
+      "stripe:pi_1",
+      SELLER
+    );
 
     expect(runAutoLabelPurchaseMock).toHaveBeenCalledTimes(1);
     const arg = runAutoLabelPurchaseMock.mock.calls[0][0];
@@ -195,6 +222,74 @@ describe("/api/shipping/auto-purchase — rejects unverified payments", () => {
   });
 });
 
+describe("/api/shipping/auto-purchase — checkout-time binding is authoritative", () => {
+  it("ignores a request body that names a different order, product, and destination", async () => {
+    // The attack this endpoint must not allow: a buyer holds a settled PI for
+    // a cheap-shipping checkout and POSTs an expensive destination (and a
+    // different, heavier parcel profile) after the fact. The core must
+    // receive the checkout-time record, never the body values.
+    const res = createResponse();
+    await handler(
+      makeRequest(
+        validBody({
+          orderId: "order-ATTACKER",
+          productId: "prod_evt_HEAVY",
+          toAddress: {
+            name: "Mule",
+            street1: "1 Expensive Way",
+            city: "Remote",
+            state: "AK",
+            zip: "99501",
+            country: "US",
+          },
+        })
+      ),
+      res as any
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(runAutoLabelPurchaseMock).toHaveBeenCalledTimes(1);
+    const arg = runAutoLabelPurchaseMock.mock.calls[0][0];
+    expect(arg.orderId).toBe("order-1");
+    expect(arg.productId).toBe("prod_evt_1");
+    expect(arg.toAddress).toMatchObject({
+      street1: "100 Buyer St",
+      zip: "90001",
+    });
+    // Explicitly NOT the attacker-supplied values — an echo regression must fail.
+    expect(arg.orderId).not.toBe("order-ATTACKER");
+    expect(arg.productId).not.toBe("prod_evt_HEAVY");
+    expect(arg.toAddress.zip).not.toBe("99501");
+  });
+
+  it("fails closed when no checkout binding exists for the verified payment", async () => {
+    // Legacy payment (created before binding shipped), a non-shipping
+    // checkout, or a pruned record: no binding means NO automatic label.
+    getShippingCheckoutContextMock.mockResolvedValue(null);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.jsonBody).toEqual({
+      success: false,
+      reason: "no-checkout-context",
+    });
+    expect(runAutoLabelPurchaseMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the binding lookup itself errors", async () => {
+    // A DB outage must not be read as "no binding" and must never reach the
+    // purchase core.
+    getShippingCheckoutContextMock.mockRejectedValue(new Error("db down"));
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.jsonBody).toEqual({ success: false, reason: "error" });
+    expect(runAutoLabelPurchaseMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("/api/shipping/auto-purchase — account resolution", () => {
   it("falls back to the platform account for a multi-merchant charge", async () => {
     // This seller's products were part of a platform (multi-merchant) charge:
@@ -236,8 +331,8 @@ describe("/api/shipping/auto-purchase — account resolution", () => {
   });
 });
 
-describe("/api/shipping/auto-purchase — claim is bound to the verified PI id, not the client value", () => {
-  it("uses the Stripe-verified PaymentIntent id as claimRef even when the request body sends a different id", async () => {
+describe("/api/shipping/auto-purchase — claim and binding are bound to the verified PI id, not the client value", () => {
+  it("uses the Stripe-verified PaymentIntent id for the claim and the binding lookup even when the request body sends a different id", async () => {
     // The replay guard must key off the id Stripe actually returns, never the
     // client-supplied paymentIntentId — otherwise a buyer could craft a body
     // that escapes the once-per-payment claim and buy unlimited seller-billed
@@ -259,7 +354,12 @@ describe("/api/shipping/auto-purchase — claim is bound to the verified PI id, 
     expect(retrieveMock).toHaveBeenCalledWith("pi_CLIENT", {
       stripeAccount: "acct_123",
     });
-    // ...but the claim is bound to the id Stripe actually returned.
+    // ...but the checkout binding is keyed by the id Stripe actually returned.
+    expect(getShippingCheckoutContextMock).toHaveBeenCalledWith(
+      "stripe:pi_VERIFIED",
+      SELLER
+    );
+    // ...and so is the dedupe claim.
     const arg = runAutoLabelPurchaseMock.mock.calls[0][0];
     expect(arg.claimRef).toBe("pi_VERIFIED");
     // Explicitly NOT the client-supplied value — an echo regression must fail.

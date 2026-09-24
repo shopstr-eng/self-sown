@@ -29,6 +29,7 @@ const isSelfHostTenantMock = jest.fn();
 const stripeCreateMock = jest.fn();
 const recordPendingPaymentMock = jest.fn();
 const updatePendingPaymentMock = jest.fn();
+const recordShippingCheckoutContextsMock = jest.fn();
 const resolveDonationCutMock = jest.fn();
 const registerApplePayDomainMock = jest.fn();
 const getDomainByHostMock = jest.fn();
@@ -82,6 +83,11 @@ jest.mock("@/utils/db/custom-domains", () => ({
   getDomainByHost: (...args: unknown[]) => getDomainByHostMock(...args),
 }));
 
+jest.mock("@/utils/db/shipping-service", () => ({
+  recordShippingCheckoutContexts: (...args: unknown[]) =>
+    recordShippingCheckoutContextsMock(...args),
+}));
+
 import createPaymentIntentHandler from "@/pages/api/stripe/create-payment-intent";
 import { SITE_HOST } from "@/utils/site-url";
 
@@ -132,6 +138,7 @@ beforeEach(() => {
     .mockResolvedValue({ id: "pi_123", client_secret: "pi_123_secret" });
   recordPendingPaymentMock.mockReset().mockResolvedValue(undefined);
   updatePendingPaymentMock.mockReset().mockResolvedValue(undefined);
+  recordShippingCheckoutContextsMock.mockReset().mockResolvedValue(undefined);
   resolveDonationCutMock
     .mockReset()
     .mockResolvedValue({ percent: 0, cutSmallest: 0 });
@@ -520,6 +527,82 @@ describe("POST /api/stripe/create-payment-intent — multi-merchant rejection", 
     // Buyer charged the sum of the per-seller splits (500 + 500).
     const params = stripeCreateMock.mock.calls[0][0] as any;
     expect(params.amount).toBe(1000);
+  });
+});
+
+describe("POST /api/stripe/create-payment-intent — checkout shipping binding", () => {
+  const shippingAddress = {
+    name: "Buyer Person",
+    street1: "100 Buyer St",
+    city: "Buyerville",
+    state: "CA",
+    zip: "90001",
+    country: "US",
+  };
+
+  it("persists the checkout context keyed by the VERIFIED PaymentIntent id, only for the seller being charged", async () => {
+    getStripeConnectAccountMock.mockResolvedValue({
+      stripe_account_id: "acct_seller",
+      charges_enabled: true,
+    });
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          amount: 10,
+          currency: "usd",
+          metadata: { sellerPubkey: SELLER },
+          shippingContexts: [
+            {
+              sellerPubkey: SELLER,
+              orderId: "order-1",
+              productId: "prod_evt_1",
+              toAddress: shippingAddress,
+            },
+            // A context for a seller this intent does not charge must be
+            // dropped — never plant a binding on someone else's behalf.
+            {
+              sellerPubkey: SELLER_B,
+              orderId: "order-1",
+              productId: "prod_evt_2",
+              toAddress: shippingAddress,
+            },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(recordShippingCheckoutContextsMock).toHaveBeenCalledTimes(1);
+    const [ref, contexts] = recordShippingCheckoutContextsMock.mock.calls[0];
+    expect(ref).toBe("stripe:pi_123");
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0]).toMatchObject({
+      sellerPubkey: SELLER,
+      orderId: "order-1",
+      productId: "prod_evt_1",
+      toAddress: { street1: "100 Buyer St", zip: "90001" },
+    });
+  });
+
+  it("still succeeds when no shipping contexts are sent (non-shipping checkout)", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          amount: 10,
+          currency: "usd",
+          metadata: { sellerPubkey: SELLER },
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect((res.body as any).success).toBe(true);
+    expect(recordShippingCheckoutContextsMock).toHaveBeenCalledTimes(1);
+    expect(recordShippingCheckoutContextsMock.mock.calls[0][1]).toEqual([]);
   });
 });
 

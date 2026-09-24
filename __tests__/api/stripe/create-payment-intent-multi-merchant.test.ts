@@ -34,6 +34,7 @@ const isSelfHostTenantMock = jest.fn();
 const stripeCreateMock = jest.fn();
 const recordPendingPaymentMock = jest.fn();
 const updatePendingPaymentMock = jest.fn();
+const recordShippingCheckoutContextsMock = jest.fn();
 const resolveDonationCutMock = jest.fn();
 const satsToUSDMock = jest.fn();
 const registerApplePayDomainMock = jest.fn();
@@ -102,6 +103,11 @@ jest.mock("@/utils/db/custom-domains", () => ({
   getDomainByHost: (...args: unknown[]) => getDomainByHostMock(...args),
 }));
 
+jest.mock("@/utils/db/shipping-service", () => ({
+  recordShippingCheckoutContexts: (...args: unknown[]) =>
+    recordShippingCheckoutContextsMock(...args),
+}));
+
 jest.mock("@/utils/db/affiliates", () => ({
   // Real pure helpers (discount/rebate math, validity, self-referral); only
   // the seller-scoped DB lookup is mocked.
@@ -165,6 +171,7 @@ beforeEach(() => {
     .mockResolvedValue({ id: "pi_123", client_secret: "pi_123_secret" });
   recordPendingPaymentMock.mockReset().mockResolvedValue(undefined);
   updatePendingPaymentMock.mockReset().mockResolvedValue(undefined);
+  recordShippingCheckoutContextsMock.mockReset().mockResolvedValue(undefined);
   resolveDonationCutMock
     .mockReset()
     .mockResolvedValue({ percent: 0, cutSmallest: 0 });
@@ -230,6 +237,65 @@ describe("POST /api/stripe/create-payment-intent — Apple Pay domain registrati
     expect(res.statusCode).toBe(200);
     expect(stripeCreateMock).toHaveBeenCalledTimes(1);
     expect(registerApplePayDomainMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/stripe/create-payment-intent — checkout shipping binding (multi-merchant)", () => {
+  const shippingAddress = {
+    name: "Buyer Person",
+    street1: "100 Buyer St",
+    city: "Buyerville",
+    state: "CA",
+    zip: "90001",
+    country: "US",
+  };
+
+  it("persists one context per split seller, keyed by the VERIFIED PaymentIntent id, and drops sellers not in the split", async () => {
+    const res = makeRes();
+    await createPaymentIntentHandler(
+      {
+        method: "POST",
+        body: {
+          amount: 0,
+          currency: "usd",
+          sellerSplits: [
+            { sellerPubkey: SELLER_A, amountSmallest: 500, currency: "usd" },
+            { sellerPubkey: SELLER_B, amountSmallest: 500, currency: "usd" },
+          ],
+          shippingContexts: [
+            {
+              sellerPubkey: SELLER_A,
+              orderId: "order-1",
+              productId: "prod_a",
+              toAddress: shippingAddress,
+            },
+            {
+              sellerPubkey: SELLER_B,
+              orderId: "order-1",
+              productId: "prod_b",
+              toAddress: shippingAddress,
+            },
+            // A seller this intent does not charge must never get a binding.
+            {
+              sellerPubkey: "e".repeat(64),
+              orderId: "order-1",
+              productId: "prod_x",
+              toAddress: shippingAddress,
+            },
+          ],
+        },
+      } as any,
+      res as any
+    );
+    expect(res.statusCode).toBe(200);
+    expect(recordShippingCheckoutContextsMock).toHaveBeenCalledTimes(1);
+    const [ref, contexts] = recordShippingCheckoutContextsMock.mock.calls[0];
+    expect(ref).toBe("stripe:pi_123");
+    expect(contexts.map((c: any) => c.sellerPubkey).sort()).toEqual([
+      SELLER_A,
+      SELLER_B,
+    ]);
+    expect(contexts).toHaveLength(2);
   });
 });
 

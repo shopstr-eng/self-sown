@@ -13,6 +13,11 @@ import {
   createSquarePayment,
 } from "@/utils/square/square-api";
 import { isSquareConfigured } from "@/utils/square/square-config";
+import { recordShippingCheckoutContexts } from "@/utils/db/shipping-service";
+import {
+  sanitizeCheckoutContext,
+  squareCheckoutRef,
+} from "@/utils/shipping/checkout-context";
 
 // Buyer/guest-facing card charge on a SINGLE seller's own Square account.
 //
@@ -56,6 +61,11 @@ export default async function handler(
       productTitle,
       metadata,
       verificationToken: rawVerificationToken,
+      // Checkout-time shipping binding for the auto-label purchase route:
+      // persisted server-side keyed by the VERIFIED Square payment id so the
+      // post-payment auto-purchase POST derives order/product/destination
+      // from this record instead of trusting the buyer's request body.
+      shippingContext,
     } = req.body;
 
     if (!sourceId || typeof sourceId !== "string") {
@@ -171,6 +181,24 @@ export default async function handler(
         error: "Payment was not completed",
         status: payment.status,
       });
+    }
+
+    // Bind the buyer's checkout destination/product to the VERIFIED Square
+    // payment id, for THIS seller only (the charge just settled on their own
+    // Square account). Best-effort: a write failure only means the auto-label
+    // purchase later skips (seller buys manually) — never a wrong label.
+    try {
+      const context = sanitizeCheckoutContext(
+        shippingContext,
+        new Set([sellerPubkey])
+      );
+      if (context) {
+        await recordShippingCheckoutContexts(squareCheckoutRef(payment.id), [
+          context,
+        ]);
+      }
+    } catch (e) {
+      console.warn("recordShippingCheckoutContexts failed:", e);
     }
 
     return res.status(200).json({

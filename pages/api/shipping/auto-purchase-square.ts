@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { applyRateLimit } from "@/utils/rate-limit";
+import { getShippingCheckoutContext } from "@/utils/db/shipping-service";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isSquareConfigured } from "@/utils/square/square-config";
 import {
@@ -7,7 +8,7 @@ import {
   getSquarePayment,
 } from "@/utils/square/square-api";
 import { runAutoLabelPurchase } from "@/utils/shipping/auto-purchase";
-import type { ShippingAddressInput } from "@/utils/shipping/types";
+import { squareCheckoutRef } from "@/utils/shipping/checkout-context";
 
 // Web (Square) card path for automatic shipping-label purchase. Mirrors the
 // Stripe endpoint (pages/api/shipping/auto-purchase.ts) for sellers charging on
@@ -18,18 +19,20 @@ import type { ShippingAddressInput } from "@/utils/shipping/types";
 // before letting the shared core buy a label on the seller's own Shippo account.
 // Retrieving the payment with the seller's token is what binds the payment to
 // that seller (a payment id from another account 404s), and we require status
-// `COMPLETED` (autocomplete charges; APPROVED funds are only authorized). No
-// Nostr proof is required; authorization comes from the verified, settled
-// payment. Square is single-seller only, so there is no multi-merchant path.
+// `COMPLETED` (autocomplete charges; APPROVED funds are only authorized). The
+// order, product, and destination come from the checkout-time record the
+// create-payment route persisted against the VERIFIED payment id — never from
+// this request's body, or a buyer holding any settled payment could redirect
+// the seller-billed label to an arbitrary address/parcel. No Nostr proof is
+// required; authorization comes from the verified, settled payment plus the
+// checkout-time binding. Square is single-seller only, so there is no
+// multi-merchant path.
 
 const RATE_LIMIT = { limit: 30, windowMs: 60_000 };
 
 interface AutoPurchaseSquareBody {
   squarePaymentId: string;
-  orderId: string;
   sellerPubkey: string;
-  productId: string;
-  toAddress: ShippingAddressInput;
 }
 
 export default async function handler(
@@ -54,20 +57,11 @@ export default async function handler(
   }
 
   try {
-    const { squarePaymentId, orderId, sellerPubkey, productId, toAddress } =
-      (req.body || {}) as Partial<AutoPurchaseSquareBody>;
+    const { squarePaymentId, sellerPubkey } = (req.body || {}) as Partial<
+      AutoPurchaseSquareBody
+    >;
 
-    if (
-      !squarePaymentId ||
-      !orderId ||
-      !sellerPubkey ||
-      !productId ||
-      !toAddress?.street1 ||
-      !toAddress?.city ||
-      !toAddress?.state ||
-      !toAddress?.zip ||
-      !toAddress?.country
-    ) {
+    if (!squarePaymentId || !sellerPubkey) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
@@ -94,26 +88,31 @@ export default async function handler(
         .json({ success: false, reason: "payment-not-completed" });
     }
 
+    // The order, product, and destination come from the checkout-time record
+    // bound to the VERIFIED Square payment id at payment creation. A missing
+    // record (legacy payment, non-shipping checkout, pruned row) fails
+    // closed: no label, and the seller can still buy manually.
+    const context = await getShippingCheckoutContext(
+      squareCheckoutRef(payment.id),
+      sellerPubkey
+    );
+    if (!context) {
+      return res
+        .status(200)
+        .json({ success: false, reason: "no-checkout-context" });
+    }
+
     const result = await runAutoLabelPurchase({
       sellerPubkey,
-      orderId,
+      orderId: context.orderId,
       // Dedupe on the VERIFIED Square payment id, not the client-supplied
       // orderId: the buyer's browser generates orderId, so keying the claim on
       // it would let one settled payment be replayed with fresh orderIds to buy
       // unlimited seller-billed labels. payment.id is Square-bound and
       // one-per-charge.
       claimRef: payment.id,
-      productId,
-      toAddress: {
-        name: toAddress.name,
-        street1: toAddress.street1,
-        street2: toAddress.street2,
-        city: toAddress.city,
-        state: toAddress.state,
-        zip: toAddress.zip,
-        country: toAddress.country,
-        email: toAddress.email,
-      },
+      productId: context.productId,
+      toAddress: context.toAddress,
     });
 
     return res.status(200).json({

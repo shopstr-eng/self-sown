@@ -59,6 +59,11 @@ import {
   SUBSCRIPTION_TERMINAL_METADATA_KEY,
 } from "@/utils/stripe/pending-payments";
 import { resolveDonationCut } from "@/utils/stripe/donation";
+import { recordShippingCheckoutContexts } from "@/utils/db/shipping-service";
+import {
+  sanitizeCheckoutContexts,
+  stripeCheckoutRef,
+} from "@/utils/shipping/checkout-context";
 import {
   computeRebateSmallest,
   isAffiliateCodeValid,
@@ -123,6 +128,11 @@ export default async function handler(
       sellerSplits,
       salesTaxSmallest,
       taxCalculationId,
+      // Checkout-time shipping binding for the auto-label purchase route:
+      // persisted server-side keyed by the VERIFIED PaymentIntent id so the
+      // post-payment auto-purchase POST derives order/product/destination
+      // from this record instead of trusting the buyer's request body.
+      shippingContexts,
     } = req.body;
 
     // Stripe metadata values are capped at 500 chars; truncate any long strings
@@ -534,6 +544,22 @@ export default async function handler(
         paymentIntentId: paymentIntent.id,
         status: "created",
       });
+      // Bind the buyer's checkout destination/product per seller to the
+      // VERIFIED PaymentIntent id. Only the server-validated split sellers
+      // may carry a context. Best-effort: a write failure only means the
+      // auto-label purchase later skips (seller buys manually) — never a
+      // wrong label, so it must not fail the checkout.
+      try {
+        await recordShippingCheckoutContexts(
+          stripeCheckoutRef(paymentIntent.id),
+          sanitizeCheckoutContexts(
+            shippingContexts,
+            new Set(splitDetails.map((s) => s.pubkey))
+          )
+        );
+      } catch (e) {
+        console.warn("recordShippingCheckoutContexts failed:", e);
+      }
 
       return res.status(200).json({
         success: true,
@@ -667,6 +693,23 @@ export default async function handler(
       });
     } catch (e) {
       console.warn("updatePendingPayment failed:", e);
+    }
+    // Same checkout-time shipping binding as the multi-merchant branch above.
+    // The direct charge lands on the account of the metadata seller(s), so
+    // only they may carry a context for this intent.
+    try {
+      const allowedSellers = new Set(
+        (typeof sellerPubkey === "string" ? sellerPubkey : "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      );
+      await recordShippingCheckoutContexts(
+        stripeCheckoutRef(paymentIntent.id),
+        sanitizeCheckoutContexts(shippingContexts, allowedSellers)
+      );
+    } catch (e) {
+      console.warn("recordShippingCheckoutContexts failed:", e);
     }
 
     return res.status(200).json({

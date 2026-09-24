@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getSquareWebSdkUrl } from "@/utils/square/square-config";
+import type { ShippingCheckoutContext } from "@/utils/shipping/checkout-context";
 import {
   EXCHANGE_RATE_BUYER_MESSAGE,
   EXCHANGE_RATE_ERROR_CODE,
@@ -120,6 +121,7 @@ export default function SquareCardForm({
   customerEmail,
   productTitle,
   metadata,
+  shippingContext,
   onPaymentSuccess,
   onPaymentError,
   onCancel,
@@ -137,6 +139,10 @@ export default function SquareCardForm({
   customerEmail?: string;
   productTitle?: string;
   metadata?: Record<string, unknown>;
+  // Checkout-time shipping binding (order/product/destination) the server
+  // persists against the verified payment id; the auto-label purchase route
+  // later derives these from that record instead of the post-payment body.
+  shippingContext?: ShippingCheckoutContext;
   onPaymentSuccess: (paymentId: string) => void;
   onPaymentError: (error: string) => void;
   onCancel: () => void;
@@ -319,6 +325,7 @@ export default function SquareCardForm({
         customerEmail,
         productTitle,
         metadata,
+        ...(shippingContext ? { shippingContext } : {}),
         ...(verificationToken ? { verificationToken } : {}),
       }),
     });
