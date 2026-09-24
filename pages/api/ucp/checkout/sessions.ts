@@ -287,37 +287,75 @@ async function handleCreate(
       // sees status `requires_escalation` + a severity-tagged message and can
       // pivot to a fiat payment method or ask the seller to re-price.
       if (error.body?.escalate) {
-        // No order was placed and no session row is persisted, but the body
-        // must still validate against the published checkout-session schema:
-        // the schema conditionally relaxes amount/currency/payment ONLY for
-        // `requires_escalation` (and requires `error` there instead).
-        return res.status(200).json(
-          formatEphemeralCheckoutSession(
-            {
-              id: generateCheckoutSessionId(),
-              status: "requires_escalation" as CheckoutSessionStatus,
-              buyerPubkey,
-              sellerPubkey,
-              productId,
-              paymentMethod: input.paymentMethod || "stripe",
-              payment: null,
-              // The engine tells us the product's price currency on this
-              // failure; there is no total to report alongside it.
-              currency:
-                typeof error.body.currency === "string"
-                  ? error.body.currency
-                  : null,
-              messages: [
-                makeMessage("session_created", "Checkout session created."),
-                makeMessage("requires_escalation", error.body.error, "error"),
-              ],
-              error: error.body.error,
-              code:
-                typeof error.body.code === "string" ? error.body.code : null,
-            },
-            baseUrl
-          )
-        );
+        // No order was placed, but the escalation IS persisted as a
+        // requires_escalation session row (error + engine code, no order id)
+        // so an agent that comes back later can resolve the self link and
+        // find the attempt in its session list instead of a bare 404.
+        const escalationError =
+          typeof error.body.error === "string"
+            ? error.body.error
+            : "Checkout could not be completed automatically.";
+        const escalationCode =
+          typeof error.body.code === "string" ? error.body.code : null;
+        // The engine tells us the product's price currency on this failure;
+        // there is no total to record alongside it.
+        const escalationCurrency =
+          typeof error.body.currency === "string"
+            ? error.body.currency.toLowerCase()
+            : "usd";
+        const messages: CheckoutSessionMessage[] = [
+          makeMessage("session_created", "Checkout session created."),
+          makeMessage("requires_escalation", escalationError, "error"),
+        ];
+        const sessionId = generateCheckoutSessionId();
+        try {
+          const row = await insertCheckoutSession({
+            id: sessionId,
+            buyerPubkey,
+            sellerPubkey,
+            productId,
+            apiKeyId,
+            mcpOrderId: null,
+            status: "requires_escalation" as CheckoutSessionStatus,
+            paymentMethod: input.paymentMethod || "stripe",
+            amountTotal: 0,
+            currency: escalationCurrency,
+            request: sanitizeRequest(input),
+            quote: null,
+            payment: null,
+            messages,
+            error: escalationError,
+            code: escalationCode,
+          });
+          return res.status(200).json(formatCheckoutSession(row, baseUrl));
+        } catch (persistError) {
+          console.error("UCP checkout escalation persist error:", persistError);
+          // The response must still validate against the published
+          // checkout-session schema: the schema conditionally relaxes
+          // amount/currency/payment ONLY for `requires_escalation` (and
+          // requires `error` there instead). The warning explains why the
+          // self link will 404.
+          return res.status(200).json(
+            formatEphemeralCheckoutSession(
+              {
+                id: sessionId,
+                status: "requires_escalation" as CheckoutSessionStatus,
+                buyerPubkey,
+                sellerPubkey,
+                productId,
+                paymentMethod: input.paymentMethod || "stripe",
+                payment: null,
+                currency: escalationCurrency,
+                messages,
+                error: escalationError,
+                code: escalationCode,
+                warning:
+                  "Session record could not be persisted; this escalation will not appear in your session list.",
+              },
+              baseUrl
+            )
+          );
+        }
       }
       // Validation / business-rule failure: surface the order engine's exact
       // status + detail and do NOT persist a junk session row.

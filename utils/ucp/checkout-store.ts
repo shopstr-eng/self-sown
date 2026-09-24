@@ -56,6 +56,9 @@ export interface CheckoutSessionRow {
   payment: any;
   messages: CheckoutSessionMessage[] | null;
   error: string | null;
+  /** Machine-readable error code from the order engine (e.g.
+   * exchange_rate_unavailable), stamped on pre-order escalation rows. */
+  code: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +80,9 @@ export interface InsertCheckoutSessionInput {
   quote: any;
   payment: any;
   messages: CheckoutSessionMessage[];
+  /** Set on requires_escalation rows so the reason survives for later reads. */
+  error?: string | null;
+  code?: string | null;
 }
 
 let tableReady = false;
@@ -111,6 +117,10 @@ export async function initCheckoutSessionsTable(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_buyer ON ucp_checkout_sessions(buyer_pubkey);
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_order ON ucp_checkout_sessions(mcp_order_id);
       CREATE INDEX IF NOT EXISTS idx_ucp_checkout_sessions_status ON ucp_checkout_sessions(status);
+      -- Pre-order escalation rows persist the engine's machine-readable error
+      -- code (e.g. exchange_rate_unavailable) so the reason survives for
+      -- agents that look the session up after the fact.
+      ALTER TABLE ucp_checkout_sessions ADD COLUMN IF NOT EXISTS code TEXT;
     `);
 
       // Idempotent migration to the UCP lifecycle status names. A table created by
@@ -181,8 +191,9 @@ export async function insertCheckoutSession(
     const result = await client.query(
       `INSERT INTO ucp_checkout_sessions
          (id, api_key_id, buyer_pubkey, seller_pubkey, product_id, mcp_order_id,
-          status, payment_method, amount_total, currency, request, quote, payment, messages)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+          status, payment_method, amount_total, currency, request, quote, payment, messages,
+          error, code)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING *`,
       [
         id,
@@ -199,6 +210,8 @@ export async function insertCheckoutSession(
         input.quote ? JSON.stringify(input.quote) : null,
         input.payment ? JSON.stringify(input.payment) : null,
         JSON.stringify(input.messages || []),
+        input.error ?? null,
+        input.code ?? null,
       ] as any[]
     );
     return result.rows[0];
@@ -274,10 +287,11 @@ export async function updateCheckoutSessionStatus(
 
 /**
  * Fields of an EPHEMERAL (unpersisted) checkout-session response: the 201
- * persist-failure fallback and the 200 requires_escalation envelope in
- * /api/ucp/checkout/sessions. No row exists for these, so there is no row to
- * format — but the published JSON Schema still governs the body, so both the
- * route and the schema-contract test build them through this ONE helper.
+ * persist-failure fallback in /api/ucp/checkout/sessions, and the same
+ * fallback for the 200 requires_escalation envelope when the escalation row
+ * itself could not be persisted. No row exists for these, so there is no row
+ * to format — but the published JSON Schema still governs the body, so both
+ * the route and the schema-contract test build them through this ONE helper.
  */
 export interface EphemeralCheckoutSessionInput {
   id: string;
@@ -338,6 +352,12 @@ export function formatCheckoutSession(
   row: CheckoutSessionRow,
   baseUrl: string
 ) {
+  // A persisted PRE-ORDER escalation row (requires_escalation, no order) has
+  // no real total — the column defaults to 0 — so amount is omitted rather
+  // than reporting a misleading 0. The schema relaxes amount for exactly
+  // this shape and requires the explanatory error instead.
+  const preOrderEscalation =
+    row.status === "requires_escalation" && !row.mcp_order_id;
   return {
     id: row.id,
     status: row.status,
@@ -346,12 +366,13 @@ export function formatCheckoutSession(
     productId: row.product_id,
     ...(row.mcp_order_id ? { orderId: row.mcp_order_id } : {}),
     paymentMethod: row.payment_method,
-    amount: Number(row.amount_total),
+    ...(preOrderEscalation ? {} : { amount: Number(row.amount_total) }),
     currency: row.currency,
     payment: row.payment || null,
     ...(row.quote ? { quote: row.quote } : {}),
     messages: row.messages || [],
     ...(row.error ? { error: row.error } : {}),
+    ...(row.code ? { code: row.code } : {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     links: {
