@@ -58,9 +58,13 @@ const BASE_ROW: CheckoutSessionRow = {
   amount_total: "12.50",
   currency: "usd",
   request: {},
+  // Real pricingBlock shape written by the order engine
+  // (utils/ucp/order-service.ts buildQuote).
   quote: {
-    items: [{ productId: "30402:bb:raw-milk-gallon", quantity: 1, amount: 12 }],
-    shipping: 0.5,
+    unitPrice: 12,
+    quantity: 1,
+    subtotal: 12,
+    shippingCost: 0.5,
     total: 12.5,
     currency: "usd",
   },
@@ -112,8 +116,23 @@ const PAYMENT_BY_METHOD: Record<PaymentMethod, Record<string, unknown>> = {
     availableMethods: ["Venmo @seller"],
     amount: 12.5,
     currency: "usd",
-    sellerContact: { npub: "npub1..." },
+    // Engine shape: { name, nip05 } (utils/ucp/order-service.ts).
+    sellerContact: { name: "Seller", nip05: "seller@example.com" },
   },
+};
+
+// The subscription arm of describeResult: payment_method stays "stripe" but the
+// descriptor carries subscription fields, and the session has no order/quote.
+const SUBSCRIPTION_PAYMENT: Record<string, unknown> = {
+  method: "stripe",
+  type: "subscription",
+  subscriptionId: "sub_123",
+  frequency: "monthly",
+  clientSecret: "sub_123_secret",
+  customerId: "cus_123",
+  connectedAccountId: "acct_123",
+  recurringAmount: 10,
+  currency: "usd",
 };
 
 // One formatted session per payment method, plus one per lifecycle status,
@@ -139,6 +158,20 @@ function representativeSessions(): Array<ReturnType<typeof formatCheckoutSession
       )
     );
   }
+  // Subscription checkout: no order row or quote yet, subscription descriptor.
+  sessions.push(
+    formatCheckoutSession(
+      {
+        ...BASE_ROW,
+        payment_method: "stripe",
+        status: "ready_for_complete",
+        mcp_order_id: null,
+        quote: null,
+        payment: SUBSCRIPTION_PAYMENT,
+      },
+      SITE_URL
+    )
+  );
   for (const status of CHECKOUT_STATUSES) {
     sessions.push(
       formatCheckoutSession(
@@ -241,5 +274,124 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
         session.paymentMethod
       );
     }
+  });
+
+  // --- Payment-descriptor discrimination ---------------------------------
+  // The payment subschema is self-contained (no $refs), so it can be compiled
+  // on its own to validate the describeResult descriptors directly.
+
+  function compileSubschema(subschema: JsonSchema) {
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
+    return ajv.compile(subschema);
+  }
+
+  it("discriminates the payment object by method with one branch per describeResult arm", () => {
+    const payment = schema.properties?.payment;
+    expect(payment?.allOf).toHaveLength(4);
+    const methods = payment.allOf.map(
+      (branch: JsonSchema) => branch.if?.properties?.method?.const
+    );
+    expect([...methods].sort()).toEqual(["cashu", "fiat", "lightning", "stripe"]);
+  });
+
+  it("accepts every describeResult payment descriptor under its discriminated branch", () => {
+    const validatePayment = compileSubschema(schema.properties.payment);
+    const descriptors: Array<[string, Record<string, unknown>]> = [
+      ...Object.entries(PAYMENT_BY_METHOD),
+      ["subscription", SUBSCRIPTION_PAYMENT],
+    ];
+    for (const [label, descriptor] of descriptors) {
+      const ok: boolean = validatePayment(descriptor);
+      expect(
+        ok
+          ? true
+          : `payment subschema rejected the ${label} descriptor: ${JSON.stringify(validatePayment.errors)}`
+      ).toBe(true);
+    }
+  });
+
+  it("also accepts the nullable arms of the stripe descriptors", () => {
+    const validatePayment = compileSubschema(schema.properties.payment);
+    const oneTime: boolean = validatePayment({
+      ...PAYMENT_BY_METHOD.stripe,
+      paymentIntentId: null,
+      clientSecret: null,
+      connectedAccountId: null,
+    });
+    expect(oneTime ? true : JSON.stringify(validatePayment.errors)).toBe(true);
+    // /api/stripe/create-subscription returns clientSecret:null when no
+    // first-payment PaymentIntent is resolved; the descriptor carries it.
+    const subNullSecret: boolean = validatePayment({
+      ...SUBSCRIPTION_PAYMENT,
+      clientSecret: null,
+    });
+    expect(
+      subNullSecret ? true : JSON.stringify(validatePayment.errors)
+    ).toBe(true);
+  });
+
+  it.each([
+    ["lightning", { ...PAYMENT_BY_METHOD.lightning, bolt11: undefined, invoice: "lnbc1..." }],
+    ["stripe one-time", { ...PAYMENT_BY_METHOD.stripe, paymentIntentId: undefined, intentId: "pi_123" }],
+    ["cashu", { ...PAYMENT_BY_METHOD.cashu, change: undefined, changeAmount: 0 }],
+    ["fiat", { ...PAYMENT_BY_METHOD.fiat, availableMethods: undefined, methods: ["Venmo"] }],
+    [
+      "subscription",
+      { ...SUBSCRIPTION_PAYMENT, subscriptionId: undefined, subId: "sub_123" },
+    ],
+  ])(
+    "fails closed when a field of the %s descriptor is renamed (drift)",
+    (_label, descriptor) => {
+      const validatePayment = compileSubschema(schema.properties.payment);
+      // JSON round-trip drops the undefined placeholder keys, leaving the
+      // renamed field in place of the real one.
+      const ok: boolean = validatePayment(
+        JSON.parse(JSON.stringify(descriptor))
+      );
+      expect(ok).toBe(false);
+    }
+  );
+
+  it.each([
+    ["lightning", { ...PAYMENT_BY_METHOD.lightning, surpriseField: 1 }],
+    ["stripe one-time", { ...PAYMENT_BY_METHOD.stripe, surpriseField: 1 }],
+    ["subscription", { ...SUBSCRIPTION_PAYMENT, surpriseField: 1 }],
+    ["cashu", { ...PAYMENT_BY_METHOD.cashu, surpriseField: 1 }],
+    ["fiat", { ...PAYMENT_BY_METHOD.fiat, surpriseField: 1 }],
+  ])("rejects an unexpected extra field on the %s descriptor", (_l, descriptor) => {
+    const validatePayment = compileSubschema(schema.properties.payment);
+    expect(validatePayment(descriptor)).toBe(false);
+  });
+
+  // --- Quote shape ---------------------------------------------------------
+
+  it("accepts the quote shapes the order engine writes", () => {
+    const validateQuote = compileSubschema(schema.properties.quote);
+    const quotes = [
+      BASE_ROW.quote,
+      {
+        ...BASE_ROW.quote,
+        discountPercentage: 10,
+        discountedSubtotal: 10.8,
+        selectedSpecs: { size: "gallon" },
+      },
+    ];
+    for (const quote of quotes) {
+      const ok: boolean = validateQuote(quote);
+      expect(
+        ok
+          ? true
+          : `quote subschema rejected an engine quote: ${JSON.stringify(validateQuote.errors)}`
+      ).toBe(true);
+    }
+  });
+
+  it.each([
+    ["renamed total", { ...BASE_ROW.quote, total: undefined, totalAmount: 12.5 }],
+    ["extra field", { ...BASE_ROW.quote, surpriseField: 1 }],
+  ])("rejects a quote with %s (drift)", (_label, quote) => {
+    const validateQuote = compileSubschema(schema.properties.quote);
+    expect(validateQuote(JSON.parse(JSON.stringify(quote)))).toBe(false);
   });
 });

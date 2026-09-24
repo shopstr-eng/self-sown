@@ -223,12 +223,15 @@ export type OrderFlowResult =
       status: string;
       // Carry the raw upstream values (possibly undefined) so the MCP route can
       // omit absent fields exactly as the legacy inline handler did.
+      // clientSecret can also be an explicit null: /api/stripe/create-subscription
+      // returns `paymentIntent?.client_secret || null` when the subscription has
+      // no first-payment PaymentIntent.
       currentPeriodEnd: number | undefined;
       recurringAmount: number;
       currency: string;
       quantity: number;
       discountPercent: number;
-      clientSecret: string | undefined;
+      clientSecret: string | null | undefined;
       customerId: string | undefined;
       connectedAccountId: string | undefined;
     };
