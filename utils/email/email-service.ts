@@ -116,10 +116,37 @@ export async function sendEmailStrictFrom(params: {
   replyTo?: string;
   headers?: Record<string, string>;
 }): Promise<boolean> {
+  return (await sendEmailStrictFromDetailed(params)).ok;
+}
+
+export interface StrictFromSendResult {
+  ok: boolean;
+  /**
+   * True only when SendGrid DEFINITELY rejected the message (HTTP 4xx other
+   * than 408/429): nothing was accepted, so a retry can never duplicate it.
+   * False for timeouts/network errors and 5xx, where acceptance is unknown.
+   */
+  definiteReject: boolean;
+}
+
+/**
+ * Detailed variant of sendEmailStrictFrom for at-most-once senders (e.g. the
+ * one-time broadcast ledger): distinguishes a definite provider rejection
+ * (safe to retry) from an ambiguous failure (must NOT be retried blindly).
+ */
+export async function sendEmailStrictFromDetailed(params: {
+  to: string;
+  subject: string;
+  html: string;
+  fromEmail: string;
+  fromName?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+}): Promise<StrictFromSendResult> {
   const { to, subject, html, fromEmail, fromName, replyTo, headers } = params;
   if (!fromEmail || !fromEmail.includes("@")) {
     console.error("sendEmailStrictFrom called without a valid from-address");
-    return false;
+    return { ok: false, definiteReject: true };
   }
   try {
     const { client } = await getUncachableSendGridClient();
@@ -138,10 +165,18 @@ export async function sendEmailStrictFrom(params: {
     if (replyTo) msg.replyTo = replyTo;
     if (headers && Object.keys(headers).length > 0) msg.headers = headers;
     await client.send(msg);
-    return true;
-  } catch (error) {
+    return { ok: true, definiteReject: false };
+  } catch (error: any) {
     console.error("sendEmailStrictFrom: send failed (no fallback):", error);
-    return false;
+    const status =
+      error?.code ?? error?.response?.statusCode ?? error?.statusCode;
+    const definiteReject =
+      typeof status === "number" &&
+      status >= 400 &&
+      status < 500 &&
+      status !== 408 &&
+      status !== 429;
+    return { ok: false, definiteReject };
   }
 }
 

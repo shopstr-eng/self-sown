@@ -948,6 +948,33 @@ async function initializeTables(): Promise<void> {
           PRIMARY KEY (pubkey, d_tag, event_id, email)
       );
 
+      -- One-time (agent-triggered) broadcast claims: one row per
+      -- (pubkey, claim_key) so a retried send with the same idempotency key
+      -- or identical content can never blast the audience twice. The daily
+      -- broadcast cap counts these rows.
+      CREATE TABLE IF NOT EXISTS one_time_broadcast_claims (
+          pubkey TEXT NOT NULL,
+          claim_key TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (pubkey, claim_key)
+      );
+
+      -- Binds a claim key to the content it first sent (key reuse with
+      -- different content is rejected). Nullable: rows predate the column.
+      ALTER TABLE one_time_broadcast_claims
+        ADD COLUMN IF NOT EXISTS content_key TEXT;
+
+      -- Per-recipient delivery ledger for one-time broadcasts, keyed by
+      -- CONTENT hash: at most one delivery per contact per content, across
+      -- any claim key. Released only on a definite provider rejection.
+      CREATE TABLE IF NOT EXISTS one_time_broadcast_recipients (
+          pubkey TEXT NOT NULL,
+          claim_key TEXT NOT NULL,
+          email TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (pubkey, claim_key, email)
+      );
+
       -- Subscriptions table for recurring product subscriptions
       CREATE TABLE IF NOT EXISTS subscriptions (
           id SERIAL PRIMARY KEY,
@@ -1336,6 +1363,27 @@ async function initializeTables(): Promise<void> {
         ON shipping_labels(purchased_at DESC);
       CREATE INDEX IF NOT EXISTS idx_shipping_labels_pubkey_purchased_at
         ON shipping_labels(pubkey, purchased_at DESC);
+      -- Hard guard against double-bought labels: at most one outbound label
+      -- row per (pubkey, order_id). The Shippo charge happens before the
+      -- insert, so a blocked insert surfaces via the CRITICAL reconciliation
+      -- log instead of silently double-recording. Skipped with a notice when
+      -- legacy duplicate rows exist (the index would fail to build).
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM shipping_labels
+          WHERE order_id IS NOT NULL AND NOT is_return
+          GROUP BY pubkey, order_id
+          HAVING COUNT(*) > 1
+          LIMIT 1
+        ) THEN
+          CREATE UNIQUE INDEX IF NOT EXISTS shipping_labels_outbound_order_key
+            ON shipping_labels (pubkey, order_id)
+            WHERE order_id IS NOT NULL AND NOT is_return;
+        ELSE
+          RAISE NOTICE 'shipping_labels has duplicate outbound order rows; skipping unique index';
+        END IF;
+      END $$;
 
       -- Shippo: per-seller saved parcel templates
       CREATE TABLE IF NOT EXISTS shipping_parcel_templates (
@@ -1466,11 +1514,17 @@ async function initializeTables(): Promise<void> {
         order_id TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'pending',
         shipment_id TEXT,
+        reconcile_token TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_shipping_label_order_claims_created_at
         ON shipping_label_order_claims(created_at);
+      -- Fixed-length token stamped into the Shippo transaction metadata (raw
+      -- claim keys exceed Shippo's 100-char metadata limit); shared by the
+      -- order and payment claims of one purchase so either can reconcile.
+      ALTER TABLE shipping_label_order_claims
+        ADD COLUMN IF NOT EXISTS reconcile_token TEXT;
 
       -- Backfill the auto-purchase toggle for sellers whose shipping_defaults
       -- row predates this column (defaults ON to match the new-row default).
@@ -4826,6 +4880,187 @@ export async function releaseBlogBroadcastRecipient(
     );
   } catch (error) {
     console.error("Failed to release blog broadcast recipient:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Release a one-time broadcast claim so it can be retried. Only safe when
+ * ZERO emails were actually sent (e.g. a provider outage); the content-keyed
+ * recipient ledger is what blocks any duplicate delivery on the retry.
+ */
+export async function releaseOneTimeBroadcast(
+  pubkey: string,
+  claimKey: string
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `DELETE FROM one_time_broadcast_claims
+        WHERE pubkey = $1 AND claim_key = $2`,
+      [pubkey, claimKey]
+    );
+  } catch (error) {
+    console.error("Failed to release one-time broadcast:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Immutable per-claim delivery ledger for one-time broadcasts. Returns the
+ * emailed addresses, or null on DB error so callers fail closed.
+ */
+export async function getOneTimeBroadcastRecipients(
+  pubkey: string,
+  claimKey: string
+): Promise<string[] | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT email FROM one_time_broadcast_recipients
+        WHERE pubkey = $1 AND claim_key = $2`,
+      [pubkey, claimKey]
+    );
+    return result.rows.map((row) => row.email as string);
+  } catch (error) {
+    logSwallowedDbOutage("Failed to get one-time broadcast recipients:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Atomically claim delivery of a one-time broadcast to one recipient. Returns
+ * true when this caller owns the delivery, false when another send already
+ * claimed it, and null on DB error (state unknown — caller must NOT retry
+ * this recipient, preserving at-most-once delivery).
+ */
+export async function claimOneTimeBroadcastRecipient(
+  pubkey: string,
+  claimKey: string,
+  email: string
+): Promise<boolean | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `INSERT INTO one_time_broadcast_recipients (pubkey, claim_key, email)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (pubkey, claim_key, email) DO NOTHING
+       RETURNING email`,
+      [pubkey, claimKey, email.toLowerCase()]
+    );
+    return (result.rowCount ?? 0) > 0;
+  } catch (error) {
+    logSwallowedDbOutage(
+      "Failed to claim one-time broadcast recipient:",
+      error
+    );
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Free a recipient claim after a FAILED delivery so a retry can re-attempt.
+ */
+export async function releaseOneTimeBroadcastRecipient(
+  pubkey: string,
+  claimKey: string,
+  email: string
+): Promise<void> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query(
+      `DELETE FROM one_time_broadcast_recipients
+        WHERE pubkey = $1 AND claim_key = $2 AND email = $3`,
+      [pubkey, claimKey, email.toLowerCase()]
+    );
+  } catch (error) {
+    console.error("Failed to release one-time broadcast recipient:", error);
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Atomically claim a one-time broadcast/test email while enforcing the daily
+ * cap in the SAME statement (count and insert can't drift apart across
+ * concurrent callers). Returns:
+ *  - "claimed": this call created the claim
+ *  - "exists":  the claim already existed (a retry — resume semantics)
+ *  - "limit":   the daily cap for claim keys under keyPrefix is reached
+ *  - null:      DB error (callers fail closed)
+ */
+export async function claimOneTimeBroadcastWithCap(
+  pubkey: string,
+  claimKey: string,
+  contentKey: string,
+  dailyLimit: number,
+  keyPrefix: string
+): Promise<"claimed" | "exists" | "mismatch" | "limit" | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    await client.query("BEGIN");
+    // Serialize claim+cap per (seller, prefix): without this lock, concurrent
+    // distinct-key claims under READ COMMITTED could all observe a below-cap
+    // count and all insert, blowing the daily cap.
+    await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [
+      `one-time-broadcast:${pubkey}:${keyPrefix}`,
+    ]);
+    const existing = await client.query(
+      `SELECT content_key FROM one_time_broadcast_claims
+        WHERE pubkey = $1 AND claim_key = $2`,
+      [pubkey, claimKey]
+    );
+    let outcome: "claimed" | "exists" | "mismatch" | "limit";
+    if ((existing.rowCount ?? 0) > 0) {
+      // A reused claim key must carry the SAME content; otherwise one old
+      // key could send unlimited distinct broadcasts around the daily cap.
+      const stored = existing.rows[0].content_key as string | null;
+      outcome = stored && stored !== contentKey ? "mismatch" : "exists";
+    } else {
+      const count = await client.query(
+        `SELECT COUNT(*)::int AS c FROM one_time_broadcast_claims
+          WHERE pubkey = $1
+            AND created_at > NOW() - INTERVAL '24 hours'
+            AND claim_key LIKE $2 || '%'`,
+        [pubkey, keyPrefix]
+      );
+      if (Number(count.rows[0]?.c ?? 0) >= dailyLimit) {
+        outcome = "limit";
+      } else {
+        await client.query(
+          `INSERT INTO one_time_broadcast_claims (pubkey, claim_key, content_key)
+           VALUES ($1, $2, $3)`,
+          [pubkey, claimKey, contentKey]
+        );
+        outcome = "claimed";
+      }
+    }
+    await client.query("COMMIT");
+    return outcome;
+  } catch (error) {
+    try {
+      if (client) await client.query("ROLLBACK");
+    } catch {
+      // connection lost; nothing to roll back
+    }
+    logSwallowedDbOutage("Failed to claim one-time broadcast:", error);
+    return null;
   } finally {
     if (client) client.release();
   }

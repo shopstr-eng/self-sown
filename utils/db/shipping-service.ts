@@ -463,19 +463,72 @@ async function pruneShipmentClaimsThrottled(): Promise<void> {
 export async function claimAutoLabelPurchase(
   claimKey: string,
   pubkey: string,
-  orderId: string
+  orderId: string,
+  shipmentId?: string | null,
+  reconcileToken?: string | null
 ): Promise<boolean> {
   if (!claimKey || !pubkey) return false;
   const pool = getDbPool();
   const result = await pool.query(
-    `INSERT INTO shipping_label_order_claims (claim_key, pubkey, order_id, status, updated_at)
-     VALUES ($1, $2, $3, 'pending', NOW())
+    `INSERT INTO shipping_label_order_claims (claim_key, pubkey, order_id, status, shipment_id, reconcile_token, updated_at)
+     VALUES ($1, $2, $3, 'pending', $4, $5, NOW())
      ON CONFLICT (claim_key) DO NOTHING
      RETURNING claim_key`,
-    [claimKey, pubkey, orderId]
+    [claimKey, pubkey, orderId, shipmentId ?? null, reconcileToken ?? null]
   );
   void pruneAutoLabelClaimsThrottled();
   return (result.rowCount || 0) > 0;
+}
+
+// Attach the Shippo shipment id AND reconciliation token to a pending claim
+// BEFORE the non-idempotent charge, so an ambiguous buyLabel failure (timeout
+// after Shippo accepted) can later be reconciled against Shippo's transaction
+// list (matched by the token stamped into the transaction metadata).
+export async function attachShipmentToClaim(
+  claimKey: string,
+  shipmentId: string,
+  reconcileToken: string
+): Promise<boolean> {
+  if (!claimKey || !shipmentId || !reconcileToken) return false;
+  const pool = getDbPool();
+  const result = await pool.query(
+    `UPDATE shipping_label_order_claims
+       SET shipment_id = $2, reconcile_token = $3, updated_at = NOW()
+     WHERE claim_key = $1 AND status = 'pending'`,
+    [claimKey, shipmentId, reconcileToken]
+  );
+  // False means the claim row vanished or was already resolved — the caller
+  // must NOT charge without this reconciliation handle.
+  return (result.rowCount || 0) > 0;
+}
+
+export interface AutoLabelClaim {
+  status: string;
+  shipmentId: string | null;
+  reconcileToken: string | null;
+  updatedAtMs: number;
+}
+
+export async function getAutoLabelClaim(
+  claimKey: string
+): Promise<AutoLabelClaim | null> {
+  if (!claimKey) return null;
+  const pool = getDbPool();
+  const result = await pool.query(
+    `SELECT status, shipment_id, reconcile_token,
+            EXTRACT(EPOCH FROM updated_at) * 1000 AS updated_ms
+       FROM shipping_label_order_claims
+      WHERE claim_key = $1`,
+    [claimKey]
+  );
+  const row = result.rows[0];
+  if (!row) return null;
+  return {
+    status: row.status as string,
+    shipmentId: (row.shipment_id as string | null) ?? null,
+    reconcileToken: (row.reconcile_token as string | null) ?? null,
+    updatedAtMs: Number(row.updated_ms) || 0,
+  };
 }
 
 // Release a still-pending claim so a failed auto-purchase can be retried. Only
@@ -524,18 +577,75 @@ export async function countOutboundLabelsForOrder(
   return Number(result.rows[0]?.n || 0);
 }
 
-// Delete stale auto-label claims: only 'pending' rows older than 7 days
-// (orphaned by a crash mid-purchase — the seller falls back to the manual
-// dashboard button). 'purchased' rows are NEVER pruned: that marker is the
+// Delete stale auto-label claims: only 'pending' rows older than 7 days that
+// never reached Shippo (shipment_id IS NULL — orphaned by a crash before the
+// charge). Pending claims WITH a shipment id are kept: a charge may have
+// happened, and they resolve via reconciliation on the next purchase attempt.
+// 'purchased' rows are NEVER pruned: that marker is the
 // durable money-safety guard preventing a settled card PaymentIntent from being
 // replayed to buy a second seller-billed label, and — in the rare case a label
 // was bought but its shipping_labels insert failed — it is the only record that
 // the seller was already charged. Returns the number of rows removed.
+export interface SellerOrderLabelStatusRow {
+  order_id: string;
+  product_title: string | null;
+  quantity: number;
+  payment_status: string;
+  order_status: string;
+  created_at: Date | string;
+  has_shipping_address: boolean;
+  label_id: number | null;
+  tracking_code: string | null;
+  tracking_url: string | null;
+  label_url: string | null;
+  carrier: string | null;
+  service: string | null;
+  rate_usd: string | null;
+  purchased_at: Date | string | null;
+}
+
+/**
+ * Order-centric label status for the seller's own MCP/agent orders (backs the
+ * get_shipping_label_status tool). LEFT JOINs the latest outbound label per
+ * order. Throws on DB error — the tool surfaces a loud failure rather than a
+ * misleading empty list.
+ */
+export async function listSellerOrderLabelStatuses(
+  pubkey: string,
+  opts: { orderId?: string; limit: number; offset: number }
+): Promise<SellerOrderLabelStatusRow[]> {
+  const dbPool = getDbPool();
+  const result = await dbPool.query(
+    `SELECT o.order_id, o.product_title, o.quantity, o.payment_status,
+            o.order_status, o.created_at,
+            (o.shipping_address IS NOT NULL) AS has_shipping_address,
+            l.id AS label_id, l.tracking_code, l.tracking_url, l.label_url,
+            l.carrier, l.service, l.rate_usd::text, l.purchased_at
+     FROM mcp_orders o
+     LEFT JOIN LATERAL (
+       SELECT id, tracking_code, tracking_url, label_url, carrier, service,
+              rate_usd, purchased_at
+       FROM shipping_labels sl
+       WHERE sl.pubkey = o.seller_pubkey AND sl.order_id = o.order_id
+         AND NOT sl.is_return
+       ORDER BY sl.purchased_at DESC
+       LIMIT 1
+     ) l ON true
+     WHERE o.seller_pubkey = $1
+       AND ($2::text IS NULL OR o.order_id = $2)
+     ORDER BY o.created_at DESC
+     LIMIT $3 OFFSET $4`,
+    [pubkey, opts.orderId ?? null, opts.limit, opts.offset]
+  );
+  return result.rows as SellerOrderLabelStatusRow[];
+}
+
 export async function pruneAutoLabelClaims(): Promise<number> {
   const pool = getDbPool();
   const result = await pool.query(
     `DELETE FROM shipping_label_order_claims
-     WHERE status = 'pending' AND created_at < NOW() - INTERVAL '7 days'`
+     WHERE status = 'pending' AND shipment_id IS NULL
+       AND created_at < NOW() - INTERVAL '7 days'`
   );
   return result.rowCount || 0;
 }

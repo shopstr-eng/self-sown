@@ -50,6 +50,7 @@ function buildSystemPrompt(pubkey: string, canWrite: boolean): string {
     "- When asked to change something and the needed tool is available, do it directly, then confirm concisely what changed.",
     "- If a tool errors, explain the cause in plain language and suggest the fix.",
     "- Fund movement (Cashu/Bitcoin/Stripe), deleting listings/discount codes/flows, sending direct messages to buyers, reading buyer DMs, media uploads, and billing/relay/server settings are NOT available here; explain those stay manual in the dashboard. Order-status and shipping updates DO send the buyer a templated notification — that is normal fulfillment.",
+    "- You can send one-off broadcast emails to the seller's audience (send_broadcast_email) — for fresh content, offer a send_test_email preview first. You can also check which paid orders still need labels (get_shipping_label_status) and buy them (purchase_shipping_label, billed to the seller's connected Shippo account); confirm the count and cost implication before buying several at once.",
     canWrite
       ? "- Write actions ARE enabled for this seller. After each write, confirm in one short line what changed."
       : "- Write actions are NOT enabled for this seller yet (no agent signing key on file). If they ask you to change something, explain that the assistant is read-only until they enable agent signing in the setup card above the chat.",

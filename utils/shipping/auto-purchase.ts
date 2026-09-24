@@ -16,14 +16,24 @@
 
 import type { NostrEvent } from "@/utils/types/types";
 import type { ShippingAddressInput } from "@/utils/shipping/types";
-import { buyLabel, getRates } from "@/utils/shipping/shippo";
+import {
+  buyLabel,
+  findSuccessfulTransactionForShipment,
+  getRates,
+} from "@/utils/shipping/shippo";
+import {
+  buildLabelReconcileToken,
+  resolveOrderLabelClaimConflict,
+} from "@/utils/shipping/claim-reconcile";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
 import parseTags from "@/utils/parsers/product-parser-functions";
 import { fetchProductByIdFromDb } from "@/utils/db/db-service";
 import {
+  attachShipmentToClaim,
   claimAutoLabelPurchase,
   countOutboundLabelsForOrder,
+  getAutoLabelClaim,
   getShippingDefaultsForPubkey,
   getShippoAccessToken,
   insertShippingLabel,
@@ -55,13 +65,17 @@ interface RunAutoLabelArgs {
   // unauthenticated and carries a client-GENERATED orderId, so it MUST pass the
   // verified PaymentIntent id here — otherwise one settled PI could be replayed
   // with fresh orderIds to buy unlimited seller-billed labels. MCP orders have a
-  // server-side orderId and omit this (the claim falls back to orderId).
+  // server-side orderId and omit this (the per-order claim alone guards them).
   claimRef?: string | null;
   // The product event to ship. Pass `productEvent` directly when the caller
   // already has it, or `productId` (a product EVENT id) to have it fetched.
   productEvent?: NostrEvent | null;
   productId?: string | null;
   toAddress: ShippingAddressInput;
+  // Deliberate seller/agent triggers mirror the manual dashboard buy button
+  // and ignore the auto-purchase toggle (which only governs
+  // payment-triggered buys).
+  bypassAutoToggle?: boolean;
 }
 
 function isUsCountry(country?: string | null): boolean {
@@ -69,15 +83,13 @@ function isUsCountry(country?: string | null): boolean {
   return c === "US" || c === "USA" || c === "UNITED STATES";
 }
 
-// One auto-label per (seller, order). MCP orders are single-product, and web
-// checkout groups a seller's products into one shipment, so this matches the
-// manual dashboard's one-label-per-order granularity.
-function buildClaimKey(
-  sellerPubkey: string,
-  orderId: string,
-  claimRef?: string | null
-): string {
-  return `outbound:${sellerPubkey}:${claimRef || orderId}`;
+// One outbound label per (seller, order) — and this exact key shape is shared
+// with the manual dashboard purchase route, so no path combination (webhook
+// replay, agent retry, dashboard click) can ever buy two labels for an order.
+// MCP orders are single-product, and web checkout groups a seller's products
+// into one shipment, so this matches one-label-per-order granularity.
+function buildClaimKey(sellerPubkey: string, orderId: string): string {
+  return `outbound:${sellerPubkey}:${orderId}`;
 }
 
 /**
@@ -97,8 +109,13 @@ export async function runAutoLabelPurchase(
     }
 
     // 1) Seller toggle. Default ON: only an explicit `false` disables it.
+    //    Deliberate triggers (manual dashboard, seller's own agent) skip this.
     const defaults = await getShippingDefaultsForPubkey(sellerPubkey);
-    if (defaults && defaults.autoPurchaseLabels === false) {
+    if (
+      !args.bypassAutoToggle &&
+      defaults &&
+      defaults.autoPurchaseLabels === false
+    ) {
       return { purchased: false, reason: "disabled" };
     }
 
@@ -150,13 +167,66 @@ export async function runAutoLabelPurchase(
       return { purchased: false, reason: "already-bought" };
     }
 
-    // 7) Atomic claim BEFORE any Shippo call. The single winner proceeds; all
-    //    duplicates/retries/concurrent callers skip.
-    const claimKey = buildClaimKey(sellerPubkey, orderId, args.claimRef);
-    if (!(await claimAutoLabelPurchase(claimKey, sellerPubkey, orderId))) {
-      return { purchased: false, reason: "claimed-by-other" };
+    // 7) Atomic claims BEFORE any Shippo call. Two orthogonal guards:
+    //    - a PAYMENT-bound claim (when claimRef carries a verified payment id)
+    //      stops webhook replays carrying a fresh client orderId per attempt;
+    //    - an ORDER-bound claim — shared with the manual dashboard route —
+    //      stops agent/dashboard/webhook path combinations.
+    //    Either conflict is reconciled against Shippo before deciding: a
+    //    lost-but-successful charge resolves to already-bought; a stale claim
+    //    with NO Shippo transaction is released and this attempt proceeds.
+    const claimOrReconcile = async (
+      key: string
+    ): Promise<"won" | "already-bought" | "lost"> => {
+      if (await claimAutoLabelPurchase(key, sellerPubkey, orderId)) {
+        return "won";
+      }
+      const resolution = await resolveOrderLabelClaimConflict({
+        accessToken,
+        claimKey: key,
+        pubkey: sellerPubkey,
+        orderId,
+      });
+      if (resolution === "already-bought") return "already-bought";
+      if (
+        resolution === "retry-safe" &&
+        (await claimAutoLabelPurchase(key, sellerPubkey, orderId))
+      ) {
+        return "won";
+      }
+      return "lost";
+    };
+
+    let paymentClaimKey: string | null = null;
+    if (args.claimRef) {
+      paymentClaimKey = `payment:${sellerPubkey}:${args.claimRef}`;
+      const paymentClaimResult = await claimOrReconcile(paymentClaimKey);
+      if (paymentClaimResult === "already-bought") {
+        return { purchased: false, reason: "already-bought" };
+      }
+      if (paymentClaimResult === "lost") {
+        return { purchased: false, reason: "claimed-by-other" };
+      }
     }
 
+    const claimKey = buildClaimKey(sellerPubkey, orderId);
+    const orderClaimResult = await claimOrReconcile(claimKey);
+    if (orderClaimResult !== "won") {
+      // This attempt charged nothing; free the payment claim it just took so
+      // a later legitimate attempt isn't blocked by it.
+      if (paymentClaimKey) await releaseAutoLabelClaim(paymentClaimKey);
+      return {
+        purchased: false,
+        reason:
+          orderClaimResult === "already-bought"
+            ? "already-bought"
+            : "claimed-by-other",
+      };
+    }
+
+    // Rate fetching is PRE-charge: a failure here definitely means Shippo was
+    // never asked to charge, so the claims are safe to release for a retry.
+    let rates;
     try {
       const carriers =
         defaults && defaults.preferredCarriers.length > 0
@@ -179,7 +249,7 @@ export async function runAutoLabelPurchase(
         heightIn: tags?.packageHeightIn,
       };
 
-      const rates = await getRates(accessToken, {
+      rates = await getRates(accessToken, {
         from,
         to: {
           name: toAddress.name,
@@ -193,22 +263,83 @@ export async function runAutoLabelPurchase(
         parcel,
         carriers,
       });
-
-      const cheapest = rates.cheapest;
-      if (!cheapest) {
-        // No rate to buy — release so a manual retry (or later attempt) works.
-        await releaseAutoLabelClaim(claimKey);
-        return { purchased: false, reason: "no-rates" };
+    } catch (rateErr) {
+      console.error("Auto label rate fetch failed (pre-charge):", rateErr);
+      await releaseAutoLabelClaim(claimKey).catch(() => undefined);
+      if (paymentClaimKey) {
+        await releaseAutoLabelClaim(paymentClaimKey).catch(() => undefined);
       }
+      return { purchased: false, reason: "error" };
+    }
 
+    const cheapest = rates.cheapest;
+    if (!cheapest) {
+      // No rate to buy — release so a manual retry (or later attempt) works.
+      await releaseAutoLabelClaim(claimKey);
+      if (paymentClaimKey) await releaseAutoLabelClaim(paymentClaimKey);
+      return { purchased: false, reason: "no-rates" };
+    }
+
+    // One fixed-length reconciliation token for this attempt, persisted on
+    // BOTH claims and stamped into the Shippo transaction metadata — either
+    // claim can later reconcile a lost charge. (Raw claim keys exceed
+    // Shippo's 100-char metadata limit.)
+    const reconcileToken = buildLabelReconcileToken(claimKey);
+
+    // Attach the shipment id to the claims BEFORE the non-idempotent charge.
+    // Without this handle an ambiguous charge can never be reconciled, so a
+    // failure here STOPS the purchase — nothing is charged unguarded.
+    const ratesShipmentId = rates.shipmentId;
+    try {
+      const attachedOrder = await attachShipmentToClaim(
+        claimKey,
+        ratesShipmentId,
+        reconcileToken
+      );
+      const attachedPayment = paymentClaimKey
+        ? await attachShipmentToClaim(
+            paymentClaimKey,
+            ratesShipmentId,
+            reconcileToken
+          )
+        : true;
+      if (!attachedOrder || !attachedPayment) {
+        throw new Error("claim row missing or no longer pending");
+      }
+    } catch (attachErr) {
+      console.error(
+        "CRITICAL: could not attach shipment to label claim; purchase NOT attempted (no charge was made):",
+        { claimKey, attachErr }
+      );
+      await releaseAutoLabelClaim(claimKey).catch(() => undefined);
+      if (paymentClaimKey) {
+        await releaseAutoLabelClaim(paymentClaimKey).catch(() => undefined);
+      }
+      return { purchased: false, reason: "error" };
+    }
+
+    try {
       const label = await buyLabel(accessToken, {
-        shipmentId: rates.shipmentId,
+        shipmentId: ratesShipmentId,
         rateId: cheapest.id,
+        // Stamped onto the Shippo transaction so a lost response can be
+        // reconciled (transactions carry no shipment id).
+        metadata: reconcileToken,
       });
 
-      // Purchase succeeded — promote the claim to the permanent 'purchased'
-      // marker so it can never be auto-bought again.
+      // Purchase succeeded — promote the claims to permanent 'purchased'
+      // markers so neither this order nor this payment can ever buy again.
       await markAutoLabelPurchased(claimKey, label.shipmentId);
+      if (paymentClaimKey) {
+        try {
+          await markAutoLabelPurchased(paymentClaimKey, label.shipmentId);
+        } catch (markErr) {
+          console.error(
+            "CRITICAL: label purchased but payment claim not marked:",
+            { paymentClaimKey, markErr }
+          );
+        }
+      }
 
       let labelId: number | null = null;
       try {
@@ -242,14 +373,80 @@ export async function runAutoLabelPurchase(
 
       return { purchased: true, labelId };
     } catch (buyErr) {
-      // Failed before/at Shippo — release the claim so a later attempt or a
-      // manual purchase can proceed.
-      await releaseAutoLabelClaim(claimKey);
-      console.error("Auto label purchase failed:", {
-        sellerPubkey,
-        orderId,
-        error: buyErr instanceof Error ? buyErr.message : buyErr,
-      });
+      // The Shippo transaction POST is NOT idempotent: a throw here is
+      // ambiguous (a timeout after Shippo accepted the charge looks exactly
+      // like a pre-charge failure, and a DB error marking the claim
+      // 'purchased' also lands here). Before reporting failure, reconcile
+      // against Shippo's transaction list: if the charge DID land, record it
+      // and mark the claim purchased so no path ever buys a second label.
+      try {
+        const shipmentId =
+          ratesShipmentId ||
+          (await getAutoLabelClaim(claimKey))?.shipmentId ||
+          null;
+        if (shipmentId) {
+          // In this catch we only care whether a charge EXISTS; coverage and
+          // in-flight states only gate claim RELEASE (claim-reconcile.ts) — a
+          // held claim is always the fail-closed outcome here.
+          const lookup = await findSuccessfulTransactionForShipment({
+            accessToken,
+            shipmentId,
+            reconcileToken,
+            sinceMs: Date.now() - 5 * 60 * 1000,
+          });
+          const label = lookup.label;
+          if (label) {
+            await markAutoLabelPurchased(claimKey, shipmentId);
+            if (paymentClaimKey) {
+              try {
+                await markAutoLabelPurchased(paymentClaimKey, shipmentId);
+              } catch (markErr) {
+                console.error(
+                  "CRITICAL: reconciled charge but payment claim not marked:",
+                  { paymentClaimKey, markErr }
+                );
+              }
+            }
+            try {
+              const rec = await insertShippingLabel({
+                pubkey: sellerPubkey,
+                shipmentId: label.shipmentId,
+                orderId,
+                trackingCode: label.trackingCode || null,
+                trackingUrl: label.trackingUrl ?? null,
+                labelUrl: label.labelUrl,
+                labelFormat: label.labelFormat,
+                rateUsd: label.rate,
+                currency: label.currency,
+                carrier: label.carrier,
+                service: label.service,
+                isReturn: false,
+              });
+              return { purchased: true, labelId: rec.id };
+            } catch (dbErr) {
+              console.error(
+                "CRITICAL: reconciled a charged label but its history insert failed:",
+                { claimKey, shipmentId, dbErr }
+              );
+              return { purchased: true, labelId: null };
+            }
+          }
+        }
+      } catch {
+        // Reconciliation itself unavailable — fall through and hold the
+        // claim; the next attempt's conflict path retries reconciliation.
+      }
+      // No successful transaction found: hold the claim (never released here,
+      // so a retry can't double-charge). The claim's attached shipment lets
+      // the next attempt re-run this reconciliation.
+      console.error(
+        "CRITICAL: auto label purchase failed ambiguously; claim held pending Shippo reconciliation:",
+        {
+          sellerPubkey,
+          orderId,
+          error: buyErr instanceof Error ? buyErr.message : buyErr,
+        }
+      );
       return { purchased: false, reason: "error" };
     }
   } catch (err) {
@@ -281,7 +478,8 @@ interface McpShippingAddress {
  * never throws — safe to call (unawaited) from any paid-marking seam.
  */
 export async function autoPurchaseForMcpOrder(
-  orderId: string
+  orderId: string,
+  opts?: { bypassAutoToggle?: boolean }
 ): Promise<AutoLabelResult> {
   try {
     // Imported lazily to avoid pulling the MCP tools graph into modules that
@@ -310,6 +508,7 @@ export async function autoPurchaseForMcpOrder(
       orderId: order.order_id,
       productId: order.product_id,
       toAddress,
+      bypassAutoToggle: opts?.bypassAutoToggle,
     });
   } catch (err) {
     console.error("autoPurchaseForMcpOrder unexpected error:", {

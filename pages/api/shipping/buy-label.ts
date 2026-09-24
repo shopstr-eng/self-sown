@@ -14,12 +14,19 @@ import {
   parseSignedEventHeader,
 } from "@/utils/mcp/request-proof";
 import {
+  claimAutoLabelPurchase,
   claimShipmentForPurchase,
   getShipmentOwner,
   getShippoAccessToken,
   insertShippingLabel,
+  markAutoLabelPurchased,
+  releaseAutoLabelClaim,
   releaseShipmentClaim,
 } from "@/utils/db/shipping-service";
+import {
+  buildLabelReconcileToken,
+  resolveOrderLabelClaimConflict,
+} from "@/utils/shipping/claim-reconcile";
 import { consumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 
 const RATE_LIMIT = { limit: 20, windowMs: 60_000 };
@@ -62,6 +69,13 @@ export default async function handler(
         .status(400)
         .json({ error: "shipmentId and rateId are required" });
     }
+    // The order-level purchase claim (shared with the auto-purchase paths)
+    // only guards against double-charging when an orderId is supplied, so
+    // require it — an orderless manual buy could charge alongside an
+    // auto-purchase for the same order.
+    if (!orderId) {
+      return res.status(400).json({ error: "orderId is required" });
+    }
 
     const signedHeader = req.headers[MCP_SIGNED_EVENT_HEADER];
     const signedHeaderValue = Array.isArray(signedHeader)
@@ -89,6 +103,7 @@ export default async function handler(
       pubkey: event.pubkey,
       shipmentId,
       rateId,
+      orderId,
     });
     if (!matchesMcpRequestProof(event, proof)) {
       return res
@@ -143,12 +158,67 @@ export default async function handler(
         .json({ error: "Shipment label already purchased" });
     }
 
+    // Order-level claim — SHARED with the auto-purchase (webhook/MCP) paths,
+    // so a dashboard click and an agent/webhook purchase can never both
+    // charge for the same order. The shipment id is attached up front so an
+    // ambiguous charge can later be reconciled against Shippo.
+    let orderClaimKey: string | null = null;
+    let orderReconcileToken: string | null = null;
+    if (orderId) {
+      orderClaimKey = `outbound:${event.pubkey}:${orderId}`;
+      // Fixed-length token persisted on the claim and stamped into the Shippo
+      // transaction metadata (raw claim keys exceed the 100-char limit), so a
+      // lost purchase response can be reconciled against the provider.
+      orderReconcileToken = buildLabelReconcileToken(orderClaimKey);
+      let wonOrderClaim = await claimAutoLabelPurchase(
+        orderClaimKey,
+        event.pubkey,
+        orderId,
+        shipmentId,
+        orderReconcileToken
+      );
+      if (!wonOrderClaim) {
+        // A claim already exists: reconcile it against Shippo before
+        // deciding. A lost-but-successful earlier charge resolves to
+        // already-bought; a stale claim with NO Shippo transaction is
+        // released and this attempt proceeds.
+        const reconcileToken = await getShippoAccessToken(event.pubkey).catch(
+          () => null
+        );
+        const resolution = await resolveOrderLabelClaimConflict({
+          accessToken: reconcileToken,
+          claimKey: orderClaimKey,
+          pubkey: event.pubkey,
+          orderId,
+        });
+        if (resolution === "retry-safe") {
+          wonOrderClaim = await claimAutoLabelPurchase(
+            orderClaimKey,
+            event.pubkey,
+            orderId,
+            shipmentId,
+            orderReconcileToken
+          );
+        }
+        if (!wonOrderClaim) {
+          await releaseShipmentClaim(shipmentId);
+          return res.status(409).json({
+            error:
+              resolution === "already-bought"
+                ? "A label was already purchased for this order."
+                : "A label purchase for this order is already in progress. Retry in a couple of minutes.",
+          });
+        }
+      }
+    }
+
     try {
       // Resolve the seller's own connected Shippo account. Shippo bills the
       // seller directly, so there is no platform spend cap to enforce.
       const accessToken = await getShippoAccessToken(event.pubkey);
       if (!accessToken) {
         await releaseShipmentClaim(shipmentId);
+        if (orderClaimKey) await releaseAutoLabelClaim(orderClaimKey);
         return res.status(409).json({
           error:
             "Connect your Shippo account in Settings → Shipping before buying labels.",
@@ -159,9 +229,25 @@ export default async function handler(
         shipmentId,
         rateId,
         insuranceAmount,
+        // Stamped onto the Shippo transaction so a lost response can be
+        // reconciled (transactions carry no shipment id).
+        metadata: orderReconcileToken ?? undefined,
       });
 
-      // Purchase succeeded — keep the claim as the permanent "purchased" marker.
+      // Purchase succeeded — promote the order claim to the permanent
+      // 'purchased' marker so no path can ever buy a second label.
+      if (orderClaimKey) {
+        try {
+          await markAutoLabelPurchased(orderClaimKey, label.shipmentId);
+        } catch (markErr) {
+          // Never throw after the charge: the history row + unique index +
+          // reconciliation still guard a retry.
+          console.error(
+            "CRITICAL: label purchased but order claim not marked:",
+            { orderClaimKey, markErr }
+          );
+        }
+      }
       let dbId: number | null = null;
       try {
         const rec = await insertShippingLabel({
@@ -193,8 +279,10 @@ export default async function handler(
 
       return res.status(200).json({ success: true, id: dbId, ...label });
     } catch (buyErr) {
-      // Purchase failed before/at Shippo — release the claim so the seller can
-      // retry this shipment.
+      // Ambiguous failure: the charge may have landed despite the throw. The
+      // ORDER claim is deliberately HELD — a retry reconciles it against
+      // Shippo (resolveOrderLabelClaimConflict) and is only allowed to buy
+      // once Shippo proves no charge exists.
       await releaseShipmentClaim(shipmentId);
       throw buyErr;
     }

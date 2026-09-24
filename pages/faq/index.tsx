@@ -75,7 +75,7 @@ export default function Faq() {
         {
           title: "Is there an AI assistant for sellers?",
           content:
-            "Yes. Herd includes a built-in AI assistant under 'Settings' -> 'AI Assistant'. It works through the same MCP tools external AI agents use: ask it about orders, listings, stock, discounts, and analytics, or tell it to make changes like adding a listing or updating stock. It runs on Anthropic, which processes your chat and the account data it reads to generate answers. Moving money, deleting listings or discount codes, and sending direct messages to buyers stay manual by design.",
+            "Yes. Herd includes a built-in AI assistant under 'Settings' -> 'AI Assistant'. It works through the same MCP tools external AI agents use: ask it about orders, listings, stock, discounts, and analytics, or tell it to make changes like adding a listing, updating stock, sending a one-off broadcast email, or buying a shipping label for a paid order. It runs on Anthropic, which processes your chat and the account data it reads to generate answers. Moving money, deleting listings or discount codes, and sending direct messages to buyers stay manual by design.",
         },
         {
           title: "What types of items can I sell?",

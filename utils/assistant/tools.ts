@@ -5,7 +5,11 @@
 // messaging to buyers, no decrypted message content (DM bodies never go to
 // the AI provider), and no billing/relay/server config. Order-status and
 // shipping-update tools DO send templated buyer notifications — that is
-// normal fulfillment, and the seller triggers it from the chat.
+// normal fulfillment, and the seller triggers it from the chat. One-off
+// broadcast emails and Shippo label purchases ARE in scope: broadcasts fail
+// closed on the seller's verified sender domain with per-recipient
+// idempotency, and labels bill to the seller's own connected Shippo account
+// behind an atomic one-label-per-order claim.
 //
 // Everything the assistant reads (including order details such as buyer
 // email/shipping address) is sent to the AI provider to generate answers;
@@ -36,6 +40,7 @@ const READ_TOOLS = [
   "get_email_popup",
   "get_notification_email",
   "list_discount_codes",
+  "get_shipping_label_status",
   "get_cashu_balance",
   "get_stripe_connect_status",
   "list_affiliates",
@@ -68,6 +73,10 @@ const WRITE_TOOLS = [
   "create_email_flow",
   "update_email_flow",
   "toggle_email_flow",
+  "send_test_email",
+  "send_broadcast_email",
+  // shipping labels
+  "purchase_shipping_label",
   // discounts
   "create_discount_code",
   "update_discount_code",

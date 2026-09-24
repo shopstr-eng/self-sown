@@ -168,6 +168,9 @@ export default function BuyShippingLabelModal({
           pubkey,
           shipmentId: "pending",
           rateId: "pending",
+          // Placeholder ownership proof for rate-fetching only — never
+          // accepted by the purchase route for an actual buy.
+          orderId: orderId || "pending",
         });
         const ownershipTemplate = buildMcpRequestProofTemplate(ownershipProof);
         const ownershipSigned = await signer.sign(ownershipTemplate);
@@ -213,7 +216,6 @@ export default function BuyShippingLabelModal({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     isOpen,
     fromZip,
@@ -299,6 +301,12 @@ export default function BuyShippingLabelModal({
       }
 
       if (!selectedRateId) return;
+      if (!orderId) {
+        setError(
+          "This shipment isn't linked to an order — cannot buy a label."
+        );
+        return;
+      }
       const rate = rates.find((r) => r.id === selectedRateId);
       if (!rate) return;
 
@@ -306,6 +314,7 @@ export default function BuyShippingLabelModal({
         pubkey,
         shipmentId: rate.shipmentId,
         rateId: rate.id,
+        orderId,
       });
       const template = buildMcpRequestProofTemplate(proof);
       const signedEvent = await signer.sign(template);

@@ -318,8 +318,12 @@ describe("assistant tool allowlist", () => {
   const allTools = [
     "search_products",
     "list_seller_orders",
+    "get_shipping_label_status",
     "set_stock",
     "update_product_listing",
+    "send_test_email",
+    "send_broadcast_email",
+    "purchase_shipping_label",
     // must stay out of the assistant's reach:
     "send_cashu_payment",
     "receive_cashu_tokens",
@@ -356,12 +360,20 @@ describe("assistant tool allowlist", () => {
     const filtered = filterAssistantTools(allTools, false).map((t) => t.name);
     expect(filtered).toContain("search_products");
     expect(filtered).toContain("list_seller_orders");
+    expect(filtered).toContain("get_shipping_label_status");
     expect(filtered).not.toContain("set_stock");
+    expect(filtered).not.toContain("purchase_shipping_label");
   });
 
   it("exposes writes only when signing is enabled", () => {
     expect(isAssistantToolAllowed("set_stock", false)).toBe(false);
     expect(isAssistantToolAllowed("set_stock", true)).toBe(true);
     expect(isAssistantToolAllowed("update_product_listing", true)).toBe(true);
+    expect(isAssistantToolAllowed("purchase_shipping_label", false)).toBe(
+      false
+    );
+    expect(isAssistantToolAllowed("purchase_shipping_label", true)).toBe(true);
+    expect(isAssistantToolAllowed("send_broadcast_email", true)).toBe(true);
+    expect(isAssistantToolAllowed("send_test_email", true)).toBe(true);
   });
 });

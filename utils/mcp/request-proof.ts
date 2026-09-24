@@ -248,10 +248,14 @@ export function buildShippingBuyLabelProof({
   pubkey,
   shipmentId,
   rateId,
+  orderId,
 }: {
   pubkey: string;
   shipmentId: string;
   rateId: string;
+  // Bound into the signed proof so a captured signature can't be replayed
+  // against a different order's shared purchase claim.
+  orderId: string;
 }): McpRequestProof {
   return {
     action: "shipping_buy_label",
@@ -261,6 +265,7 @@ export function buildShippingBuyLabelProof({
     fields: {
       shipmentId,
       rateId,
+      orderId,
     },
   };
 }
