@@ -242,11 +242,22 @@ export interface BuyLabelArgs {
   shipmentId: string;
   rateId: string;
   insuranceAmount?: number;
+  /**
+   * Caller-controlled string stamped onto the Shippo transaction. Purchase
+   * paths set this to their durable claim key so a lost purchase response can
+   * be reconciled against the transaction list (transactions carry no
+   * shipment id — this is the only caller-controlled handle).
+   */
+  metadata?: string;
 }
 
 interface ShippoTransaction {
   object_id: string;
   status: string;
+  // Shippo transactions carry NO shipment id — reconciliation matches on the
+  // claim key stamped into `metadata` at purchase time (see buyLabel).
+  metadata?: string;
+  object_created?: string;
   tracking_number?: string;
   tracking_url_provider?: string;
   label_url?: string;
@@ -267,6 +278,10 @@ export async function buyLabel(
   if (typeof args.insuranceAmount === "number" && args.insuranceAmount > 0) {
     body.insurance_amount = String(args.insuranceAmount);
   }
+  // Stamp the caller's claim key so a lost purchase response can be
+  // reconciled against the transaction list (Shippo transactions carry no
+  // shipment id — metadata is the only caller-controlled handle).
+  if (args.metadata) body.metadata = args.metadata;
   return buildTransaction(accessToken, args.shipmentId, body);
 }
 
@@ -372,8 +387,17 @@ async function buildTransaction(
     throw new Error("Shippo did not return a label URL");
   }
 
-  // The rate field on a successful transaction is an object_id string; we need
-  // to fetch the full rate to get amount/currency/provider/service.
+  return transactionToLabel(accessToken, tx, shipmentId);
+}
+
+// Map a Shippo transaction to a PurchasedLabel. The rate field on a
+// transaction is an object_id string, so a rate detail fetch may be needed
+// for amount/currency/provider/service.
+async function transactionToLabel(
+  accessToken: string,
+  tx: ShippoTransaction,
+  shipmentId: string
+): Promise<PurchasedLabel> {
   let rateDetails: ShippoRate | null = null;
   if (typeof tx.rate === "string") {
     try {
@@ -392,7 +416,7 @@ async function buildTransaction(
     shipmentId,
     trackingCode: tx.tracking_number || "",
     trackingUrl: tx.tracking_url_provider || null,
-    labelUrl: tx.label_url,
+    labelUrl: tx.label_url || "",
     labelFormat: tx.label_file_type || "PDF",
     rate: rateDetails ? Number(rateDetails.amount) : 0,
     currency: rateDetails?.currency || "USD",
@@ -400,4 +424,92 @@ async function buildTransaction(
     service:
       rateDetails?.servicelevel?.name || rateDetails?.servicelevel?.token || "",
   };
+}
+
+interface ShippoTransactionList {
+  results?: ShippoTransaction[];
+  next?: string | null;
+}
+
+export interface ShipmentChargeLookup {
+  label: PurchasedLabel | null;
+  /**
+   * A transaction stamped with this reconcile token exists in a nonterminal
+   * state (WAITING/QUEUED): it may still become a charge, so "not found" is
+   * not proof of "no charge".
+   */
+  hasInFlight: boolean;
+  /**
+   * True only when the scan covered every transaction back through `sinceMs`
+   * (or exhausted the account's transaction list). A null label is proof of
+   * "no charge" ONLY when this is true — a high-volume account can push a
+   * transaction past the scanned pages, so an uncovered window must be
+   * treated as UNKNOWN, never as "no charge".
+   */
+  coveredWindow: boolean;
+}
+
+/**
+ * Reconciliation for the non-idempotent purchase POST: when a buyLabel call's
+ * outcome was lost (timeout/network failure after Shippo may have accepted
+ * the charge), find the transaction stamped with this claim key. Pages the
+ * newest-first transaction list until it reaches transactions older than
+ * `sinceMs` (the claim's charge window) or the list ends; a page-cap exit
+ * reports coveredWindow=false.
+ */
+export async function findSuccessfulTransactionForShipment(args: {
+  accessToken: string;
+  shipmentId: string;
+  reconcileToken: string;
+  sinceMs: number;
+}): Promise<ShipmentChargeLookup> {
+  let path: string | null = "/transactions/?results=25";
+  let hasInFlight = false;
+  for (let page = 0; page < 8 && path; page++) {
+    const list: ShippoTransactionList =
+      await shippoFetch<ShippoTransactionList>(args.accessToken, path, {
+        method: "GET",
+      });
+    const txs: ShippoTransaction[] = list.results || [];
+    const matches = txs.filter(
+      (tx: ShippoTransaction) => tx.metadata === args.reconcileToken
+    );
+    const success = matches.find(
+      (tx: ShippoTransaction) => tx.status === "SUCCESS" && !!tx.label_url
+    );
+    if (success) {
+      return {
+        label: await transactionToLabel(
+          args.accessToken,
+          success,
+          args.shipmentId
+        ),
+        hasInFlight,
+        coveredWindow: true,
+      };
+    }
+    if (
+      matches.some(
+        (tx: ShippoTransaction) =>
+          tx.status === "WAITING" || tx.status === "QUEUED"
+      )
+    ) {
+      hasInFlight = true;
+    }
+    const oldestMs = txs.reduce((min, tx) => {
+      const t = Date.parse(tx.object_created || "");
+      return Number.isFinite(t) && t < min ? t : min;
+    }, Infinity);
+    if (oldestMs <= args.sinceMs) {
+      return { label: null, hasInFlight, coveredWindow: true };
+    }
+    const nextUrl: string | null | undefined = list.next;
+    // The list is exhausted — every transaction was scanned, so the window
+    // is covered by definition.
+    if (!nextUrl) return { label: null, hasInFlight, coveredWindow: true };
+    path = nextUrl.replace(/^https?:\/\/[^/]+/, "");
+  }
+  // Page cap hit before reaching the claim's window: a null here proves
+  // nothing.
+  return { label: null, hasInFlight, coveredWindow: false };
 }

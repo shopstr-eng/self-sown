@@ -93,8 +93,10 @@ const AssistantSettingsPage = () => {
               Chat with your stall. The assistant works through the same MCP
               tools external AI agents use — it can answer questions about
               orders, listings, stock, discounts, and analytics, and make
-              changes for you on the spot. It runs on Anthropic, which processes
-              your messages and the account data it reads to generate answers.
+              changes for you on the spot: update listings and email flows, send
+              one-off broadcast emails, and buy shipping labels for paid orders.
+              It runs on Anthropic, which processes your messages and the
+              account data it reads to generate answers.
             </p>
           </div>
 

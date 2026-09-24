@@ -7073,4 +7073,284 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
       }
     }
   );
+
+  registerTool(
+    server,
+    "send_test_email",
+    "Send a single test email to an address you specify (subject is prefixed [TEST]). Use it to preview content before sending a broadcast.",
+    {
+      target_email: z
+        .string()
+        .min(3)
+        .max(320)
+        .describe("Email address to send the test to"),
+      subject: z
+        .string()
+        .min(1)
+        .max(200)
+        .describe(
+          "Email subject line (supports merge tags like {{shop_name}})"
+        ),
+      body_html: z
+        .string()
+        .min(1)
+        .max(50000)
+        .describe("Email body HTML (supports merge tags)"),
+    },
+    async (params) => {
+      const startTime = Date.now();
+      if (apiKey.permissions !== "full_access") return permissionError();
+      const signer = await getSigner(apiKey);
+      if (!signer) return noSignerError();
+
+      try {
+        // Lazy import: the email graph touches module-scope DB pools, which
+        // breaks suites with partial db-service mocks if loaded eagerly.
+        const { sendOneTimeTestEmail } =
+          await import("@/utils/email/one-time-broadcast");
+        const result = await sendOneTimeTestEmail({
+          pubkey: signer.getPubKey(),
+          to: params.target_email,
+          subject: params.subject,
+          bodyHtml: params.body_html,
+        });
+        if (!result.ok) {
+          return errorResponse(
+            "Failed to send test email",
+            result.error || "Unknown error",
+            startTime
+          );
+        }
+        return successResponse(
+          {
+            sent: true,
+            to: params.target_email.trim().toLowerCase(),
+            test: true,
+          },
+          startTime
+        );
+      } catch (error) {
+        return errorResponse(
+          "Failed to send test email",
+          error instanceof Error ? error.message : "Unknown error",
+          startTime
+        );
+      }
+    }
+  );
+
+  registerTool(
+    server,
+    "send_broadcast_email",
+    "Send a one-time broadcast email to your audience (buyers + captured contacts, or one capture-source segment). Herd/Pro feature. Sent from your verified sender domain with a working one-click unsubscribe. Idempotent: a retry with the same idempotency_key (or identical subject/body/audience) reports already_sent instead of re-sending. Limited to 10 one-time broadcasts per day. Requires a verified custom sender domain (Settings -> Email).",
+    {
+      subject: z
+        .string()
+        .min(1)
+        .max(200)
+        .describe(
+          "Email subject line (supports merge tags like {{shop_name}})"
+        ),
+      body_html: z
+        .string()
+        .min(1)
+        .max(50000)
+        .describe("Email body HTML (supports merge tags)"),
+      audience_source: z
+        .enum(["popup", "subscription"])
+        .optional()
+        .describe(
+          "Narrow to one captured-contact origin; omit for the full audience (buyers + all captured contacts)"
+        ),
+      idempotency_key: z
+        .string()
+        .min(1)
+        .max(100)
+        .regex(/^[A-Za-z0-9_-]+$/, "letters, numbers, dashes, underscores only")
+        .optional()
+        .describe(
+          "Optional idempotency key; retries with the same key never re-send"
+        ),
+    },
+    async (params) => {
+      const startTime = Date.now();
+      if (apiKey.permissions !== "full_access") return permissionError();
+      const signer = await getSigner(apiKey);
+      if (!signer) return noSignerError();
+
+      try {
+        const pubkey = signer.getPubKey();
+        // Lazy imports (same module-scope DB pool reason as send_test_email).
+        const { isPubkeyProEntitled } = await import("@/utils/pro/membership");
+        const { runOneTimeBroadcast } =
+          await import("@/utils/email/one-time-broadcast");
+        if (!(await isPubkeyProEntitled(pubkey))) {
+          return errorResponse(
+            "Herd membership required",
+            "One-time broadcast emails require an active Herd (Pro) membership.",
+            startTime
+          );
+        }
+        const outcome = await runOneTimeBroadcast({
+          pubkey,
+          subject: params.subject,
+          bodyHtml: params.body_html,
+          audienceSource: params.audience_source,
+          idempotencyKey: params.idempotency_key,
+        });
+        switch (outcome.kind) {
+          case "sent":
+            return successResponse(
+              {
+                status: "sent",
+                sent: outcome.sent,
+                failed: outcome.failed,
+                total: outcome.total,
+              },
+              startTime
+            );
+          case "already-sent":
+            return successResponse(
+              {
+                status: "already_sent",
+                note: "This broadcast was already sent; no duplicates were delivered.",
+              },
+              startTime
+            );
+          case "key-mismatch":
+            return errorResponse(
+              "Broadcast not sent",
+              "That idempotency key was already used for different content. Use a new key, or omit it — identical content is deduplicated automatically.",
+              startTime
+            );
+          case "empty-audience":
+            return successResponse(
+              {
+                status: "empty_audience",
+                sent: 0,
+                note: "No reachable recipients (unsubscribed contacts are excluded automatically).",
+              },
+              startTime
+            );
+          case "all-failed":
+            return errorResponse(
+              "Broadcast failed",
+              `All ${outcome.total} sends failed (email provider error). The send was NOT marked as delivered — safe to retry.`,
+              startTime
+            );
+          case "no-sender":
+            return errorResponse(
+              "Broadcast not sent",
+              "Broadcasts require a verified custom sender domain (Settings -> Email). They are never sent from the platform's shared sender.",
+              startTime
+            );
+          case "daily-limit":
+            return errorResponse(
+              "Broadcast not sent",
+              "Daily limit reached: at most 10 one-time broadcasts per day.",
+              startTime
+            );
+          case "unsubscribe-unavailable":
+            return errorResponse(
+              "Broadcast not sent",
+              "Unsubscribe links are unavailable right now; broadcasts are blocked until that works (fail-closed).",
+              startTime
+            );
+          default:
+            return errorResponse(
+              "Broadcast not sent",
+              "Could not start the broadcast safely (database busy). Try again.",
+              startTime
+            );
+        }
+      } catch (error) {
+        return errorResponse(
+          "Failed to send broadcast",
+          error instanceof Error ? error.message : "Unknown error",
+          startTime
+        );
+      }
+    }
+  );
+
+  registerTool(
+    server,
+    "purchase_shipping_label",
+    "Buy a Shippo shipping label for one of YOUR paid orders that doesn't have one yet (billed to your connected Shippo account). Uses the cheapest rate from your preferred carriers. Eligibility mirrors the dashboard: US destination, ship-from ZIP and parcel weight on the product, complete buyer address. One label per order — repeats report already_purchased instead of double-buying. Check get_shipping_label_status first for candidates.",
+    {
+      order_id: z
+        .string()
+        .min(1)
+        .max(100)
+        .describe(
+          "The order ID (from list_seller_orders or get_shipping_label_status)"
+        ),
+    },
+    async (params) => {
+      const startTime = Date.now();
+      if (apiKey.permissions !== "full_access") return permissionError();
+      const signer = await getSigner(apiKey);
+      if (!signer) return noSignerError();
+
+      try {
+        const { getMcpOrder } = await import("@/mcp/tools/purchase-tools");
+        const order = await getMcpOrder(params.order_id);
+        // Same response whether the order is missing or belongs to another
+        // seller — no existence leak across sellers.
+        if (!order || order.seller_pubkey !== signer.getPubKey()) {
+          return errorResponse(
+            "Order not found",
+            `No order found with ID "${params.order_id}"`,
+            startTime
+          );
+        }
+        const { autoPurchaseForMcpOrder } =
+          await import("@/utils/shipping/auto-purchase");
+        // A deliberate seller/agent trigger mirrors the manual dashboard buy
+        // button, so it ignores the auto-purchase toggle.
+        const result = await autoPurchaseForMcpOrder(params.order_id, {
+          bypassAutoToggle: true,
+        });
+        if (result.purchased) {
+          return successResponse(
+            {
+              purchased: true,
+              orderId: params.order_id,
+              labelId: result.labelId ?? null,
+            },
+            startTime
+          );
+        }
+        const reasons: Record<string, string> = {
+          "not-pro":
+            "Automatic label purchases require an active Herd (Pro) membership.",
+          "no-shippo":
+            "Connect your Shippo account first (Settings -> Shipping). Labels bill to your Shippo account.",
+          "provider-unconfigured":
+            "Shipping label purchases are not configured on this instance.",
+          ineligible:
+            "Order isn't eligible: it must be paid, ship to a US address with complete buyer details, and the product needs a ship-from ZIP and parcel weight.",
+          "already-bought": "This order already has a shipping label.",
+          "claimed-by-other":
+            "A purchase for this order is already in progress.",
+          "no-rates":
+            "No shipping rates are available for this order right now — safe to retry.",
+          disabled:
+            "Automatic label purchases are turned off in your shipping settings.",
+        };
+        return errorResponse(
+          "Label not purchased",
+          reasons[result.reason || "error"] ||
+            "The purchase outcome is UNCERTAIN — the label may already have been bought and charged. Check the orders dashboard or your Shippo account (Transactions) before retrying, so the order is never charged twice.",
+          startTime
+        );
+      } catch (error) {
+        return errorResponse(
+          "Failed to purchase label",
+          error instanceof Error ? error.message : "Unknown error",
+          startTime
+        );
+      }
+    }
+  );
 }

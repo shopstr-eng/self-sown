@@ -35,6 +35,10 @@ const getShipmentOwnerMock = jest.fn();
 const getShippoAccessTokenMock = jest.fn();
 const insertShippingLabelMock = jest.fn();
 const consumeSignedRequestProofMock = jest.fn();
+const claimAutoLabelPurchaseMock = jest.fn();
+const attachShipmentToClaimMock = jest.fn();
+const markAutoLabelPurchasedMock = jest.fn();
+const releaseAutoLabelClaimMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -88,6 +92,14 @@ jest.mock("@/utils/db/shipping-service", () => ({
   getShippoAccessToken: (...args: unknown[]) =>
     getShippoAccessTokenMock(...args),
   insertShippingLabel: (...args: unknown[]) => insertShippingLabelMock(...args),
+  claimAutoLabelPurchase: (...args: unknown[]) =>
+    claimAutoLabelPurchaseMock(...args),
+  attachShipmentToClaim: (...args: unknown[]) =>
+    attachShipmentToClaimMock(...args),
+  markAutoLabelPurchased: (...args: unknown[]) =>
+    markAutoLabelPurchasedMock(...args),
+  releaseAutoLabelClaim: (...args: unknown[]) =>
+    releaseAutoLabelClaimMock(...args),
 }));
 
 import handler from "@/pages/api/shipping/buy-label";
@@ -175,6 +187,10 @@ beforeEach(() => {
   isListedSellerMock.mockResolvedValue(true);
   isPubkeyProEntitledMock.mockResolvedValue(true);
   getShipmentOwnerMock.mockResolvedValue(SELLER_PUBKEY);
+  claimAutoLabelPurchaseMock.mockResolvedValue(true);
+  attachShipmentToClaimMock.mockResolvedValue(true);
+  markAutoLabelPurchasedMock.mockResolvedValue(undefined);
+  releaseAutoLabelClaimMock.mockResolvedValue(undefined);
   getShippoAccessTokenMock.mockResolvedValue("oauth.seller-token");
   insertShippingLabelMock.mockResolvedValue({ id: 42 });
   buyLabelMock.mockResolvedValue({

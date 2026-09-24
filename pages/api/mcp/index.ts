@@ -623,7 +623,9 @@ export function registerPurchaseTools(
         .min(1)
         .max(100)
         .optional()
-        .describe("Max number of recent orders to return (default 10, max 100)"),
+        .describe(
+          "Max number of recent orders to return (default 10, max 100)"
+        ),
     },
     async (params) => {
       const startTime = Date.now();
@@ -697,6 +699,107 @@ export function registerPurchaseTools(
               type: "text" as const,
               text: JSON.stringify({
                 error: "Failed to get notifications",
+                details:
+                  error instanceof Error ? error.message : "Unknown error",
+                _meta: { responseTimeMs: Date.now() - startTime },
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
+    }
+  );
+
+  reg(
+    "get_shipping_label_status",
+    "List your orders with shipping-label status: for each order, whether an outbound Shippo label has been purchased (with tracking + label URL when it has). Covers orders from agent/MCP checkout (the same orders list_seller_orders shows). Seller-scoped: only your own orders. Requires a read_write API key permission.",
+    {
+      order_id: z
+        .string()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Check a single order ID; omit to list recent orders"),
+      limit: z
+        .number()
+        .int()
+        .min(1)
+        .max(100)
+        .optional()
+        .describe("Max number of orders to return (default 50, max 100)"),
+      offset: z
+        .number()
+        .int()
+        .min(0)
+        .max(1_000_000)
+        .optional()
+        .describe("Offset for pagination (default 0)"),
+    },
+    async (params) => {
+      const startTime = Date.now();
+      if (
+        apiKey.permissions !== "read_write" &&
+        apiKey.permissions !== "full_access"
+      )
+        return permissionError();
+
+      try {
+        const { listSellerOrderLabelStatuses } =
+          await import("@/utils/db/shipping-service");
+        const rows = await listSellerOrderLabelStatuses(apiKey.pubkey, {
+          orderId: params.order_id,
+          limit: params.limit || 50,
+          offset: params.offset || 0,
+        });
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  orders: rows.map((row) => ({
+                    orderId: row.order_id,
+                    productTitle: row.product_title,
+                    quantity: row.quantity,
+                    paymentStatus: row.payment_status,
+                    orderStatus: row.order_status,
+                    createdAt: row.created_at,
+                    hasShippingAddress: row.has_shipping_address,
+                    labelStatus: row.label_id ? "purchased" : "not_purchased",
+                    label: row.label_id
+                      ? {
+                          trackingCode: row.tracking_code,
+                          trackingUrl: row.tracking_url,
+                          labelUrl: row.label_url,
+                          carrier: row.carrier,
+                          service: row.service,
+                          rateUsd: row.rate_usd,
+                          purchasedAt: row.purchased_at,
+                        }
+                      : null,
+                  })),
+                  total: rows.length,
+                  _meta: {
+                    responseTimeMs: Date.now() - startTime,
+                    dataSource: "db",
+                    resultCount: rows.length,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: "Failed to get shipping label status",
                 details:
                   error instanceof Error ? error.message : "Unknown error",
                 _meta: { responseTimeMs: Date.now() - startTime },
