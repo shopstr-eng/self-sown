@@ -24,6 +24,10 @@
 //      the daily cap — while the content-keyed recipient ledger (claims
 //      retained, failure was ambiguous) makes the retry already-sent with
 //      zero new sends and zero new claim rows.
+//   3. Recipient-level definite reject (invalid address / SendGrid
+//      suppression list): the address is durably suppressed into the real
+//      email_unsubscribes table, so neither the same-content retry NOR a
+//      later broadcast under a new content key ever re-attempts it.
 //
 // Two ways to run (both skipped by default so the plain suite stays fast):
 //
@@ -84,6 +88,7 @@ const DELIVERED_1 = "bcast-e2e-delivered-1@example.com";
 const DELIVERED_2 = "bcast-e2e-delivered-2@example.com";
 const AMBIGUOUS = "bcast-e2e-ambiguous@example.com";
 const REJECTED = "bcast-e2e-rejected@example.com";
+const DEAD = "bcast-e2e-dead@example.com";
 
 let db: DbServiceModule;
 let runOneTimeBroadcast: BroadcastModule["runOneTimeBroadcast"];
@@ -382,5 +387,139 @@ maybeIt(
     expect(retry).toEqual({ kind: "already-sent" });
     expect(mockSendDetailed).not.toHaveBeenCalled();
     expect(await countClaims()).toBe(0);
+  }
+);
+
+maybeIt(
+  "recipient-level definite reject is durably suppressed: never re-attempted by the same content's retry NOR by a new content key's broadcast",
+  async () => {
+    await seedAudience([DELIVERED_1, DEAD]);
+
+    // First broadcast: one delivery succeeds; the DEAD address is refused
+    // with a recipient-attributable 4xx (invalid address / on SendGrid's
+    // suppression list) — provably dead, so it must never be re-attempted.
+    mockSendDetailed.mockImplementation(async ({ to }: { to: string }) => {
+      if (to === DEAD)
+        return { ok: false, definiteReject: true, recipientReject: true };
+      return { ok: true, definiteReject: false, recipientReject: false };
+    });
+
+    const first = await runOneTimeBroadcast({
+      pubkey: SELLER_PK,
+      subject: "Harvest update",
+      bodyHtml: "<p>This week's boxes are packed.</p>",
+      idempotencyKey: "e2e-dead",
+    });
+    expect(first).toEqual({ kind: "sent", sent: 1, failed: 1, total: 2 });
+    expect(sentTo()).toEqual([DEAD, DELIVERED_1].sort());
+
+    // The dead address landed on the seller's REAL suppression list...
+    expect(await db.isSellerEmailUnsubscribed(SELLER_PK, DEAD)).toBe(true);
+    expect(await db.isSellerEmailUnsubscribed(SELLER_PK, DELIVERED_1)).toBe(
+      false
+    );
+    // ...recorded as a provider suppression, NOT a user opt-out, so the
+    // seller can tell "undeliverable address" apart from "person opted out".
+    expect(await db.getSellerEmailUnsubscribeCounts(SELLER_PK)).toEqual({
+      unsubscribed: 0,
+      suppressed: 1,
+    });
+    // ...and its released recipient claim was NOT replaced.
+    expect(await ledgerEmails()).toEqual([DELIVERED_1]);
+
+    // RETRY the SAME content with the provider healthy: the audience SQL
+    // excludes the suppressed address and the ledger covers DELIVERED_1, so
+    // there is nothing left to send — already-sent with zero sends. Before
+    // the suppression, this retry re-attempted the dead address (the claim
+    // was released, so nothing else would have stopped it).
+    mockSendDetailed.mockClear();
+    mockSendDetailed.mockResolvedValue({
+      ok: true,
+      definiteReject: false,
+      recipientReject: false,
+    });
+
+    const retry = await runOneTimeBroadcast({
+      pubkey: SELLER_PK,
+      subject: "Harvest update",
+      bodyHtml: "<p>This week's boxes are packed.</p>",
+      idempotencyKey: "e2e-dead",
+    });
+    expect(retry).toEqual({ kind: "already-sent" });
+    expect(mockSendDetailed).not.toHaveBeenCalled();
+
+    // Broadcast NEW content under a new key: the suppression is keyed to the
+    // SELLER (not the content), so the dead address is filtered out of the
+    // fresh audience before any claim or send — only DELIVERED_1 is emailed.
+    const nextContent = await runOneTimeBroadcast({
+      pubkey: SELLER_PK,
+      subject: "Market day moved to Sunday",
+      bodyHtml: "<p>Same stand, new day.</p>",
+      idempotencyKey: "e2e-dead-next",
+    });
+    expect(nextContent).toEqual({ kind: "sent", sent: 1, failed: 0, total: 1 });
+    expect(sentTo()).toEqual([DELIVERED_1]);
+  }
+);
+
+maybeIt(
+  "a retry racing the rejection path cannot re-attempt the dead address: at most one send across two concurrent broadcasts",
+  async () => {
+    await seedAudience([DELIVERED_1, DEAD]);
+
+    // DEAD is refused with a recipient-attributable 4xx, but SLOWLY — the
+    // second broadcast below starts while the first is mid-rejection, racing
+    // the suppression + claim-release path.
+    mockSendDetailed.mockImplementation(async ({ to }: { to: string }) => {
+      if (to === DEAD) {
+        await sleep(200);
+        return { ok: false, definiteReject: true, recipientReject: true };
+      }
+      return { ok: true, definiteReject: false, recipientReject: false };
+    });
+
+    const params = {
+      pubkey: SELLER_PK,
+      subject: "Harvest update",
+      bodyHtml: "<p>This week's boxes are packed.</p>",
+      idempotencyKey: "e2e-race",
+    };
+
+    // Two concurrent invocations of the SAME content (the agent retried
+    // while the first attempt was still running). The content-keyed
+    // recipient claim is atomic in Postgres, so exactly one worker owns each
+    // address; the loser skips it. The dead address must be attempted at
+    // most once across BOTH runs even though its suppression lands 200ms
+    // into the race.
+    const [first, second] = await Promise.all([
+      runOneTimeBroadcast(params),
+      runOneTimeBroadcast(params),
+    ]);
+
+    const attempts = mockSendDetailed.mock.calls.map((c) => c[0].to);
+    expect(attempts.filter((t) => t === DEAD).length).toBe(1);
+    expect(attempts.filter((t) => t === DELIVERED_1).length).toBe(1);
+    // Exactly one invocation owned each address: across both runs, one
+    // delivery and one dead-address failure, no duplicates. (If the first
+    // run finishes before the second reads the ledger, the second is
+    // already-sent instead — either way the send counts are what matter.)
+    const outcomes = [first, second];
+    const sentTotal = outcomes.reduce(
+      (n, o) => n + (o.kind === "sent" || o.kind === "all-failed" ? o.sent : 0),
+      0
+    );
+    const failedTotal = outcomes.reduce(
+      (n, o) =>
+        n + (o.kind === "sent" || o.kind === "all-failed" ? o.failed : 0),
+      0
+    );
+    expect(sentTotal).toBe(1);
+    expect(failedTotal).toBe(1);
+    // And the suppression still landed durably.
+    expect(await db.isSellerEmailUnsubscribed(SELLER_PK, DEAD)).toBe(true);
+    expect(await db.getSellerEmailUnsubscribeCounts(SELLER_PK)).toEqual({
+      unsubscribed: 0,
+      suppressed: 1,
+    });
   }
 );

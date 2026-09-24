@@ -31,6 +31,8 @@ import {
   getOneTimeBroadcastRecipients,
   claimOneTimeBroadcastRecipient,
   releaseOneTimeBroadcastRecipient,
+  unsubscribeSellerEmail,
+  isSellerEmailUnsubscribedStrict,
   type SellerAudienceSource,
 } from "@/utils/db/db-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
@@ -199,6 +201,20 @@ export async function runOneTimeBroadcast(params: {
         continue;
       }
       if (!ownsDelivery) continue; // a concurrent send already claimed it
+      // The audience snapshot was read BEFORE this claim. A concurrent send
+      // may have durably suppressed this address in between (its claim was
+      // released only AFTER suppression landed), and this worker can then
+      // have reclaimed the released row with the stale snapshot still in
+      // hand. Re-check suppression NOW — after claiming — so that racing
+      // retry can never re-email a dead address. FAIL CLOSED: if the check
+      // itself errors (null), treat it as a failed send and KEEP the claim,
+      // the same at-most-once posture as any mid-blast DB error.
+      const suppressedNow = await isSellerEmailUnsubscribedStrict(pubkey, to);
+      if (suppressedNow === null) {
+        failed++;
+        continue;
+      }
+      if (suppressedNow) continue; // claimed after suppression landed: skip
       try {
         const unsubscribeUrl = buildSellerEmailUnsubscribeUrl(
           baseUrl,
@@ -229,8 +245,46 @@ export async function runOneTimeBroadcast(params: {
         }
         failed++;
         if (result.definiteReject) {
+          if (result.recipientReject) {
+            // The rejection blamed the RECIPIENT address itself (invalid or
+            // on SendGrid's suppression list): it will fail every future
+            // send identically, so durably suppress it. The address goes
+            // onto the seller's per-seller suppression list, which
+            // getSellerAudienceEmails already filters out of EVERY future
+            // audience (any content key, any segment, blog or one-time) —
+            // without this, every retry re-burns quota and sender reputation
+            // on a provably dead address. Narrower than definiteReject on
+            // purpose: account/sender-level 4xx (e.g. a lapsed domain auth
+            // 403) fails the WHOLE audience and must never suppress anyone.
+            //
+            // Suppress BEFORE releasing the recipient claim, while this
+            // worker still holds it: a concurrent retry cannot reclaim the
+            // address in between, and if the suppression write fails the
+            // claim STAYS (fail closed) so the dead address is never
+            // retryable — the retained ledger row blocks re-delivery just
+            // like an ambiguous failure does.
+            const suppressed = await unsubscribeSellerEmail(
+              pubkey,
+              to,
+              "suppressed"
+            );
+            if (!suppressed) {
+              // Suppression persistence failed. The retained claim blocks
+              // same-content retries; a NEW-content broadcast will re-attempt
+              // the address once, hit the same recipient-level provider
+              // reject, and retry the suppression write — self-healing, and
+              // bounded by the daily cap. Never release the claim here.
+              console.error(
+                `One-time broadcast: failed to durably suppress dead address; ` +
+                  `keeping its recipient claim so no retry can re-attempt it`
+              );
+              continue;
+            }
+          }
           // A 4xx means SendGrid refused the message — nothing was accepted,
-          // so freeing the claim lets a later retry re-attempt safely.
+          // so freeing the claim lets a later retry re-attempt safely. For a
+          // recipient-level reject the suppression above has already landed,
+          // so the released claim can never make the address retryable.
           await releaseOneTimeBroadcastRecipient(pubkey, contentKey, to);
         }
         // Ambiguous failure (timeout/5xx): the claim STAYS so a retry can

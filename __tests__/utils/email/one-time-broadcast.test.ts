@@ -23,6 +23,8 @@ const mockReleaseBroadcast: jest.Mock = jest.fn();
 const mockGetRecipients: jest.Mock = jest.fn();
 const mockClaimRecipient: jest.Mock = jest.fn();
 const mockReleaseRecipient: jest.Mock = jest.fn();
+const mockUnsubscribeSellerEmail: jest.Mock = jest.fn();
+const mockIsSuppressedStrict: jest.Mock = jest.fn();
 
 jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
@@ -38,6 +40,10 @@ jest.mock("@/utils/db/db-service", () => ({
     mockClaimRecipient(...args),
   releaseOneTimeBroadcastRecipient: (...args: unknown[]) =>
     mockReleaseRecipient(...args),
+  unsubscribeSellerEmail: (...args: unknown[]) =>
+    mockUnsubscribeSellerEmail(...args),
+  isSellerEmailUnsubscribedStrict: (...args: unknown[]) =>
+    mockIsSuppressedStrict(...args),
 }));
 
 jest.mock("@/utils/db/email-sender-domains", () => ({
@@ -76,6 +82,8 @@ beforeEach(() => {
   mockGetRecipients.mockResolvedValue([]);
   mockClaimWithCap.mockResolvedValue("claimed");
   mockClaimRecipient.mockResolvedValue(true);
+  mockUnsubscribeSellerEmail.mockResolvedValue(true);
+  mockIsSuppressedStrict.mockResolvedValue(false);
   mockSendDetailed.mockResolvedValue({ ok: true, definiteReject: false });
 });
 
@@ -131,6 +139,117 @@ describe("runOneTimeBroadcast", () => {
     mockSendDetailed.mockResolvedValue({ ok: false, definiteReject: true });
     await runOneTimeBroadcast(PARAMS);
     expect(mockReleaseRecipient).toHaveBeenCalledTimes(2);
+    // Sender/account-level rejects must never suppress anyone.
+    expect(mockUnsubscribeSellerEmail).not.toHaveBeenCalled();
+  });
+
+  it("suppresses a recipient-level reject BEFORE releasing its claim", async () => {
+    mockSendDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: true,
+      recipientReject: true,
+    });
+    const outcome = await runOneTimeBroadcast(PARAMS);
+    expect(outcome).toMatchObject({ kind: "all-failed", failed: 2 });
+    for (const email of ["a@x.test", "b@x.test"]) {
+      expect(mockUnsubscribeSellerEmail).toHaveBeenCalledWith(
+        PUBKEY,
+        email,
+        "suppressed"
+      );
+    }
+    // The claim is released only AFTER the suppression lands, so a retry
+    // racing the rejection path can never reclaim an un-suppressed address.
+    const suppressOrder =
+      mockUnsubscribeSellerEmail.mock.invocationCallOrder[0];
+    const releaseOrder = mockReleaseRecipient.mock.invocationCallOrder[0];
+    expect(suppressOrder).toBeDefined();
+    expect(releaseOrder).toBeDefined();
+    expect(suppressOrder!).toBeLessThan(releaseOrder!);
+    expect(mockReleaseRecipient).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the recipient claim when the suppression write fails (fail closed)", async () => {
+    mockSendDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: true,
+      recipientReject: true,
+    });
+    mockUnsubscribeSellerEmail.mockResolvedValue(false); // DB error
+    const outcome = await runOneTimeBroadcast(PARAMS);
+    expect(outcome).toMatchObject({ kind: "all-failed", failed: 2 });
+    // The claims STAY: the retained ledger rows keep the un-suppressed dead
+    // addresses off every retry, exactly like an ambiguous failure.
+    expect(mockReleaseRecipient).not.toHaveBeenCalled();
+  });
+
+  it("a retry paused between audience selection and recipient claim until suppression+release finish never re-sends the dead address", async () => {
+    // Deterministic interleaving of the race:
+    //  1. The RETRY starts first and reads the audience BEFORE any
+    //     suppression exists (dead@x.test still listed) — then parks at the
+    //     per-recipient claim.
+    //  2. The FIRST broadcast runs to completion: its send is refused with a
+    //     recipient-level reject, so it suppresses the address and THEN
+    //     releases the claim.
+    //  3. The retry unblocks, successfully RECLAIMS the released row (its
+    //     audience snapshot is stale and its ledger read was empty), and
+    //     must be stopped by the post-claim suppression recheck alone.
+    const DEAD = "dead@x.test";
+    mockGetSellerAudienceEmails.mockResolvedValue([DEAD]);
+    mockGetRecipients.mockResolvedValue([]);
+    mockSendDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: true,
+      recipientReject: true,
+    });
+
+    // Suppression state backed by a real flag: false until the first
+    // broadcast's unsubscribeSellerEmail lands, true afterwards — so each
+    // run's post-claim recheck sees the state of that moment.
+    let suppressed = false;
+    mockUnsubscribeSellerEmail.mockImplementation(async () => {
+      suppressed = true;
+      return true;
+    });
+    mockIsSuppressedStrict.mockImplementation(async () => suppressed);
+
+    // Park the RETRY at its recipient claim (the FIRST claim call, since
+    // the retry starts first) until the first broadcast has finished.
+    let releaseRetryClaim!: () => void;
+    const retryClaimGate = new Promise<void>((resolve) => {
+      releaseRetryClaim = resolve;
+    });
+    let claimCalls = 0;
+    mockClaimRecipient.mockImplementation(async () => {
+      claimCalls++;
+      if (claimCalls === 1) await retryClaimGate; // the retry parks here
+      return true; // the row was released by the first broadcast
+    });
+
+    const retryPromise = runOneTimeBroadcast(PARAMS);
+    // Let the retry reach its parked claim before the first broadcast runs.
+    while (claimCalls === 0) await new Promise((r) => setImmediate(r));
+
+    const first = await runOneTimeBroadcast(PARAMS);
+    expect(first).toMatchObject({ kind: "all-failed", failed: 1 });
+    expect(suppressed).toBe(true);
+
+    releaseRetryClaim();
+    const retry = await retryPromise;
+
+    // The retry reclaimed the released claim with a stale snapshot but the
+    // post-claim recheck saw the suppression — zero additional sends.
+    expect(mockSendDetailed).toHaveBeenCalledTimes(1);
+    expect(retry).toMatchObject({ kind: "sent", sent: 0, failed: 0 });
+  });
+
+  it("fails closed when the post-claim suppression recheck errors (no send, claim kept)", async () => {
+    mockIsSuppressedStrict.mockResolvedValue(null); // DB error = unknown
+    const outcome = await runOneTimeBroadcast(PARAMS);
+    expect(outcome).toMatchObject({ kind: "all-failed", failed: 2 });
+    expect(mockSendDetailed).not.toHaveBeenCalled();
+    // Claims STAY: unknown suppression state must never become a send.
+    expect(mockReleaseRecipient).not.toHaveBeenCalled();
   });
 
   it("does not release the claim when a RETRY fully fails (claim already counted)", async () => {
