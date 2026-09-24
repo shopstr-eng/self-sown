@@ -975,6 +975,12 @@ async function initializeTables(): Promise<void> {
           PRIMARY KEY (pubkey, claim_key, email)
       );
 
+      -- Supports the daily-cap COUNT in claimOneTimeBroadcastWithCap
+      -- (pubkey + 24h created_at window; the claim_key LIKE prefix rides
+      -- along as a filter on the handful of matching rows).
+      CREATE INDEX IF NOT EXISTS idx_one_time_broadcast_claims_pubkey_created
+        ON one_time_broadcast_claims(pubkey, created_at);
+
       -- Subscriptions table for recurring product subscriptions
       CREATE TABLE IF NOT EXISTS subscriptions (
           id SERIAL PRIMARY KEY,
@@ -5015,6 +5021,57 @@ export async function releaseOneTimeBroadcastRecipient(
 }
 
 /**
+ * Retention sweep for one-time broadcast claim + recipient rows. A claim row
+ * only influences the daily cap for 24h and a legitimate retry/resume lands
+ * within days, so rows past `maxAgeMs` (default 30 days) are dead weight that
+ * slows the cap COUNT in claimOneTimeBroadcastWithCap. Recipient rows are
+ * keyed by content and outlive their claim on the all-failed release path
+ * (orphaned by design), so they are swept by age on the same window. Throws
+ * on DB error; callers decide whether that is loud (cron) or logged (inline
+ * throttled sweep).
+ */
+export async function pruneOneTimeBroadcastClaims(
+  maxAgeMs: number = 30 * 24 * 60 * 60 * 1000
+): Promise<{ prunedClaims: number; prunedRecipients: number }> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const cutoff = new Date(Date.now() - maxAgeMs);
+    const claims = await client.query(
+      `DELETE FROM one_time_broadcast_claims WHERE created_at < $1`,
+      [cutoff]
+    );
+    const recipients = await client.query(
+      `DELETE FROM one_time_broadcast_recipients WHERE created_at < $1`,
+      [cutoff]
+    );
+    return {
+      prunedClaims: claims.rowCount ?? 0,
+      prunedRecipients: recipients.rowCount ?? 0,
+    };
+  } finally {
+    if (client) client.release();
+  }
+}
+
+// Throttled, fire-and-forget sweep so the tables stay bounded even when the
+// external cleanup cron is not configured. Runs at most once per interval per
+// instance; failures are logged and retried on a later claim.
+const ONE_TIME_BROADCAST_PRUNE_INTERVAL_MS = 60 * 60 * 1000;
+let lastOneTimeBroadcastPruneAt = 0;
+
+function pruneOneTimeBroadcastClaimsThrottled(): void {
+  const now = Date.now();
+  if (now - lastOneTimeBroadcastPruneAt < ONE_TIME_BROADCAST_PRUNE_INTERVAL_MS)
+    return;
+  lastOneTimeBroadcastPruneAt = now;
+  pruneOneTimeBroadcastClaims().catch((err) => {
+    console.warn("pruneOneTimeBroadcastClaims failed:", err);
+  });
+}
+
+/**
  * Atomically claim a one-time broadcast/test email while enforcing the daily
  * cap in the SAME statement (count and insert can't drift apart across
  * concurrent callers). Returns:
@@ -5033,6 +5090,8 @@ export async function claimOneTimeBroadcastWithCap(
   const dbPool = getDbPool();
   let client;
   try {
+    // Best-effort retention sweep (own connection; never blocks the claim).
+    pruneOneTimeBroadcastClaimsThrottled();
     client = await dbPool.connect();
     await client.query("BEGIN");
     // Serialize claim+cap per (seller, prefix): without this lock, concurrent
