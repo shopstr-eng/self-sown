@@ -389,6 +389,62 @@ maybeIt(
 );
 
 maybeIt(
+  "pruneOneTimeBroadcastClaims deletes only rows older than the retention window",
+  async () => {
+    const pool = db.getDbPool();
+    const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
+    // Seed aged-out rows (30 days old) directly: a claim and an ORPHANED
+    // recipient (its claim released on the all-failed path, so no matching
+    // claim row exists) — the two shapes the sweep exists to remove.
+    await pool.query(
+      `INSERT INTO one_time_broadcast_claims (pubkey, claim_key, content_key, created_at)
+       VALUES ($1, $2, 'content-old', NOW() - INTERVAL '30 days')`,
+      [SELLER_PK, nextClaimKey("old-claim")]
+    );
+    await pool.query(
+      `INSERT INTO one_time_broadcast_recipients (pubkey, claim_key, email, created_at)
+       VALUES ($1, 'content-old', 'old-buyer@example.com', NOW() - INTERVAL '30 days')`,
+      [SELLER_PK]
+    );
+
+    // Fresh rows via the public API: must survive the sweep untouched.
+    const fresh = await db.claimOneTimeBroadcastWithCap(
+      SELLER_PK,
+      nextClaimKey("fresh"),
+      "content-fresh",
+      DAILY_LIMIT,
+      KEY_PREFIX
+    );
+    expect(fresh).toBe("claimed");
+    await db.claimOneTimeBroadcastRecipient(
+      SELLER_PK,
+      "content-fresh",
+      "fresh-buyer@example.com"
+    );
+
+    const result = await db.pruneOneTimeBroadcastClaims(RETENTION_MS);
+    expect(result.prunedClaims).toBeGreaterThanOrEqual(1);
+    expect(result.prunedRecipients).toBeGreaterThanOrEqual(1);
+
+    // Old rows are gone; fresh claim + recipient remain.
+    expect(await countClaims()).toBe(1);
+    const recipientRows = await pool.query<{ email: string }>(
+      `SELECT email FROM one_time_broadcast_recipients WHERE pubkey = $1`,
+      [SELLER_PK]
+    );
+    expect(recipientRows.rows.map((r) => r.email)).toEqual([
+      "fresh-buyer@example.com",
+    ]);
+
+    // A second sweep with nothing aged out deletes nothing for this seller.
+    const again = await db.pruneOneTimeBroadcastClaims(RETENTION_MS);
+    expect(await countClaims()).toBe(1);
+    expect(again.prunedClaims).toBeGreaterThanOrEqual(0);
+  }
+);
+
+maybeIt(
   "N concurrent per-recipient claims on one (pubkey, content, email): exactly one winner",
   async () => {
     const contentKey = "content-recipient-race";
