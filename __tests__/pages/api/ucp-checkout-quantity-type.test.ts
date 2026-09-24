@@ -56,6 +56,8 @@ jest.mock("@/utils/ucp/seller-host", () => ({
 jest.mock("@/utils/ucp/checkout-store", () => ({
   decodeVariantId: jest.fn(() => ({ ok: false, error: "no variants in test" })),
   formatCheckoutSession: jest.fn((row: any) => row),
+  formatEphemeralCheckoutSession: jest.fn((input: any) => input),
+  generateCheckoutSessionId: jest.fn(() => "ucp_cs_test"),
   initCheckoutSessionsTable: jest.fn(() => Promise.resolve()),
   insertCheckoutSession: (...args: any[]) => mockInsertCheckoutSession(...args),
   listCheckoutSessions: jest.fn(),

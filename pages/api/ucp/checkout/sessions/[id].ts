@@ -116,7 +116,10 @@ export default async function handler(
           const updated = await updateCheckoutSessionStatus(
             id,
             next as CheckoutSessionStatus,
-            messages
+            messages,
+            next === "requires_escalation"
+              ? STATUS_NOTE[next]
+              : null
           );
           if (updated) current = updated;
         }

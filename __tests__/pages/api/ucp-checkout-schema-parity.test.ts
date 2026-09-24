@@ -84,18 +84,27 @@ jest.mock("@/utils/ucp/seller-host", () => ({
   resolveHostScope: (...args: any[]) => mockResolveHostScope(...args),
 }));
 
-jest.mock("@/utils/ucp/checkout-store", () => ({
-  decodeVariantId: jest.fn(() => ({ ok: false, error: "no variants in test" })),
-  formatCheckoutSession: jest.fn((row: any) => row),
-  initCheckoutSessionsTable: jest.fn(() => Promise.resolve()),
-  insertCheckoutSession: (...args: any[]) => mockInsertCheckoutSession(...args),
-  listCheckoutSessions: jest.fn(),
-  makeMessage: jest.fn((type: string, text: string, severity?: string) => ({
-    type,
-    text,
-    severity,
-  })),
-}));
+jest.mock("@/utils/ucp/checkout-store", () => {
+  // The envelope tests below validate REAL route responses against the
+  // published session schema, so the ephemeral-envelope helpers must be the
+  // production ones (the mocked makeMessage above used to drop `at`, which the
+  // schema requires). Only the DB-touching pieces stay stubbed.
+  const actual = jest.requireActual("@/utils/ucp/checkout-store");
+  return {
+    decodeVariantId: jest.fn(() => ({
+      ok: false,
+      error: "no variants in test",
+    })),
+    formatCheckoutSession: jest.fn((row: any) => row),
+    formatEphemeralCheckoutSession: actual.formatEphemeralCheckoutSession,
+    generateCheckoutSessionId: actual.generateCheckoutSessionId,
+    initCheckoutSessionsTable: jest.fn(() => Promise.resolve()),
+    insertCheckoutSession: (...args: any[]) =>
+      mockInsertCheckoutSession(...args),
+    listCheckoutSessions: jest.fn(),
+    makeMessage: actual.makeMessage,
+  };
+});
 
 // NOTE: @/utils/ucp/order-service is intentionally NOT mocked — the real
 // engine runs so the quantity bounds under parity test are the production
@@ -104,6 +113,7 @@ jest.mock("@/utils/ucp/checkout-store", () => ({
 // Handlers under test (imported AFTER the mocks above).
 import checkoutSessionsHandler from "@/pages/api/ucp/checkout/sessions";
 import checkoutSessionCreateSchemaHandler from "@/pages/api/ucp/schemas/checkout-session-create.json";
+import checkoutSessionSchemaHandler from "@/pages/api/ucp/schemas/checkout-session.json";
 
 function createResponse() {
   return {
@@ -474,5 +484,63 @@ describe("published schema keeps up with the fields the route actually reads", (
     // VALID_METHODS comes from the REAL order engine (unmocked in this file),
     // so adding a method to the engine without republishing the schema fails.
     expect(schema.properties?.paymentMethod?.enum).toEqual([...VALID_METHODS]);
+  });
+});
+
+describe("POST response envelopes validate against the published session schema", () => {
+  // The 201 persist-failure fallback and the 200 requires_escalation envelope
+  // are the two responses handleCreate emits WITHOUT a persisted row — both
+  // must still validate against the session schema the discovery profile
+  // advertises, or machine-validating agent clients reject them.
+
+  async function compileSessionSchema() {
+    const res = createResponse();
+    await checkoutSessionSchemaHandler(
+      { method: "GET", headers: {} } as unknown as NextApiRequest,
+      res as unknown as NextApiResponse
+    );
+    expect(res.statusCode).toBe(200);
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
+    return ajv.compile(res.body as Record<string, any>);
+  }
+
+  it("200 requires_escalation envelope (fail-closed sats pricing) validates", async () => {
+    const validate = await compileSessionSchema();
+    // A lightning payment on a USD-priced product trips the engine's
+    // fail-closed conversion guard (no live exchange rate in the charge
+    // path), which the route surfaces as the escalation envelope.
+    const res = await postToRoute({ productId: "p1", paymentMethod: "lightning" });
+    expect(res.statusCode).toBe(200);
+    const body = res.body as Record<string, any>;
+    expect(body.status).toBe("requires_escalation");
+    expect(body.error).toEqual(expect.any(String));
+    expect(body.code).toBe("exchange_rate_unavailable");
+    // No order, no session row.
+    expect(mockInsertCheckoutSession).not.toHaveBeenCalled();
+    const ok: boolean = validate(body);
+    expect(
+      ok
+        ? true
+        : `session schema rejected the escalation envelope: ${JSON.stringify(validate.errors)}`
+    ).toBe(true);
+  });
+
+  it("201 persist-failure fallback validates and keeps the payment descriptor", async () => {
+    const validate = await compileSessionSchema();
+    mockInsertCheckoutSession.mockRejectedValueOnce(new Error("db down"));
+    const res = await postToRoute({ productId: "p1" });
+    expect(res.statusCode).toBe(201);
+    const body = res.body as Record<string, any>;
+    expect(body.warning).toEqual(
+      expect.stringMatching(/could not be persisted/)
+    );
+    expect(body.id).toEqual(expect.stringMatching(/^ucp_cs_/));
+    const ok: boolean = validate(body);
+    expect(
+      ok
+        ? true
+        : `session schema rejected the persist-failure fallback: ${JSON.stringify(validate.errors)}`
+    ).toBe(true);
   });
 });

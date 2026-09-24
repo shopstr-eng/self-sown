@@ -286,6 +286,16 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       },
       messages: { type: "array", items: { $ref: "#/$defs/message" } },
       error: { type: "string" },
+      code: {
+        type: "string",
+        description:
+          "Machine-readable error code from the order engine (e.g. exchange_rate_unavailable), when the session carries an error.",
+      },
+      warning: {
+        type: "string",
+        description:
+          "Non-fatal caveat (e.g. the session record could not be persisted but payment is still valid).",
+      },
       createdAt: { type: "string", format: "date-time" },
       updatedAt: { type: "string", format: "date-time" },
       links: {
@@ -305,13 +315,30 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       "seller",
       "productId",
       "paymentMethod",
-      "amount",
-      "currency",
-      "payment",
       "messages",
       "createdAt",
       "updatedAt",
       "links",
+    ],
+    // Two escalation forms exist. A PRE-ORDER escalation (POST sessions
+    // returned the envelope without placing an order — no orderId) has no
+    // total or payment descriptor to report, so it must carry the explanatory
+    // `error` instead. A PERSISTED session reconciled to requires_escalation
+    // (its order's payment failed) keeps the order's amount/currency/payment.
+    // Every non-escalation status carries amount/currency/payment too.
+    allOf: [
+      {
+        if: {
+          properties: { status: { const: "requires_escalation" } },
+          required: ["status"],
+        },
+        then: {
+          if: { not: { required: ["orderId"] } },
+          then: { required: ["error"] },
+          else: { required: ["amount", "currency", "payment"] },
+        },
+        else: { required: ["amount", "currency", "payment"] },
+      },
     ],
     additionalProperties: true,
   };

@@ -16,6 +16,8 @@ import {
 import {
   decodeVariantId,
   formatCheckoutSession,
+  formatEphemeralCheckoutSession,
+  generateCheckoutSessionId,
   initCheckoutSessionsTable,
   insertCheckoutSession,
   listCheckoutSessions,
@@ -285,20 +287,37 @@ async function handleCreate(
       // sees status `requires_escalation` + a severity-tagged message and can
       // pivot to a fiat payment method or ask the seller to re-price.
       if (error.body?.escalate) {
-        return res.status(200).json({
-          status: "requires_escalation" as CheckoutSessionStatus,
-          buyer: { pubkey: buyerPubkey },
-          seller: { pubkey: sellerPubkey },
-          productId,
-          paymentMethod: input.paymentMethod || "stripe",
-          error: error.body.error,
-          ...(error.body.code ? { code: error.body.code } : {}),
-          messages: [
-            makeMessage("session_created", "Checkout session created."),
-            makeMessage("requires_escalation", error.body.error, "error"),
-          ],
-          links: { discovery: `${baseUrl}/.well-known/ucp` },
-        });
+        // No order was placed and no session row is persisted, but the body
+        // must still validate against the published checkout-session schema:
+        // the schema conditionally relaxes amount/currency/payment ONLY for
+        // `requires_escalation` (and requires `error` there instead).
+        return res.status(200).json(
+          formatEphemeralCheckoutSession(
+            {
+              id: generateCheckoutSessionId(),
+              status: "requires_escalation" as CheckoutSessionStatus,
+              buyerPubkey,
+              sellerPubkey,
+              productId,
+              paymentMethod: input.paymentMethod || "stripe",
+              payment: null,
+              // The engine tells us the product's price currency on this
+              // failure; there is no total to report alongside it.
+              currency:
+                typeof error.body.currency === "string"
+                  ? error.body.currency
+                  : null,
+              messages: [
+                makeMessage("session_created", "Checkout session created."),
+                makeMessage("requires_escalation", error.body.error, "error"),
+              ],
+              error: error.body.error,
+              code:
+                typeof error.body.code === "string" ? error.body.code : null,
+            },
+            baseUrl
+          )
+        );
       }
       // Validation / business-rule failure: surface the order engine's exact
       // status + detail and do NOT persist a junk session row.
@@ -314,8 +333,14 @@ async function handleCreate(
   const { status, payment, mcpOrderId, amountTotal, currency, messages } =
     describeResult(result);
 
+  // Mint the session id up front so the persist-failure fallback below can
+  // return the SAME id the insert would have used — the fallback body must
+  // still validate against the published checkout-session schema, which
+  // requires a string id.
+  const sessionId = generateCheckoutSessionId();
   try {
     const row = await insertCheckoutSession({
+      id: sessionId,
       buyerPubkey,
       sellerPubkey,
       productId,
@@ -334,21 +359,29 @@ async function handleCreate(
   } catch (error) {
     console.error("UCP checkout persist error:", error);
     // The order WAS created by the engine; only the session record failed.
-    // Return the payment descriptor so the caller can still complete payment.
-    return res.status(201).json({
-      id: null,
-      status,
-      buyer: { pubkey: buyerPubkey },
-      seller: { pubkey: sellerPubkey },
-      productId,
-      ...(mcpOrderId ? { orderId: mcpOrderId } : {}),
-      paymentMethod: input.paymentMethod || "stripe",
-      amount: amountTotal,
-      currency,
-      payment,
-      messages,
-      warning: "Session record could not be persisted; payment is still valid.",
-    });
+    // Return the full payment descriptor so the caller can still complete
+    // payment. The body stays schema-valid via the ephemeral formatter; the
+    // warning explains why the self link will 404.
+    return res.status(201).json(
+      formatEphemeralCheckoutSession(
+        {
+          id: sessionId,
+          status,
+          buyerPubkey,
+          sellerPubkey,
+          productId,
+          mcpOrderId,
+          paymentMethod: input.paymentMethod || "stripe",
+          amountTotal,
+          currency,
+          payment,
+          messages,
+          warning:
+            "Session record could not be persisted; payment is still valid.",
+        },
+        baseUrl
+      )
+    );
   }
 }
 
