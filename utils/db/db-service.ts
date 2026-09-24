@@ -883,6 +883,18 @@ async function initializeTables(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS idx_email_unsubscribes_seller ON email_unsubscribes(seller_pubkey);
 
+      -- Account-global cache of addresses on SendGrid's suppression lists
+      -- (hard bounces + spam reports), pulled by the suppression sync. Kept
+      -- SEPARATE from the per-seller email_unsubscribes rows so an address
+      -- that enters a seller's audience AFTER it was suppressed is still
+      -- filtered out of every audience query — the per-seller row can only
+      -- exist for sellers whose audience contained the address at sync time.
+      CREATE TABLE IF NOT EXISTS sendgrid_suppressed_emails (
+          email TEXT PRIMARY KEY,
+          list TEXT NOT NULL,
+          first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       -- Idempotency ledger for blog-post email broadcasts. A unique
       -- (pubkey, d_tag, event_id) row guarantees a given published version is
       -- emailed to the audience at most once even under double-click / retry.
@@ -4663,7 +4675,11 @@ export async function getSellerAudienceEmails(
            WHERE sub.email NOT IN (
              SELECT lower(email) FROM email_unsubscribes
               WHERE seller_pubkey = $1
-           )`,
+           )
+           -- Account-global provider suppressions (hard bounces / spam
+           -- reports): a dead address stays excluded even for sellers who
+           -- captured it after the suppression sync recorded it.
+           AND sub.email NOT IN (SELECT email FROM sendgrid_suppressed_emails)`,
           [sellerPubkey, source]
         )
       : await client.query(
@@ -4683,7 +4699,8 @@ export async function getSellerAudienceEmails(
            WHERE sub.email NOT IN (
              SELECT lower(email) FROM email_unsubscribes
               WHERE seller_pubkey = $1
-           )`,
+           )
+           AND sub.email NOT IN (SELECT email FROM sendgrid_suppressed_emails)`,
           [sellerPubkey]
         );
     return result.rows
@@ -4730,6 +4747,104 @@ export async function unsubscribeSellerEmail(
   } catch (error) {
     logSwallowedDbOutage("Failed to record email unsubscribe:", error);
     return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Cache addresses SendGrid has placed on its suppression lists (account-
+ * global). Idempotent (PK conflict no-ops). This cache is what lets audience
+ * queries exclude a dead address even for sellers who capture it AFTER the
+ * sync ran. Returns rows newly written, or null on DB error.
+ */
+export async function recordSendGridSuppressedEmails(
+  entries: { email: string; list: string }[]
+): Promise<number | null> {
+  const seen = new Map<string, string>();
+  for (const e of entries) {
+    const email = typeof e?.email === "string" ? e.email.trim().toLowerCase() : "";
+    if (email && !seen.has(email)) seen.set(email, e.list || "unknown");
+  }
+  if (seen.size === 0) return 0;
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    let inserted = 0;
+    for (const [email, list] of seen) {
+      const result = await client.query(
+        `INSERT INTO sendgrid_suppressed_emails (email, list)
+         VALUES ($1, $2)
+         ON CONFLICT (email) DO NOTHING`,
+        [email, list]
+      );
+      inserted += result.rowCount ?? 0;
+    }
+    return inserted;
+  } catch (error) {
+    logSwallowedDbOutage("Failed to cache SendGrid suppressed emails:", error);
+    return null;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Bulk-suppress provider-reported dead addresses (SendGrid hard bounces /
+ * spam reports) for EVERY seller whose audience contains them. SendGrid's
+ * suppression lists are account-global, not per-seller, so a bounced address
+ * is mapped to sellers via the SAME sources getSellerAudienceEmails reads
+ * (buyer notification_emails joined to the seller's message_events UNION the
+ * seller's popup captures) — addresses nobody would email are ignored.
+ *
+ * Idempotent: ON CONFLICT keeps the ORIGINAL reason, so a 'user' opt-out is
+ * never rewritten to 'suppressed'. Per-email statements (no array binding)
+ * keep this portable across pg-mem and let one bad row not fail the batch.
+ * Returns the number of (seller, email) rows newly written, or null on DB
+ * error (fail loud to the caller — a sync must not advance its watermark).
+ */
+export async function suppressDeadAudienceEmails(
+  emails: string[]
+): Promise<number | null> {
+  const normalized = Array.from(
+    new Set(
+      emails
+        .map((e) => (typeof e === "string" ? e.trim().toLowerCase() : ""))
+        .filter((e) => e.length > 0)
+    )
+  );
+  if (normalized.length === 0) return 0;
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    let inserted = 0;
+    for (const email of normalized) {
+      const result = await client.query(
+        `INSERT INTO email_unsubscribes (seller_pubkey, email, reason)
+         SELECT DISTINCT sub.seller_pubkey, sub.email, 'suppressed'
+           FROM (
+             SELECT me.pubkey AS seller_pubkey, lower(ne.email) AS email
+               FROM notification_emails ne
+               INNER JOIN message_events me ON ne.order_id = me.order_id
+              WHERE ne.role = 'buyer'
+                AND ne.email IS NOT NULL
+             UNION
+             SELECT p.seller_pubkey, lower(p.email)
+               FROM popup_email_captures p
+              WHERE p.email IS NOT NULL
+           ) sub
+          WHERE sub.email = $1
+         ON CONFLICT (seller_pubkey, email) DO NOTHING`,
+        [email]
+      );
+      inserted += result.rowCount ?? 0;
+    }
+    return inserted;
+  } catch (error) {
+    logSwallowedDbOutage("Failed to suppress dead audience emails:", error);
+    return null;
   } finally {
     if (client) client.release();
   }

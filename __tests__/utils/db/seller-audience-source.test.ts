@@ -66,10 +66,18 @@ jest.mock("pg", () => {
     );
   `);
 
+  memDb.public.none(`
+    CREATE TABLE sendgrid_suppressed_emails (
+      email TEXT PRIMARY KEY,
+      list TEXT NOT NULL,
+      first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   const { Pool: MemPool } = memDb.adapters.createPg();
 
   const AUDIENCE_TABLES =
-    /popup_email_captures|notification_emails|message_events|email_unsubscribes/i;
+    /popup_email_captures|notification_emails|message_events|email_unsubscribes|sendgrid_suppressed_emails/i;
 
   function wrapClient(raw: any) {
     return {
