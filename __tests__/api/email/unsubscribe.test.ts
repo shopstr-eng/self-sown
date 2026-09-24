@@ -81,7 +81,8 @@ describe("unsubscribe endpoint (RFC 8058 one-click)", () => {
     );
     expect(mocked.unsubscribeSellerEmail).toHaveBeenCalledWith(
       PUBKEY,
-      "buyer@example.com"
+      "buyer@example.com",
+      "user"
     );
   });
 

@@ -69,7 +69,8 @@ export default async function handler(
 
   const ok = await unsubscribeSellerEmail(
     verified.sellerPubkey,
-    verified.email
+    verified.email,
+    "user"
   );
 
   if (!ok) {

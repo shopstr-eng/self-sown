@@ -514,6 +514,12 @@ maybeIt(
     expect(await db.isSellerEmailUnsubscribed(SELLER_PK, DELIVERED_1)).toBe(
       false
     );
+    // ...recorded as a provider suppression, NOT a user opt-out, so the
+    // seller can tell "undeliverable address" apart from "person opted out".
+    expect(await db.getSellerEmailUnsubscribeCounts(SELLER_PK)).toEqual({
+      unsubscribed: 0,
+      suppressed: 1,
+    });
     // ...and its released recipient claim was NOT replaced.
     expect(await ledgerEmails(EVENT_DEAD_1)).toEqual([DELIVERED_1]);
 

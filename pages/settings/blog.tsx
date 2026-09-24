@@ -120,6 +120,12 @@ const BlogSettingsPage = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [senderDomainVerified, setSenderDomainVerified] = useState(false);
+  // Why contacts left the email audience (opted out vs dead-address
+  // suppression). null = not loaded / unavailable.
+  const [audienceExits, setAudienceExits] = useState<{
+    unsubscribed: number;
+    suppressed: number;
+  } | null>(null);
 
   const [scheduledItems, setScheduledItems] = useState<ScheduledBlogPost[]>([]);
 
@@ -186,6 +192,38 @@ const BlogSettingsPage = () => {
     }
   }, [pubkey, membership.isPro]);
 
+  // Audience exit breakdown (opted out vs suppressed dead addresses). Fetch
+  // failures are silent — the panel just doesn't render.
+  const fetchAudienceExits = useCallback(async () => {
+    if (!pubkey || !membership.isPro) {
+      setAudienceExits(null);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/email/unsubscribe-counts?pubkey=${encodeURIComponent(pubkey)}`
+      );
+      if (!res.ok) {
+        setAudienceExits(null);
+        return;
+      }
+      const data = await res.json();
+      if (
+        typeof data?.unsubscribed === "number" &&
+        typeof data?.suppressed === "number"
+      ) {
+        setAudienceExits({
+          unsubscribed: data.unsubscribed,
+          suppressed: data.suppressed,
+        });
+      } else {
+        setAudienceExits(null);
+      }
+    } catch {
+      setAudienceExits(null);
+    }
+  }, [pubkey, membership.isPro]);
+
   // Drafts + scheduled posts live server-side and are never broadcast to relays
   // until they go live, so reading them requires a signed auth event proving
   // ownership (passed as a base64 `auth` query param). Failures are silent —
@@ -225,8 +263,15 @@ const BlogSettingsPage = () => {
       fetchPosts();
       fetchSenderDomain();
       fetchScheduledPosts();
+      fetchAudienceExits();
     }
-  }, [pubkey, fetchPosts, fetchSenderDomain, fetchScheduledPosts]);
+  }, [
+    pubkey,
+    fetchPosts,
+    fetchSenderDomain,
+    fetchScheduledPosts,
+    fetchAudienceExits,
+  ]);
 
   useEffect(() => {
     if (successMessage) {
@@ -957,6 +1002,31 @@ const BlogSettingsPage = () => {
             </p>
           </div>
         </div>
+
+        {audienceExits &&
+          (audienceExits.unsubscribed > 0 || audienceExits.suppressed > 0) && (
+            <div className="shadow-neo mb-6 rounded-md border-2 border-black bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="font-bold text-black">Audience changes</p>
+              <ul className="mt-1 list-disc pl-5">
+                {audienceExits.unsubscribed > 0 && (
+                  <li>
+                    {audienceExits.unsubscribed} contact
+                    {audienceExits.unsubscribed === 1 ? "" : "s"} unsubscribed
+                    from your emails.
+                  </li>
+                )}
+                {audienceExits.suppressed > 0 && (
+                  <li>
+                    {audienceExits.suppressed} address
+                    {audienceExits.suppressed === 1 ? " was" : "es were"}{" "}
+                    removed automatically because the email provider reported{" "}
+                    {audienceExits.suppressed === 1 ? "it" : "them"} as
+                    undeliverable.
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
 
         {!membership.isPro && (
           <UpgradeBanner className="mb-6" feature="Storefront blog + email" />

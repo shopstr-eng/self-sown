@@ -274,7 +274,11 @@ export async function runBlogBroadcast(params: {
           // than definiteReject on purpose: account/sender-level 4xx (e.g. a
           // lapsed domain auth 403) fails the WHOLE audience and must never
           // suppress anyone.
-          const suppressed = await unsubscribeSellerEmail(pubkey, to);
+          const suppressed = await unsubscribeSellerEmail(
+            pubkey,
+            to,
+            "suppressed"
+          );
           if (!suppressed) {
             console.error(
               `Blog broadcast: failed to durably suppress dead address (retry will re-attempt it)`

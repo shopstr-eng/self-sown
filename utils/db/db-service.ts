@@ -869,9 +869,14 @@ async function initializeTables(): Promise<void> {
 
       -- Per-seller marketing unsubscribe list. A buyer/subscriber who opts out of
       -- one seller's broadcasts is suppressed only for that seller (scoped key).
+      -- The reason column records WHY the row exists: 'user' (the contact
+      -- clicked unsubscribe) vs 'suppressed' (the provider rejected the
+      -- address as undeliverable, so we durably suppress it). Without it a
+      -- seller cannot tell an opt-out from a dead address.
       CREATE TABLE IF NOT EXISTS email_unsubscribes (
           seller_pubkey TEXT NOT NULL,
           email TEXT NOT NULL,
+          reason TEXT NOT NULL DEFAULT 'user',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (seller_pubkey, email)
       );
@@ -891,6 +896,22 @@ async function initializeTables(): Promise<void> {
       );
 
       CREATE INDEX IF NOT EXISTS idx_blog_email_broadcasts_pubkey ON blog_email_broadcasts(pubkey);
+    `);
+
+      // WHY each unsubscribe row exists: 'user' (clicked unsubscribe) vs
+      // 'suppressed' (provider dead-address suppression). Rows that predate
+      // the column keep the 'user' default — the safest reading of a
+      // historical opt-out list.
+      await client.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'email_unsubscribes' AND column_name = 'reason'
+        ) THEN
+          ALTER TABLE email_unsubscribes ADD COLUMN reason TEXT NOT NULL DEFAULT 'user';
+        END IF;
+      END $$;
     `);
 
       // Per-segment broadcast claims: pre-segment rows keyed the whole published
@@ -4676,10 +4697,22 @@ export async function getSellerAudienceEmails(
   }
 }
 
-/** Record a per-seller marketing unsubscribe. Idempotent (PK conflict no-ops). */
+/** Why an email_unsubscribes row exists. */
+export type EmailUnsubscribeReason =
+  | "user" // the contact clicked unsubscribe
+  | "suppressed"; // the provider rejected the address as undeliverable
+
+/**
+ * Record a per-seller marketing unsubscribe. Idempotent (PK conflict no-ops).
+ * `reason` distinguishes a deliberate opt-out from an automatic dead-address
+ * suppression so the seller can tell them apart later. On conflict the
+ * ORIGINAL reason is kept: a 'user' opt-out must never be silently rewritten
+ * to 'suppressed' (or vice versa) by whichever write lands second.
+ */
 export async function unsubscribeSellerEmail(
   sellerPubkey: string,
-  email: string
+  email: string,
+  reason: EmailUnsubscribeReason = "user"
 ): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return false;
@@ -4688,15 +4721,50 @@ export async function unsubscribeSellerEmail(
   try {
     client = await dbPool.connect();
     await client.query(
-      `INSERT INTO email_unsubscribes (seller_pubkey, email)
-       VALUES ($1, $2)
+      `INSERT INTO email_unsubscribes (seller_pubkey, email, reason)
+       VALUES ($1, $2, $3)
        ON CONFLICT (seller_pubkey, email) DO NOTHING`,
-      [sellerPubkey, normalized]
+      [sellerPubkey, normalized, reason]
     );
     return true;
   } catch (error) {
     logSwallowedDbOutage("Failed to record email unsubscribe:", error);
     return false;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Per-seller breakdown of WHY contacts left the email audience: how many
+ * deliberately unsubscribed vs how many were auto-suppressed as dead
+ * addresses. Returns null on DB error (fail loud to the caller — an
+ * audience-stats view must not render zeros during an outage).
+ */
+export async function getSellerEmailUnsubscribeCounts(
+  sellerPubkey: string
+): Promise<{ unsubscribed: number; suppressed: number } | null> {
+  const dbPool = getDbPool();
+  let client;
+  try {
+    client = await dbPool.connect();
+    const result = await client.query(
+      `SELECT reason, COUNT(*)::int AS count
+         FROM email_unsubscribes
+        WHERE seller_pubkey = $1
+        GROUP BY reason`,
+      [sellerPubkey]
+    );
+    let unsubscribed = 0;
+    let suppressed = 0;
+    for (const row of result.rows) {
+      if (row.reason === "suppressed") suppressed = row.count;
+      else unsubscribed += row.count; // 'user' + any legacy value
+    }
+    return { unsubscribed, suppressed };
+  } catch (error) {
+    logSwallowedDbOutage("Failed to load email unsubscribe counts:", error);
+    return null;
   } finally {
     if (client) client.release();
   }

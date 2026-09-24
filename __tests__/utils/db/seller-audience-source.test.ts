@@ -60,6 +60,7 @@ jest.mock("pg", () => {
     CREATE TABLE email_unsubscribes (
       seller_pubkey TEXT NOT NULL,
       email TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT 'user',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (seller_pubkey, email)
     );
@@ -147,6 +148,7 @@ const memDb: IMemoryDb = (require("pg") as any).__memDb;
 
 import {
   getSellerAudienceEmails,
+  getSellerEmailUnsubscribeCounts,
   savePopupEmailCapture,
   saveSubscriberEmailCapture,
   unsubscribeSellerEmail,
@@ -290,5 +292,47 @@ describe("getSellerAudienceEmails source narrowing (real SQL via pg-mem)", () =>
     const emails = await getSellerAudienceEmails(SELLER, "popup");
     expect(emails).not.toContain("mixedcase@example.com");
     expect(emails).toEqual([]);
+  });
+});
+
+describe("email_unsubscribes reason tracking (real SQL via pg-mem)", () => {
+  let errorSpy: jest.SpyInstance;
+  beforeAll(() => {
+    errorSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+  afterAll(() => {
+    errorSpy.mockRestore();
+  });
+
+  beforeEach(async () => {
+    await memDb.public.none(`DELETE FROM email_unsubscribes;`);
+  });
+
+  it("defaults to 'user' and records 'suppressed' explicitly, broken out per seller", async () => {
+    await unsubscribeSellerEmail(SELLER, "opted-out@example.com");
+    await unsubscribeSellerEmail(SELLER, "dead@example.com", "suppressed");
+    // Another seller's exits must not leak into this seller's counts.
+    await unsubscribeSellerEmail(OTHER, "other-dead@example.com", "suppressed");
+
+    expect(await getSellerEmailUnsubscribeCounts(SELLER)).toEqual({
+      unsubscribed: 1,
+      suppressed: 1,
+    });
+  });
+
+  it("a conflict keeps the ORIGINAL reason — a later write cannot rewrite why the row exists", async () => {
+    await unsubscribeSellerEmail(SELLER, "first-wins@example.com", "suppressed");
+    await unsubscribeSellerEmail(SELLER, "first-wins@example.com"); // 'user' write lands second
+    expect(await getSellerEmailUnsubscribeCounts(SELLER)).toEqual({
+      unsubscribed: 0,
+      suppressed: 1,
+    });
+  });
+
+  it("a seller with no exits reports zeros, not null", async () => {
+    expect(await getSellerEmailUnsubscribeCounts(SELLER)).toEqual({
+      unsubscribed: 0,
+      suppressed: 0,
+    });
   });
 });
