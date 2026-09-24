@@ -204,7 +204,10 @@ function formatCreateOrderResult(
         amount: result.amountSats,
         currency: "sats",
         mintUrl: result.mintUrl,
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        // Real invoice expiry from the mint quote / bolt11 itself (resolved in
+        // order-service), so agents don't abandon a payable invoice early or
+        // retry an expired one against a fabricated 10-minute deadline.
+        expiresAt: result.expiresAt,
         instructions: {
           step1: "Pay the bolt11 Lightning invoice using any Lightning wallet",
           step2: `Verify payment: POST /api/mcp/verify-payment with { "orderId": "${orderId}" }`,

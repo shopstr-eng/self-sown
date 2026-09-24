@@ -207,6 +207,9 @@ const RESULTS = {
     quoteId: "quote_1",
     amountSats: 1500,
     mintUrl: "https://mint.example",
+    // Resolved from the real invoice by order-service; the route must pass it
+    // through verbatim (a hardcoded offset here would mis-advertise expiry).
+    expiresAt: "2030-01-01T01:00:00.000Z",
     pricingBlock: {},
   },
   cashu: {
@@ -337,6 +340,13 @@ describe("MCP create-order payment descriptors ↔ shared UCP field contracts", 
     const validate = compile(MCP_LIGHTNING_PAYMENT);
     const ok: boolean = validate(body.payment);
     expect(ok ? true : JSON.stringify(validate.errors)).toBe(true);
+  });
+
+  it("lightning expiresAt is passed through from the engine, not recomputed", async () => {
+    // Pins the fix for the hardcoded `Date.now() + 10 * 60 * 1000`: the wire
+    // value must be exactly what order-service resolved from the invoice.
+    const { body } = await postForResult(RESULTS.lightning);
+    expect(body.payment.expiresAt).toBe(RESULTS.lightning.expiresAt);
   });
 
   it("cashu 201 descriptor matches the shared cashu fields exactly", async () => {

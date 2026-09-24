@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import Stripe from "stripe";
 import { Mint as CashuMint, Wallet as CashuWallet } from "@cashu/cashu-ts";
+import { decodeInvoice } from "@getalby/lightning-tools";
 import {
   fetchAllProductsFromDb,
   fetchAllProfilesFromDb,
@@ -186,6 +187,9 @@ export type OrderFlowResult =
       quoteId: string;
       amountSats: number;
       mintUrl: string;
+      // Real invoice expiry (ISO 8601), derived from the mint quote's expiry or
+      // the bolt11 invoice itself — never a hardcoded offset (agents act on it).
+      expiresAt: string;
       pricingBlock: Record<string, any>;
     }
   | {
@@ -696,6 +700,44 @@ async function initializeSubscription(
   };
 }
 
+/**
+ * BOLT-11's default expiry when the invoice carries no expiry tag (spec:
+ * 3600 seconds). Used only when the mint quote itself reports no expiry.
+ */
+const BOLT11_DEFAULT_EXPIRY_SECONDS = 3600;
+
+/**
+ * Resolve the REAL expiry of a Lightning invoice as an ISO 8601 string.
+ *
+ * Agents schedule payment/verification around the advertised `expiresAt`, so a
+ * hardcoded offset (the old 10-minute constant) makes them abandon payable
+ * invoices or retry expired ones. Source of truth, in order:
+ * 1. the mint quote's `expiry` (unix seconds) — the settlement deadline the
+ *    mint itself will enforce on the quote verify-payment polls;
+ * 2. the bolt11 invoice's `timestamp + expiry` tag (BOLT-11 default 1 hour
+ *    when the tag is absent).
+ *
+ * Fails closed: if neither source yields a time we throw, rather than
+ * advertising a fabricated expiry on a real money invoice.
+ */
+export function resolveLightningInvoiceExpiry(mintQuote: {
+  request: string;
+  expiry?: number | null;
+}): string {
+  if (typeof mintQuote.expiry === "number" && mintQuote.expiry > 0) {
+    return new Date(mintQuote.expiry * 1000).toISOString();
+  }
+  const decoded = decodeInvoice(mintQuote.request);
+  if (decoded && decoded.timestamp > 0) {
+    const expirySeconds = decoded.expiry ?? BOLT11_DEFAULT_EXPIRY_SECONDS;
+    return new Date((decoded.timestamp + expirySeconds) * 1000).toISOString();
+  }
+  throw new OrderServiceError(500, {
+    error: "Failed to generate Lightning invoice",
+    details: "The mint returned an invoice with no determinable expiry.",
+  });
+}
+
 async function initializeLightning(
   input: CreateOrderFlowInput,
   quote: OrderQuote,
@@ -724,6 +766,7 @@ async function initializeLightning(
     const wallet = new CashuWallet(cashuMint);
     await wallet.loadMint();
     const mintQuote = await wallet.createMintQuoteBolt11(amountInSats);
+    const expiresAt = resolveLightningInvoiceExpiry(mintQuote);
 
     const order = await createMcpOrder(
       orderId,
@@ -772,6 +815,7 @@ async function initializeLightning(
       quoteId: mintQuote.quote,
       amountSats: amountInSats,
       mintUrl: mint,
+      expiresAt,
       pricingBlock: quote.pricingBlock,
     };
   } catch (error) {
