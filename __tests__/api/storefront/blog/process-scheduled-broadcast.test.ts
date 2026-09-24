@@ -35,7 +35,7 @@ import { isPubkeyProEntitled } from "@/utils/pro/membership";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
-import { sendEmailStrictFrom } from "@/utils/email/email-service";
+import { sendEmailStrictFromDetailed } from "@/utils/email/email-service";
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { getBlogPostSlug } from "@/utils/url-slugs";
@@ -76,7 +76,7 @@ jest.mock("@/utils/email/storefront-branding", () => ({
   loadStorefrontBranding: jest.fn(),
 }));
 jest.mock("@/utils/email/email-service", () => ({
-  sendEmailStrictFrom: jest.fn(),
+  sendEmailStrictFromDetailed: jest.fn(),
 }));
 jest.mock("@/utils/email/blog-broadcast-email", () => ({
   buildBlogBroadcastEmail: jest.fn(() => ({
@@ -111,7 +111,7 @@ const mocked = {
   applyRateLimit: applyRateLimit as jest.Mock,
   resolveSellerSenderEmail: resolveSellerSenderEmail as jest.Mock,
   loadStorefrontBranding: loadStorefrontBranding as jest.Mock,
-  sendEmailStrictFrom: sendEmailStrictFrom as jest.Mock,
+  sendEmailStrictFromDetailed: sendEmailStrictFromDetailed as jest.Mock,
   buildBlogBroadcastEmail: buildBlogBroadcastEmail as jest.Mock,
   buildSellerEmailUnsubscribeUrl: buildSellerEmailUnsubscribeUrl as jest.Mock,
   getBlogPostSlug: getBlogPostSlug as jest.Mock,
@@ -210,7 +210,10 @@ beforeEach(() => {
   mocked.fetchBlogPostsByPubkeyFromDb.mockResolvedValue([blogEvent()]);
   mocked.getShopSlugByPubkey.mockResolvedValue("myshop");
   mocked.loadStorefrontBranding.mockResolvedValue({ shopName: "My Shop" });
-  mocked.sendEmailStrictFrom.mockResolvedValue(true);
+  mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+    ok: true,
+    definiteReject: false,
+  });
 });
 
 describe("process-scheduled cron × real runBlogBroadcast", () => {
@@ -223,8 +226,8 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       email: "sent",
     });
     // Real broadcast actually fanned out to the deduped audience.
-    expect(mocked.sendEmailStrictFrom).toHaveBeenCalledTimes(2);
-    for (const call of mocked.sendEmailStrictFrom.mock.calls) {
+    expect(mocked.sendEmailStrictFromDetailed).toHaveBeenCalledTimes(2);
+    for (const call of mocked.sendEmailStrictFromDetailed.mock.calls) {
       expect(call[0].fromEmail).toBe("shop@verified.example");
       expect(call[0].headers["List-Unsubscribe"]).toContain("<https://");
     }
@@ -243,7 +246,7 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       status: "published",
       email: "skipped",
     });
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
     // The one-shot ledger must NOT be burned by a skip.
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
     expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalled();
@@ -258,7 +261,7 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       status: "published",
       email: "skipped",
     });
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
     expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalled();
   });
@@ -270,7 +273,7 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       status: "published",
       email: "empty-audience",
     });
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
     // Claim is taken only AFTER a non-empty audience is confirmed.
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
     expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalled();
@@ -282,23 +285,26 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       "b@example.com",
       "c@example.com",
     ]);
-    mocked.sendEmailStrictFrom
+    mocked.sendEmailStrictFromDetailed
       .mockRejectedValueOnce(new Error("smtp blew up"))
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
+      .mockResolvedValueOnce({ ok: false, definiteReject: true })
+      .mockResolvedValueOnce({ ok: true, definiteReject: false });
     const res = await run();
     // Something went out → terminal "sent" outcome → post finalized, claim kept.
     expect(res.body.results[0]).toMatchObject({
       status: "published",
       email: "sent",
     });
-    expect(mocked.sendEmailStrictFrom).toHaveBeenCalledTimes(3);
+    expect(mocked.sendEmailStrictFromDetailed).toHaveBeenCalledTimes(3);
     expect(mocked.releaseBlogBroadcast).not.toHaveBeenCalled();
     expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalled();
   });
 
   test("all-failed: releases the broadcast claim AND keeps the scheduled row for retry", async () => {
-    mocked.sendEmailStrictFrom.mockResolvedValue(false);
+    mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: true,
+    });
     const res = await run();
     expect(res.body.processed).toBe(0);
     expect(res.body.results[0]).toMatchObject({
@@ -318,31 +324,47 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
   });
 
   test("a post already broadcast is NOT re-sent on a second cron run", async () => {
-    // Stateful one-shot ledger: the first claim wins, every later claim loses.
+    // Stateful ledgers mirroring the real tables: the first version claim
+    // wins and every claimed recipient stays in the per-recipient ledger, so
+    // a second tick finds the audience fully delivered and skips.
     let claimed = false;
+    const delivered = new Set<string>();
     mocked.claimBlogBroadcast.mockImplementation(async () => {
-      if (claimed) return false; // already-sent
+      if (claimed) return false; // claim already held
       claimed = true;
       return true;
     });
+    mocked.claimBlogBroadcastRecipient.mockImplementation(
+      async (_pk: string, _dt: string, _ev: string, email: string) => {
+        if (delivered.has(email)) return false;
+        delivered.add(email);
+        return true;
+      }
+    );
+    mocked.getBlogBroadcastRecipients.mockImplementation(async () => [
+      ...delivered,
+    ]);
+    mocked.getBlogBroadcastSegments.mockImplementation(async () =>
+      claimed ? ["all"] : []
+    );
 
     const first = await run();
     expect(first.body.results[0]).toMatchObject({
       status: "published",
       email: "sent",
     });
-    expect(mocked.sendEmailStrictFrom).toHaveBeenCalledTimes(2);
+    expect(mocked.sendEmailStrictFromDetailed).toHaveBeenCalledTimes(2);
 
     // A second tick re-claims the same due row (e.g. the delete hadn't landed,
     // or a duplicate schedule). The real broadcast must short-circuit on the
     // ledger and emit ZERO additional emails.
-    mocked.sendEmailStrictFrom.mockClear();
+    mocked.sendEmailStrictFromDetailed.mockClear();
     const second = await run();
     expect(second.body.results[0]).toMatchObject({
       status: "published",
       email: "skipped",
     });
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   test("a no-longer-Pro seller publishes but the broadcast never runs", async () => {
@@ -353,7 +375,7 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       email: "not-pro",
     });
     expect(mocked.resolveSellerSenderEmail).not.toHaveBeenCalled();
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
     expect(mocked.deletePublishedScheduledBlogPost).toHaveBeenCalled();
   });
 
@@ -417,10 +439,10 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
     // the FIRST send succeeds (row A) and the SECOND fails (row D), in loop
     // order — deterministic because rows are processed sequentially.
     mocked.getSellerAudienceEmails.mockResolvedValue(["reader@example.com"]);
-    mocked.sendEmailStrictFrom
+    mocked.sendEmailStrictFromDetailed
       .mockReset()
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(false);
+      .mockResolvedValueOnce({ ok: true, definiteReject: false })
+      .mockResolvedValueOnce({ ok: false, definiteReject: true });
 
     const res = await run();
 
@@ -471,7 +493,7 @@ describe("process-scheduled cron × real runBlogBroadcast", () => {
       (c) => c[1]
     );
     expect(claimedBroadcasts).toEqual(["post-a", "post-d"]);
-    expect(mocked.sendEmailStrictFrom).toHaveBeenCalledTimes(2);
+    expect(mocked.sendEmailStrictFromDetailed).toHaveBeenCalledTimes(2);
     // The all-failed row released its broadcast claim so the email can retry.
     expect(mocked.releaseBlogBroadcast).toHaveBeenCalledWith(
       PUBKEY,

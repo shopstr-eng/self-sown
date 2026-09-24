@@ -13,7 +13,7 @@ import {
 } from "@/utils/db/db-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
-import { sendEmailStrictFrom } from "@/utils/email/email-service";
+import { sendEmailStrictFromDetailed } from "@/utils/email/email-service";
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { getBlogPostSlug } from "@/utils/url-slugs";
@@ -145,13 +145,21 @@ export async function runBlogBroadcast(params: {
     return { kind: "skipped", reason: "already-sent" };
   }
 
-  // Idempotency: exactly one broadcast per (pubkey, dTag, eventId, segment).
-  // Claimed only AFTER every skip condition AND after confirming a non-empty
-  // deduped audience, so an empty/nothing-new attempt never burns the
-  // one-shot claim. Concurrency: same-segment races lose this claim, and a
-  // concurrent CROSS-segment send can overlap the blast, but the
-  // per-recipient claim in the send loop guarantees each contact is emailed
-  // at most once per version.
+  // Idempotency: exactly one version claim per (pubkey, dTag, eventId,
+  // segment). Claimed only AFTER every skip condition AND after confirming a
+  // non-empty deduped audience, so an empty/nothing-new attempt never burns
+  // the one-shot claim.
+  //
+  // A LOST claim (claimed === false) is NOT a skip: the retained claim may
+  // belong to a PARTIALLY failed blast whose undelivered recipients were
+  // released from the per-recipient ledger precisely so a retry can
+  // re-attempt them. The pre-claim ledger read above already removed every
+  // contact any prior send claimed for this version, and the per-recipient
+  // claim in the send loop keeps concurrent same/cross-segment sends
+  // at-most-once — so riding the retained claim can never double-email. (A
+  // fully delivered blast never reaches this branch with a non-empty
+  // audience: the ledger covers its whole reachable audience, so the
+  // empty-audience skip fired before the claim.)
   const claimed = await claimBlogBroadcast(
     pubkey,
     dTag,
@@ -160,9 +168,6 @@ export async function runBlogBroadcast(params: {
   );
   if (claimed === null) {
     return { kind: "claim-failed" };
-  }
-  if (!claimed) {
-    return { kind: "skipped", reason: "already-sent" };
   }
 
   // Build the internal themed post URL (never the post's external link-out).
@@ -210,6 +215,7 @@ export async function runBlogBroadcast(params: {
         continue;
       }
       let delivered = false;
+      let definiteReject = false;
       try {
         const unsubscribeUrl = buildSellerEmailUnsubscribeUrl(
           baseUrl,
@@ -223,7 +229,7 @@ export async function runBlogBroadcast(params: {
           unsubscribeUrl,
           style,
         });
-        const ok = await sendEmailStrictFrom({
+        const result = await sendEmailStrictFromDetailed({
           to,
           subject,
           html,
@@ -234,18 +240,25 @@ export async function runBlogBroadcast(params: {
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
         });
-        if (ok) {
+        if (result.ok) {
           sent++;
           delivered = true;
         } else {
           failed++;
+          definiteReject = result.definiteReject;
         }
       } catch (err) {
+        // A thrown error means acceptance is unknown — ambiguous, so the
+        // recipient claim is retained below (same as a timeout/5xx).
         console.error("Blog broadcast send error:", err);
         failed++;
       }
-      if (!delivered) {
-        // Failed deliveries free the recipient claim so a retry re-attempts.
+      if (!delivered && definiteReject) {
+        // Only a DEFINITE provider rejection (4xx) frees the recipient claim
+        // for a retry: the message was provably never accepted, so re-sending
+        // can never duplicate it. Ambiguous failures (timeout, 5xx, throw)
+        // KEEP the claim — SendGrid may have accepted the message, and
+        // at-most-once outranks reaching that contact on a retry.
         await releaseBlogBroadcastRecipient(pubkey, dTag, eventId, to);
       }
     }
@@ -257,8 +270,12 @@ export async function runBlogBroadcast(params: {
 
   // If NOTHING went out (e.g. SendGrid was down), release the claim so the
   // seller can retry without the version being permanently marked as sent.
+  // Only release a claim THIS invocation took — a retry riding a retained
+  // claim must not delete the version marker the earlier blast earned.
   if (sent === 0 && failed > 0) {
-    await releaseBlogBroadcast(pubkey, dTag, eventId, audienceSource);
+    if (claimed) {
+      await releaseBlogBroadcast(pubkey, dTag, eventId, audienceSource);
+    }
     return { kind: "all-failed", sent, failed, total: audience.length };
   }
 
@@ -267,7 +284,7 @@ export async function runBlogBroadcast(params: {
   // must not stick — release it or a burned claim would block legitimate
   // future sends to contacts who join later. (Recipient-level claims still
   // guarantee no contact is emailed twice, so re-opening the version is safe.)
-  if (sent === 0 && failed === 0 && skippedClaimed > 0) {
+  if (sent === 0 && failed === 0 && skippedClaimed > 0 && claimed) {
     await releaseBlogBroadcast(pubkey, dTag, eventId, audienceSource);
   }
 
