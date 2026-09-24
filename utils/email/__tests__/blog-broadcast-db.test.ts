@@ -15,7 +15,8 @@
 //
 //   1. Partial provider outage mid-blast: some recipients succeed, one fails
 //      AMBIGUOUSLY (timeout/5xx — SendGrid may have accepted it), one fails
-//      DEFINITELY (4xx — provably not accepted). A retry of the SAME
+//      DEFINITELY with a NON-recipient 4xx (sender/account-level — provably
+//      not accepted, but the address is not at fault). A retry of the SAME
 //      published version rides the retained segment claim
 //      (blog_email_broadcasts) and resends ONLY the definite-reject — the
 //      immutable per-recipient ledger (blog_email_broadcast_recipients)
@@ -30,6 +31,10 @@
 //      version coexist as ('popup') and ('all') rows keyed by
 //      (pubkey, d_tag, event_id, audience_source), and the full send never
 //      re-emails the contact the popup send already delivered.
+//   4. Recipient-level definite reject (SendGrid blames the address itself):
+//      the address lands on the seller's real email_unsubscribes row, the
+//      SAME version's retry never re-attempts it, and a broadcast of a NEW
+//      version skips it in the audience SQL before any claim or send.
 //
 // Two ways to run (both skipped by default so the plain suite stays fast):
 //
@@ -60,6 +65,7 @@ type BroadcastModule = typeof import("@/utils/email/blog-broadcast");
 const mockSendDetailed: jest.Mock = jest.fn(async () => ({
   ok: true,
   definiteReject: false,
+  recipientReject: false,
 }));
 jest.mock("@/utils/email/email-service", () => {
   const actual = jest.requireActual("@/utils/email/email-service");
@@ -92,6 +98,8 @@ const D_TAG = "e2e-blog-post";
 const EVENT_PARTIAL = "e2e-blog-event-partial";
 const EVENT_OUTAGE = "e2e-blog-event-outage";
 const EVENT_SEGMENTS = "e2e-blog-event-segments";
+const EVENT_DEAD_1 = "e2e-blog-event-dead-1";
+const EVENT_DEAD_2 = "e2e-blog-event-dead-2";
 
 // Namespaced audience addresses: each test's cleanup deletes by seller
 // pubkey, so these can never collide with real contacts.
@@ -99,6 +107,7 @@ const DELIVERED_1 = "blog-e2e-delivered-1@example.com";
 const DELIVERED_2 = "blog-e2e-delivered-2@example.com";
 const AMBIGUOUS = "blog-e2e-ambiguous@example.com";
 const REJECTED = "blog-e2e-rejected@example.com";
+const DEAD = "blog-e2e-dead@example.com";
 const POPUP_ONLY = "blog-e2e-popup@example.com";
 const SUBSCRIPTION_ONLY = "blog-e2e-subscription@example.com";
 
@@ -193,7 +202,11 @@ afterAll(async () => {
 
 beforeEach(async () => {
   mockSendDetailed.mockReset();
-  mockSendDetailed.mockResolvedValue({ ok: true, definiteReject: false });
+  mockSendDetailed.mockResolvedValue({
+    ok: true,
+    definiteReject: false,
+    recipientReject: false,
+  });
   // afterEach cleanup deletes the sender + post rows too, so re-seed per test.
   if (SHOULD_RUN) await seedSenderDomain();
 });
@@ -270,10 +283,13 @@ async function seedSenderDomain(): Promise<void> {
  * runBlogBroadcast re-fetches the post from long_form_events and refuses to
  * email anything whose cached id does not match the requested eventId.
  */
-async function seedBlogPost(eventId: string): Promise<void> {
+async function seedBlogPost(
+  eventId: string,
+  createdAt = 1000
+): Promise<void> {
   await db.getDbPool().query(
     `INSERT INTO long_form_events (id, pubkey, created_at, kind, tags, content, sig)
-     VALUES ($1, $2, 1000, 30023, $3::jsonb, 'Post body', 'e2e-sig')`,
+     VALUES ($1, $2, ${createdAt}, 30023, $3::jsonb, 'Post body', 'e2e-sig')`,
     [
       eventId,
       SELLER_PK,
@@ -348,11 +364,15 @@ maybeIt(
 
     // Mid-blast partial SendGrid outage: two deliveries succeed, one times
     // out (AMBIGUOUS — SendGrid may have accepted it), one is refused with a
-    // definite 4xx (provably never accepted).
+    // definite NON-recipient 4xx (sender/account-level: provably never
+    // accepted, but the address is not at fault, so no suppression and the
+    // retry below must re-attempt it).
     mockSendDetailed.mockImplementation(async ({ to }: { to: string }) => {
-      if (to === AMBIGUOUS) return { ok: false, definiteReject: false };
-      if (to === REJECTED) return { ok: false, definiteReject: true };
-      return { ok: true, definiteReject: false };
+      if (to === AMBIGUOUS)
+        return { ok: false, definiteReject: false, recipientReject: false };
+      if (to === REJECTED)
+        return { ok: false, definiteReject: true, recipientReject: false };
+      return { ok: true, definiteReject: false, recipientReject: false };
     });
 
     const first = await runBlogBroadcast(params);
@@ -384,7 +404,11 @@ maybeIt(
     // REPLACES the failing mockImplementation above; mockClear alone would
     // leave it in place.)
     mockSendDetailed.mockClear();
-    mockSendDetailed.mockResolvedValue({ ok: true, definiteReject: false });
+    mockSendDetailed.mockResolvedValue({
+      ok: true,
+      definiteReject: false,
+      recipientReject: false,
+    });
 
     const retry = await runBlogBroadcast(params);
     expect(retry).toEqual({ kind: "sent", sent: 1, failed: 0, total: 1 });
@@ -424,7 +448,11 @@ maybeIt(
 
     // Provider fully down: every send fails AMBIGUOUSLY (timeout/5xx —
     // SendGrid may have accepted some of them).
-    mockSendDetailed.mockResolvedValue({ ok: false, definiteReject: false });
+    mockSendDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: false,
+      recipientReject: false,
+    });
 
     const first = await runBlogBroadcast(params);
     expect(first).toEqual({ kind: "all-failed", sent: 0, failed: 2, total: 2 });
@@ -444,12 +472,83 @@ maybeIt(
     // taken — no sends (nobody can be double-emailed), and still zero claim
     // rows.
     mockSendDetailed.mockClear();
-    mockSendDetailed.mockResolvedValue({ ok: true, definiteReject: false });
+    mockSendDetailed.mockResolvedValue({
+      ok: true,
+      definiteReject: false,
+      recipientReject: false,
+    });
 
     const retry = await runBlogBroadcast(params);
     expect(retry).toEqual({ kind: "skipped", reason: "already-sent" });
     expect(mockSendDetailed).not.toHaveBeenCalled();
     expect(await claimRows()).toEqual([]);
+  }
+);
+
+maybeIt(
+  "recipient-level definite reject is durably suppressed: never re-attempted by the same version's retry NOR by a later version's broadcast",
+  async () => {
+    await seedBlogPost(EVENT_DEAD_1);
+    await seedAudience([DELIVERED_1, DEAD]);
+
+    // First broadcast of version 1: one delivery succeeds; the DEAD address
+    // is refused with a recipient-attributable 4xx (invalid address / on
+    // SendGrid's suppression list) — provably dead, so it must never be
+    // re-attempted.
+    mockSendDetailed.mockImplementation(async ({ to }: { to: string }) => {
+      if (to === DEAD)
+        return { ok: false, definiteReject: true, recipientReject: true };
+      return { ok: true, definiteReject: false, recipientReject: false };
+    });
+
+    const first = await runBlogBroadcast({
+      pubkey: SELLER_PK,
+      dTag: D_TAG,
+      eventId: EVENT_DEAD_1,
+    });
+    expect(first).toEqual({ kind: "sent", sent: 1, failed: 1, total: 2 });
+    expect(sentTo()).toEqual([DEAD, DELIVERED_1].sort());
+
+    // The dead address landed on the seller's REAL suppression list...
+    expect(await db.isSellerEmailUnsubscribed(SELLER_PK, DEAD)).toBe(true);
+    expect(await db.isSellerEmailUnsubscribed(SELLER_PK, DELIVERED_1)).toBe(
+      false
+    );
+    // ...and its released recipient claim was NOT replaced.
+    expect(await ledgerEmails(EVENT_DEAD_1)).toEqual([DELIVERED_1]);
+
+    // RETRY the SAME version with the provider healthy: the audience SQL
+    // excludes the suppressed address and the ledger covers DELIVERED_1, so
+    // there is nothing left to send — already-sent with zero sends. Before
+    // the suppression, this retry re-attempted the dead address.
+    mockSendDetailed.mockClear();
+    mockSendDetailed.mockResolvedValue({
+      ok: true,
+      definiteReject: false,
+      recipientReject: false,
+    });
+
+    const retry = await runBlogBroadcast({
+      pubkey: SELLER_PK,
+      dTag: D_TAG,
+      eventId: EVENT_DEAD_1,
+    });
+    expect(retry).toEqual({ kind: "skipped", reason: "already-sent" });
+    expect(mockSendDetailed).not.toHaveBeenCalled();
+
+    // Broadcast a NEW version of the post: the suppression is keyed to the
+    // SELLER (not the version), so the dead address is filtered out of the
+    // fresh audience before any claim or send — only DELIVERED_1 is emailed.
+    // Newer created_at so the d-tag lookup resolves THIS version, not the
+    // first (fetchBlogPostByDTagAndPubkey orders by created_at DESC).
+    await seedBlogPost(EVENT_DEAD_2, 2000);
+    const nextVersion = await runBlogBroadcast({
+      pubkey: SELLER_PK,
+      dTag: D_TAG,
+      eventId: EVENT_DEAD_2,
+    });
+    expect(nextVersion).toEqual({ kind: "sent", sent: 1, failed: 0, total: 1 });
+    expect(sentTo()).toEqual([DELIVERED_1]);
   }
 );
 

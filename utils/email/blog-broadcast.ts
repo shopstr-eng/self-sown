@@ -9,6 +9,7 @@ import {
   claimBlogBroadcastRecipient,
   releaseBlogBroadcastRecipient,
   getShopSlugByPubkey,
+  unsubscribeSellerEmail,
   type SellerAudienceSource,
 } from "@/utils/db/db-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
@@ -216,6 +217,7 @@ export async function runBlogBroadcast(params: {
       }
       let delivered = false;
       let definiteReject = false;
+      let recipientReject = false;
       try {
         const unsubscribeUrl = buildSellerEmailUnsubscribeUrl(
           baseUrl,
@@ -246,6 +248,7 @@ export async function runBlogBroadcast(params: {
         } else {
           failed++;
           definiteReject = result.definiteReject;
+          recipientReject = result.recipientReject;
         }
       } catch (err) {
         // A thrown error means acceptance is unknown — ambiguous, so the
@@ -260,6 +263,24 @@ export async function runBlogBroadcast(params: {
         // KEEP the claim — SendGrid may have accepted the message, and
         // at-most-once outranks reaching that contact on a retry.
         await releaseBlogBroadcastRecipient(pubkey, dTag, eventId, to);
+        if (recipientReject) {
+          // The rejection blamed the RECIPIENT address itself (invalid or on
+          // SendGrid's suppression list): it will fail every future send
+          // identically, so durably suppress it. The address goes onto the
+          // seller's per-seller suppression list, which getSellerAudienceEmails
+          // already filters out of EVERY future audience (any version, any
+          // segment, blog or one-time) — without this, every retry re-burns
+          // quota and sender reputation on a provably dead address. Narrower
+          // than definiteReject on purpose: account/sender-level 4xx (e.g. a
+          // lapsed domain auth 403) fails the WHOLE audience and must never
+          // suppress anyone.
+          const suppressed = await unsubscribeSellerEmail(pubkey, to);
+          if (!suppressed) {
+            console.error(
+              `Blog broadcast: failed to durably suppress dead address (retry will re-attempt it)`
+            );
+          }
+        }
       }
     }
   };

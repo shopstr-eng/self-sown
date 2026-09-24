@@ -127,6 +127,55 @@ export interface StrictFromSendResult {
    * False for timeouts/network errors and 5xx, where acceptance is unknown.
    */
   definiteReject: boolean;
+  /**
+   * True only when the rejection is attributable to the RECIPIENT address
+   * itself (HTTP 400 with an error on the to/personalizations field or a
+   * suppression-list message): the address is provably dead and must never
+   * be re-attempted. Deliberately narrower than definiteReject — account- or
+   * sender-level 4xx (401/403 auth, 413 payload, ...) fail EVERY recipient
+   * identically, so treating them as dead addresses would wipe a whole
+   * audience when e.g. a seller's domain authentication lapses.
+   */
+  recipientReject: boolean;
+}
+
+/**
+ * Whether a SendGrid rejection blames the recipient address: HTTP 400 whose
+ * error entries either reference an explicit recipient `to` field (e.g.
+ * "to", "to.0.email", "personalizations.0.to.0.email") or carry a
+ * suppression-list message that unambiguously names the to/recipient
+ * address. Everything else — non-`to` personalization fields (subject,
+ * headers), from-address errors, auth, payload size — is NOT
+ * recipient-attributable, because sender/content-level 400s fail EVERY
+ * recipient identically and misclassifying one would durably suppress the
+ * seller's entire audience.
+ */
+function isRecipientAddressRejection(status: number, error: any): boolean {
+  if (status !== 400) return false;
+  let body: any = error?.response?.body;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      body = undefined;
+    }
+  }
+  const errors: any[] = Array.isArray(body?.errors) ? body.errors : [];
+  return errors.some((entry) => {
+    const field = typeof entry?.field === "string" ? entry.field : "";
+    const message = typeof entry?.message === "string" ? entry.message : "";
+    // Field must name a recipient `to` path segment — "personalizations"
+    // alone also matches subject/headers/etc., and "from.email" wording can
+    // carry address-validity messages that are NOT about the recipient.
+    if (/(^|\.)to(\.|$)/i.test(field)) return true;
+    // Message-only fallback: suppression-list errors that explicitly name
+    // the to/recipient address ("The to address is on the suppression
+    // list"). Bare "invalid email"/"valid address" wording is ambiguous —
+    // SendGrid uses it for the FROM address too — so it is never enough.
+    return /\b(to|recipient)\b[^.]*suppression list|suppression list[^.]*\b(to|recipient)\b/i.test(
+      message
+    );
+  });
 }
 
 /**
@@ -146,7 +195,7 @@ export async function sendEmailStrictFromDetailed(params: {
   const { to, subject, html, fromEmail, fromName, replyTo, headers } = params;
   if (!fromEmail || !fromEmail.includes("@")) {
     console.error("sendEmailStrictFrom called without a valid from-address");
-    return { ok: false, definiteReject: true };
+    return { ok: false, definiteReject: true, recipientReject: false };
   }
   try {
     const { client } = await getUncachableSendGridClient();
@@ -165,7 +214,7 @@ export async function sendEmailStrictFromDetailed(params: {
     if (replyTo) msg.replyTo = replyTo;
     if (headers && Object.keys(headers).length > 0) msg.headers = headers;
     await client.send(msg);
-    return { ok: true, definiteReject: false };
+    return { ok: true, definiteReject: false, recipientReject: false };
   } catch (error: any) {
     console.error("sendEmailStrictFrom: send failed (no fallback):", error);
     const status =
@@ -176,7 +225,9 @@ export async function sendEmailStrictFromDetailed(params: {
       status < 500 &&
       status !== 408 &&
       status !== 429;
-    return { ok: false, definiteReject };
+    const recipientReject =
+      definiteReject && isRecipientAddressRejection(status, error);
+    return { ok: false, definiteReject, recipientReject };
   }
 }
 
