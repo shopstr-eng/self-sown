@@ -109,6 +109,9 @@ jest.mock("@/utils/ucp/checkout-store", () => {
     insertCheckoutSession: (...args: any[]) =>
       mockInsertCheckoutSession(...args),
     listCheckoutSessions: jest.fn(),
+    // The route fires the retention prune on every request; keep it a no-op so
+    // these tests never touch the DB.
+    maybePruneExpiredCheckoutEscalations: jest.fn(),
     makeMessage: actual.makeMessage,
   };
 });

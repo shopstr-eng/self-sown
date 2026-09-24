@@ -23,6 +23,7 @@ import {
   insertCheckoutSession,
   listCheckoutSessions,
   makeMessage,
+  maybePruneExpiredCheckoutEscalations,
   type CheckoutSessionMessage,
   type CheckoutSessionStatus,
 } from "@/utils/ucp/checkout-store";
@@ -88,6 +89,11 @@ export default async function handler(
       return;
 
     await ensureTables();
+
+    // Bounded retention for dead pre-order escalation rows (see
+    // ESCALATION_SESSION_TTL_MS in checkout-store): fire-and-forget, prunes at
+    // most once per hour, and can never break checkout if it fails.
+    maybePruneExpiredCheckoutEscalations();
 
     const apiKey = await authenticateRequest(req, res, "read_write");
     if (!apiKey) return;

@@ -444,6 +444,83 @@ export async function listCheckoutSessions(
   }
 }
 
+/**
+ * Retention for dead PRE-ORDER escalation rows.
+ *
+ * Every failed checkout that hits a recoverable pre-order problem (e.g. a sats
+ * payment on a fiat-priced product with no live exchange rate) persists a
+ * `requires_escalation` row with no order attached. Most are never retried, so
+ * without a bound the table (and the per-key session list) grows forever.
+ *
+ * Policy: a pre-order escalation row is deleted once it has gone
+ * ESCALATION_SESSION_TTL_MS without an update. The clock is `updated_at`, not
+ * `created_at`, on purpose — every retry attempt (failCheckoutSessionRetry)
+ * refreshes it, so only sessions the agent has truly abandoned expire; an
+ * actively-retried session lives as long as it keeps being retried.
+ *
+ * Only rows with `mcp_order_id IS NULL` are pruned: a POST-order escalation
+ * references a real order whose payment may still need attention, so it must
+ * never be aged out. Active and completed sessions are untouched.
+ *
+ * Because expiry is enforced by DELETION, reads stay consistent: an expired
+ * row 404s on GET /sessions/[id] and is absent from GET /sessions — both
+ * behave exactly as if the session never persisted. Callers that want the
+ * schedule see it here; the prune runs opportunistically from the sessions
+ * route (see maybePruneExpiredCheckoutEscalations).
+ */
+export const ESCALATION_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+/** Prune at most once per hour per process — the DELETE is a full-table
+ * status/index scan, so it must not run on every request. */
+const ESCALATION_PRUNE_INTERVAL_MS = 60 * 60 * 1000;
+let lastEscalationPruneAt = 0;
+
+/**
+ * Delete expired pre-order escalation rows. Best-effort (mirrors
+ * cleanupExpiredRateLimitCounters): a prune failure must never break checkout,
+ * so DB errors are logged and reported as 0 deletions rather than thrown.
+ * Returns the number of rows deleted.
+ */
+export async function pruneExpiredCheckoutEscalations(
+  now: Date = new Date()
+): Promise<number> {
+  const pool = getDbPool();
+  let client: PoolClient | undefined;
+  try {
+    client = await pool.connect();
+    const result = await client.query(
+      `DELETE FROM ucp_checkout_sessions
+       WHERE status = 'requires_escalation'
+         AND mcp_order_id IS NULL
+         AND updated_at < $1`,
+      [new Date(now.getTime() - ESCALATION_SESSION_TTL_MS)]
+    );
+    return result.rowCount ?? 0;
+  } catch (error) {
+    console.error("Failed to prune expired checkout escalations:", error);
+    return 0;
+  } finally {
+    if (client) client.release();
+  }
+}
+
+/**
+ * Fire-and-forget, interval-throttled prune entry point for request paths.
+ * Never throws and never blocks the response.
+ */
+export function maybePruneExpiredCheckoutEscalations(
+  now: number = Date.now()
+): void {
+  if (now - lastEscalationPruneAt < ESCALATION_PRUNE_INTERVAL_MS) return;
+  lastEscalationPruneAt = now;
+  void pruneExpiredCheckoutEscalations(new Date(now));
+}
+
+/** Test-only: reset the prune throttle so each test starts unthrottled. */
+export function resetCheckoutEscalationPruneThrottleForTests(): void {
+  lastEscalationPruneAt = 0;
+}
+
 export async function updateCheckoutSessionStatus(
   id: string,
   status: CheckoutSessionStatus,
