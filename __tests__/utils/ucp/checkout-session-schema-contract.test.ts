@@ -14,6 +14,7 @@ import Ajv2020 from "ajv/dist/2020";
 import addFormats from "ajv-formats";
 
 import handler from "@/pages/api/ucp/schemas/checkout-session.json";
+import openApiHandler from "@/pages/api/openapi.json";
 import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 import {
   formatCheckoutSession,
@@ -588,5 +589,79 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
   ])("rejects a quote with %s (drift)", (_label, quote) => {
     const validateQuote = compileSubschema(schema.properties.quote);
     expect(validateQuote(JSON.parse(JSON.stringify(quote)))).toBe(false);
+  });
+});
+
+// The checkout-session shape is described TWICE: the canonical JSON Schema
+// above and a condensed UcpCheckoutSession component in the published OpenAPI
+// document (pages/api/openapi.json.ts). The condensed copy is allowed to be a
+// subset (it is a summary), but its required list must not promise fields the
+// canonical schema does not require, and it must not name properties the
+// canonical schema does not declare — otherwise agents reading the OpenAPI
+// doc learn a shape that never exists on the wire.
+describe("condensed OpenAPI UcpCheckoutSession ↔ canonical JSON Schema parity", () => {
+  function loadCondensedComponent(): JsonSchema {
+    let payload: JsonSchema | undefined;
+    const res = {
+      setHeader: () => res,
+      status: (code: number) => {
+        expect(code).toBe(200);
+        return res;
+      },
+      json: (body: JsonSchema) => {
+        payload = body;
+        return res;
+      },
+    } as unknown as NextApiResponse;
+    openApiHandler({} as NextApiRequest, res);
+    const component = payload?.components?.schemas?.UcpCheckoutSession;
+    if (!component) {
+      throw new Error("openapi.json is missing the UcpCheckoutSession component");
+    }
+    return component;
+  }
+
+  const schema = getSchema();
+  const condensed = loadCondensedComponent();
+
+  it("exercises real fields on both copies (non-vacuous)", () => {
+    expect(condensed.required.length).toBeGreaterThan(0);
+    expect(schema.required.length).toBeGreaterThan(condensed.required.length);
+    expect(Object.keys(condensed.properties).length).toBeGreaterThan(10);
+    expect(Object.keys(schema.properties).length).toBeGreaterThan(
+      Object.keys(condensed.properties).length
+    );
+  });
+
+  it("keeps the condensed required list a subset of the canonical base required list", () => {
+    // A condensed-required field the canonical schema does not require would
+    // tell agents a field is always present when it is not. (The canonical
+    // allOf conditionals add status-dependent requirements on top of the base
+    // list; the condensed view may legitimately omit those.)
+    for (const field of condensed.required) {
+      expect(schema.required).toContain(field);
+    }
+  });
+
+  it("declares every condensed property in the canonical schema (rename/add drift)", () => {
+    // Catches either copy renaming or adding a field without the other: a
+    // renamed canonical field leaves the condensed name dangling, and a
+    // condensed-only field is a plain invention. Canonical-only additions
+    // (e.g. code, warning) are allowed — the view is deliberately condensed.
+    for (const name of Object.keys(condensed.properties)) {
+      expect(schema.properties).toHaveProperty(name);
+    }
+  });
+
+  it("keeps the status enum identical across both copies", () => {
+    expect(condensed.properties.status.enum).toEqual(
+      schema.properties.status.enum
+    );
+  });
+
+  it("keeps the paymentMethod enum identical across both copies", () => {
+    expect(condensed.properties.paymentMethod.enum).toEqual(
+      schema.properties.paymentMethod.enum
+    );
   });
 });
