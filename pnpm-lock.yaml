@@ -219,6 +219,9 @@ importers:
         specifier: 4.0.17
         version: 4.0.17
     devDependencies:
+      "@next/eslint-plugin-next":
+        specifier: 16.2.11
+        version: 16.2.11
       "@testcontainers/postgresql":
         specifier: 12.1.0
         version: 12.1.0
@@ -261,6 +264,12 @@ importers:
       eslint-config-prettier:
         specifier: 10.1.8
         version: 10.1.8(eslint@10.9.1(jiti@2.7.0))
+      eslint-plugin-react:
+        specifier: 7.37.5
+        version: 7.37.5(eslint@10.9.1(jiti@2.7.0))
+      eslint-plugin-react-hooks:
+        specifier: 7.0.1
+        version: 7.0.1(eslint@10.9.1(jiti@2.7.0))
       husky:
         specifier: 9.1.7
         version: 9.1.7
@@ -294,6 +303,9 @@ importers:
 
   apps/mobile:
     dependencies:
+      "@babel/runtime":
+        specifier: 7.29.2
+        version: 7.29.2
       "@react-native-async-storage/async-storage":
         specifier: 2.2.0
         version: 2.2.0(react-native@0.83.2(@babel/core@7.29.6)(@types/react@19.2.18)(react@19.2.0))

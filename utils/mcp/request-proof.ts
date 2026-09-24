@@ -1,5 +1,7 @@
 import { type Event } from "nostr-tools";
+import CryptoJS from "crypto-js";
 import { NostrEventTemplate } from "@/utils/nostr/nostr-manager";
+import type { ParcelInput, ShippingAddressInput } from "@/utils/shipping/types";
 
 export const MCP_SIGNED_EVENT_HEADER = "x-mcp-signed-event";
 export const MCP_REQUEST_PROOF_KIND = 27235;
@@ -35,6 +37,36 @@ function sortedProofFields(
         : ([[key, normalizedValue]] as Array<[string, string]>);
     })
     .sort(([left], [right]) => left.localeCompare(right));
+}
+
+function canonicalizeProofBody(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeProofBody);
+  }
+
+  if (value !== null && typeof value === "object") {
+    return Object.keys(value)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        const normalized = canonicalizeProofBody(
+          (value as Record<string, unknown>)[key]
+        );
+        if (normalized !== undefined) {
+          result[key] = normalized;
+        }
+        return result;
+      }, {});
+  }
+
+  return value;
+}
+
+function hashCanonicalProofBody(value: unknown): string {
+  const serialized = JSON.stringify(canonicalizeProofBody(value));
+  if (serialized === undefined) {
+    throw new Error("Cannot hash an undefined request body");
+  }
+  return CryptoJS.SHA256(serialized).toString(CryptoJS.enc.Hex);
 }
 
 export function buildMcpRequestProofTags(
@@ -246,10 +278,12 @@ export function buildStripeTaxSettingsProof(pubkey: string): McpRequestProof {
 
 export function buildShippingBuyLabelProof({
   pubkey,
+  orderId,
   shipmentId,
   rateId,
 }: {
   pubkey: string;
+  orderId: string;
   shipmentId: string;
   rateId: string;
 }): McpRequestProof {
@@ -259,8 +293,44 @@ export function buildShippingBuyLabelProof({
     path: "/api/shipping/buy-label",
     pubkey,
     fields: {
+      orderId,
       shipmentId,
       rateId,
+    },
+  };
+}
+
+export function buildShippingRatesProof({
+  pubkey,
+  orderId,
+  from,
+  to,
+  parcel,
+  carriers,
+  sellerPubkey,
+}: {
+  pubkey: string;
+  orderId: string;
+  from: ShippingAddressInput;
+  to: ShippingAddressInput;
+  parcel: ParcelInput;
+  carriers?: string[];
+  sellerPubkey?: string;
+}): McpRequestProof {
+  return {
+    action: "shipping_quote_rates",
+    method: "POST",
+    path: "/api/shipping/rates",
+    pubkey,
+    fields: {
+      bodySha256: hashCanonicalProofBody({
+        orderId,
+        from,
+        to,
+        parcel,
+        carriers,
+        sellerPubkey,
+      }),
     },
   };
 }
@@ -344,9 +414,24 @@ export function buildSquareCatalogImportProof(pubkey: string): McpRequestProof {
 export function buildShippingDefaultsProof({
   pubkey,
   method,
+  defaults,
 }: {
   pubkey: string;
   method: "GET" | "POST";
+  defaults?: {
+    fromName?: string | null;
+    fromCompany?: string | null;
+    fromStreet1?: string | null;
+    fromStreet2?: string | null;
+    fromCity?: string | null;
+    fromState?: string | null;
+    fromZip?: string | null;
+    fromCountry?: string | null;
+    fromPhone?: string | null;
+    fromEmail?: string | null;
+    preferredCarriers?: string[];
+    autoPurchaseLabels?: boolean;
+  };
 }): McpRequestProof {
   return {
     action:
@@ -354,6 +439,29 @@ export function buildShippingDefaultsProof({
     method,
     path: "/api/shipping/defaults",
     pubkey,
+    fields:
+      method === "POST" && defaults
+        ? {
+            fromName: defaults.fromName,
+            fromCompany: defaults.fromCompany,
+            fromStreet1: defaults.fromStreet1,
+            fromStreet2: defaults.fromStreet2,
+            fromCity: defaults.fromCity,
+            fromState: defaults.fromState,
+            fromZip: defaults.fromZip,
+            fromCountry: defaults.fromCountry,
+            fromPhone: defaults.fromPhone,
+            fromEmail: defaults.fromEmail,
+            preferredCarriers:
+              defaults.preferredCarriers === undefined
+                ? undefined
+                : JSON.stringify(defaults.preferredCarriers),
+            autoPurchaseLabels:
+              defaults.autoPurchaseLabels === undefined
+                ? undefined
+                : String(defaults.autoPurchaseLabels),
+          }
+        : undefined,
   };
 }
 

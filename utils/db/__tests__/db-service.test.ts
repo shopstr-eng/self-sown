@@ -853,6 +853,8 @@ describe("db-service helpers", () => {
             }));
             const mod = await import("../db-service");
             await run(mod, client);
+            // Let background schema initialization settle before ending the test.
+            await new Promise<void>((resolve) => setImmediate(resolve));
             await mod.closeDbPool();
           } finally {
             consoleError.mockRestore();

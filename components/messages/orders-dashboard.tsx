@@ -58,6 +58,7 @@ import { BLUEBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 import { calculateWeightedScore } from "@/utils/parsers/review-parser-functions";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { persistSellerOrderStatusThrough } from "@/utils/orders/persist-order-status";
+import { getSellerFulfillmentActions } from "@/utils/orders/seller-fulfillment-actions";
 import { joinClassNames } from "@/utils/class-names";
 import {
   buildSignedHttpRequestProofTemplate,
@@ -158,6 +159,9 @@ const OrdersDashboard = ({
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderData | null>(null);
   const [isSendingShipping, setIsSendingShipping] = useState(false);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<string | null>(
+    null
+  );
   const [deliveryMode, setDeliveryMode] = useState<"days" | "date">("days");
 
   const [showBuyLabelModal, setShowBuyLabelModal] = useState(false);
@@ -1059,6 +1063,46 @@ const OrdersDashboard = ({
     setSelectedOrder(null);
     setDeliveryMode("days");
     shippingReset();
+  };
+
+  const handleConfirmOrder = async (order: OrderData) => {
+    const sourceMessageId = order.messageEvent?.wrappedEventId;
+    if (!signer || !sourceMessageId || !order.sellerPubkey) {
+      setFailureText(
+        "This order cannot be confirmed securely. Refresh and try again."
+      );
+      setShowFailureModal(true);
+      return;
+    }
+
+    setConfirmingOrderId(order.orderId);
+    try {
+      await persistSellerOrderStatusThrough({
+        signer,
+        origin: window.location.origin,
+        orderId: order.orderId,
+        sellerPubkey: order.sellerPubkey,
+        buyerPubkey: order.isGuest ? null : order.buyerPubkey || null,
+        sourceMessageId,
+        currentStatus: order.status,
+        targetStatus: "confirmed",
+      });
+      setOrders((currentOrders) =>
+        currentOrders.map((currentOrder) =>
+          currentOrder.orderId === order.orderId
+            ? { ...currentOrder, status: "confirmed" }
+            : currentOrder
+        )
+      );
+    } catch (error) {
+      console.error("Failed to confirm order:", error);
+      setFailureText(
+        "The order could not be confirmed. Refresh and try again."
+      );
+      setShowFailureModal(true);
+    } finally {
+      setConfirmingOrderId(null);
+    }
   };
 
   const onShippingSubmit = async (data: { [x: string]: string }) => {
@@ -2123,6 +2167,11 @@ const OrdersDashboard = ({
                     const isNewOrder = chatsContext.newOrderIds.has(
                       order.messageEvent.id
                     );
+                    const fulfillmentActions = getSellerFulfillmentActions({
+                      isSale: order.isSale === true,
+                      status: order.status,
+                      canBuyLabel: canBuyLabelForOrder(order),
+                    });
                     return (
                       <tr
                         key={order.orderId}
@@ -2244,7 +2293,18 @@ const OrdersDashboard = ({
                             >
                               {order.status}
                             </span>
-                            {order.isSale && order.status === "pending" && (
+                            {fulfillmentActions.canConfirm && (
+                              <button
+                                onClick={() => handleConfirmOrder(order)}
+                                disabled={confirmingOrderId === order.orderId}
+                                className="text-primary-yellow cursor-pointer text-left text-xs underline hover:text-yellow-600 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {confirmingOrderId === order.orderId
+                                  ? "Confirming..."
+                                  : "Confirm Order"}
+                              </button>
+                            )}
+                            {fulfillmentActions.canSendShippingUpdate && (
                               <button
                                 onClick={() => handleOpenShippingModal(order)}
                                 className="text-primary-yellow cursor-pointer text-left text-xs underline hover:text-yellow-600"
@@ -2252,20 +2312,18 @@ const OrdersDashboard = ({
                                 Send Shipping Update
                               </button>
                             )}
-                            {order.isSale &&
-                              order.status === "pending" &&
-                              canBuyLabelForOrder(order) && (
-                                <button
-                                  onClick={() => {
-                                    setBuyLabelMode("outbound");
-                                    setBuyLabelOrder(order);
-                                    setShowBuyLabelModal(true);
-                                  }}
-                                  className="cursor-pointer text-left text-xs text-blue-600 underline hover:text-blue-800"
-                                >
-                                  Buy Shipping Label
-                                </button>
-                              )}
+                            {fulfillmentActions.canBuyOutboundLabel && (
+                              <button
+                                onClick={() => {
+                                  setBuyLabelMode("outbound");
+                                  setBuyLabelOrder(order);
+                                  setShowBuyLabelModal(true);
+                                }}
+                                className="cursor-pointer text-left text-xs text-blue-600 underline hover:text-blue-800"
+                              >
+                                Buy Shipping Label
+                              </button>
+                            )}
                             {order.isSale &&
                               (order.status === "shipped" ||
                                 order.status === "completed" ||

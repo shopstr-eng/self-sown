@@ -9,6 +9,12 @@
 
 import type { NextApiRequest, NextApiResponse } from "next";
 
+// The schema imports a host helper which constructs a pool at module load.
+// This mapper/schema contract does not query a database.
+jest.mock("@/utils/db/db-service", () => ({
+  getDbPool: jest.fn(() => ({ query: jest.fn() })),
+}));
+
 import handler from "@/pages/api/ucp/schemas/product.json";
 import { SITE_HOST, SITE_URL } from "@/utils/site-url";
 import { eventToUcpProduct } from "@/utils/ucp/catalog";

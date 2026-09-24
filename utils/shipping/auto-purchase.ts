@@ -8,27 +8,24 @@
 //
 // Money-safety invariants:
 //   - The label is always bought on the seller's OWN Shippo OAuth token.
-//   - A per-(seller, order) atomic DB claim is taken BEFORE any Shippo call, so
-//     retries, webhook replays, concurrent web line POSTs, and multiple server
-//     instances can never buy more than one label for the same order.
+//   - A per-(seller, order) atomic DB claim is taken before the Shippo purchase,
+//     so retries, webhook replays, concurrent web line POSTs, and multiple
+//     server instances can never buy more than one label for the same order.
 //   - Every path is wrapped so this NEVER throws to its caller — it must never
 //     block an order, a payment settlement, or an HTTP 200.
 
 import type { NostrEvent } from "@/utils/types/types";
 import type { ShippingAddressInput } from "@/utils/shipping/types";
-import { buyLabel, getRates } from "@/utils/shipping/shippo";
+import { getRates } from "@/utils/shipping/shippo";
+import { purchaseOutboundLabel } from "@/utils/shipping/outbound-label-purchase";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
 import parseTags from "@/utils/parsers/product-parser-functions";
 import { fetchProductByIdFromDb } from "@/utils/db/db-service";
 import {
-  claimAutoLabelPurchase,
   countOutboundLabelsForOrder,
   getShippingDefaultsForPubkey,
   getShippoAccessToken,
-  insertShippingLabel,
-  markAutoLabelPurchased,
-  releaseAutoLabelClaim,
 } from "@/utils/db/shipping-service";
 
 export interface AutoLabelResult {
@@ -124,7 +121,8 @@ export async function runAutoLabelPurchase(
     }
 
     const tags = parseTags(productEvent);
-    const shipFromZip = tags?.shipFromZip?.trim();
+    const shipFromZip =
+      defaults?.fromZip?.trim() || tags?.shipFromZip?.trim() || "";
     const weightOz = tags?.packageWeightOz || 0;
 
     // 5) Eligibility — mirror the manual dashboard's canBuyLabelForOrder: US
@@ -150,108 +148,73 @@ export async function runAutoLabelPurchase(
       return { purchased: false, reason: "already-bought" };
     }
 
-    // 7) Atomic claim BEFORE any Shippo call. The single winner proceeds; all
-    //    duplicates/retries/concurrent callers skip.
+    // 7) Build one deterministic payment reference. The purchase coordinator
+    //    takes the atomic order claim before it attempts the provider charge.
     const claimKey = buildClaimKey(sellerPubkey, orderId, args.claimRef);
-    if (!(await claimAutoLabelPurchase(claimKey, sellerPubkey, orderId))) {
+    const carriers =
+      defaults && defaults.preferredCarriers.length > 0
+        ? defaults.preferredCarriers
+        : ["USPS"];
+
+    const from: ShippingAddressInput = {
+      name: defaults?.fromName || undefined,
+      company: defaults?.fromCompany || undefined,
+      street1: defaults?.fromStreet1 || "Unknown",
+      street2: defaults?.fromStreet2 || undefined,
+      city: defaults?.fromCity || "Unknown",
+      state: defaults?.fromState || "",
+      zip: shipFromZip,
+      country: (
+        defaults?.fromCountry ||
+        tags?.shipFromCountry ||
+        "US"
+      ).toUpperCase(),
+      phone: defaults?.fromPhone || undefined,
+      email: defaults?.fromEmail || undefined,
+    };
+    const parcel = {
+      weightOz,
+      lengthIn: tags?.packageLengthIn,
+      widthIn: tags?.packageWidthIn,
+      heightIn: tags?.packageHeightIn,
+    };
+
+    const rates = await getRates(accessToken, {
+      from,
+      to: {
+        name: toAddress.name,
+        street1: toAddress.street1,
+        street2: toAddress.street2,
+        city: toAddress.city,
+        state: toAddress.state,
+        zip: toAddress.zip,
+        country: toAddress.country,
+      },
+      parcel,
+      carriers,
+    });
+
+    const cheapest = rates.cheapest;
+    if (!cheapest) return { purchased: false, reason: "no-rates" };
+
+    const purchase = await purchaseOutboundLabel({
+      sellerPubkey,
+      orderId,
+      accessToken,
+      shipmentId: rates.shipmentId,
+      rateId: cheapest.id,
+      paymentRef: claimKey,
+      fromSummary: `ZIP ${shipFromZip}`,
+      toSummary: `${toAddress.street1}, ${toAddress.city}, ${toAddress.state} ${toAddress.zip}`,
+      parcelSummary: `${weightOz} oz (auto)`,
+    });
+    if (purchase.status === "purchased") {
+      return { purchased: true, labelId: purchase.labelId };
+    }
+    if (purchase.status === "order-already-claimed") {
       return { purchased: false, reason: "claimed-by-other" };
     }
-
-    try {
-      const carriers =
-        defaults && defaults.preferredCarriers.length > 0
-          ? defaults.preferredCarriers
-          : ["USPS"];
-
-      // Mirror the manual outbound flow's from-address: a minimal ship-from
-      // (ZIP + country) is sufficient for domestic rates/labels.
-      const from: ShippingAddressInput = {
-        street1: "Unknown",
-        city: "Unknown",
-        state: "",
-        zip: shipFromZip,
-        country: (tags?.shipFromCountry || "US").toUpperCase(),
-      };
-      const parcel = {
-        weightOz,
-        lengthIn: tags?.packageLengthIn,
-        widthIn: tags?.packageWidthIn,
-        heightIn: tags?.packageHeightIn,
-      };
-
-      const rates = await getRates(accessToken, {
-        from,
-        to: {
-          name: toAddress.name,
-          street1: toAddress.street1,
-          street2: toAddress.street2,
-          city: toAddress.city,
-          state: toAddress.state,
-          zip: toAddress.zip,
-          country: toAddress.country,
-        },
-        parcel,
-        carriers,
-      });
-
-      const cheapest = rates.cheapest;
-      if (!cheapest) {
-        // No rate to buy — release so a manual retry (or later attempt) works.
-        await releaseAutoLabelClaim(claimKey);
-        return { purchased: false, reason: "no-rates" };
-      }
-
-      const label = await buyLabel(accessToken, {
-        shipmentId: rates.shipmentId,
-        rateId: cheapest.id,
-      });
-
-      // Purchase succeeded — promote the claim to the permanent 'purchased'
-      // marker so it can never be auto-bought again.
-      await markAutoLabelPurchased(claimKey, label.shipmentId);
-
-      let labelId: number | null = null;
-      try {
-        const rec = await insertShippingLabel({
-          pubkey: sellerPubkey,
-          shipmentId: label.shipmentId,
-          orderId,
-          trackingCode: label.trackingCode || null,
-          trackingUrl: label.trackingUrl ?? null,
-          labelUrl: label.labelUrl,
-          labelFormat: label.labelFormat,
-          rateUsd: label.rate,
-          currency: label.currency,
-          carrier: label.carrier,
-          service: label.service,
-          isReturn: false,
-          fromSummary: `ZIP ${shipFromZip}`,
-          toSummary: `${toAddress.street1}, ${toAddress.city}, ${toAddress.state} ${toAddress.zip}`,
-          parcelSummary: `${weightOz} oz (auto)`,
-        });
-        labelId = rec.id;
-      } catch (dbErr) {
-        // The seller was charged by Shippo but the history insert failed. Log
-        // loudly for reconciliation; the claim stays 'purchased' so we never
-        // double-buy. The seller still has the label in their Shippo account.
-        console.error(
-          "CRITICAL: auto-purchased Shippo label but history insert failed",
-          { sellerPubkey, orderId, shipmentId: label.shipmentId, dbErr }
-        );
-      }
-
-      return { purchased: true, labelId };
-    } catch (buyErr) {
-      // Failed before/at Shippo — release the claim so a later attempt or a
-      // manual purchase can proceed.
-      await releaseAutoLabelClaim(claimKey);
-      console.error("Auto label purchase failed:", {
-        sellerPubkey,
-        orderId,
-        error: buyErr instanceof Error ? buyErr.message : buyErr,
-      });
-      return { purchased: false, reason: "error" };
-    }
+    return { purchased: false, reason: "error" };
   } catch (err) {
     // Defensive outer catch: this function must never throw to its caller.
     console.error("runAutoLabelPurchase unexpected error:", {

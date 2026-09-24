@@ -29,8 +29,12 @@ const rememberShipmentOwnerMock = jest.fn();
 const isListedSellerMock = jest.fn();
 const isMcpRequestProofFreshMock = jest.fn();
 const parseSignedEventHeaderMock = jest.fn();
+const matchesMcpRequestProofMock = jest.fn();
+const buildShippingRatesProofMock = jest.fn();
+const consumeSignedRequestProofMock = jest.fn();
 const verifyEventMock = jest.fn();
 const isPubkeyProEntitledMock = jest.fn();
+const getSellerOrderStateMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -64,6 +68,19 @@ jest.mock("@/utils/mcp/request-proof", () => ({
     isMcpRequestProofFreshMock(...args),
   parseSignedEventHeader: (...args: unknown[]) =>
     parseSignedEventHeaderMock(...args),
+  matchesMcpRequestProof: (...args: unknown[]) =>
+    matchesMcpRequestProofMock(...args),
+  buildShippingRatesProof: (...args: unknown[]) =>
+    buildShippingRatesProofMock(...args),
+}));
+
+jest.mock("@/utils/mcp/request-proof-server", () => ({
+  consumeSignedRequestProof: (...args: unknown[]) =>
+    consumeSignedRequestProofMock(...args),
+}));
+
+jest.mock("@/utils/db/db-service", () => ({
+  getSellerOrderState: (...args: unknown[]) => getSellerOrderStateMock(...args),
 }));
 
 jest.mock("@/utils/db/shipping-service", () => ({
@@ -97,6 +114,7 @@ function createResponse() {
 // That makes "bad signature => No seller specified" a clean assertion.
 function validBody(overrides: Record<string, unknown> = {}) {
   return {
+    orderId: "order-123",
     from: {
       zip: "10001",
       country: "US",
@@ -135,6 +153,18 @@ beforeEach(() => {
   isMcpRequestProofFreshMock.mockReturnValue(true);
   isListedSellerMock.mockResolvedValue(true);
   isPubkeyProEntitledMock.mockResolvedValue(true);
+  matchesMcpRequestProofMock.mockReturnValue(true);
+  buildShippingRatesProofMock.mockReturnValue({
+    action: "shipping_quote_rates",
+  });
+  consumeSignedRequestProofMock.mockResolvedValue(true);
+  getSellerOrderStateMock.mockResolvedValue({
+    orderId: "order-123",
+    sellerPubkey: SELLER_PUBKEY,
+    buyerPubkey: "buyer-pubkey",
+    status: "confirmed",
+    version: 1,
+  });
   parseSignedEventHeaderMock.mockReturnValue({
     kind: MCP_REQUEST_PROOF_KIND,
     pubkey: SELLER_PUBKEY,
@@ -165,8 +195,63 @@ describe("/api/shipping/rates seller authentication via signed event", () => {
     expect(getRatesMock).toHaveBeenCalledTimes(1);
     expect(rememberShipmentOwnerMock).toHaveBeenCalledWith(
       "shp_rate_1",
-      SELLER_PUBKEY
+      SELLER_PUBKEY,
+      "order-123"
     );
+    expect(matchesMcpRequestProofMock).toHaveBeenCalledTimes(1);
+    expect(consumeSignedRequestProofMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a listed seller proof that is not bound to the quote body", async () => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(401);
+    expect(res.jsonBody).toEqual({
+      error: "Signed event does not match request",
+    });
+    expect(getRatesMock).not.toHaveBeenCalled();
+    expect(rememberShipmentOwnerMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a seller quote for an order not owned by that seller", async () => {
+    getSellerOrderStateMock.mockResolvedValue(null);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(403);
+    expect(getRatesMock).not.toHaveBeenCalled();
+    expect(rememberShipmentOwnerMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a seller quote before the order is confirmed", async () => {
+    getSellerOrderStateMock.mockResolvedValue({
+      orderId: "order-123",
+      sellerPubkey: SELLER_PUBKEY,
+      status: "pending",
+    });
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(409);
+    expect(getRatesMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects reuse of a seller quote proof", async () => {
+    consumeSignedRequestProofMock.mockResolvedValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(401);
+    expect(res.jsonBody).toEqual({
+      error: "Signed event has already been used.",
+    });
+    expect(getRatesMock).not.toHaveBeenCalled();
   });
 });
 

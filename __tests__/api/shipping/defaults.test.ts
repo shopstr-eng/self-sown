@@ -23,6 +23,7 @@ const getShippingDefaultsForPubkeyMock = jest.fn();
 const upsertShippingDefaultsMock = jest.fn();
 const isPubkeyProEntitledMock = jest.fn();
 const consumeSignedRequestProofMock = jest.fn();
+const matchesMcpRequestProofMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -39,6 +40,9 @@ jest.mock("@/utils/mcp/request-proof", () => ({
     isMcpRequestProofFreshMock(...args),
   parseSignedEventHeader: (...args: unknown[]) =>
     parseSignedEventHeaderMock(...args),
+  buildShippingDefaultsProof: (args: unknown) => args,
+  matchesMcpRequestProof: (...args: unknown[]) =>
+    matchesMcpRequestProofMock(...args),
 }));
 
 jest.mock("@/utils/mcp/request-proof-server", () => ({
@@ -92,6 +96,7 @@ beforeEach(() => {
   applyRateLimitMock.mockReturnValue(true);
   verifyEventMock.mockReturnValue(true);
   consumeSignedRequestProofMock.mockResolvedValue(true);
+  matchesMcpRequestProofMock.mockReturnValue(true);
   isMcpRequestProofFreshMock.mockReturnValue(true);
   parseSignedEventHeaderMock.mockReturnValue({
     kind: MCP_REQUEST_PROOF_KIND,
@@ -191,6 +196,7 @@ describe("/api/shipping/defaults signed-event (cryptographic proof) guards", () 
   });
 
   it("rejects a proof bound to a different endpoint path with 401", async () => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
     parseSignedEventHeaderMock.mockReturnValue({
       kind: MCP_REQUEST_PROOF_KIND,
       pubkey: SELLER_PUBKEY,
@@ -211,6 +217,7 @@ describe("/api/shipping/defaults signed-event (cryptographic proof) guards", () 
   });
 
   it("rejects a proof minted for a different HTTP method with 401", async () => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
     // Proof was signed for a GET (read), but replayed against a POST (write).
     parseSignedEventHeaderMock.mockReturnValue({
       kind: MCP_REQUEST_PROOF_KIND,
@@ -229,6 +236,34 @@ describe("/api/shipping/defaults signed-event (cryptographic proof) guards", () 
       error: "Signed event does not match request",
     });
     expectNoDb();
+  });
+
+  it("rejects a valid proof when its signed defaults differ from the body", async () => {
+    matchesMcpRequestProofMock.mockReturnValue(false);
+
+    const res = createResponse();
+    await handler(makeRequest("POST", { fromZip: "90210" }), res as any);
+
+    expect(res.statusCode).toBe(401);
+    expect(res.jsonBody).toEqual({
+      error: "Signed event does not match request",
+    });
+    expectNoDb();
+  });
+
+  it.each([
+    { fromZip: "x".repeat(257) },
+    { fromStreet1: "unsafe\nvalue" },
+    { preferredCarriers: "USPS" },
+    { preferredCarriers: ["USPS", 42] },
+    { autoPurchaseLabels: "true" },
+  ])("rejects malformed defaults without writing: %p", async (body) => {
+    const res = createResponse();
+    await handler(makeRequest("POST", body), res as any);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.jsonBody).toEqual({ error: "Invalid shipping defaults" });
+    expect(upsertShippingDefaultsMock).not.toHaveBeenCalled();
   });
 });
 

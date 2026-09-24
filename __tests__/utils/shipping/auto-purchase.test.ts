@@ -7,31 +7,29 @@
 //   - OFF (toggle false) buys nothing.
 //   - Default is ON (null defaults still proceed).
 //   - Non-Pro, no-Shippo, ineligible, product-mismatch all skip before charge.
-//   - The per-(seller, order) claim dedups; a lost claim never charges.
+//   - The per-(seller, order) purchase coordinator dedups concurrent attempts.
 //   - A pre-existing label for the order blocks a duplicate.
-//   - A failed Shippo call releases the claim; a successful buy whose history
-//     insert fails keeps the claim 'purchased' (never re-bought).
 //   - The function never throws to its caller.
 
 const getRatesMock = jest.fn();
-const buyLabelMock = jest.fn();
+const purchaseOutboundLabelMock = jest.fn();
 const isShippoOAuthConfiguredMock = jest.fn();
 const isPubkeyProEntitledMock = jest.fn();
 const parseTagsMock = jest.fn();
 const fetchProductByIdFromDbMock = jest.fn();
 const getMcpOrderMock = jest.fn();
 
-const claimAutoLabelPurchaseMock = jest.fn();
-const releaseAutoLabelClaimMock = jest.fn();
-const markAutoLabelPurchasedMock = jest.fn();
 const countOutboundLabelsForOrderMock = jest.fn();
 const getShippingDefaultsForPubkeyMock = jest.fn();
 const getShippoAccessTokenMock = jest.fn();
-const insertShippingLabelMock = jest.fn();
 
 jest.mock("@/utils/shipping/shippo", () => ({
   getRates: (...args: unknown[]) => getRatesMock(...args),
-  buyLabel: (...args: unknown[]) => buyLabelMock(...args),
+}));
+
+jest.mock("@/utils/shipping/outbound-label-purchase", () => ({
+  purchaseOutboundLabel: (...args: unknown[]) =>
+    purchaseOutboundLabelMock(...args),
 }));
 
 jest.mock("@/utils/shipping/shippo-oauth", () => ({
@@ -58,19 +56,12 @@ jest.mock("@/mcp/tools/purchase-tools", () => ({
 }));
 
 jest.mock("@/utils/db/shipping-service", () => ({
-  claimAutoLabelPurchase: (...args: unknown[]) =>
-    claimAutoLabelPurchaseMock(...args),
-  releaseAutoLabelClaim: (...args: unknown[]) =>
-    releaseAutoLabelClaimMock(...args),
-  markAutoLabelPurchased: (...args: unknown[]) =>
-    markAutoLabelPurchasedMock(...args),
   countOutboundLabelsForOrder: (...args: unknown[]) =>
     countOutboundLabelsForOrderMock(...args),
   getShippingDefaultsForPubkey: (...args: unknown[]) =>
     getShippingDefaultsForPubkeyMock(...args),
   getShippoAccessToken: (...args: unknown[]) =>
     getShippoAccessTokenMock(...args),
-  insertShippingLabel: (...args: unknown[]) => insertShippingLabelMock(...args),
 }));
 
 import {
@@ -117,6 +108,12 @@ beforeEach(() => {
   getShippingDefaultsForPubkeyMock.mockResolvedValue({
     autoPurchaseLabels: true,
     preferredCarriers: ["USPS"],
+    fromName: "Milk Farm",
+    fromStreet1: "1 Farm Road",
+    fromCity: "Austin",
+    fromState: "TX",
+    fromZip: "78701",
+    fromCountry: "US",
   });
   isPubkeyProEntitledMock.mockResolvedValue(true);
   getShippoAccessTokenMock.mockResolvedValue("oauth.seller-token");
@@ -129,26 +126,16 @@ beforeEach(() => {
     packageHeightIn: 2,
   });
   countOutboundLabelsForOrderMock.mockResolvedValue(0);
-  claimAutoLabelPurchaseMock.mockResolvedValue(true);
   getRatesMock.mockResolvedValue({
     shipmentId: "shp_1",
     rates: [{ id: "rate_1" }],
     cheapest: { id: "rate_1", carrier: "USPS", amount: 7.5 },
   });
-  buyLabelMock.mockResolvedValue({
-    shipmentId: "shp_1",
-    trackingCode: "TRK123",
-    trackingUrl: "https://track/123",
-    labelUrl: "https://label/123.pdf",
-    labelFormat: "PDF",
-    rate: 7.5,
-    currency: "USD",
-    carrier: "USPS",
-    service: "Priority",
+  purchaseOutboundLabelMock.mockResolvedValue({
+    status: "purchased",
+    labelId: 99,
+    label: { shipmentId: "shp_1" },
   });
-  insertShippingLabelMock.mockResolvedValue({ id: 99 });
-  markAutoLabelPurchasedMock.mockResolvedValue(undefined);
-  releaseAutoLabelClaimMock.mockResolvedValue(undefined);
   fetchProductByIdFromDbMock.mockResolvedValue(PRODUCT_EVENT);
 });
 
@@ -157,29 +144,32 @@ describe("runAutoLabelPurchase — happy path", () => {
     const result = await runAutoLabelPurchase(baseArgs());
 
     expect(result).toMatchObject({ purchased: true, labelId: 99 });
-    expect(claimAutoLabelPurchaseMock).toHaveBeenCalledTimes(1);
     expect(getRatesMock).toHaveBeenCalledTimes(1);
-    expect(buyLabelMock).toHaveBeenCalledTimes(1);
-    // Bought on the seller's own Shippo token, for the cheapest rate.
-    expect(buyLabelMock).toHaveBeenCalledWith("oauth.seller-token", {
-      shipmentId: "shp_1",
-      rateId: "rate_1",
-    });
-    expect(insertShippingLabelMock).toHaveBeenCalledTimes(1);
-    expect(markAutoLabelPurchasedMock).toHaveBeenCalledWith(
-      expect.any(String),
-      "shp_1"
+    expect(purchaseOutboundLabelMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accessToken: "oauth.seller-token",
+        sellerPubkey: SELLER,
+        orderId: "order-1",
+        shipmentId: "shp_1",
+        rateId: "rate_1",
+      })
     );
-    // A successful purchase never releases the claim.
-    expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
+    expect(getRatesMock.mock.calls[0][1].from).toMatchObject({
+      name: "Milk Farm",
+      street1: "1 Farm Road",
+      city: "Austin",
+      state: "TX",
+      zip: "78701",
+      country: "US",
+    });
   });
 
-  it("uses the same (seller, order) claim key both times so it is dedupable", async () => {
+  it("binds the purchase claim to the seller and order", async () => {
     await runAutoLabelPurchase(baseArgs());
-    const claimKey = claimAutoLabelPurchaseMock.mock.calls[0][0];
-    const purchasedKey = markAutoLabelPurchasedMock.mock.calls[0][0];
-    expect(purchasedKey).toBe(claimKey);
+    const claimKey = purchaseOutboundLabelMock.mock.calls[0][0].paymentRef;
     expect(typeof claimKey).toBe("string");
+    expect(claimKey).toContain(SELLER);
+    expect(claimKey).toContain("order-1");
   });
 });
 
@@ -193,9 +183,8 @@ describe("runAutoLabelPurchase — toggle (default ON)", () => {
     const result = await runAutoLabelPurchase(baseArgs());
 
     expect(result).toEqual({ purchased: false, reason: "disabled" });
-    expect(claimAutoLabelPurchaseMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
     expect(getRatesMock).not.toHaveBeenCalled();
-    expect(buyLabelMock).not.toHaveBeenCalled();
   });
 
   it("proceeds (default ON) when the seller has no defaults row yet", async () => {
@@ -214,15 +203,14 @@ describe("runAutoLabelPurchase — gates that prevent any charge", () => {
     isPubkeyProEntitledMock.mockResolvedValue(false);
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "not-pro" });
-    expect(claimAutoLabelPurchaseMock).not.toHaveBeenCalled();
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("skips when the seller has not connected Shippo", async () => {
     getShippoAccessTokenMock.mockResolvedValue(null);
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "no-shippo" });
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("skips a non-US destination", async () => {
@@ -230,22 +218,25 @@ describe("runAutoLabelPurchase — gates that prevent any charge", () => {
       baseArgs({ toAddress: { ...TO_ADDRESS, country: "CA" } })
     );
     expect(result).toEqual({ purchased: false, reason: "ineligible" });
-    expect(claimAutoLabelPurchaseMock).not.toHaveBeenCalled();
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("skips when the parcel has no positive weight", async () => {
     parseTagsMock.mockReturnValue({ shipFromZip: "10001", packageWeightOz: 0 });
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "ineligible" });
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
-  it("skips when the ship-from ZIP is missing", async () => {
+  it("skips when the ship-from ZIP is missing from defaults and listing", async () => {
+    getShippingDefaultsForPubkeyMock.mockResolvedValue({
+      autoPurchaseLabels: true,
+      preferredCarriers: ["USPS"],
+    });
     parseTagsMock.mockReturnValue({ packageWeightOz: 16 });
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "ineligible" });
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("skips when the product does not belong to the charged seller", async () => {
@@ -253,15 +244,14 @@ describe("runAutoLabelPurchase — gates that prevent any charge", () => {
       baseArgs({ productEvent: { ...PRODUCT_EVENT, pubkey: OTHER } })
     );
     expect(result).toEqual({ purchased: false, reason: "ineligible" });
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("skips when an outbound label already exists for this order", async () => {
     countOutboundLabelsForOrderMock.mockResolvedValue(1);
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "already-bought" });
-    expect(claimAutoLabelPurchaseMock).not.toHaveBeenCalled();
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("skips when the provider is not configured", async () => {
@@ -271,20 +261,21 @@ describe("runAutoLabelPurchase — gates that prevent any charge", () => {
       purchased: false,
       reason: "provider-unconfigured",
     });
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 });
 
 describe("runAutoLabelPurchase — claim dedup + failure handling", () => {
   it("does not charge when the claim is lost to a concurrent caller", async () => {
-    claimAutoLabelPurchaseMock.mockResolvedValue(false);
+    purchaseOutboundLabelMock.mockResolvedValue({
+      status: "order-already-claimed",
+    });
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "claimed-by-other" });
-    expect(getRatesMock).not.toHaveBeenCalled();
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).toHaveBeenCalledTimes(1);
   });
 
-  it("releases the claim and does not buy when there is no rate", async () => {
+  it("does not enter the purchase coordinator when there is no rate", async () => {
     getRatesMock.mockResolvedValue({
       shipmentId: "shp_1",
       rates: [],
@@ -292,43 +283,40 @@ describe("runAutoLabelPurchase — claim dedup + failure handling", () => {
     });
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "no-rates" });
-    expect(buyLabelMock).not.toHaveBeenCalled();
-    expect(releaseAutoLabelClaimMock).toHaveBeenCalledTimes(1);
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
-  it("releases the claim when the Shippo purchase throws (so a retry can work)", async () => {
-    buyLabelMock.mockRejectedValue(new Error("Shippo timeout"));
+  it("maps an uncertain provider outcome to a benign error result", async () => {
+    purchaseOutboundLabelMock.mockResolvedValue({ status: "uncertain" });
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "error" });
-    expect(releaseAutoLabelClaimMock).toHaveBeenCalledTimes(1);
-    expect(markAutoLabelPurchasedMock).not.toHaveBeenCalled();
   });
 
-  it("keeps the claim 'purchased' (never released) when the label bought but history insert fails", async () => {
-    insertShippingLabelMock.mockRejectedValue(new Error("db down"));
+  it("never throws when the purchase coordinator rejects", async () => {
+    purchaseOutboundLabelMock.mockRejectedValue(new Error("Invalid rate"));
+
     const result = await runAutoLabelPurchase(baseArgs());
-    // The seller WAS charged, so we report success and never release the claim.
-    expect(result.purchased).toBe(true);
-    expect(markAutoLabelPurchasedMock).toHaveBeenCalledTimes(1);
-    expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
+
+    expect(result).toEqual({ purchased: false, reason: "error" });
   });
 
   it("never throws — a defaults lookup failure resolves to a benign error result", async () => {
     getShippingDefaultsForPubkeyMock.mockRejectedValue(new Error("db down"));
     const result = await runAutoLabelPurchase(baseArgs());
     expect(result).toEqual({ purchased: false, reason: "error" });
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 });
 
 describe("runAutoLabelPurchase — Stripe-bound claimRef dedup (web replay protection)", () => {
   it("buys at most once per claimRef even when the client orderId differs each call", async () => {
-    // Simulate the atomic DB claim keyed by the claim-key string.
+    // Simulate the purchase coordinator's atomic payment-reference claim.
     const claimed = new Set<string>();
-    claimAutoLabelPurchaseMock.mockImplementation(async (key: string) => {
-      if (claimed.has(key)) return false;
+    purchaseOutboundLabelMock.mockImplementation(async ({ paymentRef }) => {
+      const key = String(paymentRef);
+      if (claimed.has(key)) return { status: "order-already-claimed" };
       claimed.add(key);
-      return true;
+      return { status: "purchased", labelId: 99, label: {} };
     });
 
     // First web POST for a settled PaymentIntent.
@@ -345,31 +333,27 @@ describe("runAutoLabelPurchase — Stripe-bound claimRef dedup (web replay prote
     );
     expect(r2).toEqual({ purchased: false, reason: "claimed-by-other" });
 
-    expect(buyLabelMock).toHaveBeenCalledTimes(1);
     // Both calls resolved to the same Stripe-bound claim key.
-    expect(claimAutoLabelPurchaseMock.mock.calls[0][0]).toBe(
-      claimAutoLabelPurchaseMock.mock.calls[1][0]
+    expect(purchaseOutboundLabelMock.mock.calls[0][0].paymentRef).toBe(
+      purchaseOutboundLabelMock.mock.calls[1][0].paymentRef
     );
   });
 
   it("MCP path (no claimRef) keys the claim on the server-side orderId", async () => {
     await runAutoLabelPurchase(baseArgs({ orderId: "mcp-order-9" }));
-    expect(claimAutoLabelPurchaseMock.mock.calls[0][0]).toContain(
+    expect(purchaseOutboundLabelMock.mock.calls[0][0].paymentRef).toContain(
       "mcp-order-9"
     );
   });
 
   it("Square replay: one settled payment id buys at most one label across fresh orderIds", async () => {
-    // Model the REAL claim layer's atomicity: claimAutoLabelPurchase inserts
-    // `ON CONFLICT (claim_key) DO NOTHING`, so the first caller for a claim key
-    // wins and every later caller for the SAME key sees false. We dedupe on the
-    // exact claim-key string the core builds, exactly as Postgres dedupes on the
-    // claim_key column.
+    // Model the coordinator's durable payment-reference deduplication.
     const claimed = new Set<string>();
-    claimAutoLabelPurchaseMock.mockImplementation(async (key: string) => {
-      if (claimed.has(key)) return false;
+    purchaseOutboundLabelMock.mockImplementation(async ({ paymentRef }) => {
+      const key = String(paymentRef);
+      if (claimed.has(key)) return { status: "order-already-claimed" };
       claimed.add(key);
-      return true;
+      return { status: "purchased", labelId: 99, label: {} };
     });
 
     const SQUARE_PAYMENT_ID = "sqpmt_replay_xyz";
@@ -392,14 +376,13 @@ describe("runAutoLabelPurchase — Stripe-bound claimRef dedup (web replay prote
     expect(r2).toEqual({ purchased: false, reason: "claimed-by-other" });
     expect(r3).toEqual({ purchased: false, reason: "claimed-by-other" });
 
-    // Only ONE seller-billed label is ever bought for the one real payment.
-    expect(buyLabelMock).toHaveBeenCalledTimes(1);
-
     // Every attempt resolved to the SAME claim key, and that key is bound to the
     // Square payment id — NOT to any of the client-supplied orderIds. If a
     // regression keyed the claim on orderId, these three keys would differ and
     // each replay would buy another label.
-    const keys = claimAutoLabelPurchaseMock.mock.calls.map((c) => c[0]);
+    const keys = purchaseOutboundLabelMock.mock.calls.map(
+      (call) => call[0].paymentRef
+    );
     expect(new Set(keys).size).toBe(1);
     expect(keys[0]).toContain(SQUARE_PAYMENT_ID);
     expect(keys[0]).not.toContain("client-uuid-A");
@@ -430,7 +413,7 @@ describe("autoPurchaseForMcpOrder", () => {
     getMcpOrderMock.mockResolvedValue(PAID_ORDER);
     const result = await autoPurchaseForMcpOrder("order-mcp-1");
     expect(result.purchased).toBe(true);
-    expect(buyLabelMock).toHaveBeenCalledTimes(1);
+    expect(purchaseOutboundLabelMock).toHaveBeenCalledTimes(1);
     // The stored {address, unit, stateProvince, postalCode} mapped to the
     // Shippo {street1, street2, state, zip} shape.
     const toArg = getRatesMock.mock.calls[0][1].to;
@@ -450,7 +433,7 @@ describe("autoPurchaseForMcpOrder", () => {
     });
     const result = await autoPurchaseForMcpOrder("order-mcp-1");
     expect(result.purchased).toBe(false);
-    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(purchaseOutboundLabelMock).not.toHaveBeenCalled();
   });
 
   it("never throws when the order cannot be loaded", async () => {

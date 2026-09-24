@@ -23,6 +23,7 @@
 /apps/mobile/ios
 /apps/mobile/android
 /packages/*/.turbo
+/packages/*/node_modules
 
 # production
 /build

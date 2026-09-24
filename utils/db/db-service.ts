@@ -1426,19 +1426,37 @@ async function initializeTables(): Promise<void> {
       CREATE TABLE IF NOT EXISTS shipping_shipment_claims (
         shipment_id TEXT PRIMARY KEY,
         pubkey TEXT NOT NULL,
+        order_id TEXT,
         status TEXT NOT NULL DEFAULT 'owned',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_shipping_shipment_claims_created_at
         ON shipping_shipment_claims(created_at);
+      ALTER TABLE shipping_shipment_claims
+        ADD COLUMN IF NOT EXISTS order_id TEXT;
 
-      -- Shippo: order-level atomic guard for AUTOMATIC label purchase. Unlike
-      -- shipping_shipment_claims (keyed by Shippo shipment id, for the manual
-      -- buy flow), this is keyed by a deterministic order/product key so a paid
-      -- order can never trigger more than one auto-purchase even across retries,
-      -- concurrent webhooks, or multiple server instances. Transient: the
-      -- permanent record of a bought label lives in shipping_labels.
+      -- One outbound label per seller order across manual mobile purchases,
+      -- automatic webhook purchases, retries, and server instances.
+      CREATE TABLE IF NOT EXISTS shipping_outbound_order_claims (
+        pubkey TEXT NOT NULL,
+        order_id TEXT NOT NULL,
+        payment_ref TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        shipment_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (pubkey, order_id),
+        UNIQUE (pubkey, payment_ref),
+        CONSTRAINT shipping_outbound_order_claims_status_check
+          CHECK (status IN ('pending', 'purchased'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_shipping_outbound_order_claims_created_at
+        ON shipping_outbound_order_claims(created_at);
+
+      -- Preserve all money-safety claims created by the Phase 4 schema. A
+      -- pending legacy row can represent an uncertain provider outcome, so it
+      -- must remain blocking rather than reopening the order for purchase.
       CREATE TABLE IF NOT EXISTS shipping_label_order_claims (
         claim_key TEXT PRIMARY KEY,
         pubkey TEXT NOT NULL,
@@ -1448,8 +1466,44 @@ async function initializeTables(): Promise<void> {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      CREATE INDEX IF NOT EXISTS idx_shipping_label_order_claims_created_at
-        ON shipping_label_order_claims(created_at);
+      DELETE FROM shipping_label_order_claims
+      WHERE ctid IN (
+        SELECT row_id
+        FROM (
+          SELECT ctid AS row_id,
+            ROW_NUMBER() OVER (
+              PARTITION BY pubkey, order_id
+              ORDER BY
+                CASE WHEN status = 'purchased' THEN 0 ELSE 1 END,
+                updated_at DESC,
+                created_at DESC,
+                claim_key
+            ) AS row_number
+          FROM shipping_label_order_claims
+        ) duplicate_claims
+        WHERE row_number > 1
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_shipping_label_order_claims_order
+        ON shipping_label_order_claims(pubkey, order_id);
+      INSERT INTO shipping_outbound_order_claims
+        (pubkey, order_id, payment_ref, status, shipment_id, created_at, updated_at)
+      SELECT DISTINCT ON (pubkey, order_id)
+        pubkey, order_id, claim_key, status, shipment_id, created_at, updated_at
+      FROM shipping_label_order_claims
+      WHERE status IN ('pending', 'purchased')
+      ORDER BY pubkey, order_id,
+        CASE WHEN status = 'purchased' THEN 0 ELSE 1 END,
+        updated_at DESC
+      ON CONFLICT DO NOTHING;
+
+      INSERT INTO shipping_outbound_order_claims
+        (pubkey, order_id, status, shipment_id)
+      SELECT DISTINCT ON (pubkey, order_id)
+        pubkey, order_id, 'purchased', shipment_id
+      FROM shipping_labels
+      WHERE order_id IS NOT NULL AND is_return = false
+      ORDER BY pubkey, order_id, purchased_at DESC
+      ON CONFLICT (pubkey, order_id) DO NOTHING;
 
       -- Backfill the auto-purchase toggle for sellers whose shipping_defaults
       -- row predates this column (defaults ON to match the new-row default).
@@ -3939,6 +3993,44 @@ export async function getOrderParticipants(
   } finally {
     client.release();
   }
+}
+
+export interface SellerOrderState {
+  sellerPubkey: string;
+  buyerPubkey: string | null;
+  orderId: string;
+  status: CanonicalOrderStatus;
+  version: number;
+}
+
+export async function getSellerOrderState(
+  orderId: string,
+  sellerPubkey: string
+): Promise<SellerOrderState | null> {
+  await ensureTablesInitialized();
+  const result = await getDbPool().query<{
+    seller_pubkey: string;
+    buyer_pubkey: string | null;
+    order_id: string;
+    status: CanonicalOrderStatus;
+    version: number;
+  }>(
+    `SELECT seller_pubkey, buyer_pubkey, order_id, status, version
+     FROM seller_order_states
+     WHERE order_id = $1 AND seller_pubkey = $2
+     LIMIT 1`,
+    [orderId, sellerPubkey]
+  );
+  const row = result.rows[0];
+  return row
+    ? {
+        sellerPubkey: row.seller_pubkey,
+        buyerPubkey: row.buyer_pubkey,
+        orderId: row.order_id,
+        status: row.status,
+        version: row.version,
+      }
+    : null;
 }
 
 export async function getOrderStatuses(

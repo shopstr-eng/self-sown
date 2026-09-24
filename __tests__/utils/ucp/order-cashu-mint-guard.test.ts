@@ -31,6 +31,7 @@ jest.mock("@/mcp/tools/purchase-tools", () => ({
 // The allowlisted-mint case exercises the SSRF-guarded keyset fetch; bypass
 // the guard here (the fetch spy below is the assertion surface).
 jest.mock("@/utils/url-safety", () => ({
+  ...jest.requireActual("@/utils/url-safety"),
   safeFetch: (url: string) => fetch(url),
 }));
 

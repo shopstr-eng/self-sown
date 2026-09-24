@@ -24,6 +24,22 @@ interface ShippoError {
   [key: string]: unknown;
 }
 
+type ShippoPurchaseError = Error & {
+  status?: number;
+  shippoPurchaseRejected?: boolean;
+};
+
+export function isDefinitiveShippoPurchaseFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const shippoError = error as ShippoPurchaseError;
+  return (
+    shippoError.shippoPurchaseRejected === true ||
+    (typeof shippoError.status === "number" &&
+      shippoError.status >= 400 &&
+      shippoError.status < 500)
+  );
+}
+
 async function shippoFetch<T>(
   accessToken: string,
   path: string,
@@ -365,7 +381,9 @@ async function buildTransaction(
         ?.map((m) => m.text)
         .filter(Boolean)
         .join("; ") || `Label purchase failed with status ${tx.status}`;
-    throw new Error(msg);
+    const error = new Error(msg) as ShippoPurchaseError;
+    error.shippoPurchaseRejected = true;
+    throw error;
   }
 
   if (!tx.label_url) {

@@ -8,6 +8,7 @@ import {
 import { verifyAndConsumeSignedRequestProof } from "@/utils/mcp/request-proof-server";
 import { isShippoOAuthConfigured } from "@/utils/shipping/shippo-oauth";
 import { getShippoConnection } from "@/utils/db/shipping-service";
+import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 
 const RATE_LIMIT = { limit: 60, windowMs: 60_000 };
 
@@ -22,6 +23,26 @@ export default async function handler(
     return;
 
   try {
+    if (req.headers.authorization) {
+      const auth = await verifyNip98Request(req, "GET");
+      if (!auth.ok) return res.status(401).json({ error: auth.error });
+      if (!isShippoOAuthConfigured()) {
+        return res.status(200).json({
+          configured: false,
+          connected: false,
+          accountId: null,
+        });
+      }
+      const connection = await getShippoConnection(auth.pubkey);
+      return res.status(200).json({
+        configured: true,
+        connected: !!connection,
+        accountId: connection?.accountId ?? null,
+        scope: connection?.scope ?? null,
+        connectedAt: connection?.createdAt ?? null,
+      });
+    }
+
     const pubkey = (req.query.pubkey as string) || "";
     if (!pubkey) {
       return res.status(400).json({ error: "pubkey is required" });
@@ -61,6 +82,6 @@ export default async function handler(
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Shippo OAuth status failed:", message);
-    return res.status(500).json({ error: message });
+    return res.status(500).json({ error: "Could not load shipping setup" });
   }
 }

@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import {
   getKnownSellerListingCategories,
+  hasSellerListingShippingOptions,
   isPickupShippingOption,
   requiresShippingCost,
   SHIPPING_OPTIONS,
@@ -44,6 +45,7 @@ export function ListingEditor({
   onDelete?: () => void;
 }) {
   const knownCategories = useMemo(() => getKnownSellerListingCategories(), []);
+  const shippingManagedOnWeb = hasSellerListingShippingOptions(draft);
   const customCategories = draft.categories.filter(
     (category) => !knownCategories.includes(category)
   );
@@ -101,7 +103,7 @@ export function ListingEditor({
     <View style={styles.editor}>
       <SellerCard
         title="Listing basics"
-        description="Phase 3 keeps mobile listing management focused on the core fields we can safely publish and edit on-device."
+        description="Core product details published from this device."
       >
         <SellerField
           label="Title"
@@ -212,87 +214,175 @@ export function ListingEditor({
 
       <SellerCard
         title="Fulfillment"
-        description="Shipping and pickup tags map directly to the current listing parser, so mobile and web stay compatible."
+        description="Manage shipping, pickup, and package details for this listing."
       >
-        <Text style={styles.sectionLabel}>Shipping option</Text>
-        <View style={styles.chipWrap}>
-          {SHIPPING_OPTIONS.map((option) => {
-            const selected = draft.shippingType === option;
-            return (
-              <Pressable
-                key={option}
-                onPress={() => onChange({ ...draft, shippingType: option })}
-                style={[
-                  styles.chip,
-                  selected ? styles.chipSelected : styles.chipIdle,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.chipLabel,
-                    selected ? styles.chipLabelSelected : null,
-                  ]}
-                >
-                  {option}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        {errors.shippingType ? (
-          <Text style={styles.errorText}>{errors.shippingType}</Text>
-        ) : null}
-
-        {requiresShippingCost(draft.shippingType) ? (
-          <SellerField
-            label="Shipping cost"
-            value={draft.shippingCost}
-            placeholder="0"
-            onChangeText={(value) =>
-              onChange({ ...draft, shippingCost: value })
-            }
-            keyboardType="decimal-pad"
-            error={errors.shippingCost}
-          />
-        ) : null}
-
-        {isPickupShippingOption(draft.shippingType) ? (
+        {shippingManagedOnWeb ? (
           <View style={styles.pickupWrap}>
-            <Text style={styles.sectionLabel}>Pickup locations</Text>
-            {draft.pickupLocations.length === 0 ? (
-              <Text style={styles.helperText}>
-                Add at least one pickup location for pickup-based shipping.
-              </Text>
+            <Text style={styles.sectionLabel}>Shipping managed on web</Text>
+            <Text style={styles.helperText}>
+              This listing uses shipping methods configured on Milk Market web.
+              Edit shipping prices, destinations, and pickup options there.
+              Other listing details and label package details can still be
+              edited here.
+            </Text>
+          </View>
+        ) : (
+          <>
+            <Text style={styles.sectionLabel}>Shipping option</Text>
+            <View style={styles.chipWrap}>
+              {SHIPPING_OPTIONS.map((option) => {
+                const selected = draft.shippingType === option;
+                return (
+                  <Pressable
+                    key={option}
+                    onPress={() => onChange({ ...draft, shippingType: option })}
+                    style={[
+                      styles.chip,
+                      selected ? styles.chipSelected : styles.chipIdle,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipLabel,
+                        selected ? styles.chipLabelSelected : null,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {errors.shippingType ? (
+              <Text style={styles.errorText}>{errors.shippingType}</Text>
             ) : null}
-            {draft.pickupLocations.map((location, index) => (
-              <View key={`pickup-${index}`} style={styles.pickupRow}>
-                <View style={styles.flexField}>
-                  <SellerField
-                    label={`Pickup location ${index + 1}`}
-                    value={location}
-                    placeholder="Farm gate pickup"
-                    onChangeText={(value) => updatePickupLocation(index, value)}
-                  />
-                </View>
-                <View style={styles.pickupRemoveButton}>
-                  <ActionButton
-                    label="Remove"
-                    onPress={() => removePickupLocation(index)}
-                    variant="secondary"
-                  />
-                </View>
+
+            {requiresShippingCost(draft.shippingType) ? (
+              <SellerField
+                label="Shipping cost"
+                value={draft.shippingCost}
+                placeholder="0"
+                onChangeText={(value) =>
+                  onChange({ ...draft, shippingCost: value })
+                }
+                keyboardType="decimal-pad"
+                error={errors.shippingCost}
+              />
+            ) : null}
+
+            {isPickupShippingOption(draft.shippingType) ? (
+              <View style={styles.pickupWrap}>
+                <Text style={styles.sectionLabel}>Pickup locations</Text>
+                {draft.pickupLocations.length === 0 ? (
+                  <Text style={styles.helperText}>
+                    Add at least one pickup location for pickup-based shipping.
+                  </Text>
+                ) : null}
+                {draft.pickupLocations.map((location, index) => (
+                  <View key={`pickup-${index}`} style={styles.pickupRow}>
+                    <View style={styles.flexField}>
+                      <SellerField
+                        label={`Pickup location ${index + 1}`}
+                        value={location}
+                        placeholder="Farm gate pickup"
+                        onChangeText={(value) =>
+                          updatePickupLocation(index, value)
+                        }
+                      />
+                    </View>
+                    <View style={styles.pickupRemoveButton}>
+                      <ActionButton
+                        label="Remove"
+                        onPress={() => removePickupLocation(index)}
+                        variant="secondary"
+                      />
+                    </View>
+                  </View>
+                ))}
+                <ActionButton
+                  label="Add pickup location"
+                  onPress={addPickupLocation}
+                  variant="secondary"
+                />
+                {errors.pickupLocations ? (
+                  <Text style={styles.errorText}>{errors.pickupLocations}</Text>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        )}
+
+        <View style={styles.shippingMetadata}>
+          <Text style={styles.sectionLabel}>Live-label package details</Text>
+          <Text style={styles.helperText}>
+            Add these details to quote and purchase carrier labels for orders.
+          </Text>
+          <View style={styles.row}>
+            <View style={styles.flexField}>
+              <SellerField
+                label="Ship-from postal code"
+                value={draft.shipFromPostalCode ?? ""}
+                placeholder="78702"
+                onChangeText={(value) =>
+                  onChange({ ...draft, shipFromPostalCode: value })
+                }
+                error={errors.shipFromPostalCode}
+              />
+            </View>
+            <View style={styles.currencyField}>
+              <SellerField
+                label="Country"
+                value={draft.shipFromCountry ?? "US"}
+                placeholder="US"
+                autoCapitalize="characters"
+                onChangeText={(value) =>
+                  onChange({ ...draft, shipFromCountry: value.toUpperCase() })
+                }
+                error={errors.shipFromCountry}
+              />
+            </View>
+          </View>
+          <SellerField
+            label="Package weight (oz)"
+            value={draft.packageWeightOz ?? ""}
+            placeholder="16"
+            keyboardType="decimal-pad"
+            onChangeText={(value) =>
+              onChange({ ...draft, packageWeightOz: value })
+            }
+            error={errors.packageWeightOz}
+          />
+          <View style={styles.dimensionRow}>
+            {(
+              [
+                ["Length", "packageLengthIn"],
+                ["Width", "packageWidthIn"],
+                ["Height", "packageHeightIn"],
+              ] as const
+            ).map(([label, key]) => (
+              <View key={key} style={styles.flexField}>
+                <SellerField
+                  label={`${label} (in)`}
+                  value={draft[key] ?? ""}
+                  placeholder="Optional"
+                  keyboardType="decimal-pad"
+                  onChangeText={(value) => onChange({ ...draft, [key]: value })}
+                  error={errors[key]}
+                />
               </View>
             ))}
-            <ActionButton
-              label="Add pickup location"
-              onPress={addPickupLocation}
-              variant="secondary"
-            />
-            {errors.pickupLocations ? (
-              <Text style={styles.errorText}>{errors.pickupLocations}</Text>
-            ) : null}
           </View>
-        ) : null}
+          <SellerField
+            label="Handling time (days)"
+            value={draft.handlingTimeDays ?? ""}
+            placeholder="Optional"
+            keyboardType="number-pad"
+            onChangeText={(value) =>
+              onChange({ ...draft, handlingTimeDays: value })
+            }
+            error={errors.handlingTimeDays}
+          />
+        </View>
       </SellerCard>
 
       <SellerCard
@@ -399,6 +489,14 @@ const styles = StyleSheet.create({
   },
   currencyField: {
     width: 120,
+  },
+  shippingMetadata: {
+    gap: 14,
+    paddingTop: 4,
+  },
+  dimensionRow: {
+    flexDirection: "row",
+    gap: 8,
   },
   chipWrap: {
     flexDirection: "row",
