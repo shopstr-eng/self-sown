@@ -15,7 +15,10 @@ import addFormats from "ajv-formats";
 
 import handler from "@/pages/api/ucp/schemas/checkout-session.json";
 import { SITE_HOST, SITE_URL } from "@/utils/site-url";
-import { formatCheckoutSession } from "@/utils/ucp/checkout-store";
+import {
+  formatCheckoutSession,
+  formatEphemeralCheckoutSession,
+} from "@/utils/ucp/checkout-store";
 import type { CheckoutSessionRow } from "@/utils/ucp/checkout-store";
 import { CHECKOUT_STATUSES } from "@/utils/ucp/checkout-status";
 import type { PaymentMethod } from "@/utils/ucp/order-service";
@@ -201,9 +204,94 @@ function representativeSessions(): Array<ReturnType<typeof formatCheckoutSession
   return sessions;
 }
 
+// The two UNPERSISTED response envelopes POST /api/ucp/checkout/sessions can
+// emit, built through the same helper the route uses so the test can't drift
+// from the wire shape:
+//  - persist-failure fallback (201): the order was created but the session row
+//    was not, so the body carries the full payment descriptor + a `warning`.
+//  - escalation envelope (200): a fail-closed engine error (e.g. no live
+//    exchange rate) means NO order exists — no amount/payment descriptor, but
+//    a severity-tagged `error` + machine-readable `code`.
+const FALLBACK_ENVELOPE = formatEphemeralCheckoutSession(
+  {
+    id: "ucp_cs_fallback123",
+    status: "ready_for_complete",
+    buyerPubkey: BASE_ROW.buyer_pubkey,
+    sellerPubkey: BASE_ROW.seller_pubkey,
+    productId: BASE_ROW.product_id,
+    mcpOrderId: BASE_ROW.mcp_order_id,
+    paymentMethod: "stripe",
+    amountTotal: 12.5,
+    currency: "usd",
+    payment: BASE_ROW.payment,
+    messages: BASE_ROW.messages!,
+    warning: "Session record could not be persisted; payment is still valid.",
+  },
+  SITE_URL
+);
+
+const ESCALATION_ENVELOPE = formatEphemeralCheckoutSession(
+  {
+    id: "ucp_cs_escalation123",
+    status: "requires_escalation",
+    buyerPubkey: BASE_ROW.buyer_pubkey,
+    sellerPubkey: BASE_ROW.seller_pubkey,
+    productId: BASE_ROW.product_id,
+    paymentMethod: "lightning",
+    payment: null,
+    currency: "USD",
+    messages: [
+      {
+        type: "session_created",
+        text: "Checkout session created.",
+        at: new Date(1_700_000_000_000).toISOString(),
+      },
+      {
+        type: "requires_escalation",
+        text: "This product is priced in USD and can't be settled in Bitcoin without a live exchange rate.",
+        at: new Date(1_700_000_000_000).toISOString(),
+        severity: "error" as const,
+      },
+    ],
+    error:
+      "This product is priced in USD and can't be settled in Bitcoin without a live exchange rate.",
+    code: "exchange_rate_unavailable",
+  },
+  SITE_URL
+);
+
+// A PERSISTED session reconciled to requires_escalation (GET …/sessions/[id]
+// or POST …/complete finds the order's payment failed, or a legacy row
+// migrated from the old 'failed' status): it keeps the order's fields and may
+// carry NO error (updateCheckoutSessionStatus only recently began stamping
+// one; legacy rows never have it). This is the production shape the schema
+// must not reject.
+const PERSISTED_ESCALATION = formatCheckoutSession(
+  {
+    ...BASE_ROW,
+    status: "requires_escalation",
+    error: null,
+    messages: [
+      ...BASE_ROW.messages!,
+      {
+        type: "requires_escalation",
+        text: "Payment failed; this needs attention.",
+        at: new Date(1_700_000_060_000).toISOString(),
+        severity: "error" as const,
+      },
+    ],
+  },
+  SITE_URL
+);
+
 describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", () => {
   const schema = getSchema();
   const sessions = representativeSessions();
+  const envelopes = [
+    ["persist-failure fallback", FALLBACK_ENVELOPE],
+    ["requires_escalation (pre-order, no orderId)", ESCALATION_ENVELOPE],
+    ["requires_escalation (persisted, orderId, no error)", PERSISTED_ESCALATION],
+  ] as const;
 
   it("produces fixtures that exercise the optional fields (non-vacuous)", () => {
     const allKeys = new Set(sessions.flatMap((s) => Object.keys(s)));
@@ -237,9 +325,69 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
     }
   });
 
+  it("accepts the fallback and escalation envelopes under full schema validation", () => {
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+    for (const [label, envelope] of envelopes) {
+      const ok: boolean = validate(envelope);
+      expect(
+        ok
+          ? true
+          : `schema rejected the ${label} envelope: ${ajv.errorsText(validate.errors)}`
+      ).toBe(true);
+    }
+  });
+
+  it("envelope fixtures exercise the conditional branches (non-vacuous)", () => {
+    // Fallback: a normal (non-escalation) session WITH the optional warning.
+    expect(FALLBACK_ENVELOPE).toHaveProperty("warning");
+    expect(FALLBACK_ENVELOPE).toHaveProperty("amount");
+    expect(FALLBACK_ENVELOPE).toHaveProperty("payment");
+    // Escalation: no order → no amount/payment descriptor; error + code set.
+    expect(ESCALATION_ENVELOPE.status).toBe("requires_escalation");
+    expect(ESCALATION_ENVELOPE).not.toHaveProperty("amount");
+    expect(ESCALATION_ENVELOPE.payment).toBeNull();
+    expect(ESCALATION_ENVELOPE).toHaveProperty("error");
+    expect(ESCALATION_ENVELOPE).toHaveProperty("code");
+  });
+
+  it("requires error only on pre-order escalation; order fields otherwise", () => {
+    const ajv = new Ajv2020({ allErrors: true, strict: false });
+    addFormats(ajv);
+    const validate = ajv.compile(schema);
+    // A pre-order escalation envelope (no orderId) WITHOUT its error is not
+    // actionable — reject.
+    const { error: _e, ...escalationNoError } = ESCALATION_ENVELOPE as Record<
+      string,
+      unknown
+    >;
+    expect(validate(escalationNoError)).toBe(false);
+    // A persisted escalation keeps its order fields; dropping them is a lie —
+    // reject even though the error explanation is present.
+    const { amount: _a, ...persistedNoAmount } = PERSISTED_ESCALATION as Record<
+      string,
+      unknown
+    >;
+    expect(validate({ ...persistedNoAmount, error: "Payment failed." })).toBe(
+      false
+    );
+    // A non-escalation session missing its total/descriptor is a lie — reject.
+    const { amount: _a2, ...fallbackNoAmount } = FALLBACK_ENVELOPE as Record<
+      string,
+      unknown
+    >;
+    expect(validate(fallbackNoAmount)).toBe(false);
+    // A pre-order escalation MAY still carry amount/currency (optional, not
+    // banned — the route emits the engine's currency when known).
+    const ok: boolean = validate({ ...ESCALATION_ENVELOPE, amount: 12.5 });
+    expect(ok ? true : ajv.errorsText(validate.errors)).toBe(true);
+  });
+
   it("declares every top-level field the mapper can emit (additionalProperties:true would hide drift)", () => {
     const declared = schema.properties ?? {};
-    for (const session of sessions) {
+    const bodies = [...sessions, ...envelopes.map(([, e]) => e)];
+    for (const session of bodies) {
       for (const key of Object.keys(session)) {
         expect(declared).toHaveProperty(key);
       }
@@ -248,7 +396,8 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
 
   it("emits every field the schema requires", () => {
     const required: string[] = schema.required ?? [];
-    for (const session of sessions) {
+    const bodies = [...sessions, ...envelopes.map(([, e]) => e)];
+    for (const session of bodies) {
       for (const key of required) {
         expect(session).toHaveProperty(key);
       }

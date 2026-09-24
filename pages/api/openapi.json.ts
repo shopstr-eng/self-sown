@@ -852,8 +852,8 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         },
         UcpCheckoutSession: {
           type: "object",
-          description: `UCP checkout session. Condensed view — the canonical full JSON Schema is served at ${BASE_URL}/api/ucp/schemas/checkout-session.json.`,
-          required: ["id", "status", "paymentMethod", "amount", "currency"],
+          description: `UCP checkout session. Condensed view — the canonical full JSON Schema is served at ${BASE_URL}/api/ucp/schemas/checkout-session.json. A pre-order 'requires_escalation' response (no orderId — no order was placed) carries 'error' (+ optional 'code'/'currency') and a null payment instead of amount/currency; a persisted session reconciled to 'requires_escalation' keeps its order fields.`,
+          required: ["id", "status", "paymentMethod"],
           properties: {
             id: {
               type: "string",

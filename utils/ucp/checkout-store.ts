@@ -61,6 +61,9 @@ export interface CheckoutSessionRow {
 }
 
 export interface InsertCheckoutSessionInput {
+  /** Pre-generated id; the route mints it up front so the persist-failure
+   * fallback can still return a schema-valid session carrying the same id. */
+  id?: string;
   buyerPubkey: string;
   sellerPubkey: string;
   productId: string;
@@ -174,7 +177,7 @@ export async function insertCheckoutSession(
   let client: PoolClient | undefined;
   try {
     client = await pool.connect();
-    const id = generateCheckoutSessionId();
+    const id = input.id ?? generateCheckoutSessionId();
     const result = await client.query(
       `INSERT INTO ucp_checkout_sessions
          (id, api_key_id, buyer_pubkey, seller_pubkey, product_id, mcp_order_id,
@@ -246,23 +249,89 @@ export async function listCheckoutSessions(
 export async function updateCheckoutSessionStatus(
   id: string,
   status: CheckoutSessionStatus,
-  messages: CheckoutSessionMessage[]
+  messages: CheckoutSessionMessage[],
+  error: string | null = null
 ): Promise<CheckoutSessionRow | null> {
   const pool = getDbPool();
   let client: PoolClient | undefined;
   try {
     client = await pool.connect();
+    // error is set when the transition lands on requires_escalation (so the
+    // formatted session explains itself) and cleared on any transition OUT of
+    // it (e.g. a failed order that later settles → completed).
     const result = await client.query(
       `UPDATE ucp_checkout_sessions
-       SET status = $2, messages = $3, updated_at = CURRENT_TIMESTAMP
+       SET status = $2, messages = $3, error = $4, updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING *`,
-      [id, status, JSON.stringify(messages || [])]
+      [id, status, JSON.stringify(messages || []), error]
     );
     return result.rows[0] || null;
   } finally {
     if (client) client.release();
   }
+}
+
+/**
+ * Fields of an EPHEMERAL (unpersisted) checkout-session response: the 201
+ * persist-failure fallback and the 200 requires_escalation envelope in
+ * /api/ucp/checkout/sessions. No row exists for these, so there is no row to
+ * format — but the published JSON Schema still governs the body, so both the
+ * route and the schema-contract test build them through this ONE helper.
+ */
+export interface EphemeralCheckoutSessionInput {
+  id: string;
+  status: CheckoutSessionStatus;
+  buyerPubkey: string;
+  sellerPubkey: string;
+  productId: string;
+  mcpOrderId?: string | null;
+  paymentMethod: string;
+  /** Null/undefined when no order total exists (escalation: no order placed). */
+  amountTotal?: number | null;
+  currency?: string | null;
+  payment: Record<string, any> | null;
+  messages: CheckoutSessionMessage[];
+  error?: string | null;
+  /** Machine-readable error code from the order engine (e.g. exchange_rate_unavailable). */
+  code?: string | null;
+  warning?: string | null;
+}
+
+/**
+ * Shape an unpersisted session response so it validates against the published
+ * checkout-session JSON Schema: id/timestamps/links are minted at response
+ * time, and the schema conditionally relaxes amount/currency/payment only for
+ * `requires_escalation` (no order → no total or descriptor). The self link
+ * may 404 because no row was persisted; the warning/error text says so.
+ */
+export function formatEphemeralCheckoutSession(
+  input: EphemeralCheckoutSessionInput,
+  baseUrl: string
+) {
+  const now = new Date().toISOString();
+  return {
+    id: input.id,
+    status: input.status,
+    buyer: { pubkey: input.buyerPubkey },
+    seller: { pubkey: input.sellerPubkey },
+    productId: input.productId,
+    ...(input.mcpOrderId ? { orderId: input.mcpOrderId } : {}),
+    paymentMethod: input.paymentMethod,
+    ...(input.amountTotal != null ? { amount: input.amountTotal } : {}),
+    ...(input.currency ? { currency: input.currency } : {}),
+    payment: input.payment,
+    messages: input.messages,
+    ...(input.error ? { error: input.error } : {}),
+    ...(input.code ? { code: input.code } : {}),
+    ...(input.warning ? { warning: input.warning } : {}),
+    createdAt: now,
+    updatedAt: now,
+    links: {
+      self: `${baseUrl}/api/ucp/checkout/sessions/${input.id}`,
+      discovery: `${baseUrl}/.well-known/ucp`,
+    },
+  };
 }
 
 export function formatCheckoutSession(

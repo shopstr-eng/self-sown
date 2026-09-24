@@ -165,7 +165,12 @@ export default async function handler(
         next === "requires_escalation" ? "error" : undefined
       ),
     ];
-    const updated = await updateCheckoutSessionStatus(id, next, messages);
+    const updated = await updateCheckoutSessionStatus(
+      id,
+      next,
+      messages,
+      next === "requires_escalation" ? note : null
+    );
     return res.status(200).json(formatCheckoutSession(updated || row, baseUrl));
   } catch (error) {
     console.error("UCP checkout complete error:", error);
