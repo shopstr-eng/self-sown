@@ -1,5 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { deriveBaseUrl } from "@/utils/ucp/seller-host";
+import {
+  PAYMENT_METHOD_ENUM,
+  methodDiscriminator,
+  composePaymentDescriptor,
+  LIGHTNING_DESCRIPTOR_PROPERTIES,
+  LIGHTNING_DESCRIPTOR_REQUIRED,
+  CASHU_DESCRIPTOR_PROPERTIES,
+  CASHU_DESCRIPTOR_REQUIRED,
+  FIAT_DESCRIPTOR_PROPERTIES,
+  FIAT_DESCRIPTOR_REQUIRED,
+  STRIPE_ONE_TIME_DESCRIPTOR_PROPERTIES,
+  STRIPE_ONE_TIME_DESCRIPTOR_REQUIRED,
+  STRIPE_SUBSCRIPTION_DESCRIPTOR_PROPERTIES,
+  STRIPE_SUBSCRIPTION_DESCRIPTOR_REQUIRED,
+} from "@/utils/ucp/payment-descriptor-schema";
 
 /**
  * GET /api/ucp/schemas/checkout-session.json — JSON Schema (draft 2020-12) for
@@ -77,10 +92,13 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       },
       paymentMethod: {
         type: "string",
-        enum: ["stripe", "lightning", "cashu", "fiat"],
+        enum: [...PAYMENT_METHOD_ENUM],
       },
       amount: { type: "number", description: "Order total in major units." },
       currency: { type: "string" },
+      // The per-method field contracts are SHARED with the MCP create-order
+      // descriptors (utils/ucp/payment-descriptor-schema.ts) so neither
+      // surface can rename a field without failing a contract test.
       payment: {
         description:
           "Method-specific payment descriptor written by describeResult in /api/ucp/checkout/sessions (Lightning bolt11, Stripe clientSecret, fiat instructions, …). Null when not applicable. Each allOf branch discriminates on `method`; unknown methods fall through unvalidated.",
@@ -88,161 +106,54 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         properties: {
           method: {
             type: "string",
-            enum: ["stripe", "lightning", "cashu", "fiat"],
+            enum: [...PAYMENT_METHOD_ENUM],
           },
         },
         required: ["method"],
         allOf: [
           {
-            if: {
-              type: "object",
-              properties: { method: { const: "lightning" } },
-              required: ["method"],
-            },
-            then: {
-              properties: {
-                method: { const: "lightning" },
-                bolt11: { type: "string", description: "BOLT-11 invoice." },
-                quoteId: { type: "string" },
-                amount: { type: "number", description: "Invoice amount in sats." },
-                currency: { const: "sats" },
-                mintUrl: {
-                  type: "string",
-                  description: "Cashu mint that issued the invoice.",
-                },
-                verifyUrl: {
-                  type: "string",
-                  description: "Endpoint that confirms settlement.",
-                },
-              },
-              required: [
-                "method",
-                "bolt11",
-                "quoteId",
-                "amount",
-                "currency",
-                "verifyUrl",
-              ],
-              additionalProperties: false,
-            },
+            if: methodDiscriminator("lightning"),
+            then: composePaymentDescriptor(
+              LIGHTNING_DESCRIPTOR_PROPERTIES,
+              LIGHTNING_DESCRIPTOR_REQUIRED,
+              { method: "lightning" }
+            ),
           },
           {
-            if: {
-              type: "object",
-              properties: { method: { const: "cashu" } },
-              required: ["method"],
-            },
-            then: {
-              properties: {
-                method: { const: "cashu" },
-                amount: { type: "number", description: "Redeemed token amount." },
-                required: { type: "number", description: "Required amount." },
-                change: { type: "number", description: "Change returned." },
-                status: {
-                  const: "paid",
-                  description: "Cashu settles synchronously.",
-                },
-              },
-              required: ["method", "amount", "required", "change", "status"],
-              additionalProperties: false,
-            },
+            if: methodDiscriminator("cashu"),
+            then: composePaymentDescriptor(
+              CASHU_DESCRIPTOR_PROPERTIES,
+              CASHU_DESCRIPTOR_REQUIRED,
+              { method: "cashu" }
+            ),
           },
           {
-            if: {
-              type: "object",
-              properties: { method: { const: "fiat" } },
-              required: ["method"],
-            },
-            then: {
-              properties: {
-                method: { const: "fiat" },
-                selectedMethod: {
-                  type: ["string", "null"],
-                  description: "Buyer-chosen fiat rail, when selected.",
-                },
-                availableMethods: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Seller's accepted fiat payment options.",
-                },
-                amount: { type: "number" },
-                currency: { type: "string" },
-                sellerContact: {
-                  type: "object",
-                  properties: {
-                    name: { type: ["string", "null"] },
-                    nip05: { type: ["string", "null"] },
-                  },
-                  required: ["name", "nip05"],
-                  additionalProperties: false,
-                },
-              },
-              required: [
-                "method",
-                "selectedMethod",
-                "availableMethods",
-                "amount",
-                "currency",
-                "sellerContact",
-              ],
-              additionalProperties: false,
-            },
+            if: methodDiscriminator("fiat"),
+            then: composePaymentDescriptor(
+              FIAT_DESCRIPTOR_PROPERTIES,
+              FIAT_DESCRIPTOR_REQUIRED,
+              { method: "fiat" }
+            ),
           },
           {
-            if: {
-              type: "object",
-              properties: { method: { const: "stripe" } },
-              required: ["method"],
-            },
+            if: methodDiscriminator("stripe"),
             then: {
               oneOf: [
                 {
                   description: "One-time card payment (PaymentIntent).",
-                  properties: {
-                    method: { const: "stripe" },
-                    type: { not: { const: "subscription" } },
-                    amount: { type: "number" },
-                    currency: { type: "string" },
-                    paymentIntentId: { type: ["string", "null"] },
-                    clientSecret: { type: ["string", "null"] },
-                    connectedAccountId: { type: ["string", "null"] },
-                  },
-                  required: [
-                    "method",
-                    "amount",
-                    "currency",
-                    "paymentIntentId",
-                    "clientSecret",
-                    "connectedAccountId",
-                  ],
-                  additionalProperties: false,
+                  ...composePaymentDescriptor(
+                    STRIPE_ONE_TIME_DESCRIPTOR_PROPERTIES,
+                    STRIPE_ONE_TIME_DESCRIPTOR_REQUIRED,
+                    { method: "stripe" }
+                  ),
                 },
                 {
                   description: "Recurring subscription checkout.",
-                  properties: {
-                    method: { const: "stripe" },
-                    type: { const: "subscription" },
-                    subscriptionId: { type: "string" },
-                    frequency: { type: "string" },
-                    clientSecret: {
-                      type: ["string", "null"],
-                      description:
-                        "Null when the subscription was created without a first-payment PaymentIntent.",
-                    },
-                    customerId: { type: "string" },
-                    connectedAccountId: { type: "string" },
-                    recurringAmount: { type: "number" },
-                    currency: { type: "string" },
-                  },
-                  required: [
-                    "method",
-                    "type",
-                    "subscriptionId",
-                    "frequency",
-                    "recurringAmount",
-                    "currency",
-                  ],
-                  additionalProperties: false,
+                  ...composePaymentDescriptor(
+                    STRIPE_SUBSCRIPTION_DESCRIPTOR_PROPERTIES,
+                    STRIPE_SUBSCRIPTION_DESCRIPTOR_REQUIRED,
+                    { method: "stripe" }
+                  ),
                 },
               ],
             },
