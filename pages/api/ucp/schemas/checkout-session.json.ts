@@ -83,16 +83,206 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       currency: { type: "string" },
       payment: {
         description:
-          "Method-specific payment descriptor (e.g. Lightning bolt11, Stripe clientSecret, fiat instructions). Null when not applicable.",
+          "Method-specific payment descriptor written by describeResult in /api/ucp/checkout/sessions (Lightning bolt11, Stripe clientSecret, fiat instructions, …). Null when not applicable. Each allOf branch discriminates on `method`; unknown methods fall through unvalidated.",
         type: ["object", "null"],
-        properties: { method: { type: "string" } },
+        properties: {
+          method: {
+            type: "string",
+            enum: ["stripe", "lightning", "cashu", "fiat"],
+          },
+        },
         required: ["method"],
+        allOf: [
+          {
+            if: {
+              type: "object",
+              properties: { method: { const: "lightning" } },
+              required: ["method"],
+            },
+            then: {
+              properties: {
+                method: { const: "lightning" },
+                bolt11: { type: "string", description: "BOLT-11 invoice." },
+                quoteId: { type: "string" },
+                amount: { type: "number", description: "Invoice amount in sats." },
+                currency: { const: "sats" },
+                mintUrl: {
+                  type: "string",
+                  description: "Cashu mint that issued the invoice.",
+                },
+                verifyUrl: {
+                  type: "string",
+                  description: "Endpoint that confirms settlement.",
+                },
+              },
+              required: [
+                "method",
+                "bolt11",
+                "quoteId",
+                "amount",
+                "currency",
+                "verifyUrl",
+              ],
+              additionalProperties: false,
+            },
+          },
+          {
+            if: {
+              type: "object",
+              properties: { method: { const: "cashu" } },
+              required: ["method"],
+            },
+            then: {
+              properties: {
+                method: { const: "cashu" },
+                amount: { type: "number", description: "Redeemed token amount." },
+                required: { type: "number", description: "Required amount." },
+                change: { type: "number", description: "Change returned." },
+                status: {
+                  const: "paid",
+                  description: "Cashu settles synchronously.",
+                },
+              },
+              required: ["method", "amount", "required", "change", "status"],
+              additionalProperties: false,
+            },
+          },
+          {
+            if: {
+              type: "object",
+              properties: { method: { const: "fiat" } },
+              required: ["method"],
+            },
+            then: {
+              properties: {
+                method: { const: "fiat" },
+                selectedMethod: {
+                  type: ["string", "null"],
+                  description: "Buyer-chosen fiat rail, when selected.",
+                },
+                availableMethods: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Seller's accepted fiat payment options.",
+                },
+                amount: { type: "number" },
+                currency: { type: "string" },
+                sellerContact: {
+                  type: "object",
+                  properties: {
+                    name: { type: ["string", "null"] },
+                    nip05: { type: ["string", "null"] },
+                  },
+                  required: ["name", "nip05"],
+                  additionalProperties: false,
+                },
+              },
+              required: [
+                "method",
+                "selectedMethod",
+                "availableMethods",
+                "amount",
+                "currency",
+                "sellerContact",
+              ],
+              additionalProperties: false,
+            },
+          },
+          {
+            if: {
+              type: "object",
+              properties: { method: { const: "stripe" } },
+              required: ["method"],
+            },
+            then: {
+              oneOf: [
+                {
+                  description: "One-time card payment (PaymentIntent).",
+                  properties: {
+                    method: { const: "stripe" },
+                    type: { not: { const: "subscription" } },
+                    amount: { type: "number" },
+                    currency: { type: "string" },
+                    paymentIntentId: { type: ["string", "null"] },
+                    clientSecret: { type: ["string", "null"] },
+                    connectedAccountId: { type: ["string", "null"] },
+                  },
+                  required: [
+                    "method",
+                    "amount",
+                    "currency",
+                    "paymentIntentId",
+                    "clientSecret",
+                    "connectedAccountId",
+                  ],
+                  additionalProperties: false,
+                },
+                {
+                  description: "Recurring subscription checkout.",
+                  properties: {
+                    method: { const: "stripe" },
+                    type: { const: "subscription" },
+                    subscriptionId: { type: "string" },
+                    frequency: { type: "string" },
+                    clientSecret: {
+                      type: ["string", "null"],
+                      description:
+                        "Null when the subscription was created without a first-payment PaymentIntent.",
+                    },
+                    customerId: { type: "string" },
+                    connectedAccountId: { type: "string" },
+                    recurringAmount: { type: "number" },
+                    currency: { type: "string" },
+                  },
+                  required: [
+                    "method",
+                    "type",
+                    "subscriptionId",
+                    "frequency",
+                    "recurringAmount",
+                    "currency",
+                  ],
+                  additionalProperties: false,
+                },
+              ],
+            },
+          },
+        ],
         additionalProperties: true,
       },
       quote: {
         type: "object",
-        description: "Pricing breakdown for the order, when available.",
-        additionalProperties: true,
+        description:
+          "Pricing breakdown written by the order engine (pricingBlock in utils/ucp/order-service.ts). Omitted for subscriptions.",
+        properties: {
+          unitPrice: { type: "number" },
+          quantity: { type: "number" },
+          subtotal: { type: "number" },
+          discountPercentage: {
+            type: "number",
+            description: "Present only when a discount applied.",
+          },
+          discountedSubtotal: {
+            type: "number",
+            description: "Present only when a discount applied.",
+          },
+          shippingCost: { type: "number" },
+          total: { type: "number" },
+          currency: { type: "string" },
+          selectedSpecs: {
+            type: "object",
+            description: "Chosen product spec options, when any.",
+          },
+        },
+        required: [
+          "unitPrice",
+          "quantity",
+          "subtotal",
+          "shippingCost",
+          "total",
+          "currency",
+        ],
+        additionalProperties: false,
       },
       messages: { type: "array", items: { $ref: "#/$defs/message" } },
       error: { type: "string" },
