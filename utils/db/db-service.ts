@@ -4775,6 +4775,21 @@ export async function isSellerEmailUnsubscribed(
   sellerPubkey: string,
   email: string
 ): Promise<boolean> {
+  // Fail-open callers (unsubscribe pages, preference UIs) treat "unknown" as
+  // "not suppressed". Fail-CLOSED callers (broadcast claim paths) must use
+  // the strict variant so a DB outage can never be read as "safe to send".
+  return (await isSellerEmailUnsubscribedStrict(sellerPubkey, email)) ?? false;
+}
+
+/**
+ * Strict variant of isSellerEmailUnsubscribed for fail-CLOSED callers:
+ * returns null on a DB error so "suppression state unknown" is never
+ * indistinguishable from "not suppressed".
+ */
+export async function isSellerEmailUnsubscribedStrict(
+  sellerPubkey: string,
+  email: string
+): Promise<boolean | null> {
   const normalized = email.trim().toLowerCase();
   if (!normalized) return false;
   const dbPool = getDbPool();
@@ -4789,7 +4804,7 @@ export async function isSellerEmailUnsubscribed(
     return result.rows.length > 0;
   } catch (error) {
     logSwallowedDbOutage("Failed to check email unsubscribe:", error);
-    return false;
+    return null;
   } finally {
     if (client) client.release();
   }
