@@ -89,6 +89,7 @@ const BASE_ROW: CheckoutSessionRow = {
     },
   ],
   error: null,
+  code: null,
   created_at: new Date(1_700_000_000_000).toISOString(),
   updated_at: new Date(1_700_000_060_000).toISOString(),
 };
@@ -204,14 +205,15 @@ function representativeSessions(): Array<ReturnType<typeof formatCheckoutSession
   return sessions;
 }
 
-// The two UNPERSISTED response envelopes POST /api/ucp/checkout/sessions can
+// The UNPERSISTED response envelopes POST /api/ucp/checkout/sessions can
 // emit, built through the same helper the route uses so the test can't drift
 // from the wire shape:
 //  - persist-failure fallback (201): the order was created but the session row
 //    was not, so the body carries the full payment descriptor + a `warning`.
-//  - escalation envelope (200): a fail-closed engine error (e.g. no live
-//    exchange rate) means NO order exists — no amount/payment descriptor, but
-//    a severity-tagged `error` + machine-readable `code`.
+//  - escalation persist-failure fallback (200): a fail-closed engine error
+//    (e.g. no live exchange rate) means NO order exists — no amount/payment
+//    descriptor, but a severity-tagged `error` + machine-readable `code` —
+//    and the escalation row itself could not be saved, so a `warning` too.
 const FALLBACK_ENVELOPE = formatEphemeralCheckoutSession(
   {
     id: "ucp_cs_fallback123",
@@ -284,6 +286,38 @@ const PERSISTED_ESCALATION = formatCheckoutSession(
   SITE_URL
 );
 
+// A PERSISTED PRE-ORDER escalation session (the POST escalation branch now
+// saves a row): no order id, no amount (a 0 total would be a lie), but the
+// engine's error + machine-readable code survive on the row so the self link
+// resolves to an explanation.
+const PERSISTED_PRE_ORDER_ESCALATION = formatCheckoutSession(
+  {
+    ...BASE_ROW,
+    status: "requires_escalation",
+    mcp_order_id: null,
+    quote: null,
+    payment: null,
+    amount_total: "0.00",
+    error:
+      "This product is priced in USD and can't be settled in Bitcoin without a live exchange rate.",
+    code: "exchange_rate_unavailable",
+    messages: [
+      {
+        type: "session_created",
+        text: "Checkout session created.",
+        at: new Date(1_700_000_000_000).toISOString(),
+      },
+      {
+        type: "requires_escalation",
+        text: "This product is priced in USD and can't be settled in Bitcoin without a live exchange rate.",
+        at: new Date(1_700_000_010_000).toISOString(),
+        severity: "error" as const,
+      },
+    ],
+  },
+  SITE_URL
+);
+
 describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", () => {
   const schema = getSchema();
   const sessions = representativeSessions();
@@ -291,6 +325,10 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
     ["persist-failure fallback", FALLBACK_ENVELOPE],
     ["requires_escalation (pre-order, no orderId)", ESCALATION_ENVELOPE],
     ["requires_escalation (persisted, orderId, no error)", PERSISTED_ESCALATION],
+    [
+      "requires_escalation (persisted, pre-order, no orderId, error+code)",
+      PERSISTED_PRE_ORDER_ESCALATION,
+    ],
   ] as const;
 
   it("produces fixtures that exercise the optional fields (non-vacuous)", () => {
@@ -350,6 +388,14 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
     expect(ESCALATION_ENVELOPE.payment).toBeNull();
     expect(ESCALATION_ENVELOPE).toHaveProperty("error");
     expect(ESCALATION_ENVELOPE).toHaveProperty("code");
+    // Persisted pre-order escalation: same shape from the row formatter — the
+    // reason (error + code) survives, and no fake 0 total is reported.
+    expect(PERSISTED_PRE_ORDER_ESCALATION).not.toHaveProperty("orderId");
+    expect(PERSISTED_PRE_ORDER_ESCALATION).not.toHaveProperty("amount");
+    expect(PERSISTED_PRE_ORDER_ESCALATION).toHaveProperty("error");
+    expect(PERSISTED_PRE_ORDER_ESCALATION.code).toBe(
+      "exchange_rate_unavailable"
+    );
   });
 
   it("requires error only on pre-order escalation; order fields otherwise", () => {

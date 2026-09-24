@@ -95,7 +95,10 @@ jest.mock("@/utils/ucp/checkout-store", () => {
       ok: false,
       error: "no variants in test",
     })),
-    formatCheckoutSession: jest.fn((row: any) => row),
+    // The escalation test below validates the REAL persisted-session body
+    // against the published schema, so the row formatter must be the
+    // production one; the insert mock maps the input into a row it can read.
+    formatCheckoutSession: actual.formatCheckoutSession,
     formatEphemeralCheckoutSession: actual.formatEphemeralCheckoutSession,
     generateCheckoutSessionId: actual.generateCheckoutSessionId,
     initCheckoutSessionsTable: jest.fn(() => Promise.resolve()),
@@ -222,7 +225,28 @@ beforeEach(() => {
     price: 30,
     currency: "USD",
   });
-  mockInsertCheckoutSession.mockImplementation(async (row: any) => row);
+  // Echo the insert input back as the snake_case row the real
+  // formatCheckoutSession reads, so route responses stay schema-shaped.
+  mockInsertCheckoutSession.mockImplementation(async (input: any) => ({
+    id: input.id,
+    api_key_id: input.apiKeyId ?? null,
+    buyer_pubkey: input.buyerPubkey,
+    seller_pubkey: input.sellerPubkey,
+    product_id: input.productId,
+    mcp_order_id: input.mcpOrderId ?? null,
+    status: input.status,
+    payment_method: input.paymentMethod,
+    amount_total: String(input.amountTotal ?? 0),
+    currency: input.currency,
+    request: input.request ?? null,
+    quote: input.quote ?? null,
+    payment: input.payment ?? null,
+    messages: input.messages ?? [],
+    error: input.error ?? null,
+    code: input.code ?? null,
+    created_at: new Date(1_700_000_000_000).toISOString(),
+    updated_at: new Date(1_700_000_000_000).toISOString(),
+  }));
   mockCreateMcpOrder.mockResolvedValue({
     order_id: "ord_1",
     amount_total: 3000,
@@ -489,9 +513,10 @@ describe("published schema keeps up with the fields the route actually reads", (
 
 describe("POST response envelopes validate against the published session schema", () => {
   // The 201 persist-failure fallback and the 200 requires_escalation envelope
-  // are the two responses handleCreate emits WITHOUT a persisted row — both
-  // must still validate against the session schema the discovery profile
-  // advertises, or machine-validating agent clients reject them.
+  // (persisted, plus its own persist-failure fallback) are the responses
+  // handleCreate emits on the recoverable paths — each must still validate
+  // against the session schema the discovery profile advertises, or
+  // machine-validating agent clients reject them.
 
   async function compileSessionSchema() {
     const res = createResponse();
@@ -505,7 +530,7 @@ describe("POST response envelopes validate against the published session schema"
     return ajv.compile(res.body as Record<string, any>);
   }
 
-  it("200 requires_escalation envelope (fail-closed sats pricing) validates", async () => {
+  it("200 requires_escalation envelope (fail-closed sats pricing) validates and persists", async () => {
     const validate = await compileSessionSchema();
     // A lightning payment on a USD-priced product trips the engine's
     // fail-closed conversion guard (no live exchange rate in the charge
@@ -516,13 +541,45 @@ describe("POST response envelopes validate against the published session schema"
     expect(body.status).toBe("requires_escalation");
     expect(body.error).toEqual(expect.any(String));
     expect(body.code).toBe("exchange_rate_unavailable");
-    // No order, no session row.
-    expect(mockInsertCheckoutSession).not.toHaveBeenCalled();
+    // No order, but the escalation IS persisted (error + code, no order id)
+    // so the self link resolves and the attempt shows up in the key's list.
+    expect(mockCreateMcpOrder).not.toHaveBeenCalled();
+    expect(mockInsertCheckoutSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: body.id,
+        status: "requires_escalation",
+        mcpOrderId: null,
+        error: expect.any(String),
+        code: "exchange_rate_unavailable",
+      })
+    );
+    // No fake 0 total on a pre-order escalation.
+    expect(body).not.toHaveProperty("amount");
     const ok: boolean = validate(body);
     expect(
       ok
         ? true
         : `session schema rejected the escalation envelope: ${JSON.stringify(validate.errors)}`
+    ).toBe(true);
+  });
+
+  it("200 requires_escalation persist failure falls back to a schema-valid ephemeral envelope", async () => {
+    const validate = await compileSessionSchema();
+    mockInsertCheckoutSession.mockRejectedValueOnce(new Error("db down"));
+    const res = await postToRoute({ productId: "p1", paymentMethod: "lightning" });
+    expect(res.statusCode).toBe(200);
+    const body = res.body as Record<string, any>;
+    expect(body.status).toBe("requires_escalation");
+    expect(body.code).toBe("exchange_rate_unavailable");
+    expect(body.warning).toEqual(
+      expect.stringMatching(/could not be persisted/)
+    );
+    expect(body.id).toEqual(expect.stringMatching(/^ucp_cs_/));
+    const ok: boolean = validate(body);
+    expect(
+      ok
+        ? true
+        : `session schema rejected the escalation fallback: ${JSON.stringify(validate.errors)}`
     ).toBe(true);
   });
 
