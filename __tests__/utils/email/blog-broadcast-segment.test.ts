@@ -26,7 +26,7 @@ import {
 } from "@/utils/db/db-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
-import { sendEmailStrictFrom } from "@/utils/email/email-service";
+import { sendEmailStrictFromDetailed } from "@/utils/email/email-service";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { SITE_URL } from "@/utils/site-url";
 
@@ -49,7 +49,7 @@ jest.mock("@/utils/email/storefront-branding", () => ({
   loadStorefrontBranding: jest.fn(),
 }));
 jest.mock("@/utils/email/email-service", () => ({
-  sendEmailStrictFrom: jest.fn(),
+  sendEmailStrictFromDetailed: jest.fn(),
 }));
 jest.mock("@/utils/email/blog-broadcast-email", () => ({
   buildBlogBroadcastEmail: jest.fn(() => ({
@@ -77,7 +77,7 @@ const mocked = {
   getShopSlugByPubkey: getShopSlugByPubkey as jest.Mock,
   resolveSellerSenderEmail: resolveSellerSenderEmail as jest.Mock,
   loadStorefrontBranding: loadStorefrontBranding as jest.Mock,
-  sendEmailStrictFrom: sendEmailStrictFrom as jest.Mock,
+  sendEmailStrictFromDetailed: sendEmailStrictFromDetailed as jest.Mock,
   buildSellerEmailUnsubscribeUrl: buildSellerEmailUnsubscribeUrl as jest.Mock,
 };
 
@@ -101,7 +101,7 @@ function blogEvent(id = EVENT_ID) {
 }
 
 function emailedRecipients(): string[] {
-  return mocked.sendEmailStrictFrom.mock.calls.map((c) => c[0].to as string);
+  return mocked.sendEmailStrictFromDetailed.mock.calls.map((c) => c[0].to as string);
 }
 
 beforeEach(() => {
@@ -114,7 +114,10 @@ beforeEach(() => {
   );
   mocked.getShopSlugByPubkey.mockResolvedValue("myshop");
   mocked.loadStorefrontBranding.mockResolvedValue({ shopName: "My Shop" });
-  mocked.sendEmailStrictFrom.mockResolvedValue(true);
+  mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+    ok: true,
+    definiteReject: false,
+  });
   mocked.claimBlogBroadcast.mockResolvedValue(true);
   mocked.releaseBlogBroadcast.mockResolvedValue(undefined);
   // No prior segment claims or delivered recipients for this version.
@@ -218,7 +221,7 @@ describe("runBlogBroadcast — per-segment sends", () => {
 
     expect(outcome).toEqual({ kind: "skipped", reason: "already-sent" });
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   it("a full send with everyone already delivered skips WITHOUT burning the claim", async () => {
@@ -246,7 +249,7 @@ describe("runBlogBroadcast — per-segment sends", () => {
     // Crucially the 'all' claim is NOT taken — contacts who join later must
     // still be reachable by a future full send.
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   it("a contact claimed by a CONCURRENT send is skipped, not double-emailed", async () => {
@@ -308,9 +311,12 @@ describe("runBlogBroadcast — per-segment sends", () => {
     expect(emailedRecipients()).toEqual(["newbuyer@example.com"]);
   });
 
-  it("re-sending the SAME segment for the same version is still blocked", async () => {
-    // The per-segment claim key rejects the second popup send.
-    mocked.claimBlogBroadcast.mockResolvedValue(false);
+  it("re-sending the SAME segment for the same version is still blocked once its audience is delivered", async () => {
+    // The popup segment was already claimed AND every reachable popup contact
+    // is in the per-recipient ledger, so the deduped audience is empty and the
+    // skip fires BEFORE the one-shot claim.
+    mocked.getBlogBroadcastSegments.mockResolvedValue(["popup"]);
+    mocked.getBlogBroadcastRecipients.mockResolvedValue(["a@example.com"]);
 
     const outcome = await runBlogBroadcast({
       pubkey: PUBKEY,
@@ -320,11 +326,71 @@ describe("runBlogBroadcast — per-segment sends", () => {
     });
 
     expect(outcome).toEqual({ kind: "skipped", reason: "already-sent" });
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
+  });
+
+  it("a same-segment RETRY after a partial failure rides the retained claim and sends only the undelivered", async () => {
+    // The first popup blast claimed the segment, delivered a@example.com, and
+    // released the DEFINITELY-rejected b@example.com recipient claim (a 4xx —
+    // provably never accepted). The retry finds the segment claim already
+    // held (claimBlogBroadcast -> false) but MUST still deliver the released
+    // contact — riding the retained claim — while the ledger keeps the
+    // delivered one from being re-emailed.
+    mocked.getBlogBroadcastSegments.mockResolvedValue(["popup"]);
+    mocked.getBlogBroadcastRecipients.mockResolvedValue(["a@example.com"]);
+    mocked.getSellerAudienceEmails.mockResolvedValue([
+      "a@example.com",
+      "b@example.com",
+    ]);
+    mocked.claimBlogBroadcast.mockResolvedValue(false);
+
+    const outcome = await runBlogBroadcast({
+      pubkey: PUBKEY,
+      dTag: D_TAG,
+      eventId: EVENT_ID,
+      audienceSource: "popup",
+    });
+
+    expect(outcome).toMatchObject({ kind: "sent", sent: 1, total: 1 });
+    expect(emailedRecipients()).toEqual(["b@example.com"]);
+    // A retry that owns no deliveries must not release a claim it never took.
+    expect(mocked.releaseBlogBroadcast).not.toHaveBeenCalled();
+  });
+
+  it("an AMBIGUOUS failure retains the recipient claim so a retry can never double-email", async () => {
+    // Timeout/5xx: SendGrid may have accepted the message. The recipient
+    // claim must be RETAINED (at-most-once outranks reaching the contact) —
+    // only the version claim is released so the seller can retry the blast,
+    // and that retry will find the contact already claimed (skipped, never
+    // re-sent).
+    mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: false,
+    });
+
+    const outcome = await runBlogBroadcast({
+      pubkey: PUBKEY,
+      dTag: D_TAG,
+      eventId: EVENT_ID,
+      audienceSource: "popup",
+    });
+
+    expect(outcome.kind).toBe("all-failed");
+    expect(mocked.releaseBlogBroadcastRecipient).not.toHaveBeenCalled();
+    expect(mocked.releaseBlogBroadcast).toHaveBeenCalledWith(
+      PUBKEY,
+      D_TAG,
+      EVENT_ID,
+      "popup"
+    );
   });
 
   it("a total send failure releases BOTH the recipient claims and the same-segment version claim", async () => {
-    mocked.sendEmailStrictFrom.mockResolvedValue(false);
+    mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: true,
+    });
 
     const outcome = await runBlogBroadcast({
       pubkey: PUBKEY,

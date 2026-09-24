@@ -17,7 +17,7 @@ import { verifyNostrAuth } from "@/utils/stripe/verify-nostr-auth";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { loadStorefrontBranding } from "@/utils/email/storefront-branding";
-import { sendEmailStrictFrom } from "@/utils/email/email-service";
+import { sendEmailStrictFromDetailed } from "@/utils/email/email-service";
 import { buildBlogBroadcastEmail } from "@/utils/email/blog-broadcast-email";
 import { buildSellerEmailUnsubscribeUrl } from "@/utils/email/unsubscribe-tokens";
 import { applyRateLimit } from "@/utils/rate-limit";
@@ -49,7 +49,7 @@ jest.mock("@/utils/email/storefront-branding", () => ({
   loadStorefrontBranding: jest.fn(),
 }));
 jest.mock("@/utils/email/email-service", () => ({
-  sendEmailStrictFrom: jest.fn(),
+  sendEmailStrictFromDetailed: jest.fn(),
 }));
 jest.mock("@/utils/email/blog-broadcast-email", () => ({
   buildBlogBroadcastEmail: jest.fn(() => ({
@@ -82,7 +82,7 @@ const mocked = {
   requireProEntitlement: requireProEntitlement as jest.Mock,
   resolveSellerSenderEmail: resolveSellerSenderEmail as jest.Mock,
   loadStorefrontBranding: loadStorefrontBranding as jest.Mock,
-  sendEmailStrictFrom: sendEmailStrictFrom as jest.Mock,
+  sendEmailStrictFromDetailed: sendEmailStrictFromDetailed as jest.Mock,
   buildBlogBroadcastEmail: buildBlogBroadcastEmail as jest.Mock,
   buildSellerEmailUnsubscribeUrl: buildSellerEmailUnsubscribeUrl as jest.Mock,
   applyRateLimit: applyRateLimit as jest.Mock,
@@ -154,7 +154,10 @@ beforeEach(() => {
   mocked.fetchBlogPostsByPubkeyFromDb.mockResolvedValue([blogEvent()]);
   mocked.getShopSlugByPubkey.mockResolvedValue("myshop");
   mocked.loadStorefrontBranding.mockResolvedValue({ shopName: "My Shop" });
-  mocked.sendEmailStrictFrom.mockResolvedValue(true);
+  mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+    ok: true,
+    definiteReject: false,
+  });
 });
 
 describe("broadcast-blog-post endpoint", () => {
@@ -274,7 +277,7 @@ describe("broadcast-blog-post endpoint", () => {
     });
     expect(res.statusCode).toBe(403);
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   test("returns 409 retryable when the post version isn't cached yet", async () => {
@@ -301,7 +304,7 @@ describe("broadcast-blog-post endpoint", () => {
       signedEvent: {},
     });
     expect(res.statusCode).toBe(409);
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   test("FAIL-CLOSED: skips without a verified sender domain and never claims or sends", async () => {
@@ -319,7 +322,7 @@ describe("broadcast-blog-post endpoint", () => {
       sent: 0,
     });
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   test("skips when unsubscribe links can't be minted", async () => {
@@ -337,8 +340,14 @@ describe("broadcast-blog-post endpoint", () => {
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
   });
 
-  test("is idempotent: a second claim returns already-sent without sending", async () => {
-    mocked.claimBlogBroadcast.mockResolvedValue(false);
+  test("is idempotent: a re-send with the audience already delivered returns already-sent without sending", async () => {
+    // The version was already broadcast: the per-recipient ledger covers the
+    // whole reachable audience, so the deduped audience is empty and the skip
+    // fires BEFORE the one-shot claim.
+    mocked.getBlogBroadcastRecipients.mockResolvedValue([
+      "a@example.com",
+      "b@example.com",
+    ]);
     const res = await run({
       pubkey: PUBKEY,
       dTag: D_TAG,
@@ -347,7 +356,8 @@ describe("broadcast-blog-post endpoint", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body.reason).toBe("already-sent");
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   test("empty-audience never burns the one-shot claim (so it stays retryable)", async () => {
@@ -360,7 +370,7 @@ describe("broadcast-blog-post endpoint", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({ total: 0, reason: "empty-audience" });
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
     // Critical: the idempotency ledger must NOT be claimed when there's no one
     // to email, or this published version can never be broadcast later.
     expect(mocked.claimBlogBroadcast).not.toHaveBeenCalled();
@@ -380,8 +390,8 @@ describe("broadcast-blog-post endpoint", () => {
     });
     expect(res.statusCode).toBe(200);
     expect(res.body).toMatchObject({ sent: 2, failed: 0, skipped: false });
-    expect(mocked.sendEmailStrictFrom).toHaveBeenCalledTimes(2);
-    for (const call of mocked.sendEmailStrictFrom.mock.calls) {
+    expect(mocked.sendEmailStrictFromDetailed).toHaveBeenCalledTimes(2);
+    for (const call of mocked.sendEmailStrictFromDetailed.mock.calls) {
       expect(call[0].fromEmail).toBe("shop@verified.example");
       expect(call[0].headers["List-Unsubscribe"]).toContain("<https://");
     }
@@ -393,11 +403,12 @@ describe("broadcast-blog-post endpoint", () => {
       "b@example.com",
       "c@example.com",
     ]);
-    // One recipient hard-throws, one is rejected by SendGrid, one succeeds.
-    mocked.sendEmailStrictFrom
+    // One recipient hard-throws (ambiguous), one is definitely rejected by
+    // SendGrid (4xx — provably never accepted), one succeeds.
+    mocked.sendEmailStrictFromDetailed
       .mockRejectedValueOnce(new Error("smtp blew up"))
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
+      .mockResolvedValueOnce({ ok: false, definiteReject: true })
+      .mockResolvedValueOnce({ ok: true, definiteReject: false });
     const res = await run({
       pubkey: PUBKEY,
       dTag: D_TAG,
@@ -426,11 +437,14 @@ describe("broadcast-blog-post endpoint", () => {
     });
     expect(res.statusCode).toBe(503);
     expect(res.body.retryable).toBe(true);
-    expect(mocked.sendEmailStrictFrom).not.toHaveBeenCalled();
+    expect(mocked.sendEmailStrictFromDetailed).not.toHaveBeenCalled();
   });
 
   test("releases the claim and returns 502 when every send fails", async () => {
-    mocked.sendEmailStrictFrom.mockResolvedValue(false);
+    mocked.sendEmailStrictFromDetailed.mockResolvedValue({
+      ok: false,
+      definiteReject: true,
+    });
     const res = await run({
       pubkey: PUBKEY,
       dTag: D_TAG,
