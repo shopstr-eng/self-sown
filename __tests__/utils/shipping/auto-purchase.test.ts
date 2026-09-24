@@ -35,8 +35,7 @@ const insertShippingLabelMock = jest.fn();
 jest.mock("@/utils/shipping/shippo", () => ({
   getRates: (...args: unknown[]) => getRatesMock(...args),
   buyLabel: (...args: unknown[]) => buyLabelMock(...args),
-  findSuccessfulTransactionForShipment: (...args: unknown[]) =>
-    findTxMock(...args),
+  lookupShipmentCharge: (...args: unknown[]) => findTxMock(...args),
 }));
 
 jest.mock("@/utils/shipping/shippo-oauth", () => ({
@@ -161,7 +160,7 @@ beforeEach(() => {
   getAutoLabelClaimMock.mockResolvedValue(null);
   findTxMock.mockResolvedValue({
     label: null,
-    hasInFlight: false,
+    chargeState: "none",
     coveredWindow: true,
   });
   fetchProductByIdFromDbMock.mockResolvedValue(PRODUCT_EVENT);
@@ -258,7 +257,7 @@ describe("runAutoLabelPurchase — reconciliation (money safety)", () => {
     buyLabelMock.mockRejectedValue(new Error("Shippo timeout"));
     findTxMock.mockResolvedValue({
       coveredWindow: true,
-      hasInFlight: false,
+      chargeState: "charged",
       label: {
         shipmentId: "shp_1",
         trackingCode: "TRK9",
@@ -279,6 +278,91 @@ describe("runAutoLabelPurchase — reconciliation (money safety)", () => {
       expect.any(String),
       "shp_1"
     );
+    expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
+  });
+
+  it("treats a charge WITHOUT label metadata as money spent — never re-buys", async () => {
+    // Shippo can report SUCCESS without a label_url (buyLabel itself throws
+    // on that response). The seller was still billed: the claim must be
+    // marked purchased even though no label can be reconstructed.
+    buyLabelMock.mockRejectedValue(
+      new Error("Shippo did not return a label URL")
+    );
+    findTxMock.mockResolvedValue({
+      label: null,
+      chargeState: "charged",
+      coveredWindow: true,
+    });
+    const result = await runAutoLabelPurchase(baseArgs());
+    expect(result).toEqual({ purchased: true, labelId: null });
+    expect(buyLabelMock).toHaveBeenCalledTimes(1); // never retried
+    expect(markAutoLabelPurchasedMock).toHaveBeenCalledWith(
+      expect.any(String),
+      "shp_1"
+    );
+    expect(insertShippingLabelMock).not.toHaveBeenCalled();
+    expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
+  });
+
+  it("holds the claim and buys nothing while a transaction may still be in flight", async () => {
+    // A WAITING/QUEUED transaction can still succeed — neither proven nor
+    // disproven, so the claim is held (never released) and nothing is bought.
+    buyLabelMock.mockRejectedValue(new Error("Shippo timeout"));
+    findTxMock.mockResolvedValue({
+      label: null,
+      chargeState: "in-flight",
+      coveredWindow: true,
+    });
+    const result = await runAutoLabelPurchase(baseArgs());
+    expect(result).toEqual({ purchased: false, reason: "error" });
+    expect(buyLabelMock).toHaveBeenCalledTimes(1);
+    expect(markAutoLabelPurchasedMock).not.toHaveBeenCalled();
+    expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
+  });
+
+  it("a conflicting claim with a charge-but-no-label reconciles to already-bought", async () => {
+    // Lost claim, and Shippo proves the earlier attempt was charged despite
+    // returning no label metadata: resolve to already-bought and mark the
+    // claim purchased — never release it for a re-buy.
+    claimAutoLabelPurchaseMock.mockResolvedValue(false);
+    getAutoLabelClaimMock.mockResolvedValue({
+      status: "pending",
+      shipmentId: "shp_old",
+      reconcileToken: "rec_tok_old",
+      updatedAtMs: Date.now() - 10 * 60 * 1000,
+    });
+    findTxMock.mockResolvedValue({
+      label: null,
+      chargeState: "charged",
+      coveredWindow: true,
+    });
+    const result = await runAutoLabelPurchase(baseArgs());
+    expect(result).toEqual({ purchased: false, reason: "already-bought" });
+    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(markAutoLabelPurchasedMock).toHaveBeenCalledWith(
+      expect.any(String),
+      "shp_old"
+    );
+    expect(insertShippingLabelMock).not.toHaveBeenCalled();
+    expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
+  });
+
+  it("a conflicting claim with an in-flight transaction stays claimed-by-other", async () => {
+    claimAutoLabelPurchaseMock.mockResolvedValue(false);
+    getAutoLabelClaimMock.mockResolvedValue({
+      status: "pending",
+      shipmentId: "shp_old",
+      reconcileToken: "rec_tok_old",
+      updatedAtMs: Date.now() - 10 * 60 * 1000, // stale, but the tx may land
+    });
+    findTxMock.mockResolvedValue({
+      label: null,
+      chargeState: "in-flight",
+      coveredWindow: true,
+    });
+    const result = await runAutoLabelPurchase(baseArgs());
+    expect(result).toEqual({ purchased: false, reason: "claimed-by-other" });
+    expect(buyLabelMock).not.toHaveBeenCalled();
     expect(releaseAutoLabelClaimMock).not.toHaveBeenCalled();
   });
 

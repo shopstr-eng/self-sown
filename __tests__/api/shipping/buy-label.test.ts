@@ -39,6 +39,8 @@ const claimAutoLabelPurchaseMock = jest.fn();
 const attachShipmentToClaimMock = jest.fn();
 const markAutoLabelPurchasedMock = jest.fn();
 const releaseAutoLabelClaimMock = jest.fn();
+const getAutoLabelClaimMock = jest.fn();
+const lookupShipmentChargeMock = jest.fn();
 
 jest.mock("@/utils/rate-limit", () => ({
   applyRateLimit: (...args: unknown[]) => applyRateLimitMock(...args),
@@ -46,6 +48,8 @@ jest.mock("@/utils/rate-limit", () => ({
 
 jest.mock("@/utils/shipping/shippo", () => ({
   buyLabel: (...args: unknown[]) => buyLabelMock(...args),
+  lookupShipmentCharge: (...args: unknown[]) =>
+    lookupShipmentChargeMock(...args),
 }));
 
 jest.mock("@/utils/shipping/shippo-oauth", () => ({
@@ -96,6 +100,7 @@ jest.mock("@/utils/db/shipping-service", () => ({
     claimAutoLabelPurchaseMock(...args),
   attachShipmentToClaim: (...args: unknown[]) =>
     attachShipmentToClaimMock(...args),
+  getAutoLabelClaim: (...args: unknown[]) => getAutoLabelClaimMock(...args),
   markAutoLabelPurchased: (...args: unknown[]) =>
     markAutoLabelPurchasedMock(...args),
   releaseAutoLabelClaim: (...args: unknown[]) =>
@@ -166,6 +171,56 @@ function makeClaimStore() {
   };
 }
 
+// Simulates the shared per-(seller, order) purchase claim table
+// (shipping_label_order_claims): the first claimant inserts a 'pending' row,
+// later attempts see false until the row is released, and an ambiguous
+// failure HOLDS the row pending (it is never released on a maybe-charged
+// failure — only reconciliation against Shippo may release it).
+function makeOrderClaimStore() {
+  const rows = new Map<
+    string,
+    {
+      status: string;
+      shipmentId: string | null;
+      reconcileToken: string | null;
+      updatedAtMs: number;
+    }
+  >();
+  return {
+    rows,
+    claim: jest.fn(
+      async (
+        key: string,
+        _pubkey: string,
+        _orderId: string,
+        shipmentId?: string | null,
+        reconcileToken?: string | null
+      ) => {
+        if (rows.has(key)) return false;
+        rows.set(key, {
+          status: "pending",
+          shipmentId: shipmentId ?? null,
+          reconcileToken: reconcileToken ?? null,
+          updatedAtMs: Date.now(),
+        });
+        return true;
+      }
+    ),
+    get: jest.fn(async (key: string) => rows.get(key) ?? null),
+    release: jest.fn(async (key: string) => {
+      if (rows.get(key)?.status === "pending") rows.delete(key);
+    }),
+    markPurchased: jest.fn(async (key: string, shipmentId: string | null) => {
+      const row = rows.get(key);
+      if (row) {
+        row.status = "purchased";
+        row.shipmentId = shipmentId;
+        row.updatedAtMs = Date.now();
+      }
+    }),
+  };
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 
@@ -189,8 +244,14 @@ beforeEach(() => {
   getShipmentOwnerMock.mockResolvedValue(SELLER_PUBKEY);
   claimAutoLabelPurchaseMock.mockResolvedValue(true);
   attachShipmentToClaimMock.mockResolvedValue(true);
+  getAutoLabelClaimMock.mockResolvedValue(null);
   markAutoLabelPurchasedMock.mockResolvedValue(undefined);
   releaseAutoLabelClaimMock.mockResolvedValue(undefined);
+  lookupShipmentChargeMock.mockResolvedValue({
+    label: null,
+    chargeState: "none",
+    coveredWindow: true,
+  });
   getShippoAccessTokenMock.mockResolvedValue("oauth.seller-token");
   insertShippingLabelMock.mockResolvedValue({ id: 42 });
   buyLabelMock.mockResolvedValue({
@@ -240,12 +301,19 @@ describe("/api/shipping/buy-label duplicate protection", () => {
     expect(store.rows.get(SHIPMENT_ID)).toBe("purchased");
   });
 
-  it("releases the claim after a failed purchase so a retry succeeds", async () => {
+  it("holds the order claim after an ambiguous failure and blocks retry until reconciliation proves safety", async () => {
     const store = makeClaimStore();
     claimShipmentForPurchaseMock.mockImplementation(store.claim);
     releaseShipmentClaimMock.mockImplementation(store.release);
+    const orderClaims = makeOrderClaimStore();
+    claimAutoLabelPurchaseMock.mockImplementation(orderClaims.claim);
+    getAutoLabelClaimMock.mockImplementation(orderClaims.get);
+    releaseAutoLabelClaimMock.mockImplementation(orderClaims.release);
+    markAutoLabelPurchasedMock.mockImplementation(orderClaims.markPurchased);
+    const orderKey = `outbound:${SELLER_PUBKEY}:order-123`;
 
-    // First attempt: Shippo purchase throws.
+    // First attempt: the Shippo purchase outcome is lost — a timeout after
+    // Shippo may have accepted the charge.
     buyLabelMock.mockRejectedValueOnce(new Error("Shippo timeout"));
 
     const res1 = createResponse();
@@ -254,18 +322,78 @@ describe("/api/shipping/buy-label duplicate protection", () => {
     expect(res1.statusCode).toBe(500);
     expect(res1.jsonBody).toEqual({ error: "Shippo timeout" });
 
-    // The claim must have been released so the shipment is retryable.
+    // The SHIPMENT claim is released so the shipment is retryable, but the
+    // ORDER claim is HELD pending — the charge is ambiguous and a retry must
+    // not blindly buy again.
     expect(releaseShipmentClaimMock).toHaveBeenCalledWith(SHIPMENT_ID);
     expect(store.rows.get(SHIPMENT_ID)).toBe("owned");
+    expect(orderClaims.rows.get(orderKey)?.status).toBe("pending");
 
-    // Retry with the same request now succeeds and charges the seller once.
+    // Immediate retry: the held claim is fresh, so a Shippo charge could
+    // still be in flight — the route refuses (409) and charges nothing.
     const res2 = createResponse();
     await handler(makeRequest(validBody()), res2 as any);
 
-    expect(res2.statusCode).toBe(200);
-    expect(res2.jsonBody).toMatchObject({ success: true, id: 42 });
+    expect(res2.statusCode).toBe(409);
+    expect(res2.jsonBody).toEqual({
+      error:
+        "A label purchase for this order is already in progress. Retry in a couple of minutes.",
+    });
+    expect(buyLabelMock).toHaveBeenCalledTimes(1);
+
+    // Only once the claim is stale AND Shippo proves no charge exists may
+    // the retry proceed — then it succeeds and charges the seller once more.
+    orderClaims.rows.get(orderKey)!.updatedAtMs = Date.now() - 10 * 60 * 1000;
+
+    const res3 = createResponse();
+    await handler(makeRequest(validBody()), res3 as any);
+
+    expect(res3.statusCode).toBe(200);
+    expect(res3.jsonBody).toMatchObject({ success: true, id: 42 });
     expect(buyLabelMock).toHaveBeenCalledTimes(2);
+    expect(orderClaims.rows.get(orderKey)?.status).toBe("purchased");
     expect(store.rows.get(SHIPMENT_ID)).toBe("purchased");
+  });
+
+  it("a held claim that Shippo proves was charged resolves to 409 already-bought and is never re-bought", async () => {
+    const store = makeClaimStore();
+    claimShipmentForPurchaseMock.mockImplementation(store.claim);
+    releaseShipmentClaimMock.mockImplementation(store.release);
+    const orderClaims = makeOrderClaimStore();
+    claimAutoLabelPurchaseMock.mockImplementation(orderClaims.claim);
+    getAutoLabelClaimMock.mockImplementation(orderClaims.get);
+    releaseAutoLabelClaimMock.mockImplementation(orderClaims.release);
+    markAutoLabelPurchasedMock.mockImplementation(orderClaims.markPurchased);
+    const orderKey = `outbound:${SELLER_PUBKEY}:order-123`;
+
+    // An earlier attempt timed out ambiguously; its claim is held pending
+    // with the shipment attached (backdated past the in-flight window).
+    orderClaims.rows.set(orderKey, {
+      status: "pending",
+      shipmentId: SHIPMENT_ID,
+      reconcileToken: "rec_tok_seeded",
+      updatedAtMs: Date.now() - 10 * 60 * 1000,
+    });
+
+    // Shippo's transaction list proves the earlier attempt DID charge —
+    // even though it returned no usable label metadata (SUCCESS without
+    // label_url).
+    lookupShipmentChargeMock.mockResolvedValue({
+      label: null,
+      chargeState: "charged",
+      coveredWindow: true,
+    });
+
+    const res = createResponse();
+    await handler(makeRequest(validBody()), res as any);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.jsonBody).toEqual({
+      error: "A label was already purchased for this order.",
+    });
+    // Never re-bought, and the claim is permanently marked purchased.
+    expect(buyLabelMock).not.toHaveBeenCalled();
+    expect(orderClaims.rows.get(orderKey)?.status).toBe("purchased");
   });
 });
 

@@ -24,7 +24,7 @@ import {
   markAutoLabelPurchased,
   releaseAutoLabelClaim,
 } from "@/utils/db/shipping-service";
-import { findSuccessfulTransactionForShipment } from "@/utils/shipping/shippo";
+import { lookupShipmentCharge } from "@/utils/shipping/shippo";
 
 // Shippo calls carry a 10s client timeout; a claim younger than this could
 // still have a charge in flight, so only older claims may be released after
@@ -80,7 +80,7 @@ export async function resolveOrderLabelClaimConflict(args: {
 
   let lookup;
   try {
-    lookup = await findSuccessfulTransactionForShipment({
+    lookup = await lookupShipmentCharge({
       accessToken: args.accessToken,
       shipmentId: claim.shipmentId,
       reconcileToken: claim.reconcileToken,
@@ -91,32 +91,44 @@ export async function resolveOrderLabelClaimConflict(args: {
   } catch {
     return "in-progress"; // reconciliation unavailable — never guess on money
   }
-  const label = lookup.label;
 
-  if (label) {
-    // The earlier attempt DID charge. Make the records match reality.
+  if (lookup.chargeState === "charged") {
+    // The earlier attempt DID charge — even when Shippo returned no usable
+    // label metadata (SUCCESS without label_url). Make the records match
+    // reality and NEVER buy again.
     await markAutoLabelPurchased(args.claimKey, claim.shipmentId);
-    try {
-      await insertShippingLabel({
-        pubkey: args.pubkey,
-        shipmentId: label.shipmentId,
-        orderId: args.orderId,
-        trackingCode: label.trackingCode || null,
-        trackingUrl: label.trackingUrl ?? null,
-        labelUrl: label.labelUrl,
-        labelFormat: label.labelFormat,
-        rateUsd: label.rate,
-        currency: label.currency,
-        carrier: label.carrier,
-        service: label.service,
-        isReturn: false,
-      });
-    } catch (dbErr) {
-      // The partial unique index on (pubkey, order_id) makes a duplicate
-      // history insert fail harmlessly.
+    const label = lookup.label;
+    if (label) {
+      try {
+        await insertShippingLabel({
+          pubkey: args.pubkey,
+          shipmentId: label.shipmentId,
+          orderId: args.orderId,
+          trackingCode: label.trackingCode || null,
+          trackingUrl: label.trackingUrl ?? null,
+          labelUrl: label.labelUrl,
+          labelFormat: label.labelFormat,
+          rateUsd: label.rate,
+          currency: label.currency,
+          carrier: label.carrier,
+          service: label.service,
+          isReturn: false,
+        });
+      } catch (dbErr) {
+        // The partial unique index on (pubkey, order_id) makes a duplicate
+        // history insert fail harmlessly.
+        console.error(
+          "Label history insert during reconciliation failed:",
+          dbErr
+        );
+      }
+    } else {
+      // Charged but no label metadata to backfill: the claim's 'purchased'
+      // marker is the only record that the seller was billed. Log loudly so
+      // operators can pull the label from the seller's Shippo account.
       console.error(
-        "Label history insert during reconciliation failed:",
-        dbErr
+        "CRITICAL: Shippo shows a charged transaction with no label metadata; claim marked purchased without a history row:",
+        { claimKey: args.claimKey, shipmentId: claim.shipmentId }
       );
     }
     return "already-bought";
@@ -124,7 +136,7 @@ export async function resolveOrderLabelClaimConflict(args: {
 
   // A transaction stamped with this claim key is still in a nonterminal
   // state — it may become a charge. Never release beneath it.
-  if (lookup.hasInFlight) return "in-progress";
+  if (lookup.chargeState === "in-flight") return "in-progress";
   // The scan did not cover the claim's window (high-volume account pushed the
   // transaction past the scanned pages): "not found" proves nothing — refuse.
   if (!lookup.coveredWindow) return "in-progress";

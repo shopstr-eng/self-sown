@@ -5,7 +5,7 @@
  * token, treat WAITING/QUEUED matches as in-flight (never "no charge"), and
  * only report "no charge" when the scan covered the claim's charge window.
  */
-import { findSuccessfulTransactionForShipment } from "@/utils/shipping/shippo";
+import { lookupShipmentCharge } from "@/utils/shipping/shippo";
 
 const TOKEN = "a1".repeat(32); // realistic 64-char sha256 hex
 const OTHER_TOKEN = "b2".repeat(32);
@@ -56,16 +56,16 @@ const ARGS = {
   sinceMs: SINCE_MS,
 };
 
-describe("findSuccessfulTransactionForShipment (Shippo payload contract)", () => {
+describe("lookupShipmentCharge (Shippo payload contract)", () => {
   it("matches a SUCCESS transaction by exact metadata token", async () => {
     mockPages({ results: [tx({})], next: null });
-    const lookup = await findSuccessfulTransactionForShipment(ARGS);
+    const lookup = await lookupShipmentCharge(ARGS);
     expect(lookup.label?.trackingCode).toBe("TRK1");
     expect(lookup.label?.rate).toBe(7.5);
     expect(lookup.label?.carrier).toBe("USPS");
     expect(lookup.label?.service).toBe("Priority Mail");
     expect(lookup.coveredWindow).toBe(true);
-    expect(lookup.hasInFlight).toBe(false);
+    expect(lookup.chargeState).toBe("charged");
   });
 
   it("ignores SUCCESS transactions stamped with a different token", async () => {
@@ -73,7 +73,7 @@ describe("findSuccessfulTransactionForShipment (Shippo payload contract)", () =>
       results: [tx({ metadata: OTHER_TOKEN, object_id: "tx_other" })],
       next: null,
     });
-    const lookup = await findSuccessfulTransactionForShipment(ARGS);
+    const lookup = await lookupShipmentCharge(ARGS);
     expect(lookup.label).toBeNull();
     // The list was exhausted, so the window is covered by definition.
     expect(lookup.coveredWindow).toBe(true);
@@ -84,9 +84,9 @@ describe("findSuccessfulTransactionForShipment (Shippo payload contract)", () =>
       results: [tx({ status: "WAITING", label_url: null, object_id: "tx_w" })],
       next: null,
     });
-    const lookup = await findSuccessfulTransactionForShipment(ARGS);
+    const lookup = await lookupShipmentCharge(ARGS);
     expect(lookup.label).toBeNull();
-    expect(lookup.hasInFlight).toBe(true);
+    expect(lookup.chargeState).toBe("in-flight");
   });
 
   it("pages until transactions older than the claim window are reached", async () => {
@@ -105,7 +105,7 @@ describe("findSuccessfulTransactionForShipment (Shippo payload contract)", () =>
         next: null,
       }
     );
-    const lookup = await findSuccessfulTransactionForShipment(ARGS);
+    const lookup = await lookupShipmentCharge(ARGS);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(lookup.label).toBeNull();
     expect(lookup.coveredWindow).toBe(true);
@@ -116,7 +116,7 @@ describe("findSuccessfulTransactionForShipment (Shippo payload contract)", () =>
       results: [tx({ metadata: OTHER_TOKEN })],
       next: "https://api.goshippo.com/transactions/?page=2",
     });
-    const lookup = await findSuccessfulTransactionForShipment(ARGS);
+    const lookup = await lookupShipmentCharge(ARGS);
     expect(fetchMock).toHaveBeenCalledTimes(8);
     expect(lookup.label).toBeNull();
     expect(lookup.coveredWindow).toBe(false);

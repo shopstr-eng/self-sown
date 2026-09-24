@@ -36,3 +36,11 @@ instances (in-memory state is per-process and breaks when scaled out).
 - The table is transient; prune stale rows (owned ~1h, purchased ~7d). The
   permanent label record is `shipping_labels`. Keep prune thresholds far longer
   than any in-flight purchase window so cleanup can never delete a live claim.
+- Shippo reconciliation (lookupShipmentCharge) must treat ANY matching
+  transaction as charge-or-in-flight: SUCCESS without label_url is still a
+  charge (buyLabel throws on exactly that response), REFUND* means money
+  moved, WAITING/QUEUED/unknown stays fail-closed. Only ERROR /
+  REFUNDREJECTED / absent (with a fully covered scan window) may release a
+  held claim. A shipment can have multiple transactions across pages — only
+  stop early on a CHARGED match, or a newer in-flight row hides an older
+  charge.
