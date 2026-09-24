@@ -26,6 +26,8 @@ jest.mock("@/utils/db/inventory-service", () => ({
 jest.mock("@/mcp/tools/purchase-tools", () => ({
   createMcpOrder: jest.fn(),
   updateMcpOrderPayment: jest.fn(),
+  // Lightning quotes persist to Postgres now; keep the suite off the DB.
+  savePendingLightningQuote: jest.fn(async () => {}),
 }));
 
 import {

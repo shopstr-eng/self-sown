@@ -61,7 +61,6 @@ jest.mock("@/utils/ucp/order-service", () => {
     __esModule: true,
     OrderServiceError,
     createOrderFlow: (...args: any[]) => mockCreateOrderFlow(...args),
-    pendingLightningPayments: new Map(),
   };
 });
 

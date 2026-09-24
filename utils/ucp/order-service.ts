@@ -11,6 +11,7 @@ import {
 } from "@/utils/db/db-service";
 import {
   createMcpOrder,
+  savePendingLightningQuote,
   updateMcpOrderPayment,
   type McpOrder,
 } from "@/mcp/tools/purchase-tools";
@@ -54,27 +55,13 @@ export const ALLOWED_MINT_URLS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * In-memory pending Lightning quotes, keyed by order id. `verify-payment`
- * imports this exact singleton (re-exported from create-order for back-compat),
- * so it MUST stay a single shared instance — do not clone it per caller.
+ * Pending Lightning quotes are PERSISTED (mcp_lightning_quotes, via
+ * savePendingLightningQuote in mcp/tools/purchase-tools.ts), not held in
+ * process memory: an in-memory map is wiped by every redeploy/restart and is
+ * invisible to other server instances, which stranded paid invoices in
+ * "No pending Lightning payment found" forever. verify-payment reads and
+ * deletes rows through the same accessors, so the two surfaces cannot drift.
  */
-export const pendingLightningPayments = new Map<
-  string,
-  {
-    quote: string;
-    mintUrl: string;
-    amount: number;
-    orderId: string;
-    productId: string;
-    quantity: number;
-    inventoryVariantKey: string;
-    // Captured at order-create time so we can mark the discount code used
-    // ONLY when the Lightning invoice is actually settled (see verify-payment).
-    // If the buyer abandons before paying, the code stays available.
-    discountCode?: string;
-    sellerPubkey?: string;
-  }
->();
 
 /**
  * A validation / business-rule failure carrying the exact HTTP status + JSON
@@ -783,7 +770,11 @@ async function initializeLightning(
       `ln_${mintQuote.quote}`
     );
 
-    pendingLightningPayments.set(orderId, {
+    // Persist the quote BEFORE handing the invoice to the buyer: if this
+    // insert fails we fail the whole create-order (500) rather than hand out
+    // an invoice no verify-payment call — on any instance, after any
+    // restart — could ever confirm.
+    await savePendingLightningQuote({
       quote: mintQuote.quote,
       mintUrl: mint,
       amount: amountInSats,
@@ -795,6 +786,7 @@ async function initializeLightning(
         ? { discountCode: quote.validatedDiscountCode }
         : {}),
       sellerPubkey: product.pubkey,
+      expiresAt,
     });
 
     await sendOrderEmail(

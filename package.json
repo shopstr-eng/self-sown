@@ -32,7 +32,7 @@
     "test:all": "pnpm run test:web && turbo run test --filter=@self-sown/mobile --filter=@self-sown/domain --filter=@self-sown/nostr --filter=@self-sown/api-client",
     "test:ci": "jest --ci --runInBand",
     "test:coverage": "jest --coverage --ci --runInBand",
-    "test:integration": "RUN_TESTCONTAINERS=1 jest utils/db/__tests__/db-service.test.ts __tests__/pages/api/ucp-checkout-escalation-roundtrip-db.test.ts --runInBand",
+    "test:integration": "RUN_TESTCONTAINERS=1 jest utils/db/__tests__/db-service.test.ts __tests__/pages/api/ucp-checkout-escalation-roundtrip-db.test.ts __tests__/mcp/pending-lightning-quotes-db.test.ts --runInBand",
     "test:db": "RUN_TESTCONTAINERS=1 jest \"utils/db/__tests__/.*-db\\.test\\.ts$\" --runInBand",
     "test:self-host-build": "RUN_SELF_HOST_BUILD=1 jest utils/self-host/__tests__/export-bundle-full-build.test.ts --runInBand",
     "test:build-scripts": "bash scripts/dev-server.test.sh && bash scripts/deploy-build.test.sh",
