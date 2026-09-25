@@ -120,6 +120,10 @@ export default function AssistantChat({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  // Short-lived bearer token minted from ONE NIP-98 signature, so NIP-07
+  // extension / NIP-46 bunker users approve once per window instead of once
+  // per message. In-memory only — a fresh page load re-mints (one prompt).
+  const sessionRef = useRef<{ token: string; expiresAt: number } | null>(null);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({
@@ -128,10 +132,54 @@ export default function AssistantChat({
     });
   }, [messages, sending]);
 
+  // Mint (or reuse) a session token: one NIP-98 signature per ~30-minute
+  // window. Returns null when minting fails — the caller falls back to
+  // signing each message individually, so nsec signers and older servers
+  // behave exactly as before.
+  const getSessionToken = async (): Promise<string | null> => {
+    const cached = sessionRef.current;
+    // 60s margin so a token can't expire mid-request.
+    if (cached && cached.expiresAt - 60_000 > Date.now()) {
+      return cached.token;
+    }
+    if (!signer) return null;
+    try {
+      const url = `${window.location.origin}/api/assistant/session`;
+      const body = "{}";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: await createNip98AuthorizationHeader(
+            signer,
+            url,
+            "POST",
+            body
+          ),
+        },
+        body,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (
+        res.ok &&
+        typeof data.token === "string" &&
+        typeof data.expiresAt === "number"
+      ) {
+        sessionRef.current = { token: data.token, expiresAt: data.expiresAt };
+        return data.token;
+      }
+    } catch {
+      // fall through to per-message signing
+    }
+    sessionRef.current = null;
+    return null;
+  };
+
   const send = async (raw?: string) => {
     const content = (raw ?? input).trim();
     // Buyer mode is unauthenticated (guests have no signer); seller mode
-    // signs every request.
+    // authenticates with a session token (preferred) or a per-message NIP-98
+    // signature (fallback).
     if (!content || sending || (!buyerMode && !signer)) return;
 
     // The signed NIP-98 payload hash must cover exactly this body string.
@@ -153,15 +201,32 @@ export default function AssistantChat({
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
+      let usedBearer = false;
       if (!buyerMode && signer) {
-        headers["Authorization"] = await createNip98AuthorizationHeader(
-          signer,
-          url,
-          "POST",
-          body
-        );
+        const sessionToken = await getSessionToken();
+        if (sessionToken) {
+          headers["Authorization"] = `Bearer ${sessionToken}`;
+          usedBearer = true;
+        } else {
+          headers["Authorization"] = await createNip98AuthorizationHeader(
+            signer,
+            url,
+            "POST",
+            body
+          );
+        }
       }
-      const res = await fetch(url, { method: "POST", headers, body });
+      let res = await fetch(url, { method: "POST", headers, body });
+      // A rejected bearer token (expired, server restart with a rotated
+      // secret) must not lose the user's message: drop it and retry once.
+      if (res.status === 401 && usedBearer) {
+        sessionRef.current = null;
+        const retryToken = await getSessionToken();
+        headers["Authorization"] = retryToken
+          ? `Bearer ${retryToken}`
+          : await createNip98AuthorizationHeader(signer!, url, "POST", body);
+        res = await fetch(url, { method: "POST", headers, body });
+      }
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {

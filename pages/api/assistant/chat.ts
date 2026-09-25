@@ -22,6 +22,7 @@ import {
   claimAuthEventOnce,
   extractNip98EventId,
 } from "@/utils/assistant/replay-guard";
+import { verifyAssistantSessionToken } from "@/utils/assistant/session-token";
 
 // The assistant costs real model tokens and fans out into MCP tool calls, so
 // it gets both a per-IP burst cap and a per-seller hourly budget, an overall
@@ -150,7 +151,23 @@ export default async function handler(
   if (!(await applyRateLimit(req, res, "assistant-chat:ip", IP_LIMIT))) return;
 
   const stallPubkey = parseStallPubkey(req.body);
-  const auth = await verifyNip98Request(req, "POST", req.body);
+
+  // Two auth schemes: a per-request NIP-98 signature, or a short-lived
+  // session bearer token minted from one NIP-98 signature (so NIP-07/NIP-46
+  // users approve once per window, not once per message). The bearer token is
+  // verified server-side on every request and carries its own expiry.
+  const authorization = req.headers.authorization;
+  const isBearer =
+    typeof authorization === "string" && authorization.startsWith("Bearer ");
+  const bearerSession = isBearer
+    ? verifyAssistantSessionToken(authorization.slice(7).trim())
+    : null;
+  const auth: { ok: true; pubkey: string } | { ok: false; error: string } =
+    isBearer
+      ? bearerSession
+        ? { ok: true, pubkey: bearerSession.pubkey }
+        : { ok: false, error: "Invalid or expired assistant session" }
+      : await verifyNip98Request(req, "POST", req.body);
 
   // On a custom stall, anyone who is NOT the stall's own signed-in seller —
   // guests and signed-in buyers alike — gets the buyer assistant: public
@@ -166,8 +183,13 @@ export default async function handler(
   if (!auth.ok) return res.status(401).json({ error: auth.error });
 
   // NIP-98 proves freshness but doesn't consume the event; a captured signed
-  // request must not be replayable into duplicate writes.
-  if (!claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))) {
+  // request must not be replayable into duplicate writes. Bearer tokens are
+  // multi-use by design (that's their purpose), but they expire on their own
+  // and the per-seller rate limit + Pro gate below still apply.
+  if (
+    !isBearer &&
+    !claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))
+  ) {
     return res
       .status(401)
       .json({ error: "This signed request was already used" });
