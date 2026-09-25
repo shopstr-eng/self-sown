@@ -4,6 +4,8 @@ import {
   markExecutionSent,
   markExecutionFailed,
   fetchShopProfileByPubkeyFromDb,
+  unsubscribeSellerEmail,
+  isSellerEmailUnsubscribedStrict,
 } from "@/utils/db/db-service";
 import {
   renderFlowEmail,
@@ -17,7 +19,10 @@ import {
   resolveReviewOrdersUrl,
 } from "@/utils/email/review-link-tokens";
 import { getUncachableSendGridClient } from "@/utils/email/sendgrid-client";
-import { isVerifiedSenderError } from "@/utils/email/email-service";
+import {
+  classifySendGridSendError,
+  isVerifiedSenderError,
+} from "@/utils/email/email-service";
 import { resolveSellerSenderEmail } from "@/utils/db/email-sender-domains";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { isPubkeyProEntitled } from "@/utils/pro/membership";
@@ -178,6 +183,38 @@ export default async function handler(
           continue;
         }
 
+        // Never send a flow step to an address on the seller's suppression
+        // list (unsubscribed or provider-rejected as dead). Checked per send
+        // — not just at enrollment — so a suppression recorded by an EARLIER
+        // step in this same batch, by the bounce webhook, or by a broadcast
+        // stops every later step too. FAIL CLOSED: if the check itself can't
+        // be completed (DB outage), do not send — a possibly-dead address
+        // must never be emailed on a guess.
+        const suppressionState = await isSellerEmailUnsubscribedStrict(
+          execution.seller_pubkey,
+          execution.recipient_email
+        );
+        if (suppressionState === null) {
+          await markExecutionFailed(
+            execution.id,
+            "Suppression check failed (database error); not sent"
+          );
+          results.push({
+            execution_id: execution.id,
+            status: "failed",
+            error: "Suppression check failed (database error); not sent",
+          });
+          continue;
+        }
+        if (suppressionState) {
+          await markExecutionFailed(
+            execution.id,
+            "Skipped: recipient has unsubscribed or the address was suppressed as undeliverable"
+          );
+          results.push({ execution_id: execution.id, status: "skipped" });
+          continue;
+        }
+
         const mergeData: MergeTagData = {
           ...(execution.enrollment_data || {}),
           shop_name:
@@ -263,11 +300,36 @@ export default async function handler(
           from: buildFrom(senderEmail),
           subject,
           html: finalHtml,
+          // Stamp the owning seller so an ASYNCHRONOUS bounce/dropped/spamreport
+          // (SendGrid Event Webhook) can be attributed back to this seller's
+          // suppression list — without the arg the webhook has to skip the
+          // event and only the cron sync re-covers it.
+          customArgs: { seller_pubkey: execution.seller_pubkey },
         };
 
         if (execution.reply_to) {
           msg.replyTo = execution.reply_to;
         }
+
+        // A rejection that blames the RECIPIENT address itself (invalid or on
+        // SendGrid's suppression list) will fail every future flow step
+        // identically, so durably suppress the address — best-effort, exactly
+        // like the blog/one-time broadcast path. Sender/account-level failures
+        // (e.g. lapsed domain auth) must NEVER suppress anyone: they fail the
+        // whole audience identically.
+        const suppressIfRecipientReject = async (sendError: any) => {
+          if (!classifySendGridSendError(sendError).recipientReject) return;
+          const suppressed = await unsubscribeSellerEmail(
+            execution.seller_pubkey,
+            execution.recipient_email,
+            "suppressed"
+          );
+          if (!suppressed) {
+            console.error(
+              "Flow email: failed to durably suppress dead address (future steps will re-attempt it)"
+            );
+          }
+        };
 
         try {
           await sgClient.client.send(msg);
@@ -279,11 +341,17 @@ export default async function handler(
               "Flow custom sender rejected by SendGrid; retrying with default sender:",
               customFromEmail
             );
-            await sgClient.client.send({
-              ...msg,
-              from: buildFrom(sgClient.fromEmail),
-            });
+            try {
+              await sgClient.client.send({
+                ...msg,
+                from: buildFrom(sgClient.fromEmail),
+              });
+            } catch (retryError) {
+              await suppressIfRecipientReject(retryError);
+              throw retryError;
+            }
           } else {
+            await suppressIfRecipientReject(sendError);
             throw sendError;
           }
         }
