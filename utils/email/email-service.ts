@@ -179,6 +179,31 @@ function isRecipientAddressRejection(status: number, error: any): boolean {
 }
 
 /**
+ * Classify a thrown SendGrid send error the same way
+ * sendEmailStrictFromDetailed does, for senders that manage their own
+ * fallback logic (e.g. the drip-flow processor's custom-sender retry) and
+ * therefore cannot use that helper directly. `recipientReject` = the
+ * rejection blames the RECIPIENT address itself, so the address is provably
+ * dead and must be durably suppressed instead of re-attempted.
+ */
+export function classifySendGridSendError(error: any): {
+  definiteReject: boolean;
+  recipientReject: boolean;
+} {
+  const status =
+    error?.code ?? error?.response?.statusCode ?? error?.statusCode;
+  const definiteReject =
+    typeof status === "number" &&
+    status >= 400 &&
+    status < 500 &&
+    status !== 408 &&
+    status !== 429;
+  const recipientReject =
+    definiteReject && isRecipientAddressRejection(status, error);
+  return { definiteReject, recipientReject };
+}
+
+/**
  * Detailed variant of sendEmailStrictFrom for at-most-once senders (e.g. the
  * one-time broadcast ledger): distinguishes a definite provider rejection
  * (safe to retry) from an ambiguous failure (must NOT be retried blindly).
@@ -235,16 +260,8 @@ export async function sendEmailStrictFromDetailed(params: {
     return { ok: true, definiteReject: false, recipientReject: false };
   } catch (error: any) {
     console.error("sendEmailStrictFrom: send failed (no fallback):", error);
-    const status =
-      error?.code ?? error?.response?.statusCode ?? error?.statusCode;
-    const definiteReject =
-      typeof status === "number" &&
-      status >= 400 &&
-      status < 500 &&
-      status !== 408 &&
-      status !== 429;
-    const recipientReject =
-      definiteReject && isRecipientAddressRejection(status, error);
+    const { definiteReject, recipientReject } =
+      classifySendGridSendError(error);
     return { ok: false, definiteReject, recipientReject };
   }
 }
