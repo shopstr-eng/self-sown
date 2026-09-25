@@ -9,6 +9,7 @@ import {
 import {
   isAssistantSessionScope,
   mintAssistantSessionToken,
+  SESSION_SCOPES,
   SESSION_SCOPE_TTLS_MS,
   type AssistantSessionScope,
 } from "@/utils/assistant/session-token";
@@ -63,7 +64,9 @@ export default async function handler(
   // be swapped after signing. Absent scope = chat (original clients).
   const rawScope = (req.body as { scope?: unknown } | undefined)?.scope;
   const scope: AssistantSessionScope =
-    rawScope === undefined ? "chat" : (rawScope as AssistantSessionScope);
+    rawScope === undefined
+      ? SESSION_SCOPES.chat
+      : (rawScope as AssistantSessionScope);
   if (!isAssistantSessionScope(scope)) {
     return res.status(400).json({ error: "Unknown session scope" });
   }
