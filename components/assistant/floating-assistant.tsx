@@ -182,7 +182,9 @@ export interface FloatingAssistantProps {
   // general marketplace. The slug matters because _app's storefront pubkey
   // resolution is tied to initial-load state — after marketplace→stall
   // client-side navigation it can stay null, so the widget resolves the
-  // slug itself rather than mistaking a stall for the marketplace.
+  // slug itself rather than mistaking a stall for the marketplace. _app's
+  // slug detection covers direct /stall/** routes, rewritten stall URLs
+  // (/stall/<slug>/listing/<id>, /stall/<slug>/cart), and custom domains.
   stallPubkey?: string | null;
   stallSlug?: string | null;
 }
@@ -195,6 +197,7 @@ export default function FloatingAssistant({
   const { signer, isLoggedIn, isAuthStateResolved, pubkey } =
     useContext(SignerContext);
   const { membership, loading: membershipLoading } = useProMembership();
+  const onStallRoute = Boolean(stallPubkey || stallSlug);
 
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -217,7 +220,6 @@ export default function FloatingAssistant({
   const [resolvedStallPubkey, setResolvedStallPubkey] = useState<string | null>(
     null
   );
-  const isStallContext = Boolean(stallPubkey || stallSlug);
 
   const dragState = useRef<DragState | null>(null);
   const statusRequestedFor = useRef<string | null>(null);
@@ -232,18 +234,19 @@ export default function FloatingAssistant({
   // an in-place account switch).
   const pubkeyRef = useRef(pubkey);
 
-  // Resolve the stall identity: the prop wins; the route slug is the fallback
-  // for client-side navigations where _app's resolution hasn't run.
+  // Resolve the stall identity. The slug WINS whenever present: _app's
+  // pubkey state updates asynchronously on stall→stall navigation, so a
+  // stale pubkey prop must not keep serving the previous shop's assistant.
+  // Only with no slug at all (custom domains without a shop slug) is the
+  // prop authoritative.
   useEffect(() => {
-    if (stallPubkey) {
+    if (!stallSlug) {
       setResolvedStallPubkey(stallPubkey);
       return;
     }
-    if (!stallSlug) {
-      setResolvedStallPubkey(null);
-      return;
-    }
     let cancelled = false;
+    // Hide the previous shop's assistant while the new slug resolves.
+    setResolvedStallPubkey(null);
     fetch(
       `${window.location.origin}/api/storefront/lookup?slug=${encodeURIComponent(stallSlug)}`
     )
@@ -277,7 +280,8 @@ export default function FloatingAssistant({
     )
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!cancelled) setVisibility(readAssistantVisibility(data?.shopConfig));
+        if (!cancelled)
+          setVisibility(readAssistantVisibility(data?.shopConfig));
       })
       .catch(() => {
         if (!cancelled) setVisibility(readAssistantVisibility(null));
@@ -396,7 +400,9 @@ export default function FloatingAssistant({
   // unknown; every chat response also reports it. Seller-audience only: the
   // buyer assistant has no setup state and guests have no signer to sign with.
   useEffect(() => {
-    if (stallPubkey && pubkey !== stallPubkey) return;
+    // Seller-only: on a stall route, only the stall's own owner has setup
+    // state to check (a null resolvedStallPubkey means still resolving).
+    if (onStallRoute && pubkey !== resolvedStallPubkey) return;
     if (!open || !signer || !pubkey || !membership.isPro) return;
     if (statusRequestedFor.current === pubkey) return;
     statusRequestedFor.current = pubkey;
@@ -419,7 +425,14 @@ export default function FloatingAssistant({
         // Cancelled prompt or offline — the chat itself still works.
       }
     })();
-  }, [open, signer, pubkey, membership.isPro]);
+  }, [
+    open,
+    signer,
+    pubkey,
+    membership.isPro,
+    onStallRoute,
+    resolvedStallPubkey,
+  ]);
 
   const enableWrites = async () => {
     if (!signer || enabling) return;
@@ -466,12 +479,17 @@ export default function FloatingAssistant({
     }
   };
 
-  const audience = resolveAssistantAudience({
-    stallPubkey,
-    viewerPubkey: pubkey ?? null,
-    isLoggedIn: Boolean(isLoggedIn),
-    visibility,
-  });
+  // On a stall route whose identity is still resolving, show nothing rather
+  // than flashing the marketplace (seller) audience at a guest.
+  const audience =
+    onStallRoute && !resolvedStallPubkey
+      ? null
+      : resolveAssistantAudience({
+          stallPubkey: resolvedStallPubkey,
+          viewerPubkey: pubkey ?? null,
+          isLoggedIn: Boolean(isLoggedIn),
+          visibility,
+        });
 
   if (!mounted || !isAuthStateResolved || !audience) return null;
   // The seller assistant always signs its requests; no signer, no widget.
@@ -574,11 +592,13 @@ export default function FloatingAssistant({
       <div className="flex min-h-0 flex-1 flex-col">
         {audience === "buyer" ? (
           <AssistantChat
-            // Remount per stall: a buyer transcript belongs to the shop it
-            // was written about (it's submitted with every request).
-            key={`buyer:${stallPubkey}`}
+            // Remount per stall AND per viewer: the transcript (submitted
+            // with every request) belongs to the shop and the person who
+            // wrote it — a logout or account switch must not leak it.
+            key={`buyer:${resolvedStallPubkey}:${pubkey ?? "guest"}`}
             fillHeight
-            buyerMode={{ stallPubkey: stallPubkey as string }}
+            // Non-null here: the buyer audience requires a resolved stall.
+            buyerMode={{ stallPubkey: resolvedStallPubkey as string }}
           />
         ) : membershipLoading ? (
           <div className="flex flex-1 items-center justify-center">

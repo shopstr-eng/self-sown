@@ -131,7 +131,7 @@ function buildBuyerSystemPrompt(shopName: string | null): string {
     "Ground rules:",
     "- Use tools for anything about products, categories, reviews, or discount codes; never invent items, prices, stock, or policies.",
     "- You can only see PUBLIC catalog data. You have no access to anyone's account, orders, or messages, and you cannot place or change orders — direct buyers to the shop's own checkout and contact options.",
-    "- Prefer this shop's own products; only browse the wider marketplace if the visitor explicitly asks.",
+    "- Your catalog tools are pre-scoped to THIS shop's products, storefront, and reviews; you cannot browse other sellers. If a visitor asks about products or shops elsewhere, say you only cover this shop.",
     "- Keep replies tight and skimmable: short paragraphs or compact lists, no filler, no flattery.",
     "",
     `Today: ${new Date().toISOString().slice(0, 10)}`,
@@ -316,17 +316,79 @@ export async function runSellerAssistant(opts: {
   });
 }
 
+// The buyer assistant's catalog tools search the WHOLE marketplace by
+// default. Ground every lookup to the stall being viewed so "What do you
+// sell?" answers with this shop's inventory — the wrapper overrides any
+// seller/slug argument the model supplies, so a prompt-injected instruction
+// can't steer buyers to another seller's catalog either.
+export function groundBuyerToolsToStall(
+  mcp: AssistantMcpBridge,
+  stallPubkey: string
+): AssistantMcpBridge {
+  return {
+    listTools: () => mcp.listTools(),
+    callTool: (name, args) => {
+      if (name === "search_products") {
+        return mcp.callTool(name, { ...args, seller: stallPubkey });
+      }
+      if (name === "get_storefront") {
+        const rest = { ...args };
+        delete rest.slug; // a model-supplied slug could name another shop
+        return mcp.callTool(name, { ...rest, pubkey: stallPubkey });
+      }
+      if (name === "get_reviews") {
+        // Force the seller filter even for product-specific lookups: a
+        // model-supplied productId alone would read another shop's reviews.
+        return mcp.callTool(name, { ...args, sellerPubkey: stallPubkey });
+      }
+      if (name === "check_discount_code") {
+        return mcp.callTool(name, { ...args, sellerPubkey: stallPubkey });
+      }
+      if (name === "get_product_details") {
+        // The product id is model-supplied and could name ANOTHER shop's
+        // product. Verify ownership from the (public) result so the buyer
+        // assistant only ever answers about this shop's catalog.
+        return mcp.callTool(name, args).then((result) => {
+          if (result.isError) return result;
+          try {
+            const parsed = JSON.parse(result.text) as { pubkey?: unknown };
+            if (parsed?.pubkey && parsed.pubkey !== stallPubkey) {
+              return {
+                text: JSON.stringify({
+                  error: "That product isn't from this shop.",
+                }),
+                isError: true,
+              };
+            }
+          } catch {
+            // Unparseable result: pass it through unchanged.
+          }
+          return result;
+        });
+      }
+      return mcp.callTool(name, args);
+    },
+  };
+}
+
 // The buyer-facing storefront assistant: guests and signed-in buyers on a
 // custom stall. Runs over an anonymous MCP session and the public-catalog
 // tool allowlist only — no seller account data, no order placement, no writes.
 export async function runBuyerAssistant(opts: {
   shopName: string | null;
+  stallPubkey: string;
   messages: AssistantChatMessage[];
   mcp: AssistantMcpBridge;
 }): Promise<{ reply: string; actions: AssistantAction[] }> {
-  return runAssistantLoop(opts, {
-    systemPrompt: buildBuyerSystemPrompt(opts.shopName),
-    filterTools: filterBuyerAssistantTools,
-    isAllowed: isBuyerToolAllowed,
-  });
+  return runAssistantLoop(
+    {
+      messages: opts.messages,
+      mcp: groundBuyerToolsToStall(opts.mcp, opts.stallPubkey),
+    },
+    {
+      systemPrompt: buildBuyerSystemPrompt(opts.shopName),
+      filterTools: filterBuyerAssistantTools,
+      isAllowed: isBuyerToolAllowed,
+    }
+  );
 }

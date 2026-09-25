@@ -65,6 +65,7 @@ import TopNav from "@/components/nav-top";
 import StorefrontThemeWrapper from "@/components/storefront/storefront-theme-wrapper";
 import { selfHostHeaderTrusted } from "@/utils/self-host/routing";
 import { CustomDomainProvider } from "@/utils/storefront/custom-domain-context";
+import { resolveStorefrontRouteSlug } from "@/utils/storefront/storefront-route-slug";
 import PageLoadingBar from "@/components/page-loading-bar";
 import DynamicHead from "../components/dynamic-meta-head";
 import StructuredData from "../components/structured-data";
@@ -782,17 +783,15 @@ function SelfSown({ props }: { props: AppProps }) {
     (router.asPath ?? "").startsWith("/stall/") ||
     (isCustomDomainVisit && !!ssrShopSlug);
 
-  const currentStorefrontSlug =
-    router.pathname.startsWith("/stall/") ||
-    (router.asPath ?? "").startsWith("/stall/")
-      ? decodeURIComponent(
-          (
-            (router.asPath ?? "").replace(/^\/stall\//, "").split("/")[0] ?? ""
-          ).split("?")[0] ?? ""
-        )
-      : isCustomDomainVisit && ssrShopSlug
-        ? ssrShopSlug
-        : null;
+  // asPath is authoritative ONLY when it is itself a /stall/** URL: on
+  // custom domains the proxy rewrites public paths (/blog/post) to internal
+  // /stall/<shop>/** pages, so asPath's first segment is a content path,
+  // not a shop slug — those fall back to the SSR-verified shop slug.
+  const currentStorefrontSlug = resolveStorefrontRouteSlug({
+    asPath: router.asPath,
+    isCustomDomainVisit,
+    ssrShopSlug,
+  });
 
   useEffect(() => {
     if (
@@ -1801,6 +1800,7 @@ function SelfSown({ props }: { props: AppProps }) {
                                       ? storefrontLoadPubkey
                                       : null
                                   }
+                                  stallSlug={currentStorefrontSlug}
                                 />
                               )}
                           </ChatsContext.Provider>

@@ -1,13 +1,12 @@
-// Buyer/guest storefront assistant: route gating (stall toggle + owner Pro
-// entitlement + anonymous MCP session) plus the pure helpers that define the
-// buyer surface. The MCP bridge, agent loop, DB, and membership lookups are
-// mocked at their module seams, so these tests need no database, network, or
-// LLM access.
+// Buyer/guest storefront assistant: route gating (stall opt-in toggle +
+// anonymous MCP session — buyer tools are NOT Pro-gated, only seller tools
+// are) plus the pure helpers that define the buyer surface. The MCP bridge,
+// agent loop, and DB are mocked at their module seams, so these tests need
+// no database, network, or LLM access.
 
 const applyRateLimitMock = jest.fn();
 const verifyNip98RequestMock = jest.fn();
 const fetchShopProfileMock = jest.fn();
-const isPubkeyProEntitledMock = jest.fn();
 const runBuyerAssistantMock = jest.fn();
 const mcpConstructorMock = jest.fn();
 const mcpConnectMock = jest.fn();
@@ -28,10 +27,6 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
   fetchShopProfileByPubkeyFromDb: (...args: unknown[]) =>
     fetchShopProfileMock(...args),
-}));
-
-jest.mock("@/utils/pro/membership", () => ({
-  isPubkeyProEntitled: (...args: unknown[]) => isPubkeyProEntitledMock(...args),
 }));
 
 jest.mock("@/utils/assistant/mcp-client", () => {
@@ -75,6 +70,7 @@ import {
   filterBuyerAssistantTools,
   isAssistantToolAllowed,
 } from "@/utils/assistant/tools";
+import { groundBuyerToolsToStall } from "@/utils/assistant/agent";
 import {
   readAssistantVisibility,
   parseAssistantVisibilityFromContent,
@@ -124,7 +120,6 @@ beforeEach(() => {
   fetchShopProfileMock.mockResolvedValue(
     shopEventWith({ assistantVisibility: { buyers: true } })
   );
-  isPubkeyProEntitledMock.mockResolvedValue(true);
   mcpConnectMock.mockResolvedValue(undefined);
   mcpCloseMock.mockResolvedValue(undefined);
   runBuyerAssistantMock.mockResolvedValue({
@@ -150,22 +145,6 @@ describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
     expect(runBuyerAssistantMock).not.toHaveBeenCalled();
   });
 
-  it("403s when the stall owner is not Pro-entitled", async () => {
-    isPubkeyProEntitledMock.mockResolvedValue(false);
-    const res = createMockRes();
-    await chatHandler(createBuyerReq(), res);
-    expect(res.statusCode).toBe(403);
-    expect(runBuyerAssistantMock).not.toHaveBeenCalled();
-  });
-
-  it("403s (fails closed) when the membership lookup throws", async () => {
-    isPubkeyProEntitledMock.mockRejectedValue(new Error("db down"));
-    const res = createMockRes();
-    await chatHandler(createBuyerReq(), res);
-    expect(res.statusCode).toBe(403);
-    expect(runBuyerAssistantMock).not.toHaveBeenCalled();
-  });
-
   it("stops when the buyer rate limiter fires", async () => {
     applyRateLimitMock.mockImplementation(async (_req, res) => {
       res.status(429).json({ error: "slow down" });
@@ -179,7 +158,10 @@ describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
 
   it("400s on a malformed messages payload", async () => {
     const res = createMockRes();
-    await chatHandler(createBuyerReq({ body: { context: { stallPubkey: STALL_PUBKEY } } }), res);
+    await chatHandler(
+      createBuyerReq({ body: { context: { stallPubkey: STALL_PUBKEY } } }),
+      res
+    );
     expect(res.statusCode).toBe(400);
     expect(runBuyerAssistantMock).not.toHaveBeenCalled();
   });
@@ -194,11 +176,12 @@ describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
     });
     // No raw key argument = anonymous session = public catalog tools only.
     expect(mcpConstructorMock).toHaveBeenCalledWith();
-    expect(mcpConstructorMock).not.toHaveBeenCalledWith(
-      expect.anything()
-    );
+    expect(mcpConstructorMock).not.toHaveBeenCalledWith(expect.anything());
     expect(runBuyerAssistantMock).toHaveBeenCalledWith(
-      expect.objectContaining({ shopName: "Sunrise Farm" })
+      expect.objectContaining({
+        shopName: "Sunrise Farm",
+        stallPubkey: STALL_PUBKEY,
+      })
     );
     expect(mcpCloseMock).toHaveBeenCalled();
   });
@@ -303,6 +286,94 @@ describe("parseAssistantVisibilityFromContent", () => {
   });
 });
 
+describe("groundBuyerToolsToStall", () => {
+  function fakeBridge() {
+    const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
+    const bridge = {
+      listTools: jest.fn(async () => []),
+      callTool: jest.fn(async (name: string, args: Record<string, unknown>) => {
+        calls.push({ name, args });
+        return { text: "{}", isError: false };
+      }),
+    };
+    return { bridge, calls };
+  }
+
+  it("forces search_products to the viewed stall, overriding the model", async () => {
+    const { bridge, calls } = fakeBridge();
+    const grounded = groundBuyerToolsToStall(bridge, STALL_PUBKEY);
+    await grounded.callTool("search_products", { keyword: "honey" });
+    await grounded.callTool("search_products", { seller: "f".repeat(64) });
+    expect(calls[0]?.args).toEqual({ keyword: "honey", seller: STALL_PUBKEY });
+    expect(calls[1]?.args).toEqual({ seller: STALL_PUBKEY });
+  });
+
+  it("pins get_storefront to the stall pubkey and drops model-supplied slugs", async () => {
+    const { bridge, calls } = fakeBridge();
+    const grounded = groundBuyerToolsToStall(bridge, STALL_PUBKEY);
+    await grounded.callTool("get_storefront", { slug: "someone-else" });
+    expect(calls[0]?.args).toEqual({ pubkey: STALL_PUBKEY });
+  });
+
+  it("scopes every get_reviews call to the stall, including product-specific ones", async () => {
+    const { bridge, calls } = fakeBridge();
+    const grounded = groundBuyerToolsToStall(bridge, STALL_PUBKEY);
+    await grounded.callTool("get_reviews", {});
+    await grounded.callTool("get_reviews", { productId: "abc" });
+    expect(calls[0]?.args).toEqual({ sellerPubkey: STALL_PUBKEY });
+    // A model-supplied product id must not escape the shop: the seller
+    // filter is forced too, so a foreign product just matches nothing.
+    expect(calls[1]?.args).toEqual({
+      productId: "abc",
+      sellerPubkey: STALL_PUBKEY,
+    });
+  });
+
+  it("forces check_discount_code to the viewed stall", async () => {
+    const { bridge, calls } = fakeBridge();
+    const grounded = groundBuyerToolsToStall(bridge, STALL_PUBKEY);
+    await grounded.callTool("check_discount_code", {
+      code: "SAVE10",
+      sellerPubkey: "f".repeat(64),
+    });
+    expect(calls[0]?.args).toEqual({
+      code: "SAVE10",
+      sellerPubkey: STALL_PUBKEY,
+    });
+  });
+
+  it("lets this shop's product details through but blocks another shop's", async () => {
+    const { bridge } = fakeBridge();
+    bridge.callTool.mockImplementation(async (_name, args) => ({
+      text: JSON.stringify({
+        pubkey:
+          (args as { productId?: string }).productId === "mine"
+            ? STALL_PUBKEY
+            : "f".repeat(64),
+        title: "Raw honey",
+      }),
+      isError: false,
+    }));
+    const grounded = groundBuyerToolsToStall(bridge, STALL_PUBKEY);
+    const own = await grounded.callTool("get_product_details", {
+      productId: "mine",
+    });
+    expect(own.isError).toBe(false);
+    const foreign = await grounded.callTool("get_product_details", {
+      productId: "theirs",
+    });
+    expect(foreign.isError).toBe(true);
+    expect(foreign.text).toContain("isn't from this shop");
+  });
+
+  it("passes other tools through untouched", async () => {
+    const { bridge, calls } = fakeBridge();
+    const grounded = groundBuyerToolsToStall(bridge, STALL_PUBKEY);
+    await grounded.callTool("get_categories", {});
+    expect(calls[0]?.args).toEqual({});
+  });
+});
+
 describe("buyer tool allowlist", () => {
   it("includes the public catalog reads", () => {
     for (const tool of [
@@ -312,8 +383,6 @@ describe("buyer tool allowlist", () => {
       "get_storefront",
       "get_reviews",
       "check_discount_code",
-      "list_companies",
-      "get_company_details",
     ]) {
       expect(isBuyerToolAllowed(tool)).toBe(true);
     }
@@ -340,6 +409,10 @@ describe("buyer tool allowlist", () => {
       "purchase_shipping_label",
       // order placement is NOT part of the buyer assistant
       "create_order",
+      // marketplace-directory tools are not shop-scoped, so buyers don't
+      // get them at all
+      "list_companies",
+      "get_company_details",
     ]) {
       expect(isBuyerToolAllowed(tool)).toBe(false);
     }
@@ -369,8 +442,6 @@ describe("buyer tool allowlist", () => {
       "get_storefront",
       "get_reviews",
       "check_discount_code",
-      "list_companies",
-      "get_company_details",
     ];
     for (const tool of buyerTools) {
       expect(isAssistantToolAllowed(tool, false)).toBe(true);

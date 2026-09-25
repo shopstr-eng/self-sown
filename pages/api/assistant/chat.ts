@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { verifyNip98Request } from "@/utils/nostr/nip98-auth";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
-import { isPubkeyProEntitled } from "@/utils/pro/membership";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { fetchShopProfileByPubkeyFromDb } from "@/utils/db/db-service";
 import {
@@ -41,17 +40,16 @@ const HEX64 = /^[0-9a-f]{64}$/;
 // Optional stall context: present when the chat runs on a custom stall
 // (storefront route or custom domain). Drives the buyer/seller audience split.
 function parseStallPubkey(body: unknown): string | null {
-  const stallPubkey = (body as { context?: { stallPubkey?: unknown } })
-    ?.context?.stallPubkey;
+  const stallPubkey = (body as { context?: { stallPubkey?: unknown } })?.context
+    ?.stallPubkey;
   if (typeof stallPubkey !== "string" || !HEX64.test(stallPubkey)) return null;
   return stallPubkey;
 }
 
 // Buyer/guest storefront chat: no NIP-98, no account — an anonymous MCP
-// session (public catalog tools only) behind the stall's opt-in toggle. The
-// stall owner must be Pro-entitled: the buyer assistant is part of the
-// seller's Pro feature set, and this keeps the model spend tied to a paying
-// storefront. Fails closed on any lookup error.
+// session (public catalog tools only) behind the stall's opt-in toggle.
+// Unlike the seller assistant this is NOT Pro-gated: the buyer surface only
+// reads public catalog data any storefront visitor can already see.
 async function handleBuyerChat(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -65,13 +63,7 @@ async function handleBuyerChat(
   const { buyers, shopName } = parseAssistantVisibilityFromContent(
     shopEvent?.content
   );
-  let ownerEntitled = false;
-  try {
-    ownerEntitled = await isPubkeyProEntitled(stallPubkey);
-  } catch (error) {
-    console.error("buyer assistant: membership lookup failed:", error);
-  }
-  if (!buyers || !ownerEntitled) {
+  if (!buyers) {
     return res
       .status(403)
       .json({ error: "The assistant is not available on this shop." });
@@ -89,7 +81,7 @@ async function handleBuyerChat(
   try {
     await bridge.connect();
     const result = await withDeadline(
-      runBuyerAssistant({ shopName, messages, mcp: bridge })
+      runBuyerAssistant({ shopName, stallPubkey, messages, mcp: bridge })
     );
     return res.status(200).json({ ...result, audience: "buyer" });
   } catch (error) {
@@ -164,7 +156,11 @@ export default async function handler(
   // guests and signed-in buyers alike — gets the buyer assistant: public
   // catalog tools only, no account access. No NIP-98 is required for it.
   if (stallPubkey && (!auth.ok || auth.pubkey !== stallPubkey)) {
-    return handleBuyerChat(req, res, stallPubkey);
+    // Awaited statement, not `return handleX(...)`: a bare return would let
+    // an async throw escape the handler (and eslint's return-await rule
+    // strips `return await` outside try/catch).
+    await handleBuyerChat(req, res, stallPubkey);
+    return;
   }
 
   if (!auth.ok) return res.status(401).json({ error: auth.error });

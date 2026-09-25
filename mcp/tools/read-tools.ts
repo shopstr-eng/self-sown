@@ -94,6 +94,7 @@ function searchFingerprint(filters: Record<string, unknown>): string {
         filters.maxPrice ?? null,
         String(filters.currency || "").toLowerCase(),
         filters.limit || MAX_PRODUCT_RESULTS,
+        String(filters.seller || "").toLowerCase(),
       ])
     )
     .digest("hex");
@@ -501,6 +502,11 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
         .max(10)
         .optional()
         .describe("Filter by currency (e.g. 'USD', 'BTC')"),
+      seller: z
+        .string()
+        .regex(/^[0-9a-f]{64}$/)
+        .optional()
+        .describe("Filter to a single seller's products (hex pubkey)"),
       limit: z
         .number()
         .int()
@@ -525,6 +531,7 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
       minPrice,
       maxPrice,
       currency,
+      seller,
       limit,
       cursor,
     }) => {
@@ -555,6 +562,7 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
           minPrice,
           maxPrice,
           currency,
+          seller,
           limit: pageLimit,
         });
         const cursorState = cursor ? decodeCursor(cursor, query) : undefined;
@@ -577,6 +585,11 @@ export function registerReadTools(server: McpServer, context?: ToolContext) {
           "fetchAllProductsFromDb"
         );
         let productEvents = dedupProducts(events);
+        if (seller) {
+          productEvents = productEvents.filter(
+            (event) => event.pubkey === seller
+          );
+        }
         if (cursorState) {
           productEvents = cursorState.after
             ? productEvents.filter(
