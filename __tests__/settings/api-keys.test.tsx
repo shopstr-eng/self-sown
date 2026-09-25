@@ -101,65 +101,97 @@ describe("ApiKeysPage", () => {
     );
   }
 
-  it("signs the list-keys request and sends the signed proof header", async () => {
-    fetchMock.mockResolvedValueOnce({
-      json: async () => ({ keys: [] }),
-    });
-
-    renderPage();
-
-    await waitFor(() => expect(sign).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-
-    const [url, options] = fetchMock.mock.calls[0]!;
-    expect(url).toContain("/api/mcp/api-keys?pubkey=");
-    expect(options.headers[MCP_SIGNED_EVENT_HEADER]).toBe(
-      JSON.stringify(await sign.mock.results[0]!.value)
-    );
-
-    const proofTemplate = sign.mock.calls[0]![0];
-    expect(proofTemplate.tags).toEqual(
-      buildMcpRequestProofTemplate(buildApiKeysListProof("f".repeat(64))).tags
-    );
-  });
-
-  it("sends a signed proof when creating a new API key", async () => {
+  it("mints a session token once and manages keys with the bearer token", async () => {
     fetchMock
+      // 1: session mint — one NIP-98 signature for the whole window.
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          token: "tok_scoped",
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        }),
+      })
+      // 2: initial list (bearer)
       .mockResolvedValueOnce({
         json: async () => ({ keys: [] }),
       })
+      // 3: create (bearer)
       .mockResolvedValueOnce({
         json: async () => ({
           success: true,
           key: "sk_created",
         }),
       })
+      // 4: list refetch after create (bearer, cached token — no re-sign)
       .mockResolvedValueOnce({
         json: async () => ({ keys: [] }),
       });
 
     renderPage();
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    // The mint request targets the session route with the mcp-keys scope.
+    const [mintUrl, mintOptions] = fetchMock.mock.calls[0]!;
+    expect(mintUrl).toContain("/api/assistant/session");
+    expect(JSON.parse(mintOptions.body)).toEqual({ scope: "mcp-keys" });
+    expect(mintOptions.headers.Authorization).toMatch(/^Nostr /);
+
+    // The list request carries the bearer token and no signed proof.
+    const [listUrl, listOptions] = fetchMock.mock.calls[1]!;
+    expect(listUrl).toContain("/api/mcp/api-keys?pubkey=");
+    expect(listOptions.headers.Authorization).toBe("Bearer tok_scoped");
+    expect(listOptions.headers[MCP_SIGNED_EVENT_HEADER]).toBeUndefined();
 
     fireEvent.change(screen.getByLabelText("Key Name"), {
       target: { value: "My Agent" },
     });
     fireEvent.click(screen.getByRole("button", { name: /generate api key/i }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
 
-    const createCall = fetchMock.mock.calls[1]!;
+    const createCall = fetchMock.mock.calls[2]!;
+    expect(createCall[1].headers.Authorization).toBe("Bearer tok_scoped");
     const requestBody = JSON.parse(createCall[1].body);
     expect(requestBody).toEqual(
       expect.objectContaining({
         name: "My Agent",
         permissions: "read",
         pubkey: "f".repeat(64),
-        signedEvent: expect.objectContaining({
-          id: "signed-proof-id",
-        }),
       })
+    );
+    expect(requestBody.signedEvent).toBeUndefined();
+
+    // One signature total (the mint) — list, create, and the refetch all
+    // reused the bearer token without another signing prompt.
+    expect(sign).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to signed proofs when the session mint fails", async () => {
+    fetchMock
+      // 1: session mint responds without a token (older server / failure)
+      .mockResolvedValueOnce({
+        json: async () => ({}),
+      })
+      // 2: list falls back to the single-use signed proof
+      .mockResolvedValueOnce({
+        json: async () => ({ keys: [] }),
+      });
+
+    renderPage();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    const [url, options] = fetchMock.mock.calls[1]!;
+    expect(url).toContain("/api/mcp/api-keys?pubkey=");
+    expect(options.headers.Authorization).toBeUndefined();
+    expect(options.headers[MCP_SIGNED_EVENT_HEADER]).toBe(
+      JSON.stringify(await sign.mock.results[1]!.value)
+    );
+
+    const proofTemplate = sign.mock.calls[1]![0];
+    expect(proofTemplate.tags).toEqual(
+      buildMcpRequestProofTemplate(buildApiKeysListProof("f".repeat(64))).tags
     );
   });
 });

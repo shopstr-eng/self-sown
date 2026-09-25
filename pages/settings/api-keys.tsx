@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useCallback } from "react";
+import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { Button, Input, Select, SelectItem, Spinner } from "@heroui/react";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
@@ -20,6 +20,7 @@ import {
   MCP_SIGNED_EVENT_HEADER,
   normalizeApiKeysPermission,
 } from "@/utils/mcp/request-proof";
+import { mintScopedSessionToken } from "@/utils/assistant/session-client";
 import {
   ClipboardDocumentIcon,
   KeyIcon,
@@ -53,6 +54,11 @@ const ApiKeysPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Short-lived bearer token minted from ONE NIP-98 signature, so NIP-07
+  // extension / NIP-46 bunker users approve once per window instead of once
+  // per operation. In-memory only — a fresh page load re-mints.
+  const sessionRef = useRef<{ token: string; expiresAt: number } | null>(null);
+
   const signProof = useCallback(
     async (template: NostrEventTemplate) => {
       if (!signer) {
@@ -64,19 +70,39 @@ const ApiKeysPage = () => {
     [signer]
   );
 
+  // Mint (or reuse) an "mcp-keys" scoped session token. Returns null when
+  // minting fails — callers fall back to per-request signed proofs.
+  const getSessionToken = useCallback(async (): Promise<string | null> => {
+    const cached = sessionRef.current;
+    // 60s margin so a token can't expire mid-request.
+    if (cached && cached.expiresAt - 60_000 > Date.now()) {
+      return cached.token;
+    }
+    if (!signer) return null;
+    const minted = await mintScopedSessionToken(signer, "mcp-keys");
+    sessionRef.current = minted;
+    return minted?.token ?? null;
+  }, [signer]);
+
   const fetchKeys = useCallback(async () => {
     if (!pubkey || !signer) return;
     setIsLoading(true);
     setError(null);
     try {
-      const signedEvent = await signProof(
-        buildMcpRequestProofTemplate(buildApiKeysListProof(pubkey))
-      );
-      const res = await fetch(`/api/mcp/api-keys?pubkey=${pubkey}`, {
-        headers: {
-          [MCP_SIGNED_EVENT_HEADER]: JSON.stringify(signedEvent),
-        },
-      });
+      const token = await getSessionToken();
+      const res = token
+        ? await fetch(`/api/mcp/api-keys?pubkey=${pubkey}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        : await fetch(`/api/mcp/api-keys?pubkey=${pubkey}`, {
+            headers: {
+              [MCP_SIGNED_EVENT_HEADER]: JSON.stringify(
+                await signProof(
+                  buildMcpRequestProofTemplate(buildApiKeysListProof(pubkey))
+                )
+              ),
+            },
+          });
       const data = await res.json();
       if (data.keys) {
         setApiKeys(data.keys);
@@ -88,7 +114,7 @@ const ApiKeysPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [pubkey, signer, signProof]);
+  }, [pubkey, signer, signProof, getSessionToken]);
 
   useEffect(() => {
     if (pubkey && signer) {
@@ -112,18 +138,26 @@ const ApiKeysPage = () => {
     try {
       const trimmedName = newKeyName.trim();
       const permissions = normalizeApiKeysPermission(newKeyPermission);
-      const signedEvent = await signProof(
-        buildMcpRequestProofTemplate(
-          buildApiKeyCreateProof({
-            name: trimmedName,
-            permissions,
-            pubkey,
-          })
-        )
-      );
+      const token = await getSessionToken();
+      // Session token: no per-request signature. Without one, fall back to a
+      // single-use signed request proof (one signing prompt).
+      const signedEvent = token
+        ? undefined
+        : await signProof(
+            buildMcpRequestProofTemplate(
+              buildApiKeyCreateProof({
+                name: trimmedName,
+                permissions,
+                pubkey,
+              })
+            )
+          );
       const res = await fetch("/api/mcp/api-keys", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           name: trimmedName,
           permissions,
@@ -155,17 +189,23 @@ const ApiKeysPage = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const signedEvent = await signProof(
-        buildMcpRequestProofTemplate(
-          buildApiKeyRevokeProof({
-            id,
-            pubkey,
-          })
-        )
-      );
+      const token = await getSessionToken();
+      const signedEvent = token
+        ? undefined
+        : await signProof(
+            buildMcpRequestProofTemplate(
+              buildApiKeyRevokeProof({
+                id,
+                pubkey,
+              })
+            )
+          );
       const res = await fetch("/api/mcp/api-keys", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ id, pubkey, signedEvent }),
       });
       const data = await res.json();

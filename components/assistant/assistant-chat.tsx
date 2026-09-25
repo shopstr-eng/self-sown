@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { Button, Input, Spinner } from "@heroui/react";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import { mintScopedSessionToken } from "@/utils/assistant/session-client";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 interface ChatMessage {
@@ -143,36 +144,11 @@ export default function AssistantChat({
       return cached.token;
     }
     if (!signer) return null;
-    try {
-      const url = `${window.location.origin}/api/assistant/session`;
-      const body = "{}";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: await createNip98AuthorizationHeader(
-            signer,
-            url,
-            "POST",
-            body
-          ),
-        },
-        body,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (
-        res.ok &&
-        typeof data.token === "string" &&
-        typeof data.expiresAt === "number"
-      ) {
-        sessionRef.current = { token: data.token, expiresAt: data.expiresAt };
-        return data.token;
-      }
-    } catch {
-      // fall through to per-message signing
-    }
-    sessionRef.current = null;
-    return null;
+    // One NIP-98 signature per window; null means fall back to per-message
+    // signing (nsec signers and older servers behave exactly as before).
+    const minted = await mintScopedSessionToken(signer, "chat");
+    sessionRef.current = minted;
+    return minted?.token ?? null;
   };
 
   const send = async (raw?: string) => {
