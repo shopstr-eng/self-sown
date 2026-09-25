@@ -556,6 +556,16 @@ export function orderedPaymentMethodGroups(
   return result;
 }
 
+export interface StorefrontAssistantVisibility {
+  // Show the AI chat assistant to buyers and guests browsing this storefront.
+  // Absent/false = hidden (default; the buyer-facing assistant is opt-in).
+  buyers?: boolean;
+  // Show the AI chat assistant to the seller while they browse their own
+  // storefront. Absent = shown (default); false hides it there — it stays
+  // available on the main app regardless.
+  seller?: boolean;
+}
+
 export interface StorefrontConfig {
   colorScheme?: StorefrontColorScheme;
   productLayout?: "grid" | "list" | "featured";
@@ -590,6 +600,7 @@ export interface StorefrontConfig {
   showBlogPage?: boolean;
   blogPage?: StorefrontBlogPage;
   emailPopup?: StorefrontEmailPopup;
+  assistantVisibility?: StorefrontAssistantVisibility;
   navColors?: StorefrontNavColors;
   navLayout?: StorefrontNavLayout;
   footerColors?: StorefrontFooterColors;

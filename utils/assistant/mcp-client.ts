@@ -60,14 +60,16 @@ export class McpLoopbackClient {
   private sessionId: string | null = null;
   private nextId = 1;
 
-  constructor(private readonly rawKey: string) {}
+  // No key = an anonymous MCP session, which the server restricts to public
+  // catalog read tools — exactly the buyer-facing assistant's surface.
+  constructor(private readonly rawKey?: string) {}
 
   private headers(): Record<string, string> {
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.rawKey}`,
       "Content-Type": "application/json",
       Accept: "application/json, text/event-stream",
     };
+    if (this.rawKey) headers["Authorization"] = `Bearer ${this.rawKey}`;
     if (this.sessionId) headers["mcp-session-id"] = this.sessionId;
     return headers;
   }

@@ -5,7 +5,9 @@
 import { getAnthropicClient, ASSISTANT_MODEL } from "./llm";
 import {
   filterAssistantTools,
+  filterBuyerAssistantTools,
   isAssistantToolAllowed,
+  isBuyerToolAllowed,
   prettifyToolName,
 } from "./tools";
 
@@ -61,17 +63,36 @@ function buildSystemPrompt(pubkey: string, canWrite: boolean): string {
   ].join("\n");
 }
 
-export async function runSellerAssistant(opts: {
-  pubkey: string;
-  canWrite: boolean;
-  messages: AssistantChatMessage[];
-  mcp: AssistantMcpBridge;
-}): Promise<{ reply: string; actions: AssistantAction[] }> {
+function buildBuyerSystemPrompt(shopName: string | null): string {
+  return [
+    `You are the shopping assistant for ${shopName || "this shop"}, a storefront on Self-sown, a local-food and artisan-goods marketplace on Nostr.`,
+    "You help visitors discover this shop's products through the marketplace's public catalog tools.",
+    "",
+    "Ground rules:",
+    "- Use tools for anything about products, categories, reviews, or discount codes; never invent items, prices, stock, or policies.",
+    "- You can only see PUBLIC catalog data. You have no access to anyone's account, orders, or messages, and you cannot place or change orders — direct buyers to the shop's own checkout and contact options.",
+    "- Prefer this shop's own products; only browse the wider marketplace if the visitor explicitly asks.",
+    "- Keep replies tight and skimmable: short paragraphs or compact lists, no filler, no flattery.",
+    "",
+    `Today: ${new Date().toISOString().slice(0, 10)}`,
+  ].join("\n");
+}
+
+interface AssistantLoopConfig {
+  systemPrompt: string;
+  filterTools: <T extends { name: string }>(tools: T[]) => T[];
+  isAllowed: (name: string) => boolean;
+}
+
+async function runAssistantLoop(
+  opts: { messages: AssistantChatMessage[]; mcp: AssistantMcpBridge },
+  config: AssistantLoopConfig
+): Promise<{ reply: string; actions: AssistantAction[] }> {
   const client = await getAnthropicClient();
   if (!client) throw new AssistantUnavailableError("AI is not configured");
 
   const allTools = await opts.mcp.listTools();
-  const tools = filterAssistantTools(allTools, opts.canWrite).map((tool) => ({
+  const tools = config.filterTools(allTools).map((tool) => ({
     name: tool.name,
     description: tool.description || "",
     input_schema: (tool.inputSchema as object) || {
@@ -97,7 +118,7 @@ export async function runSellerAssistant(opts: {
       response = await client.messages.create({
         model: ASSISTANT_MODEL,
         max_tokens: MAX_TOKENS,
-        system: buildSystemPrompt(opts.pubkey, opts.canWrite),
+        system: config.systemPrompt,
         tools,
         messages,
       });
@@ -157,7 +178,7 @@ export async function runSellerAssistant(opts: {
 
       // Defense in depth: the allowlist is enforced again at call time, so a
       // model hallucinating an out-of-scope tool name gets a clean refusal.
-      if (!isAssistantToolAllowed(name, opts.canWrite)) {
+      if (!config.isAllowed(name)) {
         const detail = "Not available to the in-app assistant";
         actions.push({ tool: prettifyToolName(name), ok: false, detail });
         toolResults.push({
@@ -215,4 +236,32 @@ export async function runSellerAssistant(opts: {
       "I hit my step limit for one message. The actions listed above did complete — ask me to continue if anything is left.",
     actions,
   };
+}
+
+export async function runSellerAssistant(opts: {
+  pubkey: string;
+  canWrite: boolean;
+  messages: AssistantChatMessage[];
+  mcp: AssistantMcpBridge;
+}): Promise<{ reply: string; actions: AssistantAction[] }> {
+  return runAssistantLoop(opts, {
+    systemPrompt: buildSystemPrompt(opts.pubkey, opts.canWrite),
+    filterTools: (tools) => filterAssistantTools(tools, opts.canWrite),
+    isAllowed: (name) => isAssistantToolAllowed(name, opts.canWrite),
+  });
+}
+
+// The buyer-facing storefront assistant: guests and signed-in buyers on a
+// custom stall. Runs over an anonymous MCP session and the public-catalog
+// tool allowlist only — no seller account data, no order placement, no writes.
+export async function runBuyerAssistant(opts: {
+  shopName: string | null;
+  messages: AssistantChatMessage[];
+  mcp: AssistantMcpBridge;
+}): Promise<{ reply: string; actions: AssistantAction[] }> {
+  return runAssistantLoop(opts, {
+    systemPrompt: buildBuyerSystemPrompt(opts.shopName),
+    filterTools: filterBuyerAssistantTools,
+    isAllowed: isBuyerToolAllowed,
+  });
 }

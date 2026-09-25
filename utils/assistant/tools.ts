@@ -89,6 +89,32 @@ export const ASSISTANT_TOOLS: Record<string, AssistantToolClass> = {
   ...Object.fromEntries(WRITE_TOOLS.map((name) => [name, "write"])),
 };
 
+// Buyer-facing surface for the storefront assistant (guests and signed-in
+// buyers on a custom stall): public catalog discovery ONLY. No seller account
+// data, no order placement, no writes. The anonymous MCP session this runs
+// over exposes only public read tools as well — this allowlist is the second,
+// defense-in-depth layer.
+const BUYER_TOOLS = [
+  "search_products",
+  "get_categories",
+  "get_product_details",
+  "get_storefront",
+  "get_reviews",
+  "check_discount_code",
+  "list_companies",
+  "get_company_details",
+] as const;
+
+export function isBuyerToolAllowed(name: string): boolean {
+  return (BUYER_TOOLS as readonly string[]).includes(name);
+}
+
+export function filterBuyerAssistantTools<T extends { name: string }>(
+  tools: T[]
+): T[] {
+  return tools.filter((tool) => isBuyerToolAllowed(tool.name));
+}
+
 export function isAssistantToolAllowed(
   name: string,
   canWrite: boolean
