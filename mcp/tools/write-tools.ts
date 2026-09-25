@@ -7317,6 +7317,9 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
               purchased: true,
               orderId: params.order_id,
               labelId: result.labelId ?? null,
+              // Display payload so surfaces (assistant chat card) can link
+              // tracking + the label PDF; presentation only.
+              label: result.label ?? null,
             },
             startTime
           );
