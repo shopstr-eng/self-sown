@@ -22,6 +22,22 @@ export interface AssistantAction {
   tool: string;
   ok: boolean;
   detail: string;
+  // Display payload for a purchased shipping label, lifted out of the tool's
+  // JSON result so the chat can render a clickable card (presentation only).
+  label?: PurchasedLabelInfo;
+}
+
+// Mirrors utils/shipping/auto-purchase.ts PurchasedLabelInfo, re-declared so
+// the assistant module stays independent of the shipping module graph.
+export interface PurchasedLabelInfo {
+  trackingCode: string | null;
+  trackingUrl: string | null;
+  labelUrl: string;
+  labelFormat: string;
+  rate: number;
+  currency: string;
+  carrier: string;
+  service: string;
 }
 
 export interface AssistantMcpBridge {
@@ -41,6 +57,50 @@ const MAX_TOOL_CALLS = 12;
 const MAX_TOOL_RESULT_CHARS = 6_000;
 const MAX_ACTION_DETAIL_CHARS = 280;
 const MAX_TOKENS = 4_096;
+
+// Lift the purchased-label display payload out of a tool's JSON result text
+// so the chat can render tracking/download links. Parsed from the tool's own
+// structured output (not model text); anything malformed yields no card.
+// Exported for unit tests.
+export function extractPurchasedLabel(
+  toolName: string,
+  resultText: string
+): PurchasedLabelInfo | undefined {
+  if (toolName !== "purchase_shipping_label") return undefined;
+  try {
+    const parsed = JSON.parse(resultText) as {
+      label?: Record<string, unknown> | null;
+    };
+    const label = parsed?.label;
+    if (!label || typeof label !== "object") return undefined;
+    const { labelUrl, labelFormat, rate, currency, carrier, service } = label;
+    if (
+      typeof labelUrl !== "string" ||
+      !labelUrl ||
+      typeof labelFormat !== "string" ||
+      typeof rate !== "number" ||
+      typeof currency !== "string" ||
+      typeof carrier !== "string" ||
+      typeof service !== "string"
+    ) {
+      return undefined;
+    }
+    return {
+      trackingCode:
+        typeof label.trackingCode === "string" ? label.trackingCode : null,
+      trackingUrl:
+        typeof label.trackingUrl === "string" ? label.trackingUrl : null,
+      labelUrl,
+      labelFormat,
+      rate,
+      currency,
+      carrier,
+      service,
+    };
+  } catch {
+    return undefined;
+  }
+}
 
 function buildSystemPrompt(pubkey: string, canWrite: boolean): string {
   return [
@@ -199,6 +259,11 @@ async function runAssistantLoop(
           tool: prettifyToolName(name),
           ok: !result.isError,
           detail: result.text.slice(0, MAX_ACTION_DETAIL_CHARS),
+          // The detail above is truncated for the action row; the label card
+          // needs the full structured payload parsed from the result text.
+          label: result.isError
+            ? undefined
+            : extractPurchasedLabel(name, result.text),
         });
         toolResults.push({
           type: "tool_result",

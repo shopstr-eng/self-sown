@@ -69,6 +69,7 @@ import {
   filterAssistantTools,
   isAssistantToolAllowed,
 } from "@/utils/assistant/tools";
+import { extractPurchasedLabel } from "@/utils/assistant/agent";
 
 const SELLER_PUBKEY = "b".repeat(64);
 
@@ -375,5 +376,85 @@ describe("assistant tool allowlist", () => {
     expect(isAssistantToolAllowed("purchase_shipping_label", true)).toBe(true);
     expect(isAssistantToolAllowed("send_broadcast_email", true)).toBe(true);
     expect(isAssistantToolAllowed("send_test_email", true)).toBe(true);
+  });
+});
+
+describe("extractPurchasedLabel", () => {
+  const labelJson = JSON.stringify({
+    success: true,
+    purchased: true,
+    orderId: "ord_1",
+    labelId: 42,
+    label: {
+      trackingCode: "9400",
+      trackingUrl: "https://tools.usps.com/go/9400",
+      labelUrl: "https://shippo.test/label.pdf",
+      labelFormat: "PDF",
+      rate: 8.25,
+      currency: "USD",
+      carrier: "USPS",
+      service: "Ground Advantage",
+    },
+  });
+
+  it("lifts the label payload out of a successful purchase result", () => {
+    expect(extractPurchasedLabel("purchase_shipping_label", labelJson)).toEqual(
+      {
+        trackingCode: "9400",
+        trackingUrl: "https://tools.usps.com/go/9400",
+        labelUrl: "https://shippo.test/label.pdf",
+        labelFormat: "PDF",
+        rate: 8.25,
+        currency: "USD",
+        carrier: "USPS",
+        service: "Ground Advantage",
+      }
+    );
+  });
+
+  it("ignores other tools, so no stale card renders", () => {
+    expect(extractPurchasedLabel("get_shipping_label_status", labelJson)).toBe(
+      undefined
+    );
+  });
+
+  it("tolerates a missing label (ambiguous charge with no metadata)", () => {
+    expect(
+      extractPurchasedLabel(
+        "purchase_shipping_label",
+        JSON.stringify({ success: true, purchased: true, labelId: null })
+      )
+    ).toBeUndefined();
+  });
+
+  it("drops malformed payloads instead of rendering a broken card", () => {
+    expect(
+      extractPurchasedLabel(
+        "purchase_shipping_label",
+        JSON.stringify({ label: { carrier: "USPS" } })
+      )
+    ).toBeUndefined();
+    expect(
+      extractPurchasedLabel("purchase_shipping_label", "not json")
+    ).toBeUndefined();
+  });
+
+  it("normalizes non-string tracking fields to null", () => {
+    const parsed = extractPurchasedLabel(
+      "purchase_shipping_label",
+      JSON.stringify({
+        label: {
+          trackingCode: null,
+          labelUrl: "https://shippo.test/label.pdf",
+          labelFormat: "PDF",
+          rate: 8.25,
+          currency: "USD",
+          carrier: "USPS",
+          service: "Ground Advantage",
+        },
+      })
+    );
+    expect(parsed?.trackingCode).toBeNull();
+    expect(parsed?.trackingUrl).toBeNull();
   });
 });

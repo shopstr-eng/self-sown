@@ -41,6 +41,19 @@ import {
   releaseAutoLabelClaim,
 } from "@/utils/db/shipping-service";
 
+// Display payload for a purchased label — presentation only (chat card, MCP
+// tool result); it never feeds back into purchase or claim logic.
+export interface PurchasedLabelInfo {
+  trackingCode: string | null;
+  trackingUrl: string | null;
+  labelUrl: string;
+  labelFormat: string;
+  rate: number;
+  currency: string;
+  carrier: string;
+  service: string;
+}
+
 export interface AutoLabelResult {
   purchased: boolean;
   // Why the purchase did not happen (for logging only; never surfaced to a
@@ -56,6 +69,7 @@ export interface AutoLabelResult {
     | "no-rates"
     | "error";
   labelId?: number | null;
+  label?: PurchasedLabelInfo;
 }
 
 interface RunAutoLabelArgs {
@@ -371,7 +385,20 @@ export async function runAutoLabelPurchase(
         );
       }
 
-      return { purchased: true, labelId };
+      return {
+        purchased: true,
+        labelId,
+        label: {
+          trackingCode: label.trackingCode || null,
+          trackingUrl: label.trackingUrl ?? null,
+          labelUrl: label.labelUrl,
+          labelFormat: label.labelFormat,
+          rate: label.rate,
+          currency: label.currency,
+          carrier: label.carrier,
+          service: label.service,
+        },
+      };
     } catch (buyErr) {
       // The Shippo transaction POST is NOT idempotent: a throw here is
       // ambiguous (a timeout after Shippo accepted the charge looks exactly
@@ -432,7 +459,20 @@ export async function runAutoLabelPurchase(
                 service: label.service,
                 isReturn: false,
               });
-              return { purchased: true, labelId: rec.id };
+              return {
+                purchased: true,
+                labelId: rec.id,
+                label: {
+                  trackingCode: label.trackingCode || null,
+                  trackingUrl: label.trackingUrl ?? null,
+                  labelUrl: label.labelUrl,
+                  labelFormat: label.labelFormat,
+                  rate: label.rate,
+                  currency: label.currency,
+                  carrier: label.carrier,
+                  service: label.service,
+                },
+              };
             } catch (dbErr) {
               console.error(
                 "CRITICAL: reconciled a charged label but its history insert failed:",

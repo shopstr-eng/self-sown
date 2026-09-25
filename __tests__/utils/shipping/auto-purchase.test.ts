@@ -272,7 +272,20 @@ describe("runAutoLabelPurchase — reconciliation (money safety)", () => {
     });
     insertShippingLabelMock.mockResolvedValue({ id: 55 });
     const result = await runAutoLabelPurchase(baseArgs());
-    expect(result).toEqual({ purchased: true, labelId: 55 });
+    expect(result).toEqual({
+      purchased: true,
+      labelId: 55,
+      label: {
+        trackingCode: "TRK9",
+        trackingUrl: null,
+        labelUrl: "https://label/9.pdf",
+        labelFormat: "PDF",
+        rate: 7.5,
+        currency: "USD",
+        carrier: "USPS",
+        service: "Priority",
+      },
+    });
     expect(buyLabelMock).toHaveBeenCalledTimes(1); // never retried
     expect(markAutoLabelPurchasedMock).toHaveBeenCalledWith(
       expect.any(String),

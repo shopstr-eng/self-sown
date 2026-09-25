@@ -261,13 +261,35 @@ describe("purchase_shipping_label", () => {
       seller_pubkey: PUBKEY,
       payment_status: "paid",
     });
-    mockAutoPurchase.mockResolvedValue({ purchased: true, labelId: 42 });
+    mockAutoPurchase.mockResolvedValue({
+      purchased: true,
+      labelId: 42,
+      label: {
+        trackingCode: "9400",
+        trackingUrl: "https://tools.usps.com/go/9400",
+        labelUrl: "https://shippo.test/label.pdf",
+        labelFormat: "PDF",
+        rate: 8.25,
+        currency: "USD",
+        carrier: "USPS",
+        service: "Ground Advantage",
+      },
+    });
     const result = await client.callTool({
       name: "purchase_shipping_label",
       arguments: { order_id: "ord_1" },
     });
     expect(result.isError).toBeUndefined();
-    expect(parseResult(result).purchased).toBe(true);
+    const parsed = parseResult(result);
+    expect(parsed.purchased).toBe(true);
+    expect(parsed.label).toEqual(
+      expect.objectContaining({
+        trackingCode: "9400",
+        labelUrl: "https://shippo.test/label.pdf",
+        rate: 8.25,
+        carrier: "USPS",
+      })
+    );
     expect(mockAutoPurchase).toHaveBeenCalledWith("ord_1", {
       bypassAutoToggle: true,
     });

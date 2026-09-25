@@ -9,10 +9,76 @@ interface ChatMessage {
   content: string;
 }
 
+interface PurchasedLabelInfo {
+  trackingCode: string | null;
+  trackingUrl: string | null;
+  labelUrl: string;
+  labelFormat: string;
+  rate: number;
+  currency: string;
+  carrier: string;
+  service: string;
+}
+
 interface AssistantAction {
   tool: string;
   ok: boolean;
   detail: string;
+  label?: PurchasedLabelInfo;
+}
+
+// Rendered as an href, so only real http(s) URLs become links — anything else
+// falls back to plain text.
+function asHttpUrl(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function PurchasedLabelCard({ label }: { label: PurchasedLabelInfo }) {
+  const trackingUrl = asHttpUrl(label.trackingUrl);
+  const labelUrl = asHttpUrl(label.labelUrl);
+  return (
+    <div className="mt-1 space-y-1 rounded-md border-2 border-black bg-white p-2 text-xs text-zinc-800">
+      <p className="font-semibold">
+        {label.carrier} {label.service}: ${label.rate.toFixed(2)}{" "}
+        {label.currency}
+      </p>
+      {label.trackingCode && (
+        <p>
+          Tracking:{" "}
+          {trackingUrl ? (
+            <a
+              href={trackingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="break-all text-blue-700 underline"
+            >
+              {label.trackingCode}
+            </a>
+          ) : (
+            label.trackingCode
+          )}
+        </p>
+      )}
+      {labelUrl && (
+        <a
+          href={labelUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-primary-yellow inline-block rounded-md border-2 border-black px-3 py-1 font-semibold text-black hover:bg-yellow-300"
+        >
+          Download label ({label.labelFormat})
+        </a>
+      )}
+    </div>
+  );
 }
 
 interface DisplayMessage extends ChatMessage {
@@ -198,12 +264,16 @@ export default function AssistantChat({
               {message.actions && message.actions.length > 0 && (
                 <div className="mt-2 space-y-1 border-t border-zinc-300 pt-2">
                   {message.actions.map((action, actionIndex) => (
-                    <div
-                      key={actionIndex}
-                      className="flex items-center gap-2 text-xs text-zinc-600"
-                    >
-                      <span aria-hidden="true">{action.ok ? "✅" : "⚠️"}</span>
-                      <span className="font-mono">{action.tool}</span>
+                    <div key={actionIndex}>
+                      <div className="flex items-center gap-2 text-xs text-zinc-600">
+                        <span aria-hidden="true">
+                          {action.ok ? "✅" : "⚠️"}
+                        </span>
+                        <span className="font-mono">{action.tool}</span>
+                      </div>
+                      {action.ok && action.label && (
+                        <PurchasedLabelCard label={action.label} />
+                      )}
                     </div>
                   ))}
                 </div>
