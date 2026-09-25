@@ -22,6 +22,12 @@ interface DisplayMessage extends ChatMessage {
 
 interface AssistantChatProps {
   onWritesStateChange?: (writesEnabled: boolean) => void;
+  // Fill the parent container (floating widget) instead of the settings
+  // page's fixed-height, self-bordered card.
+  fillHeight?: boolean;
+  // "buyer" = the storefront shopping assistant for guests/buyers on a custom
+  // stall: unauthenticated, public catalog tools only, stallPubkey required.
+  buyerMode?: { stallPubkey: string };
 }
 
 const SUGGESTIONS = [
@@ -31,8 +37,17 @@ const SUGGESTIONS = [
   "Pause my email flows while I'm on vacation",
 ];
 
+const BUYER_SUGGESTIONS = [
+  "What do you sell?",
+  "What's popular right now?",
+  "Do you have any discount codes?",
+  "Tell me about this shop",
+];
+
 export default function AssistantChat({
   onWritesStateChange,
+  fillHeight = false,
+  buyerMode,
 }: AssistantChatProps) {
   const { signer } = useContext(SignerContext);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
@@ -49,7 +64,9 @@ export default function AssistantChat({
 
   const send = async (raw?: string) => {
     const content = (raw ?? input).trim();
-    if (!content || sending || !signer) return;
+    // Buyer mode is unauthenticated (guests have no signer); seller mode
+    // signs every request.
+    if (!content || sending || (!buyerMode && !signer)) return;
 
     // The signed NIP-98 payload hash must cover exactly this body string.
     const history: ChatMessage[] = [
@@ -62,21 +79,23 @@ export default function AssistantChat({
 
     try {
       const url = `${window.location.origin}/api/assistant/chat`;
-      const body = JSON.stringify({ messages: history });
-      const authorization = await createNip98AuthorizationHeader(
-        signer,
-        url,
-        "POST",
-        body
+      const body = JSON.stringify(
+        buyerMode
+          ? { messages: history, context: { stallPubkey: buyerMode.stallPubkey } }
+          : { messages: history }
       );
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: authorization,
-        },
-        body,
-      });
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (!buyerMode && signer) {
+        headers["Authorization"] = await createNip98AuthorizationHeader(
+          signer,
+          url,
+          "POST",
+          body
+        );
+      }
+      const res = await fetch(url, { method: "POST", headers, body });
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
@@ -119,19 +138,30 @@ export default function AssistantChat({
   };
 
   return (
-    <div className="shadow-neo rounded-lg border-2 border-black bg-white">
+    <div
+      className={
+        fillHeight
+          ? "flex h-full min-h-0 flex-col bg-white"
+          : "shadow-neo rounded-lg border-2 border-black bg-white"
+      }
+    >
       <div
         ref={transcriptRef}
-        className="h-[55vh] space-y-4 overflow-y-auto p-4 md:p-6"
+        className={
+          fillHeight
+            ? "min-h-0 flex-1 space-y-4 overflow-y-auto p-4"
+            : "h-[55vh] space-y-4 overflow-y-auto p-4 md:p-6"
+        }
       >
         {messages.length === 0 && (
           <div className="space-y-3">
             <p className="text-sm text-zinc-600">
-              Ask about your orders, listings, stock, discounts, or analytics —
-              or tell me to make a change. A few things you can try:
+              {buyerMode
+                ? "Ask me about this shop's products, reviews, or discount codes. A few things you can try:"
+                : "Ask about your orders, listings, stock, discounts, or analytics — or tell me to make a change. A few things you can try:"}
             </p>
             <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map((suggestion) => (
+              {(buyerMode ? BUYER_SUGGESTIONS : SUGGESTIONS).map((suggestion) => (
                 <button
                   key={suggestion}
                   onClick={() => send(suggestion)}
@@ -194,7 +224,9 @@ export default function AssistantChat({
       <div className="flex gap-2 border-t-2 border-black p-3">
         <Input
           aria-label="Message the assistant"
-          placeholder="Ask or tell me to do something…"
+          placeholder={
+            buyerMode ? "Ask about this shop…" : "Ask or tell me to do something…"
+          }
           value={input}
           onValueChange={setInput}
           onKeyDown={(event) => {

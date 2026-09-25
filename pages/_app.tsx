@@ -79,6 +79,7 @@ import { MintRecoveryBoot } from "@/components/utility-components/mint-recovery-
 import UpdateToast from "@/components/utility-components/update-toast";
 import { ProMembershipProvider } from "@/components/utility-components/pro-membership-context";
 import AffiliateRefTracker from "@/components/utility-components/affiliate-ref-tracker";
+import FloatingAssistant from "@/components/assistant/floating-assistant";
 import { NostrManager } from "@/utils/nostr/nostr-manager";
 import { SITE_HOST } from "@/utils/site-url";
 
@@ -1786,6 +1787,22 @@ function SelfSown({ props }: { props: AppProps }) {
                                 </CustomDomainProvider>
                               </main>
                             </div>
+                            {/* Global assistant — on the marketplace it's the
+                                seller assistant (self-gates on sign-in); on a
+                                custom stall it follows the stall's own
+                                buyer/seller visibility toggles. Hidden where
+                                the app chrome is hidden and on its own
+                                full-page settings view. */}
+                            {!isMachineReadableRoute(router.asPath) &&
+                              router.pathname !== "/settings/assistant" && (
+                                <FloatingAssistant
+                                  stallPubkey={
+                                    isStorefrontRoute
+                                      ? storefrontLoadPubkey
+                                      : null
+                                  }
+                                />
+                              )}
                           </ChatsContext.Provider>
                         </ShopMapContext.Provider>
                       </ProfileMapContext.Provider>

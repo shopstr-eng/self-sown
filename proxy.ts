@@ -100,6 +100,11 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   // reads that as "not Pro", and EVERY custom-domain stall reverts to the
   // default Self-sown look even when the seller is fully entitled.
   "/api/pro/status",
+  // Storefront AI assistant chat. Buyer/guest mode is unauthenticated (the
+  // route enforces the stall's own visibility toggle + owner Pro gate
+  // server-side); the seller mode verifies NIP-98 itself. Without passthrough
+  // the proxy would 403 every chat message from a custom-domain storefront.
+  "/api/assistant/chat",
   "/api/og-preview",
   // Compressed og:image proxy. DynamicHead points social-card image URLs at
   // this route on the page's canonical origin, so on a seller custom domain

@@ -423,6 +423,23 @@ function StorefrontThemeWrapperInner({
     body.sf-active [data-overlay-container] .bg-blue-100 { background-color: color-mix(in srgb, var(--sf-accent) 15%, var(--sf-bg)) !important; }
     body.sf-active [data-overlay-container] .hover\\:bg-blue-200:hover { background-color: color-mix(in srgb, var(--sf-accent) 25%, var(--sf-bg)) !important; }
 
+    /* The floating assistant widget marks its OWN root elements with
+       data-overlay-container (bubble + panel), so the themed classes sit on
+       the container itself, not a descendant — compound selectors below.
+       The chat also uses zinc shades and a solid black user bubble. */
+    body.sf-active [data-overlay-container].bg-white { background-color: var(--sf-bg) !important; }
+    body.sf-active [data-overlay-container].bg-primary-yellow { background-color: var(--sf-primary) !important; }
+    body.sf-active [data-overlay-container].border-black { border-color: var(--sf-secondary) !important; }
+    body.sf-active [data-overlay-container].text-black { color: var(--sf-text) !important; }
+    body.sf-active [data-overlay-container].shadow-neo { box-shadow: 4px 4px 0 var(--sf-secondary) !important; }
+    body.sf-active [data-overlay-container] .bg-black { background-color: var(--sf-secondary) !important; }
+    body.sf-active [data-overlay-container] .bg-zinc-50 { background-color: color-mix(in srgb, var(--sf-text) 4%, var(--sf-bg)) !important; }
+    body.sf-active [data-overlay-container] .border-zinc-300 { border-color: color-mix(in srgb, var(--sf-text) 25%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-zinc-500 { color: color-mix(in srgb, var(--sf-text) 50%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-zinc-600 { color: color-mix(in srgb, var(--sf-text) 60%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-zinc-700 { color: color-mix(in srgb, var(--sf-text) 75%, transparent) !important; }
+    body.sf-active [data-overlay-container] .text-zinc-800 { color: var(--sf-text) !important; }
+
     ${
       storefront?.neoShadows
         ? `

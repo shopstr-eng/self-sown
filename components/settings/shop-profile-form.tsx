@@ -372,6 +372,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const [showCommunityPage, setShowCommunityPage] = useState(false);
   const [showWalletPage, setShowWalletPage] = useState(false);
   const [showBlogPage, setShowBlogPage] = useState(false);
+  // AI assistant visibility on the storefront: buyer-facing is opt-in
+  // (public AI surface), seller-facing defaults on (matches the main app).
+  const [assistantBuyers, setAssistantBuyers] = useState(false);
+  const [assistantSeller, setAssistantSeller] = useState(true);
   const [paymentMethodOrder, setPaymentMethodOrder] = useState<
     StorefrontPaymentMethodGroup[]
   >(DEFAULT_PAYMENT_METHOD_ORDER);
@@ -483,6 +487,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
         if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
         if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
+        if (sf.assistantVisibility) {
+          setAssistantBuyers(sf.assistantVisibility.buyers === true);
+          setAssistantSeller(sf.assistantVisibility.seller !== false);
+        }
         if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
         if (sf.paymentMethodOrder)
           setPaymentMethodOrder(
@@ -614,6 +622,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
       if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
       if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
+      if (sf.assistantVisibility) {
+        setAssistantBuyers(sf.assistantVisibility.buyers === true);
+        setAssistantSeller(sf.assistantVisibility.seller !== false);
+      }
       if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
       if (sf.paymentMethodOrder)
         setPaymentMethodOrder(
@@ -976,6 +988,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         showCommunityPage,
         showWalletPage,
         showBlogPage,
+        assistantBuyers,
+        assistantSeller,
         blogPageSections,
         emailPopup,
         seoMeta,
@@ -1012,6 +1026,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       showCommunityPage,
       showWalletPage,
       showBlogPage,
+      assistantBuyers,
+      assistantSeller,
       blogPageSections,
       emailPopup,
       seoMeta,
@@ -1129,6 +1145,15 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         showCommunityPage: showCommunityPage || undefined,
         showWalletPage: showWalletPage || undefined,
         showBlogPage: showBlogPage || undefined,
+        // Only write the object when it differs from the defaults
+        // (buyers off / seller on) so untouched profiles stay byte-clean.
+        assistantVisibility:
+          assistantBuyers || !assistantSeller
+            ? {
+                buyers: assistantBuyers || undefined,
+                seller: assistantSeller ? undefined : false,
+              }
+            : undefined,
         blogPage:
           blogPageSections.length > 0
             ? { sections: blogPageSections }
@@ -2716,6 +2741,45 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             to your storefront navigation bar, and you can
                             customize the blog index page from the Pages section
                             above.
+                          </p>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="mb-2 flex items-center gap-3 text-base font-bold text-black">
+                            <input
+                              type="checkbox"
+                              checked={assistantBuyers}
+                              onChange={(e) =>
+                                setAssistantBuyers(e.target.checked)
+                              }
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            Show AI Assistant to Shoppers
+                          </label>
+                          <p className="ml-7 text-sm text-gray-500">
+                            Adds a chat bubble to your storefront that helps
+                            visitors browse your products, reviews, and discount
+                            codes. It can only see your public catalog — never
+                            your account or orders.
+                          </p>
+                        </div>
+
+                        <div className="mb-6">
+                          <label className="mb-2 flex items-center gap-3 text-base font-bold text-black">
+                            <input
+                              type="checkbox"
+                              checked={assistantSeller}
+                              onChange={(e) =>
+                                setAssistantSeller(e.target.checked)
+                              }
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            Show AI Assistant to Me on My Storefront
+                          </label>
+                          <p className="ml-7 text-sm text-gray-500">
+                            Shows your own seller assistant while you browse
+                            your storefront. Turn off to hide it there — it
+                            stays available everywhere else in the app.
                           </p>
                         </div>
 
