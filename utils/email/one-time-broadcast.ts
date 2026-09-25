@@ -234,6 +234,11 @@ export async function runOneTimeBroadcast(params: {
           html: rendered.html,
           fromEmail,
           fromName: branding?.shopName,
+          // Stamp the owning seller so an ASYNCHRONOUS bounce/dropped/spamreport
+          // (SendGrid Event Webhook) can be attributed back to this seller's
+          // suppression list — synchronous 4xx recipient rejects are handled
+          // below, but most dead addresses only surface via the webhook.
+          customArgs: { seller_pubkey: pubkey },
           headers: {
             "List-Unsubscribe": `<${unsubscribeUrl}>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
