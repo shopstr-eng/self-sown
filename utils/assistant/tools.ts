@@ -94,6 +94,9 @@ export const ASSISTANT_TOOLS: Record<string, AssistantToolClass> = {
 // data, no order placement, no writes. The anonymous MCP session this runs
 // over exposes only public read tools as well — this allowlist is the second,
 // defense-in-depth layer.
+// Shop-scoped public catalog reads only. Marketplace-directory tools
+// (list_companies / get_company_details) are deliberately NOT buyer tools:
+// the buyer assistant answers for ONE shop, never about other sellers.
 const BUYER_TOOLS = [
   "search_products",
   "get_categories",
@@ -101,8 +104,6 @@ const BUYER_TOOLS = [
   "get_storefront",
   "get_reviews",
   "check_discount_code",
-  "list_companies",
-  "get_company_details",
 ] as const;
 
 export function isBuyerToolAllowed(name: string): boolean {

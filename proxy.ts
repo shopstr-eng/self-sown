@@ -101,10 +101,14 @@ const CUSTOM_DOMAIN_API_ALLOWLIST = [
   // default Self-sown look even when the seller is fully entitled.
   "/api/pro/status",
   // Storefront AI assistant chat. Buyer/guest mode is unauthenticated (the
-  // route enforces the stall's own visibility toggle + owner Pro gate
-  // server-side); the seller mode verifies NIP-98 itself. Without passthrough
-  // the proxy would 403 every chat message from a custom-domain storefront.
+  // route enforces the stall's own buyer-visibility toggle server-side); the
+  // seller mode verifies NIP-98 itself. Without passthrough the proxy would
+  // 403 every chat message from a custom-domain storefront.
   "/api/assistant/chat",
+  // Assistant setup (write-enablement status + key provisioning). A seller
+  // managing their stall from their own custom domain needs it for the
+  // seller assistant's setup card; the route verifies NIP-98 itself.
+  "/api/assistant/setup",
   "/api/og-preview",
   // Compressed og:image proxy. DynamicHead points social-card image URLs at
   // this route on the page's canonical origin, so on a seller custom domain

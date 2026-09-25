@@ -64,7 +64,7 @@ const fakeSigner = {
   sign: jest.fn(),
 };
 
-function renderWidget(pubkey: string) {
+function renderWidget(pubkey: string, stallPubkey: string | null = null) {
   const value = {
     signer: fakeSigner,
     isLoggedIn: true,
@@ -74,9 +74,49 @@ function renderWidget(pubkey: string) {
   };
   return (
     <SignerContext.Provider value={value as never}>
-      <FloatingAssistant />
+      <FloatingAssistant stallPubkey={stallPubkey} />
     </SignerContext.Provider>
   );
+}
+
+function renderGuestWidget(
+  props: { stallSlug?: string | null; stallPubkey?: string | null } = {}
+) {
+  const value = {
+    signer: null,
+    isLoggedIn: false,
+    isAuthStateResolved: true,
+    pubkey: null,
+    npub: null,
+  };
+  return (
+    <SignerContext.Provider value={value as never}>
+      <FloatingAssistant
+        stallSlug={props.stallSlug ?? null}
+        stallPubkey={props.stallPubkey ?? null}
+      />
+    </SignerContext.Provider>
+  );
+}
+
+// Route the widget's storefront lookups per URL: slug resolution returns the
+// stall pubkey, the pubkey lookup returns the stall's visibility toggles.
+function mockStallFetches(stallPubkey: string, buyers: boolean) {
+  (fetchMock as jest.Mock).mockImplementation(async (input: unknown) => {
+    const url = String(input);
+    if (url.includes("/api/storefront/lookup")) {
+      if (url.includes("slug=")) {
+        return { ok: true, json: async () => ({ pubkey: stallPubkey }) };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          shopConfig: { storefront: { assistantVisibility: { buyers } } },
+        }),
+      };
+    }
+    return { ok: true, json: async () => ({ writesEnabled: false }) };
+  });
 }
 
 beforeAll(() => {
@@ -105,6 +145,12 @@ beforeEach(() => {
   chatMountCount = 0;
   window.localStorage.clear();
   jest.clearAllMocks();
+  // clearAllMocks keeps implementations, so re-establish defaults explicitly
+  // to stop per-test overrides leaking into later tests.
+  (fetchMock as jest.Mock).mockImplementation(async () => ({
+    ok: true,
+    json: async () => ({ writesEnabled: false }),
+  }));
 });
 
 describe("FloatingAssistant — keyboard + drag behavior", () => {
@@ -263,5 +309,102 @@ describe("resolveAssistantAudience", () => {
         visibility: null,
       })
     ).toBeNull();
+  });
+});
+
+describe("FloatingAssistant — stall-context resolution", () => {
+  const STALL = "c".repeat(64);
+
+  it("resolves stall identity from the slug when the pubkey prop is missing (client-side stall navigation)", async () => {
+    mockStallFetches(STALL, true);
+    // stallSlug but no stallPubkey: _app's SSR-seeded pubkey resolution
+    // hasn't run after a marketplace→stall navigation.
+    render(renderGuestWidget({ stallSlug: "sunrise-farm" }));
+
+    // Without slug resolution this stays hidden (or worse, shows marketplace
+    // behavior); with it, an opted-in stall shows guests the buyer bubble.
+    expect(
+      await screen.findByLabelText("Open the shopping assistant")
+    ).toBeTruthy();
+  });
+
+  it("shows nothing on an unresolved stall route rather than the marketplace audience", () => {
+    // Slug lookup never resolves (pending promise).
+    (fetchMock as jest.Mock).mockImplementation(
+      () => new Promise(() => undefined)
+    );
+    render(renderGuestWidget({ stallSlug: "sunrise-farm" }));
+    expect(screen.queryByLabelText(/assistant/i)).toBeNull();
+  });
+
+  it("follows the slug on stall→stall navigation, not a stale pubkey prop", async () => {
+    const SHOP_A = "a".repeat(64);
+    const SHOP_B = "b".repeat(64);
+    (fetchMock as jest.Mock).mockImplementation(async (input: unknown) => {
+      const url = String(input);
+      if (url.includes("slug=shop-a")) {
+        return { ok: true, json: async () => ({ pubkey: SHOP_A }) };
+      }
+      if (url.includes("slug=shop-b")) {
+        return { ok: true, json: async () => ({ pubkey: SHOP_B }) };
+      }
+      if (url.includes(`pubkey=${SHOP_A}`)) {
+        // Shop A opted IN to the buyer assistant.
+        return {
+          ok: true,
+          json: async () => ({
+            shopConfig: {
+              storefront: { assistantVisibility: { buyers: true } },
+            },
+          }),
+        };
+      }
+      if (url.includes(`pubkey=${SHOP_B}`)) {
+        // Shop B opted OUT.
+        return {
+          ok: true,
+          json: async () => ({
+            shopConfig: {
+              storefront: { assistantVisibility: { buyers: false } },
+            },
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+
+    // On shop A (buyers ON): the guest sees the buyer bubble.
+    const { rerender } = render(
+      renderGuestWidget({ stallSlug: "shop-a", stallPubkey: SHOP_A })
+    );
+    expect(
+      await screen.findByLabelText("Open the shopping assistant")
+    ).toBeTruthy();
+
+    // Navigate A→B: the slug is already B, but _app's pubkey state still
+    // holds A (it updates asynchronously). B has the buyer assistant OFF, so
+    // the widget must resolve B and HIDE — never keep serving A's assistant.
+    rerender(renderGuestWidget({ stallSlug: "shop-b", stallPubkey: SHOP_A }));
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Open the shopping assistant")).toBeNull()
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("slug=shop-b")
+    );
+  });
+
+  it("remounts the buyer chat when the signed-in viewer changes on the same stall", async () => {
+    mockStallFetches(STALL, true);
+    const { rerender } = render(renderWidget(PUBKEY_A, STALL));
+
+    const bubble = await screen.findByLabelText("Open the shopping assistant");
+    fireEvent.click(bubble);
+    await screen.findByTestId("assistant-chat");
+    const mountsBefore = chatMountCount;
+
+    // Account switch on the same stall: the buyer transcript (submitted with
+    // every request) must not carry into the next viewer's session.
+    rerender(renderWidget(PUBKEY_B, STALL));
+    await waitFor(() => expect(chatMountCount).toBeGreaterThan(mountsBefore));
   });
 });
