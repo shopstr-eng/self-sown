@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Button, Input, Spinner } from "@heroui/react";
 import ProtectedRoute from "@/components/utility-components/protected-route";
 import { SettingsBreadCrumbs } from "@/components/settings/settings-bread-crumbs";
@@ -7,6 +7,7 @@ import { useProMembership } from "@/components/utility-components/pro-membership
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import AssistantChat from "@/components/assistant/assistant-chat";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
+import { mintScopedSessionToken } from "@/utils/assistant/session-client";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 const AssistantSettingsPage = () => {
@@ -16,6 +17,24 @@ const AssistantSettingsPage = () => {
   const [nsec, setNsec] = useState("");
   const [enabling, setEnabling] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
+  // Short-lived bearer token minted from ONE NIP-98 signature, so NIP-07
+  // extension / NIP-46 bunker users approve once per window instead of once
+  // per interaction. In-memory only — a fresh page load re-mints.
+  const sessionRef = useRef<{ token: string; expiresAt: number } | null>(null);
+
+  // Mint (or reuse) an "assistant-setup" scoped session token. Returns null
+  // when minting fails — callers fall back to per-request NIP-98 signing.
+  const getSessionToken = async (): Promise<string | null> => {
+    const cached = sessionRef.current;
+    // 60s margin so a token can't expire mid-request.
+    if (cached && cached.expiresAt - 60_000 > Date.now()) {
+      return cached.token;
+    }
+    if (!signer) return null;
+    const minted = await mintScopedSessionToken(signer, "assistant-setup");
+    sessionRef.current = minted;
+    return minted?.token ?? null;
+  };
 
   // On load, check whether agent signing is already on file (it is automatic
   // for sellers who configured an MCP API key with signing for external
@@ -25,11 +44,10 @@ const AssistantSettingsPage = () => {
       if (!membership.isPro || !signer || !isLoggedIn) return;
       try {
         const url = `${window.location.origin}/api/assistant/setup`;
-        const authorization = await createNip98AuthorizationHeader(
-          signer,
-          url,
-          "GET"
-        );
+        const token = await getSessionToken();
+        const authorization = token
+          ? `Bearer ${token}`
+          : await createNip98AuthorizationHeader(signer, url, "GET");
         const res = await fetch(url, {
           headers: { Authorization: authorization },
         });
@@ -42,6 +60,7 @@ const AssistantSettingsPage = () => {
       }
     };
     checkStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [membership.isPro, signer, isLoggedIn]);
 
   const enableWrites = async () => {
@@ -52,20 +71,37 @@ const AssistantSettingsPage = () => {
     try {
       const url = `${window.location.origin}/api/assistant/setup`;
       const body = JSON.stringify({ nsec: trimmed });
-      const authorization = await createNip98AuthorizationHeader(
-        signer,
-        url,
-        "POST",
-        body
-      );
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: authorization,
-        },
-        body,
-      });
+      const signedPost = async () =>
+        fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: await createNip98AuthorizationHeader(
+              signer,
+              url,
+              "POST",
+              body
+            ),
+          },
+          body,
+        });
+      const token = await getSessionToken();
+      let res = token
+        ? await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body,
+          })
+        : await signedPost();
+      // A rejected bearer token (expired, rotated secret) falls back to one
+      // signed request so the user's action isn't lost.
+      if (res.status === 401 && token) {
+        sessionRef.current = null;
+        res = await signedPost();
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSetupError(

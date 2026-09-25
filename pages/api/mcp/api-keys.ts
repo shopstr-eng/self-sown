@@ -17,6 +17,7 @@ import {
   extractSignedEventFromRequest,
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
+import { verifyAssistantSessionToken } from "@/utils/assistant/session-token";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
 
@@ -32,11 +33,41 @@ async function ensureTables() {
   }
 }
 
-async function requireSignedEvent(
+// Two auth schemes: a single-use signed request proof (one signing prompt
+// per operation), or a short-lived "mcp-keys" session bearer token minted
+// from ONE NIP-98 signature at /api/assistant/session — so NIP-07/NIP-46
+// users approve once per window to manage their keys. The token's pubkey
+// must match the request's pubkey; chat/setup-scoped tokens never verify
+// here (the scope is bound into the token's HMAC).
+async function requireManagementAuth(
   req: NextApiRequest,
   res: NextApiResponse,
   proof: McpRequestProof
 ): Promise<boolean> {
+  const authorization = req.headers.authorization;
+  if (
+    typeof authorization === "string" &&
+    authorization.startsWith("Bearer ")
+  ) {
+    const session = verifyAssistantSessionToken(
+      authorization.slice(7).trim(),
+      "mcp-keys"
+    );
+    if (!session) {
+      res.status(401).json({ error: "Invalid or expired session token" });
+      return false;
+    }
+    if (session.pubkey !== proof.pubkey) {
+      res
+        .status(403)
+        .json({ error: "Session token does not match this account" });
+      return false;
+    }
+    // Multi-use by design: the single-use NIP-98 mint already ran the replay
+    // guard upstream; the short scope TTL + route rate limit bound replay.
+    return true;
+  }
+
   const signedEvent = extractSignedEventFromRequest(req);
   const result = await verifyAndConsumeSignedRequestProof(signedEvent, proof);
 
@@ -83,7 +114,7 @@ export default async function handler(
     );
 
     if (
-      !(await requireSignedEvent(
+      !(await requireManagementAuth(
         req,
         res,
         buildApiKeyCreateProof({
@@ -126,7 +157,7 @@ export default async function handler(
     const normalizedPubkey = pubkey.trim();
 
     if (
-      !(await requireSignedEvent(
+      !(await requireManagementAuth(
         req,
         res,
         buildApiKeysListProof(normalizedPubkey)
@@ -161,7 +192,7 @@ export default async function handler(
     }
 
     if (
-      !(await requireSignedEvent(
+      !(await requireManagementAuth(
         req,
         res,
         buildApiKeyRevokeProof({

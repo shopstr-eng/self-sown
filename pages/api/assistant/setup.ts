@@ -12,11 +12,40 @@ import {
   claimAuthEventOnce,
   extractNip98EventId,
 } from "@/utils/assistant/replay-guard";
+import { verifyAssistantSessionToken } from "@/utils/assistant/session-token";
 
 // Highly sensitive: stores the seller's encrypted nsec on their dedicated
 // assistant key row. Tight caps, same posture as /api/mcp/set-nsec.
 const IP_LIMIT = { limit: 20, windowMs: 60 * 60 * 1000 };
 const SELLER_LIMIT = { limit: 10, windowMs: 60 * 60 * 1000 };
+
+// Two auth schemes, like the chat route: a per-request NIP-98 signature, or a
+// short-lived "assistant-setup" session bearer token minted from ONE NIP-98
+// signature at /api/assistant/session — so NIP-07/NIP-46 users approve once
+// per window instead of once per interaction. Chat-scoped tokens never
+// verify here (scope is bound into the token's HMAC).
+function resolveAuth(
+  req: NextApiRequest,
+  method: "GET" | "POST"
+): Promise<{ ok: true; pubkey: string; isBearer: boolean } | { ok: false; error: string }> {
+  const authorization = req.headers.authorization;
+  if (typeof authorization === "string" && authorization.startsWith("Bearer ")) {
+    const session = verifyAssistantSessionToken(
+      authorization.slice(7).trim(),
+      "assistant-setup"
+    );
+    return Promise.resolve(
+      session
+        ? { ok: true, pubkey: session.pubkey, isBearer: true }
+        : { ok: false, error: "Invalid or expired assistant session" }
+    );
+  }
+  // GET auth events carry no payload hash — only pass a body for POST.
+  return (method === "POST"
+    ? verifyNip98Request(req, method, req.body)
+    : verifyNip98Request(req, method)
+  ).then((auth) => (auth.ok ? { ...auth, isBearer: false } : auth));
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -27,7 +56,7 @@ export default async function handler(
   // GET: lightweight status check so the settings page can show whether write
   // actions are already enabled before the seller sends a message.
   if (req.method === "GET") {
-    const getAuth = await verifyNip98Request(req, "GET");
+    const getAuth = await resolveAuth(req, "GET");
     if (!getAuth.ok) return res.status(401).json({ error: getAuth.error });
     if (!(await requireProEntitlement(getAuth.pubkey, res))) return;
     try {
@@ -45,11 +74,13 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const auth = await verifyNip98Request(req, "POST", req.body);
+  const auth = await resolveAuth(req, "POST");
   if (!auth.ok) return res.status(401).json({ error: auth.error });
 
-  // Single-use signed requests — this endpoint stores key material.
-  if (!claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))) {
+  // Single-use signed requests — this endpoint stores key material. Bearer
+  // tokens are multi-use by design (their single-use NIP-98 mint already ran
+  // the replay guard); the short scope TTL + rate limits bound replay.
+  if (!auth.isBearer && !claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))) {
     return res
       .status(401)
       .json({ error: "This signed request was already used" });

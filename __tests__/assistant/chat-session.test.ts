@@ -171,6 +171,31 @@ describe("POST /api/assistant/session", () => {
       expiresAtMs: res.body.expiresAt,
     });
   });
+
+  it("mints a scoped token that only verifies under that scope", async () => {
+    const res = createMockRes();
+    await sessionHandler(
+      createReq({ body: { scope: "assistant-setup" } }),
+      res
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body.scope).toBe("assistant-setup");
+    expect(
+      verifyAssistantSessionToken(res.body.token, "assistant-setup")
+    ).toEqual({
+      pubkey: SELLER_PUBKEY,
+      expiresAtMs: res.body.expiresAt,
+    });
+    // Domain separation: the setup token must not verify as a chat token.
+    expect(verifyAssistantSessionToken(res.body.token, "chat")).toBeNull();
+  });
+
+  it("400s on an unknown scope without minting", async () => {
+    const res = createMockRes();
+    await sessionHandler(createReq({ body: { scope: "admin" } }), res);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.token).toBeUndefined();
+  });
 });
 
 describe("POST /api/assistant/chat with a session bearer token", () => {
@@ -200,6 +225,7 @@ describe("POST /api/assistant/chat with a session bearer token", () => {
   it("401s on an expired token without touching NIP-98", async () => {
     const { token } = mintAssistantSessionToken(
       SELLER_PUBKEY,
+      "chat",
       Date.now() - 60 * 60 * 1000
     );
     const res = createMockRes();
