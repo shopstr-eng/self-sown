@@ -176,3 +176,23 @@ it("400 with an unparseable body is definite but NOT recipient-level (conservati
     recipientReject: false,
   });
 });
+
+// The Event Webhook receiver attributes asynchronous bounces back to the
+// owning seller via the seller_pubkey custom arg — if the send stops stamping
+// it, dead addresses silently resume being re-emailed by every broadcast.
+it("stamps custom args (e.g. seller_pubkey) onto the outgoing message", async () => {
+  const result = await sendEmailStrictFromDetailed({
+    ...PARAMS,
+    customArgs: { seller_pubkey: "a".repeat(64) },
+  });
+  expect(result.ok).toBe(true);
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(mockSend.mock.calls[0][0].customArgs).toEqual({
+    seller_pubkey: "a".repeat(64),
+  });
+});
+
+it("omits customArgs entirely when none are given (no payload-shape change for other senders)", async () => {
+  await sendEmailStrictFromDetailed(PARAMS);
+  expect(mockSend.mock.calls[0][0]).not.toHaveProperty("customArgs");
+});

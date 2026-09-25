@@ -191,8 +191,17 @@ export async function sendEmailStrictFromDetailed(params: {
   fromName?: string;
   replyTo?: string;
   headers?: Record<string, string>;
+  /**
+   * SendGrid custom args echoed back verbatim on every Event Webhook event
+   * for this message. Broadcast senders stamp the owning seller's pubkey here
+   * (see SELLER_PUBKEY_CUSTOM_ARG) so an asynchronous bounce/dropped/spamreport
+   * can be attributed back to the seller's suppression list — SendGrid's
+   * events carry no other link to the seller the blast was sent for.
+   */
+  customArgs?: Record<string, string>;
 }): Promise<StrictFromSendResult> {
-  const { to, subject, html, fromEmail, fromName, replyTo, headers } = params;
+  const { to, subject, html, fromEmail, fromName, replyTo, headers, customArgs } =
+    params;
   if (!fromEmail || !fromEmail.includes("@")) {
     console.error("sendEmailStrictFrom called without a valid from-address");
     return { ok: false, definiteReject: true, recipientReject: false };
@@ -213,6 +222,15 @@ export async function sendEmailStrictFromDetailed(params: {
     };
     if (replyTo) msg.replyTo = replyTo;
     if (headers && Object.keys(headers).length > 0) msg.headers = headers;
+    if (customArgs) {
+      // SendGrid requires string keys/values; drop anything else rather than
+      // failing the send over metadata.
+      const clean: Record<string, string> = {};
+      for (const [k, v] of Object.entries(customArgs)) {
+        if (typeof v === "string" && k && !clean[k]) clean[k] = v;
+      }
+      if (Object.keys(clean).length > 0) msg.customArgs = clean;
+    }
     await client.send(msg);
     return { ok: true, definiteReject: false, recipientReject: false };
   } catch (error: any) {
