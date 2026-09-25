@@ -17,7 +17,8 @@ import {
   extractSignedEventFromRequest,
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
-import { verifyAssistantSessionToken } from "@/utils/assistant/session-token";
+import { SESSION_SCOPES } from "@/utils/assistant/session-token";
+import { resolveBearerSessionAuth } from "@/utils/assistant/session-auth";
 import { applyRateLimit } from "@/utils/rate-limit";
 import { requireProEntitlement } from "@/utils/pro/require-pro";
 
@@ -36,31 +37,23 @@ async function ensureTables() {
 // Two auth schemes: a single-use signed request proof (one signing prompt
 // per operation), or a short-lived "mcp-keys" session bearer token minted
 // from ONE NIP-98 signature at /api/assistant/session — so NIP-07/NIP-46
-// users approve once per window to manage their keys. The token's pubkey
-// must match the request's pubkey; chat/setup-scoped tokens never verify
-// here (the scope is bound into the token's HMAC).
+// users approve once per window to manage their keys. The shared bearer
+// preamble (resolveBearerSessionAuth) binds the token's pubkey to the
+// request's pubkey; chat/setup-scoped tokens never verify here (the scope
+// is bound into the token's HMAC).
 async function requireManagementAuth(
   req: NextApiRequest,
   res: NextApiResponse,
   proof: McpRequestProof
 ): Promise<boolean> {
-  const authorization = req.headers.authorization;
-  if (
-    typeof authorization === "string" &&
-    authorization.startsWith("Bearer ")
-  ) {
-    const session = verifyAssistantSessionToken(
-      authorization.slice(7).trim(),
-      "mcp-keys"
-    );
-    if (!session) {
-      res.status(401).json({ error: "Invalid or expired session token" });
-      return false;
-    }
-    if (session.pubkey !== proof.pubkey) {
-      res
-        .status(403)
-        .json({ error: "Session token does not match this account" });
+  const bearerAuth = resolveBearerSessionAuth(
+    req,
+    SESSION_SCOPES.mcpKeys,
+    proof.pubkey
+  );
+  if (bearerAuth !== null) {
+    if (!bearerAuth.ok) {
+      res.status(bearerAuth.status).json({ error: bearerAuth.error });
       return false;
     }
     // Multi-use by design: the single-use NIP-98 mint already ran the replay

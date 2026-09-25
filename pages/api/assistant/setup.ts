@@ -12,7 +12,8 @@ import {
   claimAuthEventOnce,
   extractNip98EventId,
 } from "@/utils/assistant/replay-guard";
-import { verifyAssistantSessionToken } from "@/utils/assistant/session-token";
+import { SESSION_SCOPES } from "@/utils/assistant/session-token";
+import { resolveBearerSessionAuth } from "@/utils/assistant/session-auth";
 
 // Highly sensitive: stores the seller's encrypted nsec on their dedicated
 // assistant key row. Tight caps, same posture as /api/mcp/set-nsec.
@@ -23,28 +24,29 @@ const SELLER_LIMIT = { limit: 10, windowMs: 60 * 60 * 1000 };
 // short-lived "assistant-setup" session bearer token minted from ONE NIP-98
 // signature at /api/assistant/session — so NIP-07/NIP-46 users approve once
 // per window instead of once per interaction. Chat-scoped tokens never
-// verify here (scope is bound into the token's HMAC).
-function resolveAuth(
+// verify here (scope is bound into the token's HMAC); the shared bearer
+// preamble lives in resolveBearerSessionAuth.
+async function resolveAuth(
   req: NextApiRequest,
   method: "GET" | "POST"
-): Promise<{ ok: true; pubkey: string; isBearer: boolean } | { ok: false; error: string }> {
-  const authorization = req.headers.authorization;
-  if (typeof authorization === "string" && authorization.startsWith("Bearer ")) {
-    const session = verifyAssistantSessionToken(
-      authorization.slice(7).trim(),
-      "assistant-setup"
-    );
-    return Promise.resolve(
-      session
-        ? { ok: true, pubkey: session.pubkey, isBearer: true }
-        : { ok: false, error: "Invalid or expired assistant session" }
-    );
+): Promise<
+  { ok: true; pubkey: string; isBearer: boolean } | { ok: false; error: string }
+> {
+  const bearerAuth = resolveBearerSessionAuth(
+    req,
+    SESSION_SCOPES.assistantSetup
+  );
+  if (bearerAuth !== null) {
+    return bearerAuth.ok
+      ? { ok: true, pubkey: bearerAuth.pubkey, isBearer: true }
+      : bearerAuth;
   }
   // GET auth events carry no payload hash — only pass a body for POST.
-  return (method === "POST"
-    ? verifyNip98Request(req, method, req.body)
-    : verifyNip98Request(req, method)
-  ).then((auth) => (auth.ok ? { ...auth, isBearer: false } : auth));
+  const auth =
+    method === "POST"
+      ? await verifyNip98Request(req, method, req.body)
+      : await verifyNip98Request(req, method);
+  return auth.ok ? { ...auth, isBearer: false } : auth;
 }
 
 export default async function handler(

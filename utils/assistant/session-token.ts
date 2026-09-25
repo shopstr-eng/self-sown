@@ -25,7 +25,18 @@
  */
 import { createHmac, timingSafeEqual } from "crypto";
 
-export type AssistantSessionScope = "chat" | "assistant-setup" | "mcp-keys";
+// The ONE set of session scopes. Every endpoint that accepts (or mints) a
+// session token must take its scope from here — never an inline literal — so
+// the scope an endpoint verifies against cannot silently drift from the scope
+// the token was minted for.
+export const SESSION_SCOPES = {
+  chat: "chat",
+  assistantSetup: "assistant-setup",
+  mcpKeys: "mcp-keys",
+} as const;
+
+export type AssistantSessionScope =
+  (typeof SESSION_SCOPES)[keyof typeof SESSION_SCOPES];
 
 // Per-scope lifetimes. Chat tokens ride along a conversation; the management
 // scopes authorize credential changes, so they live half as long.
