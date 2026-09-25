@@ -23,6 +23,15 @@ components are intentionally excluded. Note that lint rules like
 inside try/catch. The rule also flags redundant `return await` OUTSIDE
 try/catch; removing those is behavior-neutral.
 
+**Pre-commit trap (verified):** OUTSIDE try/catch the two guards fight. The
+pre-commit hook's eslint --fix strips `return await helper(...)` down to the
+bare `return helper(...)`, and the jest source scan in
+__tests__/pages/api/unawaited-helper-returns.test.ts then fails the commit on
+that same line. The commit loops until you pick the shape both accept: an
+awaited STATEMENT plus a bare `return;` —
+`await handleX(...); return;` — never `return await handleX(...)` unless the
+call sits inside try/catch.
+
 When the flagged call sits inside a try/finally that holds a POOLED DB client,
 do NOT fix it by awaiting a helper that checks out its own client from the
 same pool — holding one client while waiting for a second deadlocks the pool
