@@ -13,6 +13,7 @@ import {
   ScreenTitle,
   SellerCard,
 } from "@/components/seller-ui";
+import { getErrorMessage } from "@/lib/error-utils";
 import { useSessionUiStore } from "@/stores/session-ui-store";
 import { useSessionStore } from "@/stores/session-store";
 import { sellerThemeTokens } from "@/theme/tokens";
@@ -28,6 +29,7 @@ export default function NsecCreateScreen() {
   const [pubkey, setPubkey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState("");
 
   const generateFreshCredentials = () => {
     try {
@@ -52,6 +54,7 @@ export default function NsecCreateScreen() {
 
   const handleContinue = async () => {
     setSubmitting(true);
+    setSaveError("");
     try {
       await saveSession(
         createSellerSessionFromNsec(nsec, {
@@ -60,6 +63,10 @@ export default function NsecCreateScreen() {
       );
       setLastUsedAuthMethod("nsec");
       router.replace("/");
+    } catch (caughtError) {
+      setSaveError(
+        getErrorMessage(caughtError, "Could not save the seller key.")
+      );
     } finally {
       setSubmitting(false);
     }
@@ -77,6 +84,7 @@ export default function NsecCreateScreen() {
         {generationError ? (
           <Text style={styles.errorText}>{generationError}</Text>
         ) : null}
+        {saveError ? <Text style={styles.errorText}>{saveError}</Text> : null}
         <View style={styles.secretBox}>
           <Text style={styles.secretLabel}>nsec</Text>
           <Text style={styles.secretValue}>{nsec}</Text>

@@ -52,6 +52,7 @@ export default function DashboardScreen() {
   const [stripeActionLoading, setStripeActionLoading] = useState(false);
   const [stripeActionError, setStripeActionError] = useState("");
   const [stripeActionMessage, setStripeActionMessage] = useState("");
+  const [signOutError, setSignOutError] = useState("");
   const [stripeCountry, setStripeCountry] = useState("US");
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
@@ -190,6 +191,25 @@ export default function DashboardScreen() {
     ]);
   };
 
+  const handleRefreshStripeStatus = async () => {
+    setStripeActionError("");
+    setStripeActionMessage("");
+
+    try {
+      const result = await stripeStatusQuery.refetch();
+      if (result.error) {
+        throw result.error;
+      }
+    } catch (caughtError) {
+      setStripeActionError(
+        getErrorMessage(
+          caughtError,
+          "Stripe Connect status could not be refreshed."
+        )
+      );
+    }
+  };
+
   const handleStripeConnect = async () => {
     setStripeActionLoading(true);
     setStripeActionError("");
@@ -254,9 +274,16 @@ export default function DashboardScreen() {
   };
 
   const handleSignOut = async () => {
-    await clearPrivateSellerOrderQueries(queryClient);
-    await clearSession();
-    router.replace("/sign-in" as Href);
+    setSignOutError("");
+    try {
+      await clearPrivateSellerOrderQueries(queryClient);
+      await clearSession();
+      router.replace("/sign-in" as Href);
+    } catch (caughtError) {
+      setSignOutError(
+        getErrorMessage(caughtError, "Could not sign out. Please try again.")
+      );
+    }
   };
 
   return (
@@ -294,6 +321,9 @@ export default function DashboardScreen() {
           onPress={() => void handleSignOut()}
           variant="secondary"
         />
+        {signOutError ? (
+          <Text style={styles.errorText}>{signOutError}</Text>
+        ) : null}
       </SellerCard>
 
       <SellerCard
@@ -408,7 +438,9 @@ export default function DashboardScreen() {
           <Text style={styles.errorText}>{stripeStatusErrorMessage}</Text>
         ) : null}
         {stripeActionError ? (
-          <Text style={styles.errorText}>{stripeActionError}</Text>
+          stripeActionError !== stripeStatusErrorMessage ? (
+            <Text style={styles.errorText}>{stripeActionError}</Text>
+          ) : null
         ) : null}
         {stripeActionMessage ? (
           <Text style={styles.successText}>{stripeActionMessage}</Text>
@@ -469,17 +501,13 @@ export default function DashboardScreen() {
                 ? "Refresh Stripe status"
                 : "Connect Stripe"
           }
-          onPress={
-            stripeStatusErrorMessage
-              ? async () => {
-                  await stripeStatusQuery.refetch();
-                }
-              : stripeStatus?.chargesEnabled
-                ? () => {
-                    stripeStatusQuery.refetch().catch(console.error);
-                  }
-                : handleStripeConnect
-          }
+          onPress={() => {
+            if (stripeStatusErrorMessage || stripeStatus?.chargesEnabled) {
+              void handleRefreshStripeStatus();
+            } else {
+              void handleStripeConnect();
+            }
+          }}
           loading={stripeActionLoading || stripeStatusQuery.isFetching}
         />
       </SellerCard>
