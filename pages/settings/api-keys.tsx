@@ -20,7 +20,10 @@ import {
   MCP_SIGNED_EVENT_HEADER,
   normalizeApiKeysPermission,
 } from "@/utils/mcp/request-proof";
-import { mintScopedSessionToken } from "@/utils/assistant/session-client";
+import {
+  mintScopedSessionToken,
+  revokeAssistantSessionTokens,
+} from "@/utils/assistant/session-client";
 import {
   ClipboardDocumentIcon,
   KeyIcon,
@@ -53,6 +56,7 @@ const ApiKeysPage = () => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isRevokingSessions, setIsRevokingSessions] = useState(false);
 
   // Short-lived bearer token minted from ONE NIP-98 signature, so NIP-07
   // extension / NIP-46 bunker users approve once per window instead of once
@@ -235,6 +239,34 @@ const ApiKeysPage = () => {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Targeted kill switch for a suspected session-token leak: invalidates
+  // every outstanding assistant session token (all scopes) without touching
+  // API keys or any other seller's sessions.
+  const handleRevokeSessions = async () => {
+    if (!signer) {
+      setError("Please sign in with a Nostr signer to manage sessions.");
+      return;
+    }
+    setIsRevokingSessions(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const revoked = await revokeAssistantSessionTokens(signer);
+      if (revoked) {
+        sessionRef.current = null;
+        setSuccessMessage(
+          "All assistant sessions signed out. New actions will ask for a fresh approval."
+        );
+      } else {
+        setError("Failed to sign out assistant sessions. Please try again.");
+      }
+    } catch {
+      setError("Failed to sign out assistant sessions. Please try again.");
+    } finally {
+      setIsRevokingSessions(false);
+    }
   };
 
   const mcpEndpointUrl =
@@ -466,6 +498,35 @@ const ApiKeysPage = () => {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="mb-8">
+            <h2 className="mb-4 text-2xl font-bold text-black">
+              Assistant Sessions
+            </h2>
+            <div className="shadow-neo rounded-md border-2 border-black bg-white p-4">
+              <div className="mb-3 flex items-start gap-2">
+                <InformationCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-gray-600" />
+                <p className="text-sm text-gray-700">
+                  Approving once (instead of signing every action) creates a
+                  short-lived session token on this device. If you shared your
+                  screen or used a borrowed device, sign out here to
+                  immediately invalidate every outstanding session token
+                  &mdash; they otherwise stay valid for up to 30 minutes. Your
+                  API keys above are not affected.
+                </p>
+              </div>
+              <Button
+                className={DANGERBUTTONCLASSNAMES}
+                onClick={handleRevokeSessions}
+                isLoading={isRevokingSessions}
+                isDisabled={!signer}
+              >
+                {isRevokingSessions
+                  ? "Signing out..."
+                  : "Sign Out of All Assistant Sessions"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>

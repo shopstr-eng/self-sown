@@ -158,7 +158,7 @@ export default async function handler(
   // users approve once per window, not once per message). The bearer preamble
   // is shared via resolveBearerSessionAuth; the token is verified server-side
   // on every request and carries its own expiry.
-  const bearerAuth = resolveBearerSessionAuth(req, SESSION_SCOPES.chat);
+  const bearerAuth = await resolveBearerSessionAuth(req, SESSION_SCOPES.chat);
   const isBearer = bearerAuth !== null;
   const auth: { ok: true; pubkey: string } | { ok: false; error: string } =
     bearerAuth ?? (await verifyNip98Request(req, "POST", req.body));
@@ -174,7 +174,13 @@ export default async function handler(
     return;
   }
 
-  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  // Bearer failures carry their own status (e.g. 503 when the revocation
+  // stamp can't be read — fail closed, but distinguishable from a bad token).
+  if (!auth.ok) {
+    return res
+      .status(bearerAuth && !bearerAuth.ok ? bearerAuth.status : 401)
+      .json({ error: auth.error });
+  }
 
   // NIP-98 proves freshness but doesn't consume the event; a captured signed
   // request must not be replayable into duplicate writes. Bearer tokens are

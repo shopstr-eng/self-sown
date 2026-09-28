@@ -53,6 +53,16 @@ jest.mock("@/utils/assistant/assistant-key", () => ({
   invalidateAssistantRawKey: () => undefined,
 }));
 
+const getRevokedBeforeMock = jest.fn();
+const revokeAssistantSessionsMock = jest.fn();
+
+jest.mock("@/utils/assistant/session-revocation", () => ({
+  getAssistantSessionRevokedBefore: (...args: unknown[]) =>
+    getRevokedBeforeMock(...args),
+  revokeAssistantSessions: (...args: unknown[]) =>
+    revokeAssistantSessionsMock(...args),
+}));
+
 jest.mock("@/utils/assistant/mcp-client", () => {
   const actual = jest.requireActual("@/utils/assistant/mcp-client");
   return {
@@ -134,6 +144,9 @@ beforeEach(() => {
     reply: "You have 3 new orders.",
     actions: [],
   });
+  // No revocation stamp by default: nothing has been killed.
+  getRevokedBeforeMock.mockResolvedValue(null);
+  revokeAssistantSessionsMock.mockResolvedValue(Date.now());
 });
 
 describe("POST /api/assistant/session", () => {
@@ -169,6 +182,7 @@ describe("POST /api/assistant/session", () => {
     expect(verifyAssistantSessionToken(res.body.token)).toEqual({
       pubkey: SELLER_PUBKEY,
       expiresAtMs: res.body.expiresAt,
+      issuedAtMs: expect.any(Number),
     });
   });
 
@@ -185,6 +199,7 @@ describe("POST /api/assistant/session", () => {
     ).toEqual({
       pubkey: SELLER_PUBKEY,
       expiresAtMs: res.body.expiresAt,
+      issuedAtMs: expect.any(Number),
     });
     // Domain separation: the setup token must not verify as a chat token.
     expect(verifyAssistantSessionToken(res.body.token, "chat")).toBeNull();
@@ -195,6 +210,76 @@ describe("POST /api/assistant/session", () => {
     await sessionHandler(createReq({ body: { scope: "admin" } }), res);
     expect(res.statusCode).toBe(400);
     expect(res.body.token).toBeUndefined();
+  });
+});
+
+describe("DELETE /api/assistant/session (targeted revocation)", () => {
+  it("stamps the seller's revocation record without requiring Pro", async () => {
+    // Deliberately NOT Pro: killing a suspected-leaked token is a safety
+    // action and must work for a lapsed seller too.
+    requireProEntitlementMock.mockResolvedValue(false);
+    const res = createMockRes();
+    await sessionHandler(createReq({ method: "DELETE", body: undefined }), res);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(typeof res.body.revokedBefore).toBe("number");
+    expect(revokeAssistantSessionsMock).toHaveBeenCalledWith(SELLER_PUBKEY);
+    expect(requireProEntitlementMock).not.toHaveBeenCalled();
+  });
+
+  it("verifies NIP-98 with the DELETE method (no payload hash)", async () => {
+    const res = createMockRes();
+    await sessionHandler(createReq({ method: "DELETE", body: undefined }), res);
+    expect(verifyNip98RequestMock).toHaveBeenCalledWith(
+      expect.anything(),
+      "DELETE"
+    );
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("401s without valid NIP-98 auth", async () => {
+    verifyNip98RequestMock.mockResolvedValue({ ok: false, error: "bad sig" });
+    const res = createMockRes();
+    await sessionHandler(createReq({ method: "DELETE", body: undefined }), res);
+    expect(res.statusCode).toBe(401);
+    expect(revokeAssistantSessionsMock).not.toHaveBeenCalled();
+  });
+
+  it("503s when the revocation store is down", async () => {
+    revokeAssistantSessionsMock.mockRejectedValue(new Error("db down"));
+    const res = createMockRes();
+    await sessionHandler(createReq({ method: "DELETE", body: undefined }), res);
+    expect(res.statusCode).toBe(503);
+  });
+
+  it("a revoked token stops working on the chat route", async () => {
+    const issuedAt = Date.now() - 60_000;
+    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "chat", issuedAt);
+    // Revoked after the token was minted.
+    getRevokedBeforeMock.mockResolvedValue(Date.now());
+    const res = createMockRes();
+    await chatHandler(createChatReq(token), res);
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toMatch(/revoked/i);
+    expect(runSellerAssistantMock).not.toHaveBeenCalled();
+  });
+
+  it("a token minted after the revocation stamp still works", async () => {
+    const stamp = Date.now() - 60_000;
+    getRevokedBeforeMock.mockResolvedValue(stamp);
+    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "chat");
+    const res = createMockRes();
+    await chatHandler(createChatReq(token), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("fails closed (503) when the revocation stamp cannot be read", async () => {
+    getRevokedBeforeMock.mockRejectedValue(new Error("db down"));
+    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "chat");
+    const res = createMockRes();
+    await chatHandler(createChatReq(token), res);
+    expect(res.statusCode).toBe(503);
+    expect(runSellerAssistantMock).not.toHaveBeenCalled();
   });
 });
 

@@ -65,6 +65,13 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
 }));
 
+const getRevokedBeforeMock = jest.fn();
+
+jest.mock("@/utils/assistant/session-revocation", () => ({
+  getAssistantSessionRevokedBefore: (...args: unknown[]) =>
+    getRevokedBeforeMock(...args),
+}));
+
 import type { NextApiRequest, NextApiResponse } from "next";
 import setupHandler from "@/pages/api/assistant/setup";
 import apiKeysHandler from "@/pages/api/mcp/api-keys";
@@ -142,6 +149,8 @@ beforeEach(() => {
   listApiKeysMock.mockResolvedValue([]);
   revokeApiKeyMock.mockResolvedValue(true);
   verifyAndConsumeProofMock.mockResolvedValue({ ok: true, status: 200 });
+  // No revocation stamp by default: nothing has been killed.
+  getRevokedBeforeMock.mockResolvedValue(null);
 });
 
 describe("GET/POST /api/assistant/setup with a scoped bearer token", () => {
@@ -191,6 +200,51 @@ describe("GET/POST /api/assistant/setup with a scoped bearer token", () => {
         res
       );
       expect(res.statusCode).toBe(401);
+    }
+    expect(provisionAssistantSigningMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects a token issued at or before the seller's revocation stamp", async () => {
+    const issuedAt = Date.now() - 60_000;
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "assistant-setup",
+      issuedAt
+    );
+    // Edge: minted at exactly the stamp — the revoke kills it too.
+    getRevokedBeforeMock.mockResolvedValue(issuedAt);
+    const res = createMockRes();
+    await setupHandler(bearerReq(token, { method: "GET" }), res);
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toMatch(/revoked/i);
+  });
+
+  it("revoking one seller's tokens does not affect another seller", async () => {
+    getRevokedBeforeMock.mockImplementation(async (pk: string) =>
+      pk === OTHER_PUBKEY ? Date.now() : null
+    );
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "assistant-setup"
+    );
+    const res = createMockRes();
+    await setupHandler(bearerReq(token, { method: "GET" }), res);
+    expect(res.statusCode).toBe(200);
+  });
+
+  it("fails closed with 503 (not 401) when the revocation store is down", async () => {
+    getRevokedBeforeMock.mockRejectedValue(new Error("db down"));
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "assistant-setup"
+    );
+    for (const method of ["GET", "POST"] as const) {
+      const res = createMockRes();
+      await setupHandler(
+        bearerReq(token, { method, body: { nsec: "nsec1test" } }),
+        res
+      );
+      expect(res.statusCode).toBe(503);
     }
     expect(provisionAssistantSigningMock).not.toHaveBeenCalled();
   });

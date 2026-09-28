@@ -97,6 +97,12 @@ jest.mock("@/utils/db/db-service", () => ({
   getDbPool: jest.fn(),
 }));
 
+jest.mock("@/utils/assistant/session-revocation", () => ({
+  // No revocation stamp in these tests: nothing has been revoked.
+  getAssistantSessionRevokedBefore: jest.fn().mockResolvedValue(null),
+  revokeAssistantSessions: jest.fn().mockResolvedValue(Date.now()),
+}));
+
 // --- UI boundaries ------------------------------------------------------------
 
 let mockIsPro = true;

@@ -19,7 +19,12 @@
  *    never validate under another protocol or scope (domain separation),
  *  - carries its own expiry, verified server-side on every request — no
  *    token outlives its window,
- *  - rotating SESSION_SECRET invalidates every outstanding token at once.
+ *  - rotating SESSION_SECRET invalidates every outstanding token at once,
+ *  - a seller can invalidate only THEIR outstanding tokens on demand: a
+ *    per-seller "revoked before <ts>" stamp (see session-revocation.ts) is
+ *    checked against the token's issued-at in the shared bearer preamble
+ *    (session-auth.ts), so a suspected leak has a targeted kill switch that
+ *    doesn't log out every seller.
  *
  * Token format: `<base64url(JSON{pk, sc, iat, exp})>.<mac32>`
  */
@@ -114,7 +119,7 @@ export function verifyAssistantSessionToken(
   token: string,
   scope: AssistantSessionScope = "chat",
   nowMs: number = Date.now()
-): { pubkey: string; expiresAtMs: number } | null {
+): { pubkey: string; expiresAtMs: number; issuedAtMs: number } | null {
   if (typeof token !== "string") return null;
   if (!isAssistantSessionScope(scope)) return null;
   const parts = token.split(".");
@@ -155,5 +160,7 @@ export function verifyAssistantSessionToken(
   if (issuedAtMs > nowMs + FUTURE_SKEW_MS) return null;
   if (expiresAtMs - issuedAtMs > SESSION_SCOPE_TTLS_MS[scope]) return null;
   if (nowMs >= expiresAtMs) return null;
-  return { pubkey, expiresAtMs };
+  // issuedAtMs is returned so the bearer preamble can enforce the per-seller
+  // "revoked before" stamp (targeted invalidation of leaked tokens).
+  return { pubkey, expiresAtMs, issuedAtMs };
 }

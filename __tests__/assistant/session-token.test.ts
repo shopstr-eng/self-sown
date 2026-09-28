@@ -30,6 +30,7 @@ describe("assistant session tokens", () => {
     expect(verifyAssistantSessionToken(token, "chat", now)).toEqual({
       pubkey: PUBKEY,
       expiresAtMs,
+      issuedAtMs: now,
     });
   });
 
@@ -45,6 +46,7 @@ describe("assistant session tokens", () => {
       expect(verifyAssistantSessionToken(token, scope, now)).toEqual({
         pubkey: PUBKEY,
         expiresAtMs,
+        issuedAtMs: now,
       });
     }
   });
