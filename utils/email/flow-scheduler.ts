@@ -64,6 +64,31 @@ async function syncEmailSuppressions() {
   await callEndpoint("/api/email/cron-sync-suppressions", {});
 }
 
+/**
+ * Wraps a scheduled task so a slow run (stuck DB, slow SendGrid call) can't
+ * stack up concurrent copies of itself: while one run is in flight, later
+ * ticks skip (and log) instead of starting a second one. The flag releases in
+ * a finally, so even a throwing/hung-then-resolved run can't starve future
+ * ticks forever.
+ */
+function withOverlapGuard(label: string, task: () => Promise<void>) {
+  let running = false;
+  return async function guardedTask() {
+    if (running) {
+      console.warn(
+        `[flow-scheduler] ${label}: previous run still in flight, skipping this tick`
+      );
+      return;
+    }
+    running = true;
+    try {
+      await task();
+    } finally {
+      running = false;
+    }
+  };
+}
+
 export function startFlowScheduler() {
   if (schedulerStarted) return;
   if (!process.env.FLOW_PROCESSOR_SECRET) {
@@ -95,30 +120,70 @@ export function startFlowScheduler() {
 
   // Every task below is fire-and-forget: they all delegate to callEndpoint,
   // which try/catches and logs its own failures, so the timers intentionally
-  // discard the promise (`void`) and let the next tick retry.
-  setTimeout(() => void processEmails(), 30 * 1000);
-  setInterval(() => void processEmails(), PROCESS_INTERVAL);
+  // discard the promise (`void`) and let the next tick retry. Each is wrapped
+  // in an overlap guard so a run that outlasts its interval doesn't stack a
+  // second concurrent copy on top of itself; the initial setTimeout and the
+  // setInterval share one guard since they run the same task.
+  const guardedProcessEmails = withOverlapGuard("processEmails", processEmails);
+  setTimeout(() => void guardedProcessEmails(), 30 * 1000);
+  setInterval(() => void guardedProcessEmails(), PROCESS_INTERVAL);
 
-  setTimeout(() => void processAbandonedCarts(), 60 * 1000);
-  setInterval(() => void processAbandonedCarts(), ABANDONED_CART_INTERVAL);
+  const guardedProcessAbandonedCarts = withOverlapGuard(
+    "processAbandonedCarts",
+    processAbandonedCarts
+  );
+  setTimeout(() => void guardedProcessAbandonedCarts(), 60 * 1000);
+  setInterval(() => void guardedProcessAbandonedCarts(), ABANDONED_CART_INTERVAL);
 
-  setTimeout(() => void processWinback(), 2 * 60 * 1000);
-  setInterval(() => void processWinback(), WINBACK_INTERVAL);
+  const guardedProcessWinback = withOverlapGuard(
+    "processWinback",
+    processWinback
+  );
+  setTimeout(() => void guardedProcessWinback(), 2 * 60 * 1000);
+  setInterval(() => void guardedProcessWinback(), WINBACK_INTERVAL);
 
-  setTimeout(() => void processProLifecycle(), 3 * 60 * 1000);
-  setInterval(() => void processProLifecycle(), PRO_LIFECYCLE_INTERVAL);
+  const guardedProcessProLifecycle = withOverlapGuard(
+    "processProLifecycle",
+    processProLifecycle
+  );
+  setTimeout(() => void guardedProcessProLifecycle(), 3 * 60 * 1000);
+  setInterval(
+    () => void guardedProcessProLifecycle(),
+    PRO_LIFECYCLE_INTERVAL
+  );
 
-  setTimeout(() => void processScheduledBlogPosts(), 90 * 1000);
-  setInterval(() => void processScheduledBlogPosts(), SCHEDULED_BLOG_INTERVAL);
+  const guardedProcessScheduledBlogPosts = withOverlapGuard(
+    "processScheduledBlogPosts",
+    processScheduledBlogPosts
+  );
+  setTimeout(() => void guardedProcessScheduledBlogPosts(), 90 * 1000);
+  setInterval(
+    () => void guardedProcessScheduledBlogPosts(),
+    SCHEDULED_BLOG_INTERVAL
+  );
 
   // Escrow payouts are time-sensitive (buyers wait on releases/refunds), so
   // sweep promptly. The endpoint is a no-op unless escrow is enabled.
-  setTimeout(() => void processEscrowPayouts(), 45 * 1000);
-  setInterval(() => void processEscrowPayouts(), ESCROW_PAYOUT_INTERVAL);
+  const guardedProcessEscrowPayouts = withOverlapGuard(
+    "processEscrowPayouts",
+    processEscrowPayouts
+  );
+  setTimeout(() => void guardedProcessEscrowPayouts(), 45 * 1000);
+  setInterval(
+    () => void guardedProcessEscrowPayouts(),
+    ESCROW_PAYOUT_INTERVAL
+  );
 
   // Suppression sync is best-effort: SendGrid/DB failures are logged by the
   // endpoint and retried on the next tick (watermark only advances on a fully
   // recorded run).
-  setTimeout(() => void syncEmailSuppressions(), 5 * 60 * 1000);
-  setInterval(() => void syncEmailSuppressions(), SUPPRESSION_SYNC_INTERVAL);
+  const guardedSyncEmailSuppressions = withOverlapGuard(
+    "syncEmailSuppressions",
+    syncEmailSuppressions
+  );
+  setTimeout(() => void guardedSyncEmailSuppressions(), 5 * 60 * 1000);
+  setInterval(
+    () => void guardedSyncEmailSuppressions(),
+    SUPPRESSION_SYNC_INTERVAL
+  );
 }
