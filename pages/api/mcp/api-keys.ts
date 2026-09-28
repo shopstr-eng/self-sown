@@ -46,7 +46,7 @@ async function requireManagementAuth(
   res: NextApiResponse,
   proof: McpRequestProof
 ): Promise<boolean> {
-  const bearerAuth = resolveBearerSessionAuth(
+  const bearerAuth = await resolveBearerSessionAuth(
     req,
     SESSION_SCOPES.mcpKeys,
     proof.pubkey

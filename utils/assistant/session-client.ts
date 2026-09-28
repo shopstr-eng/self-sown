@@ -49,3 +49,34 @@ export async function mintScopedSessionToken(
   }
   return null;
 }
+
+/**
+ * Invalidate every outstanding session token the seller holds, every scope
+ * at once — the targeted kill switch for a suspected token leak (shared
+ * screen, borrowed laptop) that doesn't require a global SESSION_SECRET
+ * rotation. The server stamps "revoked before now"; the bearer preamble
+ * rejects any token issued at or before the stamp.
+ *
+ * Returns true only when the server confirmed the revocation.
+ */
+export async function revokeAssistantSessionTokens(
+  signer: NostrSigner
+): Promise<boolean> {
+  try {
+    const url = `${window.location.origin}/api/assistant/session`;
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: {
+        // DELETE carries no body, so no payload hash is signed.
+        Authorization: await createNip98AuthorizationHeader(
+          signer,
+          url,
+          "DELETE"
+        ),
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

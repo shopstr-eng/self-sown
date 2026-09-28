@@ -30,9 +30,10 @@ async function resolveAuth(
   req: NextApiRequest,
   method: "GET" | "POST"
 ): Promise<
-  { ok: true; pubkey: string; isBearer: boolean } | { ok: false; error: string }
+  | { ok: true; pubkey: string; isBearer: boolean }
+  | { ok: false; error: string; status?: number }
 > {
-  const bearerAuth = resolveBearerSessionAuth(
+  const bearerAuth = await resolveBearerSessionAuth(
     req,
     SESSION_SCOPES.assistantSetup
   );
@@ -49,6 +50,13 @@ async function resolveAuth(
   return auth.ok ? { ...auth, isBearer: false } : auth;
 }
 
+// Bearer failures carry their own status (e.g. 503 when the revocation stamp
+// can't be read — fail closed, but distinguishable from a bad token); NIP-98
+// failures are always 401.
+function authFailureStatus(auth: { error: string; status?: number }): number {
+  return auth.status ?? 401;
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -59,7 +67,11 @@ export default async function handler(
   // actions are already enabled before the seller sends a message.
   if (req.method === "GET") {
     const getAuth = await resolveAuth(req, "GET");
-    if (!getAuth.ok) return res.status(401).json({ error: getAuth.error });
+    if (!getAuth.ok) {
+      return res
+        .status(authFailureStatus(getAuth))
+        .json({ error: getAuth.error });
+    }
     if (!(await requireProEntitlement(getAuth.pubkey, res))) return;
     try {
       await ensureAssistantTables();
@@ -77,7 +89,9 @@ export default async function handler(
   }
 
   const auth = await resolveAuth(req, "POST");
-  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  if (!auth.ok) {
+    return res.status(authFailureStatus(auth)).json({ error: auth.error });
+  }
 
   // Single-use signed requests — this endpoint stores key material. Bearer
   // tokens are multi-use by design (their single-use NIP-98 mint already ran
