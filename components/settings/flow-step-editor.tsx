@@ -309,7 +309,7 @@ export const FlowStepEditor = ({
         type="file"
         accept={ALLOWED_IMAGE_TYPES.join(",")}
         ref={imageInputRef}
-        onChange={handleImageSelect}
+        onChange={(e) => void handleImageSelect(e)}
         className="hidden"
       />
 

@@ -106,4 +106,32 @@ export default [
       ],
     },
   },
+  {
+    // Client-side event-handler block: an onClick/onSubmit wired directly to
+    // an async function returns a promise nobody awaits, so a rejection
+    // vanishes — the buyer/seller sees nothing happen and no error is logged.
+    // checksVoidReturn flags exactly that shape (async fn passed where a
+    // void-returning callback is expected, e.g. JSX event handlers and
+    // HeroUI onPress). Intentional fire-and-forget handlers must be marked
+    // with `void` (or an arrow body that voids the call); genuine bugs get
+    // real error handling. Deliberately narrower than the server block: no
+    // no-floating-promises (effect/telemetry fire-and-forget is idiomatic in
+    // components) and no checksConditionals (the always-truthy guard shape is
+    // a server-auth bug, not a UI one). pages/api stays under the stricter
+    // server block above.
+    files: ["components/**/*.{ts,tsx}", "pages/**/*.{ts,tsx}"],
+    ignores: ["pages/api/**"],
+    languageOptions: {
+      parserOptions: {
+        project: "./tsconfig.eslint.json",
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        { checksConditionals: false, checksVoidReturn: true, checksSpreads: false },
+      ],
+    },
+  },
 ];

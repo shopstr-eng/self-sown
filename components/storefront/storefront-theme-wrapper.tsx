@@ -532,7 +532,7 @@ function StorefrontThemeWrapperInner({
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => router.push("/cart")}
+                  onClick={() => void router.push("/cart")}
                   className="relative rounded-md p-2 transition-colors"
                   style={{ color: navText }}
                 >

@@ -18,7 +18,7 @@ export default function OAuthError() {
         </p>
         <Button
           className={PRIMARYBUTTONCLASSNAMES}
-          onClick={() => router.push("/")}
+          onClick={() => void router.push("/")}
         >
           Back to Home
         </Button>

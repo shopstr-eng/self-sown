@@ -217,7 +217,7 @@ const CommunityManagementPage = () => {
                 existingCommunity={
                   communityToEdit === "new" ? null : communityToEdit
                 }
-                onSave={handleSave}
+                onSave={(data) => void handleSave(data)}
                 onCancel={() => setCommunityToEdit(null)}
               />
             </div>
@@ -259,7 +259,7 @@ const CommunityManagementPage = () => {
                         <Button
                           size="sm"
                           className="shadow-neo transform rounded-md border-2 border-black bg-red-500 px-4 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
-                          onClick={() => handleDelete(community.id)}
+                          onClick={() => void handleDelete(community.id)}
                         >
                           Delete
                         </Button>
@@ -339,7 +339,7 @@ const CommunityManagementPage = () => {
                 </Button>
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
-                  onClick={handlePasswordSubmit}
+                  onClick={() => void handlePasswordSubmit()}
                   isDisabled={!passwordInput.trim()}
                 >
                   Submit

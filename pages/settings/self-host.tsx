@@ -98,7 +98,7 @@ const SelfHostPage = () => {
               </p>
               <Button
                 className={PRIMARYBUTTONCLASSNAMES}
-                onPress={() => router.push("/pro")}
+                onPress={() => void router.push("/pro")}
               >
                 Get Wrangler
               </Button>
@@ -211,7 +211,7 @@ const SelfHostPage = () => {
                   )
                 }
                 isLoading={downloading}
-                onPress={handleDownload}
+                onPress={() => void handleDownload()}
               >
                 {downloading ? "Preparing bundle…" : "Download my store bundle"}
               </Button>

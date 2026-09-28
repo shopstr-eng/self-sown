@@ -368,7 +368,7 @@ const MintButton = () => {
           <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
             Mint Tokens
           </ModalHeader>
-          <form onSubmit={handleMintSubmit(onMintSubmit)}>
+          <form onSubmit={(e) => void handleMintSubmit(onMintSubmit)(e)}>
             <ModalBody>
               <Controller
                 name="sats"
@@ -458,7 +458,7 @@ const MintButton = () => {
                                   : invoice}
                               </p>
                               <ClipboardIcon
-                                onClick={handleCopyInvoice}
+                                onClick={() => void handleCopyInvoice()}
                                 className={joinClassNames(
                                   "ml-2 h-5 w-5 cursor-pointer text-black hover:text-gray-600",
                                   copiedToClipboard ? "hidden" : ""

@@ -179,7 +179,7 @@ const SentTokens = () => {
                   <CheckIcon className="h-5 w-5 text-green-600" />
                 ) : (
                   <ClipboardIcon
-                    onClick={() => handleCopy(entry.token)}
+                    onClick={() => void handleCopy(entry.token)}
                     className="h-5 w-5 cursor-pointer text-black hover:text-gray-600"
                   />
                 ))}
@@ -188,7 +188,7 @@ const SentTokens = () => {
                   size="sm"
                   isDisabled={busyToken !== null}
                   isLoading={busyToken === entry.token}
-                  onClick={() => handleCheck(entry)}
+                  onClick={() => void handleCheck(entry)}
                   className="rounded-md border-2 border-black bg-white font-bold text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
                   Check &amp; Reclaim

@@ -177,7 +177,7 @@ export default function ProCheckout({
     // every 4s regardless of a pending request) — the check-and-set between
     // awaits is atomic, so only the first resolution completes.
     let completed = false;
-    const poll = setInterval(async () => {
+    const pollInvoice = async () => {
       try {
         const data = await verifyManualInvoice(invoice.invoiceId);
         if (active && !completed && data?.paid) {
@@ -192,7 +192,8 @@ export default function ProCheckout({
       } catch {
         // Keep polling; transient errors are expected while unpaid.
       }
-    }, 4000);
+    };
+    const poll = setInterval(() => void pollInvoice(), 4000);
     return () => {
       active = false;
       clearInterval(poll);
@@ -240,7 +241,7 @@ export default function ProCheckout({
         </button>
         <StripeCardForm
           clientSecret={clientSecret}
-          onPaymentSuccess={handleCardSuccess}
+          onPaymentSuccess={() => void handleCardSuccess()}
           onPaymentError={(e) => setError(e)}
           onCancel={resetMethod}
         />
@@ -288,7 +289,7 @@ export default function ProCheckout({
           )}
           <button
             type="button"
-            onClick={copyBolt11}
+            onClick={() => void copyBolt11()}
             className="mt-4 flex items-center gap-2 text-sm font-bold text-black underline"
           >
             <ClipboardDocumentIcon className="h-4 w-4" />
@@ -431,7 +432,7 @@ export default function ProCheckout({
         <div className="mb-5">
           <button
             type="button"
-            onClick={handleTrial}
+            onClick={() => void handleTrial()}
             disabled={loading}
             className={`${BLUEBUTTONCLASSNAMES} w-full justify-center disabled:opacity-50`}
           >
@@ -455,7 +456,7 @@ export default function ProCheckout({
       <div className="flex flex-col gap-3">
         <button
           type="button"
-          onClick={handleCard}
+          onClick={() => void handleCard()}
           disabled={loading}
           className={joinClassNames(
             canStartTrial ? BLACKBUTTONCLASSNAMES : BLUEBUTTONCLASSNAMES,
@@ -467,7 +468,7 @@ export default function ProCheckout({
         </button>
         <button
           type="button"
-          onClick={() => handleManual("bitcoin")}
+          onClick={() => void handleManual("bitcoin")}
           disabled={loading}
           className={`${BLACKBUTTONCLASSNAMES} w-full justify-center disabled:opacity-50`}
         >
@@ -476,7 +477,7 @@ export default function ProCheckout({
         </button>
         <button
           type="button"
-          onClick={() => handleManual("fiat")}
+          onClick={() => void handleManual("fiat")}
           disabled={loading}
           className="shadow-neo flex w-full items-center justify-center rounded-md border-2 border-black bg-white px-4 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 disabled:opacity-50"
         >

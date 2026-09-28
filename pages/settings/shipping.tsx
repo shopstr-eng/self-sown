@@ -440,7 +440,7 @@ const ShippingSettingsPage = () => {
                         </div>
                         <Button
                           className="border-2 border-black bg-white font-semibold text-black"
-                          onPress={handleDisconnect}
+                          onPress={() => void handleDisconnect()}
                           isLoading={disconnecting}
                           isDisabled={disconnecting}
                         >
@@ -450,7 +450,7 @@ const ShippingSettingsPage = () => {
                     ) : (
                       <Button
                         className="bg-primary-yellow border-2 border-black font-semibold text-black"
-                        onPress={handleConnect}
+                        onPress={() => void handleConnect()}
                         isLoading={connecting}
                         isDisabled={connecting}
                       >
@@ -637,7 +637,7 @@ const ShippingSettingsPage = () => {
                     <div className="mt-5 flex items-center gap-3">
                       <Button
                         className="bg-primary-yellow font-semibold text-black"
-                        onPress={handleSaveDefaults}
+                        onPress={() => void handleSaveDefaults()}
                         isLoading={savingDefaults}
                       >
                         Save Defaults
@@ -736,7 +736,7 @@ const ShippingSettingsPage = () => {
                       <Button
                         className="bg-primary-yellow font-semibold text-black"
                         startContent={<PlusIcon className="h-4 w-4" />}
-                        onPress={handleAddTemplate}
+                        onPress={() => void handleAddTemplate()}
                         isLoading={savingTemplate}
                         isDisabled={
                           !newTemplate.name.trim() ||
@@ -777,7 +777,7 @@ const ShippingSettingsPage = () => {
                                 variant="light"
                                 isIconOnly
                                 aria-label="Delete template"
-                                onPress={() => handleDeleteTemplate(t.id)}
+                                onPress={() => void handleDeleteTemplate(t.id)}
                               >
                                 <TrashIcon className="h-5 w-5 text-red-600" />
                               </Button>
@@ -994,7 +994,7 @@ const ShippingSettingsPage = () => {
             </Button>
             <Button
               className="bg-primary-yellow border-2 border-black font-semibold text-black"
-              onPress={handleApplyTemplate}
+              onPress={() => void handleApplyTemplate()}
               isLoading={applying}
               isDisabled={applying || selectedProductIds.size === 0}
             >

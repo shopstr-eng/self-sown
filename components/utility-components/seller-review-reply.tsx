@@ -183,7 +183,7 @@ export default function SellerReviewReply({
               color="primary"
               isLoading={isSubmitting}
               isDisabled={!replyText.trim()}
-              onClick={handleSubmitReply}
+              onClick={() => void handleSubmitReply()}
               className={
                 themed
                   ? "rounded-lg font-bold text-white"

@@ -399,7 +399,7 @@ const DisplayProducts = ({
                 </p>
                 <Button
                   className={`${WHITEBUTTONCLASSNAMES} mt-6`}
-                  onClick={() => router.push("?addNewListing")}
+                  onClick={() => void router.push("?addNewListing")}
                 >
                   Add Listing
                 </Button>

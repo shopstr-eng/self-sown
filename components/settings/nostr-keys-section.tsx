@@ -53,6 +53,141 @@ const NostrKeysSection = () => {
       .catch(() => {});
   }, [userPubkey]);
 
+  const handleCopyNPub = async () => {
+    await copyToClipboard(userNPub!);
+    setIsNPubCopied(true);
+    setTimeout(() => setIsNPubCopied(false), 2000);
+  };
+
+  const handleToggleNSec = async () => {
+    if (!userNSec && signer instanceof NostrNSecSigner) {
+      try {
+        const nsec = await (signer as NostrNSecSigner)._getNSec();
+        setUserNSec(nsec);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setIsNSecVisible(!isNSecVisible);
+  };
+
+  const handleCopyNSec = async () => {
+    await copyToClipboard(userNSec);
+    setIsNSecCopied(true);
+    setTimeout(() => setIsNSecCopied(false), 2000);
+  };
+
+  const handleCopyNcryptsec = async () => {
+    await copyToClipboard(userNcryptsec);
+    setIsNcryptsecCopied(true);
+    setTimeout(() => setIsNcryptsecCopied(false), 2000);
+  };
+
+  const handleSendRecoveryVerification = async () => {
+    if (!recoveryEmail || !userPubkey) {
+      setRecoverySetupError("Please enter an email address.");
+      return;
+    }
+    setVerificationLoading(true);
+    setRecoverySetupError("");
+    try {
+      const res = await fetch("/api/auth/send-recovery-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: recoveryEmail, pubkey: userPubkey }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRecoverySetupError(data.error || "Failed to send verification.");
+        return;
+      }
+      setVerificationSent(true);
+    } catch {
+      setRecoverySetupError("Something went wrong.");
+    } finally {
+      setVerificationLoading(false);
+    }
+  };
+
+  const handleRegenerateRecoveryKey = async () => {
+    if (!verificationCode || !recoveryEmail || !userPubkey || !userNSec) {
+      setRecoverySetupError("Please enter the verification code.");
+      return;
+    }
+    setRecoverySetupLoading(true);
+    setRecoverySetupError("");
+    try {
+      const res = await fetch("/api/auth/setup-recovery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pubkey: userPubkey,
+          email: recoveryEmail,
+          nsec: userNSec,
+          verificationCode,
+          authType: localStorage.getItem("authProvider") || "nsec",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRecoverySetupError(data.error || "Failed to regenerate recovery key.");
+        return;
+      }
+      setGeneratedRecoveryKey(data.recoveryKey);
+      setMaskedRecoveryEmail(
+        recoveryEmail.slice(0, 2) + "***@" + recoveryEmail.split("@")[1]
+      );
+      setShowRecoveryKeyModal(true);
+      setShowRecoverySetup(false);
+      setVerificationSent(false);
+      setVerificationCode("");
+    } catch {
+      setRecoverySetupError("Something went wrong.");
+    } finally {
+      setRecoverySetupLoading(false);
+    }
+  };
+
+  const handleSetupRecovery = async () => {
+    if (!verificationCode || !recoveryEmail || !userPubkey || !userNSec) {
+      setRecoverySetupError("Please enter the verification code.");
+      return;
+    }
+    setRecoverySetupLoading(true);
+    setRecoverySetupError("");
+    try {
+      const res = await fetch("/api/auth/setup-recovery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pubkey: userPubkey,
+          email: recoveryEmail,
+          nsec: userNSec,
+          verificationCode,
+          authType: localStorage.getItem("authProvider") || "nsec",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setRecoverySetupError(data.error || "Failed to set up recovery.");
+        return;
+      }
+      setGeneratedRecoveryKey(data.recoveryKey);
+      setHasRecoverySetup(true);
+      setMaskedRecoveryEmail(
+        recoveryEmail.slice(0, 2) + "***@" + recoveryEmail.split("@")[1]
+      );
+      setShowRecoveryKeyModal(true);
+      setShowRecoverySetup(false);
+      setVerificationSent(false);
+      setVerificationCode("");
+    } catch {
+      setRecoverySetupError("Something went wrong.");
+    } finally {
+      setRecoverySetupLoading(false);
+    }
+  };
+
   return (
     <>
       {/* Nostr Info Box */}
@@ -90,11 +225,7 @@ const NostrKeysSection = () => {
             aria-label={isNPubCopied ? "npub copied" : "Copy npub"}
             variant="light"
             className="h-6 w-6 min-w-0 shrink-0 p-0 text-black"
-            onClick={async () => {
-              await copyToClipboard(userNPub!);
-              setIsNPubCopied(true);
-              setTimeout(() => setIsNPubCopied(false), 2000);
-            }}
+            onClick={() => void handleCopyNPub()}
           >
             {isNPubCopied ? "✅" : "📋"}
           </Button>
@@ -122,17 +253,7 @@ const NostrKeysSection = () => {
                 aria-label={isNSecVisible ? "Hide nsec" : "Show nsec"}
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
-                onClick={async () => {
-                  if (!userNSec && signer instanceof NostrNSecSigner) {
-                    try {
-                      const nsec = await (signer as NostrNSecSigner)._getNSec();
-                      setUserNSec(nsec);
-                    } catch (err) {
-                      console.error(err);
-                    }
-                  }
-                  setIsNSecVisible(!isNSecVisible);
-                }}
+                onClick={() => void handleToggleNSec()}
               >
                 {isNSecVisible ? "👁️⃠" : "👁️"}
               </Button>
@@ -149,11 +270,7 @@ const NostrKeysSection = () => {
                 aria-label={isNSecCopied ? "nsec copied" : "Copy nsec"}
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
-                onClick={async () => {
-                  await copyToClipboard(userNSec);
-                  setIsNSecCopied(true);
-                  setTimeout(() => setIsNSecCopied(false), 2000);
-                }}
+                onClick={() => void handleCopyNSec()}
               >
                 {isNSecCopied ? "✅" : "📋"}
               </Button>
@@ -216,11 +333,7 @@ const NostrKeysSection = () => {
                 }
                 variant="light"
                 className="h-6 w-6 min-w-0 p-0 text-black"
-                onClick={async () => {
-                  await copyToClipboard(userNcryptsec);
-                  setIsNcryptsecCopied(true);
-                  setTimeout(() => setIsNcryptsecCopied(false), 2000);
-                }}
+                onClick={() => void handleCopyNcryptsec()}
               >
                 {isNcryptsecCopied ? "✅" : "📋"}
               </Button>
@@ -309,43 +422,7 @@ const NostrKeysSection = () => {
                         size="sm"
                         className="bg-black text-white"
                         isLoading={verificationLoading}
-                        onPress={async () => {
-                          if (!recoveryEmail || !userPubkey) {
-                            setRecoverySetupError(
-                              "Please enter an email address."
-                            );
-                            return;
-                          }
-                          setVerificationLoading(true);
-                          setRecoverySetupError("");
-                          try {
-                            const res = await fetch(
-                              "/api/auth/send-recovery-verification",
-                              {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                  email: recoveryEmail,
-                                  pubkey: userPubkey,
-                                }),
-                              }
-                            );
-                            const data = await res.json();
-                            if (!res.ok) {
-                              setRecoverySetupError(
-                                data.error || "Failed to send verification."
-                              );
-                              return;
-                            }
-                            setVerificationSent(true);
-                          } catch {
-                            setRecoverySetupError("Something went wrong.");
-                          } finally {
-                            setVerificationLoading(false);
-                          }
-                        }}
+                        onPress={() => void handleSendRecoveryVerification()}
                       >
                         Send Verification Code
                       </Button>
@@ -354,63 +431,7 @@ const NostrKeysSection = () => {
                         size="sm"
                         className="bg-black text-white"
                         isLoading={recoverySetupLoading}
-                        onPress={async () => {
-                          if (
-                            !verificationCode ||
-                            !recoveryEmail ||
-                            !userPubkey ||
-                            !userNSec
-                          ) {
-                            setRecoverySetupError(
-                              "Please enter the verification code."
-                            );
-                            return;
-                          }
-                          setRecoverySetupLoading(true);
-                          setRecoverySetupError("");
-                          try {
-                            const res = await fetch(
-                              "/api/auth/setup-recovery",
-                              {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                  pubkey: userPubkey,
-                                  email: recoveryEmail,
-                                  nsec: userNSec,
-                                  verificationCode,
-                                  authType:
-                                    localStorage.getItem("authProvider") ||
-                                    "nsec",
-                                }),
-                              }
-                            );
-                            const data = await res.json();
-                            if (!res.ok) {
-                              setRecoverySetupError(
-                                data.error ||
-                                  "Failed to regenerate recovery key."
-                              );
-                              return;
-                            }
-                            setGeneratedRecoveryKey(data.recoveryKey);
-                            setMaskedRecoveryEmail(
-                              recoveryEmail.slice(0, 2) +
-                                "***@" +
-                                recoveryEmail.split("@")[1]
-                            );
-                            setShowRecoveryKeyModal(true);
-                            setShowRecoverySetup(false);
-                            setVerificationSent(false);
-                            setVerificationCode("");
-                          } catch {
-                            setRecoverySetupError("Something went wrong.");
-                          } finally {
-                            setRecoverySetupLoading(false);
-                          }
-                        }}
+                        onPress={() => void handleRegenerateRecoveryKey()}
                       >
                         Verify &amp; Generate Key
                       </Button>
@@ -493,39 +514,7 @@ const NostrKeysSection = () => {
                     size="sm"
                     className="bg-black text-white"
                     isLoading={verificationLoading}
-                    onPress={async () => {
-                      if (!recoveryEmail || !userPubkey) {
-                        setRecoverySetupError("Please enter an email address.");
-                        return;
-                      }
-                      setVerificationLoading(true);
-                      setRecoverySetupError("");
-                      try {
-                        const res = await fetch(
-                          "/api/auth/send-recovery-verification",
-                          {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              email: recoveryEmail,
-                              pubkey: userPubkey,
-                            }),
-                          }
-                        );
-                        const data = await res.json();
-                        if (!res.ok) {
-                          setRecoverySetupError(
-                            data.error || "Failed to send verification."
-                          );
-                          return;
-                        }
-                        setVerificationSent(true);
-                      } catch {
-                        setRecoverySetupError("Something went wrong.");
-                      } finally {
-                        setVerificationLoading(false);
-                      }
-                    }}
+                    onPress={() => void handleSendRecoveryVerification()}
                   >
                     Send Verification Code
                   </Button>
@@ -534,57 +523,7 @@ const NostrKeysSection = () => {
                     size="sm"
                     className="bg-black text-white"
                     isLoading={recoverySetupLoading}
-                    onPress={async () => {
-                      if (
-                        !verificationCode ||
-                        !recoveryEmail ||
-                        !userPubkey ||
-                        !userNSec
-                      ) {
-                        setRecoverySetupError(
-                          "Please enter the verification code."
-                        );
-                        return;
-                      }
-                      setRecoverySetupLoading(true);
-                      setRecoverySetupError("");
-                      try {
-                        const res = await fetch("/api/auth/setup-recovery", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            pubkey: userPubkey,
-                            email: recoveryEmail,
-                            nsec: userNSec,
-                            verificationCode,
-                            authType:
-                              localStorage.getItem("authProvider") || "nsec",
-                          }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok) {
-                          setRecoverySetupError(
-                            data.error || "Failed to set up recovery."
-                          );
-                          return;
-                        }
-                        setGeneratedRecoveryKey(data.recoveryKey);
-                        setHasRecoverySetup(true);
-                        setMaskedRecoveryEmail(
-                          recoveryEmail.slice(0, 2) +
-                            "***@" +
-                            recoveryEmail.split("@")[1]
-                        );
-                        setShowRecoveryKeyModal(true);
-                        setShowRecoverySetup(false);
-                        setVerificationSent(false);
-                        setVerificationCode("");
-                      } catch {
-                        setRecoverySetupError("Something went wrong.");
-                      } finally {
-                        setRecoverySetupLoading(false);
-                      }
-                    }}
+                    onPress={() => void handleSetupRecovery()}
                   >
                     Verify &amp; Set Up Recovery
                   </Button>

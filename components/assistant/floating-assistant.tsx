@@ -630,7 +630,7 @@ export default function FloatingAssistant({
                     <Button
                       size="sm"
                       className={`${WHITEBUTTONCLASSNAMES} mt-2 w-full`}
-                      onPress={() => router.push("/settings/assistant")}
+                      onPress={() => void router.push("/settings/assistant")}
                     >
                       Open assistant settings
                     </Button>
@@ -648,7 +648,7 @@ export default function FloatingAssistant({
                     <Button
                       size="sm"
                       className={`${PRIMARYBUTTONCLASSNAMES} mt-2 w-full`}
-                      onPress={enableWrites}
+                      onPress={() => void enableWrites()}
                       isDisabled={enabling}
                     >
                       {enabling ? "Enabling…" : "Enable writes"}

@@ -195,7 +195,7 @@ const Keys = () => {
 
               {/* Button styling from keys.tsx (mt-4, BLUEBUTTON, ml-1 icon) */}
               <div className="mt-4 flex justify-center">
-                <Button className={BLUEBUTTONCLASSNAMES} onClick={handleNext}>
+                <Button className={BLUEBUTTONCLASSNAMES} onClick={() => void handleNext()}>
                   Next <ArrowLongRightIcon className="ml-1 h-5 w-5" />
                 </Button>
               </div>

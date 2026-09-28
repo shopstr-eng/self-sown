@@ -100,7 +100,7 @@ export function LabReportUploaderButton({
           accept=".pdf,image/jpeg,image/png,image/webp"
           multiple
           ref={hiddenFileInput}
-          onChange={handleFileUpload}
+          onChange={(e) => void handleFileUpload(e)}
           className="hidden"
         />
         <Button

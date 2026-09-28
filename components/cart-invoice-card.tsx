@@ -7470,7 +7470,7 @@ export default function CartInvoiceCard({
 
     let cancelled = false;
     setIsCalculatingTax(true);
-    const t = setTimeout(async () => {
+    const calculateTax = async () => {
       try {
         const res = await fetch("/api/stripe/calculate-tax", {
           method: "POST",
@@ -7519,7 +7519,8 @@ export default function CartInvoiceCard({
       } finally {
         if (!cancelled) setIsCalculatingTax(false);
       }
-    }, 600);
+    };
+    const t = setTimeout(() => void calculateTax(), 600);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -7570,7 +7571,7 @@ export default function CartInvoiceCard({
     setAddressVerification((prev) =>
       prev.status === "checking" ? prev : { ...prev, status: "checking" }
     );
-    const t = setTimeout(async () => {
+    const verifyAddress = async () => {
       try {
         const res = await fetch("/api/shipping/verify-address", {
           method: "POST",
@@ -7632,7 +7633,8 @@ export default function CartInvoiceCard({
         if (!cancelled)
           setAddressVerification({ status: "idle", messages: [] });
       }
-    }, 700);
+    };
+    const t = setTimeout(() => void verifyAddress(), 700);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -7739,7 +7741,7 @@ export default function CartInvoiceCard({
 
     let cancelled = false;
     setIsFetchingLiveRates(true);
-    const t = setTimeout(async () => {
+    const fetchLiveRates = async () => {
       try {
         const next = new Map<string, LiveShippingEntry>();
         await Promise.all(
@@ -7797,7 +7799,8 @@ export default function CartInvoiceCard({
       } finally {
         if (!cancelled) setIsFetchingLiveRates(false);
       }
-    }, 700);
+    };
+    const t = setTimeout(() => void fetchLiveRates(), 700);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -7889,6 +7892,75 @@ export default function CartInvoiceCard({
     return formatCartMethodCost(costs.nativeTotal, costs.satsTotal, "card", {
       stripeFloor: true,
     });
+  };
+
+  const handleSelectShippingPreference = async () => {
+    // The selector stays visible as a persistent toggle so the
+    // buyer can flip the preference back and forth; the form
+    // below reacts to the change.
+    setShippingPickupPreference("shipping");
+    let shippingTotal = 0;
+    const processedSellers = new Set<string>();
+
+    for (const product of products) {
+      const sellerPubkey = product.pubkey;
+      const productShippingType = shippingTypes[product.id];
+      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies)
+        continue;
+      if (
+        productShippingType === "Added Cost" ||
+        productShippingType === "Free" ||
+        productShippingType === "Free/Pickup"
+      ) {
+        if (!processedSellers.has(sellerPubkey)) {
+          processedSellers.add(sellerPubkey);
+          const sellerProducts = products.filter(
+            (p) =>
+              p.pubkey === sellerPubkey &&
+              (shippingTypes[p.id] === "Added Cost" ||
+                shippingTypes[p.id] === "Free" ||
+                shippingTypes[p.id] === "Free/Pickup")
+          );
+          if (sellerProducts.length > 1) {
+            const { highestShippingProduct } =
+              getConsolidatedShippingForSeller(sellerPubkey);
+            if (highestShippingProduct) {
+              const shippingCostInSats =
+                await convertShippingToSats(highestShippingProduct);
+              shippingTotal += Math.ceil(
+                applyShippingDiscount(shippingCostInSats, sellerPubkey)
+              );
+            }
+          } else {
+            const eff = getEffectiveSingleProductShipping(product);
+            const shippingCostInSats =
+              await convertShippingToSats(eff.syntheticProduct);
+            shippingTotal += Math.ceil(
+              applyShippingDiscount(shippingCostInSats, sellerPubkey)
+            );
+          }
+        }
+      }
+    }
+
+    setTotalCost(subtotalCost + shippingTotal);
+  };
+
+  const handleConfirmFiatPayment = async () => {
+    const confirmed = isSingleSeller
+      ? fiatPaymentConfirmed
+      : allMultiFiatConfirmed;
+    if (confirmed) {
+      setShowFiatPaymentInstructions(false);
+      const fiatCosts = isSingleSeller
+        ? getFiatMethodCosts(selectedFiatOption)
+        : { nativeTotal: nativeTotalCost, satsTotal: totalCost };
+      await handleFiatPayment(
+        fiatCosts.satsTotal,
+        pendingPaymentData || {}
+      );
+      setPendingPaymentData(null);
+    }
   };
 
   const handleCashuPayment = async (price: number, data: any) => {
@@ -8915,7 +8987,7 @@ export default function CartInvoiceCard({
                           <button
                             type="button"
                             aria-label="Copy invoice"
-                            onClick={handleCopyInvoice}
+                            onClick={() => void handleCopyInvoice()}
                             className={joinClassNames(
                               "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "hidden" : ""
@@ -8953,12 +9025,12 @@ export default function CartInvoiceCard({
                           clientSecret={stripeClientSecret}
                           connectedAccountId={stripeConnectedAccountForForm}
                           onPaymentSuccess={(pid) =>
-                            multiCardQueue
+                            void (multiCardQueue
                               ? onMultiCardStepSuccess(pid)
                               : handleCardPaymentSuccess({
                                   processor: "stripe",
                                   paymentId: pid,
-                                })
+                                }))
                           }
                           onPaymentError={(error) => {
                             console.error("Stripe payment error:", error);
@@ -9000,12 +9072,12 @@ export default function CartInvoiceCard({
                           metadata={squareCheckout.metadata}
                           shippingContext={squareCheckout.shippingContext}
                           onPaymentSuccess={(pid) =>
-                            multiCardQueue
+                            void (multiCardQueue
                               ? onMultiCardStepSuccess(pid)
                               : handleCardPaymentSuccess({
                                   processor: "square",
                                   paymentId: pid,
-                                })
+                                }))
                           }
                           onPaymentError={(error) => {
                             console.error("Square payment error:", error);
@@ -9408,7 +9480,7 @@ export default function CartInvoiceCard({
                   <>
                     {/* Mixed shipping types - only show combined */}
                     <button
-                      onClick={() => handleOrderTypeSelection("combined")}
+                      onClick={() => void handleOrderTypeSelection("combined")}
                       className="shadow-neo w-full transform rounded-md border-2 border-black bg-white p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Mixed delivery</div>
@@ -9425,7 +9497,7 @@ export default function CartInvoiceCard({
                   <>
                     {/* All products have Free/Pickup - show shipping and contact options */}
                     <button
-                      onClick={() => handleOrderTypeSelection("shipping")}
+                      onClick={() => void handleOrderTypeSelection("shipping")}
                       className="shadow-neo w-full transform rounded-md border-2 border-black bg-white p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Free or added shipping</div>
@@ -9434,7 +9506,7 @@ export default function CartInvoiceCard({
                       </div>
                     </button>
                     <button
-                      onClick={() => handleOrderTypeSelection("contact")}
+                      onClick={() => void handleOrderTypeSelection("contact")}
                       className="shadow-neo w-full transform rounded-md border-2 border-black bg-white p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                     >
                       <div className="font-medium">Pickup</div>
@@ -9446,7 +9518,7 @@ export default function CartInvoiceCard({
                 ) : uniqueShippingTypes.includes("Free") ||
                   uniqueShippingTypes.includes("Added Cost") ? (
                   <button
-                    onClick={() => handleOrderTypeSelection("shipping")}
+                    onClick={() => void handleOrderTypeSelection("shipping")}
                     className="shadow-neo w-full transform rounded-md border-2 border-black bg-white p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="font-medium">
@@ -9458,7 +9530,7 @@ export default function CartInvoiceCard({
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleOrderTypeSelection("contact")}
+                    onClick={() => void handleOrderTypeSelection("contact")}
                     className="shadow-neo w-full transform rounded-md border-2 border-black bg-white p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="font-medium">Online order</div>
@@ -9483,66 +9555,7 @@ export default function CartInvoiceCard({
               </p>
               <div className="mb-6 space-y-4">
                 <button
-                  onClick={async () => {
-                    // The selector stays visible as a persistent toggle so the
-                    // buyer can flip the preference back and forth; the form
-                    // below reacts to the change.
-                    setShippingPickupPreference("shipping");
-                    let shippingTotal = 0;
-                    const processedSellers = new Set<string>();
-
-                    for (const product of products) {
-                      const sellerPubkey = product.pubkey;
-                      const productShippingType = shippingTypes[product.id];
-                      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies)
-                        continue;
-                      if (
-                        productShippingType === "Added Cost" ||
-                        productShippingType === "Free" ||
-                        productShippingType === "Free/Pickup"
-                      ) {
-                        if (!processedSellers.has(sellerPubkey)) {
-                          processedSellers.add(sellerPubkey);
-                          const sellerProducts = products.filter(
-                            (p) =>
-                              p.pubkey === sellerPubkey &&
-                              (shippingTypes[p.id] === "Added Cost" ||
-                                shippingTypes[p.id] === "Free" ||
-                                shippingTypes[p.id] === "Free/Pickup")
-                          );
-                          if (sellerProducts.length > 1) {
-                            const { highestShippingProduct } =
-                              getConsolidatedShippingForSeller(sellerPubkey);
-                            if (highestShippingProduct) {
-                              const shippingCostInSats =
-                                await convertShippingToSats(
-                                  highestShippingProduct
-                                );
-                              shippingTotal += Math.ceil(
-                                applyShippingDiscount(
-                                  shippingCostInSats,
-                                  sellerPubkey
-                                )
-                              );
-                            }
-                          } else {
-                            const eff =
-                              getEffectiveSingleProductShipping(product);
-                            const shippingCostInSats =
-                              await convertShippingToSats(eff.syntheticProduct);
-                            shippingTotal += Math.ceil(
-                              applyShippingDiscount(
-                                shippingCostInSats,
-                                sellerPubkey
-                              )
-                            );
-                          }
-                        }
-                      }
-                    }
-
-                    setTotalCost(subtotalCost + shippingTotal);
-                  }}
+                  onClick={() => void handleSelectShippingPreference()}
                   className={joinClassNames(
                     "shadow-neo w-full transform rounded-md border-2 border-black p-4 text-left transition-transform hover:-translate-y-0.5 active:translate-y-0.5",
                     shippingPickupPreference === "shipping"
@@ -9611,7 +9624,7 @@ export default function CartInvoiceCard({
               )}
 
               <form
-                onSubmit={handleFormSubmit((data) => onFormSubmit(data))}
+                onSubmit={(event) => void handleFormSubmit((data) => onFormSubmit(data))(event)}
                 className="w-full max-w-full min-w-0 space-y-6"
               >
                 {renderContactForm()}
@@ -10240,22 +10253,7 @@ export default function CartInvoiceCard({
                 Cancel
               </Button>
               <Button
-                onClick={async () => {
-                  const confirmed = isSingleSeller
-                    ? fiatPaymentConfirmed
-                    : allMultiFiatConfirmed;
-                  if (confirmed) {
-                    setShowFiatPaymentInstructions(false);
-                    const fiatCosts = isSingleSeller
-                      ? getFiatMethodCosts(selectedFiatOption)
-                      : { nativeTotal: nativeTotalCost, satsTotal: totalCost };
-                    await handleFiatPayment(
-                      fiatCosts.satsTotal,
-                      pendingPaymentData || {}
-                    );
-                    setPendingPaymentData(null);
-                  }
-                }}
+                onClick={() => void handleConfirmFiatPayment()}
                 disabled={
                   isSingleSeller
                     ? !fiatPaymentConfirmed

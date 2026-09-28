@@ -928,7 +928,7 @@ const BlogSettingsPage = () => {
             <div className="flex flex-wrap gap-2 pt-2">
               <Button
                 className={BLUEBUTTONCLASSNAMES}
-                onClick={handlePublish}
+                onClick={() => void handlePublish()}
                 isLoading={isPublishing}
                 isDisabled={
                   !membership.isPro ||
@@ -945,7 +945,7 @@ const BlogSettingsPage = () => {
               {membership.isPro && scheduleAt && (
                 <Button
                   className={BLACKBUTTONCLASSNAMES}
-                  onClick={() => handleSave(localInputToEpoch(scheduleAt))}
+                  onClick={() => void handleSave(localInputToEpoch(scheduleAt))}
                   isLoading={isScheduling}
                   isDisabled={
                     !title.trim() ||
@@ -961,7 +961,7 @@ const BlogSettingsPage = () => {
               {membership.isPro && (
                 <Button
                   className={WHITEBUTTONCLASSNAMES}
-                  onClick={() => handleSave(null)}
+                  onClick={() => void handleSave(null)}
                   isLoading={isSavingDraft}
                   isDisabled={
                     !title.trim() ||
@@ -1132,7 +1132,7 @@ const BlogSettingsPage = () => {
                             className={BLUEBUTTONCLASSNAMES}
                             size="sm"
                             isLoading={publishingDTag === item.dTag}
-                            onClick={() => handlePublishNow(item)}
+                            onClick={() => void handlePublishNow(item)}
                             title="Publish now"
                           >
                             <PaperAirplaneIcon className="h-4 w-4" />
@@ -1148,7 +1148,7 @@ const BlogSettingsPage = () => {
                           <Button
                             className={DANGERBUTTONCLASSNAMES}
                             size="sm"
-                            onClick={() => handleDeleteScheduled(item)}
+                            onClick={() => void handleDeleteScheduled(item)}
                             title="Delete"
                           >
                             <TrashIcon className="h-4 w-4" />
@@ -1241,7 +1241,7 @@ const BlogSettingsPage = () => {
                             className={BLUEBUTTONCLASSNAMES}
                             size="sm"
                             isLoading={emailingDTag === post.dTag}
-                            onClick={() => handleEmailExisting(post)}
+                            onClick={() => void handleEmailExisting(post)}
                             title="Email this post to the chosen audience"
                           >
                             <PaperAirplaneIcon className="h-4 w-4" />
@@ -1259,7 +1259,7 @@ const BlogSettingsPage = () => {
                       <Button
                         className={DANGERBUTTONCLASSNAMES}
                         size="sm"
-                        onClick={() => handleDelete(post)}
+                        onClick={() => void handleDelete(post)}
                         title="Delete"
                       >
                         <TrashIcon className="h-4 w-4" />

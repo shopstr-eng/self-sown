@@ -28,6 +28,15 @@ const VERIFY_API = "/api/email/verify-sender-domain";
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
@@ -39,15 +48,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
         </code>
         <button
           type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(value);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            } catch {
-              /* ignore */
-            }
-          }}
+          onClick={() => void handleCopy()}
           className="rounded-md border-2 border-black bg-white px-2 py-1 text-xs font-bold text-black hover:bg-gray-100"
         >
           {copied ? "Copied" : "Copy"}
@@ -331,7 +332,7 @@ export default function EmailSenderDomainSection() {
       )}
 
       {!record && (
-        <form onSubmit={onConnect} className="space-y-3">
+        <form onSubmit={(e) => void onConnect(e)} className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
             Your domain (e.g. <code className="text-xs">yourfarm.com</code>)
           </label>
@@ -398,7 +399,7 @@ export default function EmailSenderDomainSection() {
           )}
 
           {record.valid && (
-            <form onSubmit={onSaveFrom} className="space-y-3">
+            <form onSubmit={(e) => void onSaveFrom(e)} className="space-y-3">
               <div className="rounded-md border-2 border-black bg-green-50 p-3 text-sm text-green-900">
                 Your domain is verified. Choose the address your emails are sent
                 from, it must end with{" "}
@@ -440,7 +441,7 @@ export default function EmailSenderDomainSection() {
             {!record.valid && (
               <button
                 type="button"
-                onClick={onCheck}
+                onClick={() => void onCheck()}
                 disabled={busy}
                 className="shadow-neo rounded-md border-2 border-black bg-black px-4 py-2 text-sm font-bold text-white hover:bg-gray-900 disabled:opacity-50"
               >
@@ -449,7 +450,7 @@ export default function EmailSenderDomainSection() {
             )}
             <button
               type="button"
-              onClick={onDisconnect}
+              onClick={() => void onDisconnect()}
               disabled={busy}
               className="rounded-md border-2 border-red-400 bg-white px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
             >

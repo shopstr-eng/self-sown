@@ -311,7 +311,7 @@ export default function DiscountCodes() {
           />
           <Button
             className={BLUEBUTTONCLASSNAMES}
-            onClick={handleAddCode}
+            onClick={() => void handleAddCode()}
             isDisabled={
               !newCode ||
               (!(parseFloat(newDiscount) > 0) && newShippingType === "none") ||
@@ -389,7 +389,7 @@ export default function DiscountCodes() {
                     <ConfirmActionDropdown
                       helpText="Are you sure you want to delete this discount code?"
                       buttonLabel="Delete Code"
-                      onConfirm={() => handleDeleteCode(code.code)}
+                      onConfirm={() => void handleDeleteCode(code.code)}
                     >
                       <Button
                         isIconOnly

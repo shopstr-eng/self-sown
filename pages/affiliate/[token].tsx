@@ -276,7 +276,7 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
             <Button
               variant="bordered"
               className="text-black"
-              onClick={startStripeOnboarding}
+              onClick={() => void startStripeOnboarding()}
               isLoading={stripeBusy}
             >
               {affiliate.stripe_account_id
@@ -293,7 +293,7 @@ export default function AffiliateClaimPage({ token, initial }: Props) {
           <div className="flex gap-2">
             <Button
               className={BLUEBUTTONCLASSNAMES}
-              onClick={save}
+              onClick={() => void save()}
               isLoading={saving}
             >
               Save Payout Details

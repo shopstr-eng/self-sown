@@ -162,7 +162,7 @@ const ReceiveButton = () => {
             <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
               Receive Token
             </ModalHeader>
-            <form onSubmit={handleReceiveSubmit(onReceiveSubmit)}>
+            <form onSubmit={(e) => void handleReceiveSubmit(onReceiveSubmit)(e)}>
               <ModalBody>
                 <Controller
                   name="token"

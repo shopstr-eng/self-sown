@@ -475,7 +475,7 @@ const ProducerGuidePage = () => {
             <div id="introduction" className="mb-12">
               <Button
                 className={`mb-8 ${WHITEBUTTONCLASSNAMES}`}
-                onClick={() => router.push("/")}
+                onClick={() => void router.push("/")}
                 startContent={<ArrowLeftIcon className="h-4 w-4" />}
               >
                 Home
@@ -989,13 +989,13 @@ const ProducerGuidePage = () => {
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Button
                   className={PRIMARYBUTTONCLASSNAMES}
-                  onClick={() => router.push("/marketplace")}
+                  onClick={() => void router.push("/marketplace")}
                 >
                   Free Milk
                 </Button>
                 <Button
                   className={WHITEBUTTONCLASSNAMES}
-                  onClick={() => router.push("/faq")}
+                  onClick={() => void router.push("/faq")}
                 >
                   View General FAQ
                 </Button>

@@ -437,6 +437,14 @@ const ChatPanel = ({
     setMessageInput("");
   };
 
+  const handleMessageKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
+    if (
+      e.key === "Enter" &&
+      !(messageInput === "" || isSendingDMLoading)
+    )
+      await sendMessage();
+  };
+
   return (
     <div className="absolute flex h-full w-full flex-col overflow-clip bg-white px-2 pb-20 md:relative md:h-[85vh] md:pb-0 lg:pb-0">
       <h2 className="flex h-[60px] w-full flex-row items-center overflow-clip border-b-2 border-black bg-white align-middle">
@@ -493,13 +501,7 @@ const ChatPanel = ({
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
               setMessageInput(e.target.value);
             }}
-            onKeyDown={async (e: KeyboardEvent<HTMLInputElement>) => {
-              if (
-                e.key === "Enter" &&
-                !(messageInput === "" || isSendingDMLoading)
-              )
-                await sendMessage();
-            }}
+            onKeyDown={(e) => void handleMessageKeyDown(e)}
             classNames={{
               input: "bg-white !text-black placeholder:text-gray-400",
               inputWrapper:
@@ -512,7 +514,7 @@ const ChatPanel = ({
             className={BLUEBUTTONCLASSNAMES}
             isDisabled={messageInput === "" || isSendingDMLoading}
             isLoading={isSendingDMLoading}
-            onClick={async () => await sendMessage()}
+            onClick={() => void sendMessage()}
           >
             Send
           </Button>
@@ -528,7 +530,7 @@ const ChatPanel = ({
             </Button>
             <Button
               className={BLUEBUTTONCLASSNAMES}
-              onClick={handleMarkAsCompleted}
+              onClick={() => void handleMarkAsCompleted()}
             >
               Mark as Completed
             </Button>
@@ -553,7 +555,7 @@ const ChatPanel = ({
               <ModalHeader className="flex flex-col gap-1 text-white">
                 Enter Shipping Details
               </ModalHeader>
-              <form onSubmit={handleShippingSubmit(onShippingSubmit)}>
+              <form onSubmit={(e) => void handleShippingSubmit(onShippingSubmit)(e)}>
                 <ModalBody>
                   <Controller
                     name="Delivery Time"
@@ -705,7 +707,7 @@ const ChatPanel = ({
                 <ModalHeader className="flex flex-col gap-1 text-white">
                   Leave a Review
                 </ModalHeader>
-                <form onSubmit={handleReviewSubmit(onReviewSubmit)}>
+                <form onSubmit={(e) => void handleReviewSubmit(onReviewSubmit)(e)}>
                   <ModalBody>
                     <div className="mb-4 flex items-center justify-center gap-16">
                       <div className="flex items-center gap-3">

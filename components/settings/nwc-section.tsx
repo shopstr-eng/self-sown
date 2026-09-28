@@ -190,7 +190,7 @@ const NWCSection = () => {
       <div className="flex items-center">
         <Button
           className={BLUEBUTTONCLASSNAMES}
-          onClick={handleSave}
+          onClick={() => void handleSave()}
           isLoading={isLoading}
         >
           {isLoading ? "Connecting..." : isSaved ? "Saved!" : "Save Connection"}

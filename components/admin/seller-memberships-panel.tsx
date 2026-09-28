@@ -226,7 +226,7 @@ export default function SellerMembershipsPanel() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !anyBusy) lookup();
+              if (e.key === "Enter" && !anyBusy) void lookup();
             }}
             placeholder="npub1… or 64-char hex"
             spellCheck={false}
@@ -235,7 +235,7 @@ export default function SellerMembershipsPanel() {
         </div>
         <button
           type="button"
-          onClick={lookup}
+          onClick={() => void lookup()}
           disabled={anyBusy || !signerReady}
           className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
@@ -327,7 +327,7 @@ export default function SellerMembershipsPanel() {
             </div>
             <button
               type="button"
-              onClick={() => runOp("grant-pro")}
+              onClick={() => void runOp("grant-pro")}
               disabled={anyBusy || !signerReady}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
             >
@@ -335,7 +335,7 @@ export default function SellerMembershipsPanel() {
             </button>
             <button
               type="button"
-              onClick={() => runOp("grant-lifetime")}
+              onClick={() => void runOp("grant-lifetime")}
               disabled={anyBusy || !signerReady}
               className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 disabled:opacity-50"
             >
@@ -343,7 +343,7 @@ export default function SellerMembershipsPanel() {
             </button>
             <button
               type="button"
-              onClick={() => runOp("revoke")}
+              onClick={() => void runOp("revoke")}
               disabled={anyBusy || !signerReady}
               className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
             >

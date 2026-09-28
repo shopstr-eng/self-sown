@@ -322,7 +322,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
               }}
             />
             <Button
-              onClick={handlePost}
+              onClick={() => void handlePost()}
               className={`${BLACKBUTTONCLASSNAMES} mt-4 self-end`}
               disabled={!newPostContent.trim()}
             >
@@ -367,7 +367,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
                     {isModerator && !post.approved && (
                       <Button
                         size="sm"
-                        onClick={() => handleApprove(post)}
+                        onClick={() => void handleApprove(post)}
                         className="bg-primary-yellow shadow-neo border-2 border-black font-bold text-black hover:-translate-y-0.5"
                       >
                         Approve
@@ -380,7 +380,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
                         <Button
                           size="sm"
                           onClick={() =>
-                            handleRetractApproval(post.approvalEventId)
+                            void handleRetractApproval(post.approvalEventId)
                           }
                           className="shadow-neo border-2 border-black bg-red-500 font-bold text-white hover:-translate-y-0.5"
                         >
@@ -414,7 +414,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
                         }}
                       />
                       <Button
-                        onClick={() => handleReply(post)}
+                        onClick={() => void handleReply(post)}
                         className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
                         disabled={!replyContent.trim()}
                         size="sm"
@@ -465,7 +465,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
                             {isModerator && !reply.approved && (
                               <Button
                                 size="sm"
-                                onClick={() => handleApprove(reply)}
+                                onClick={() => void handleApprove(reply)}
                                 className="bg-primary-yellow shadow-neo border-2 border-black font-bold text-black hover:-translate-y-0.5"
                               >
                                 Approve
@@ -502,7 +502,7 @@ const CommunityFeed: FC<CommunityFeedProps> = ({ community }) => {
                                 }}
                               />
                               <Button
-                                onClick={() => handleReply(reply)}
+                                onClick={() => void handleReply(reply)}
                                 className={`${BLACKBUTTONCLASSNAMES} mt-2 self-end`}
                                 disabled={!replyContent.trim()}
                                 size="sm"

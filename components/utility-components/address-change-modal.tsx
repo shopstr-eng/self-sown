@@ -70,7 +70,7 @@ const AddressChangeModal = ({
         <ModalHeader className="flex flex-col gap-1 text-black">
           Change Delivery Address
         </ModalHeader>
-        <form onSubmit={handleSubmit(handleFormSubmit)}>
+        <form onSubmit={(e) => void handleSubmit(handleFormSubmit)(e)}>
           <ModalBody>
             {(orderId || productTitle || currentAddress || subscriptionId) && (
               <div className="mb-4 rounded-md border-2 border-black bg-gray-50 p-3">

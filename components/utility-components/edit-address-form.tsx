@@ -57,7 +57,7 @@ export default function EditAddressForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={(e) => void handleSubmit(onSubmit)(e)}>
       <ModalBody className="gap-4">
         <Controller
           name="label"

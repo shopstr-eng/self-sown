@@ -501,7 +501,7 @@ function MarketplacePage({
                   return shopSlug ? (
                     <Button
                       className="text-primary-blue hover:text-primary-yellow bg-transparent text-lg font-bold sm:text-xl"
-                      onClick={() => router.push(`/stall/${shopSlug}`)}
+                      onClick={() => void router.push(`/stall/${shopSlug}`)}
                     >
                       Stall ↗
                     </Button>

@@ -599,9 +599,9 @@ const ChatMessage = ({
                     : "warning"
               }
               onClick={() =>
-                isSignedAgreement
+                void (isSignedAgreement
                   ? handleDownloadPdf()
-                  : handleViewSigningModal()
+                  : handleViewSigningModal())
               }
               isLoading={
                 (isSignedAgreement && isDownloading) ||
@@ -701,7 +701,7 @@ const ChatMessage = ({
                       type="button"
                       aria-label="Copy token"
                       onClick={() =>
-                        handleCopyToken(cashuPrefix + tokenAfterCashuVersion)
+                        void handleCopyToken(cashuPrefix + tokenAfterCashuVersion)
                       }
                       className="ml-2 cursor-pointer text-lg leading-none transition-all hover:scale-110"
                     >
@@ -807,7 +807,7 @@ const ChatMessage = ({
                 </Button>
                 <Button
                   color="warning"
-                  onPress={handleFinishSigning}
+                  onPress={() => void handleFinishSigning()}
                   isLoading={isUploading}
                   disabled={isUploading}
                 >

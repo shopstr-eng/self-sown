@@ -306,7 +306,7 @@ const AccountSettingsPage = () => {
                     </div>
                     {mints.length > 1 && (
                       <button
-                        onClick={() => deleteMint(mint)}
+                        onClick={() => void deleteMint(mint)}
                         className="ml-2 rounded p-1 hover:bg-gray-100"
                       >
                         <MinusCircleIcon className="h-5 w-5 text-black" />
@@ -573,7 +573,7 @@ const AccountSettingsPage = () => {
           <ModalHeader className="flex flex-col gap-1 font-bold text-black">
             Change Active Mint
           </ModalHeader>
-          <form onSubmit={handleMintSubmit(onMintSubmit)}>
+          <form onSubmit={(e) => void handleMintSubmit(onMintSubmit)(e)}>
             <ModalBody>
               <Controller
                 name="mint"
@@ -659,7 +659,7 @@ const AccountSettingsPage = () => {
           <ModalHeader className="flex flex-col gap-1 font-bold text-black">
             Add Relay
           </ModalHeader>
-          <form onSubmit={handleRelaySubmit(onRelaySubmit)}>
+          <form onSubmit={(e) => void handleRelaySubmit(onRelaySubmit)(e)}>
             <ModalBody>
               <Controller
                 name="relay"
@@ -745,7 +745,7 @@ const AccountSettingsPage = () => {
           <ModalHeader className="flex flex-col gap-1 font-bold text-black">
             Add Server
           </ModalHeader>
-          <form onSubmit={handleBlossomSubmit(onBlossomSubmit)}>
+          <form onSubmit={(e) => void handleBlossomSubmit(onBlossomSubmit)(e)}>
             <ModalBody>
               <Controller
                 name="server"

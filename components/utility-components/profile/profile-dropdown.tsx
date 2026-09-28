@@ -154,6 +154,22 @@ export const ProfileWithDropdown = ({
     action();
   };
 
+  const handleCopyNpub = async () => {
+    try {
+      const npub = nip19.npubEncode(pubkey);
+      const ok = await copyToClipboard(npub);
+      if (!ok) {
+        throw new Error("Clipboard API is not available");
+      }
+      setIsNPubCopied(true);
+      setTimeout(() => {
+        setIsNPubCopied(false);
+      }, 2100);
+    } catch (error) {
+      console.error("Failed to copy npub to clipboard", error);
+    }
+  };
+
   const handleReportDropdownAction = () => {
     setIsDropdownOpen(false);
     setTimeout(() => {
@@ -452,21 +468,7 @@ export const ProfileWithDropdown = ({
         <ClipboardIcon className="h-5 w-5 !text-black" />
       ),
       onPress: () => {
-        handleDropdownAction(async () => {
-          try {
-            const npub = nip19.npubEncode(pubkey);
-            const ok = await copyToClipboard(npub);
-            if (!ok) {
-              throw new Error("Clipboard API is not available");
-            }
-            setIsNPubCopied(true);
-            setTimeout(() => {
-              setIsNPubCopied(false);
-            }, 2100);
-          } catch (error) {
-            console.error("Failed to copy npub to clipboard", error);
-          }
-        });
+        handleDropdownAction(() => void handleCopyNpub());
       },
       label: isNPubCopied ? "Copied!" : "Copy npub",
     },

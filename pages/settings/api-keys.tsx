@@ -342,7 +342,7 @@ const ApiKeysPage = () => {
                   {mcpEndpointUrl}
                 </code>
                 <button
-                  onClick={() => handleCopy(mcpEndpointUrl)}
+                  onClick={() => void handleCopy(mcpEndpointUrl)}
                   className="hover:bg-primary-yellow rounded-md border-2 border-black bg-white p-2 transition-colors"
                 >
                   <ClipboardDocumentIcon className="h-5 w-5 text-black" />
@@ -397,7 +397,7 @@ const ApiKeysPage = () => {
                   {createdKey}
                 </code>
                 <button
-                  onClick={() => handleCopy(createdKey)}
+                  onClick={() => void handleCopy(createdKey)}
                   className="hover:bg-primary-yellow rounded-md border-2 border-black bg-white p-2 transition-colors"
                 >
                   {copied ? (
@@ -451,7 +451,7 @@ const ApiKeysPage = () => {
                 </Select>
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
-                  onClick={handleCreate}
+                  onClick={() => void handleCreate()}
                   isLoading={isCreating}
                   isDisabled={!newKeyName.trim()}
                 >
@@ -525,7 +525,7 @@ const ApiKeysPage = () => {
                           className={DANGERBUTTONCLASSNAMES}
                           size="sm"
                           isDisabled={!membership.isPro}
-                          onClick={() => handleRevoke(key.id)}
+                          onClick={() => void handleRevoke(key.id)}
                         >
                           <TrashIcon className="h-4 w-4" />
                           Revoke
@@ -556,7 +556,7 @@ const ApiKeysPage = () => {
               </div>
               <Button
                 className={DANGERBUTTONCLASSNAMES}
-                onClick={handleRevokeSessions}
+                onClick={() => void handleRevokeSessions()}
                 isLoading={isRevokingSessions}
                 isDisabled={!signer}
               >

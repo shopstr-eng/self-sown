@@ -409,7 +409,7 @@ export default function SquareCardForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
+    <form onSubmit={(e) => void handleSubmit(e)} className="w-full">
       {/* Square's SDK has no Apple Pay attach(): the button is ours. Rendered
           only after payments.applePay() resolved (device support + verified
           domain). The -apple-pay-button appearance (styles/globals.css) paints

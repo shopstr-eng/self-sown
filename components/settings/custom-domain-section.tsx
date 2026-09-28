@@ -82,6 +82,15 @@ const STATUS_COPY: Record<
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-semibold tracking-wide text-gray-500 uppercase">
@@ -93,15 +102,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
         </code>
         <button
           type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(value);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1500);
-            } catch {
-              /* ignore */
-            }
-          }}
+          onClick={() => void handleCopy()}
           className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
         >
           {copied ? "Copied" : "Copy"}
@@ -462,7 +463,7 @@ export default function CustomDomainSection() {
       )}
 
       {!domain && (
-        <form onSubmit={onSubmit} className="space-y-3">
+        <form onSubmit={(e) => void onSubmit(e)} className="space-y-3">
           <label className="text-sm font-medium text-gray-700">
             Domain (e.g. <code className="text-xs">creamerydairy.com</code> or{" "}
             <code className="text-xs">shop.creamerydairy.com</code>)
@@ -572,7 +573,7 @@ export default function CustomDomainSection() {
             {domain.tlsStatus !== "active" && (
               <button
                 type="button"
-                onClick={onVerify}
+                onClick={() => void onVerify()}
                 disabled={busy}
                 className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900 disabled:opacity-50"
               >
@@ -581,7 +582,7 @@ export default function CustomDomainSection() {
             )}
             <button
               type="button"
-              onClick={onDisconnect}
+              onClick={() => void onDisconnect()}
               disabled={busy}
               className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
             >

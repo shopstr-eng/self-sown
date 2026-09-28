@@ -143,7 +143,7 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
+      <form onSubmit={(e) => void handleSubmit(onSubmit as any)(e)} className="space-y-6">
         <div className="space-y-2">
           <label className="block text-base font-bold text-black">
             Display name
@@ -218,7 +218,7 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              handleSubmit(onSubmit as any)();
+              void handleSubmit(onSubmit as any)();
             }
           }}
           isDisabled={isUploadingProfile}

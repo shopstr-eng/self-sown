@@ -139,7 +139,7 @@ export default function ReportEventModal({
           </Button>
           <Button
             className="shadow-neo border-2 border-black bg-red-500 font-bold text-white"
-            onPress={handleSubmit}
+            onPress={() => void handleSubmit()}
             isDisabled={!selectedReportType}
             isLoading={isSubmitting}
           >

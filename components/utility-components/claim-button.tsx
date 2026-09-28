@@ -397,7 +397,7 @@ export default function ClaimButton({ token }: { token: string }) {
             ? "mt-2 min-w-fit cursor-not-allowed bg-gray-400 text-gray-600 opacity-60"
             : buttonClassName + " mt-2 min-w-fit"
         }
-        onClick={handleClaimButtonClick}
+        onClick={() => void handleClaimButtonClick()}
         isDisabled={isRedeemed || isInvalidToken}
       >
         {isRedeeming ? (
@@ -448,7 +448,7 @@ export default function ClaimButton({ token }: { token: string }) {
             <div className="flex w-full flex-wrap justify-evenly gap-2">
               <Button
                 className={WHITEBUTTONCLASSNAMES + " mt-2 w-[20%]"}
-                onClick={() => handleClaimType("receive")}
+                onClick={() => void handleClaimType("receive")}
                 startContent={
                   <ArrowDownTrayIcon className="h-6 w-6 hover:text-yellow-600" />
                 }
@@ -457,7 +457,7 @@ export default function ClaimButton({ token }: { token: string }) {
               </Button>
               <Button
                 className={WHITEBUTTONCLASSNAMES + " mt-2 w-[20%]"}
-                onClick={() => handleClaimType("redeem")}
+                onClick={() => void handleClaimType("redeem")}
                 startContent={
                   <BoltIcon className="h-6 w-6 hover:text-yellow-600" />
                 }

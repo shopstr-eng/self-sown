@@ -106,7 +106,7 @@ export function EncryptedAgreementUploaderButton({
         <input
           type="file"
           accept=".pdf"
-          onChange={handleFileUpload}
+          onChange={(e) => void handleFileUpload(e)}
           style={{ display: "none" }}
           id="encrypted-agreement-upload"
         />

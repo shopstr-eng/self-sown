@@ -1455,7 +1455,7 @@ export default function Component() {
                                         <Button
                                           className={BLUEBUTTONCLASSNAMES}
                                           onClick={() =>
-                                            handleApplyDiscount(sellerPubkey)
+                                            void handleApplyDiscount(sellerPubkey)
                                           }
                                         >
                                           Apply
@@ -1555,7 +1555,7 @@ export default function Component() {
                                       BLUEBUTTONCLASSNAMES + " text-xs"
                                     }
                                     onClick={() =>
-                                      router.push(
+                                      void router.push(
                                         `/marketplace/${getSellerNpub(
                                           sellerPubkey
                                         )}`
@@ -1669,7 +1669,7 @@ export default function Component() {
                   className={BLUEBUTTONCLASSNAMES}
                   size="lg"
                   onClick={() =>
-                    router.push(
+                    void router.push(
                       sfSellerPubkey && sfShopSlug
                         ? `/stall/${sfShopSlug}`
                         : "/marketplace"

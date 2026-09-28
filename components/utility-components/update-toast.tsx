@@ -33,16 +33,17 @@ export default function UpdateToast() {
   }, []);
 
   useEffect(() => {
-    check();
-    const interval = setInterval(check, POLL_INTERVAL_MS);
+    void check();
+    const onFocus = () => void check();
+    const interval = setInterval(onFocus, POLL_INTERVAL_MS);
     const onVisible = () => {
-      if (document.visibilityState === "visible") check();
+      if (document.visibilityState === "visible") void check();
     };
-    window.addEventListener("focus", check);
+    window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(interval);
-      window.removeEventListener("focus", check);
+      window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [check]);

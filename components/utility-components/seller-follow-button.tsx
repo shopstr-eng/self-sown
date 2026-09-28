@@ -73,7 +73,7 @@ export default function SellerFollowButton({
             ? "shadow-neo border-2 border-black bg-white font-bold text-black"
             : "bg-primary-yellow shadow-neo border-2 border-black font-bold text-black"
         }
-        onPress={toggleFollow}
+        onPress={() => void toggleFollow()}
       >
         {isFollowing ? "Following" : "Follow Seller"}
       </Button>

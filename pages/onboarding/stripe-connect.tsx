@@ -280,7 +280,7 @@ const OnboardingStripeConnect = () => {
                 <div className="flex flex-col gap-3">
                   <Button
                     className={BLUEBUTTONCLASSNAMES}
-                    onClick={handleSetupStripe}
+                    onClick={() => void handleSetupStripe()}
                     isLoading={isLoading}
                     startContent={
                       !isLoading ? (

@@ -219,14 +219,14 @@ export default function RecoverPage() {
             />
             <Button
               className="w-full bg-black font-semibold text-white"
-              onPress={handleRequestRecovery}
+              onPress={() => void handleRequestRecovery()}
               isLoading={loading}
             >
               Send Recovery Link
             </Button>
             <button
               className="text-center text-sm text-gray-500 underline hover:text-gray-700"
-              onClick={() => router.push("/")}
+              onClick={() => void router.push("/")}
             >
               Back to Home
             </button>
@@ -280,7 +280,7 @@ export default function RecoverPage() {
             />
             <Button
               className="w-full bg-black font-semibold text-white"
-              onPress={handleVerifyToken}
+              onPress={() => void handleVerifyToken()}
               isLoading={loading}
             >
               Verify Token
@@ -344,7 +344,7 @@ export default function RecoverPage() {
             />
             <Button
               className="w-full bg-black font-semibold text-white"
-              onPress={handleResetPassword}
+              onPress={() => void handleResetPassword()}
               isLoading={loading}
             >
               {authType === "email"
@@ -366,7 +366,7 @@ export default function RecoverPage() {
             </p>
             <Button
               className="w-full bg-black font-semibold text-white"
-              onPress={() => router.push("/marketplace")}
+              onPress={() => void router.push("/marketplace")}
             >
               Go to Marketplace
             </Button>

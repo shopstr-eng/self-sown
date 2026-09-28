@@ -1376,7 +1376,7 @@ export default function ProductForm({
                   %. You can modify this in your{" "}
                   <span
                     className="cursor-pointer underline hover:text-blue-600"
-                    onClick={() => router.push("/settings/market-profile")}
+                    onClick={() => void router.push("/settings/market-profile")}
                   >
                     settings
                   </span>
@@ -3680,7 +3680,7 @@ export default function ProductForm({
                   . This is set automatically by your{" "}
                   <span
                     className="cursor-pointer underline hover:text-blue-600"
-                    onClick={() => router.push("/settings/market-profile")}
+                    onClick={() => void router.push("/settings/market-profile")}
                   >
                     profile settings
                   </span>{" "}

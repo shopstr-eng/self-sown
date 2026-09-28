@@ -207,7 +207,7 @@ export default function ProductListingView({
                 </Button>
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
-                  onPress={() => router.push("/marketplace")}
+                  onPress={() => void router.push("/marketplace")}
                 >
                   View Marketplace
                 </Button>
