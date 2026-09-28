@@ -21,6 +21,7 @@ jest.mock("@/utils/mcp/nostr-signing", () => ({
 jest.mock("@/utils/mcp/metrics", () => ({
   checkOnboardRateLimit: (...args: unknown[]) =>
     checkOnboardRateLimitMock(...args),
+  ONBOARD_RATE_LIMIT: { limit: 10, windowMs: 60 * 60 * 1000 },
 }));
 
 jest.mock("nostr-tools", () => ({
@@ -50,8 +51,10 @@ const FIXED_AGENT_NAME = "Test Agent";
 type MockResponse = {
   statusCode: number;
   jsonBody: unknown;
+  headers: Record<string, string>;
   status(code: number): MockResponse;
   json(payload: unknown): MockResponse;
+  setHeader(name: string, value: string | number): MockResponse;
 };
 
 function setNodeEnv(value: "development" | "production" | "test" | undefined) {
@@ -88,12 +91,17 @@ function createMockResponse(): MockResponse {
   const res: MockResponse = {
     statusCode: 200,
     jsonBody: undefined,
+    headers: {},
     status(code: number) {
       this.statusCode = code;
       return this;
     },
     json(payload: unknown) {
       this.jsonBody = payload;
+      return this;
+    },
+    setHeader(name: string, value: string | number) {
+      this.headers[name.toLowerCase()] = String(value);
       return this;
     },
   };
@@ -119,7 +127,12 @@ describe("MCP onboard API quick-start correctness", () => {
     delete process.env.TRUSTED_PROXY_IPS;
     setNodeEnv("test");
 
-    checkOnboardRateLimitMock.mockReturnValue(true);
+    checkOnboardRateLimitMock.mockReturnValue({
+      ok: true,
+      limit: 10,
+      remaining: 9,
+      resetAt: Date.now() + 60 * 60 * 1000,
+    });
     initializeApiKeysTableMock.mockResolvedValue(undefined);
     encryptNsecMock.mockReturnValue("encrypted-nsec");
     createApiKeyMock.mockResolvedValue({

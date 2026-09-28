@@ -23,7 +23,8 @@ export default async function handler(
   // Public, cacheable, and crawlable: this is meant to be discovered.
   res.setHeader("Cache-Control", "public, max-age=3600, s-maxage=3600");
 
-  if (!applyRateLimit(req, res, "well-known-signatures", RATE_LIMIT)) return;
+  if (!(await applyRateLimit(req, res, "well-known-signatures", RATE_LIMIT)))
+    return;
 
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.setHeader("Allow", "GET, HEAD");
