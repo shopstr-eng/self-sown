@@ -1,0 +1,48 @@
+Improve how ready https://self-sown.com is for agents.
+
+Current Is Agentic score: 97/100 (Is Agentic readiness model based on Ora audit evidence).
+
+Implement the following fixes in priority order (failures first, then warnings):
+
+1. Content is available without JavaScript (Essential, Partial)
+Evidence: 9043 chars with H1, but heading hierarchy skips H1 to H3
+Recommended fix: Serve at least 500 characters of meaningful homepage content in raw HTML. Add a clear H1, keep deeper heading levels sequential, and remove excessive non-content markup.
+Current result: Partial (67%).
+
+2. Brand name discoverability (Recommended, Failed)
+Evidence: "Self-sown" search returned 9 results but domain did not appear - brand may be too generic or not indexed
+Recommended fix: Make sure a clean search for your brand name returns your own domain in the top results. If it does not, your brand may be too generic, conflict with a more established term, or not yet indexed. Strengthen brand-name search by claiming consistent NAP across listings, earning press mentions that link to the canonical domain, and avoiding redirect chains that mask the apex domain in search results.
+Current result: Failed.
+
+3. CLI tool available (Recommended, Failed)
+Evidence: No CLI tool found
+Recommended fix: Publish an official CLI tool on npm, PyPI, or Homebrew. A CLI lets agents and developers script interactions with your product without building API integrations from scratch.
+Current result: Failed.
+
+4. Rate limit response headers (Recommended, Failed)
+Evidence: No REST rate-limit headers found on probed endpoints
+Recommended fix: Return standard rate-limit headers on your API responses (the RFC RateLimit headers, plus Retry-After on a 429) so agents can self-throttle in real time, and document the conventions alongside your API.
+Current result: Failed.
+
+5. Developer resource discoverability (Recommended, Partial)
+Evidence: Name search surfaced no pages on self-sown.com, although developer resources exist on the site (API docs, OpenAPI spec) - weak search indexing or transient search noise
+Recommended fix: Check whether your developer resources (API docs, OpenAPI spec, auth docs, developer portal, MCP server, SDK documentation) surface in name-based searches. If they do not, use predictable URLs, link them in llms.txt, and include your product name in page titles and headings. This result reflects one search sample.
+Current result: Partial (33%).
+
+6. MCP server / manifest (Recommended, Partial)
+Evidence: MCP manifest found at /.well-known/mcp.json but protocol handshake failed
+Recommended fix: Build an MCP (Model Context Protocol) server exposing your API as tools. Use Streamable HTTP transport for full score. This lets Claude, ChatGPT, and other AI agents call your product natively.
+Current result: Partial (50%).
+
+7. REST versioning / deprecation policy (Recommended, Partial)
+Evidence: API versioning found (header versioning parameter) but no deprecation or sunset policy detected - add Sunset/Deprecation headers or a deprecation policy page
+Recommended fix: Declare a versioning policy agents can rely on: version your API (in the URL path or a version header) and publish how you signal deprecation (a Sunset/Deprecation header or a documented timeline). Agents avoid integrating against a surface that can change without warning.
+Current result: Partial (67%).
+
+Requirements:
+- Inspect the existing codebase before changing files.
+- Follow each published protocol or file format exactly.
+- Preserve existing product behavior and visual design.
+- Add or update tests for every behavior you change.
+- Verify every public endpoint and machine-readable file after implementation.
+- Finish with a concise change summary, verification results, and any remaining recommendations that require product decisions or credentials.
