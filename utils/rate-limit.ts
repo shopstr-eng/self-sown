@@ -210,8 +210,9 @@ function checkRateLimitInMemory(
  *
  * Pass `res` to also stamp the response with this bucket's real RateLimit-*
  * headers and RateLimit-Policy. The proxy stamps a generic advisory policy
- * (q=600;w=60) on every response; a route that enforces a different budget
- * must overwrite it or agents scheduling around the header are misled.
+ * (q=600;w=60) on machine-facing responses without their own limiter; a route
+ * that enforces a different budget must overwrite it or agents scheduling
+ * around the header are misled.
  */
 export async function checkRateLimit(
   bucketName: string,
@@ -326,7 +327,7 @@ export function setRateLimitHeaders(
 }
 
 // The proxy stamps a generic advisory RateLimit-Policy (q=600;w=60) on
-// responses; overwrite it with the policy the handler actually enforces so
+// machine-facing responses; overwrite it with the policy the handler actually enforces so
 // agents scheduling around the header aren't misled. The numeric RateLimit-*
 // headers override the advisory ones the same way.
 function setRateLimitPolicyHeader(
