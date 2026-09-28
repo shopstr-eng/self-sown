@@ -3,6 +3,7 @@ import { Button, Input, Spinner } from "@heroui/react";
 import { SignerContext } from "@/components/utility-components/nostr-context-provider";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { mintScopedSessionToken } from "@/utils/assistant/session-client";
+import { SESSION_SCOPES } from "@/utils/assistant/session-scopes";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 interface ChatMessage {
@@ -146,7 +147,7 @@ export default function AssistantChat({
     if (!signer) return null;
     // One NIP-98 signature per window; null means fall back to per-message
     // signing (nsec signers and older servers behave exactly as before).
-    const minted = await mintScopedSessionToken(signer, "chat");
+    const minted = await mintScopedSessionToken(signer, SESSION_SCOPES.chat);
     sessionRef.current = minted;
     return minted?.token ?? null;
   };

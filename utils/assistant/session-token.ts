@@ -29,19 +29,16 @@
  * Token format: `<base64url(JSON{pk, sc, iat, exp})>.<mac32>`
  */
 import { createHmac, timingSafeEqual } from "crypto";
+import { SESSION_SCOPES } from "./session-scopes";
 
-// The ONE set of session scopes. Every endpoint that accepts (or mints) a
-// session token must take its scope from here — never an inline literal — so
-// the scope an endpoint verifies against cannot silently drift from the scope
-// the token was minted for.
-export const SESSION_SCOPES = {
-  chat: "chat",
-  assistantSetup: "assistant-setup",
-  mcpKeys: "mcp-keys",
-} as const;
-
-export type AssistantSessionScope =
-  (typeof SESSION_SCOPES)[keyof typeof SESSION_SCOPES];
+// The ONE set of session scopes (defined in the client-safe session-scopes.ts
+// so browser bundles can share it — this file pulls in node:crypto). Every
+// endpoint that accepts (or mints) a session token must take its scope from
+// here — never an inline literal — so the scope an endpoint verifies against
+// cannot silently drift from the scope the token was minted for.
+export { SESSION_SCOPES };
+export type { AssistantSessionScope } from "./session-scopes";
+import type { AssistantSessionScope } from "./session-scopes";
 
 // Per-scope lifetimes. Chat tokens ride along a conversation; the management
 // scopes authorize credential changes, so they live half as long.
@@ -101,7 +98,7 @@ function macFor(scope: AssistantSessionScope, payloadPart: string): string {
 
 export function mintAssistantSessionToken(
   pubkey: string,
-  scope: AssistantSessionScope = "chat",
+  scope: AssistantSessionScope = SESSION_SCOPES.chat,
   nowMs: number = Date.now()
 ): { token: string; expiresAtMs: number } {
   if (!HEX64.test(pubkey)) throw new Error("Invalid pubkey for session token");
@@ -117,7 +114,7 @@ export function mintAssistantSessionToken(
 
 export function verifyAssistantSessionToken(
   token: string,
-  scope: AssistantSessionScope = "chat",
+  scope: AssistantSessionScope = SESSION_SCOPES.chat,
   nowMs: number = Date.now()
 ): { pubkey: string; expiresAtMs: number; issuedAtMs: number } | null {
   if (typeof token !== "string") return null;
