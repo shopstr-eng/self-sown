@@ -88,17 +88,39 @@ const ApiKeysPage = () => {
     return minted?.token ?? null;
   }, [signer]);
 
+  // Run one MCP key request with the cached bearer token. A 401 means the
+  // token was rejected mid-session (rotated SESSION_SECRET, or expiry between
+  // the client's 60s margin check and the server's verify): discard it and
+  // retry the action once — re-minting (one new signing prompt) or, when
+  // minting fails, falling back to a single signed proof. Mirrors the
+  // assistant page's enableWrites recovery.
+  const fetchWithTokenRetry = useCallback(
+    async (
+      bearerFetch: (token: string) => Promise<Response>,
+      signedFetch: () => Promise<Response>
+    ): Promise<Response> => {
+      const token = await getSessionToken();
+      if (!token) return signedFetch();
+      const res = await bearerFetch(token);
+      if (res.status !== 401) return res;
+      sessionRef.current = null;
+      const fresh = await getSessionToken();
+      return fresh ? bearerFetch(fresh) : signedFetch();
+    },
+    [getSessionToken]
+  );
+
   const fetchKeys = useCallback(async () => {
     if (!pubkey || !signer) return;
     setIsLoading(true);
     setError(null);
     try {
-      const token = await getSessionToken();
-      const res = token
-        ? await fetch(`/api/mcp/api-keys?pubkey=${pubkey}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        : await fetch(`/api/mcp/api-keys?pubkey=${pubkey}`, {
+      const url = `/api/mcp/api-keys?pubkey=${pubkey}`;
+      const res = await fetchWithTokenRetry(
+        (token) =>
+          fetch(url, { headers: { Authorization: `Bearer ${token}` } }),
+        async () =>
+          fetch(url, {
             headers: {
               [MCP_SIGNED_EVENT_HEADER]: JSON.stringify(
                 await signProof(
@@ -106,7 +128,8 @@ const ApiKeysPage = () => {
                 )
               ),
             },
-          });
+          })
+      );
       const data = await res.json();
       if (data.keys) {
         setApiKeys(data.keys);
@@ -118,7 +141,7 @@ const ApiKeysPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [pubkey, signer, signProof, getSessionToken]);
+  }, [pubkey, signer, signProof, fetchWithTokenRetry]);
 
   useEffect(() => {
     if (pubkey && signer) {
@@ -142,33 +165,38 @@ const ApiKeysPage = () => {
     try {
       const trimmedName = newKeyName.trim();
       const permissions = normalizeApiKeysPermission(newKeyPermission);
-      const token = await getSessionToken();
-      // Session token: no per-request signature. Without one, fall back to a
-      // single-use signed request proof (one signing prompt).
-      const signedEvent = token
-        ? undefined
-        : await signProof(
-            buildMcpRequestProofTemplate(
-              buildApiKeyCreateProof({
-                name: trimmedName,
-                permissions,
-                pubkey,
-              })
-            )
-          );
-      const res = await fetch("/api/mcp/api-keys", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({
-          name: trimmedName,
-          permissions,
-          pubkey,
-          signedEvent,
-        }),
-      });
+      const body = { name: trimmedName, permissions, pubkey };
+      // Session token: no per-request signature. Without one (or when the
+      // token is rejected mid-session), fall back to a single-use signed
+      // request proof (one signing prompt).
+      const res = await fetchWithTokenRetry(
+        (token) =>
+          fetch("/api/mcp/api-keys", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(body),
+          }),
+        async () =>
+          fetch("/api/mcp/api-keys", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...body,
+              signedEvent: await signProof(
+                buildMcpRequestProofTemplate(
+                  buildApiKeyCreateProof({
+                    name: trimmedName,
+                    permissions,
+                    pubkey,
+                  })
+                )
+              ),
+            }),
+          })
+      );
       const data = await res.json();
       if (data.success) {
         setCreatedKey(data.key);
@@ -193,25 +221,34 @@ const ApiKeysPage = () => {
     setError(null);
     setSuccessMessage(null);
     try {
-      const token = await getSessionToken();
-      const signedEvent = token
-        ? undefined
-        : await signProof(
-            buildMcpRequestProofTemplate(
-              buildApiKeyRevokeProof({
-                id,
-                pubkey,
-              })
-            )
-          );
-      const res = await fetch("/api/mcp/api-keys", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ id, pubkey, signedEvent }),
-      });
+      const res = await fetchWithTokenRetry(
+        (token) =>
+          fetch("/api/mcp/api-keys", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ id, pubkey }),
+          }),
+        async () =>
+          fetch("/api/mcp/api-keys", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id,
+              pubkey,
+              signedEvent: await signProof(
+                buildMcpRequestProofTemplate(
+                  buildApiKeyRevokeProof({
+                    id,
+                    pubkey,
+                  })
+                )
+              ),
+            }),
+          })
+      );
       const data = await res.json();
       if (data.success) {
         setSuccessMessage("API key revoked.");

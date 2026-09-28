@@ -194,4 +194,118 @@ describe("ApiKeysPage", () => {
       buildMcpRequestProofTemplate(buildApiKeysListProof("f".repeat(64))).tags
     );
   });
+
+  it("re-mints and retries once when the bearer token is rejected mid-session", async () => {
+    fetchMock
+      // 1: initial session mint
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          token: "tok_stale",
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        }),
+      })
+      // 2: initial list (bearer) — still accepted
+      .mockResolvedValueOnce({
+        json: async () => ({ keys: [] }),
+      })
+      // 3: create (bearer) — token rejected (rotated secret / mid-request expiry)
+      .mockResolvedValueOnce({
+        status: 401,
+        json: async () => ({ error: "Invalid or expired session token" }),
+      })
+      // 4: re-mint — one new signing prompt
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          token: "tok_fresh",
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        }),
+      })
+      // 5: retried create with the fresh token succeeds
+      .mockResolvedValueOnce({
+        json: async () => ({ success: true, key: "sk_created" }),
+      })
+      // 6: list refetch after create reuses the fresh token
+      .mockResolvedValueOnce({
+        json: async () => ({ keys: [] }),
+      });
+
+    renderPage();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+
+    fireEvent.change(screen.getByLabelText("Key Name"), {
+      target: { value: "My Agent" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /generate api key/i }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(6));
+
+    // First attempt used the stale token; the retry used the fresh one.
+    expect(fetchMock.mock.calls[2]![1].headers.Authorization).toBe(
+      "Bearer tok_stale"
+    );
+    const retryCall = fetchMock.mock.calls[4]!;
+    expect(retryCall[1].headers.Authorization).toBe("Bearer tok_fresh");
+    expect(JSON.parse(retryCall[1].body).signedEvent).toBeUndefined();
+    expect(fetchMock.mock.calls[5]![1].headers.Authorization).toBe(
+      "Bearer tok_fresh"
+    );
+
+    // Two signatures total: the original mint and the re-mint. No error.
+    expect(sign).toHaveBeenCalledTimes(2);
+    await waitFor(() =>
+      expect(screen.getByText(/API key created!/i)).toBeInTheDocument()
+    );
+    expect(
+      screen.queryByText(/Invalid or expired session token/i)
+    ).not.toBeInTheDocument();
+  });
+
+  it("falls back to a signed proof when re-minting after a 401 fails", async () => {
+    fetchMock
+      // 1: initial session mint
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          token: "tok_stale",
+          expiresAt: Date.now() + 15 * 60 * 1000,
+        }),
+      })
+      // 2: initial list (bearer) — token rejected mid-session
+      .mockResolvedValueOnce({
+        status: 401,
+        json: async () => ({ error: "Invalid or expired session token" }),
+      })
+      // 3: re-mint fails (older server / network) — no token
+      .mockResolvedValueOnce({
+        json: async () => ({}),
+      })
+      // 4: retried list falls back to the single-use signed proof
+      .mockResolvedValueOnce({
+        json: async () => ({ keys: [] }),
+      });
+
+    renderPage();
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+
+    // The stale-token attempt carried the bearer token…
+    expect(fetchMock.mock.calls[1]![1].headers.Authorization).toBe(
+      "Bearer tok_stale"
+    );
+    // …the retry carried a signed proof instead and no bearer token.
+    const retryOptions = fetchMock.mock.calls[3]![1];
+    expect(retryOptions.headers.Authorization).toBeUndefined();
+    expect(retryOptions.headers[MCP_SIGNED_EVENT_HEADER]).toBe(
+      JSON.stringify(await sign.mock.results[2]!.value)
+    );
+
+    // Three signatures: mint, re-mint attempt, and the signed proof.
+    expect(sign).toHaveBeenCalledTimes(3);
+    expect(
+      screen.queryByText(/Failed to load API keys/i)
+    ).not.toBeInTheDocument();
+  });
 });
