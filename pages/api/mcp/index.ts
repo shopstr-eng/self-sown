@@ -68,7 +68,9 @@ function dropSession(sessionId: string) {
   const session = sessions.get(sessionId);
   if (!session) return;
   try {
-    session.transport.close?.();
+    // Fire-and-forget teardown: close() settles independently and a rejection
+    // here must not escape dropSession.
+    void session.transport.close?.();
   } catch {}
   sessions.delete(sessionId);
   if (session.anonIp) {
