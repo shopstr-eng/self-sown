@@ -14,7 +14,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --emitDeclarationOnly",
-    "lint": "tsc -p tsconfig.json --noEmit",
+    "lint": "tsc -p tsconfig.json --noEmit && pnpm -C ../.. exec eslint packages/api-client",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "pnpm -C ../.. exec jest packages/api-client/src/__tests__ --runInBand"
   }
