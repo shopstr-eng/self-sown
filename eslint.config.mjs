@@ -44,6 +44,10 @@ export default [
       ],
       "@typescript-eslint/no-explicit-any": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      // `new Promise(async (resolve, reject) => ...)` turns post-await errors
+      // into unhandled rejections that silently hang the UI. Use
+      // utils/promise-from-async.ts when a resolve/reject closure is needed.
+      "no-async-promise-executor": "error",
     },
   },
   {
