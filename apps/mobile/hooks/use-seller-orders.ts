@@ -16,7 +16,9 @@ import {
 export function useSellerOrders(session: SellerSession | null) {
   useEffect(() => {
     if (!session) return;
-    void retryPendingMobileSellerOrderNotifications(session);
+    retryPendingMobileSellerOrderNotifications(session).catch((error) => {
+      console.error("Failed to retry pending order notifications:", error);
+    });
   }, [session]);
 
   return useQuery({
