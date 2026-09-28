@@ -257,22 +257,41 @@ const RL_SKIP_HEADER = "x-ss-rl-skip";
 
 // Advisory RateLimit headers for agents/scanners. Real per-IP enforcement lives
 // in the API handlers (utils/rate-limit.ts); these inform automated clients of
-// the documented budget on EVERY navigation/storefront response (both the
-// platform host and seller custom domains) so the limit is observable up front.
-function withAdvisoryRateLimitHeaders(res: NextResponse): NextResponse {
+// the documented budget (agents.txt: 600 req/min per IP on /api/mcp) on
+// machine-facing API/well-known responses that lack their own limiter.
+//
+// Page traffic gets NO numeric advisory — gated on the route actually taken,
+// not on Accept/User-Agent: an LLM crawler whose path has no agent-view
+// rewrite (e.g. /listing/<product>) still falls through to the HTML page, and
+// no limiter enforces the documented budget there. Stamping a constant
+// "600 of 600 remaining" on such responses would be fiction. Agent-negotiated
+// page formats never reach this stamp either: every agent-view/stall-agent-view
+// rewrite above sets RL_SKIP_HEADER because those API routes enforce their own
+// per-agent budget. Routes with a real limiter carry their own accurate
+// headers (via applyRateLimit/checkRateLimit), which this wrapper never
+// overwrites.
+function withAdvisoryRateLimitHeaders(
+  request: NextRequest,
+  res: NextResponse
+): NextResponse {
   if (res.headers.get(RL_SKIP_HEADER)) {
     res.headers.delete(RL_SKIP_HEADER);
     return res;
   }
-  if (!res.headers.has("RateLimit-Limit")) {
-    res.headers.set("RateLimit-Limit", "600");
-    res.headers.set("RateLimit-Remaining", "600");
-    res.headers.set("RateLimit-Reset", "60");
-    res.headers.set("RateLimit-Policy", '"agent";q=600;w=60');
-    res.headers.set("X-RateLimit-Limit", "600");
-    res.headers.set("X-RateLimit-Remaining", "600");
-    res.headers.set("X-RateLimit-Reset", "60");
-  }
+  if (res.headers.has("RateLimit-Limit")) return res;
+
+  const { pathname } = request.nextUrl;
+  const machineFacing =
+    pathname.startsWith("/api/") || pathname.startsWith("/.well-known/");
+  if (!machineFacing) return res;
+
+  res.headers.set("RateLimit-Limit", "600");
+  res.headers.set("RateLimit-Remaining", "600");
+  res.headers.set("RateLimit-Reset", "60");
+  res.headers.set("RateLimit-Policy", '"agent";q=600;w=60');
+  res.headers.set("X-RateLimit-Limit", "600");
+  res.headers.set("X-RateLimit-Remaining", "600");
+  res.headers.set("X-RateLimit-Reset", "60");
   return res;
 }
 
@@ -290,7 +309,7 @@ function stripInternalHeaders(base: Headers): Headers {
 }
 
 export async function proxy(request: NextRequest) {
-  const res = withAdvisoryRateLimitHeaders(await routeRequest(request));
+  const res = withAdvisoryRateLimitHeaders(request, await routeRequest(request));
   // Every API response advertises the served major version. Agents may pin a
   // version with the API-Version request header (unsupported pins fail closed
   // in routeRequest); the contract lives in openapi.json x-versioning-policy.
