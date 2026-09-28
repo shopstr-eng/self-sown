@@ -7,6 +7,7 @@ import {
   NostrSub,
 } from "@/utils/nostr/nostr-manager";
 import { getProductEventKey } from "@/utils/nostr/product-event-key";
+import { promiseFromAsync } from "@/utils/promise-from-async";
 
 type EditProductContext = (
   productEvents: NostrEvent[],
@@ -122,7 +123,7 @@ export const fetchAllPostsAbortable = async (
   productEvents: NostrEvent[];
   profileSetFromProducts: Set<string>;
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const BATCH_SIZE = 500;
       const profileSetFromProducts: Set<string> = new Set();
