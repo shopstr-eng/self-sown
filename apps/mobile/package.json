@@ -10,7 +10,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "build": "expo export --platform web --output-dir dist",
-    "lint": "tsc --noEmit",
+    "lint": "tsc --noEmit && pnpm -C ../.. exec eslint apps/mobile",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/navigation-query-smoke.mjs"
   },
