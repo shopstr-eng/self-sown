@@ -1,0 +1,171 @@
+/** @jest-environment node */
+
+// Agent-readiness documentation contract.
+//
+// External readiness audits (and the agents themselves) discover our
+// conventions from four surfaces: the OpenAPI document, agents.txt, llms.txt,
+// and the /developers portal. This suite pins the claims each surface must
+// keep making so a future edit can't silently drop them:
+//
+// 1. openapi.json — x-versioning-policy (Deprecation/Sunset commitment) and
+//    x-rate-limit-policy (RFC RateLimit header convention) extensions.
+// 2. agents.txt — the deprecation/sunset pointer.
+// 3. llms.txt — the developer-portal blurb advertising the policies.
+// 4. /developers — the human-readable rate-limits + versioning sections.
+// 5. Homepage heading hierarchy — the first heading in DOM order is the hero
+//    H1; showcase/carousel content rendering ahead of it must not use heading
+//    tags (an H3 before the H1 breaks the outline for agents reading raw HTML).
+
+import handler from "@/pages/api/openapi.json";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+function loadSpec(): Record<string, any> {
+  let payload: any;
+  const res = {
+    setHeader: jest.fn(),
+    status(code: number) {
+      expect(code).toBe(200);
+      return this;
+    },
+    json(body: any) {
+      payload = body;
+      return this;
+    },
+  };
+  handler({} as any, res as any);
+  return payload;
+}
+
+function readPublic(name: string): string {
+  return readFileSync(join(process.cwd(), "public", name), "utf8");
+}
+
+describe("openapi.json policy extensions", () => {
+  const spec = loadSpec();
+
+  it("keeps the versioning policy with the Deprecation/Sunset commitment", () => {
+    const policy = spec["x-versioning-policy"];
+    expect(policy).toBeDefined();
+    expect(policy.description).toContain("Deprecation");
+    expect(policy.description).toContain("Sunset");
+    expect(policy.description).toContain("RFC 8594");
+    expect(policy.policyUrl).toContain("/developers#versioning");
+  });
+
+  it("advertises the rate-limit header convention", () => {
+    const policy = spec["x-rate-limit-policy"];
+    expect(policy).toBeDefined();
+    expect(policy.convention).toContain("RateLimit-Limit");
+    expect(policy.convention).toContain("RateLimit-Remaining");
+    expect(policy.convention).toContain("Retry-After");
+    expect(policy.convention).toContain("429");
+    // The claims must stay qualified: up-front rejections (e.g. an
+    // unsupported API-Version pin) only MAY omit numeric headers (the /api/mcp
+    // advisory still stamps its 400s), and agents.txt publishes MCP budgets
+    // only — other endpoints self-declare in their response headers.
+    expect(policy.convention).toContain("may omit numeric headers");
+    expect(policy.convention).toContain(
+      "MCP budgets are published in agents.txt"
+    );
+    expect(policy.convention).toContain(
+      "declares its own budget in its response headers"
+    );
+    expect(policy.documentationUrl).toContain("/developers#rate-limits");
+  });
+});
+
+describe("static discovery files", () => {
+  it("agents.txt points agents at the deprecation/sunset policy", () => {
+    const agents = readPublic("agents.txt");
+    expect(agents).toContain("Deprecation");
+    expect(agents).toContain("Sunset");
+    expect(agents).toContain("RFC 8594");
+    expect(agents).toContain("/developers#versioning");
+    expect(agents).toContain("RateLimit-Limit");
+  });
+
+  it("agents.txt lists every MCP budget the OpenAPI extension points to", () => {
+    const agents = readPublic("agents.txt");
+    expect(agents).toContain("600 requests/minute per IP");
+    expect(agents).toContain("300 requests/minute per API key");
+    expect(agents).toContain("30 requests/minute per IP for unauthenticated");
+    // ...and directs agents to per-response headers for everything else.
+    expect(agents).toContain("declare their own budgets in their RateLimit-*");
+  });
+
+  it("llms.txt advertises the developer portal with its policies", () => {
+    const llms = readPublic("llms.txt");
+    const portalLine = llms
+      .split("\n")
+      .find((line) => line.includes("/developers"));
+    expect(portalLine).toBeDefined();
+    expect(portalLine).toContain("rate-limit");
+    expect(portalLine).toContain("deprecation");
+  });
+});
+
+describe("/developers portal", () => {
+  const src = readFileSync(
+    join(process.cwd(), "pages/developers/index.tsx"),
+    "utf8"
+  );
+
+  it("has an anchored rate-limits section the OpenAPI extension links to", () => {
+    expect(src).toContain('id="rate-limits"');
+    expect(src).toContain("RateLimit-Limit");
+    expect(src).toContain("Retry-After");
+  });
+
+  it("keeps the anchored versioning/deprecation section", () => {
+    expect(src).toContain('id="versioning"');
+    expect(src).toContain("Deprecation");
+    expect(src).toContain("Sunset");
+  });
+
+  it("names the deprecation policy in the meta description", () => {
+    expect(src).toMatch(/content="[^"]*deprecation/);
+  });
+});
+
+describe("homepage heading hierarchy", () => {
+  const src = readFileSync(join(process.cwd(), "pages/index.tsx"), "utf8");
+
+  // Extract a top-level `function Name() { ... }` body (closes at the first
+  // column-0 `}`), so assertions stay scoped to the component.
+  function componentBody(name: string): string {
+    const start = src.indexOf(`function ${name}(`);
+    if (start === -1) throw new Error(`${name} not found in pages/index.tsx`);
+    const end = src.indexOf("\n}", start);
+    if (end === -1) throw new Error(`${name} body not terminated`);
+    return src.slice(start, end);
+  }
+
+  it("has exactly one H1 (the hero)", () => {
+    expect(src.match(/<h1[\s>]/g)).toHaveLength(1);
+  });
+
+  it("renders no heading tags in the showcase/carousel slide content", () => {
+    // Slide/card content is not document structure; headings there break the
+    // outline wherever the carousel lands.
+    expect(componentBody("YourStallSlide")).not.toMatch(/<h[1-6][\s>]/);
+    expect(componentBody("YouTubeCarousel")).not.toMatch(/<h[1-6][\s>]/);
+  });
+
+  it("never skips a heading level in the page body (hero H1 through footer)", () => {
+    // Helper components are defined above the default export, so slicing from
+    // it onward scans the page body in render order.
+    const bodyStart = src.indexOf("export default function");
+    if (bodyStart === -1) throw new Error("default export not found");
+    const levels = [...src.slice(bodyStart).matchAll(/<h([1-6])[\s>]/g)].map(
+      (m) => Number(m[1])
+    );
+    expect(levels.length).toBeGreaterThan(3);
+    expect(levels[0]).toBe(1); // the hero H1 leads the page
+    for (let i = 1; i < levels.length; i++) {
+      // Deeper nesting is fine one level at a time; jumping back out to any
+      // shallower level is fine. Skipping a level going deeper is not.
+      expect(levels[i]).toBeLessThanOrEqual(levels[i - 1] + 1);
+    }
+  });
+});

@@ -62,6 +62,18 @@ Disallow: scraping encrypted order or message content (it is end-to-end encrypte
 # Back off on HTTP 429 and respect the Retry-After header.
 Rate-Limit: 600 requests/minute per IP on /api/mcp
 Rate-Limit: 300 requests/minute per API key on /api/mcp
+Rate-Limit: 30 requests/minute per IP for unauthenticated MCP initialize (5 concurrent sessions)
+# Other throttled endpoints declare their own budgets in their RateLimit-*
+# response headers; absence of numeric headers on normal responses means the
+# endpoint is not throttled.
+
+# --- API evolution -----------------------------------------------------------
+# The API is semantically versioned: every /api/* response carries an
+# API-Version header, and you may pin a major version with the API-Version
+# request header (unsupported pins fail closed with 400 unsupported_api_version).
+# Deprecated operations carry a Deprecation response header and, once a removal
+# date is set, a Sunset header (RFC 8594) at least 90 days before removal.
+# Full policy: https://self-sown.com/developers#versioning
 
 # --- Identity ----------------------------------------------------------------
 # Identify your agent with a descriptive User-Agent. Decentralized identity is

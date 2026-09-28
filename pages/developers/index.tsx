@@ -120,7 +120,7 @@ export default function Developers() {
         <title>Developers & AI Agents | Self-sown</title>
         <meta
           name="description"
-          content="Build on Self-sown: MCP server for AI agents, UCP REST catalog and checkout, OpenAPI reference, error model, and versioning policy."
+          content="Build on Self-sown: MCP server for AI agents, UCP REST catalog and checkout, OpenAPI reference, error model, rate-limit conventions, and the versioning and deprecation policy."
         />
       </Head>
       <div className="bg-grid-pattern flex min-h-screen flex-col bg-white py-8 md:pb-20">
@@ -279,6 +279,61 @@ export default function Developers() {
                 and a 404 comes back as markdown with links to the documents
                 above; otherwise it comes back as the JSON shape shown here.
               </p>
+            </div>
+          </div>
+
+          {/* Rate limits */}
+          <div className="mb-12" id="rate-limits">
+            <h2 className="mb-6 text-2xl font-bold text-black">Rate limits</h2>
+            <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
+              <ul className="list-disc space-y-2 pl-5 text-zinc-700">
+                <li>
+                  Throttled endpoints return standard{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    RateLimit-Limit
+                  </code>
+                  ,{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    RateLimit-Remaining
+                  </code>
+                  ,{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    RateLimit-Reset
+                  </code>
+                  , and{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    RateLimit-Policy
+                  </code>{" "}
+                  headers (plus{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    X-RateLimit-*
+                  </code>{" "}
+                  mirrors) on every response once a request is accepted for
+                  processing, so agents can self-throttle in real time. A
+                  request rejected before a limiter runs — for example an
+                  unsupported{" "}
+                  <code className="rounded bg-zinc-100 px-1">API-Version</code>{" "}
+                  pin — may omit numeric headers.
+                </li>
+                <li>
+                  Exceeding a limit returns 429 with a{" "}
+                  <code className="rounded bg-zinc-100 px-1">Retry-After</code>{" "}
+                  header and a{" "}
+                  <code className="rounded bg-zinc-100 px-1">
+                    retryAfterSeconds
+                  </code>{" "}
+                  body field.
+                </li>
+                <li>
+                  An endpoint whose normal responses lack numeric rate-limit
+                  headers is not throttled — no fictional budgets are
+                  advertised. MCP budgets are published in{" "}
+                  <code className="rounded bg-zinc-100 px-1">agents.txt</code>{" "}
+                  (/api/mcp: 600 requests/minute per IP, 300/minute per API key;
+                  anonymous initialize: 30/minute); every other throttled
+                  endpoint declares its own budget in its response headers.
+                </li>
+              </ul>
             </div>
           </div>
 
