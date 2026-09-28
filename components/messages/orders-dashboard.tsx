@@ -2457,7 +2457,7 @@ const OrdersDashboard = ({
                         <td className="px-4 py-4 text-sm whitespace-nowrap">
                           {order.signedHerdshareUrl ? (
                             <button
-                              onClick={() => handleViewHerdshare(order)}
+                              onClick={() => void handleViewHerdshare(order)}
                               disabled={isLoadingAgreement}
                               className="inline-flex items-center gap-1 rounded-md border-2 border-black bg-blue-200 px-2 py-1 text-xs font-bold text-black hover:bg-blue-300"
                             >
@@ -2474,7 +2474,7 @@ const OrdersDashboard = ({
                             </button>
                           ) : order.unsignedHerdshareUrl && !order.isSale ? (
                             <button
-                              onClick={() => handleSignHerdshare(order)}
+                              onClick={() => void handleSignHerdshare(order)}
                               disabled={isLoadingAgreement}
                               className="bg-primary-yellow inline-flex items-center gap-1 rounded-md border-2 border-black px-2 py-1 text-xs font-bold text-black hover:bg-yellow-400"
                             >
@@ -2530,7 +2530,7 @@ const OrdersDashboard = ({
           <ModalHeader className="flex flex-col gap-1 text-black">
             Enter Shipping Details
           </ModalHeader>
-          <form onSubmit={handleShippingSubmit(onShippingSubmit)}>
+          <form onSubmit={(e) => void handleShippingSubmit(onShippingSubmit)(e)}>
             <ModalBody>
               <div className="flex gap-2">
                 <Button
@@ -2748,7 +2748,7 @@ const OrdersDashboard = ({
           <ModalHeader className="flex flex-col gap-1 text-black">
             Leave a Review
           </ModalHeader>
-          <form onSubmit={handleReviewSubmit(onReviewSubmit)}>
+          <form onSubmit={(e) => void handleReviewSubmit(onReviewSubmit)(e)}>
             <ModalBody>
               <div className="mb-4 flex items-center justify-center gap-16">
                 <div className="flex items-center gap-3">
@@ -2938,7 +2938,7 @@ const OrdersDashboard = ({
                 {!isViewMode && (
                   <Button
                     color="warning"
-                    onPress={handleFinishSigning}
+                    onPress={() => void handleFinishSigning()}
                     isLoading={isUploadingSignedAgreement}
                     disabled={isUploadingSignedAgreement}
                   >
@@ -3025,7 +3025,7 @@ const OrdersDashboard = ({
             </Button>
             <Button
               className="border-2 border-black bg-orange-200 font-bold text-black hover:bg-orange-300"
-              onClick={handleSubmitReturnRequest}
+              onClick={() => void handleSubmitReturnRequest()}
               isLoading={isSendingReturnRequest}
               disabled={isSendingReturnRequest || !returnRequestMessage.trim()}
             >

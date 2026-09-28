@@ -446,7 +446,7 @@ export const FileUploaderButton = ({
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        onDrop={(e) => void handleDrop(e)}
         className={joinClassNames(
           "relative transition-all duration-300",
           isPlaceholder
@@ -532,7 +532,7 @@ export const FileUploaderButton = ({
           accept={ALLOWED_TYPES.join(",")}
           multiple
           ref={hiddenFileInput}
-          onChange={handleChange}
+          onChange={(e) => void handleChange(e)}
           className="hidden"
           disabled={disabled || loading}
         />

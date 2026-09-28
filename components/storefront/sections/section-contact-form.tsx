@@ -169,7 +169,7 @@ export default function SectionContactForm({
                   {successMessage}
                 </p>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+                <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4" noValidate>
                   {showName && (
                     <div>
                       <label className={labelClass} htmlFor="contact-form-name">

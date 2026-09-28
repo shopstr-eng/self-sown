@@ -1174,7 +1174,7 @@ export default function CheckoutCard({
                               ) : (
                                 <Button
                                   className={BLUEBUTTONCLASSNAMES}
-                                  onClick={handleApplyDiscount}
+                                  onClick={() => void handleApplyDiscount()}
                                 >
                                   Apply
                                 </Button>
@@ -1272,7 +1272,7 @@ export default function CheckoutCard({
                       {/* Share - Light Blue */}
                       <Button
                         className="shadow-neo rounded-md border-2 border-black bg-blue-100 px-6 py-2 font-bold text-black transition-transform hover:-translate-y-0.5 hover:bg-blue-200 active:translate-y-0.5"
-                        onClick={handleShare}
+                        onClick={() => void handleShare()}
                         size="lg"
                       >
                         Share

@@ -21,6 +21,33 @@ export default function ContactPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("sending");
+    setErrorMessage("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStatus("sent");
+        setName("");
+        setEmail("");
+        setSubject("");
+        setMessage("");
+      } else {
+        setStatus("error");
+        setErrorMessage(data.error || "Something went wrong.");
+      }
+    } catch {
+      setStatus("error");
+      setErrorMessage("Network error. Please try again.");
+    }
+  };
+
   return (
     <>
       <Head>
@@ -156,32 +183,7 @@ export default function ContactPage() {
               <h2 className="mb-6 text-2xl font-black">Send a Message</h2>
               <div className="shadow-neo rounded-lg border-2 border-black bg-white p-6">
                 <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    setStatus("sending");
-                    setErrorMessage("");
-                    try {
-                      const res = await fetch("/api/contact", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name, email, subject, message }),
-                      });
-                      const data = await res.json();
-                      if (res.ok) {
-                        setStatus("sent");
-                        setName("");
-                        setEmail("");
-                        setSubject("");
-                        setMessage("");
-                      } else {
-                        setStatus("error");
-                        setErrorMessage(data.error || "Something went wrong.");
-                      }
-                    } catch {
-                      setStatus("error");
-                      setErrorMessage("Network error. Please try again.");
-                    }
-                  }}
+                  onSubmit={(e) => void handleSubmit(e)}
                   className="space-y-4"
                 >
                   <div>

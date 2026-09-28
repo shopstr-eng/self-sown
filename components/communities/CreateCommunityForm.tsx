@@ -51,7 +51,7 @@ const CreateCommunityForm: React.FC<CreateCommunityFormProps> = ({
 
   return (
     // disable native browser validation so react-hook-form controls errors consistently
-    <form onSubmit={handleSubmit(onSave)} className="space-y-6" noValidate>
+    <form onSubmit={(e) => void handleSubmit(onSave)(e)} className="space-y-6" noValidate>
       <div>
         <label className="mb-2 block text-sm font-bold text-black">
           Community Name <span className="text-red-500">*</span>

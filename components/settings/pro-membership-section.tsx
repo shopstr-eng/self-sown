@@ -220,7 +220,7 @@ const ProMembershipSection = () => {
             </div>
             <Button
               className={`${BLUEBUTTONCLASSNAMES} shrink-0`}
-              onClick={() => router.push("/pro")}
+              onClick={() => void router.push("/pro")}
             >
               Upgrade to Herd
             </Button>
@@ -284,14 +284,14 @@ const ProMembershipSection = () => {
             {membership.isLifetime ? null : showResubscribe ? (
               <Button
                 className={BLUEBUTTONCLASSNAMES}
-                onClick={() => router.push("/pro")}
+                onClick={() => void router.push("/pro")}
               >
                 Re-subscribe
               </Button>
             ) : (
               <Button
                 className={WHITEBUTTONCLASSNAMES}
-                onClick={() => router.push("/pro")}
+                onClick={() => void router.push("/pro")}
               >
                 {membership.billingMethod === "manual"
                   ? "Renew membership"
@@ -475,7 +475,7 @@ const ProMembershipSection = () => {
             </Button>
             <Button
               className={BLACKBUTTONCLASSNAMES}
-              onClick={handleCancel}
+              onClick={() => void handleCancel()}
               isLoading={isCancelling}
             >
               {isCancelling ? "Canceling…" : "Cancel Membership"}

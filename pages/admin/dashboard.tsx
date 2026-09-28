@@ -280,7 +280,7 @@ function AdminDomainsInner() {
         </div>
         <button
           type="button"
-          onClick={load}
+          onClick={() => void load()}
           disabled={loading || !signerReady}
           className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
         >
@@ -345,7 +345,7 @@ function AdminDomainsInner() {
                   </span>
                   <select
                     value={d.tlsStatus}
-                    onChange={(e) => updateStatus(d.domain, e.target.value)}
+                    onChange={(e) => void updateStatus(d.domain, e.target.value)}
                     disabled={updating === d.domain}
                     className="rounded-md border border-gray-300 px-2 py-1 text-xs"
                   >

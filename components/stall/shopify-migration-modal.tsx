@@ -399,7 +399,7 @@ export default function ShopifyMigrationModal({
               onPickFile={() => fileInputRef.current?.click()}
               onDrop={handleDrop}
               fileInputRef={fileInputRef}
-              onFileChange={(f) => f && handleFileSelected(f)}
+              onFileChange={(f) => f && void handleFileSelected(f)}
             />
           )}
 

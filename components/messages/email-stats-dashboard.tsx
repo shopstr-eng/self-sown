@@ -140,7 +140,7 @@ const EmailStatsDashboard = () => {
         <Button
           className="rounded-md border-2 border-black bg-white font-bold text-black shadow-none"
           size="sm"
-          onClick={load}
+          onClick={() => void load()}
         >
           <ArrowPathIcon className="h-4 w-4" />
           Try Again
@@ -175,7 +175,7 @@ const EmailStatsDashboard = () => {
         <Button
           className="rounded-md border-2 border-black bg-white font-bold text-black shadow-none"
           size="sm"
-          onClick={load}
+          onClick={() => void load()}
         >
           <ArrowPathIcon className="h-4 w-4" />
           Refresh

@@ -548,7 +548,7 @@ export default function BuyShippingLabelModal({
           {!purchased && (
             <Button
               className="bg-primary-yellow font-semibold text-black"
-              onPress={handleBuy}
+              onPress={() => void handleBuy()}
               isDisabled={
                 !membership.isPro ||
                 buying ||

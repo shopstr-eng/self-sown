@@ -487,7 +487,7 @@ const SubscriptionManagement = ({
               />
               <Button
                 className={BLUEBUTTONCLASSNAMES}
-                onClick={handleGuestLookup}
+                onClick={() => void handleGuestLookup()}
                 isLoading={isLoading}
               >
                 Look Up Subscriptions
@@ -814,7 +814,7 @@ const SubscriptionManagement = ({
             </Button>
             <Button
               className={DANGERBUTTONCLASSNAMES}
-              onClick={handleConfirmCancel}
+              onClick={() => void handleConfirmCancel()}
               isLoading={isCanceling}
             >
               Confirm Cancellation
@@ -838,7 +838,7 @@ const SubscriptionManagement = ({
           <ModalHeader className="flex flex-col gap-1 text-black">
             Change Delivery Date
           </ModalHeader>
-          <form onSubmit={handleDateSubmit(onDateSubmit)}>
+          <form onSubmit={(e) => void handleDateSubmit(onDateSubmit)(e)}>
             <ModalBody>
               <p className="mb-2 text-sm text-black">
                 Select a new billing/delivery date for your subscription.

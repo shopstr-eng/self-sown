@@ -599,7 +599,7 @@ export default function StorefrontOrderConfirmation({
 
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
-              onClick={() => router.push(homeHref)}
+              onClick={() => void router.push(homeHref)}
               className="flex flex-1 items-center justify-center gap-2 rounded-lg px-6 py-3 font-bold transition-opacity hover:opacity-90"
               style={{
                 backgroundColor: colors.primary,
@@ -612,7 +612,7 @@ export default function StorefrontOrderConfirmation({
             {isLoggedIn && (
               <>
                 <button
-                  onClick={() => router.push(ordersHref)}
+                  onClick={() => void router.push(ordersHref)}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-6 py-3 font-bold transition-opacity hover:opacity-90"
                   style={{
                     borderColor: colors.primary,
@@ -624,7 +624,7 @@ export default function StorefrontOrderConfirmation({
                   Check Order Status
                 </button>
                 <button
-                  onClick={() => router.push(`${ordersHref}?isInquiry=true`)}
+                  onClick={() => void router.push(`${ordersHref}?isInquiry=true`)}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-6 py-3 font-bold transition-opacity hover:opacity-90"
                   style={{
                     borderColor: colors.primary,
@@ -639,7 +639,7 @@ export default function StorefrontOrderConfirmation({
             )}
             {orderData.isSubscription && (
               <button
-                onClick={() => router.push(`${ordersHref}?tab=subscriptions`)}
+                onClick={() => void router.push(`${ordersHref}?tab=subscriptions`)}
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-6 py-3 font-bold transition-opacity hover:opacity-90"
                 style={{
                   borderColor: colors.primary,

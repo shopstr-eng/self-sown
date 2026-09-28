@@ -449,7 +449,7 @@ export default function OrderSummary() {
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Button
                 className={BLUEBUTTONCLASSNAMES + " flex-1"}
-                onClick={() => router.push("/marketplace")}
+                onClick={() => void router.push("/marketplace")}
                 size="lg"
                 startContent={<ShoppingBagIcon className="h-5 w-5" />}
               >
@@ -457,7 +457,7 @@ export default function OrderSummary() {
               </Button>
               <Button
                 className={WHITEBUTTONCLASSNAMES + " flex-1"}
-                onClick={() => router.push("/orders")}
+                onClick={() => void router.push("/orders")}
                 size="lg"
                 startContent={<ClipboardDocumentListIcon className="h-5 w-5" />}
               >
@@ -465,7 +465,7 @@ export default function OrderSummary() {
               </Button>
               <Button
                 className={WHITEBUTTONCLASSNAMES + " flex-1"}
-                onClick={() => router.push("/orders?isInquiry=true")}
+                onClick={() => void router.push("/orders?isInquiry=true")}
                 size="lg"
                 startContent={<ChatBubbleLeftRightIcon className="h-5 w-5" />}
               >
@@ -474,7 +474,7 @@ export default function OrderSummary() {
               {orderData.isSubscription && (
                 <Button
                   className={WHITEBUTTONCLASSNAMES + " flex-1"}
-                  onClick={() => router.push("/orders?tab=subscriptions")}
+                  onClick={() => void router.push("/orders?tab=subscriptions")}
                   size="lg"
                   startContent={<ArrowPathIcon className="h-5 w-5" />}
                 >

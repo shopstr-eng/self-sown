@@ -268,7 +268,7 @@ const SendButton = () => {
           <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
             Send Tokens
           </ModalHeader>
-          <form onSubmit={handleSendSubmit(onSendSubmit)}>
+          <form onSubmit={(e) => void handleSendSubmit(onSendSubmit)(e)}>
             <ModalBody>
               <Controller
                 name="sats"
@@ -363,7 +363,7 @@ const SendButton = () => {
                           {newToken}
                         </p>
                         <ClipboardIcon
-                          onClick={handleCopyTokenString}
+                          onClick={() => void handleCopyTokenString()}
                           className={joinClassNames(
                             "h-6 w-6 cursor-pointer text-black hover:text-gray-600",
                             copiedToClipboard ? "hidden" : ""

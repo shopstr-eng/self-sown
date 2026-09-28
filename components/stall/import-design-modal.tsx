@@ -454,7 +454,7 @@ export default function ImportDesignModal({
               </Button>
               <Button
                 className={BLUEBUTTONCLASSNAMES}
-                onClick={handleGenerate}
+                onClick={() => void handleGenerate()}
                 isDisabled={isLoading || proLoading || !isPro}
                 startContent={<SparklesIcon className="h-4 w-4" />}
               >
@@ -476,8 +476,10 @@ export default function ImportDesignModal({
               </Button>
               <Button
                 className={BLUEBUTTONCLASSNAMES}
-                onClick={
-                  isProductMode ? handleApplyProduct : handleLoadIntoEditor
+                onClick={() =>
+                  void (isProductMode
+                    ? handleApplyProduct()
+                    : handleLoadIntoEditor())
                 }
                 isDisabled={isLoading}
               >

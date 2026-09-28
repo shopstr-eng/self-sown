@@ -63,7 +63,7 @@ function CheckoutForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
+    <form onSubmit={(e) => void handleSubmit(e)} className="w-full">
       {/* Wallet express checkout: Stripe shows only the wallets the current
           device/browser supports (Apple Pay on Apple devices/Safari, Google
           Pay on Chrome/Android, Link) and hides this block entirely when

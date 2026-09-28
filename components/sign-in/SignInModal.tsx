@@ -639,7 +639,7 @@ export default function SignInModal({
                   {/* Extension Sign-up */}
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
-                    onClick={startExtensionSignup}
+                    onClick={() => void startExtensionSignup()}
                   >
                     Nostr Extension Sign-up
                   </Button>
@@ -707,7 +707,7 @@ export default function SignInModal({
                         <Button
                           data-testid="bunker-signup-submit-btn"
                           className={`${BLUEBUTTONCLASSNAMES} w-full`}
-                          onClick={startBunkerSignup}
+                          onClick={() => void startBunkerSignup()}
                           isDisabled={
                             validBunkerToken != "success" ||
                             passphrase.trim().length < 12
@@ -846,7 +846,7 @@ export default function SignInModal({
                         <Button
                           data-testid="nsec-signup-submit-btn"
                           className={`${BLUEBUTTONCLASSNAMES} w-full`}
-                          onClick={handleNsecSignup}
+                          onClick={() => void handleNsecSignup()}
                           isDisabled={
                             validPrivateKey !== "success" && !isNcryptsec
                           }
@@ -952,7 +952,7 @@ export default function SignInModal({
 
                   <Button
                     className={`${WHITEBUTTONCLASSNAMES} w-full`}
-                    onClick={startExtensionLogin}
+                    onClick={() => void startExtensionLogin()}
                   >
                     Nostr Extension Sign-in
                   </Button>
@@ -1020,7 +1020,7 @@ export default function SignInModal({
                         <Button
                           data-testid="bunker-submit-btn"
                           className={`${BLUEBUTTONCLASSNAMES} w-full`}
-                          onClick={startBunkerLogin}
+                          onClick={() => void startBunkerLogin()}
                           isDisabled={
                             validBunkerToken != "success" ||
                             passphrase.trim().length < 12
@@ -1161,7 +1161,7 @@ export default function SignInModal({
                       <Button
                         data-testid="nsec-submit-btn"
                         className={`${BLUEBUTTONCLASSNAMES} w-full`}
-                        onClick={handleSignIn}
+                        onClick={() => void handleSignIn()}
                         isDisabled={
                           validPrivateKey !== "success" && !isNcryptsec
                         }
@@ -1257,7 +1257,7 @@ export default function SignInModal({
 
                   <Button
                     className={`${BLUEBUTTONCLASSNAMES} w-full`}
-                    onClick={handleEmailSignIn}
+                    onClick={() => void handleEmailSignIn()}
                   >
                     {isEmailSignUp ? "Sign Up" : "Sign In"}
                   </Button>

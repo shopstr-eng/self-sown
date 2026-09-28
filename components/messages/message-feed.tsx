@@ -173,7 +173,7 @@ const MessageFeed = ({
                     contacts={contacts}
                     loading={contactsLoading}
                     error={contactsError}
-                    onRefresh={loadContacts}
+                    onRefresh={() => void loadContacts()}
                   />
                 ),
                 id: "contacts",

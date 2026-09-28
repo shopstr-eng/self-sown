@@ -1411,7 +1411,7 @@ export default function StandaloneLanding() {
           </p>
 
           <div className="shadow-neo rounded-lg border-2 border-black bg-white p-8 text-left">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
               <div>
                 <label className="mb-2 block text-base font-bold">
                   How would you like us to reach you?

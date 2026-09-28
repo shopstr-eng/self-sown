@@ -159,6 +159,14 @@ export default function StorefrontEmailPopupComponent({
     }
   };
 
+  const handleCopyCode = async () => {
+    const ok = await copyToClipboard(discountCode);
+    if (ok !== false) {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    }
+  };
+
   // Build a short benefit label that may combine product percent + shipping
   // discount ("15% OFF + FREE SHIPPING", "FREE SHIPPING", etc.). Used by
   // the hero badge and the default headline so a shipping-only welcome code
@@ -347,13 +355,7 @@ export default function StorefrontEmailPopupComponent({
                             </p>
                           </div>
                           <button
-                            onClick={async () => {
-                              const ok = await copyToClipboard(discountCode);
-                              if (ok !== false) {
-                                setCodeCopied(true);
-                                setTimeout(() => setCodeCopied(false), 2000);
-                              }
-                            }}
+                            onClick={() => void handleCopyCode()}
                             aria-live="polite"
                             className="mb-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
                             style={{
@@ -430,7 +432,7 @@ export default function StorefrontEmailPopupComponent({
                           >
                             {subtext}
                           </p>
-                          <form onSubmit={handleSubmit} className="space-y-3">
+                          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
                             <input
                               type="email"
                               placeholder="Enter your email"

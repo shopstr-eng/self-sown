@@ -553,7 +553,7 @@ export default function Affiliates() {
                   />
                   <Button
                     className={BLUEBUTTONCLASSNAMES}
-                    onClick={createAffiliate}
+                    onClick={() => void createAffiliate()}
                     isDisabled={!newName}
                   >
                     Add Affiliate
@@ -634,7 +634,7 @@ export default function Affiliates() {
                                 size="sm"
                                 variant="bordered"
                                 className="text-black"
-                                onClick={() => regenerateInviteToken(a.id)}
+                                onClick={() => void regenerateInviteToken(a.id)}
                               >
                                 Regenerate Invite Link
                               </Button>
@@ -642,7 +642,7 @@ export default function Affiliates() {
                                 <Button
                                   size="sm"
                                   color="primary"
-                                  onClick={() => setPayoutsEnabled(a.id, true)}
+                                  onClick={() => void setPayoutsEnabled(a.id, true)}
                                 >
                                   Re-enable payouts
                                 </Button>
@@ -651,7 +651,7 @@ export default function Affiliates() {
                                   size="sm"
                                   variant="bordered"
                                   className="text-black"
-                                  onClick={() => setPayoutsEnabled(a.id, false)}
+                                  onClick={() => void setPayoutsEnabled(a.id, false)}
                                 >
                                   Pause Payouts
                                 </Button>
@@ -661,7 +661,7 @@ export default function Affiliates() {
                           <ConfirmActionDropdown
                             helpText="Delete this affiliate? Their codes and referral history will also be removed."
                             buttonLabel="Delete"
-                            onConfirm={() => deleteAffiliate(a.id)}
+                            onConfirm={() => void deleteAffiliate(a.id)}
                           >
                             <Button
                               isIconOnly
@@ -770,7 +770,7 @@ export default function Affiliates() {
                   </div>
                   <Button
                     className={BLUEBUTTONCLASSNAMES}
-                    onClick={createCode}
+                    onClick={() => void createCode()}
                     isDisabled={!codeAffiliateId || !codeText || !rebateValue}
                   >
                     Add Code
@@ -817,7 +817,7 @@ export default function Affiliates() {
                       <ConfirmActionDropdown
                         helpText="Delete this code? Existing referral history is preserved but new orders cannot use it."
                         buttonLabel="Delete"
-                        onConfirm={() => deleteCode(c.id)}
+                        onConfirm={() => void deleteCode(c.id)}
                       >
                         <Button
                           isIconOnly
@@ -870,7 +870,7 @@ export default function Affiliates() {
                         <Button
                           className={BLUEBUTTONCLASSNAMES}
                           size="sm"
-                          onClick={() => markPaid(b)}
+                          onClick={() => void markPaid(b)}
                           isDisabled={Number(b.payable_smallest) <= 0}
                         >
                           Mark Paid
@@ -1040,7 +1040,7 @@ export default function Affiliates() {
                     <Button
                       className={BLUEBUTTONCLASSNAMES}
                       isDisabled={!reverseOrderId.trim()}
-                      onClick={reverseReferralByOrder}
+                      onClick={() => void reverseReferralByOrder()}
                     >
                       Reverse
                     </Button>

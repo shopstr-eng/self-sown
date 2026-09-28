@@ -46,7 +46,7 @@ export default function UpgradeBanner({
         </div>
         <Button
           className={`${BLUEBUTTONCLASSNAMES} shrink-0`}
-          onPress={() => router.push("/pro")}
+          onPress={() => void router.push("/pro")}
         >
           {membership.isReadOnly || membership.isHidden
             ? "Re-subscribe"

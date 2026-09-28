@@ -973,7 +973,7 @@ const EmailFlowsPage = () => {
                                 <Button
                                   className={DANGERBUTTONCLASSNAMES}
                                   size="sm"
-                                  onClick={() => handleDeleteStep(step, index)}
+                                  onClick={() => void handleDeleteStep(step, index)}
                                 >
                                   <TrashIcon className="h-4 w-4" />
                                   Remove
@@ -1011,7 +1011,7 @@ const EmailFlowsPage = () => {
                                     className={BLUEBUTTONCLASSNAMES}
                                     size="sm"
                                     onClick={() =>
-                                      handleSendTest(step, stepKey)
+                                      void handleSendTest(step, stepKey)
                                     }
                                     isLoading={sendingTestForStep === stepKey}
                                     isDisabled={
@@ -1040,7 +1040,7 @@ const EmailFlowsPage = () => {
               <div className="mt-6 flex justify-end">
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
-                  onClick={handleSaveSteps}
+                  onClick={() => void handleSaveSteps()}
                   isLoading={isSavingSteps}
                   isDisabled={!membership.isPro}
                 >
@@ -1158,7 +1158,7 @@ const EmailFlowsPage = () => {
               <div className="flex gap-2">
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
-                  onClick={handleCreate}
+                  onClick={() => void handleCreate()}
                   isLoading={isCreating}
                   isDisabled={!newFlowName.trim()}
                 >
@@ -1275,7 +1275,7 @@ const EmailFlowsPage = () => {
                           size="sm"
                           isDisabled={flow.status !== "active"}
                           isLoading={sendingContactsForFlow === flow.id}
-                          onClick={() => openContactPicker(flow)}
+                          onClick={() => void openContactPicker(flow)}
                         >
                           <PaperAirplaneIcon className="h-4 w-4" />
                         </Button>
@@ -1284,7 +1284,7 @@ const EmailFlowsPage = () => {
                         <Button
                           className={WHITEBUTTONCLASSNAMES}
                           size="sm"
-                          onClick={() => handleEditFlow(flow)}
+                          onClick={() => void handleEditFlow(flow)}
                         >
                           <PencilIcon className="h-4 w-4" />
                         </Button>
@@ -1301,7 +1301,7 @@ const EmailFlowsPage = () => {
                               : BLUEBUTTONCLASSNAMES
                           }
                           size="sm"
-                          onClick={() => handleToggle(flow)}
+                          onClick={() => void handleToggle(flow)}
                         >
                           {flow.status === "active" ? (
                             <PauseIcon className="h-4 w-4" />
@@ -1314,7 +1314,7 @@ const EmailFlowsPage = () => {
                         <Button
                           className={DANGERBUTTONCLASSNAMES}
                           size="sm"
-                          onClick={() => handleDelete(flow)}
+                          onClick={() => void handleDelete(flow)}
                         >
                           <TrashIcon className="h-4 w-4" />
                         </Button>
@@ -1460,7 +1460,7 @@ const EmailFlowsPage = () => {
                 sendingContactsForFlow !== null
               }
               isLoading={sendingContactsForFlow === contactPickerFlow?.id}
-              onClick={handleSendToContacts}
+              onClick={() => void handleSendToContacts()}
             >
               {selectedEmails.size > 0
                 ? `Send to ${selectedEmails.size}`

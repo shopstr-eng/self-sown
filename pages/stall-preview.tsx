@@ -312,7 +312,7 @@ export default function ConvertPage() {
               />
               <Button
                 className={`${BLUEBUTTONCLASSNAMES} h-14 shrink-0 px-6 text-base`}
-                onClick={() => runPreview(url, mode)}
+                onClick={() => void runPreview(url, mode)}
                 isDisabled={loading}
                 startContent={!loading && <SparklesIcon className="h-5 w-5" />}
               >
@@ -449,7 +449,7 @@ export default function ConvertPage() {
                     <Button
                       className={`${BLUEBUTTONCLASSNAMES} px-8 text-base`}
                       onClick={() =>
-                        router.push(
+                        void router.push(
                           "/onboarding/new-account?plan=pro&preselect=seller"
                         )
                       }

@@ -72,7 +72,7 @@ const ProUpgradePage = () => {
                   </p>
                   <Button
                     className={BLUEBUTTONCLASSNAMES}
-                    onClick={() => router.push("/settings/stall")}
+                    onClick={() => void router.push("/settings/stall")}
                   >
                     Go to my stall{" "}
                     <ArrowLongRightIcon className="ml-1 h-5 w-5" />
@@ -94,13 +94,13 @@ const ProUpgradePage = () => {
                   <div className="flex flex-wrap justify-center gap-3">
                     <Button
                       className={BLUEBUTTONCLASSNAMES}
-                      onClick={() => router.push("/settings/stall")}
+                      onClick={() => void router.push("/settings/stall")}
                     >
                       Customize My Stall
                     </Button>
                     <Button
                       className="shadow-neo rounded-md border-2 border-black bg-white font-bold text-black"
-                      onClick={() => router.push("/settings/account")}
+                      onClick={() => void router.push("/settings/account")}
                     >
                       Manage Membership
                     </Button>

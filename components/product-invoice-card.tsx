@@ -5194,7 +5194,7 @@ export default function ProductInvoiceCard({
     setAddressVerification((prev) =>
       prev.status === "checking" ? prev : { ...prev, status: "checking" }
     );
-    const t = setTimeout(async () => {
+    const verifyAddress = async () => {
       try {
         const res = await fetch("/api/shipping/verify-address", {
           method: "POST",
@@ -5258,7 +5258,8 @@ export default function ProductInvoiceCard({
             prev.status === "idle" ? prev : { status: "idle", messages: [] }
           );
       }
-    }, 700);
+    };
+    const t = setTimeout(() => void verifyAddress(), 700);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -5290,7 +5291,7 @@ export default function ProductInvoiceCard({
 
     let cancelled = false;
     setIsFetchingLiveRate(true);
-    const t = setTimeout(async () => {
+    const fetchLiveRate = async () => {
       try {
         const res = await fetch("/api/shipping/rates", {
           method: "POST",
@@ -5344,7 +5345,8 @@ export default function ProductInvoiceCard({
       } finally {
         if (!cancelled) setIsFetchingLiveRate(false);
       }
-    }, 700);
+    };
+    const t = setTimeout(() => void fetchLiveRate(), 700);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -5388,7 +5390,7 @@ export default function ProductInvoiceCard({
 
     let cancelled = false;
     setIsCalculatingTax(true);
-    const t = setTimeout(async () => {
+    const calculateTax = async () => {
       try {
         const res = await fetch("/api/stripe/calculate-tax", {
           method: "POST",
@@ -5437,7 +5439,8 @@ export default function ProductInvoiceCard({
       } finally {
         if (!cancelled) setIsCalculatingTax(false);
       }
-    }, 600);
+    };
+    const t = setTimeout(() => void calculateTax(), 600);
     return () => {
       cancelled = true;
       clearTimeout(t);
@@ -5456,6 +5459,17 @@ export default function ProductInvoiceCard({
     productData.currency,
     productData.pubkey,
   ]);
+
+  const handleConfirmFiatPayment = async () => {
+    if (fiatPaymentConfirmed) {
+      setShowFiatPaymentInstructions(false);
+      await handleFiatPayment(
+        getFiatMethodTotal(selectedFiatOption),
+        pendingPaymentData || {}
+      );
+      setPendingPaymentData(null);
+    }
+  };
 
   const isSatsCurrency =
     productData.currency.toLowerCase() === "sats" ||
@@ -6380,7 +6394,7 @@ export default function ProductInvoiceCard({
                           <button
                             type="button"
                             aria-label="Copy invoice"
-                            onClick={handleCopyInvoice}
+                            onClick={() => void handleCopyInvoice()}
                             className={joinClassNames(
                               "ml-2 cursor-pointer text-sm leading-none",
                               copiedToClipboard ? "hidden" : ""
@@ -6409,7 +6423,7 @@ export default function ProductInvoiceCard({
                         <StripeCardForm
                           clientSecret={stripeClientSecret}
                           connectedAccountId={stripeConnectedAccountForForm}
-                          onPaymentSuccess={handleStripePaymentSuccess}
+                          onPaymentSuccess={(paymentIntentId) => void handleStripePaymentSuccess(paymentIntentId)}
                           onPaymentError={(error) => {
                             console.error("Stripe payment error:", error);
                             setFailureText(error);
@@ -6718,7 +6732,7 @@ export default function ProductInvoiceCard({
               )}
 
               <form
-                onSubmit={handleFormSubmit((data) => onFormSubmit(data))}
+                onSubmit={(e) => void handleFormSubmit((data) => onFormSubmit(data))(e)}
                 className="w-full max-w-full min-w-0 space-y-6"
               >
                 {renderContactForm()}
@@ -7199,16 +7213,7 @@ export default function ProductInvoiceCard({
                 Cancel
               </Button>
               <Button
-                onClick={async () => {
-                  if (fiatPaymentConfirmed) {
-                    setShowFiatPaymentInstructions(false);
-                    await handleFiatPayment(
-                      getFiatMethodTotal(selectedFiatOption),
-                      pendingPaymentData || {}
-                    );
-                    setPendingPaymentData(null);
-                  }
-                }}
+                onClick={() => void handleConfirmFiatPayment()}
                 disabled={!fiatPaymentConfirmed}
                 className={joinClassNames(
                   "shadow-neo rounded-md border-2 border-black bg-black px-6 py-2 font-bold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0.5",

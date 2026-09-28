@@ -5,6 +5,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  type ChangeEvent,
 } from "react";
 import { useRouter } from "next/router";
 import { useForm, Controller } from "react-hook-form";
@@ -1235,6 +1236,56 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
     }
   };
 
+  const handleHeadingFontUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setFontUploadingHeading(true);
+      const { blossomServers } = getLocalStorageData() || {};
+      const tags = await blossomUpload(
+        file,
+        false,
+        signer!,
+        blossomServers || ["https://cdn.nostrcheck.me"]
+      );
+      const urlTag = tags.find((t) => t[0] === "url");
+      if (!urlTag?.[1]) throw new Error("Upload returned no URL");
+      setCustomFontHeadingUrl(urlTag[1]);
+      setCustomFontHeadingName(file.name);
+      setFontHeading("");
+    } catch (err) {
+      console.error("Font upload failed:", err);
+    } finally {
+      setFontUploadingHeading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleBodyFontUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setFontUploadingBody(true);
+      const { blossomServers } = getLocalStorageData() || {};
+      const tags = await blossomUpload(
+        file,
+        false,
+        signer!,
+        blossomServers || ["https://cdn.nostrcheck.me"]
+      );
+      const urlTag = tags.find((t) => t[0] === "url");
+      if (!urlTag?.[1]) throw new Error("Upload returned no URL");
+      setCustomFontBodyUrl(urlTag[1]);
+      setCustomFontBodyName(file.name);
+      setFontBody("");
+    } catch (err) {
+      console.error("Font upload failed:", err);
+    } finally {
+      setFontUploadingBody(false);
+      e.target.value = "";
+    }
+  };
+
   if (isFetchingShop) {
     return <SelfSownSpinner />;
   }
@@ -1303,7 +1354,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
+      <form onSubmit={(e) => void handleSubmit(onSubmit as any)(e)} className="space-y-6">
         <div className="mx-auto space-y-6 lg:max-w-[600px]">
           <Controller
             name="name"
@@ -2300,41 +2351,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     type="file"
                                     accept=".woff2,.woff,.ttf,.otf"
                                     className="hidden"
-                                    onChange={async (e) => {
-                                      const file = e.target.files?.[0];
-                                      if (!file) return;
-                                      try {
-                                        setFontUploadingHeading(true);
-                                        const { blossomServers } =
-                                          getLocalStorageData() || {};
-                                        const tags = await blossomUpload(
-                                          file,
-                                          false,
-                                          signer!,
-                                          blossomServers || [
-                                            "https://cdn.nostrcheck.me",
-                                          ]
-                                        );
-                                        const urlTag = tags.find(
-                                          (t) => t[0] === "url"
-                                        );
-                                        if (!urlTag?.[1])
-                                          throw new Error(
-                                            "Upload returned no URL"
-                                          );
-                                        setCustomFontHeadingUrl(urlTag[1]);
-                                        setCustomFontHeadingName(file.name);
-                                        setFontHeading("");
-                                      } catch (err) {
-                                        console.error(
-                                          "Font upload failed:",
-                                          err
-                                        );
-                                      } finally {
-                                        setFontUploadingHeading(false);
-                                        e.target.value = "";
-                                      }
-                                    }}
+                                    onChange={(e) => void handleHeadingFontUpload(e)}
                                   />
                                   {fontUploadingHeading ? (
                                     <span className="text-xs text-gray-400">
@@ -2411,41 +2428,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     type="file"
                                     accept=".woff2,.woff,.ttf,.otf"
                                     className="hidden"
-                                    onChange={async (e) => {
-                                      const file = e.target.files?.[0];
-                                      if (!file) return;
-                                      try {
-                                        setFontUploadingBody(true);
-                                        const { blossomServers } =
-                                          getLocalStorageData() || {};
-                                        const tags = await blossomUpload(
-                                          file,
-                                          false,
-                                          signer!,
-                                          blossomServers || [
-                                            "https://cdn.nostrcheck.me",
-                                          ]
-                                        );
-                                        const urlTag = tags.find(
-                                          (t) => t[0] === "url"
-                                        );
-                                        if (!urlTag?.[1])
-                                          throw new Error(
-                                            "Upload returned no URL"
-                                          );
-                                        setCustomFontBodyUrl(urlTag[1]);
-                                        setCustomFontBodyName(file.name);
-                                        setFontBody("");
-                                      } catch (err) {
-                                        console.error(
-                                          "Font upload failed:",
-                                          err
-                                        );
-                                      } finally {
-                                        setFontUploadingBody(false);
-                                        e.target.value = "";
-                                      }
-                                    }}
+                                    onChange={(e) => void handleBodyFontUpload(e)}
                                   />
                                   {fontUploadingBody ? (
                                     <span className="text-xs text-gray-400">
@@ -4244,7 +4227,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                       key="confirm-remove"
                       className="font-bold text-red-500 data-[hover=true]:bg-red-50"
                       color="danger"
-                      onClick={handleRemoveStorefront}
+                      onClick={() => void handleRemoveStorefront()}
                     >
                       Yes, Remove Stall
                     </DropdownItem>
@@ -4366,7 +4349,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
             </Button>
             <Button
               className={BLUEBUTTONCLASSNAMES}
-              onClick={handleStorefrontPasswordSubmit}
+              onClick={() => void handleStorefrontPasswordSubmit()}
               isDisabled={!storefrontPasswordInput.trim()}
             >
               Submit

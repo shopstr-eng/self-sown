@@ -291,7 +291,7 @@ export default function AssistantChat({
               ).map((suggestion) => (
                 <button
                   key={suggestion}
-                  onClick={() => send(suggestion)}
+                  onClick={() => void send(suggestion)}
                   className="rounded-full border-2 border-black bg-white px-3 py-1 text-xs font-medium text-black transition-colors hover:bg-yellow-200"
                 >
                   {suggestion}
@@ -377,7 +377,7 @@ export default function AssistantChat({
         />
         <Button
           className={PRIMARYBUTTONCLASSNAMES}
-          onPress={() => send()}
+          onPress={() => void send()}
           isDisabled={sending || !input.trim()}
         >
           Send

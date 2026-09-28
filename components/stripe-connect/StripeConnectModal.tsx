@@ -204,7 +204,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({
           </Button>
           <Button
             className={BLUEBUTTONCLASSNAMES}
-            onClick={handleSetupStripe}
+            onClick={() => void handleSetupStripe()}
             isLoading={isLoading}
             startContent={
               !isLoading ? (

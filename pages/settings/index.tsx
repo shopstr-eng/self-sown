@@ -146,7 +146,7 @@ const SettingsPage = () => {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => router.push(item.route)}
+                    onClick={() => void router.push(item.route)}
                     className="group shadow-neo hover:bg-primary-yellow w-full transform cursor-pointer rounded-md border-2 border-black bg-white p-4 transition-transform hover:-translate-y-0.5 active:translate-y-0.5"
                   >
                     <div className="flex items-center gap-3">

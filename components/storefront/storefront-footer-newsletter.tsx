@@ -127,7 +127,7 @@ export default function StorefrontFooterNewsletter({
         </p>
       ) : (
         <form
-          onSubmit={handleSubmit}
+          onSubmit={(e) => void handleSubmit(e)}
           className="mt-3 flex w-full flex-col gap-2 sm:flex-row"
           noValidate
         >

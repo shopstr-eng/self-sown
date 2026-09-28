@@ -310,7 +310,7 @@ const PayButton = () => {
           <ModalHeader className="flex flex-col gap-1 text-xl font-bold text-black">
             Pay Lightning Invoice
           </ModalHeader>
-          <form onSubmit={handlePaySubmit(onPaySubmit)}>
+          <form onSubmit={(e) => void handlePaySubmit(onPaySubmit)(e)}>
             <ModalBody>
               <Controller
                 name="invoice"
@@ -332,6 +332,17 @@ const PayButton = () => {
                   const errorMessage: string = error?.message
                     ? error.message
                     : "";
+                  const handleInvoiceChange = async (
+                    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+                  ) => {
+                    const newValue = e.target.value;
+                    onChange(newValue);
+                    try {
+                      await calculateFee(newValue);
+                    } catch {
+                      setFeeReserveAmount("");
+                    }
+                  };
                   return (
                     <>
                       <Textarea
@@ -348,15 +359,7 @@ const PayButton = () => {
                         labelPlacement="inside"
                         isInvalid={isErrored}
                         errorMessage={errorMessage}
-                        onChange={async (e) => {
-                          const newValue = e.target.value;
-                          onChange(newValue);
-                          try {
-                            await calculateFee(newValue);
-                          } catch {
-                            setFeeReserveAmount("");
-                          }
-                        }}
+                        onChange={(e) => void handleInvoiceChange(e)}
                         onBlur={onBlur} // notify when input is touched/blur
                         value={value}
                       />

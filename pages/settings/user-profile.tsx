@@ -192,6 +192,19 @@ const UserProfilePage = () => {
     }
   };
 
+  const handleShowNSec = async () => {
+    // Only decrypt nsec when user explicitly asks to see it.
+    if (!userNSec && signer instanceof NostrNSecSigner) {
+      try {
+        const nsec = await (signer as NostrNSecSigner)._getNSec();
+        setUserNSec(nsec);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setViewState("shown");
+  };
+
   return (
     <ProtectedRoute>
       <div className="flex min-h-screen flex-col bg-white pt-24 md:pb-20">
@@ -321,20 +334,7 @@ const UserProfilePage = () => {
                       type="button"
                       aria-label="Show nsec"
                       className="shrink-0 cursor-pointer px-1 text-xl leading-none"
-                      onClick={async () => {
-                        // Only decrypt nsec when user explicitly asks to see it.
-                        if (!userNSec && signer instanceof NostrNSecSigner) {
-                          try {
-                            const nsec = await (
-                              signer as NostrNSecSigner
-                            )._getNSec();
-                            setUserNSec(nsec);
-                          } catch (err) {
-                            console.error(err);
-                          }
-                        }
-                        setViewState("shown");
-                      }}
+                      onClick={() => void handleShowNSec()}
                     >
                       👁️
                     </button>
@@ -344,7 +344,7 @@ const UserProfilePage = () => {
                 <div className="mb-12" />
               )}
 
-              <form onSubmit={handleSubmit(onSubmit as any)}>
+              <form onSubmit={(e) => void handleSubmit(onSubmit as any)(e)}>
                 <Controller
                   name="display_name"
                   control={control}

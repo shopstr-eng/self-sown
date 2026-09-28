@@ -328,7 +328,7 @@ export default function StorefrontWallet({ colors }: StorefrontWalletProps) {
         <div className="flex flex-col items-center gap-2">
           <button
             type="button"
-            onClick={handleRestore}
+            onClick={() => void handleRestore()}
             className="rounded-md border-2 border-black bg-white px-4 py-2 text-sm font-bold text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-100"
             style={{ color: colors.text, borderColor: colors.text }}
           >

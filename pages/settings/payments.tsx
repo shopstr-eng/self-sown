@@ -561,7 +561,7 @@ const PaymentsSettingsPage = () => {
                       className={`${BLUEBUTTONCLASSNAMES} mt-1`}
                       startContent={<ArrowDownTrayIcon className="h-4 w-4" />}
                       onClick={() =>
-                        router.push("/settings/stall?import=square")
+                        void router.push("/settings/stall?import=square")
                       }
                     >
                       Import from Square
@@ -656,7 +656,7 @@ const PaymentsSettingsPage = () => {
                             <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                           }
                           isLoading={standardAction}
-                          onClick={handleConnectStandard}
+                          onClick={() => void handleConnectStandard()}
                         >
                           Connect Your Stripe Account
                         </Button>
@@ -683,7 +683,7 @@ const PaymentsSettingsPage = () => {
                             <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                           }
                           isLoading={squareAction === "connect"}
-                          onClick={handleConnectSquare}
+                          onClick={() => void handleConnectSquare()}
                         >
                           Connect Square
                         </Button>
@@ -723,7 +723,7 @@ const PaymentsSettingsPage = () => {
                           <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                         }
                         isLoading={standardAction}
-                        onClick={handleConnectStandard}
+                        onClick={() => void handleConnectStandard()}
                       >
                         Switch to Standard Connect
                       </Button>
@@ -782,7 +782,7 @@ const PaymentsSettingsPage = () => {
                           }
                           isLoading={actionLoading === "dashboard"}
                           isDisabled={!status.chargesEnabled}
-                          onClick={() => openManageLink("dashboard")}
+                          onClick={() => void openManageLink("dashboard")}
                         >
                           Open Stripe Dashboard
                         </Button>
@@ -804,7 +804,7 @@ const PaymentsSettingsPage = () => {
                             <ArrowTopRightOnSquareIcon className="h-4 w-4" />
                           }
                           isLoading={actionLoading === "update"}
-                          onClick={() => openManageLink("update")}
+                          onClick={() => void openManageLink("update")}
                         >
                           Finish Stripe Setup
                         </Button>
@@ -831,7 +831,7 @@ const PaymentsSettingsPage = () => {
                           size="lg"
                           isSelected={!!taxStatus?.taxEnabled}
                           isDisabled={taxBusy !== null || taxLoading}
-                          onValueChange={handleToggleTax}
+                          onValueChange={(enabled) => void handleToggleTax(enabled)}
                           classNames={{
                             wrapper:
                               "bg-gray-300 group-data-[selected=true]:bg-primary-yellow",
@@ -881,7 +881,7 @@ const PaymentsSettingsPage = () => {
                                         }
                                         isLoading={taxBusy === reg.id}
                                         onClick={() =>
-                                          handleRemoveRegistration(reg.id)
+                                          void handleRemoveRegistration(reg.id)
                                         }
                                       >
                                         Remove
@@ -937,7 +937,7 @@ const PaymentsSettingsPage = () => {
                                 className={BLUEBUTTONCLASSNAMES}
                                 startContent={<PlusIcon className="h-4 w-4" />}
                                 isLoading={taxBusy === "add"}
-                                onClick={handleAddRegistration}
+                                onClick={() => void handleAddRegistration()}
                               >
                                 Add
                               </Button>
@@ -1067,7 +1067,7 @@ const PaymentsSettingsPage = () => {
                 </Button>
                 <Button
                   className={DANGERBUTTONCLASSNAMES}
-                  onClick={handleDisconnect}
+                  onClick={() => void handleDisconnect()}
                   isLoading={actionLoading === "disconnect"}
                   startContent={
                     actionLoading !== "disconnect" ? (
@@ -1127,7 +1127,7 @@ const PaymentsSettingsPage = () => {
                 </Button>
                 <Button
                   className={DANGERBUTTONCLASSNAMES}
-                  onClick={handleDisconnectSquare}
+                  onClick={() => void handleDisconnectSquare()}
                   isLoading={squareAction === "disconnect"}
                   startContent={
                     squareAction !== "disconnect" ? (

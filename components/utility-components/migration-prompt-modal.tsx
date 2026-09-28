@@ -132,7 +132,7 @@ export default function MigrationPromptModal({
             {/* Updated "Upgrade" button */}
             <Button
               className={PRIMARYBUTTONCLASSNAMES}
-              onClick={handleMigration}
+              onClick={() => void handleMigration()}
               isLoading={isLoading}
               isDisabled={!passphrase || isLoading}
             >

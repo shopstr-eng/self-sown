@@ -411,7 +411,7 @@ export default function ZapsnagButton({ product }: { product: ProductData }) {
             <Button
               isLoading={loading}
               className={PRIMARYBUTTONCLASSNAMES}
-              onClick={handleBuy}
+              onClick={() => void handleBuy()}
               isDisabled={!isValid || loading}
             >
               {loading ? status : "Confirm & Zap"}

@@ -256,7 +256,7 @@ const ProductPageTemplateForm = () => {
           <div className="mt-6 flex items-center gap-4">
             <Button
               className={BLUEBUTTONCLASSNAMES}
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               isDisabled={isSaving || !membership.isPro}
               isLoading={isSaving}
             >

@@ -815,7 +815,7 @@ export default function CustomizeProductPageModal({
                             !!bulkProgress ||
                             sizeBlock
                           }
-                          onPress={handleBulkApply}
+                          onPress={() => void handleBulkApply()}
                         >
                           {bulkProgress
                             ? `Applying ${bulkProgress.done}/${bulkProgress.total}…`
@@ -905,7 +905,7 @@ export default function CustomizeProductPageModal({
                     0)) && (
                 <Button
                   className="mr-auto rounded border border-red-300 bg-white px-3 text-red-600 hover:bg-red-50"
-                  onPress={handleRevertToShopDefaults}
+                  onPress={() => void handleRevertToShopDefaults()}
                   isDisabled={saving}
                 >
                   Revert To Shop Defaults
@@ -920,7 +920,7 @@ export default function CustomizeProductPageModal({
             </Button>
             <Button
               className={BLUEBUTTONCLASSNAMES}
-              onPress={handleSave}
+              onPress={() => void handleSave()}
               isLoading={saving}
               isDisabled={saving || sizeBlock}
             >

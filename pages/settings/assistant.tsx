@@ -181,7 +181,7 @@ const AssistantSettingsPage = () => {
                     />
                     <Button
                       className={PRIMARYBUTTONCLASSNAMES}
-                      onPress={enableWrites}
+                      onPress={() => void enableWrites()}
                       isDisabled={enabling || !nsec.trim()}
                     >
                       {enabling ? "Enabling…" : "Enable writes"}

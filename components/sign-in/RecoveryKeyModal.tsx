@@ -124,7 +124,7 @@ export default function RecoveryKeyModal({
                     <ClipboardDocumentIcon className="h-4 w-4" />
                   )
                 }
-                onPress={handleCopy}
+                onPress={() => void handleCopy()}
               >
                 {copied ? "Copied!" : "Copy"}
               </Button>

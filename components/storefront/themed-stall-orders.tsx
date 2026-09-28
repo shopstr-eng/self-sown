@@ -197,7 +197,7 @@ export default function ThemedStallOrders({
               </Button>
             )}
             <Button
-              onClick={() => router.push(browseHref)}
+              onClick={() => void router.push(browseHref)}
               className="bg-primary-blue font-bold text-white"
             >
               Browse Stall

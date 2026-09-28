@@ -205,7 +205,7 @@ const StallFeed = () => {
             </Button>
             <Button
               className={`${BLUEBUTTONCLASSNAMES}`}
-              onClick={handlePasswordSubmit}
+              onClick={() => void handlePasswordSubmit()}
               isDisabled={!passwordInput.trim()}
             >
               Submit
