@@ -69,12 +69,15 @@ export default [
     },
   },
   {
-    // Scoped to API handlers: an async guard (rate limit, auth, entitlement
-    // check) invoked without await is always truthy, so
+    // Scoped to server-side code: an async guard (rate limit, auth,
+    // entitlement check) invoked without await is always truthy, so
     // `if (!guard(...)) return;` silently never blocks anything and the
     // guard's side effects (e.g. 429 + header stamping) race the response.
-    // Intentional fire-and-forget calls must be marked with `void`.
-    files: ["pages/api/**/*.{ts,tsx}"],
+    // Covers API routes, the MCP server (agent-facing tools with their own
+    // auth/tier enforcement), and utils/ (shared modules called from
+    // webhook/cron handlers). Intentional fire-and-forget calls must be
+    // marked with `void`.
+    files: ["pages/api/**/*.{ts,tsx}", "mcp/**/*.ts", "utils/**/*.{ts,tsx}"],
     languageOptions: {
       parserOptions: {
         project: "./tsconfig.eslint.json",

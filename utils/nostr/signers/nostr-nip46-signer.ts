@@ -108,7 +108,9 @@ export class NostrNIP46Signer implements NostrSigner {
     };
 
     this.nostr = new NostrManager(this.bunker.relayUrls);
-    this.nostr.subscribe(
+    // Fire-and-forget: constructed synchronously, so the bunker-response
+    // subscription is started in the background.
+    void this.nostr.subscribe(
       [
         {
           kinds: [24133],
