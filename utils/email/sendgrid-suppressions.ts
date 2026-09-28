@@ -83,7 +83,12 @@ async function saveState(list: SuppressionList, state: SyncState) {
 async function fetchSuppressionPage(
   apiKey: string,
   list: SuppressionList,
-  opts: { startTime: number; endTime: number | null; limit: number; offset: number }
+  opts: {
+    startTime: number;
+    endTime: number | null;
+    limit: number;
+    offset: number;
+  }
 ): Promise<SuppressionEntry[]> {
   const params = new URLSearchParams({
     limit: String(opts.limit),

@@ -283,10 +283,7 @@ async function seedSenderDomain(): Promise<void> {
  * runBlogBroadcast re-fetches the post from long_form_events and refuses to
  * email anything whose cached id does not match the requested eventId.
  */
-async function seedBlogPost(
-  eventId: string,
-  createdAt = 1000
-): Promise<void> {
+async function seedBlogPost(eventId: string, createdAt = 1000): Promise<void> {
   await db.getDbPool().query(
     `INSERT INTO long_form_events (id, pubkey, created_at, kind, tags, content, sig)
      VALUES ($1, $2, ${createdAt}, 30023, $3::jsonb, 'Post body', 'e2e-sig')`,

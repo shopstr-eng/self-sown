@@ -345,7 +345,9 @@ function AdminDomainsInner() {
                   </span>
                   <select
                     value={d.tlsStatus}
-                    onChange={(e) => void updateStatus(d.domain, e.target.value)}
+                    onChange={(e) =>
+                      void updateStatus(d.domain, e.target.value)
+                    }
                     disabled={updating === d.domain}
                     className="rounded-md border border-gray-300 px-2 py-1 text-xs"
                   >

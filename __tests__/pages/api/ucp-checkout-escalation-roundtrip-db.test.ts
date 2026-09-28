@@ -79,10 +79,8 @@ const SOURCE_IP = `203.0.113.${(Date.now() % 200) + 1}`;
 // Unique-per-run bucket used only to force creation of the lazily-initialized
 // rate_limit_counters table on a fresh database (see beforeAll).
 const INIT_RATE_BUCKET = `zz-ucp-roundtrip-init-${Date.now()}`;
-const PRODUCT_EVENT_ID = `zzucp${Date.now().toString(16)}${"0".repeat(64)}`.slice(
-  0,
-  64
-);
+const PRODUCT_EVENT_ID =
+  `zzucp${Date.now().toString(16)}${"0".repeat(64)}`.slice(0, 64);
 const PRODUCT_D_TAG = `zz-ucp-roundtrip-${Date.now()}`;
 
 let db: DbServiceModule;
@@ -254,12 +252,8 @@ async function cleanupTestRows(): Promise<void> {
     [BUYER_PK, SELLER_PK]
   );
   await pool.query(`DELETE FROM mcp_api_keys WHERE pubkey = $1`, [BUYER_PK]);
-  await pool.query(`DELETE FROM pro_memberships WHERE pubkey = $1`, [
-    BUYER_PK,
-  ]);
-  await pool.query(`DELETE FROM product_events WHERE pubkey = $1`, [
-    SELLER_PK,
-  ]);
+  await pool.query(`DELETE FROM pro_memberships WHERE pubkey = $1`, [BUYER_PK]);
+  await pool.query(`DELETE FROM product_events WHERE pubkey = $1`, [SELLER_PK]);
   await pool.query(
     `DELETE FROM rate_limit_counters
      WHERE (bucket LIKE 'ucp-checkout-%' AND (rate_key = $1 OR rate_key = $2))

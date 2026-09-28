@@ -642,7 +642,9 @@ export default function Affiliates() {
                                 <Button
                                   size="sm"
                                   color="primary"
-                                  onClick={() => void setPayoutsEnabled(a.id, true)}
+                                  onClick={() =>
+                                    void setPayoutsEnabled(a.id, true)
+                                  }
                                 >
                                   Re-enable payouts
                                 </Button>
@@ -651,7 +653,9 @@ export default function Affiliates() {
                                   size="sm"
                                   variant="bordered"
                                   className="text-black"
-                                  onClick={() => void setPayoutsEnabled(a.id, false)}
+                                  onClick={() =>
+                                    void setPayoutsEnabled(a.id, false)
+                                  }
                                 >
                                   Pause Payouts
                                 </Button>

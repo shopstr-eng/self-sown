@@ -6423,7 +6423,9 @@ export default function ProductInvoiceCard({
                         <StripeCardForm
                           clientSecret={stripeClientSecret}
                           connectedAccountId={stripeConnectedAccountForForm}
-                          onPaymentSuccess={(paymentIntentId) => void handleStripePaymentSuccess(paymentIntentId)}
+                          onPaymentSuccess={(paymentIntentId) =>
+                            void handleStripePaymentSuccess(paymentIntentId)
+                          }
                           onPaymentError={(error) => {
                             console.error("Stripe payment error:", error);
                             setFailureText(error);
@@ -6732,7 +6734,9 @@ export default function ProductInvoiceCard({
               )}
 
               <form
-                onSubmit={(e) => void handleFormSubmit((data) => onFormSubmit(data))(e)}
+                onSubmit={(e) =>
+                  void handleFormSubmit((data) => onFormSubmit(data))(e)
+                }
                 className="w-full max-w-full min-w-0 space-y-6"
               >
                 {renderContactForm()}

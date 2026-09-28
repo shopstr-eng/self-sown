@@ -109,10 +109,7 @@ function createReq(overrides: Partial<NextApiRequest> = {}) {
   } as unknown as NextApiRequest;
 }
 
-function bearerReq(
-  token: string,
-  overrides: Partial<NextApiRequest> = {}
-) {
+function bearerReq(token: string, overrides: Partial<NextApiRequest> = {}) {
   return createReq({
     ...overrides,
     headers: { authorization: `Bearer ${token}` },
@@ -155,7 +152,10 @@ beforeEach(() => {
 
 describe("GET/POST /api/assistant/setup with a scoped bearer token", () => {
   it("accepts an assistant-setup token for the GET status check", async () => {
-    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "assistant-setup");
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "assistant-setup"
+    );
     const res = createMockRes();
     await setupHandler(bearerReq(token, { method: "GET" }), res);
     expect(res.statusCode).toBe(200);
@@ -164,12 +164,12 @@ describe("GET/POST /api/assistant/setup with a scoped bearer token", () => {
   });
 
   it("accepts an assistant-setup token for the POST provisioning", async () => {
-    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "assistant-setup");
-    const res = createMockRes();
-    await setupHandler(
-      bearerReq(token, { body: { nsec: "nsec1test" } }),
-      res
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "assistant-setup"
     );
+    const res = createMockRes();
+    await setupHandler(bearerReq(token, { body: { nsec: "nsec1test" } }), res);
     expect(res.statusCode).toBe(200);
     expect(provisionAssistantSigningMock).toHaveBeenCalledWith(
       SELLER_PUBKEY,
@@ -179,7 +179,10 @@ describe("GET/POST /api/assistant/setup with a scoped bearer token", () => {
   });
 
   it("bearer tokens are multi-use within their window (no replay claim)", async () => {
-    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "assistant-setup");
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "assistant-setup"
+    );
     for (let i = 0; i < 2; i++) {
       const res = createMockRes();
       await setupHandler(

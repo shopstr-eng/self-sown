@@ -28,21 +28,24 @@ const SCAN_DIR = path.join(REPO_ROOT, "pages", "api");
 // Deliberate non-response checks. Each entry must name the file, the bucket
 // literal used as the first argument, and why advertising that bucket on the
 // response would be wrong.
-const NO_RES_ALLOWLIST: Array<{ file: string; bucket: string; reason: string }> =
-  [
-    {
-      file: "pages/api/nostr/publish-order-event.ts",
-      bucket: "publish-order-event:eid",
-      reason:
-        "per-event-id dedupe keyed on the event, not the caller; a rejection is reported inline per event, never as a client-facing 429, so stamping a budget on the response would misdescribe it",
-    },
-    {
-      file: "pages/api/storefront/preview-from-url.ts",
-      bucket: "storefront-preview-global",
-      reason:
-        "global (non-caller-scoped) bucket; it is advertised via reportRateLimit only when it is the bucket actually rejecting the request, never on allowed responses",
-    },
-  ];
+const NO_RES_ALLOWLIST: Array<{
+  file: string;
+  bucket: string;
+  reason: string;
+}> = [
+  {
+    file: "pages/api/nostr/publish-order-event.ts",
+    bucket: "publish-order-event:eid",
+    reason:
+      "per-event-id dedupe keyed on the event, not the caller; a rejection is reported inline per event, never as a client-facing 429, so stamping a budget on the response would misdescribe it",
+  },
+  {
+    file: "pages/api/storefront/preview-from-url.ts",
+    bucket: "storefront-preview-global",
+    reason:
+      "global (non-caller-scoped) bucket; it is advertised via reportRateLimit only when it is the bucket actually rejecting the request, never on allowed responses",
+  },
+];
 
 type FoundCall = {
   argCount: number;

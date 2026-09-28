@@ -126,10 +126,7 @@ describe("sanitizeCheckoutContexts", () => {
       new Set([SELLER, OTHER])
     );
     expect(contexts).toHaveLength(2);
-    expect(contexts.map((c) => c.sellerPubkey).sort()).toEqual([
-      SELLER,
-      OTHER,
-    ]);
+    expect(contexts.map((c) => c.sellerPubkey).sort()).toEqual([SELLER, OTHER]);
     // First valid entry for a seller wins.
     expect(contexts.find((c) => c.sellerPubkey === SELLER)?.orderId).toBe(
       "order-1"
@@ -148,8 +145,8 @@ describe("sanitizeCheckoutContexts", () => {
 
   it("returns an empty list for non-array input", () => {
     expect(sanitizeCheckoutContexts(null, new Set([SELLER]))).toEqual([]);
-    expect(
-      sanitizeCheckoutContexts(validContext(), new Set([SELLER]))
-    ).toEqual([]);
+    expect(sanitizeCheckoutContexts(validContext(), new Set([SELLER]))).toEqual(
+      []
+    );
   });
 });

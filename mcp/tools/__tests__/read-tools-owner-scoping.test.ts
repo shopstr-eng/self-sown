@@ -83,11 +83,14 @@ function writeTools(permissions: "full_access" | "read_only" = "full_access") {
         callbacks.set(name, callback)
     ),
   };
-  registerWriteTools(server as unknown as McpServer, {
-    id: 1,
-    pubkey: ownerPubkey,
-    permissions,
-  } as any);
+  registerWriteTools(
+    server as unknown as McpServer,
+    {
+      id: 1,
+      pubkey: ownerPubkey,
+      permissions,
+    } as any
+  );
   return callbacks;
 }
 
@@ -333,7 +336,9 @@ describe("purchase-tools owner scoping", () => {
     });
 
     expect(calls).toHaveLength(1);
-    expect(calls[0]!.text).toContain("WHERE order_id = $2 AND buyer_pubkey = $3");
+    expect(calls[0]!.text).toContain(
+      "WHERE order_id = $2 AND buyer_pubkey = $3"
+    );
     expect(calls[0]!.params[2]).toBe("buyer-pubkey");
   });
 

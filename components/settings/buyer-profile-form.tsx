@@ -143,7 +143,10 @@ const BuyerProfileForm = ({ isOnboarding }: BuyerProfileFormProps) => {
         </div>
       </div>
 
-      <form onSubmit={(e) => void handleSubmit(onSubmit as any)(e)} className="space-y-6">
+      <form
+        onSubmit={(e) => void handleSubmit(onSubmit as any)(e)}
+        className="space-y-6"
+      >
         <div className="space-y-2">
           <label className="block text-base font-bold text-black">
             Display name

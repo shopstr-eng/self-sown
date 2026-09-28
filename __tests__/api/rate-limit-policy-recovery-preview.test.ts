@@ -123,7 +123,9 @@ describe("preview-from-url dual-bucket policy", () => {
     );
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.headers["RateLimit-Policy"]).toBe('"storefront-preview";q=3;w=60');
+    expect(res.headers["RateLimit-Policy"]).toBe(
+      '"storefront-preview";q=3;w=60'
+    );
   });
 
   it("advertises the global policy only when the global bucket rejects", async () => {

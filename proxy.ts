@@ -316,7 +316,10 @@ function stripInternalHeaders(base: Headers): Headers {
 }
 
 export async function proxy(request: NextRequest) {
-  const res = withAdvisoryRateLimitHeaders(request, await routeRequest(request));
+  const res = withAdvisoryRateLimitHeaders(
+    request,
+    await routeRequest(request)
+  );
   // Every API response advertises the served major version. Agents may pin a
   // version with the API-Version request header (unsupported pins fail closed
   // in routeRequest); the contract lives in openapi.json x-versioning-policy.

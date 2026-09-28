@@ -261,10 +261,12 @@ beforeEach(() => {
       },
     };
   });
-  buyLabelMock.mockImplementation(async (_token: string, args: { shipmentId: string }) => {
-    await sleep(50);
-    return fakeLabel(args.shipmentId);
-  });
+  buyLabelMock.mockImplementation(
+    async (_token: string, args: { shipmentId: string }) => {
+      await sleep(50);
+      return fakeLabel(args.shipmentId);
+    }
+  );
   findTxMock.mockResolvedValue({
     label: null,
     chargeState: "none",
@@ -307,17 +309,15 @@ async function cleanupTestRows(): Promise<void> {
     `DELETE FROM shipping_label_order_claims WHERE pubkey = $1`,
     [SELLER_PK]
   );
-  await pool.query(
-    `DELETE FROM shipping_shipment_claims WHERE pubkey = $1`,
-    [SELLER_PK]
-  );
+  await pool.query(`DELETE FROM shipping_shipment_claims WHERE pubkey = $1`, [
+    SELLER_PK,
+  ]);
   await pool.query(`DELETE FROM shipping_labels WHERE pubkey = $1`, [
     SELLER_PK,
   ]);
-  await pool.query(
-    `DELETE FROM shipping_oauth_connections WHERE pubkey = $1`,
-    [SELLER_PK]
-  );
+  await pool.query(`DELETE FROM shipping_oauth_connections WHERE pubkey = $1`, [
+    SELLER_PK,
+  ]);
 }
 
 /** Invoke the real buy-label route with a genuinely signed proof event. */
@@ -457,7 +457,11 @@ maybeIt(
 
     // Simulate a fully settled earlier purchase: permanent claim marker +
     // history row.
-    await shipping.claimAutoLabelPurchase(claimKeyFor(orderId), SELLER_PK, orderId);
+    await shipping.claimAutoLabelPurchase(
+      claimKeyFor(orderId),
+      SELLER_PK,
+      orderId
+    );
     await shipping.markAutoLabelPurchased(claimKeyFor(orderId), "shp_settled");
     await shipping.insertShippingLabel({
       pubkey: SELLER_PK,

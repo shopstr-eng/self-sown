@@ -8,6 +8,7 @@ Shippo Transaction payloads carry **no shipment id**; the only caller-controlled
 **Why:** an accepted-but-lost purchase POST (timeout after Shippo accepted) must be reconcilable before any retry, or retries double-charge the seller. Mocked tests happily match on invented fields (`tx.shipment`) that the real API never sends.
 
 **How to apply:**
+
 - Stamp `buildLabelReconcileToken(claimKey)` (sha256 hex, 64 chars) into the buyLabel POST `metadata`, and persist the SAME token on every claim row for that attempt (order claim AND payment claim) via attachShipmentToClaim/claimAutoLabelPurchase — either claim must be able to reconcile.
 - Match transactions by exact `metadata === token`; treat matching WAITING/QUEUED as in-flight (may still become a charge), never as "no charge".
 - "No charge" is only trustworthy when the paged scan (newest-first) covered the claim's charge window (reached older object_created or exhausted the list); a page-cap exit is UNKNOWN.

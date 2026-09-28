@@ -171,7 +171,9 @@ describe("condensed OpenAPI UcpProduct ↔ canonical JSON Schema parity", () => 
   it("keeps the type enum identical across both copies", () => {
     // The canonical schema pins type with `const`; the condensed copy uses a
     // one-value `enum` — normalize before comparing.
-    const canonical = schema.properties.type.enum ?? [schema.properties.type.const];
+    const canonical = schema.properties.type.enum ?? [
+      schema.properties.type.const,
+    ];
     const condensedType = condensed.properties?.type;
     expect(condensedType).toBeDefined();
     expect(condensedType?.enum).toEqual(canonical);

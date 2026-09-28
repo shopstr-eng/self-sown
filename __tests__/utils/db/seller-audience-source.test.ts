@@ -329,7 +329,11 @@ describe("email_unsubscribes reason tracking (real SQL via pg-mem)", () => {
   });
 
   it("a conflict keeps the ORIGINAL reason — a later write cannot rewrite why the row exists", async () => {
-    await unsubscribeSellerEmail(SELLER, "first-wins@example.com", "suppressed");
+    await unsubscribeSellerEmail(
+      SELLER,
+      "first-wins@example.com",
+      "suppressed"
+    );
     await unsubscribeSellerEmail(SELLER, "first-wins@example.com"); // 'user' write lands second
     expect(await getSellerEmailUnsubscribeCounts(SELLER)).toEqual({
       unsubscribed: 0,

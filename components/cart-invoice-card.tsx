@@ -188,7 +188,12 @@ function buildShippingCheckoutContexts(
     if (!pk) continue;
     const firstProduct = products.filter((p) => p.pubkey === pk)[0];
     if (!firstProduct?.id) continue;
-    contexts.push({ sellerPubkey: pk, orderId, productId: firstProduct.id, toAddress });
+    contexts.push({
+      sellerPubkey: pk,
+      orderId,
+      productId: firstProduct.id,
+      toAddress,
+    });
   }
   return contexts.length > 0 ? contexts : undefined;
 }
@@ -3618,9 +3623,12 @@ export default function CartInvoiceCard({
         },
         // Checkout-time shipping binding the server persists against the
         // verified Square payment id (see the Stripe path above).
-        shippingContext: buildShippingCheckoutContexts(data, orderId, products, [
-          singleSellerPubkey,
-        ])?.[0],
+        shippingContext: buildShippingCheckoutContexts(
+          data,
+          orderId,
+          products,
+          [singleSellerPubkey]
+        )?.[0],
       });
       setPendingStripeData(data);
       setShowInvoiceCard(true);
@@ -7905,8 +7913,7 @@ export default function CartInvoiceCard({
     for (const product of products) {
       const sellerPubkey = product.pubkey;
       const productShippingType = shippingTypes[product.id];
-      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies)
-        continue;
+      if (sellerFreeShippingStatus[sellerPubkey]?.qualifies) continue;
       if (
         productShippingType === "Added Cost" ||
         productShippingType === "Free" ||
@@ -7925,16 +7932,18 @@ export default function CartInvoiceCard({
             const { highestShippingProduct } =
               getConsolidatedShippingForSeller(sellerPubkey);
             if (highestShippingProduct) {
-              const shippingCostInSats =
-                await convertShippingToSats(highestShippingProduct);
+              const shippingCostInSats = await convertShippingToSats(
+                highestShippingProduct
+              );
               shippingTotal += Math.ceil(
                 applyShippingDiscount(shippingCostInSats, sellerPubkey)
               );
             }
           } else {
             const eff = getEffectiveSingleProductShipping(product);
-            const shippingCostInSats =
-              await convertShippingToSats(eff.syntheticProduct);
+            const shippingCostInSats = await convertShippingToSats(
+              eff.syntheticProduct
+            );
             shippingTotal += Math.ceil(
               applyShippingDiscount(shippingCostInSats, sellerPubkey)
             );
@@ -7955,10 +7964,7 @@ export default function CartInvoiceCard({
       const fiatCosts = isSingleSeller
         ? getFiatMethodCosts(selectedFiatOption)
         : { nativeTotal: nativeTotalCost, satsTotal: totalCost };
-      await handleFiatPayment(
-        fiatCosts.satsTotal,
-        pendingPaymentData || {}
-      );
+      await handleFiatPayment(fiatCosts.satsTotal, pendingPaymentData || {});
       setPendingPaymentData(null);
     }
   };
@@ -9624,7 +9630,9 @@ export default function CartInvoiceCard({
               )}
 
               <form
-                onSubmit={(event) => void handleFormSubmit((data) => onFormSubmit(data))(event)}
+                onSubmit={(event) =>
+                  void handleFormSubmit((data) => onFormSubmit(data))(event)
+                }
                 className="w-full max-w-full min-w-0 space-y-6"
               >
                 {renderContactForm()}

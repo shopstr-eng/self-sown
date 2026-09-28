@@ -349,7 +349,11 @@ describe("MCP order-status read contract", () => {
     async (from, to) => {
       const { body } = await getOrder(ORDER_ROW);
       const driftedOrder = JSON.parse(
-        JSON.stringify({ ...body.order, [from]: undefined, [to]: body.order[from] })
+        JSON.stringify({
+          ...body.order,
+          [from]: undefined,
+          [to]: body.order[from],
+        })
       );
       const validateGet = compile(GET_ORDER_ENVELOPE);
       expect(validateGet({ ...body, order: driftedOrder })).toBe(false);
@@ -371,9 +375,9 @@ describe("MCP order-status read contract", () => {
     expect(validateGet({ ...getBody, success: undefined, ok: true })).toBe(
       false
     );
-    expect(validateGet({ ...getBody, order: undefined, result: getBody.order })).toBe(
-      false
-    );
+    expect(
+      validateGet({ ...getBody, order: undefined, result: getBody.order })
+    ).toBe(false);
 
     const { body: listBody } = await listOrders([ORDER_ROW]);
     const validateList = compile(LIST_ORDERS_ENVELOPE);

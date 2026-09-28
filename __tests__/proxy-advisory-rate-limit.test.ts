@@ -141,7 +141,9 @@ describe("advisory RateLimit headers", () => {
     // /about with a markdown Accept rewrites to /api/agent-view, which
     // enforces its own per-agent budget — the proxy must not stamp the
     // advisory over (or alongside) those accurate headers.
-    const res = await proxy(buildRequest("/about", { accept: "text/markdown" }));
+    const res = await proxy(
+      buildRequest("/about", { accept: "text/markdown" })
+    );
     expect(res.headers.get("x-ss-rl-skip")).toBeNull();
     expect(res.headers.get("RateLimit-Limit")).toBeNull();
   });

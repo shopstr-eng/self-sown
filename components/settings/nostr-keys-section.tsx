@@ -130,7 +130,9 @@ const NostrKeysSection = () => {
       });
       const data = await res.json();
       if (!res.ok) {
-        setRecoverySetupError(data.error || "Failed to regenerate recovery key.");
+        setRecoverySetupError(
+          data.error || "Failed to regenerate recovery key."
+        );
         return;
       }
       setGeneratedRecoveryKey(data.recoveryKey);

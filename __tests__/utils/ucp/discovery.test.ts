@@ -83,7 +83,9 @@ describe("buildUcpDiscoveryProfile — platform scope", () => {
     const checkout = profile.capabilities.find(
       (c) => c.name === UCP_CHECKOUT_CAPABILITY
     ) as Record<string, any>;
-    expect(checkout.schema).toBe(`${BASE}/api/ucp/schemas/checkout-session.json`);
+    expect(checkout.schema).toBe(
+      `${BASE}/api/ucp/schemas/checkout-session.json`
+    );
     expect(checkout.requestSchema).toBe(
       `${BASE}/api/ucp/schemas/checkout-session-create.json`
     );

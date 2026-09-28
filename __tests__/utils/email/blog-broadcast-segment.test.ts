@@ -101,7 +101,9 @@ function blogEvent(id = EVENT_ID) {
 }
 
 function emailedRecipients(): string[] {
-  return mocked.sendEmailStrictFromDetailed.mock.calls.map((c) => c[0].to as string);
+  return mocked.sendEmailStrictFromDetailed.mock.calls.map(
+    (c) => c[0].to as string
+  );
 }
 
 beforeEach(() => {

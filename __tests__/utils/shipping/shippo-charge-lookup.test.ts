@@ -217,7 +217,12 @@ describe("lookupShipmentCharge", () => {
     for (let page = 0; page < 8; page++) {
       fetchMock.mockResolvedValueOnce(
         pageWith(
-          [tx({ metadata: "rec_tok_other", object_created: "2026-06-01T00:00:00Z" })],
+          [
+            tx({
+              metadata: "rec_tok_other",
+              object_created: "2026-06-01T00:00:00Z",
+            }),
+          ],
           `https://api.goshippo.com/transactions/?page=${page + 2}`
         )
       );

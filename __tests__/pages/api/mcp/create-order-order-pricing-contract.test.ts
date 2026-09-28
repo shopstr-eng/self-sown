@@ -173,8 +173,9 @@ function compile(subschema: object) {
 function expectValid(subschema: object, label: string, payload: unknown) {
   const validate = compile(subschema);
   const ok: boolean = validate(payload);
-  expect(ok ? true : `${label} rejected: ${JSON.stringify(validate.errors)}`)
-    .toBe(true);
+  expect(
+    ok ? true : `${label} rejected: ${JSON.stringify(validate.errors)}`
+  ).toBe(true);
 }
 
 // --- Route driving ------------------------------------------------------------
@@ -478,26 +479,23 @@ describe("MCP create-order order/pricing payloads", () => {
     ["subtotal", "subtotalAmount"],
     ["shippingCost", "shipping"],
     ["total", "totalAmount"],
-  ])(
-    "fails closed when the pricing field %s is renamed",
-    async (from, to) => {
-      const quote = await computeQuoteTotals(
-        QUOTE_INPUT,
-        buildSelection() as any,
-        "stripe"
-      );
-      const drifted = JSON.parse(
-        JSON.stringify({ ...quote.pricingBlock, [from]: undefined, [to]: 1 })
-      );
-      expect(compile(MCP_PRICING_SCHEMA)(drifted)).toBe(false);
-    }
-  );
+  ])("fails closed when the pricing field %s is renamed", async (from, to) => {
+    const quote = await computeQuoteTotals(
+      QUOTE_INPUT,
+      buildSelection() as any,
+      "stripe"
+    );
+    const drifted = JSON.parse(
+      JSON.stringify({ ...quote.pricingBlock, [from]: undefined, [to]: 1 })
+    );
+    expect(compile(MCP_PRICING_SCHEMA)(drifted)).toBe(false);
+  });
 
   it("rejects an unexpected extra field on the order payload", async () => {
     const { body } = await postForResult(RESULTS.stripe);
-    expect(
-      compile(MCP_ORDER_SCHEMA)({ ...body.order, surpriseField: 1 })
-    ).toBe(false);
+    expect(compile(MCP_ORDER_SCHEMA)({ ...body.order, surpriseField: 1 })).toBe(
+      false
+    );
   });
 
   it("rejects an unexpected extra field on the pricing payload", async () => {

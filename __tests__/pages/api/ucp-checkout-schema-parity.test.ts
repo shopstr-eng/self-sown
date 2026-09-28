@@ -315,16 +315,10 @@ describe("published checkout-session-create schema parity with the route", () =>
       "quantity above MAX_ORDER_QUANTITY",
       { productId: "p1", quantity: MAX_ORDER_QUANTITY + 1 },
     ],
-    [
-      "an unknown paymentMethod",
-      { productId: "p1", paymentMethod: "venmo" },
-    ],
+    ["an unknown paymentMethod", { productId: "p1", paymentMethod: "venmo" }],
     ["a non-string paymentMethod", { productId: "p1", paymentMethod: 7 }],
     ["an empty-string paymentMethod", { productId: "p1", paymentMethod: "" }],
-    [
-      "a malformed buyerEmail",
-      { productId: "p1", buyerEmail: "not-an-email" },
-    ],
+    ["a malformed buyerEmail", { productId: "p1", buyerEmail: "not-an-email" }],
     ["a non-string buyerEmail", { productId: "p1", buyerEmail: 42 }],
     ["a null buyerEmail", { productId: "p1", buyerEmail: null }],
     // These pass a loose `[^@]+@[^@]+` check but are rejected by the schema's
@@ -542,7 +536,10 @@ describe("POST response envelopes validate against the published session schema"
     // A lightning payment on a USD-priced product trips the engine's
     // fail-closed conversion guard (no live exchange rate in the charge
     // path), which the route surfaces as the escalation envelope.
-    const res = await postToRoute({ productId: "p1", paymentMethod: "lightning" });
+    const res = await postToRoute({
+      productId: "p1",
+      paymentMethod: "lightning",
+    });
     expect(res.statusCode).toBe(200);
     const body = res.body as Record<string, any>;
     expect(body.status).toBe("requires_escalation");
@@ -573,7 +570,10 @@ describe("POST response envelopes validate against the published session schema"
   it("200 requires_escalation persist failure falls back to a schema-valid ephemeral envelope", async () => {
     const validate = await compileSessionSchema();
     mockInsertCheckoutSession.mockRejectedValueOnce(new Error("db down"));
-    const res = await postToRoute({ productId: "p1", paymentMethod: "lightning" });
+    const res = await postToRoute({
+      productId: "p1",
+      paymentMethod: "lightning",
+    });
     expect(res.statusCode).toBe(200);
     const body = res.body as Record<string, any>;
     expect(body.status).toBe("requires_escalation");

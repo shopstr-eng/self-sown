@@ -225,8 +225,16 @@ export async function sendEmailStrictFromDetailed(params: {
    */
   customArgs?: Record<string, string>;
 }): Promise<StrictFromSendResult> {
-  const { to, subject, html, fromEmail, fromName, replyTo, headers, customArgs } =
-    params;
+  const {
+    to,
+    subject,
+    html,
+    fromEmail,
+    fromName,
+    replyTo,
+    headers,
+    customArgs,
+  } = params;
   if (!fromEmail || !fromEmail.includes("@")) {
     console.error("sendEmailStrictFrom called without a valid from-address");
     return { ok: false, definiteReject: true, recipientReject: false };

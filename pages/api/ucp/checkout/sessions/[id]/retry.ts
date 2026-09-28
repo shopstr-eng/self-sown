@@ -109,9 +109,7 @@ export default async function handler(
     return await handleRetry(req, res, id, apiKey, baseUrl);
   } catch (error) {
     console.error("UCP checkout retry handler error:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to retry checkout session" });
+    return res.status(500).json({ error: "Failed to retry checkout session" });
   }
 }
 

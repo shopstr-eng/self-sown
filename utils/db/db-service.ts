@@ -4766,7 +4766,8 @@ export async function recordSendGridSuppressedEmails(
 ): Promise<number | null> {
   const seen = new Map<string, string>();
   for (const e of entries) {
-    const email = typeof e?.email === "string" ? e.email.trim().toLowerCase() : "";
+    const email =
+      typeof e?.email === "string" ? e.email.trim().toLowerCase() : "";
     if (email && !seen.has(email)) seen.set(email, e.list || "unknown");
   }
   if (seen.size === 0) return 0;

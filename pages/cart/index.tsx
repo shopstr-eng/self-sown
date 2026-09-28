@@ -1455,7 +1455,9 @@ export default function Component() {
                                         <Button
                                           className={BLUEBUTTONCLASSNAMES}
                                           onClick={() =>
-                                            void handleApplyDiscount(sellerPubkey)
+                                            void handleApplyDiscount(
+                                              sellerPubkey
+                                            )
                                           }
                                         >
                                           Apply

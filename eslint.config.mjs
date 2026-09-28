@@ -106,7 +106,11 @@ export default [
       // is the exact missing-await bug shape this block exists to catch.
       "@typescript-eslint/no-misused-promises": [
         "error",
-        { checksConditionals: true, checksVoidReturn: true, checksSpreads: false },
+        {
+          checksConditionals: true,
+          checksVoidReturn: true,
+          checksSpreads: false,
+        },
       ],
     },
   },
@@ -143,7 +147,11 @@ export default [
       "@typescript-eslint/return-await": ["error", "in-try-catch"],
       "@typescript-eslint/no-misused-promises": [
         "error",
-        { checksConditionals: true, checksVoidReturn: true, checksSpreads: false },
+        {
+          checksConditionals: true,
+          checksVoidReturn: true,
+          checksSpreads: false,
+        },
       ],
     },
   },
@@ -171,7 +179,11 @@ export default [
     rules: {
       "@typescript-eslint/no-misused-promises": [
         "error",
-        { checksConditionals: false, checksVoidReturn: true, checksSpreads: false },
+        {
+          checksConditionals: false,
+          checksVoidReturn: true,
+          checksSpreads: false,
+        },
       ],
     },
   },

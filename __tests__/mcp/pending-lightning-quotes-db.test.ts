@@ -95,9 +95,8 @@ describeLive("pending Lightning quotes (LIVE Postgres)", () => {
   beforeAll(async () => {
     let databaseUrl: string;
     if (RUN_CONTAINERS) {
-      const { PostgreSqlContainer } = await import(
-        "@testcontainers/postgresql"
-      );
+      const { PostgreSqlContainer } =
+        await import("@testcontainers/postgresql");
       const container = await new PostgreSqlContainer("postgres:15-alpine")
         .withDatabase("shopstr")
         .withUsername("shopstr")
@@ -218,10 +217,7 @@ describeLive("pending Lightning quotes (LIVE Postgres)", () => {
     try {
       await client.query(
         `UPDATE mcp_lightning_quotes SET claimed_at = $1 WHERE order_id = $2`,
-        [
-          new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-          saved.orderId,
-        ]
+        [new Date(Date.now() - 10 * 60 * 1000).toISOString(), saved.orderId]
       );
     } finally {
       client.release();

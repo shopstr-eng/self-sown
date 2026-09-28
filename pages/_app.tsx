@@ -1704,9 +1704,14 @@ function SelfSown({ props }: { props: AppProps }) {
                               {
                                 chatsMap: chatsMap,
                                 isLoading: isChatLoading,
-                                addNewlyCreatedMessageEvent:
-                                  (messageEvent, sent) =>
-                                    void addNewlyCreatedMessageEvent(messageEvent, sent),
+                                addNewlyCreatedMessageEvent: (
+                                  messageEvent,
+                                  sent
+                                ) =>
+                                  void addNewlyCreatedMessageEvent(
+                                    messageEvent,
+                                    sent
+                                  ),
                                 markAllMessagesAsRead: markAllMessagesAsRead,
                                 newOrderIds: newOrderIds,
                               } as ChatsContextInterface

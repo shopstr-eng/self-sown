@@ -69,12 +69,16 @@ describe("assistant session tokens", () => {
     const { token: keysToken } = mintAssistantSessionToken(PUBKEY, "mcp-keys");
 
     // Chat tokens must not work on setup/key endpoints and vice versa.
-    expect(verifyAssistantSessionToken(chatToken, "assistant-setup")).toBeNull();
+    expect(
+      verifyAssistantSessionToken(chatToken, "assistant-setup")
+    ).toBeNull();
     expect(verifyAssistantSessionToken(chatToken, "mcp-keys")).toBeNull();
     expect(verifyAssistantSessionToken(setupToken, "chat")).toBeNull();
     expect(verifyAssistantSessionToken(setupToken, "mcp-keys")).toBeNull();
     expect(verifyAssistantSessionToken(keysToken, "chat")).toBeNull();
-    expect(verifyAssistantSessionToken(keysToken, "assistant-setup")).toBeNull();
+    expect(
+      verifyAssistantSessionToken(keysToken, "assistant-setup")
+    ).toBeNull();
   });
 
   it("rejects a payload whose scope field was swapped to match the verifier", () => {
@@ -131,9 +135,7 @@ describe("assistant session tokens", () => {
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=+$/, "");
-    expect(
-      verifyAssistantSessionToken(`${forgedPayload}.${mac}`)
-    ).toBeNull();
+    expect(verifyAssistantSessionToken(`${forgedPayload}.${mac}`)).toBeNull();
     expect(payload).not.toBe(forgedPayload);
   });
 

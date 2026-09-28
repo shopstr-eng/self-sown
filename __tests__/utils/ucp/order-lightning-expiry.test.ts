@@ -125,7 +125,10 @@ describe("resolveLightningInvoiceExpiry", () => {
     // OrderServiceError.message is body.error; the reason lives in body.details.
     let thrown: any;
     try {
-      resolveLightningInvoiceExpiry({ request: "not-an-invoice", expiry: null });
+      resolveLightningInvoiceExpiry({
+        request: "not-an-invoice",
+        expiry: null,
+      });
     } catch (e) {
       thrown = e;
     }

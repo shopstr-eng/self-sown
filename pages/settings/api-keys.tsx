@@ -548,10 +548,10 @@ const ApiKeysPage = () => {
                 <p className="text-sm text-gray-700">
                   Approving once (instead of signing every action) creates a
                   short-lived session token on this device. If you shared your
-                  screen or used a borrowed device, sign out here to
-                  immediately invalidate every outstanding session token
-                  &mdash; they otherwise stay valid for up to 30 minutes. Your
-                  API keys above are not affected.
+                  screen or used a borrowed device, sign out here to immediately
+                  invalidate every outstanding session token &mdash; they
+                  otherwise stay valid for up to 30 minutes. Your API keys above
+                  are not affected.
                 </p>
               </div>
               <Button

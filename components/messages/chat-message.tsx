@@ -701,7 +701,9 @@ const ChatMessage = ({
                       type="button"
                       aria-label="Copy token"
                       onClick={() =>
-                        void handleCopyToken(cashuPrefix + tokenAfterCashuVersion)
+                        void handleCopyToken(
+                          cashuPrefix + tokenAfterCashuVersion
+                        )
                       }
                       className="ml-2 cursor-pointer text-lg leading-none transition-all hover:scale-110"
                     >

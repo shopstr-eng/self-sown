@@ -270,9 +270,7 @@ function rowToPendingLightningQuote(
     inventoryVariantKey: row.inventory_variant_key,
     ...(row.discount_code ? { discountCode: row.discount_code } : {}),
     ...(row.seller_pubkey ? { sellerPubkey: row.seller_pubkey } : {}),
-    expiresAt: row.expires_at
-      ? new Date(row.expires_at).toISOString()
-      : null,
+    expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
   };
 }
 
@@ -393,10 +391,9 @@ export async function deletePendingLightningQuote(
   let client;
   try {
     client = await pool.connect();
-    await client.query(
-      `DELETE FROM mcp_lightning_quotes WHERE order_id = $1`,
-      [orderId]
-    );
+    await client.query(`DELETE FROM mcp_lightning_quotes WHERE order_id = $1`, [
+      orderId,
+    ]);
   } finally {
     if (client) client.release();
   }

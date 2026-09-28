@@ -254,7 +254,11 @@ describe("DELETE /api/assistant/session (targeted revocation)", () => {
 
   it("a revoked token stops working on the chat route", async () => {
     const issuedAt = Date.now() - 60_000;
-    const { token } = mintAssistantSessionToken(SELLER_PUBKEY, "chat", issuedAt);
+    const { token } = mintAssistantSessionToken(
+      SELLER_PUBKEY,
+      "chat",
+      issuedAt
+    );
     // Revoked after the token was minted.
     getRevokedBeforeMock.mockResolvedValue(Date.now());
     const res = createMockRes();
@@ -292,9 +296,7 @@ describe("POST /api/assistant/chat with a session bearer token", () => {
     expect(res.body.reply).toBe("You have 3 new orders.");
     expect(verifyNip98RequestMock).not.toHaveBeenCalled();
     expect(runSellerAssistantMock).toHaveBeenCalledTimes(1);
-    expect(runSellerAssistantMock.mock.calls[0][0].pubkey).toBe(
-      SELLER_PUBKEY
-    );
+    expect(runSellerAssistantMock.mock.calls[0][0].pubkey).toBe(SELLER_PUBKEY);
   });
 
   it("is multi-use within its window (no replay-guard claim)", async () => {

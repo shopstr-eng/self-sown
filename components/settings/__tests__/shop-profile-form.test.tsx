@@ -357,9 +357,9 @@ describe("ShopProfileForm", () => {
     });
     // Stale cached opt-out visibly applied first (proves the race setup).
     await waitFor(() => expect(buyersToggle).not.toBeChecked());
-    expect(
-      screen.getByPlaceholderText("Add your shop's name...")
-    ).toHaveValue("Stale Cached Shop");
+    expect(screen.getByPlaceholderText("Add your shop's name...")).toHaveValue(
+      "Stale Cached Shop"
+    );
 
     // The authoritative relay event arrives later and omits the field.
     rerender(tree(relayShopData));
@@ -370,9 +370,9 @@ describe("ShopProfileForm", () => {
         name: /Show AI Assistant to Me on My Storefront/i,
       })
     ).toBeChecked();
-    expect(
-      screen.getByPlaceholderText("Add your shop's name...")
-    ).toHaveValue("Fresh Relay Shop");
+    expect(screen.getByPlaceholderText("Add your shop's name...")).toHaveValue(
+      "Fresh Relay Shop"
+    );
 
     // Save: the stale buyers:false must not survive into the published event.
     await user.click(screen.getByRole("button", { name: /Save Stall/i }));

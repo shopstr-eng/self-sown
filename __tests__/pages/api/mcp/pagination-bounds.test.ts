@@ -148,18 +148,15 @@ describe("MCP order-listing pagination bounds", () => {
     ["limit above the 100 cap", { limit: 101 }],
     ["negative offset", { offset: -1 }],
     ["fractional limit", { limit: 10.5 }],
-  ])(
-    "list_seller_orders rejects %s before querying",
-    async (_label, args) => {
-      const result: any = await client.callTool({
-        name: "list_seller_orders",
-        arguments: args,
-      });
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toMatch(/-32602|Invalid/i);
-      expect(mockListMcpOrdersAsSeller).not.toHaveBeenCalled();
-    }
-  );
+  ])("list_seller_orders rejects %s before querying", async (_label, args) => {
+    const result: any = await client.callTool({
+      name: "list_seller_orders",
+      arguments: args,
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/-32602|Invalid/i);
+    expect(mockListMcpOrdersAsSeller).not.toHaveBeenCalled();
+  });
 
   it("list_seller_orders passes in-range pagination through", async () => {
     const result = await client.callTool({
@@ -174,18 +171,15 @@ describe("MCP order-listing pagination bounds", () => {
     ["orderLimit above the cap", { orderLimit: 1000000000 }],
     ["orderLimit of zero", { orderLimit: 0 }],
     ["fractional orderLimit", { orderLimit: 3.7 }],
-  ])(
-    "get_notifications rejects %s before querying",
-    async (_label, args) => {
-      const result: any = await client.callTool({
-        name: "get_notifications",
-        arguments: args,
-      });
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toMatch(/-32602|Invalid/i);
-      expect(mockListMcpOrders).not.toHaveBeenCalled();
-    }
-  );
+  ])("get_notifications rejects %s before querying", async (_label, args) => {
+    const result: any = await client.callTool({
+      name: "get_notifications",
+      arguments: args,
+    });
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/-32602|Invalid/i);
+    expect(mockListMcpOrders).not.toHaveBeenCalled();
+  });
 
   it("get_notifications accepts an in-range orderLimit", async () => {
     const result = await client.callTool({
@@ -206,15 +200,18 @@ describe("MCP order-listing pagination bounds", () => {
     ["fractional selectedBulkUnits", { selectedBulkUnits: 2.5 }],
     ["selectedBulkUnits above the 100000 cap", { selectedBulkUnits: 100001 }],
     ["absurd selectedBulkUnits", { selectedBulkUnits: 1000000000 }],
-  ])("create_order rejects %s before creating anything", async (_label, args) => {
-    const result: any = await client.callTool({
-      name: "create_order",
-      arguments: { productId: "prod-1", ...args },
-    });
-    expect(result.isError).toBe(true);
-    expect(result.content[0].text).toMatch(/-32602|Invalid/i);
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
+  ])(
+    "create_order rejects %s before creating anything",
+    async (_label, args) => {
+      const result: any = await client.callTool({
+        name: "create_order",
+        arguments: { productId: "prod-1", ...args },
+      });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toMatch(/-32602|Invalid/i);
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  );
 
   it("create_order accepts the in-range boundary values", async () => {
     const result = await client.callTool({
