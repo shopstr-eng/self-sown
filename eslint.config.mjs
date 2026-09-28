@@ -74,10 +74,17 @@ export default [
     // `if (!guard(...)) return;` silently never blocks anything and the
     // guard's side effects (e.g. 429 + header stamping) race the response.
     // Covers API routes, the MCP server (agent-facing tools with their own
-    // auth/tier enforcement), and utils/ (shared modules called from
-    // webhook/cron handlers). Intentional fire-and-forget calls must be
-    // marked with `void`.
-    files: ["pages/api/**/*.{ts,tsx}", "mcp/**/*.ts", "utils/**/*.{ts,tsx}"],
+    // auth/tier enforcement), utils/ (shared modules called from
+    // webhook/cron handlers), and scripts/ (one-off backfill/reconciliation
+    // ops scripts that run directly against the production database, where an
+    // un-awaited guard fails silently with higher stakes). Intentional
+    // fire-and-forget calls must be marked with `void`.
+    files: [
+      "pages/api/**/*.{ts,tsx}",
+      "mcp/**/*.ts",
+      "utils/**/*.{ts,tsx}",
+      "scripts/**/*.ts",
+    ],
     languageOptions: {
       parserOptions: {
         project: "./tsconfig.eslint.json",
