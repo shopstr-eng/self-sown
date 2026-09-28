@@ -9,19 +9,20 @@ export interface StallAssistantVisibility {
   seller: boolean;
 }
 
-// Defaults: buyer/guest-facing assistant is OPT-IN (a public AI surface on
-// every stall shouldn't appear unasked); the seller sees their own assistant
-// unless they explicitly hide it.
+// Defaults: the assistant is ON for everyone unless the seller opts out —
+// shoppers on the stall (a public-catalog-only surface) and the seller alike.
 export function readAssistantVisibility(
   shopConfig: unknown
 ): StallAssistantVisibility {
   const visibility = (
     shopConfig as {
-      storefront?: { assistantVisibility?: { buyers?: unknown; seller?: unknown } };
+      storefront?: {
+        assistantVisibility?: { buyers?: unknown; seller?: unknown };
+      };
     } | null
   )?.storefront?.assistantVisibility;
   return {
-    buyers: visibility?.buyers === true,
+    buyers: visibility?.buyers !== false,
     seller: visibility?.seller !== false,
   };
 }
@@ -30,7 +31,7 @@ export function readAssistantVisibility(
 export function parseAssistantVisibilityFromContent(
   contentJson: string | null | undefined
 ): StallAssistantVisibility & { shopName: string | null } {
-  if (!contentJson) return { buyers: false, seller: true, shopName: null };
+  if (!contentJson) return { buyers: true, seller: true, shopName: null };
   try {
     const content = JSON.parse(contentJson) as { name?: unknown };
     return {
@@ -38,6 +39,6 @@ export function parseAssistantVisibilityFromContent(
       shopName: typeof content.name === "string" ? content.name : null,
     };
   } catch {
-    return { buyers: false, seller: true, shopName: null };
+    return { buyers: true, seller: true, shopName: null };
   }
 }

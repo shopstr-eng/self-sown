@@ -35,9 +35,7 @@ function asHttpUrl(value: string | null): string | null {
   if (!value) return null;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" || url.protocol === "http:"
-      ? value
-      : null;
+    return url.protocol === "https:" || url.protocol === "http:" ? value : null;
   } catch {
     return null;
   }
@@ -93,9 +91,10 @@ interface AssistantChatProps {
   // Fill the parent container (floating widget) instead of the settings
   // page's fixed-height, self-bordered card.
   fillHeight?: boolean;
-  // "buyer" = the storefront shopping assistant for guests/buyers on a custom
-  // stall: unauthenticated, public catalog tools only, stallPubkey required.
-  buyerMode?: { stallPubkey: string };
+  // "buyer" = the shopping assistant: unauthenticated, public catalog tools
+  // only. { stallPubkey } scopes it to one custom stall; { marketplace: true }
+  // is the marketplace-wide mode on the main site.
+  buyerMode?: { stallPubkey: string } | { marketplace: true };
 }
 
 const SUGGESTIONS = [
@@ -110,6 +109,13 @@ const BUYER_SUGGESTIONS = [
   "What's popular right now?",
   "Do you have any discount codes?",
   "Tell me about this shop",
+];
+
+const MARKETPLACE_SUGGESTIONS = [
+  "What can I buy on here?",
+  "What's popular right now?",
+  "Are there any discount codes?",
+  "Tell me about this marketplace",
 ];
 
 export default function AssistantChat({
@@ -172,7 +178,13 @@ export default function AssistantChat({
       const url = `${window.location.origin}/api/assistant/chat`;
       const body = JSON.stringify(
         buyerMode
-          ? { messages: history, context: { stallPubkey: buyerMode.stallPubkey } }
+          ? {
+              messages: history,
+              context:
+                "marketplace" in buyerMode
+                  ? { marketplace: true }
+                  : { stallPubkey: buyerMode.stallPubkey },
+            }
           : { messages: history }
       );
       const headers: Record<string, string> = {
@@ -265,11 +277,18 @@ export default function AssistantChat({
           <div className="space-y-3">
             <p className="text-sm text-zinc-600">
               {buyerMode
-                ? "Ask me about this shop's products, reviews, or discount codes. A few things you can try:"
+                ? "marketplace" in buyerMode
+                  ? "Ask me about products, shops, reviews, or deals across the marketplace. A few things you can try:"
+                  : "Ask me about this shop's products, reviews, or discount codes. A few things you can try:"
                 : "Ask about your orders, listings, stock, discounts, or analytics — or tell me to make a change. A few things you can try:"}
             </p>
             <div className="flex flex-wrap gap-2">
-              {(buyerMode ? BUYER_SUGGESTIONS : SUGGESTIONS).map((suggestion) => (
+              {(buyerMode
+                ? "marketplace" in buyerMode
+                  ? MARKETPLACE_SUGGESTIONS
+                  : BUYER_SUGGESTIONS
+                : SUGGESTIONS
+              ).map((suggestion) => (
                 <button
                   key={suggestion}
                   onClick={() => send(suggestion)}
@@ -337,7 +356,11 @@ export default function AssistantChat({
         <Input
           aria-label="Message the assistant"
           placeholder={
-            buyerMode ? "Ask about this shop…" : "Ask or tell me to do something…"
+            buyerMode
+              ? "marketplace" in buyerMode
+                ? "Ask about the marketplace…"
+                : "Ask about this shop…"
+              : "Ask or tell me to do something…"
           }
           value={input}
           onValueChange={setInput}

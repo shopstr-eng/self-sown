@@ -36,6 +36,7 @@ import {
 import { parseTags } from "@/utils/parsers/product-parser-functions";
 import type { ProductData } from "@/utils/parsers/product-parser-functions";
 import { SITE_HOST } from "@/utils/site-url";
+import { readAssistantVisibility } from "@/utils/assistant/stall-visibility";
 import { joinClassNames } from "@/utils/class-names";
 import {
   WHITEBUTTONCLASSNAMES,
@@ -374,7 +375,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
   const [showBlogPage, setShowBlogPage] = useState(false);
   // AI assistant visibility on the storefront: buyer-facing is opt-in
   // (public AI surface), seller-facing defaults on (matches the main app).
-  const [assistantBuyers, setAssistantBuyers] = useState(false);
+  const [assistantBuyers, setAssistantBuyers] = useState(true);
   const [assistantSeller, setAssistantSeller] = useState(true);
   const [paymentMethodOrder, setPaymentMethodOrder] = useState<
     StorefrontPaymentMethodGroup[]
@@ -488,7 +489,7 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
         if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
         if (sf.assistantVisibility) {
-          setAssistantBuyers(sf.assistantVisibility.buyers === true);
+          setAssistantBuyers(sf.assistantVisibility.buyers !== false);
           setAssistantSeller(sf.assistantVisibility.seller !== false);
         }
         if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
@@ -622,10 +623,13 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
       if (sf.showCommunityPage) setShowCommunityPage(sf.showCommunityPage);
       if (sf.showWalletPage) setShowWalletPage(sf.showWalletPage);
       if (sf.showBlogPage) setShowBlogPage(sf.showBlogPage);
-      if (sf.assistantVisibility) {
-        setAssistantBuyers(sf.assistantVisibility.buyers === true);
-        setAssistantSeller(sf.assistantVisibility.seller !== false);
-      }
+      // Resolve the assistant toggles even when the object is ABSENT: the
+      // assistant is on by default, so absence means ON — and a stale cached
+      // event's explicit opt-out must not survive this authoritative load
+      // into a republish (which would silently hide the assistant again).
+      const assistantVisibility = readAssistantVisibility({ storefront: sf });
+      setAssistantBuyers(assistantVisibility.buyers);
+      setAssistantSeller(assistantVisibility.seller);
       if (sf.blogPage?.sections) setBlogPageSections(sf.blogPage.sections);
       if (sf.paymentMethodOrder)
         setPaymentMethodOrder(
@@ -1146,11 +1150,11 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         showWalletPage: showWalletPage || undefined,
         showBlogPage: showBlogPage || undefined,
         // Only write the object when it differs from the defaults
-        // (buyers off / seller on) so untouched profiles stay byte-clean.
+        // (assistant on for everyone) so untouched profiles stay byte-clean.
         assistantVisibility:
-          assistantBuyers || !assistantSeller
+          !assistantBuyers || !assistantSeller
             ? {
-                buyers: assistantBuyers || undefined,
+                buyers: assistantBuyers ? undefined : false,
                 seller: assistantSeller ? undefined : false,
               }
             : undefined,
@@ -2760,7 +2764,8 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                             Adds a chat bubble to your storefront that helps
                             visitors browse your products, reviews, and discount
                             codes. It can only see your public catalog — never
-                            your account or orders.
+                            your account or orders. On by default — turn off to
+                            hide it.
                           </p>
                         </div>
 

@@ -123,15 +123,26 @@ function buildSystemPrompt(pubkey: string, canWrite: boolean): string {
   ].join("\n");
 }
 
-function buildBuyerSystemPrompt(shopName: string | null): string {
+function buildBuyerSystemPrompt(
+  shopName: string | null,
+  marketplace: boolean
+): string {
+  const scopeLine = marketplace
+    ? "You help visitors discover products and shops across the WHOLE marketplace through its public catalog tools."
+    : "You help visitors discover this shop's products through the marketplace's public catalog tools.";
+  const scopeRule = marketplace
+    ? "- Your catalog tools cover every seller on the marketplace; search broadly when a visitor asks what's available."
+    : "- Your catalog tools are pre-scoped to THIS shop's products, storefront, and reviews; you cannot browse other sellers. If a visitor asks about products or shops elsewhere, say you only cover this shop.";
   return [
-    `You are the shopping assistant for ${shopName || "this shop"}, a storefront on Self-sown, a local-food and artisan-goods marketplace on Nostr.`,
-    "You help visitors discover this shop's products through the marketplace's public catalog tools.",
+    marketplace
+      ? "You are the shopping assistant for Self-sown, a local-food and artisan-goods marketplace on Nostr."
+      : `You are the shopping assistant for ${shopName || "this shop"}, a storefront on Self-sown, a local-food and artisan-goods marketplace on Nostr.`,
+    scopeLine,
     "",
     "Ground rules:",
     "- Use tools for anything about products, categories, reviews, or discount codes; never invent items, prices, stock, or policies.",
     "- You can only see PUBLIC catalog data. You have no access to anyone's account, orders, or messages, and you cannot place or change orders — direct buyers to the shop's own checkout and contact options.",
-    "- Your catalog tools are pre-scoped to THIS shop's products, storefront, and reviews; you cannot browse other sellers. If a visitor asks about products or shops elsewhere, say you only cover this shop.",
+    scopeRule,
     "- Keep replies tight and skimmable: short paragraphs or compact lists, no filler, no flattery.",
     "",
     `Today: ${new Date().toISOString().slice(0, 10)}`,
@@ -371,22 +382,26 @@ export function groundBuyerToolsToStall(
   };
 }
 
-// The buyer-facing storefront assistant: guests and signed-in buyers on a
-// custom stall. Runs over an anonymous MCP session and the public-catalog
-// tool allowlist only — no seller account data, no order placement, no writes.
+// The buyer-facing shopping assistant: guests and signed-in buyers on a
+// custom stall, or ANY visitor on the main site (stallPubkey null =
+// marketplace-wide, no shop grounding). Runs over an anonymous MCP session
+// and the public-catalog tool allowlist only — no seller account data, no
+// order placement, no writes.
 export async function runBuyerAssistant(opts: {
   shopName: string | null;
-  stallPubkey: string;
+  stallPubkey: string | null;
   messages: AssistantChatMessage[];
   mcp: AssistantMcpBridge;
 }): Promise<{ reply: string; actions: AssistantAction[] }> {
   return runAssistantLoop(
     {
       messages: opts.messages,
-      mcp: groundBuyerToolsToStall(opts.mcp, opts.stallPubkey),
+      mcp: opts.stallPubkey
+        ? groundBuyerToolsToStall(opts.mcp, opts.stallPubkey)
+        : opts.mcp,
     },
     {
-      systemPrompt: buildBuyerSystemPrompt(opts.shopName),
+      systemPrompt: buildBuyerSystemPrompt(opts.shopName, !opts.stallPubkey),
       filterTools: filterBuyerAssistantTools,
       isAllowed: isBuyerToolAllowed,
     }

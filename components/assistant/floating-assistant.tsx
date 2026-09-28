@@ -90,11 +90,12 @@ function defaultBubbleTop(viewportHeight: number): number {
 
 export type AssistantAudience = "seller" | "buyer" | null;
 
-// Who sees the widget, and which assistant they get. Marketplace (no stall):
-// seller assistant, signed-in users only. On a custom stall: the stall owner
-// gets the seller assistant (unless they hid it via the seller toggle);
-// everyone else — guests and signed-in buyers alike — gets the buyer
-// assistant, and only when the stall opted in via the buyers toggle.
+// Who sees the widget, and which assistant they get. Main site (no stall):
+// the marketplace-wide shopping assistant for EVERYONE — guests and
+// signed-in accounts alike (it is not Pro-gated). On a custom stall: the
+// stall owner gets the seller assistant (unless they hid it via the seller
+// toggle); everyone else — guests and signed-in buyers alike — gets the
+// buyer assistant unless the stall opted out via the buyers toggle.
 export function resolveAssistantAudience(opts: {
   stallPubkey: string | null;
   viewerPubkey: string | null;
@@ -102,7 +103,7 @@ export function resolveAssistantAudience(opts: {
   visibility: StallAssistantVisibility | null;
 }): AssistantAudience {
   const { stallPubkey, viewerPubkey, isLoggedIn, visibility } = opts;
-  if (!stallPubkey) return isLoggedIn ? "seller" : null;
+  if (!stallPubkey) return "buyer"; // main site: marketplace shopping assistant
   if (!visibility) return null; // toggles still loading
   if (isLoggedIn && viewerPubkey === stallPubkey) {
     return visibility.seller ? "seller" : null;
@@ -394,15 +395,27 @@ export default function FloatingAssistant({
     setOpen(true);
   };
 
+  // On a stall route whose identity is still resolving, show nothing rather
+  // than flashing the wrong audience at a guest.
+  const audience =
+    onStallRoute && !resolvedStallPubkey
+      ? null
+      : resolveAssistantAudience({
+          stallPubkey: resolvedStallPubkey,
+          viewerPubkey: pubkey ?? null,
+          isLoggedIn: Boolean(isLoggedIn),
+          visibility,
+        });
+
   // Lazy, best-effort setup-status check the first time the panel opens for
   // an account. Signing this request may surface the signer's own prompt
   // (passphrase modal / extension / bunker) — a cancel just leaves the state
   // unknown; every chat response also reports it. Seller-audience only: the
   // buyer assistant has no setup state and guests have no signer to sign with.
   useEffect(() => {
-    // Seller-only: on a stall route, only the stall's own owner has setup
-    // state to check (a null resolvedStallPubkey means still resolving).
-    if (onStallRoute && pubkey !== resolvedStallPubkey) return;
+    // Seller-only: the marketplace audience is always the buyer assistant,
+    // and on a stall only the stall's own owner has setup state to check.
+    if (audience !== "seller") return;
     if (!open || !signer || !pubkey || !membership.isPro) return;
     if (statusRequestedFor.current === pubkey) return;
     statusRequestedFor.current = pubkey;
@@ -425,14 +438,7 @@ export default function FloatingAssistant({
         // Cancelled prompt or offline — the chat itself still works.
       }
     })();
-  }, [
-    open,
-    signer,
-    pubkey,
-    membership.isPro,
-    onStallRoute,
-    resolvedStallPubkey,
-  ]);
+  }, [open, signer, pubkey, membership.isPro, audience]);
 
   const enableWrites = async () => {
     if (!signer || enabling) return;
@@ -478,18 +484,6 @@ export default function FloatingAssistant({
       setEnabling(false);
     }
   };
-
-  // On a stall route whose identity is still resolving, show nothing rather
-  // than flashing the marketplace (seller) audience at a guest.
-  const audience =
-    onStallRoute && !resolvedStallPubkey
-      ? null
-      : resolveAssistantAudience({
-          stallPubkey: resolvedStallPubkey,
-          viewerPubkey: pubkey ?? null,
-          isLoggedIn: Boolean(isLoggedIn),
-          visibility,
-        });
 
   if (!mounted || !isAuthStateResolved || !audience) return null;
   // The seller assistant always signs its requests; no signer, no widget.
@@ -592,13 +586,17 @@ export default function FloatingAssistant({
       <div className="flex min-h-0 flex-1 flex-col">
         {audience === "buyer" ? (
           <AssistantChat
-            // Remount per stall AND per viewer: the transcript (submitted
-            // with every request) belongs to the shop and the person who
-            // wrote it — a logout or account switch must not leak it.
-            key={`buyer:${resolvedStallPubkey}:${pubkey ?? "guest"}`}
+            // Remount per shop (or the marketplace) AND per viewer: the
+            // transcript (submitted with every request) belongs to the
+            // context and the person who wrote it — a logout or account
+            // switch must not leak it.
+            key={`buyer:${resolvedStallPubkey ?? "marketplace"}:${pubkey ?? "guest"}`}
             fillHeight
-            // Non-null here: the buyer audience requires a resolved stall.
-            buyerMode={{ stallPubkey: resolvedStallPubkey as string }}
+            buyerMode={
+              resolvedStallPubkey
+                ? { stallPubkey: resolvedStallPubkey }
+                : { marketplace: true }
+            }
           />
         ) : membershipLoading ? (
           <div className="flex flex-1 items-center justify-center">

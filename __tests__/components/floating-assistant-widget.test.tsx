@@ -158,12 +158,13 @@ describe("FloatingAssistant — keyboard + drag behavior", () => {
     const user = userEvent.setup();
     render(renderWidget(PUBKEY_A));
 
-    const bubble = await screen.findByLabelText("Open the seller assistant");
+    // Marketplace audience is the shopping assistant for everyone now.
+    const bubble = await screen.findByLabelText("Open the shopping assistant");
     bubble.focus();
     await user.keyboard("{Enter}");
 
     const panel = await screen.findByRole("dialog", {
-      name: "Seller assistant",
+      name: "Shopping assistant",
     });
     // Focus moved into the panel.
     await waitFor(() => expect(panel).toHaveFocus());
@@ -172,17 +173,17 @@ describe("FloatingAssistant — keyboard + drag behavior", () => {
 
     // Panel is gone, the bubble is back, and focus returned to it.
     expect(
-      screen.queryByRole("dialog", { name: "Seller assistant" })
+      screen.queryByRole("dialog", { name: "Shopping assistant" })
     ).toBeNull();
     const bubbleAgain = await screen.findByLabelText(
-      "Open the seller assistant"
+      "Open the shopping assistant"
     );
     await waitFor(() => expect(bubbleAgain).toHaveFocus());
   });
 
   it("does NOT open when a drag ends (the trailing click is suppressed)", async () => {
     render(renderWidget(PUBKEY_A));
-    const bubble = await screen.findByLabelText("Open the seller assistant");
+    const bubble = await screen.findByLabelText("Open the shopping assistant");
 
     fireEvent.pointerDown(bubble, { pointerId: 1, clientY: 500 });
     fireEvent.pointerMove(bubble, { pointerId: 1, clientY: 200 });
@@ -195,16 +196,39 @@ describe("FloatingAssistant — keyboard + drag behavior", () => {
     fireEvent.click(bubble);
 
     expect(
-      screen.queryByRole("dialog", { name: "Seller assistant" })
+      screen.queryByRole("dialog", { name: "Shopping assistant" })
     ).toBeNull();
     // The drag snapped the bubble to the left edge.
     expect(bubble).toHaveStyle({ left: "16px" });
   });
 });
 
+describe("FloatingAssistant — marketplace audience", () => {
+  it("shows the shopping assistant bubble to GUESTS on the main site", async () => {
+    render(renderGuestWidget());
+    expect(
+      await screen.findByLabelText("Open the shopping assistant")
+    ).toBeTruthy();
+  });
+
+  it("shows the shopping assistant (not seller setup) to signed-in accounts on the main site", async () => {
+    render(renderWidget(PUBKEY_A));
+    const bubble = await screen.findByLabelText("Open the shopping assistant");
+    fireEvent.click(bubble);
+    // Buyer chat, not the seller setup card — and no setup-status fetch.
+    expect(await screen.findByTestId("assistant-chat")).toBeTruthy();
+    expect(screen.queryByText("Enable write actions")).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/api/assistant/setup")
+    );
+  });
+});
+
 describe("FloatingAssistant — account switch isolation", () => {
   it("remounts the chat and drops a stale writes-state callback from the previous account", async () => {
-    const { rerender } = render(renderWidget(PUBKEY_A));
+    // Seller audience = the owner browsing their own stall (the marketplace
+    // audience is the buyer assistant now).
+    const { rerender } = render(renderWidget(PUBKEY_A, PUBKEY_A));
 
     // Open the panel and let the setup-status fetch resolve (writes OFF).
     const bubble = await screen.findByLabelText("Open the seller assistant");
@@ -218,8 +242,9 @@ describe("FloatingAssistant — account switch isolation", () => {
     ) => void;
     const mountsBefore = chatMountCount;
 
-    // In-place account switch: same widget instance, new pubkey.
-    rerender(renderWidget(PUBKEY_B));
+    // In-place account switch: same widget instance, new pubkey (the new
+    // account is also browsing its own stall).
+    rerender(renderWidget(PUBKEY_B, PUBKEY_B));
 
     // The chat subtree remounted for the new account (transcript cleared).
     await waitFor(() => expect(chatMountCount).toBeGreaterThan(mountsBefore));
@@ -238,7 +263,7 @@ describe("FloatingAssistant — account switch isolation", () => {
 describe("resolveAssistantAudience", () => {
   const STALL = "c".repeat(64);
 
-  it("marketplace: signed-in users get the seller assistant, guests nothing", () => {
+  it("marketplace: EVERYONE gets the shopping assistant (guests and signed-in)", () => {
     expect(
       resolveAssistantAudience({
         stallPubkey: null,
@@ -246,7 +271,7 @@ describe("resolveAssistantAudience", () => {
         isLoggedIn: true,
         visibility: null,
       })
-    ).toBe("seller");
+    ).toBe("buyer");
     expect(
       resolveAssistantAudience({
         stallPubkey: null,
@@ -254,7 +279,7 @@ describe("resolveAssistantAudience", () => {
         isLoggedIn: false,
         visibility: null,
       })
-    ).toBeNull();
+    ).toBe("buyer");
   });
 
   it("stall: owner gets seller mode, honoring the seller toggle", () => {
@@ -277,7 +302,7 @@ describe("resolveAssistantAudience", () => {
     ).toBeNull();
   });
 
-  it("stall: guests and signed-in non-owners get buyer mode only when opted in", () => {
+  it("stall: guests and signed-in non-owners get buyer mode unless the stall opted out", () => {
     const guest = { stallPubkey: STALL, viewerPubkey: null, isLoggedIn: false };
     const buyer = {
       stallPubkey: STALL,
