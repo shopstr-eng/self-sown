@@ -46,9 +46,8 @@ export default async function handler(
   }
 
   try {
-    const { paymentIntentId, sellerPubkey } = (req.body || {}) as Partial<
-      AutoPurchaseBody
-    >;
+    const { paymentIntentId, sellerPubkey } = (req.body ||
+      {}) as Partial<AutoPurchaseBody>;
 
     if (!paymentIntentId || !sellerPubkey) {
       return res.status(400).json({ error: "Missing required fields" });

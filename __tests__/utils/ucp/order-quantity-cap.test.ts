@@ -45,9 +45,7 @@ const orderInput = (quantity: number) => ({
   buyerPubkey: "ab".repeat(32),
 });
 
-const expectRejection = async (
-  quantity: number
-): Promise<OrderServiceError> =>
+const expectRejection = async (quantity: number): Promise<OrderServiceError> =>
   createOrderFlow(orderInput(quantity)).then(
     () => {
       throw new Error("expected rejection");

@@ -117,9 +117,7 @@ export default async function handler(
             id,
             next as CheckoutSessionStatus,
             messages,
-            next === "requires_escalation"
-              ? STATUS_NOTE[next]
-              : null
+            next === "requires_escalation" ? STATUS_NOTE[next] : null
           );
           if (updated) current = updated;
         }

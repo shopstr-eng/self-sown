@@ -63,7 +63,8 @@ describe("client surfaces never pass a scope string literal", () => {
     const offenders: string[] = [];
     for (const { file, content } of clientSources()) {
       // Grab each call's argument span (calls are short; 300 chars is ample).
-      const calls = content.match(/mintScopedSessionToken\([\s\S]{0,300}?\)/g) ?? [];
+      const calls =
+        content.match(/mintScopedSessionToken\([\s\S]{0,300}?\)/g) ?? [];
       for (const call of calls) {
         expect(call).toMatch(/SESSION_SCOPES\./);
         for (const scope of Object.values(SESSION_SCOPES)) {

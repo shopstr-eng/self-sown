@@ -973,7 +973,9 @@ const EmailFlowsPage = () => {
                                 <Button
                                   className={DANGERBUTTONCLASSNAMES}
                                   size="sm"
-                                  onClick={() => void handleDeleteStep(step, index)}
+                                  onClick={() =>
+                                    void handleDeleteStep(step, index)
+                                  }
                                 >
                                   <TrashIcon className="h-4 w-4" />
                                   Remove

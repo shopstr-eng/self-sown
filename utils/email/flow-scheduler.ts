@@ -133,7 +133,10 @@ export function startFlowScheduler() {
     processAbandonedCarts
   );
   setTimeout(() => void guardedProcessAbandonedCarts(), 60 * 1000);
-  setInterval(() => void guardedProcessAbandonedCarts(), ABANDONED_CART_INTERVAL);
+  setInterval(
+    () => void guardedProcessAbandonedCarts(),
+    ABANDONED_CART_INTERVAL
+  );
 
   const guardedProcessWinback = withOverlapGuard(
     "processWinback",
@@ -147,10 +150,7 @@ export function startFlowScheduler() {
     processProLifecycle
   );
   setTimeout(() => void guardedProcessProLifecycle(), 3 * 60 * 1000);
-  setInterval(
-    () => void guardedProcessProLifecycle(),
-    PRO_LIFECYCLE_INTERVAL
-  );
+  setInterval(() => void guardedProcessProLifecycle(), PRO_LIFECYCLE_INTERVAL);
 
   const guardedProcessScheduledBlogPosts = withOverlapGuard(
     "processScheduledBlogPosts",
@@ -169,10 +169,7 @@ export function startFlowScheduler() {
     processEscrowPayouts
   );
   setTimeout(() => void guardedProcessEscrowPayouts(), 45 * 1000);
-  setInterval(
-    () => void guardedProcessEscrowPayouts(),
-    ESCROW_PAYOUT_INTERVAL
-  );
+  setInterval(() => void guardedProcessEscrowPayouts(), ESCROW_PAYOUT_INTERVAL);
 
   // Suppression sync is best-effort: SendGrid/DB failures are logged by the
   // endpoint and retried on the next tick (watermark only advances on a fully

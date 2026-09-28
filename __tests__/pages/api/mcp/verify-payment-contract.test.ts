@@ -56,8 +56,7 @@ jest.mock("@/utils/mcp/metrics", () => ({ recordRequest: jest.fn() }));
 
 jest.mock("@/mcp/tools/purchase-tools", () => ({
   getMcpOrder: (...args: any[]) => mockGetMcpOrder(...args),
-  updateMcpOrderPayment: (...args: any[]) =>
-    mockUpdateMcpOrderPayment(...args),
+  updateMcpOrderPayment: (...args: any[]) => mockUpdateMcpOrderPayment(...args),
   // Pending Lightning quotes live in Postgres (mcp_lightning_quotes), not in
   // process memory — the whole point is that verify-payment still confirms a
   // paid invoice after a restart. These accessor mocks stand in for the DB;
@@ -232,7 +231,8 @@ async function postVerify(
   mockClaimPendingLightningQuote.mockResolvedValue(
     claimWon ? { orderId: "order-1" } : null
   );
-  if (quoteState) mockCheckMintQuoteBolt11.mockResolvedValue({ state: quoteState });
+  if (quoteState)
+    mockCheckMintQuoteBolt11.mockResolvedValue({ state: quoteState });
   const res = createResponse();
   await verifyPaymentHandler(
     {
@@ -437,7 +437,11 @@ describe("MCP verify-payment response contract", () => {
     ["status", "state", "paid"],
     ["orderId", "order", "order-1"],
     ["success", "ok", true],
-    ["message", "detail", "Payment has not been received yet. Please pay the invoice."],
+    [
+      "message",
+      "detail",
+      "Payment has not been received yet. Please pay the invoice.",
+    ],
   ])(
     "fails closed when envelope field %s is renamed in the route",
     async (from, to, value) => {

@@ -1354,7 +1354,10 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
         </div>
       </div>
 
-      <form onSubmit={(e) => void handleSubmit(onSubmit as any)(e)} className="space-y-6">
+      <form
+        onSubmit={(e) => void handleSubmit(onSubmit as any)(e)}
+        className="space-y-6"
+      >
         <div className="mx-auto space-y-6 lg:max-w-[600px]">
           <Controller
             name="name"
@@ -2351,7 +2354,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     type="file"
                                     accept=".woff2,.woff,.ttf,.otf"
                                     className="hidden"
-                                    onChange={(e) => void handleHeadingFontUpload(e)}
+                                    onChange={(e) =>
+                                      void handleHeadingFontUpload(e)
+                                    }
                                   />
                                   {fontUploadingHeading ? (
                                     <span className="text-xs text-gray-400">
@@ -2428,7 +2433,9 @@ const ShopProfileForm = ({ isOnboarding = false }: ShopProfileFormProps) => {
                                     type="file"
                                     accept=".woff2,.woff,.ttf,.otf"
                                     className="hidden"
-                                    onChange={(e) => void handleBodyFontUpload(e)}
+                                    onChange={(e) =>
+                                      void handleBodyFontUpload(e)
+                                    }
                                   />
                                   {fontUploadingBody ? (
                                     <span className="text-xs text-gray-400">

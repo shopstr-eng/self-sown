@@ -438,10 +438,7 @@ const ChatPanel = ({
   };
 
   const handleMessageKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
-    if (
-      e.key === "Enter" &&
-      !(messageInput === "" || isSendingDMLoading)
-    )
+    if (e.key === "Enter" && !(messageInput === "" || isSendingDMLoading))
       await sendMessage();
   };
 
@@ -555,7 +552,9 @@ const ChatPanel = ({
               <ModalHeader className="flex flex-col gap-1 text-white">
                 Enter Shipping Details
               </ModalHeader>
-              <form onSubmit={(e) => void handleShippingSubmit(onShippingSubmit)(e)}>
+              <form
+                onSubmit={(e) => void handleShippingSubmit(onShippingSubmit)(e)}
+              >
                 <ModalBody>
                   <Controller
                     name="Delivery Time"
@@ -707,7 +706,9 @@ const ChatPanel = ({
                 <ModalHeader className="flex flex-col gap-1 text-white">
                   Leave a Review
                 </ModalHeader>
-                <form onSubmit={(e) => void handleReviewSubmit(onReviewSubmit)(e)}>
+                <form
+                  onSubmit={(e) => void handleReviewSubmit(onReviewSubmit)(e)}
+                >
                   <ModalBody>
                     <div className="mb-4 flex items-center justify-center gap-16">
                       <div className="flex items-center gap-3">

@@ -116,7 +116,10 @@ const MCP_LIGHTNING_PAYMENT = composePaymentDescriptor(
     // verified via POST /api/mcp/verify-payment (named in instructions), not a
     // verifyUrl field. MCP adds an invoice expiry + human/agent instructions.
     omit: ["verifyUrl"],
-    extraProperties: { expiresAt: { type: "string" }, instructions: MCP_INSTRUCTIONS },
+    extraProperties: {
+      expiresAt: { type: "string" },
+      instructions: MCP_INSTRUCTIONS,
+    },
     extraRequired: ["expiresAt", "instructions"],
   }
 );
@@ -403,9 +406,7 @@ describe("MCP create-order payment descriptors ↔ shared UCP field contracts", 
       const validate = compile(subschema);
       const ok: boolean = validate(descriptor);
       expect(
-        ok
-          ? true
-          : `${label} half rejected: ${JSON.stringify(validate.errors)}`
+        ok ? true : `${label} half rejected: ${JSON.stringify(validate.errors)}`
       ).toBe(true);
     }
   });
@@ -458,7 +459,8 @@ describe("MCP create-order payment descriptors ↔ shared UCP field contracts", 
     "fails closed when a shared %s field is renamed in the route",
     async (resultKey, subschema, rename) => {
       const key = (
-        resultKey === "subscription payment" || resultKey === "subscription block"
+        resultKey === "subscription payment" ||
+        resultKey === "subscription block"
           ? "subscription"
           : resultKey === "stripe one-time"
             ? "stripe"
@@ -483,7 +485,9 @@ describe("MCP create-order payment descriptors ↔ shared UCP field contracts", 
   ])(
     "rejects an unexpected extra field on the %s descriptor",
     async (key, subschema) => {
-      const { body } = await postForResult(RESULTS[key as keyof typeof RESULTS]);
+      const { body } = await postForResult(
+        RESULTS[key as keyof typeof RESULTS]
+      );
       const validate = compile(subschema);
       expect(validate({ ...body.payment, surpriseField: 1 })).toBe(false);
     }

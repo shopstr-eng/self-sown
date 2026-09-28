@@ -97,7 +97,9 @@ const PUBKEY = "a".repeat(64);
 // configured with the raw-base64 public key exactly as SendGrid's
 // "verification key" is formatted.
 const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
-const PUBLIC_KEY_B64 = (publicKey.export({ format: "der", type: "spki" }) as Buffer)
+const PUBLIC_KEY_B64 = (
+  publicKey.export({ format: "der", type: "spki" }) as Buffer
+)
   .subarray(-32)
   .toString("base64");
 
@@ -147,7 +149,12 @@ async function post(events: unknown[], tamper?: "bad-sig" | "no-sig") {
   const { signature, timestamp } = signRequest(body);
   const { req, res } = mockReqRes({
     body,
-    signature: tamper === "no-sig" ? undefined : tamper === "bad-sig" ? "AAAA" : signature,
+    signature:
+      tamper === "no-sig"
+        ? undefined
+        : tamper === "bad-sig"
+          ? "AAAA"
+          : signature,
     timestamp,
   });
   await handler(req, res);
@@ -166,7 +173,9 @@ afterEach(() => {
 
 it("rejects requests when no verification key is configured (fail closed)", async () => {
   delete process.env.SENDGRID_EVENT_WEBHOOK_PUBLIC_KEY;
-  const res = await post([{ event: "bounce", email: "dead@example.com", seller_pubkey: PUBKEY }]);
+  const res = await post([
+    { event: "bounce", email: "dead@example.com", seller_pubkey: PUBKEY },
+  ]);
   expect(res.statusCode).toBe(401);
   expect(mockUnsubscribeSellerEmail).not.toHaveBeenCalled();
 });
@@ -201,7 +210,12 @@ it("a signed bounce event lands the address on the seller's suppression list and
     },
   ]);
   expect(res.statusCode).toBe(200);
-  expect(res.body).toMatchObject({ ok: true, suppressible: 1, suppressed: 1, failed: 0 });
+  expect(res.body).toMatchObject({
+    ok: true,
+    suppressible: 1,
+    suppressed: 1,
+    failed: 0,
+  });
   expect(mockUnsubscribeSellerEmail).toHaveBeenCalledWith(
     PUBKEY,
     "Dead@Example.com",
@@ -235,7 +249,11 @@ it("permanently-dropped and spamreport events suppress; delivered/open events ar
     { event: "open", email: "open@example.com", seller_pubkey: PUBKEY },
   ]);
   expect(res.statusCode).toBe(200);
-  expect(res.body).toMatchObject({ suppressible: 2, suppressed: 2, skipped: 2 });
+  expect(res.body).toMatchObject({
+    suppressible: 2,
+    suppressed: 2,
+    skipped: 2,
+  });
   expect(unsubscribes.has(`${PUBKEY}|drop@example.com`)).toBe(true);
   expect(unsubscribes.has(`${PUBKEY}|spam@example.com`)).toBe(true);
   expect(unsubscribes.has(`${PUBKEY}|fine@example.com`)).toBe(false);
@@ -260,7 +278,11 @@ it("a dropped event from a transient block (no permanent reason) does NOT suppre
     },
   ]);
   expect(res.statusCode).toBe(200);
-  expect(res.body).toMatchObject({ suppressible: 0, suppressed: 0, skipped: 3 });
+  expect(res.body).toMatchObject({
+    suppressible: 0,
+    suppressed: 0,
+    skipped: 3,
+  });
   expect(mockUnsubscribeSellerEmail).not.toHaveBeenCalled();
 });
 
@@ -282,7 +304,11 @@ it("a soft bounce (type=blocked, temporary throttling) does NOT suppress", async
     },
   ]);
   expect(res.statusCode).toBe(200);
-  expect(res.body).toMatchObject({ suppressible: 1, suppressed: 1, skipped: 1 });
+  expect(res.body).toMatchObject({
+    suppressible: 1,
+    suppressed: 1,
+    skipped: 1,
+  });
   expect(unsubscribes.has(`${PUBKEY}|soft@example.com`)).toBe(false);
   expect(unsubscribes.get(`${PUBKEY}|hard@example.com`)).toBe("suppressed");
 });
@@ -303,7 +329,11 @@ it("events without seller attribution are skipped (covered by the cron sync inst
     { event: "bounce", seller_pubkey: PUBKEY },
   ]);
   expect(res.statusCode).toBe(200);
-  expect(res.body).toMatchObject({ suppressible: 0, suppressed: 0, skipped: 2 });
+  expect(res.body).toMatchObject({
+    suppressible: 0,
+    suppressed: 0,
+    skipped: 2,
+  });
   expect(mockUnsubscribeSellerEmail).not.toHaveBeenCalled();
 });
 

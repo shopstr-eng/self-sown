@@ -432,7 +432,10 @@ export default function StorefrontEmailPopupComponent({
                           >
                             {subtext}
                           </p>
-                          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
+                          <form
+                            onSubmit={(e) => void handleSubmit(e)}
+                            className="space-y-3"
+                          >
                             <input
                               type="email"
                               placeholder="Enter your email"

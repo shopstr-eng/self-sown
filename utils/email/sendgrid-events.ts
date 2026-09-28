@@ -126,7 +126,8 @@ export async function processSendGridEvents(
   if (!Array.isArray(events)) return result;
 
   for (const event of events) {
-    const type = typeof (event as any)?.event === "string" ? (event as any).event : "";
+    const type =
+      typeof (event as any)?.event === "string" ? (event as any).event : "";
     if (!SUPPRESSING_EVENTS.has(type) || !isPermanentFailure(event)) {
       result.skipped++;
       continue;
@@ -152,7 +153,11 @@ export async function processSendGridEvents(
 
     result.suppressible++;
     try {
-      const ok = await unsubscribeSellerEmail(sellerPubkey, email, "suppressed");
+      const ok = await unsubscribeSellerEmail(
+        sellerPubkey,
+        email,
+        "suppressed"
+      );
       if (ok) {
         result.suppressed++;
       } else {

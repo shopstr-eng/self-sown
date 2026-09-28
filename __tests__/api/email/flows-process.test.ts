@@ -199,9 +199,7 @@ it("durably suppresses the address when SendGrid rejects the recipient address (
 
 it("durably suppresses on a suppression-list rejection naming the to address", async () => {
   mockSend.mockRejectedValue(
-    sgError(400, [
-      { message: "The to address is on the suppression list." },
-    ])
+    sgError(400, [{ message: "The to address is on the suppression list." }])
   );
   await run();
   expect(mocked.unsubscribeSellerEmail).toHaveBeenCalledWith(
@@ -228,7 +226,9 @@ it("does NOT suppress on a sender-level 400 (from field) — it would hit every 
 it.each([500, 429])(
   "does NOT suppress on ambiguous/retryable %i failures",
   async (status) => {
-    mockSend.mockRejectedValue(sgError(status, [{ field: "to", message: "x" }]));
+    mockSend.mockRejectedValue(
+      sgError(status, [{ field: "to", message: "x" }])
+    );
     await run();
     expect(mocked.unsubscribeSellerEmail).not.toHaveBeenCalled();
   }
@@ -239,7 +239,10 @@ it("still falls back to the global sender on an unverified-sender rejection, and
   mockSend
     .mockRejectedValueOnce(
       sgError(403, [
-        { message: "The from address does not match a verified Sender Identity." },
+        {
+          message:
+            "The from address does not match a verified Sender Identity.",
+        },
       ])
     )
     .mockResolvedValueOnce(undefined);
@@ -259,7 +262,10 @@ it("suppresses when the custom-sender send 403s and the global-sender RETRY hits
   mockSend
     .mockRejectedValueOnce(
       sgError(403, [
-        { message: "The from address does not match a verified Sender Identity." },
+        {
+          message:
+            "The from address does not match a verified Sender Identity.",
+        },
       ])
     )
     .mockRejectedValueOnce(

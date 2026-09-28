@@ -831,7 +831,9 @@ const PaymentsSettingsPage = () => {
                           size="lg"
                           isSelected={!!taxStatus?.taxEnabled}
                           isDisabled={taxBusy !== null || taxLoading}
-                          onValueChange={(enabled) => void handleToggleTax(enabled)}
+                          onValueChange={(enabled) =>
+                            void handleToggleTax(enabled)
+                          }
                           classNames={{
                             wrapper:
                               "bg-gray-300 group-data-[selected=true]:bg-primary-yellow",

@@ -624,7 +624,9 @@ export default function StorefrontOrderConfirmation({
                   Check Order Status
                 </button>
                 <button
-                  onClick={() => void router.push(`${ordersHref}?isInquiry=true`)}
+                  onClick={() =>
+                    void router.push(`${ordersHref}?isInquiry=true`)
+                  }
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-6 py-3 font-bold transition-opacity hover:opacity-90"
                   style={{
                     borderColor: colors.primary,
@@ -639,7 +641,9 @@ export default function StorefrontOrderConfirmation({
             )}
             {orderData.isSubscription && (
               <button
-                onClick={() => void router.push(`${ordersHref}?tab=subscriptions`)}
+                onClick={() =>
+                  void router.push(`${ordersHref}?tab=subscriptions`)
+                }
                 className="flex flex-1 items-center justify-center gap-2 rounded-lg border-2 px-6 py-3 font-bold transition-opacity hover:opacity-90"
                 style={{
                   borderColor: colors.primary,

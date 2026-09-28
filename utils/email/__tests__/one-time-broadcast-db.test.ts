@@ -143,7 +143,8 @@ beforeAll(async () => {
     jest.resetModules();
     jest.unmock("pg");
     db = await import("@/utils/db/db-service");
-    ({ runOneTimeBroadcast } = await import("@/utils/email/one-time-broadcast"));
+    ({ runOneTimeBroadcast } =
+      await import("@/utils/email/one-time-broadcast"));
   });
 
   await waitForTables([
@@ -273,10 +274,11 @@ async function countClaims(): Promise<number> {
 
 /** Content-keyed recipient ledger rows for the synthetic seller. */
 async function ledgerEmails(): Promise<string[]> {
-  const result = await db.getDbPool().query<{ email: string }>(
-    `SELECT email FROM one_time_broadcast_recipients WHERE pubkey = $1`,
-    [SELLER_PK]
-  );
+  const result = await db
+    .getDbPool()
+    .query<{
+      email: string;
+    }>(`SELECT email FROM one_time_broadcast_recipients WHERE pubkey = $1`, [SELLER_PK]);
   return result.rows.map((r) => r.email).sort();
 }
 

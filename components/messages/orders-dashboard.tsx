@@ -2530,7 +2530,9 @@ const OrdersDashboard = ({
           <ModalHeader className="flex flex-col gap-1 text-black">
             Enter Shipping Details
           </ModalHeader>
-          <form onSubmit={(e) => void handleShippingSubmit(onShippingSubmit)(e)}>
+          <form
+            onSubmit={(e) => void handleShippingSubmit(onShippingSubmit)(e)}
+          >
             <ModalBody>
               <div className="flex gap-2">
                 <Button

@@ -108,7 +108,10 @@ jest.mock("@/utils/assistant/session-revocation", () => ({
 let mockIsPro = true;
 
 jest.mock("@/components/utility-components/pro-membership-context", () => ({
-  useProMembership: () => ({ membership: { isPro: mockIsPro }, loading: false }),
+  useProMembership: () => ({
+    membership: { isPro: mockIsPro },
+    loading: false,
+  }),
 }));
 
 jest.mock("next/router", () => ({
@@ -267,9 +270,7 @@ function makeExtensionSigner() {
 
 function renderWithSigner(signer: any, pubkey: string, page: ReactElement) {
   return render(
-    <SignerContext.Provider
-      value={{ pubkey, isLoggedIn: true, signer } as any}
-    >
+    <SignerContext.Provider value={{ pubkey, isLoggedIn: true, signer } as any}>
       {page}
     </SignerContext.Provider>
   );
@@ -324,7 +325,9 @@ describe("settings/api-keys with an extension signer", () => {
     expect(mints[0]!.authorization).toMatch(/^Nostr /);
 
     // ...and every management call rode the bearer token, not a signature.
-    const management = requests.filter((r) => r.path !== "/api/assistant/session");
+    const management = requests.filter(
+      (r) => r.path !== "/api/assistant/session"
+    );
     expect(management.map((r) => `${r.method} ${r.path}`)).toEqual([
       `GET /api/mcp/api-keys`,
       `POST /api/mcp/api-keys`,

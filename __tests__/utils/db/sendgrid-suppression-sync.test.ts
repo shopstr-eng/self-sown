@@ -218,7 +218,9 @@ beforeEach(async () => {
       ]);
     }
     if (url.includes("/v3/suppression/spam_reports")) {
-      return sgPage([{ email: "spam-reporter@example.com", created: 1700000300 }]);
+      return sgPage([
+        { email: "spam-reporter@example.com", created: 1700000300 },
+      ]);
     }
     throw new Error(`unexpected fetch: ${url}`);
   });
@@ -338,11 +340,17 @@ describe("syncSendGridSuppressions", () => {
 
     // Run 1: processes the two NEWEST entries, hits the cap, and must NOT
     // advance the watermark (the window is not fully synced).
-    const run1 = await syncSendGridSuppressions({ pageLimit: 2, maxPagesPerList: 1 });
+    const run1 = await syncSendGridSuppressions({
+      pageLimit: 2,
+      maxPagesPerList: 1,
+    });
     expect(run1.ok).toBe(true);
 
     mockFetch.mockClear();
-    const run2 = await syncSendGridSuppressions({ pageLimit: 2, maxPagesPerList: 1 });
+    const run2 = await syncSendGridSuppressions({
+      pageLimit: 2,
+      maxPagesPerList: 1,
+    });
     expect(run2.ok).toBe(true);
     // Run 2 must walk BACKWARD (end_time at the oldest processed entry),
     // not re-pull the same newest window.
@@ -354,7 +362,10 @@ describe("syncSendGridSuppressions", () => {
 
     // Run 3 drains the remainder (end_time=1700000100 → single entry < limit).
     mockFetch.mockClear();
-    const run3 = await syncSendGridSuppressions({ pageLimit: 2, maxPagesPerList: 1 });
+    const run3 = await syncSendGridSuppressions({
+      pageLimit: 2,
+      maxPagesPerList: 1,
+    });
     expect(run3.ok).toBe(true);
 
     // Every entry across all three runs is recorded.
@@ -384,11 +395,16 @@ describe("syncSendGridSuppressions", () => {
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("/v3/suppression/bounces")) return sgPage(bounces);
       if (url.includes("/v3/suppression/spam_reports")) {
-        return sgPage([{ email: "spam-reporter@example.com", created: 1700000300 }]);
+        return sgPage([
+          { email: "spam-reporter@example.com", created: 1700000300 },
+        ]);
       }
       throw new Error(`unexpected fetch: ${url}`);
     });
-    const result = await syncSendGridSuppressions({ pageLimit: 2, maxPagesPerList: 1 });
+    const result = await syncSendGridSuppressions({
+      pageLimit: 2,
+      maxPagesPerList: 1,
+    });
     expect(result.ok).toBe(true);
     // A capped bounces list must not starve spam_reports.
     expect(await getSellerAudienceEmails(SELLER)).not.toContain(
@@ -410,7 +426,9 @@ describe("syncSendGridSuppressions", () => {
 
     mockFetch.mockImplementation(async (url: string) => {
       if (url.includes("/v3/suppression/bounces")) {
-        return sgPage([{ email: "bounced-buyer@example.com", created: 1700000100 }]);
+        return sgPage([
+          { email: "bounced-buyer@example.com", created: 1700000100 },
+        ]);
       }
       return sgPage([]);
     });

@@ -35,8 +35,7 @@ jest.mock("@/utils/mcp/metrics", () => ({ recordRequest: jest.fn() }));
 
 jest.mock("@/mcp/tools/purchase-tools", () => ({
   getMcpOrder: (...args: any[]) => mockGetMcpOrder(...args),
-  updateMcpOrderPayment: (...args: any[]) =>
-    mockUpdateMcpOrderPayment(...args),
+  updateMcpOrderPayment: (...args: any[]) => mockUpdateMcpOrderPayment(...args),
   // Pending Lightning quotes are DB-backed (mcp_lightning_quotes); these
   // accessor mocks keep this suite off the order-service/DB graph.
   getPendingLightningQuote: (...args: any[]) =>

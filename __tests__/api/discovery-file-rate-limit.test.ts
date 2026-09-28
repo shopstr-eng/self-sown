@@ -115,10 +115,7 @@ function createRequest(remoteAddress = "203.0.113.1"): NextApiRequest {
   } as unknown as NextApiRequest;
 }
 
-type Handler = (
-  req: NextApiRequest,
-  res: NextApiResponse
-) => Promise<unknown>;
+type Handler = (req: NextApiRequest, res: NextApiResponse) => Promise<unknown>;
 
 async function call(handler: Handler, req: NextApiRequest): Promise<Response> {
   const res = createResponse();

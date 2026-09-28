@@ -90,9 +90,7 @@ describe("getAssistantSessionRevokedBefore", () => {
 
   it("parses a stored stamp", async () => {
     queryMock.mockResolvedValue({ rows: [{ value: "12345" }] });
-    await expect(getAssistantSessionRevokedBefore(PUBKEY)).resolves.toBe(
-      12345
-    );
+    await expect(getAssistantSessionRevokedBefore(PUBKEY)).resolves.toBe(12345);
   });
 
   it("treats a corrupt stamp as absent (never wedges the kill switch)", async () => {

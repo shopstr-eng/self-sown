@@ -7,10 +7,7 @@ import {
   ApiKeyPermission,
 } from "@/utils/mcp/auth";
 import { encryptNsec } from "@/utils/mcp/nostr-signing";
-import {
-  checkOnboardRateLimit,
-  ONBOARD_RATE_LIMIT,
-} from "@/utils/mcp/metrics";
+import { checkOnboardRateLimit, ONBOARD_RATE_LIMIT } from "@/utils/mcp/metrics";
 import {
   buildOnboardExistingPubkeyProof,
   normalizeOnboardPermission,

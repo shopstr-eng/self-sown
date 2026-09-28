@@ -130,10 +130,7 @@ async function run(
 ): Promise<ReturnType<typeof createResponse>> {
   mockAuthenticateRequest.mockResolvedValue({ id: 1, pubkey: callerPubkey });
   const res = createResponse();
-  await createOrderHandler(
-    createRequest(),
-    res as unknown as NextApiResponse
-  );
+  await createOrderHandler(createRequest(), res as unknown as NextApiResponse);
   return res;
 }
 

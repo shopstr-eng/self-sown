@@ -49,9 +49,7 @@ describe("pruneExpiredCheckoutEscalations", () => {
     expect(sql).toContain("mcp_order_id IS NULL");
     // The TTL clock is updated_at so an actively-retried session stays alive.
     expect(sql).toContain("updated_at < $1");
-    expect(params[0].getTime()).toBe(
-      now.getTime() - ESCALATION_SESSION_TTL_MS
-    );
+    expect(params[0].getTime()).toBe(now.getTime() - ESCALATION_SESSION_TTL_MS);
     expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 

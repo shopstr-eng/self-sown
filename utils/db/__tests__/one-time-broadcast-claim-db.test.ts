@@ -157,10 +157,9 @@ async function waitForTables(tableNames: string[]): Promise<void> {
 /** Deletes every row the synthetic seller could have touched. */
 async function cleanupTestRows(): Promise<void> {
   const pool = db.getDbPool();
-  await pool.query(
-    `DELETE FROM one_time_broadcast_claims WHERE pubkey = $1`,
-    [SELLER_PK]
-  );
+  await pool.query(`DELETE FROM one_time_broadcast_claims WHERE pubkey = $1`, [
+    SELLER_PK,
+  ]);
   await pool.query(
     `DELETE FROM one_time_broadcast_recipients WHERE pubkey = $1`,
     [SELLER_PK]

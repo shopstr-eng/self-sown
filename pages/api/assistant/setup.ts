@@ -96,7 +96,10 @@ export default async function handler(
   // Single-use signed requests — this endpoint stores key material. Bearer
   // tokens are multi-use by design (their single-use NIP-98 mint already ran
   // the replay guard); the short scope TTL + rate limits bound replay.
-  if (!auth.isBearer && !claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))) {
+  if (
+    !auth.isBearer &&
+    !claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))
+  ) {
     return res
       .status(401)
       .json({ error: "This signed request was already used" });

@@ -81,7 +81,11 @@ const BASE_ROW: CheckoutSessionRow = {
     connectedAccountId: "acct_123",
   },
   messages: [
-    { type: "session_created", text: "Checkout session created.", at: new Date(1_700_000_000_000).toISOString() },
+    {
+      type: "session_created",
+      text: "Checkout session created.",
+      at: new Date(1_700_000_000_000).toISOString(),
+    },
     {
       type: "ready_for_complete",
       text: "Confirm the Stripe payment with the clientSecret to complete the order.",
@@ -142,7 +146,9 @@ const SUBSCRIPTION_PAYMENT: Record<string, unknown> = {
 
 // One formatted session per payment method, plus one per lifecycle status,
 // exercising the optional fields (orderId, quote, error, message severity).
-function representativeSessions(): Array<ReturnType<typeof formatCheckoutSession>> {
+function representativeSessions(): Array<
+  ReturnType<typeof formatCheckoutSession>
+> {
   const sessions: Array<ReturnType<typeof formatCheckoutSession>> = [];
   const statusByMethod: Record<PaymentMethod, CheckoutSessionRow["status"]> = {
     stripe: "ready_for_complete",
@@ -325,7 +331,10 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
   const envelopes = [
     ["persist-failure fallback", FALLBACK_ENVELOPE],
     ["requires_escalation (pre-order, no orderId)", ESCALATION_ENVELOPE],
-    ["requires_escalation (persisted, orderId, no error)", PERSISTED_ESCALATION],
+    [
+      "requires_escalation (persisted, orderId, no error)",
+      PERSISTED_ESCALATION,
+    ],
     [
       "requires_escalation (persisted, pre-order, no orderId, error+code)",
       PERSISTED_PRE_ORDER_ESCALATION,
@@ -337,9 +346,7 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
     for (const optional of ["orderId", "quote", "error"]) {
       expect(allKeys).toContain(optional);
     }
-    expect(
-      sessions.some((s) => s.messages.some((m) => m.severity))
-    ).toBe(true);
+    expect(sessions.some((s) => s.messages.some((m) => m.severity))).toBe(true);
     // And the null arms too, so "always-present" can't pass by accident.
     expect(sessions.some((s) => !("orderId" in s))).toBe(true);
     expect(sessions.some((s) => !("quote" in s))).toBe(true);
@@ -488,7 +495,12 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
     const methods = payment.allOf.map(
       (branch: JsonSchema) => branch.if?.properties?.method?.const
     );
-    expect([...methods].sort()).toEqual(["cashu", "fiat", "lightning", "stripe"]);
+    expect([...methods].sort()).toEqual([
+      "cashu",
+      "fiat",
+      "lightning",
+      "stripe",
+    ]);
   });
 
   it("accepts every describeResult payment descriptor under its discriminated branch", () => {
@@ -522,16 +534,40 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
       ...SUBSCRIPTION_PAYMENT,
       clientSecret: null,
     });
-    expect(
-      subNullSecret ? true : JSON.stringify(validatePayment.errors)
-    ).toBe(true);
+    expect(subNullSecret ? true : JSON.stringify(validatePayment.errors)).toBe(
+      true
+    );
   });
 
   it.each([
-    ["lightning", { ...PAYMENT_BY_METHOD.lightning, bolt11: undefined, invoice: "lnbc1..." }],
-    ["stripe one-time", { ...PAYMENT_BY_METHOD.stripe, paymentIntentId: undefined, intentId: "pi_123" }],
-    ["cashu", { ...PAYMENT_BY_METHOD.cashu, change: undefined, changeAmount: 0 }],
-    ["fiat", { ...PAYMENT_BY_METHOD.fiat, availableMethods: undefined, methods: ["Venmo"] }],
+    [
+      "lightning",
+      {
+        ...PAYMENT_BY_METHOD.lightning,
+        bolt11: undefined,
+        invoice: "lnbc1...",
+      },
+    ],
+    [
+      "stripe one-time",
+      {
+        ...PAYMENT_BY_METHOD.stripe,
+        paymentIntentId: undefined,
+        intentId: "pi_123",
+      },
+    ],
+    [
+      "cashu",
+      { ...PAYMENT_BY_METHOD.cashu, change: undefined, changeAmount: 0 },
+    ],
+    [
+      "fiat",
+      {
+        ...PAYMENT_BY_METHOD.fiat,
+        availableMethods: undefined,
+        methods: ["Venmo"],
+      },
+    ],
     [
       "subscription",
       { ...SUBSCRIPTION_PAYMENT, subscriptionId: undefined, subId: "sub_123" },
@@ -555,10 +591,13 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
     ["subscription", { ...SUBSCRIPTION_PAYMENT, surpriseField: 1 }],
     ["cashu", { ...PAYMENT_BY_METHOD.cashu, surpriseField: 1 }],
     ["fiat", { ...PAYMENT_BY_METHOD.fiat, surpriseField: 1 }],
-  ])("rejects an unexpected extra field on the %s descriptor", (_l, descriptor) => {
-    const validatePayment = compileSubschema(schema.properties.payment);
-    expect(validatePayment(descriptor)).toBe(false);
-  });
+  ])(
+    "rejects an unexpected extra field on the %s descriptor",
+    (_l, descriptor) => {
+      const validatePayment = compileSubschema(schema.properties.payment);
+      expect(validatePayment(descriptor)).toBe(false);
+    }
+  );
 
   // --- Quote shape ---------------------------------------------------------
 
@@ -584,7 +623,10 @@ describe("UCP checkout-session JSON Schema ↔ formatCheckoutSession contract", 
   });
 
   it.each([
-    ["renamed total", { ...BASE_ROW.quote, total: undefined, totalAmount: 12.5 }],
+    [
+      "renamed total",
+      { ...BASE_ROW.quote, total: undefined, totalAmount: 12.5 },
+    ],
     ["extra field", { ...BASE_ROW.quote, surpriseField: 1 }],
   ])("rejects a quote with %s (drift)", (_label, quote) => {
     const validateQuote = compileSubschema(schema.properties.quote);
@@ -616,7 +658,9 @@ describe("condensed OpenAPI UcpCheckoutSession ↔ canonical JSON Schema parity"
     openApiHandler({} as NextApiRequest, res);
     const component = payload?.components?.schemas?.UcpCheckoutSession;
     if (!component) {
-      throw new Error("openapi.json is missing the UcpCheckoutSession component");
+      throw new Error(
+        "openapi.json is missing the UcpCheckoutSession component"
+      );
     }
     return component;
   }

@@ -332,8 +332,9 @@ describe("POST /api/ucp/checkout/sessions/[id]/retry", () => {
     expect(typeof body.error).toBe("string");
     const types = body.messages.map((m: any) => m.type);
     expect(types).toContain("session_retried");
-    expect(types.filter((t: string) => t === "requires_escalation").length)
-      .toBeGreaterThanOrEqual(2);
+    expect(
+      types.filter((t: string) => t === "requires_escalation").length
+    ).toBeGreaterThanOrEqual(2);
     expect(mockResolveCheckoutSessionRetry).not.toHaveBeenCalled();
     expect(mockCreateMcpOrder).not.toHaveBeenCalled();
   });
@@ -446,8 +447,8 @@ describe("POST /api/ucp/checkout/sessions/[id]/retry", () => {
         code: escalatedRow.code,
       })
     );
-    const rescueMessages = mockRescueCheckoutSessionRetry.mock.calls[0][1]
-      .messages;
+    const rescueMessages =
+      mockRescueCheckoutSessionRetry.mock.calls[0][1].messages;
     expect(rescueMessages.map((m: any) => m.type)).toContain("retry_failed");
   });
 

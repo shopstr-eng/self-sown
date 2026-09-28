@@ -8,6 +8,7 @@ The assistant session tokens are stateless HMAC, so targeted revocation works vi
 **Why:** the only alternative kill switch is rotating SESSION_SECRET, which logs out every seller at once. A per-seller stamp gives a leaked-token response without a global logout.
 
 **How to apply:**
+
 - Any NEW endpoint accepting these tokens must go through the shared async bearer preamble (session-auth.ts) so the revocation check applies; never call the sync verify util directly from a route.
 - Revocation-style safety actions must NOT be gated on Pro/entitlement — a lapsed seller must still be able to kill a leaked token.
 - The stamp lookup fails closed: a DB error rejects the request (503), never treats the outage as "not revoked". Null means genuinely no stamp.
