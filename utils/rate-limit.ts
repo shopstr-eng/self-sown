@@ -320,6 +320,14 @@ export async function applyRateLimit(
     options
   );
   setRateLimitHeaders(res, rate);
+  // The proxy stamps a generic advisory RateLimit-Policy (q=600;w=60) on
+  // responses; overwrite it with the policy this handler actually enforces so
+  // agents scheduling around the header aren't misled. The numeric RateLimit-*
+  // headers above already override the advisory ones the same way.
+  res.setHeader(
+    "RateLimit-Policy",
+    `"${bucketName}";q=${options.limit};w=${Math.round(options.windowMs / 1000)}`
+  );
   if (!rate.ok) {
     res.setHeader(
       "Retry-After",
