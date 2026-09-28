@@ -24,7 +24,8 @@ export default async function handler(
   const ipRate = await checkRateLimit(
     "cache-event:ip",
     getRequestIp(req),
-    PER_IP_LIMIT
+    PER_IP_LIMIT,
+    res
   );
   if (!ipRate.ok) {
     res.setHeader(
@@ -45,7 +46,8 @@ export default async function handler(
     const pubkeyRate = await checkRateLimit(
       "cache-event:pubkey",
       event.pubkey,
-      PER_PUBKEY_LIMIT
+      PER_PUBKEY_LIMIT,
+      res
     );
     if (!pubkeyRate.ok) {
       res.setHeader(

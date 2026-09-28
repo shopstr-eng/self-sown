@@ -20,7 +20,8 @@ export default async function handler(
   const rate = await checkRateLimit(
     "email-unsubscribe-counts",
     getRequestIp(req),
-    RATE_LIMIT
+    RATE_LIMIT,
+    res
   );
   if (!rate.ok) {
     return res.status(429).json({ error: "Too many requests" });

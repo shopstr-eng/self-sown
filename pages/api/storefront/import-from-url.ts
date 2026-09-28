@@ -31,11 +31,9 @@ export default async function handler(
   const rate = await checkRateLimit(
     "storefront-import",
     getRequestIp(req),
-    RATE_LIMIT
+    RATE_LIMIT,
+    res
   );
-  res.setHeader("X-RateLimit-Limit", String(rate.limit));
-  res.setHeader("X-RateLimit-Remaining", String(rate.remaining));
-  res.setHeader("X-RateLimit-Reset", String(Math.ceil(rate.resetAt / 1000)));
   if (!rate.ok) {
     res.setHeader(
       "Retry-After",

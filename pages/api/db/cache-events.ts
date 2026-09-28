@@ -33,7 +33,8 @@ export default async function handler(
   const rate = await checkRateLimit(
     "cache-events",
     getRequestIp(req),
-    RATE_LIMIT
+    RATE_LIMIT,
+    res
   );
   if (!rate.ok) {
     res.setHeader(

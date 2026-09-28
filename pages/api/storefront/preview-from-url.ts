@@ -1,5 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { checkRateLimit, getRequestIp } from "@/utils/rate-limit";
+import {
+  checkRateLimit,
+  getRequestIp,
+  reportRateLimit,
+} from "@/utils/rate-limit";
 import { parseHttpUrl } from "@/utils/url-safety";
 import {
   extractSiteSignals,
@@ -71,11 +75,9 @@ export default async function handler(
   const perIp = await checkRateLimit(
     "storefront-preview",
     getRequestIp(req),
-    PER_IP_LIMIT
+    PER_IP_LIMIT,
+    res
   );
-  res.setHeader("X-RateLimit-Limit", String(perIp.limit));
-  res.setHeader("X-RateLimit-Remaining", String(perIp.remaining));
-  res.setHeader("X-RateLimit-Reset", String(Math.ceil(perIp.resetAt / 1000)));
   if (!perIp.ok) {
     res.setHeader(
       "Retry-After",
@@ -109,12 +111,17 @@ export default async function handler(
   }
 
   // Only spend the global budget on a real cache miss (extraction + LLM work).
+  // No res here: the global cap is shared across all callers, so it must not
+  // overwrite the per-IP headers above on success — the per-IP limit is what
+  // will reject THIS caller first. Only when the global bucket is the one
+  // rejecting do we advertise its policy.
   const global = await checkRateLimit(
     "storefront-preview-global",
     "global",
     GLOBAL_LIMIT
   );
   if (!global.ok) {
+    reportRateLimit(res, "storefront-preview-global", global, GLOBAL_LIMIT);
     res.setHeader(
       "Retry-After",
       String(Math.max(0, Math.ceil((global.resetAt - Date.now()) / 1000)))
