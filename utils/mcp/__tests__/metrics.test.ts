@@ -88,14 +88,19 @@ describe("MCP metrics helpers", () => {
 
   it("resets onboarding rate limits after the existing one-hour window", () => {
     for (let i = 0; i < 10; i += 1) {
-      expect(metricsModule.checkOnboardRateLimit("127.0.0.1")).toBe(true);
+      expect(metricsModule.checkOnboardRateLimit("127.0.0.1").ok).toBe(true);
     }
 
-    expect(metricsModule.checkOnboardRateLimit("127.0.0.1")).toBe(false);
+    const blocked = metricsModule.checkOnboardRateLimit("127.0.0.1");
+    expect(blocked.ok).toBe(false);
+    expect(blocked.remaining).toBe(0);
+    expect(blocked.limit).toBe(10);
 
     jest.advanceTimersByTime(ONE_HOUR_MS + 1);
 
-    expect(metricsModule.checkOnboardRateLimit("127.0.0.1")).toBe(true);
+    const afterReset = metricsModule.checkOnboardRateLimit("127.0.0.1");
+    expect(afterReset.ok).toBe(true);
+    expect(afterReset.remaining).toBe(9);
   });
 
   it("shares state through the compatibility re-export", () => {

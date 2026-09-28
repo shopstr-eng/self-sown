@@ -7,7 +7,10 @@ import {
   ApiKeyPermission,
 } from "@/utils/mcp/auth";
 import { encryptNsec } from "@/utils/mcp/nostr-signing";
-import { checkOnboardRateLimit } from "@/utils/mcp/metrics";
+import {
+  checkOnboardRateLimit,
+  ONBOARD_RATE_LIMIT,
+} from "@/utils/mcp/metrics";
 import {
   buildOnboardExistingPubkeyProof,
   normalizeOnboardPermission,
@@ -16,7 +19,7 @@ import {
   extractSignedEventFromRequest,
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
-import { getRequestIp } from "@/utils/rate-limit";
+import { getRequestIp, reportRateLimit } from "@/utils/rate-limit";
 
 let tablesReady = false;
 const MCP_STREAMABLE_HTTP_ACCEPT = "application/json, text/event-stream";
@@ -257,9 +260,19 @@ export default async function handler(
 
   const ip = getRequestIp(req);
 
-  if (!checkOnboardRateLimit(ip)) {
+  // Enforce the 10/hour onboarding cap AND advertise it: without these
+  // headers the response would carry no accurate budget at all.
+  const onboardRate = checkOnboardRateLimit(ip);
+  reportRateLimit(res, "mcp-onboard:ip", onboardRate, ONBOARD_RATE_LIMIT);
+  if (!onboardRate.ok) {
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((onboardRate.resetAt - Date.now()) / 1000)
+    );
+    res.setHeader("Retry-After", retryAfterSeconds);
     return res.status(429).json({
       error: "Rate limit exceeded. Maximum 10 onboarding requests per hour.",
+      retryAfterSeconds,
     });
   }
 

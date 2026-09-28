@@ -114,19 +114,47 @@ export function getMetrics() {
   };
 }
 
-export function checkOnboardRateLimit(ip: string): boolean {
+// Onboarding is capped well below the documented /api/mcp agent budget, so
+// the route must advertise THIS bucket's numbers — inheriting the proxy's
+// 600/60s advisory would mislead agents scheduling around the headers.
+export const ONBOARD_RATE_LIMIT = { limit: 10, windowMs: ONE_HOUR_MS };
+
+export type OnboardRateLimitResult = {
+  ok: boolean;
+  limit: number;
+  remaining: number;
+  resetAt: number;
+};
+
+export function checkOnboardRateLimit(ip: string): OnboardRateLimitResult {
   const now = Date.now();
   const entry = onboardRateLimits.get(ip);
 
   if (!entry || now > entry.resetAt) {
-    onboardRateLimits.set(ip, { count: 1, resetAt: now + ONE_HOUR_MS });
-    return true;
+    const resetAt = now + ONE_HOUR_MS;
+    onboardRateLimits.set(ip, { count: 1, resetAt });
+    return {
+      ok: true,
+      limit: ONBOARD_RATE_LIMIT.limit,
+      remaining: ONBOARD_RATE_LIMIT.limit - 1,
+      resetAt,
+    };
   }
 
-  if (entry.count >= 10) {
-    return false;
+  if (entry.count >= ONBOARD_RATE_LIMIT.limit) {
+    return {
+      ok: false,
+      limit: ONBOARD_RATE_LIMIT.limit,
+      remaining: 0,
+      resetAt: entry.resetAt,
+    };
   }
 
   entry.count++;
-  return true;
+  return {
+    ok: true,
+    limit: ONBOARD_RATE_LIMIT.limit,
+    remaining: ONBOARD_RATE_LIMIT.limit - entry.count,
+    resetAt: entry.resetAt,
+  };
 }

@@ -257,19 +257,26 @@ const RL_SKIP_HEADER = "x-ss-rl-skip";
 
 // Advisory RateLimit headers for agents/scanners. Real per-IP enforcement lives
 // in the API handlers (utils/rate-limit.ts); these inform automated clients of
-// the documented budget (agents.txt: 600 req/min per IP on /api/mcp) on
-// machine-facing API/well-known responses that lack their own limiter.
+// the documented budget (agents.txt: 600 req/min per IP on /api/mcp).
 //
-// Page traffic gets NO numeric advisory — gated on the route actually taken,
-// not on Accept/User-Agent: an LLM crawler whose path has no agent-view
-// rewrite (e.g. /listing/<product>) still falls through to the HTML page, and
-// no limiter enforces the documented budget there. Stamping a constant
-// "600 of 600 remaining" on such responses would be fiction. Agent-negotiated
+// The stamp is scoped to exactly the endpoints that enforce that budget:
+// /api/mcp and /api/mcp/status both gate on a real 600/60s per-IP limiter
+// (applyRateLimit). The /api/mcp/* sibling routes enforce their own, tighter
+// budgets (e.g. onboard 10/hour, api-keys 30/min, create-order 60/min,
+// verify-payment 120/min, set-nsec 10/hour) and stamp their own accurate
+// headers. Any other API or /.well-known route either carries its own
+// accurate headers (via applyRateLimit/checkRateLimit, which this wrapper
+// never overwrites) or has no such limiter — stamping a constant
+// "600 of 600 remaining" on those responses would advertise a budget nothing
+// grants or tracks, so they get NO numeric advisory.
+//
+// Page traffic gets no advisory for the same reason — gated on the route
+// actually taken, not on Accept/User-Agent: an LLM crawler whose path has no
+// agent-view rewrite (e.g. /listing/<product>) still falls through to the HTML
+// page, and no limiter enforces the documented budget there. Agent-negotiated
 // page formats never reach this stamp either: every agent-view/stall-agent-view
 // rewrite above sets RL_SKIP_HEADER because those API routes enforce their own
-// per-agent budget. Routes with a real limiter carry their own accurate
-// headers (via applyRateLimit/checkRateLimit), which this wrapper never
-// overwrites.
+// per-agent budget.
 function withAdvisoryRateLimitHeaders(
   request: NextRequest,
   res: NextResponse
@@ -281,9 +288,9 @@ function withAdvisoryRateLimitHeaders(
   if (res.headers.has("RateLimit-Limit")) return res;
 
   const { pathname } = request.nextUrl;
-  const machineFacing =
-    pathname.startsWith("/api/") || pathname.startsWith("/.well-known/");
-  if (!machineFacing) return res;
+  const enforcesDocumentedBudget =
+    pathname === "/api/mcp" || pathname === "/api/mcp/status";
+  if (!enforcesDocumentedBudget) return res;
 
   res.headers.set("RateLimit-Limit", "600");
   res.headers.set("RateLimit-Remaining", "600");
@@ -757,10 +764,14 @@ async function routeRequest(request: NextRequest) {
         pathname.startsWith(p)
       );
       if (!allowed) {
-        return NextResponse.json(
+        // Proxy-generated rejection — no limiter ran, so it must not inherit
+        // the advisory budget stamp (notably /api/mcp, which is platform-only).
+        const res = NextResponse.json(
           { error: "Not available on this domain" },
           { status: 403 }
         );
+        res.headers.set(RL_SKIP_HEADER, "1");
+        return res;
       }
       return NextResponse.next({ request: { headers: buildHeaders() } });
     }
