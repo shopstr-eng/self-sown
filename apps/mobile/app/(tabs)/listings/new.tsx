@@ -114,8 +114,8 @@ export default function NewListingScreen() {
           setDraft(nextDraft);
           setErrors({});
         }}
-        onSubmit={handleSave}
-        onPickImages={handlePickImages}
+        onSubmit={() => void handleSave()}
+        onPickImages={() => void handlePickImages()}
       />
     </ScreenScrollView>
   );

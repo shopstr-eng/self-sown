@@ -112,7 +112,7 @@ export default function EmailAuthScreen() {
               ? "Continue to seller workspace"
               : "Create seller account"
           }
-          onPress={handleSubmit}
+          onPress={() => void handleSubmit()}
           loading={submitting}
           disabled={!email.trim() || !password.trim()}
         />

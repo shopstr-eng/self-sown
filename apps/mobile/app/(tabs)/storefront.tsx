@@ -125,8 +125,8 @@ export default function StorefrontScreen() {
           <Text style={styles.errorText}>{storefrontLoadErrorMessage}</Text>
           <ActionButton
             label="Retry storefront load"
-            onPress={async () => {
-              await Promise.allSettled([
+            onPress={() => {
+              void Promise.allSettled([
                 profileQuery.refetch(),
                 notificationEmailQuery.refetch(),
               ]);
@@ -417,7 +417,7 @@ export default function StorefrontScreen() {
         ) : null}
         <ActionButton
           label="Save stall basics"
-          onPress={handleSave}
+          onPress={() => void handleSave()}
           loading={saving}
           disabled={
             profileQuery.isFetching || notificationEmailQuery.isFetching
