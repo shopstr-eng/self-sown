@@ -129,20 +129,24 @@ beforeEach(() => {
 });
 
 describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
-  it("403s when the stall has not opted in to the buyer assistant", async () => {
-    fetchShopProfileMock.mockResolvedValue(shopEventWith({}));
+  it("403s when the stall has opted OUT of the buyer assistant", async () => {
+    fetchShopProfileMock.mockResolvedValue(
+      shopEventWith({ assistantVisibility: { buyers: false } })
+    );
     const res = createMockRes();
     await chatHandler(createBuyerReq(), res);
     expect(res.statusCode).toBe(403);
     expect(runBuyerAssistantMock).not.toHaveBeenCalled();
   });
 
-  it("403s when the stall has no shop profile event at all", async () => {
+  it("serves the buyer assistant even before the shop profile is cached (on by default)", async () => {
     fetchShopProfileMock.mockResolvedValue(null);
     const res = createMockRes();
     await chatHandler(createBuyerReq(), res);
-    expect(res.statusCode).toBe(403);
-    expect(runBuyerAssistantMock).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(200);
+    expect(runBuyerAssistantMock).toHaveBeenCalledWith(
+      expect.objectContaining({ shopName: null, stallPubkey: STALL_PUBKEY })
+    );
   });
 
   it("stops when the buyer rate limiter fires", async () => {
@@ -198,6 +202,59 @@ describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
     expect(runBuyerAssistantMock).toHaveBeenCalled();
   });
 
+  it("marketplace mode: serves GUESTS with no stall (main-site shopping assistant)", async () => {
+    const res = createMockRes();
+    await chatHandler(
+      createBuyerReq({
+        body: {
+          messages: [{ role: "user", content: "What can I buy?" }],
+          context: { marketplace: true },
+        },
+      }),
+      res
+    );
+    expect(res.statusCode).toBe(200);
+    expect(res.body).toMatchObject({ audience: "buyer" });
+    // No shop to check: no profile lookup, anonymous session, no grounding.
+    expect(fetchShopProfileMock).not.toHaveBeenCalled();
+    expect(mcpConstructorMock).toHaveBeenCalledWith();
+    expect(runBuyerAssistantMock).toHaveBeenCalledWith(
+      expect.objectContaining({ shopName: null, stallPubkey: null })
+    );
+  });
+
+  it("marketplace mode: a signed-in account also gets the buyer assistant (not Pro-gated)", async () => {
+    verifyNip98RequestMock.mockResolvedValue({
+      ok: true,
+      pubkey: "d".repeat(64),
+    });
+    const res = createMockRes();
+    await chatHandler(
+      createBuyerReq({
+        body: {
+          messages: [{ role: "user", content: "hi" }],
+          context: { marketplace: true },
+        },
+      }),
+      res
+    );
+    expect(res.statusCode).toBe(200);
+    expect((res.body as { audience?: string }).audience).toBe("buyer");
+    expect(runBuyerAssistantMock).toHaveBeenCalled();
+  });
+
+  it("a request with neither stall nor marketplace context still requires NIP-98", async () => {
+    const res = createMockRes();
+    await chatHandler(
+      createBuyerReq({
+        body: { messages: [{ role: "user", content: "hi" }] },
+      }),
+      res
+    );
+    expect(res.statusCode).toBe(401);
+    expect(runBuyerAssistantMock).not.toHaveBeenCalled();
+  });
+
   it("routes the stall owner's own signed request to the SELLER flow", async () => {
     verifyNip98RequestMock.mockResolvedValue({
       ok: true,
@@ -211,7 +268,7 @@ describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
     expect(res.statusCode).not.toBe(403);
   });
 
-  it("ignores a malformed stall context and requires NIP-98 (marketplace behavior unchanged)", async () => {
+  it("ignores a malformed stall context and requires NIP-98 (no marketplace flag)", async () => {
     const res = createMockRes();
     await chatHandler(
       createBuyerReq({
@@ -228,19 +285,27 @@ describe("POST /api/assistant/chat — buyer/guest storefront mode", () => {
 });
 
 describe("readAssistantVisibility", () => {
-  it("defaults to buyers off / seller on", () => {
+  it("defaults to the assistant ON for everyone (buyers and seller)", () => {
     expect(readAssistantVisibility(null)).toEqual({
-      buyers: false,
+      buyers: true,
       seller: true,
     });
     expect(readAssistantVisibility({})).toEqual({
-      buyers: false,
+      buyers: true,
       seller: true,
     });
     expect(readAssistantVisibility({ storefront: {} })).toEqual({
-      buyers: false,
+      buyers: true,
       seller: true,
     });
+  });
+
+  it("honors an explicit buyer opt-out", () => {
+    expect(
+      readAssistantVisibility({
+        storefront: { assistantVisibility: { buyers: false } },
+      })
+    ).toEqual({ buyers: false, seller: true });
   });
 
   it("reads explicit toggle values", () => {
@@ -251,12 +316,12 @@ describe("readAssistantVisibility", () => {
     ).toEqual({ buyers: true, seller: false });
   });
 
-  it("ignores non-boolean garbage", () => {
+  it("treats non-boolean garbage as unset (defaults stay on)", () => {
     expect(
       readAssistantVisibility({
         storefront: { assistantVisibility: { buyers: "yes", seller: 0 } },
       })
-    ).toEqual({ buyers: false, seller: true });
+    ).toEqual({ buyers: true, seller: true });
   });
 });
 
@@ -272,14 +337,14 @@ describe("parseAssistantVisibilityFromContent", () => {
     ).toEqual({ buyers: true, seller: true, shopName: "Sunrise Farm" });
   });
 
-  it("fails closed on malformed JSON", () => {
+  it("defaults to on for malformed JSON (the assistant is opt-out)", () => {
     expect(parseAssistantVisibilityFromContent("{oops")).toEqual({
-      buyers: false,
+      buyers: true,
       seller: true,
       shopName: null,
     });
     expect(parseAssistantVisibilityFromContent(null)).toEqual({
-      buyers: false,
+      buyers: true,
       seller: true,
       shopName: null,
     });

@@ -48,6 +48,16 @@ function parseStallPubkey(body: unknown): string | null {
   return stallPubkey;
 }
 
+// Explicit marketplace context: present when the shopping assistant runs on
+// the main site (no stall). Guests and signed-in accounts alike get the
+// marketplace-wide buyer assistant — public catalog tools only, not Pro-gated.
+function isMarketplaceContext(body: unknown): boolean {
+  return (
+    (body as { context?: { marketplace?: unknown } })?.context?.marketplace ===
+    true
+  );
+}
+
 // Buyer/guest storefront chat: no NIP-98, no account — an anonymous MCP
 // session (public catalog tools only) behind the stall's opt-in toggle.
 // Unlike the seller assistant this is NOT Pro-gated: the buyer surface only
@@ -55,20 +65,24 @@ function parseStallPubkey(body: unknown): string | null {
 async function handleBuyerChat(
   req: NextApiRequest,
   res: NextApiResponse,
-  stallPubkey: string
+  stallPubkey: string | null
 ) {
   if (!(await applyRateLimit(req, res, "assistant-chat:buyer", BUYER_LIMIT))) {
     return;
   }
 
-  const shopEvent = await fetchShopProfileByPubkeyFromDb(stallPubkey);
-  const { buyers, shopName } = parseAssistantVisibilityFromContent(
-    shopEvent?.content
-  );
-  if (!buyers) {
-    return res
-      .status(403)
-      .json({ error: "The assistant is not available on this shop." });
+  // Marketplace mode (no stall) has no shop to check: the shopping assistant
+  // is always on there. Stall mode honors the stall's own opt-out toggle.
+  let shopName: string | null = null;
+  if (stallPubkey) {
+    const shopEvent = await fetchShopProfileByPubkeyFromDb(stallPubkey);
+    const visibility = parseAssistantVisibilityFromContent(shopEvent?.content);
+    if (!visibility.buyers) {
+      return res
+        .status(403)
+        .json({ error: "The assistant is not available on this shop." });
+    }
+    shopName = visibility.shopName;
   }
 
   const messages = parseMessages(req.body);
@@ -174,6 +188,13 @@ export default async function handler(
     return;
   }
 
+  // On the main site, EVERY visitor — guests and signed-in accounts alike —
+  // gets the marketplace-wide shopping assistant (it is not Pro-gated).
+  if (!stallPubkey && isMarketplaceContext(req.body)) {
+    await handleBuyerChat(req, res, null);
+    return;
+  }
+
   // Bearer failures carry their own status (e.g. 503 when the revocation
   // stamp can't be read — fail closed, but distinguishable from a bad token).
   if (!auth.ok) {
@@ -186,10 +207,7 @@ export default async function handler(
   // request must not be replayable into duplicate writes. Bearer tokens are
   // multi-use by design (that's their purpose), but they expire on their own
   // and the per-seller rate limit + Pro gate below still apply.
-  if (
-    !isBearer &&
-    !claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))
-  ) {
+  if (!isBearer && !claimAuthEventOnce(auth.pubkey, extractNip98EventId(req))) {
     return res
       .status(401)
       .json({ error: "This signed request was already used" });
