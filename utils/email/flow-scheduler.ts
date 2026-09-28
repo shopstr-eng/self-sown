@@ -93,29 +93,32 @@ export function startFlowScheduler() {
   // hourly pull keeps dead addresses out of future broadcasts promptly.
   const SUPPRESSION_SYNC_INTERVAL = 60 * 60 * 1000;
 
-  setTimeout(() => processEmails(), 30 * 1000);
-  setInterval(() => processEmails(), PROCESS_INTERVAL);
+  // Every task below is fire-and-forget: they all delegate to callEndpoint,
+  // which try/catches and logs its own failures, so the timers intentionally
+  // discard the promise (`void`) and let the next tick retry.
+  setTimeout(() => void processEmails(), 30 * 1000);
+  setInterval(() => void processEmails(), PROCESS_INTERVAL);
 
-  setTimeout(() => processAbandonedCarts(), 60 * 1000);
-  setInterval(() => processAbandonedCarts(), ABANDONED_CART_INTERVAL);
+  setTimeout(() => void processAbandonedCarts(), 60 * 1000);
+  setInterval(() => void processAbandonedCarts(), ABANDONED_CART_INTERVAL);
 
-  setTimeout(() => processWinback(), 2 * 60 * 1000);
-  setInterval(() => processWinback(), WINBACK_INTERVAL);
+  setTimeout(() => void processWinback(), 2 * 60 * 1000);
+  setInterval(() => void processWinback(), WINBACK_INTERVAL);
 
-  setTimeout(() => processProLifecycle(), 3 * 60 * 1000);
-  setInterval(() => processProLifecycle(), PRO_LIFECYCLE_INTERVAL);
+  setTimeout(() => void processProLifecycle(), 3 * 60 * 1000);
+  setInterval(() => void processProLifecycle(), PRO_LIFECYCLE_INTERVAL);
 
-  setTimeout(() => processScheduledBlogPosts(), 90 * 1000);
-  setInterval(() => processScheduledBlogPosts(), SCHEDULED_BLOG_INTERVAL);
+  setTimeout(() => void processScheduledBlogPosts(), 90 * 1000);
+  setInterval(() => void processScheduledBlogPosts(), SCHEDULED_BLOG_INTERVAL);
 
   // Escrow payouts are time-sensitive (buyers wait on releases/refunds), so
   // sweep promptly. The endpoint is a no-op unless escrow is enabled.
-  setTimeout(() => processEscrowPayouts(), 45 * 1000);
-  setInterval(() => processEscrowPayouts(), ESCROW_PAYOUT_INTERVAL);
+  setTimeout(() => void processEscrowPayouts(), 45 * 1000);
+  setInterval(() => void processEscrowPayouts(), ESCROW_PAYOUT_INTERVAL);
 
   // Suppression sync is best-effort: SendGrid/DB failures are logged by the
   // endpoint and retried on the next tick (watermark only advances on a fully
   // recorded run).
-  setTimeout(() => syncEmailSuppressions(), 5 * 60 * 1000);
-  setInterval(() => syncEmailSuppressions(), SUPPRESSION_SYNC_INTERVAL);
+  setTimeout(() => void syncEmailSuppressions(), 5 * 60 * 1000);
+  setInterval(() => void syncEmailSuppressions(), SUPPRESSION_SYNC_INTERVAL);
 }

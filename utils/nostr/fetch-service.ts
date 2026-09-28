@@ -44,6 +44,7 @@ import { latestContactList } from "@/utils/nostr/contact-list";
 import { fetchNip58ProfileBadges } from "@/utils/nostr/badges";
 import type { Nip58ProfileBadge } from "@/utils/types/types";
 import { isHexPubkey } from "@/utils/nostr/pubkey";
+import { promiseFromAsync } from "@/utils/promise-from-async";
 
 interface NipProfile {
   pubkey: string;
@@ -88,7 +89,7 @@ export const fetchAllPosts = async (
   productEvents: NostrEvent[];
   profileSetFromProducts: Set<string>;
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const BATCH_SIZE = 500;
       const profileSetFromProducts: Set<string> = new Set();
@@ -236,7 +237,7 @@ export const fetchReports = async (
 ): Promise<{
   reportEvents: NostrEvent[];
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const productIds = new Set(products.map((product) => product.id));
       const sellerPubkeys = new Set(
@@ -348,7 +349,7 @@ export const fetchCart = async (
 ): Promise<{
   cartList: ProductData[];
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       if (!signer) {
         resolve({
@@ -449,7 +450,7 @@ export const fetchShopProfile = async (
 ): Promise<{
   shopProfileMap: Map<string, ShopProfile>;
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const shopEvents: NostrEvent[] = [];
 
@@ -622,7 +623,7 @@ export const fetchProfile = async (
   profileMap: Map<string, NipProfile | null>;
 }> => {
   const hydrationGeneration = ++profileHydrationGeneration;
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       if (!pubkeyProfilesToFetch.length) {
         const preservedProfileMap = new Map(existingProfileMap);
@@ -814,7 +815,7 @@ export const fetchGiftWrappedChatsAndMessages = async (
 ): Promise<{
   profileSetFromChats: Set<string>;
 }> => {
-  return new Promise(async function (resolve, _reject) {
+  return promiseFromAsync(async function (resolve, _reject) {
     // if no userPubkey, user is not signed in
     if (!userPubkey) {
       editChatContext(new Map(), false);
@@ -1075,7 +1076,7 @@ export const fetchReviews = async (
   merchantScoresMap: Map<string, number[]>;
   productReviewsMap: Map<string, Map<string, Map<string, string[][]>>>;
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const addresses = products
         .map((product) => {
@@ -1520,7 +1521,7 @@ export const fetchAllRelays = async (
   readRelayList: string[];
   writeRelayList: string[];
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const relayList: string[] = [];
       const relaySet: Set<string> = new Set();
@@ -1663,7 +1664,7 @@ export const fetchAllBlossomServers = async (
 ): Promise<{
   blossomServers: string[];
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     try {
       const blossomServers: string[] = [];
       const blossomSet: Set<string> = new Set();
@@ -1766,7 +1767,7 @@ export const fetchCashuWallet = async (
   cashuMints: string[];
   cashuProofs: Proof[];
 }> => {
-  return new Promise(async function (resolve, reject) {
+  return promiseFromAsync(async function (resolve, reject) {
     const { tokens } = getLocalStorageData();
     const userPubkey = await signer?.getPubKey?.();
     if (!userPubkey) {
@@ -2344,7 +2345,7 @@ export const fetchAllCommunities = async (
     isLoading: boolean
   ) => void
 ): Promise<Map<string, Community>> => {
-  return new Promise(async (resolve, reject) => {
+  return promiseFromAsync(async (resolve, reject) => {
     try {
       const dbCommunityMap = new Map<string, Community>();
       try {
@@ -2460,7 +2461,7 @@ export const fetchCommunityPosts = async (
   limit: number = 20,
   onCachedPosts?: (posts: NostrEvent[]) => void
 ): Promise<NostrEvent[]> => {
-  return new Promise(async (resolve, _reject) => {
+  return promiseFromAsync(async (resolve, _reject) => {
     if (!community) {
       resolve([]);
       return;
@@ -2617,7 +2618,7 @@ export const fetchPendingPosts = async (
   community: Community,
   limit: number = 20
 ): Promise<NostrEvent[]> => {
-  return new Promise(async (resolve, reject) => {
+  return promiseFromAsync(async (resolve, reject) => {
     try {
       const { relays: userRelays } = getLocalStorageData();
       const communityAddress = `${community.kind}:${community.pubkey}:${community.d}`;
