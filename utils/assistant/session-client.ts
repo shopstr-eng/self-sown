@@ -11,7 +11,7 @@
  */
 import type { NostrSigner } from "@/utils/nostr/signers/nostr-signer";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
-import type { AssistantSessionScope } from "@/utils/assistant/session-token";
+import type { AssistantSessionScope } from "@/utils/assistant/session-scopes";
 
 export type ScopedSessionToken = { token: string; expiresAt: number };
 

@@ -8,6 +8,7 @@ import { SignerContext } from "@/components/utility-components/nostr-context-pro
 import AssistantChat from "@/components/assistant/assistant-chat";
 import { createNip98AuthorizationHeader } from "@/utils/nostr/nip98-auth";
 import { mintScopedSessionToken } from "@/utils/assistant/session-client";
+import { SESSION_SCOPES } from "@/utils/assistant/session-scopes";
 import { PRIMARYBUTTONCLASSNAMES } from "@/utils/STATIC-VARIABLES";
 
 const AssistantSettingsPage = () => {
@@ -31,7 +32,10 @@ const AssistantSettingsPage = () => {
       return cached.token;
     }
     if (!signer) return null;
-    const minted = await mintScopedSessionToken(signer, "assistant-setup");
+    const minted = await mintScopedSessionToken(
+      signer,
+      SESSION_SCOPES.assistantSetup
+    );
     sessionRef.current = minted;
     return minted?.token ?? null;
   };

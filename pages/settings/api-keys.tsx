@@ -24,6 +24,7 @@ import {
   mintScopedSessionToken,
   revokeAssistantSessionTokens,
 } from "@/utils/assistant/session-client";
+import { SESSION_SCOPES } from "@/utils/assistant/session-scopes";
 import {
   ClipboardDocumentIcon,
   KeyIcon,
@@ -83,7 +84,7 @@ const ApiKeysPage = () => {
       return cached.token;
     }
     if (!signer) return null;
-    const minted = await mintScopedSessionToken(signer, "mcp-keys");
+    const minted = await mintScopedSessionToken(signer, SESSION_SCOPES.mcpKeys);
     sessionRef.current = minted;
     return minted?.token ?? null;
   }, [signer]);
