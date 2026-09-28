@@ -207,8 +207,26 @@ function checkRateLimitInMemory(
  * unavailable (DATABASE_URL unset in unit tests, or a transient DB error) this
  * transparently falls back to a per-process in-memory counter so the limiter
  * degrades gracefully and never blocks a request because the store is down.
+ *
+ * Pass `res` to also stamp the response with this bucket's real RateLimit-*
+ * headers and RateLimit-Policy. The proxy stamps a generic advisory policy
+ * (q=600;w=60) on every response; a route that enforces a different budget
+ * must overwrite it or agents scheduling around the header are misled.
  */
 export async function checkRateLimit(
+  bucketName: string,
+  key: string,
+  options: RateLimitOptions,
+  res?: NextApiResponse
+): Promise<RateLimitResult> {
+  const rate = await consumeRateLimitUnit(bucketName, key, options);
+  if (res) {
+    reportRateLimit(res, bucketName, rate, options);
+  }
+  return rate;
+}
+
+async function consumeRateLimitUnit(
   bucketName: string,
   key: string,
   options: RateLimitOptions
@@ -307,6 +325,36 @@ export function setRateLimitHeaders(
   res.setHeader("X-RateLimit-Reset", String(Math.floor(rate.resetAt / 1000)));
 }
 
+// The proxy stamps a generic advisory RateLimit-Policy (q=600;w=60) on
+// responses; overwrite it with the policy the handler actually enforces so
+// agents scheduling around the header aren't misled. The numeric RateLimit-*
+// headers override the advisory ones the same way.
+function setRateLimitPolicyHeader(
+  res: NextApiResponse,
+  bucketName: string,
+  options: RateLimitOptions
+): void {
+  res.setHeader(
+    "RateLimit-Policy",
+    `"${bucketName}";q=${options.limit};w=${Math.round(options.windowMs / 1000)}`
+  );
+}
+
+// Stamp a response with the full header set describing the budget a
+// checkRateLimit call just consumed from: numeric RateLimit-*/X-RateLimit-*
+// plus the RateLimit-Policy override. Exported for routes that check a second,
+// non-caller-scoped bucket (e.g. a global spend cap) and must only advertise
+// it when that bucket is the one rejecting the request.
+export function reportRateLimit(
+  res: NextApiResponse,
+  bucketName: string,
+  rate: RateLimitResult,
+  options: RateLimitOptions
+): void {
+  setRateLimitHeaders(res, rate);
+  setRateLimitPolicyHeader(res, bucketName, options);
+}
+
 export async function applyRateLimit(
   req: NextApiRequest,
   res: NextApiResponse,
@@ -317,16 +365,8 @@ export async function applyRateLimit(
   const rate = await checkRateLimit(
     bucketName,
     key ?? getRequestIp(req),
-    options
-  );
-  setRateLimitHeaders(res, rate);
-  // The proxy stamps a generic advisory RateLimit-Policy (q=600;w=60) on
-  // responses; overwrite it with the policy this handler actually enforces so
-  // agents scheduling around the header aren't misled. The numeric RateLimit-*
-  // headers above already override the advisory ones the same way.
-  res.setHeader(
-    "RateLimit-Policy",
-    `"${bucketName}";q=${options.limit};w=${Math.round(options.windowMs / 1000)}`
+    options,
+    res
   );
   if (!rate.ok) {
     res.setHeader(

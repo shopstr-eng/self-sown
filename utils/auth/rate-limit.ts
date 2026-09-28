@@ -24,6 +24,30 @@ export interface RateLimitConfig {
 export function rateLimit(config: RateLimitConfig) {
   const { name, windowMs, maxRequests, keyFn } = config;
 
+  // The proxy stamps a generic advisory RateLimit-Policy (q=600;w=60) on every
+  // response; overwrite it with the budget this limiter actually enforces on
+  // both allowed and rejected requests, or agents scheduling around the header
+  // are misled.
+  const report = (
+    res: NextApiResponse,
+    remaining: number,
+    resetAt: number
+  ): void => {
+    res.setHeader(
+      "RateLimit-Policy",
+      `"${name}";q=${maxRequests};w=${Math.round(windowMs / 1000)}`
+    );
+    res.setHeader("RateLimit-Limit", String(maxRequests));
+    res.setHeader("RateLimit-Remaining", String(Math.max(0, remaining)));
+    res.setHeader(
+      "RateLimit-Reset",
+      String(Math.max(0, Math.ceil((resetAt - Date.now()) / 1000)))
+    );
+    res.setHeader("X-RateLimit-Limit", String(maxRequests));
+    res.setHeader("X-RateLimit-Remaining", String(Math.max(0, remaining)));
+    res.setHeader("X-RateLimit-Reset", String(Math.floor(resetAt / 1000)));
+  };
+
   return async function check(
     req: NextApiRequest,
     res: NextApiResponse
@@ -44,12 +68,15 @@ export function rateLimit(config: RateLimitConfig) {
     const entry = store.get(identifier);
 
     if (!entry || entry.resetAt < now) {
-      store.set(identifier, { count: 1, resetAt: now + windowMs });
+      const resetAt = now + windowMs;
+      store.set(identifier, { count: 1, resetAt });
+      report(res, maxRequests - 1, resetAt);
       return true;
     }
 
     if (entry.count >= maxRequests) {
       const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+      report(res, 0, entry.resetAt);
       res.setHeader("Retry-After", retryAfter.toString());
       res.status(429).json({
         error: "Too many requests. Please try again later.",
@@ -59,6 +86,7 @@ export function rateLimit(config: RateLimitConfig) {
     }
 
     entry.count++;
+    report(res, maxRequests - entry.count, entry.resetAt);
     return true;
   };
 }

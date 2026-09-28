@@ -28,7 +28,8 @@ export default async function handler(
   const ipRate = await checkRateLimit(
     "publish-order-event:ip",
     getRequestIp(req),
-    PER_IP_LIMIT
+    PER_IP_LIMIT,
+    res
   );
   if (!ipRate.ok) {
     res.setHeader(
