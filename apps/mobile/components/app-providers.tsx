@@ -50,14 +50,18 @@ function PrivateSellerOrderCacheBoundary({ children }: PropsWithChildren) {
   useEffect(() => {
     const previous = previousPubkey.current;
     if (typeof previous === "string" && previous !== pubkey) {
-      void clearPrivateSellerOrderQueries(queryClient, previous);
+      clearPrivateSellerOrderQueries(queryClient, previous).catch((error) => {
+        console.error("Failed to clear private seller order cache:", error);
+      });
     }
     previousPubkey.current = pubkey;
   }, [pubkey]);
 
   useEffect(() => {
     if (!session) return;
-    void retryPendingMobileSellerOrderNotifications(session);
+    retryPendingMobileSellerOrderNotifications(session).catch((error) => {
+      console.error("Failed to retry pending order notifications:", error);
+    });
   }, [session]);
 
   return children;
