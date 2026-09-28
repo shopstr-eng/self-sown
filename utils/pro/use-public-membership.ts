@@ -183,7 +183,9 @@ export function usePublicMembershipStatus(
     if (lkg) {
       setResolved({ pubkey, view: lkg });
     }
-    fetchStatus(pubkey).then((v) => {
+    // Fire-and-forget background refresh: fetchStatus resolves a fallback
+    // view on terminal transient failure rather than rejecting.
+    void fetchStatus(pubkey).then((v) => {
       if (active) {
         setResolved({ pubkey, view: v });
       }

@@ -124,7 +124,8 @@ export class NostrManager {
       console.error(e);
     }
     this.gcTimeout = setTimeout(() => {
-      this.gc();
+      // Fire-and-forget: gc reschedules itself and swallows its own errors.
+      void this.gc();
     }, this.params.keepAliveTime);
   }
 
@@ -391,9 +392,11 @@ export class NostrManager {
     clearTimeout(this.gcTimeout);
     for (const relay of this.relays) {
       for (const sub of [...relay.activeSubs]) {
-        sub.close();
+        // Fire-and-forget: close() is synchronous teardown; callers can't
+        // await per-sub/per-relay shutdown.
+        void sub.close();
       }
-      relay.disconnect();
+      void relay.disconnect();
     }
     this.relays.length = 0;
   }

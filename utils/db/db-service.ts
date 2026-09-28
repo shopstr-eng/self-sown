@@ -454,9 +454,12 @@ export function getDbPool(): Pool {
       console.error("Unexpected error on idle database client", err);
     });
 
-    // Auto-create tables on first connection (only once)
+    // Auto-create tables on first connection (only once). Intentionally
+    // fire-and-forget: getDbPool() callers only want the pool; the single-
+    // flight promise attaches its own rejection handlers, and callers that
+    // need the schema ready await it via ensureTablesInitialized().
     if (!tablesInitialized && !tablesInitializationPromise) {
-      startTablesInitialization();
+      void startTablesInitialization();
     }
   }
   return pool;

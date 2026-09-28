@@ -38,10 +38,10 @@ describe("newPromiseWithTimeout", () => {
     await expect(promise).rejects.toThrow("Custom rejection");
   });
 
-  it("should clear the timeout when the promise resolves", () => {
+  it("should clear the timeout when the promise resolves", async () => {
     const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 
-    newPromiseWithTimeout<void>((resolve) => {
+    await newPromiseWithTimeout<void>((resolve) => {
       resolve();
     });
 

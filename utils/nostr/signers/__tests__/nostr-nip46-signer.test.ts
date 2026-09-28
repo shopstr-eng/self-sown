@@ -220,7 +220,9 @@ describe("NostrNIP46Signer", () => {
         { bunker: validBunkerUrl },
         mockChallengeHandler
       );
-      signer.connect();
+      // Fire-and-forget: the test drives the auth flow by feeding events
+      // manually and never resolves the connect RPC, so awaiting would hang.
+      void signer.connect();
 
       const authEvent = {
         pubkey: mockBunkerPubKey,
@@ -350,7 +352,8 @@ describe("NostrNIP46Signer", () => {
       { bunker: validBunkerUrl },
       mockChallengeHandler
     );
-    signer.close();
+    // Fire-and-forget: close() is synchronous teardown under the hood.
+    void signer.close();
     expect(mockNostrManagerInstance.close).toHaveBeenCalledTimes(1);
   });
 });

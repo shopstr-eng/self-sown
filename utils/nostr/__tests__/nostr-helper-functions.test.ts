@@ -141,10 +141,10 @@ describe("local storage sign-in helpers", () => {
     jest.restoreAllMocks();
   });
 
-  it("stores safe defaults for empty relay, mint, and blossom inputs", () => {
+  it("stores safe defaults for empty relay, mint, and blossom inputs", async () => {
     const dispatchSpy = jest.spyOn(window, "dispatchEvent");
 
-    setLocalStorageDataOnSignIn({
+    await setLocalStorageDataOnSignIn({
       relays: [],
       mints: [],
       blossomServers: [],
