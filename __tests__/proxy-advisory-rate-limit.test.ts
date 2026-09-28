@@ -25,7 +25,6 @@ function loadProxy(): typeof import("@/proxy").proxy {
   process.env.NEXT_PUBLIC_BASE_URL = "https://self-sown.com";
   let proxyFn: typeof import("@/proxy").proxy | undefined;
   jest.isolateModules(() => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     proxyFn = require("@/proxy").proxy;
   });
   return proxyFn!;
@@ -301,6 +300,27 @@ const ADVISORY_EXEMPT_BRANCHES = [
   // no limiter state exists to under- or over-report.
   "response:Self-host mode is enabled (SS_SELF_HOST) but SS_SELF_HOST_SLUG is ",
 ].sort();
+
+describe("up-front rejections vs the advisory stamp", () => {
+  // The documented convention (openapi x-rate-limit-policy): requests rejected
+  // before a limiter runs MAY omit numeric headers — and the behavior differs
+  // by path, so pin both sides.
+  it("STILL stamps the advisory budget on an up-front API-Version 400 for /api/mcp", async () => {
+    const proxy = loadProxy();
+    const res = await proxy(buildRequest("/api/mcp", { "api-version": "99" }));
+    expect(res.status).toBe(400);
+    expect(res.headers.get("RateLimit-Limit")).toBe("600");
+  });
+
+  it("stamps NO numeric headers on an up-front API-Version 400 for other routes", async () => {
+    const proxy = loadProxy();
+    const res = await proxy(
+      buildRequest("/api/ucp/catalog/search", { "api-version": "99" })
+    );
+    expect(res.status).toBe(400);
+    expect(res.headers.get("RateLimit-Limit")).toBeNull();
+  });
+});
 
 describe("machine-facing branch guard (proxy.ts structure)", () => {
   const PROXY_SRC = fs.readFileSync(

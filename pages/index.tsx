@@ -130,9 +130,11 @@ function YouTubeCarousel() {
               </div>
             </div>
             <div className="p-4">
-              <h3 className="mb-2 line-clamp-2 font-bold text-black">
+              {/* Card label, not a document heading: these render ahead of the
+                  hero H1 in DOM order, so a real h3 would skip a level. */}
+              <p className="mb-2 line-clamp-2 font-bold text-black">
                 {video.title}
-              </h3>
+              </p>
               <p className="line-clamp-2 text-sm text-zinc-600">
                 {video.description}
               </p>
@@ -186,7 +188,9 @@ function YourStallSlide() {
       <span className="shadow-neo bg-primary-yellow inline-block rounded-full border-2 border-black px-3 py-1 text-[10px] font-bold tracking-wide uppercase md:text-xs">
         Your turn
       </span>
-      <h3 className="text-xl font-black md:text-4xl">Your farm. Your stall.</h3>
+      {/* Slide content, not a document heading: the showcase carousel renders
+          before the hero H1, so this must not be an h3 (heading-level skip). */}
+      <p className="text-xl font-black md:text-4xl">Your farm. Your stall.</p>
       <p className="max-w-md text-xs text-zinc-600 md:text-base">
         Picture your own shop right here, with your products, your prices, and
         your branding. Open one in minutes.
@@ -635,9 +639,9 @@ export default function StandaloneLanding() {
           <div className="grid gap-6 md:grid-cols-2">
             {/* Sell funnel */}
             <div className="shadow-neo flex flex-col rounded-lg border-2 border-black bg-white p-6 sm:p-8">
-              <h3 className="mb-3 text-xl font-black sm:text-2xl">
+              <h2 className="mb-3 text-xl font-black sm:text-2xl">
                 I want to sell food or maker products
-              </h3>
+              </h2>
               <p className="mb-6 text-zinc-600">
                 Open a stall in minutes, set your prices, and get paid directly
                 with no platform fees.
@@ -659,9 +663,9 @@ export default function StandaloneLanding() {
 
             {/* Buy funnel */}
             <div className="shadow-neo flex flex-col rounded-lg border-2 border-black bg-white p-6 sm:p-8">
-              <h3 className="mb-3 text-xl font-black sm:text-2xl">
+              <h2 className="mb-3 text-xl font-black sm:text-2xl">
                 I want to buy from local producers
-              </h3>
+              </h2>
               <p className="mb-6 text-zinc-600">
                 Browse transparent, sustainably sourced food and maker products
                 from people near you.
@@ -1532,19 +1536,19 @@ export default function StandaloneLanding() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-8 grid gap-6 text-center md:grid-cols-3">
             <div>
-              <h4 className="mb-2 font-bold">Private</h4>
+              <h3 className="mb-2 font-bold">Private</h3>
               <p className="text-sm text-zinc-400">
                 All data encrypted and secure
               </p>
             </div>
             <div>
-              <h4 className="mb-2 font-bold">Open Network</h4>
+              <h3 className="mb-2 font-bold">Open Network</h3>
               <p className="text-sm text-zinc-400">
                 No central authority controls the platform
               </p>
             </div>
             <div>
-              <h4 className="mb-2 font-bold">Peer to Peer</h4>
+              <h3 className="mb-2 font-bold">Peer to Peer</h3>
               <p className="text-sm text-zinc-400">
                 Deal directly with local producers
               </p>

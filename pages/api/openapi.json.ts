@@ -30,6 +30,11 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
         "This document is semantically versioned. Breaking changes (removed or renamed fields/endpoints, newly required parameters) ship only in a new major version. Additive changes (new endpoints, new optional fields, new enum values) can ship at any time — clients MUST ignore unknown fields. Every /api/* response carries an API-Version header with the served major version; agents may pin a version by sending the API-Version request header, and an unsupported pin fails closed with a 400 unsupported_api_version error. Deprecated operations carry the Deprecation response header and, once a removal date is set, the Sunset header (RFC 8594), at least 90 days before removal.",
       policyUrl: `${BASE_URL}/developers#versioning`,
     },
+    "x-rate-limit-policy": {
+      convention:
+        "Endpoints that enforce a limit return RFC RateLimit headers (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, RateLimit-Policy, plus X-RateLimit-* mirrors) on every response once a request is accepted for processing, so agents can self-throttle in real time. Requests rejected before a limiter runs (e.g. an unsupported API-Version pin, which fails closed with 400) may omit numeric headers. Exceeding a limit returns HTTP 429 with a Retry-After header and a retryAfterSeconds body field. An endpoint whose normal responses lack numeric rate-limit headers is not throttled — no fictional budgets are advertised. MCP budgets are published in agents.txt (/api/mcp: 600 requests/minute per IP, 300/minute per API key; anonymous initialize: 30/minute); every other throttled endpoint declares its own budget in its response headers.",
+      documentationUrl: `${BASE_URL}/developers#rate-limits`,
+    },
     paths: {
       "/api/mcp": {
         post: {

@@ -36,7 +36,7 @@ Start with the MCP server for tool-style interaction, the UCP endpoints for REST
 - [Web Bot Auth directory](https://self-sown.com/.well-known/http-message-signatures-directory): Ed25519 HTTP Message Signature public keys (JWK Set) for verifiable agent identity.
 - [OpenAPI spec](https://self-sown.com/openapi.json): Machine-readable description of public endpoints.
 - [UCP discovery](https://self-sown.com/.well-known/ucp): Universal Commerce Protocol profile (REST catalog search/lookup and checkout sessions) for AI shopping agents, layered over the same catalog and order pipeline as MCP.
-- [Developer portal](https://self-sown.com/developers): Human-readable quickstart, error model, and versioning policy tying all machine-readable surfaces together.
+- [Developer portal](https://self-sown.com/developers): Human-readable quickstart, error model, rate-limit conventions, and the versioning/deprecation policy tying all machine-readable surfaces together.
 
 ## Optional
 
