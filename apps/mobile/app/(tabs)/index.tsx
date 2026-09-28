@@ -291,7 +291,7 @@ export default function DashboardScreen() {
         ) : null}
         <ActionButton
           label="Sign out"
-          onPress={handleSignOut}
+          onPress={() => void handleSignOut()}
           variant="secondary"
         />
       </SellerCard>
@@ -360,7 +360,7 @@ export default function DashboardScreen() {
         {storefrontLoadErrorMessage || listingsErrorMessage ? (
           <ActionButton
             label="Retry seller data"
-            onPress={handleRefreshSellerData}
+            onPress={() => void handleRefreshSellerData()}
             variant="secondary"
             loading={
               profileQuery.isFetching ||

@@ -214,8 +214,8 @@ export default function EditListingScreen() {
           setDraft(nextDraft);
           setErrors({});
         }}
-        onSubmit={handleSave}
-        onPickImages={handlePickImages}
+        onSubmit={() => void handleSave()}
+        onPickImages={() => void handlePickImages()}
         onDelete={handleDelete}
       />
     </ScreenScrollView>

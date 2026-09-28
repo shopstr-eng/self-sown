@@ -149,8 +149,8 @@ export default function ListingsIndexScreen() {
           </Text>
           <ActionButton
             label="Retry listings"
-            onPress={async () => {
-              await listingEventsQuery.refetch();
+            onPress={() => {
+              void listingEventsQuery.refetch();
             }}
             variant="secondary"
             loading={listingEventsQuery.isFetching}
@@ -224,7 +224,7 @@ export default function ListingsIndexScreen() {
                 label={
                   listing.status === "active" ? "Mark inactive" : "Mark active"
                 }
-                onPress={() => handleStatusToggle(listing.id)}
+                onPress={() => void handleStatusToggle(listing.id)}
                 variant="secondary"
                 loading={
                   busyListingId === listing.id && busyAction === "status"

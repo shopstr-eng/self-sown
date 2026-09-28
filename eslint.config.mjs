@@ -111,6 +111,43 @@ export default [
     },
   },
   {
+    // Shared-packages + mobile block: the same two silent-failure shapes the
+    // web server/client blocks catch — an async throw escaping a try/catch as
+    // an unhandled rejection (return-await), and an async guard invoked
+    // without await so it never blocks anything (no-misused-promises
+    // conditionals). packages/* is imported by both the web app and the
+    // mobile app, so a bug here lands in both. The root tsconfig.eslint.json
+    // excludes apps/ and packages/, so this block wires each workspace's own
+    // tsconfig for type info instead. Intentional fire-and-forget calls must
+    // be marked with `void`. no-floating-promises stays off for the React
+    // Native app, matching the web client block (effect/telemetry
+    // fire-and-forget is idiomatic in components).
+    files: [
+      "packages/domain/**/*.ts",
+      "packages/nostr/**/*.ts",
+      "packages/api-client/**/*.ts",
+      "apps/mobile/**/*.{ts,tsx}",
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: [
+          "packages/domain/tsconfig.json",
+          "packages/nostr/tsconfig.json",
+          "packages/api-client/tsconfig.json",
+          "apps/mobile/tsconfig.json",
+        ],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+    rules: {
+      "@typescript-eslint/return-await": ["error", "in-try-catch"],
+      "@typescript-eslint/no-misused-promises": [
+        "error",
+        { checksConditionals: true, checksVoidReturn: true, checksSpreads: false },
+      ],
+    },
+  },
+  {
     // Client-side event-handler block: an onClick/onSubmit wired directly to
     // an async function returns a promise nobody awaits, so a rejection
     // vanishes — the buyer/seller sees nothing happen and no error is logged.

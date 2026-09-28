@@ -86,7 +86,7 @@ export default function NsecImportScreen() {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
         <ActionButton
           label="Import seller key"
-          onPress={handleImport}
+          onPress={() => void handleImport()}
           loading={submitting}
           disabled={!nsec.trim()}
         />

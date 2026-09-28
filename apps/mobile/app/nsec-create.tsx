@@ -96,7 +96,7 @@ export default function NsecCreateScreen() {
         />
         <ActionButton
           label="Continue with this seller key"
-          onPress={handleContinue}
+          onPress={() => void handleContinue()}
           loading={submitting}
           disabled={!nsec || !pubkey}
         />
