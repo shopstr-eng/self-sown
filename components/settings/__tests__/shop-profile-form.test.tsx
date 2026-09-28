@@ -44,13 +44,25 @@ jest.mock("@/components/utility-components/ss-spinner", () => () => null);
 
 jest.mock("../storefront/storefront-preview-panel", () => () => null);
 
+// Mutable so individual tests can open the AdvancedStorefrontGate (the
+// assistant-visibility toggles only render for Pro sellers).
+let mockMembership = { isPro: false, isReadOnly: false };
 jest.mock("@/components/utility-components/pro-membership-context", () => ({
   useProMembership: () => ({
-    membership: { isPro: false, isReadOnly: false },
-    isPro: false,
+    membership: mockMembership,
+    isPro: mockMembership.isPro,
     loading: false,
   }),
 }));
+
+// Heavy storefront editors that mount inside the advanced (Pro) gate. The
+// hydration tests below open that gate, so stub these to keep the render
+// focused on the form's own state.
+jest.mock("../custom-domain-section", () => () => null);
+jest.mock("../storefront/page-editor", () => () => null);
+jest.mock("../storefront/footer-editor", () => () => null);
+jest.mock("../storefront/section-editor", () => () => null);
+jest.mock("../storefront/storefront-preview-modal", () => () => null);
 
 const mockUserPubkey = "test_pubkey";
 const mockShopData = new Map([
@@ -117,6 +129,7 @@ describe("ShopProfileForm", () => {
   afterEach(() => {
     (global.fetch as jest.Mock).mockRestore?.();
     localStorage.clear();
+    mockMembership = { isPro: false, isReadOnly: false };
   });
 
   test("displays the form after initial data load", async () => {
@@ -258,5 +271,116 @@ describe("ShopProfileForm", () => {
     await waitFor(() => {
       expect(createNostrShopEvent).toHaveBeenCalledTimes(1);
     });
+  });
+
+  test("a stale DB-cached assistant opt-out is overridden when the authoritative relay event omits the field", async () => {
+    // Regression: the fast path (DB cache) can carry an old
+    // assistantVisibility { buyers: false } while the newer authoritative
+    // relay event omits the field (absent = on-by-default). The relay load
+    // must resolve the toggles unconditionally, and a subsequent save must
+    // not republish the stale opt-out.
+    mockMembership = { isPro: true, isReadOnly: false };
+    localStorage.setItem(STOREFRONT_AUTH_KEY, "true");
+    mockCreateNostrShopEvent.mockResolvedValue({});
+
+    global.fetch = jest.fn((url: any) => {
+      const u = String(url);
+      if (u.includes("/api/validate-password-auth")) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ value: STOREFRONT_AUTH_KEY }),
+        });
+      }
+      if (u.includes("/api/storefront/lookup")) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              shopConfig: {
+                name: "Stale Cached Shop",
+                storefront: {
+                  shopSlug: "stale-shop",
+                  assistantVisibility: { buyers: false },
+                },
+              },
+            }),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+    }) as jest.Mock;
+
+    // The newer relay event carries NO assistantVisibility — the seller never
+    // opted out on this version.
+    const relayShopData = new Map([
+      [
+        mockUserPubkey,
+        {
+          pubkey: mockUserPubkey,
+          content: {
+            name: "Fresh Relay Shop",
+            about: "Authoritative relay copy.",
+            ui: { picture: "https://relay.image/p.png", banner: "" },
+            storefront: { shopSlug: "relay-shop" },
+          },
+        },
+      ],
+    ]);
+
+    const user = userEvent.setup();
+    const mockUpdateShopData = jest.fn();
+    const tree = (shopData: Map<string, unknown>) => (
+      <NostrContext.Provider value={{ nostr: {} as any }}>
+        <SignerContext.Provider
+          value={{ signer: {} as any, pubkey: mockUserPubkey }}
+        >
+          <ShopMapContext.Provider
+            value={{
+              shopData: shopData as any,
+              isLoading: false,
+              updateShopData: mockUpdateShopData,
+            }}
+          >
+            <ShopProfileForm />
+          </ShopMapContext.Provider>
+        </SignerContext.Provider>
+      </NostrContext.Provider>
+    );
+
+    // Relay data hasn't arrived yet (empty map) — the DB fast path wins.
+    const { rerender } = render(tree(new Map()));
+
+    const buyersToggle = await screen.findByRole("checkbox", {
+      name: /Show AI Assistant to Shoppers/i,
+    });
+    // Stale cached opt-out visibly applied first (proves the race setup).
+    await waitFor(() => expect(buyersToggle).not.toBeChecked());
+    expect(
+      screen.getByPlaceholderText("Add your shop's name...")
+    ).toHaveValue("Stale Cached Shop");
+
+    // The authoritative relay event arrives later and omits the field.
+    rerender(tree(relayShopData));
+
+    await waitFor(() => expect(buyersToggle).toBeChecked());
+    expect(
+      screen.getByRole("checkbox", {
+        name: /Show AI Assistant to Me on My Storefront/i,
+      })
+    ).toBeChecked();
+    expect(
+      screen.getByPlaceholderText("Add your shop's name...")
+    ).toHaveValue("Fresh Relay Shop");
+
+    // Save: the stale buyers:false must not survive into the published event.
+    await user.click(screen.getByRole("button", { name: /Save Stall/i }));
+    await waitFor(() =>
+      expect(mockCreateNostrShopEvent).toHaveBeenCalledTimes(1)
+    );
+    const published = JSON.parse(mockCreateNostrShopEvent.mock.calls[0][2]);
+    expect(published.storefront.shopSlug).toBe("relay-shop");
+    expect(published.storefront.assistantVisibility).toBeUndefined();
   });
 });
