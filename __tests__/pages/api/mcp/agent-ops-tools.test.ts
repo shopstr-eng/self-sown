@@ -52,6 +52,12 @@ jest.mock("@/utils/mcp/metrics", () => ({ recordRequest: jest.fn() }));
 
 const mockGetAgentSigner: jest.Mock = jest.fn(async () => null);
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   extractBearerToken: jest.fn(),
   validateApiKey: jest.fn(),
   initializeApiKeysTable: jest.fn(),

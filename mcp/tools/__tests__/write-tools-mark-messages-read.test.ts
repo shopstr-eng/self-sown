@@ -27,6 +27,12 @@ jest.mock("@/utils/db/db-service", () => ({
 }));
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   getAgentSigner: jest.fn(async () => ({
     signer: { getPubKey: () => "b".repeat(64) },
     pubkey: "b".repeat(64),

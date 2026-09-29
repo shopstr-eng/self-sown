@@ -6,7 +6,7 @@ Model Context Protocol server lets AI agents participate as buyers and sellers �
 
 - **Endpoint**: `pages/api/mcp/index.ts` — Streamable HTTP transport. Server factory: `mcp/server.ts`. Read tools: `mcp/tools/read-tools.ts`. Write tools: `mcp/tools/write-tools.ts`. Resources: `mcp/resources.ts` (catalog via `selfsown://catalog/products`).
 - **Signing**: `utils/mcp/nostr-signing.ts` — `McpNostrSigner`, `McpRelayManager`, encrypted nsec storage, `signAndPublishEvent()`.
-- **Auth**: `utils/mcp/auth.ts` — PBKDF2-hashed Bearer keys (prefix `sk_`), three permission levels (`read`, `read_write`, `full_access`). Agents set nsec post-onboarding via `POST /api/mcp/set-nsec`.
+- **Auth**: `utils/mcp/auth.ts` — PBKDF2-hashed Bearer keys (prefix `sk_`), two audiences: `shopping` (free for any pubkey; catalog + purchase tools) and `seller` (Pro-gated; seller tooling). Legacy seller keys keep their stored permission tier (`read`, `read_write`, `full_access`). Agents set nsec post-onboarding via `POST /api/mcp/set-nsec`.
 - **Routes**: `api-keys.ts`, `create-order.ts`, `verify-payment.ts`, `onboard.ts`, `set-nsec.ts`, `status.ts`. Manifest at `pages/api/.well-known/agent.json.ts`. Settings UI: `pages/settings/api-keys.tsx`.
 - **Tables**: `mcp_api_keys`, `mcp_orders`.
 - **Server-side signing**: `full_access` keys store nsec encrypted with AES-256-GCM (`MCP_ENCRYPTION_KEY`). Events sign server-side, cache to DB, publish via `McpRelayManager`.

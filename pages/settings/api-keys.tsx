@@ -18,7 +18,6 @@ import {
   buildApiKeysListProof,
   buildMcpRequestProofTemplate,
   MCP_SIGNED_EVENT_HEADER,
-  normalizeApiKeysPermission,
 } from "@/utils/mcp/request-proof";
 import {
   mintScopedSessionToken,
@@ -39,6 +38,7 @@ interface ApiKeyItem {
   key_prefix: string;
   name: string;
   permissions: string;
+  audience?: "shopping" | "seller";
   created_at: string;
   last_used_at: string | null;
   is_active: boolean;
@@ -51,7 +51,9 @@ const ApiKeysPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
-  const [newKeyPermission, setNewKeyPermission] = useState("read");
+  const [newKeyAudience, setNewKeyAudience] = useState<"shopping" | "seller">(
+    "shopping"
+  );
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [showCreatedKey, setShowCreatedKey] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -165,8 +167,7 @@ const ApiKeysPage = () => {
     setShowCreatedKey(false);
     try {
       const trimmedName = newKeyName.trim();
-      const permissions = normalizeApiKeysPermission(newKeyPermission);
-      const body = { name: trimmedName, permissions, pubkey };
+      const body = { name: trimmedName, audience: newKeyAudience, pubkey };
       // Session token: no per-request signature. Without one (or when the
       // token is rejected mid-session), fall back to a single-use signed
       // request proof (one signing prompt).
@@ -190,7 +191,7 @@ const ApiKeysPage = () => {
                 buildMcpRequestProofTemplate(
                   buildApiKeyCreateProof({
                     name: trimmedName,
-                    permissions,
+                    audience: newKeyAudience,
                     pubkey,
                   })
                 )
@@ -202,7 +203,7 @@ const ApiKeysPage = () => {
       if (data.success) {
         setCreatedKey(data.key);
         setNewKeyName("");
-        setNewKeyPermission("read");
+        setNewKeyAudience("shopping");
         await fetchKeys();
       } else {
         setError(data.error || "Failed to create API key.");
@@ -414,41 +415,44 @@ const ApiKeysPage = () => {
             <h2 className="mb-4 text-2xl font-bold text-black">
               Create API Key
             </h2>
-            {!membership.isPro ? (
-              <UpgradeBanner feature="The MCP API" />
-            ) : (
-              <div className="shadow-neo space-y-4 rounded-md border-2 border-black bg-white p-4">
-                <Input
-                  label="Key Name"
-                  placeholder="e.g., My AI Agent"
-                  value={newKeyName}
-                  onValueChange={setNewKeyName}
-                  classNames={{
-                    label: "text-black",
-                    input: "!text-black",
-                    inputWrapper:
-                      "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
-                    innerWrapper: "text-black",
-                  }}
-                />
-                <Select
-                  label="Permissions"
-                  selectedKeys={[newKeyPermission]}
-                  onChange={(e) => setNewKeyPermission(e.target.value)}
-                  classNames={{
-                    trigger:
-                      "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white",
-                    label: "text-black",
-                    value: "text-black",
-                  }}
-                >
-                  <SelectItem key="read">
-                    Read Only: Browse products, profiles, reviews
-                  </SelectItem>
-                  <SelectItem key="read_write">
-                    Read + Write: Browse and place orders
-                  </SelectItem>
-                </Select>
+            <div className="shadow-neo space-y-4 rounded-md border-2 border-black bg-white p-4">
+              <Input
+                label="Key Name"
+                placeholder="e.g., My AI Agent"
+                value={newKeyName}
+                onValueChange={setNewKeyName}
+                classNames={{
+                  label: "text-black",
+                  input: "!text-black",
+                  inputWrapper:
+                    "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white data-[focus=true]:bg-white group-data-[focus=true]:bg-white group-data-[focus=true]:border-black",
+                  innerWrapper: "text-black",
+                }}
+              />
+              <Select
+                label="Key Type"
+                selectedKeys={[newKeyAudience]}
+                onChange={(e) =>
+                  setNewKeyAudience(e.target.value as "shopping" | "seller")
+                }
+                classNames={{
+                  trigger:
+                    "rounded-md border-2 border-black bg-white shadow-none data-[hover=true]:bg-white",
+                  label: "text-black",
+                  value: "text-black",
+                }}
+              >
+                <SelectItem key="shopping">
+                  Shopping: Browse the catalog, place and track orders (free)
+                </SelectItem>
+                <SelectItem key="seller">
+                  Seller: Manage your shop — listings, orders, payouts (requires
+                  Herd)
+                </SelectItem>
+              </Select>
+              {newKeyAudience === "seller" && !membership.isPro ? (
+                <UpgradeBanner feature="Seller API keys" />
+              ) : (
                 <Button
                   className={BLUEBUTTONCLASSNAMES}
                   onClick={() => void handleCreate()}
@@ -457,8 +461,8 @@ const ApiKeysPage = () => {
                 >
                   {isCreating ? "Creating..." : "Generate API Key"}
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="mb-8">
@@ -502,18 +506,18 @@ const ApiKeysPage = () => {
                             </code>
                           </p>
                           <p>
-                            Permissions:{" "}
+                            Type:{" "}
                             <span
                               className={joinClassNames(
                                 "rounded-md border px-2 py-0.5 text-xs font-bold",
-                                key.permissions === "read_write"
-                                  ? "border-blue-300 bg-blue-100 text-blue-700"
-                                  : "border-gray-300 bg-gray-100 text-gray-700"
+                                key.audience === "shopping"
+                                  ? "border-green-300 bg-green-100 text-green-700"
+                                  : "border-blue-300 bg-blue-100 text-blue-700"
                               )}
                             >
-                              {key.permissions === "read_write"
-                                ? "Read + Write"
-                                : "Read Only"}
+                              {key.audience === "shopping"
+                                ? "Shopping"
+                                : "Seller"}
                             </span>
                           </p>
                           <p>Created: {formatDate(key.created_at)}</p>
@@ -524,7 +528,6 @@ const ApiKeysPage = () => {
                         <Button
                           className={DANGERBUTTONCLASSNAMES}
                           size="sm"
-                          isDisabled={!membership.isPro}
                           onClick={() => void handleRevoke(key.id)}
                         >
                           <TrashIcon className="h-4 w-4" />

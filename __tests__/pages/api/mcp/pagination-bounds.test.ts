@@ -52,6 +52,12 @@ jest.mock("@/utils/rate-limit", () => ({
 }));
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   extractBearerToken: jest.fn(),
   validateApiKey: jest.fn(),
   initializeApiKeysTable: jest.fn(),
@@ -188,6 +194,56 @@ describe("MCP order-listing pagination bounds", () => {
     });
     expect(result.isError).toBeFalsy();
     expect(mockListMcpOrders).toHaveBeenCalledWith(PUBKEY, 100);
+  });
+
+  it("get_notifications includes seller order data for seller keys", async () => {
+    // The suite-wide key is a legacy read_write seller key (no audience
+    // field), so seller sections must still be served.
+    const result: any = await client.callTool({
+      name: "get_notifications",
+      arguments: {},
+    });
+    expect(result.isError).toBeFalsy();
+    const body = JSON.parse(result.content[0].text);
+    expect(body.ordersAsSeller).toBeDefined();
+    expect(body.actionRequired.ordersToFulfill).toBeDefined();
+    expect(mockListMcpOrdersAsSeller).toHaveBeenCalledWith(PUBKEY, 10);
+  });
+
+  it("get_notifications never exposes seller order data to shopping keys", async () => {
+    // Shopping keys get catalog + buyer-side purchase tooling only; seller
+    // order summaries carry buyer PII (emails, shipping addresses) and must
+    // not be fetched at all.
+    const server = new McpServer({ name: "test", version: "0.0.1" });
+    registerPurchaseTools(
+      server,
+      {
+        id: 2,
+        pubkey: PUBKEY,
+        permissions: "read",
+        audience: "shopping",
+      } as any,
+      "token"
+    );
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const shoppingClient = new Client({ name: "c", version: "0.0.1" });
+    await Promise.all([
+      shoppingClient.connect(clientTransport),
+      server.connect(serverTransport),
+    ]);
+
+    const result: any = await shoppingClient.callTool({
+      name: "get_notifications",
+      arguments: {},
+    });
+    await shoppingClient.close();
+
+    expect(result.isError).toBeFalsy();
+    const body = JSON.parse(result.content[0].text);
+    expect(body.ordersAsSeller).toBeUndefined();
+    expect(body.actionRequired.ordersToFulfill).toBeUndefined();
+    expect(mockListMcpOrdersAsSeller).not.toHaveBeenCalled();
   });
 
   it.each([

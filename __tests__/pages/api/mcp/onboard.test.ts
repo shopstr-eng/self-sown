@@ -9,6 +9,12 @@ const npubEncodeMock = jest.fn();
 const bytesToHexMock = jest.fn();
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   createApiKey: (...args: unknown[]) => createApiKeyMock(...args),
   initializeApiKeysTable: (...args: unknown[]) =>
     initializeApiKeysTableMock(...args),
@@ -22,6 +28,12 @@ jest.mock("@/utils/mcp/metrics", () => ({
   checkOnboardRateLimit: (...args: unknown[]) =>
     checkOnboardRateLimitMock(...args),
   ONBOARD_RATE_LIMIT: { limit: 10, windowMs: 60 * 60 * 1000 },
+}));
+
+const requireProEntitlementMock = jest.fn();
+jest.mock("@/utils/pro/require-pro", () => ({
+  requireProEntitlement: (...args: unknown[]) =>
+    requireProEntitlementMock(...args),
 }));
 
 jest.mock("nostr-tools", () => ({
@@ -139,6 +151,7 @@ describe("MCP onboard API quick-start correctness", () => {
       key: FIXED_API_KEY,
       record: { id: 1 },
     });
+    requireProEntitlementMock.mockResolvedValue(true);
 
     generateSecretKeyMock.mockReturnValue(FIXED_SECRET_KEY);
     getPublicKeyMock.mockReturnValue(FIXED_PUBKEY);
@@ -216,6 +229,45 @@ describe("MCP onboard API quick-start correctness", () => {
     );
     expect(body.quickStart.examples.curl_search).toContain(
       "Accept: application/json, text/event-stream"
+    );
+  });
+
+  it("gates seller key creation on Pro entitlement", async () => {
+    requireProEntitlementMock.mockImplementationOnce(
+      async (_pubkey: string, res: any) => {
+        res.status(403).json({ error: "Herd membership required" });
+        return false;
+      }
+    );
+    const req = createMockRequest({
+      body: { name: FIXED_AGENT_NAME, audience: "seller" },
+    });
+    const res = createMockResponse();
+
+    await handler(req, res as unknown as NextApiResponse);
+
+    expect(res.statusCode).toBe(403);
+    expect(createApiKeyMock).not.toHaveBeenCalled();
+  });
+
+  it("creates a free shopping key without any Pro entitlement check", async () => {
+    const req = createMockRequest({
+      body: { name: FIXED_AGENT_NAME, audience: "shopping" },
+    });
+    const res = createMockResponse();
+
+    await handler(req, res as unknown as NextApiResponse);
+
+    expect(res.statusCode).toBe(201);
+    expect(requireProEntitlementMock).not.toHaveBeenCalled();
+    // Shopping keys always derive the read tier server-side; the audience is
+    // what grants the purchase tooling.
+    expect(createApiKeyMock).toHaveBeenCalledWith(
+      FIXED_AGENT_NAME,
+      FIXED_PUBKEY,
+      "read",
+      expect.anything(),
+      "shopping"
     );
   });
 

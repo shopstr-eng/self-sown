@@ -156,7 +156,7 @@ describe("ApiKeysPage", () => {
     expect(requestBody).toEqual(
       expect.objectContaining({
         name: "My Agent",
-        permissions: "read",
+        audience: "shopping",
         pubkey: "f".repeat(64),
       })
     );

@@ -52,6 +52,12 @@ jest.mock("@/utils/rate-limit", () => ({
 }));
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   authenticateRequest: (...args: any[]) => mockAuthenticateRequest(...args),
   initializeApiKeysTable: (...args: any[]) =>
     mockInitializeApiKeysTable(...args),

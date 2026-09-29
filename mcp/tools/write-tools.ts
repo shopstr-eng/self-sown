@@ -5,7 +5,11 @@ import {
   McpRelayManager,
   signAndPublishEvent,
 } from "@/utils/mcp/nostr-signing";
-import { ApiKeyRecord, getAgentSigner } from "@/utils/mcp/auth";
+import {
+  ApiKeyRecord,
+  canUseSellerWriteTools,
+  getAgentSigner,
+} from "@/utils/mcp/auth";
 import { EventTemplate } from "nostr-tools";
 import {
   buildHandlingTimeTag,
@@ -101,7 +105,7 @@ function permissionError() {
         type: "text" as const,
         text: JSON.stringify({
           error:
-            "Insufficient permissions. This action requires a full_access API key.",
+            "Insufficient permissions. This action requires a seller API key.",
         }),
       },
     ],
@@ -1027,7 +1031,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -1439,7 +1443,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -1584,7 +1588,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -1813,7 +1817,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2109,7 +2113,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2343,7 +2347,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2403,7 +2407,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2480,7 +2484,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2607,7 +2611,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2706,7 +2710,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -2892,7 +2896,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3053,7 +3057,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3257,7 +3261,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3456,7 +3460,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3564,7 +3568,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
 
       try {
         // Scope to the key owner's messages: a full_access key must not flip
@@ -3610,7 +3614,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3662,7 +3666,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3718,7 +3722,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3821,7 +3825,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3884,7 +3888,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3931,7 +3935,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {},
     async () => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -3976,7 +3980,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4037,7 +4041,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4111,7 +4115,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4173,7 +4177,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4286,7 +4290,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4348,7 +4352,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4519,7 +4523,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4670,7 +4674,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4776,7 +4780,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -4833,7 +4837,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5010,7 +5014,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5224,7 +5228,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5312,7 +5316,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     emailPopupToolSchema,
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       // Mirror the popup-capture validation (pages/api/storefront/popup-capture.ts)
       // so MCP can't save a welcome-code config buyers cannot redeem.
       if (
@@ -5491,7 +5495,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5545,7 +5549,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {},
     async () => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5601,7 +5605,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5658,7 +5662,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5717,7 +5721,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5779,7 +5783,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5842,7 +5846,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5895,7 +5899,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {},
     async () => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -5991,7 +5995,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const valueError =
         affiliatePercentError(
           "rebateValue",
@@ -6074,7 +6078,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       // Percent caps are only enforceable when the type travels with the
       // value in the same update; a bare value keeps the code's stored type.
       const valueError =
@@ -6146,7 +6150,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6194,7 +6198,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {},
     async () => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6252,7 +6256,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6329,7 +6333,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6389,7 +6393,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6443,7 +6447,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6493,7 +6497,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6528,7 +6532,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {},
     async () => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6573,7 +6577,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6630,7 +6634,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6685,7 +6689,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     {},
     async () => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6738,7 +6742,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async ({ country }) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6802,7 +6806,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6860,7 +6864,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -6951,7 +6955,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -7038,7 +7042,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -7099,7 +7103,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -7174,7 +7178,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 
@@ -7288,7 +7292,7 @@ export function registerWriteTools(server: McpServer, apiKey: ApiKeyRecord) {
     },
     async (params) => {
       const startTime = Date.now();
-      if (apiKey.permissions !== "full_access") return permissionError();
+      if (!canUseSellerWriteTools(apiKey)) return permissionError();
       const signer = await getSigner(apiKey);
       if (!signer) return noSignerError();
 

@@ -900,11 +900,10 @@ export default function handler(_req: NextApiRequest, res: NextApiResponse) {
           // Machine-readable scope declaration (mirrors scopes_supported in
           // the RFC 9728 metadata at /.well-known/oauth-protected-resource).
           "x-scopes": {
-            read: "Search the catalog and read public product, seller, and order-status data.",
-            read_write:
-              "Everything in read, plus creating checkout sessions/orders and verifying payments.",
-            full_access:
-              "Everything in read_write, plus managing the account's own listings, profile, stall, and API keys.",
+            shopping:
+              "Free for any pubkey: search the catalog, read public product/seller data, create checkout sessions/orders, and verify payments.",
+            seller:
+              "Everything in shopping, plus managing the account's own listings, profile, stall, orders, and API keys. Requires an active Herd/Wrangler membership.",
           },
         },
       },

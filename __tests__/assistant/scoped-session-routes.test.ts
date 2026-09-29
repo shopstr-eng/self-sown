@@ -43,6 +43,12 @@ jest.mock("@/utils/assistant/assistant-key", () => ({
 }));
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   initializeApiKeysTable: (...args: unknown[]) =>
     initializeApiKeysTableMock(...args),
   createApiKey: (...args: unknown[]) => createApiKeyMock(...args),
@@ -296,10 +302,13 @@ describe("/api/mcp/api-keys with a scoped bearer token", () => {
       res
     );
     expect(res.statusCode).toBe(201);
+    // Legacy audience-less request → seller key at the requested tier.
     expect(createApiKeyMock).toHaveBeenCalledWith(
       "My Agent",
       SELLER_PUBKEY,
-      "read"
+      "read",
+      undefined,
+      "seller"
     );
     expect(verifyAndConsumeProofMock).not.toHaveBeenCalled();
   });

@@ -1203,6 +1203,7 @@ async function initializeTables(): Promise<void> {
           name TEXT NOT NULL,
           pubkey TEXT NOT NULL,
           permissions TEXT NOT NULL DEFAULT 'read' CHECK (permissions IN ('read', 'read_write', 'full_access')),
+          audience TEXT NOT NULL DEFAULT 'seller' CHECK (audience IN ('shopping', 'seller')),
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           last_used_at TIMESTAMP,
           is_active BOOLEAN DEFAULT TRUE,
@@ -1281,6 +1282,13 @@ async function initializeTables(): Promise<void> {
       ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_permissions_check;
       ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_permissions_check
         CHECK (permissions IN ('read', 'read_write', 'full_access'));
+      -- Audience split: existing keys backfill to 'seller' (stored permissions
+      -- tier still applies, so nothing is escalated); shopping keys are
+      -- created explicitly. Constraint re-add is idempotent like above.
+      ALTER TABLE mcp_api_keys ADD COLUMN IF NOT EXISTS audience TEXT NOT NULL DEFAULT 'seller';
+      ALTER TABLE mcp_api_keys DROP CONSTRAINT IF EXISTS mcp_api_keys_audience_check;
+      ALTER TABLE mcp_api_keys ADD CONSTRAINT mcp_api_keys_audience_check
+        CHECK (audience IN ('shopping', 'seller'));
 
       -- Email auth table
       CREATE TABLE IF NOT EXISTS email_auth (

@@ -54,7 +54,7 @@ export default async function handler(
   return res.status(200).json({
     resource: origin,
     bearer_methods_supported: ["header"],
-    scopes_supported: ["read", "read_write", "full_access"],
+    scopes_supported: ["shopping", "seller"],
     resource_documentation: `${SITE_URL}/developers`,
   });
 }

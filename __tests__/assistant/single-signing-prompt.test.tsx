@@ -59,6 +59,12 @@ jest.mock("@/utils/assistant/assistant-key", () => ({
 }));
 
 jest.mock("@/utils/mcp/auth", () => ({
+  canUsePurchaseTools: (k: any) =>
+    k.audience === "shopping" || k.permissions !== "read",
+  canUseSellerReadTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions !== "read",
+  canUseSellerWriteTools: (k: any) =>
+    k.audience !== "shopping" && k.permissions === "full_access",
   initializeApiKeysTable: jest.fn(async () => {}),
   createApiKey: jest.fn(
     async (name: string, pubkey: string, permissions: string) => {

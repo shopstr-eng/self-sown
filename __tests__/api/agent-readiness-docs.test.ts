@@ -176,13 +176,9 @@ describe("homepage heading hierarchy", () => {
 describe("scoped API permissions", () => {
   const spec = loadSpec();
 
-  it("declares the three named scopes on the bearerAuth security scheme", () => {
+  it("declares the audience scopes on the bearerAuth security scheme", () => {
     const scopes = spec.components.securitySchemes.bearerAuth["x-scopes"];
-    expect(Object.keys(scopes).sort()).toEqual([
-      "full_access",
-      "read",
-      "read_write",
-    ]);
+    expect(Object.keys(scopes).sort()).toEqual(["seller", "shopping"]);
     for (const description of Object.values(scopes)) {
       expect(typeof description).toBe("string");
       expect((description as string).length).toBeGreaterThan(10);

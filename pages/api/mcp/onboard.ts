@@ -5,6 +5,7 @@ import {
   createApiKey,
   initializeApiKeysTable,
   ApiKeyPermission,
+  ApiKeyAudience,
 } from "@/utils/mcp/auth";
 import { encryptNsec } from "@/utils/mcp/nostr-signing";
 import { checkOnboardRateLimit, ONBOARD_RATE_LIMIT } from "@/utils/mcp/metrics";
@@ -16,6 +17,7 @@ import {
   extractSignedEventFromRequest,
   verifyAndConsumeSignedRequestProof,
 } from "@/utils/mcp/request-proof-server";
+import { requireProEntitlement } from "@/utils/pro/require-pro";
 import { getRequestIp, reportRateLimit } from "@/utils/rate-limit";
 
 let tablesReady = false;
@@ -279,6 +281,7 @@ export default async function handler(
     contact,
     pubkey: providedPubkey,
     nsec: providedNsec,
+    audience: providedAudience,
   } = req.body || {};
 
   if (!name || typeof name !== "string" || name.trim().length === 0) {
@@ -288,8 +291,10 @@ export default async function handler(
         method: "POST",
         body: {
           name: "(required) string - Name for this agent/integration",
+          audience:
+            '(optional) "shopping" | "seller" - defaults to "seller". Shopping keys are free for everyone and reach catalog + purchase tooling; seller keys manage a shop and require the pubkey to hold an active membership.',
           permissions:
-            '(optional) "read" | "read_write" | "full_access" - defaults to "read"',
+            '(optional, legacy) "read" | "read_write" | "full_access" - defaults to "read". Only applies to seller keys; shopping keys always get the shopping tool set.',
           contact: "(optional) string - Contact email or URL for this agent",
           pubkey:
             "(optional) string - Existing Nostr pubkey (hex or npub1...). If omitted, a new keypair is generated.",
@@ -298,6 +303,18 @@ export default async function handler(
       },
     });
   }
+
+  if (
+    providedAudience !== undefined &&
+    providedAudience !== "shopping" &&
+    providedAudience !== "seller"
+  ) {
+    return res.status(400).json({
+      error: 'Invalid audience. Supported values are "shopping" and "seller".',
+    });
+  }
+  const audience: ApiKeyAudience =
+    providedAudience === "shopping" ? "shopping" : "seller";
 
   let resolvedPubkey: string | null = null;
   if (providedPubkey && typeof providedPubkey === "string") {
@@ -333,9 +350,14 @@ export default async function handler(
       ? contact.trim()
       : undefined;
 
-  const perm: ApiKeyPermission = normalizeOnboardPermission(
-    typeof permissions === "string" ? permissions : undefined
-  );
+  // Shopping keys always get the same free tool set (catalog + purchase);
+  // the permissions tier is a seller-key concept and is ignored for them.
+  const perm: ApiKeyPermission =
+    audience === "shopping"
+      ? "read"
+      : normalizeOnboardPermission(
+          typeof permissions === "string" ? permissions : undefined
+        );
 
   try {
     await ensureTables();
@@ -393,7 +415,11 @@ export default async function handler(
           extractSignedEventFromRequest(req),
           buildOnboardExistingPubkeyProof({
             name: trimmedName,
-            permissions: perm,
+            // Audience-aware requests bind the audience so a signed legacy
+            // proof cannot be replayed with a substituted audience.
+            ...(providedAudience !== undefined
+              ? { audience }
+              : { permissions: perm }),
             contact: trimmedContact,
             pubkey,
           })
@@ -418,11 +444,18 @@ export default async function handler(
       ? `${trimmedName} (${trimmedContact})`
       : trimmedName;
 
+    // Seller keys are Pro-gated at creation on every surface (the settings
+    // route does the same); shopping keys are free for any pubkey.
+    if (audience === "seller") {
+      if (!(await requireProEntitlement(pubkey, res))) return;
+    }
+
     const result = await createApiKey(
       agentName,
       pubkey,
       perm,
-      encryptedNsecValue
+      encryptedNsecValue,
+      audience
     );
 
     const baseUrl = resolveBaseUrl(req);
@@ -433,6 +466,7 @@ export default async function handler(
       apiKey: result.key,
       pubkey,
       npub,
+      audience,
       permissions: perm,
       mcpEndpoint: `${baseUrl}/api/mcp`,
       manifestUrl: `${baseUrl}/.well-known/agent.json`,
@@ -443,13 +477,15 @@ export default async function handler(
         notes: [
           "Store your API key securely. It will not be shown again.",
           "Run the initialize command with -i so curl prints the Mcp-Session-Id response header for follow-up requests.",
-          `Your permissions are set to "${perm}".${
-            perm === "read"
-              ? ' Upgrade to "read_write" to place orders, or "full_access" for full marketplace participation.'
-              : perm === "read_write"
-                ? ' Upgrade to "full_access" for full marketplace participation (listings, profiles, etc).'
-                : ""
-          }`,
+          audience === "shopping"
+            ? 'Your key is a free "shopping" key: browse the catalog, place orders, and track purchases. No membership required.'
+            : `Your key is a "seller" key with "${perm}" permissions. Seller tooling requires the key's pubkey to hold an active Herd/Wrangler membership.${
+                perm === "read"
+                  ? ' Upgrade to "read_write" to place orders, or "full_access" for full marketplace participation.'
+                  : perm === "read_write"
+                    ? ' Upgrade to "full_access" for full marketplace participation (listings, profiles, etc).'
+                    : ""
+              }`,
         ],
       },
     };

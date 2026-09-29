@@ -12,6 +12,9 @@ import {
   isApiKeyOwnerProEntitled,
   MCP_PRO_REQUIRED_MESSAGE,
   ApiKeyRecord,
+  canUsePurchaseTools,
+  canUseSellerReadTools,
+  canUseSellerWriteTools,
 } from "@/utils/mcp/auth";
 import { recordRequest } from "@/utils/mcp/metrics";
 import { registerWriteTools } from "@/mcp/tools/write-tools";
@@ -140,14 +143,16 @@ export function registerPurchaseTools(
     );
   }
 
-  function permissionError() {
+  function permissionError(kind: "purchase" | "seller" = "purchase") {
     return {
       content: [
         {
           type: "text" as const,
           text: JSON.stringify({
             error:
-              "Insufficient permissions. This action requires a read_write API key.",
+              kind === "seller"
+                ? "Insufficient permissions. This action requires a seller API key."
+                : "Insufficient permissions. This action requires a shopping API key or a seller key with purchase access.",
           }),
         },
       ],
@@ -157,7 +162,7 @@ export function registerPurchaseTools(
 
   reg(
     "create_order",
-    "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. To start a recurring Subscribe & Save order, pass subscriptionFrequency (only for products that offer subscriptions); recurring orders are billed via Stripe regardless of the chosen Bitcoin paymentMethod. Requires read_write API key permission.",
+    "Place an order for a product. Supports Bitcoin payment methods: lightning (Bitcoin Lightning invoice) or cashu (ecash tokens). Supports selecting product specifications (size, volume, weight, bulk bundle) and providing a shipping address. To start a recurring Subscribe & Save order, pass subscriptionFrequency (only for products that offer subscriptions); recurring orders are billed via Stripe regardless of the chosen Bitcoin paymentMethod. Requires a shopping or seller API key.",
     {
       productId: z.string().describe("The product event ID to purchase"),
       // Bounded like limit/offset below: quantity multiplies unit price into
@@ -257,11 +262,7 @@ export function registerPurchaseTools(
       subscriptionFrequency,
     }) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUsePurchaseTools(apiKey)) return permissionError();
 
       try {
         const orderRes = await fetch(`${baseUrl}/api/mcp/create-order`, {
@@ -323,17 +324,13 @@ export function registerPurchaseTools(
 
   reg(
     "get_order_status",
-    "Check the status of an existing order. Works for orders you bought (as buyer) or sold (as seller). Requires read_write API key permission.",
+    "Check the status of an existing order. Works for orders you bought (as buyer) or sold (as seller). Requires a shopping or seller API key.",
     {
       orderId: z.string().describe("The order ID to check"),
     },
     async ({ orderId }) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUsePurchaseTools(apiKey)) return permissionError();
 
       try {
         const orderRes = await fetch(
@@ -376,7 +373,7 @@ export function registerPurchaseTools(
 
   reg(
     "list_orders",
-    "List your orders. Requires read_write API key permission.",
+    "List your orders. Requires a shopping or seller API key.",
     {
       // Bounded like the REST list route (handleListOrders in
       // create-order.ts): an unbounded LIMIT lets one call scan/serialize the
@@ -397,11 +394,7 @@ export function registerPurchaseTools(
     },
     async ({ limit, offset }) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUsePurchaseTools(apiKey)) return permissionError();
 
       try {
         const l = limit || 50;
@@ -446,17 +439,13 @@ export function registerPurchaseTools(
 
   reg(
     "verify_payment",
-    "Verify the payment status of a Lightning invoice for an order. Use after paying a Lightning invoice to confirm the order. Requires read_write API key permission.",
+    "Verify the payment status of a Lightning invoice for an order. Use after paying a Lightning invoice to confirm the order. Requires a shopping or seller API key.",
     {
       orderId: z.string().describe("The order ID to verify payment for"),
     },
     async ({ orderId }) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUsePurchaseTools(apiKey)) return permissionError();
 
       try {
         const verifyRes = await fetch(`${baseUrl}/api/mcp/verify-payment`, {
@@ -631,11 +620,7 @@ export function registerPurchaseTools(
     },
     async (params) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUsePurchaseTools(apiKey)) return permissionError();
 
       try {
         const { getUnreadMessageCount } = await import("@/utils/db/db-service");
@@ -651,34 +636,42 @@ export function registerPurchaseTools(
         if (params.includeOrders !== false) {
           const limit = params.orderLimit || 10;
           const buyerOrders = await listMcpOrders(apiKey.pubkey, limit);
-          const sellerOrders = await listMcpOrdersAsSeller(
-            apiKey.pubkey,
-            limit
-          );
 
           result.ordersAsBuyer = {
             total: buyerOrders.length,
             recent: buyerOrders.map(formatOrderForResponse),
-          };
-          result.ordersAsSeller = {
-            total: sellerOrders.length,
-            recent: sellerOrders.map(formatOrderForResponse),
           };
 
           const pendingBuyerOrders = buyerOrders.filter(
             (o) =>
               o.payment_status === "pending" || o.order_status === "pending"
           );
-          const pendingSellerOrders = sellerOrders.filter(
-            (o) =>
-              o.order_status === "pending" || o.order_status === "confirmed"
-          );
 
           result.actionRequired = {
             pendingPayments: pendingBuyerOrders.length,
-            ordersToFulfill: pendingSellerOrders.length,
             unreadMessages: unreadCount,
           };
+
+          // Seller-side order data contains buyer PII (emails, shipping
+          // addresses) — shopping keys must never receive it.
+          if (canUseSellerReadTools(apiKey)) {
+            const sellerOrders = await listMcpOrdersAsSeller(
+              apiKey.pubkey,
+              limit
+            );
+
+            result.ordersAsSeller = {
+              total: sellerOrders.length,
+              recent: sellerOrders.map(formatOrderForResponse),
+            };
+
+            const pendingSellerOrders = sellerOrders.filter(
+              (o) =>
+                o.order_status === "pending" || o.order_status === "confirmed"
+            );
+
+            result.actionRequired.ordersToFulfill = pendingSellerOrders.length;
+          }
         }
 
         result._meta = {
@@ -715,7 +708,7 @@ export function registerPurchaseTools(
 
   reg(
     "get_shipping_label_status",
-    "List your orders with shipping-label status: for each order, whether an outbound Shippo label has been purchased (with tracking + label URL when it has). Covers orders from agent/MCP checkout (the same orders list_seller_orders shows). Seller-scoped: only your own orders. Requires a read_write API key permission.",
+    "List your orders with shipping-label status: for each order, whether an outbound Shippo label has been purchased (with tracking + label URL when it has). Covers orders from agent/MCP checkout (the same orders list_seller_orders shows). Seller-scoped: only your own orders. Requires a seller API key.",
     {
       order_id: z
         .string()
@@ -740,11 +733,7 @@ export function registerPurchaseTools(
     },
     async (params) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUseSellerReadTools(apiKey)) return permissionError("seller");
 
       try {
         const { listSellerOrderLabelStatuses } =
@@ -840,11 +829,7 @@ export function registerPurchaseTools(
     },
     async (params) => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUseSellerReadTools(apiKey)) return permissionError("seller");
 
       try {
         const { listMcpOrdersAsSeller, formatOrderForResponse } =
@@ -901,15 +886,11 @@ export function registerPurchaseTools(
 
   reg(
     "get_email_analytics",
-    "Get performance analytics for all of your email flows (a Herd/Pro feature), including one-time sends. Returns per-flow and per-email totals: emails sent, unique opens and open rate, unique clicks and click-through rate, the most-clicked links, and conversion rate (orders attributed to the email). Seller-scoped: only your own flows are returned. Requires a read_write API key permission.",
+    "Get performance analytics for all of your email flows (a Herd/Pro feature), including one-time sends. Returns per-flow and per-email totals: emails sent, unique opens and open rate, unique clicks and click-through rate, the most-clicked links, and conversion rate (orders attributed to the email). Seller-scoped: only your own flows are returned. Requires a seller API key.",
     {},
     async () => {
       const startTime = Date.now();
-      if (
-        apiKey.permissions !== "read_write" &&
-        apiKey.permissions !== "full_access"
-      )
-        return permissionError();
+      if (!canUseSellerReadTools(apiKey)) return permissionError("seller");
 
       try {
         const { getEmailFlowStatsForSeller } =
@@ -986,10 +967,14 @@ export default async function handler(
       });
     }
 
-    // Keyed MCP usage is Pro-only. Reject keys whose owning seller is no
-    // longer entitled so access tracks the membership lifecycle even for
-    // keys minted while the seller was on Pro.
-    if (!(await isApiKeyOwnerProEntitled(apiKey))) {
+    // Seller-keyed MCP usage is Pro-only: reject seller keys whose owner is
+    // no longer entitled so access tracks the membership lifecycle even for
+    // keys minted while the seller was on Pro. Shopping keys are free for
+    // every pubkey and skip this check entirely.
+    if (
+      apiKey.audience !== "shopping" &&
+      !(await isApiKeyOwnerProEntitled(apiKey))
+    ) {
       recordRequest(Date.now() - requestStart, false);
       return res.status(403).json({
         jsonrpc: "2.0",
@@ -1140,11 +1125,17 @@ export default async function handler(
       // Unauthenticated sessions (no Bearer key) get the public read tools
       // and resources only; purchase/write tools require a valid key.
       const server = createMcpServer(
-        apiKey ? { apiKeyId: apiKey.id, pubkey: apiKey.pubkey } : undefined
+        apiKey
+          ? {
+              apiKeyId: apiKey.id,
+              pubkey: apiKey.pubkey,
+              audience: apiKey.audience,
+            }
+          : undefined
       );
       if (apiKey && token) {
         registerPurchaseTools(server, apiKey, token);
-        if (apiKey.permissions === "full_access") {
+        if (canUseSellerWriteTools(apiKey)) {
           registerWriteTools(server, apiKey);
         }
       }

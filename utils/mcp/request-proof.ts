@@ -122,20 +122,23 @@ export function buildApiKeyCreateProof({
   name,
   permissions,
   pubkey,
+  audience,
 }: {
   name: string;
-  permissions: "read" | "read_write";
   pubkey: string;
+  // Legacy shape: sign the permissions tier. New shape: sign the audience
+  // instead (audience decides Pro-gating at creation, so it must be bound
+  // into the proof; permissions are then derived server-side). Exactly one
+  // style is emitted so the signed tags match what the server expects.
+  permissions?: "read" | "read_write";
+  audience?: "shopping" | "seller";
 }): McpRequestProof {
   return {
     action: "create_api_key",
     method: "POST",
     path: "/api/mcp/api-keys",
     pubkey,
-    fields: {
-      name,
-      permissions,
-    },
+    fields: audience ? { name, audience } : { name, permissions },
   };
 }
 
@@ -160,11 +163,13 @@ export function buildApiKeyRevokeProof({
 export function buildOnboardExistingPubkeyProof({
   name,
   permissions,
+  audience,
   contact,
   pubkey,
 }: {
   name: string;
-  permissions: "read" | "read_write" | "full_access";
+  permissions?: "read" | "read_write" | "full_access";
+  audience?: "shopping" | "seller";
   contact?: string;
   pubkey: string;
 }): McpRequestProof {
@@ -173,11 +178,14 @@ export function buildOnboardExistingPubkeyProof({
     method: "POST",
     path: "/api/mcp/onboard",
     pubkey,
-    fields: {
-      name,
-      permissions,
-      contact,
-    },
+    // Audience-aware requests bind the audience (the tier is derived
+    // server-side); legacy requests keep binding the permissions tier.
+    // Mixing the two never verifies — a legacy proof cannot be replayed
+    // with a substituted audience.
+    fields:
+      audience !== undefined
+        ? { name, audience, contact }
+        : { name, permissions, contact },
   };
 }
 

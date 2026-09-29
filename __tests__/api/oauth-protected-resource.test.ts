@@ -75,11 +75,7 @@ describe("/.well-known/oauth-protected-resource", () => {
     // identifier WITHOUT a path — the origin itself.
     expect(out.body.resource).toBe(SITE_URL);
     expect(new URL(out.body.resource).pathname).toBe("/");
-    expect(out.body.scopes_supported).toEqual([
-      "read",
-      "read_write",
-      "full_access",
-    ]);
+    expect(out.body.scopes_supported).toEqual(["shopping", "seller"]);
     expect(out.body.bearer_methods_supported).toEqual(["header"]);
     expect(out.body.resource_documentation).toContain("/developers");
     expect(out.headers["cache-control"]).toContain("public");
